@@ -1,0 +1,52 @@
+import 'package:flutter/material.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+import 'package:funances/l10n/app_localizations.dart';
+import '../providers/onboarding_providers.dart';
+import 'type_card.dart';
+
+class WelcomeStep extends StatelessWidget {
+  final OnboardingNotifier notifier;
+  const WelcomeStep({super.key, required this.notifier});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Image.asset(
+            'assets/logo/logo-horizontal.png',
+            height: 50,
+          ),
+          const SizedBox(height: 32),
+          Text(
+            l10n.onboardingWelcomeTitle,
+            style: Theme.of(context).textTheme.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.onboardingWelcomeDesc,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 48),
+          TypeCard(
+            title: l10n.onboardingPersonalTitle,
+            description: l10n.onboardingPersonalDesc,
+            icon: Icons.person,
+            onTap: () => notifier.setWorkspaceType(WorkspaceType.personal),
+          ),
+          const SizedBox(height: 16),
+          TypeCard(
+            title: l10n.onboardingBusinessTitle,
+            description: l10n.onboardingBusinessDesc,
+            icon: Icons.business,
+            onTap: () => notifier.setWorkspaceType(WorkspaceType.business),
+          ),
+        ],
+      ),
+    );
+  }
+}

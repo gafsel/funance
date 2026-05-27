@@ -1,0 +1,69 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "funance-cef1b",
+          "appId": "1:870067420485:android:dd117619a51bdb3802d22c",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "funance-cef1b",
+          "appId": "1:870067420485:ios:8b13e08dd2c198d902d22c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "funance-cef1b",
+          "appId": "1:870067420485:ios:8b13e08dd2c198d902d22c",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "funance-cef1b",
+          "configurations": {
+            "android": "1:870067420485:android:dd117619a51bdb3802d22c",
+            "ios": "1:870067420485:ios:8b13e08dd2c198d902d22c",
+            "macos": "1:870067420485:ios:8b13e08dd2c198d902d22c",
+            "web": "1:870067420485:web:22cc31e24f17e3da02d22c",
+            "windows": "1:870067420485:web:f9155005dcb4a48302d22c"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firebase/firestore.rules",
+    "indexes": "firebase/firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

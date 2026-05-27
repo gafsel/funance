@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "870067420485",
+    "project_id": "funance-cef1b",
+    "storage_bucket": "funance-cef1b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870067420485:android:dd117619a51bdb3802d22c",
+        "android_client_info": {
+          "package_name": "br.com.funance"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "870067420485-gljsboqc1hphe2b2q3chlp03bhdfi4bk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7-Y1oYV7BXImAL-16zKW34t4Q_DbrWl8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870067420485-gljsboqc1hphe2b2q3chlp03bhdfi4bk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
