@@ -166,6 +166,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalCurrentAmountLabel => 'Current Amount';
 
   @override
+  String get goalStartDateLabel => 'Start Date';
+
+  @override
   String get goalDeadlineLabel => 'Deadline';
 
   @override

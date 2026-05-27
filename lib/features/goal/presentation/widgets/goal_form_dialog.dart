@@ -24,6 +24,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
   late TextEditingController _targetAmountController;
   late TextEditingController _currentAmountController;
   late TextEditingController _averageSpendingController;
+  late DateTime _startDate;
   late DateTime _deadline;
   late GoalType _type;
   String? _selectedCategory;
@@ -38,6 +39,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     _averageSpendingController = TextEditingController(
       text: widget.goal?.metadata?['averageSpending']?.toString() ?? '',
     );
+    _startDate = widget.goal?.startDate ?? DateTime.now();
     _deadline = widget.goal?.deadline ?? DateTime.now().add(const Duration(days: 30));
     _type = widget.goal?.type ?? GoalType.saveMoney;
     _selectedCategory = widget.goal?.metadata?['category'];
@@ -53,11 +55,25 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _selectStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now().add(const Duration(days: 3650)),
+    );
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+      });
+    }
+  }
+
+  Future<void> _selectDeadline() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: _deadline,
-      firstDate: DateTime.now(),
+      firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
     if (picked != null) {
@@ -82,6 +98,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
         name: _nameController.text,
         targetAmount: double.parse(_targetAmountController.text),
         currentAmount: double.parse(_currentAmountController.text),
+        startDate: _startDate,
         deadline: _deadline,
         type: _type,
         accountId: _selectedAccountId,
@@ -155,6 +172,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                   controller: _currentAmountController,
                   decoration: InputDecoration(labelText: l10n.goalCurrentAmountLabel),
                   keyboardType: TextInputType.number,
+                  enabled: _selectedAccountId == null,
                   validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
                 ),
               ] else ...[
@@ -212,7 +230,20 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                             items: creditCards.map((a) {
                               return DropdownMenuItem(value: a.id, child: Text(a.name));
                             }).toList(),
-                            onChanged: (v) => setState(() => _selectedAccountId = v),
+                            onChanged: (v) {
+                              setState(() => _selectedAccountId = v);
+                              if (v != null) {
+                                ref.read(latestAccountBalanceProvider(v).stream).first.then((balance) {
+                                  setState(() {
+                                    // Para cartão de crédito, o saldo geralmente é negativo (débito acumulado), 
+                                    // mas para a meta de redução talvez interesse o valor absoluto ou o saldo atual.
+                                    // Como a meta de redução usa targetAmount como limite, 
+                                    // currentAmount pode ser o quanto já gastou.
+                                    _currentAmountController.text = balance.balance.abs().toString();
+                                  });
+                                });
+                              }
+                            },
                             validator: (v) => v == null ? l10n.errorUnknown : null,
                           ),
                           if (creditCards.isEmpty)
@@ -245,7 +276,17 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                         items: accounts.map((a) {
                           return DropdownMenuItem(value: a.id, child: Text(a.name));
                         }).toList(),
-                        onChanged: (v) => setState(() => _selectedAccountId = v),
+                        onChanged: (v) {
+                          setState(() => _selectedAccountId = v);
+                          if (v != null) {
+                            final account = accounts.firstWhere((a) => a.id == v);
+                            ref.read(latestAccountBalanceProvider(v).stream).first.then((balance) {
+                              setState(() {
+                                _currentAmountController.text = balance.balance.toString();
+                              });
+                            });
+                          }
+                        },
                       ),
                       if (accounts.isEmpty)
                         Padding(
@@ -264,10 +305,17 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                   error: (_, __) => const SizedBox.shrink(),
                 ),
               ListTile(
+                title: Text(l10n.goalStartDateLabel),
+                subtitle: Text(DateFormat.yMd().format(_startDate)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: _selectStartDate,
+                contentPadding: EdgeInsets.zero,
+              ),
+              ListTile(
                 title: Text(l10n.goalDeadlineLabel),
                 subtitle: Text(DateFormat.yMd().format(_deadline)),
                 trailing: const Icon(Icons.calendar_today),
-                onTap: _selectDate,
+                onTap: _selectDeadline,
                 contentPadding: EdgeInsets.zero,
               ),
             ],

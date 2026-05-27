@@ -13,6 +13,7 @@ export interface GoalModel {
   icon?: string;
   type: GoalType;
   accountId?: string;
+  startDate: Date;
   metadata?: Record<string, any>;
   isDeleted: boolean;
 }

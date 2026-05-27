@@ -392,6 +392,12 @@ abstract class AppLocalizations {
   /// **'Valor Atual'**
   String get goalCurrentAmountLabel;
 
+  /// No description provided for @goalStartDateLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data de Início'**
+  String get goalStartDateLabel;
+
   /// No description provided for @goalDeadlineLabel.
   ///
   /// In pt, this message translates to:

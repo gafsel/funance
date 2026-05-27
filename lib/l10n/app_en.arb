@@ -51,6 +51,7 @@
   "goalNameLabel": "Goal Name",
   "goalTargetAmountLabel": "Target Amount",
   "goalCurrentAmountLabel": "Current Amount",
+  "goalStartDateLabel": "Start Date",
   "goalDeadlineLabel": "Deadline",
   "goalTypeLabel": "Goal Type",
   "goalTypeSaveMoney": "Save Money",

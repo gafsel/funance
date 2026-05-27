@@ -12,6 +12,25 @@ enum GoalType {
   reduceCreditCard,
 }
 
+enum GoalStatus {
+  onTrack,
+  atRisk,
+  behind,
+  lost,
+}
+
+class GoalProgress {
+  final double percent;
+  final GoalStatus status;
+  final bool isLost;
+
+  GoalProgress({
+    required this.percent,
+    required this.status,
+    required this.isLost,
+  });
+}
+
 @JsonSerializable()
 class GoalModel {
   final String id;
@@ -23,6 +42,7 @@ class GoalModel {
   final GoalType type;
   @JsonKey(name: 'accountId')
   final String? accountId;
+  final DateTime startDate;
   final Map<String, dynamic>? metadata;
   final bool isDeleted;
 
@@ -35,9 +55,10 @@ class GoalModel {
     this.icon,
     required this.type,
     this.accountId,
+    DateTime? startDate,
     this.metadata,
     this.isDeleted = false,
-  });
+  }) : startDate = startDate ?? DateTime.now();
 
   factory GoalModel.fromJson(Map<String, dynamic> json) => _$GoalModelFromJson(json);
   Map<String, dynamic> toJson() => _$GoalModelToJson(this);
@@ -50,6 +71,7 @@ class GoalModel {
       'type': 'save_money',
       ...data,
       'id': doc.id,
+      'startDate': (data['startDate'] as Timestamp?)?.toDate().toIso8601String() ?? (data['start_date'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
       'deadline': (data['deadline'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
     });
   }
@@ -58,6 +80,7 @@ class GoalModel {
     String? name,
     double? targetAmount,
     double? currentAmount,
+    DateTime? startDate,
     DateTime? deadline,
     String? icon,
     String? accountId,
@@ -69,12 +92,63 @@ class GoalModel {
       name: name ?? this.name,
       targetAmount: targetAmount ?? this.targetAmount,
       currentAmount: currentAmount ?? this.currentAmount,
+      startDate: startDate ?? this.startDate,
       deadline: deadline ?? this.deadline,
       icon: icon ?? this.icon,
       type: type,
       accountId: accountId ?? this.accountId,
       metadata: metadata ?? this.metadata,
       isDeleted: isDeleted ?? this.isDeleted,
+    );
+  }
+
+  GoalProgress calculateProgress() {
+    final double percent;
+    final GoalStatus status;
+    final bool isLost;
+
+    final now = DateTime.now();
+    final totalDuration = deadline.difference(startDate).inDays;
+    final elapsedDuration = now.difference(startDate).inDays;
+    final timePercent = totalDuration > 0 ? (elapsedDuration / totalDuration).clamp(0.0, 1.0) : 1.0;
+
+    if (type == GoalType.saveMoney) {
+      percent = (currentAmount / targetAmount).clamp(0.0, 1.0);
+      isLost = percent < timePercent * 0.5 && deadline.isBefore(now.add(const Duration(days: 7)));
+
+      if (percent >= 1.0) {
+        status = GoalStatus.onTrack;
+      } else if (isLost) {
+        status = GoalStatus.lost;
+      } else if (percent < timePercent * 0.8) {
+        status = GoalStatus.behind;
+      } else if (percent < timePercent) {
+        status = GoalStatus.atRisk;
+      } else {
+        status = GoalStatus.onTrack;
+      }
+    } else {
+      // Redução de gastos
+      final currentSpending = currentAmount;
+
+      percent = (currentSpending / targetAmount).clamp(0.0, 1.0);
+
+      if (currentSpending > targetAmount) {
+        status = GoalStatus.lost;
+        isLost = true;
+      } else if (currentSpending > targetAmount * 0.9) {
+        status = GoalStatus.atRisk;
+        isLost = false;
+      } else {
+        status = GoalStatus.onTrack;
+        isLost = false;
+      }
+    }
+
+    return GoalProgress(
+      percent: percent,
+      status: status,
+      isLost: isLost,
     );
   }
 }

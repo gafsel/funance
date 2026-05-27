@@ -51,6 +51,7 @@
   "goalNameLabel": "Nome da Meta",
   "goalTargetAmountLabel": "Valor Alvo",
   "goalCurrentAmountLabel": "Valor Atual",
+  "goalStartDateLabel": "Data de Início",
   "goalDeadlineLabel": "Prazo",
   "goalTypeLabel": "Tipo de Meta",
   "goalTypeSaveMoney": "Juntar Dinheiro",

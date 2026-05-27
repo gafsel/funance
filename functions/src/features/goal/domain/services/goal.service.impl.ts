@@ -22,10 +22,18 @@ export class GoalServiceImpl implements IGoalService {
       // Para 'reduce_credit_card', queremos rastrear os gastos (débitos)
 
       if (before) {
-        amountChange -= this.calculateContribution(goal.type, before);
+        // Só remove se o lançamento foi depois do início da meta
+        const beforeDate = new Date(before.dueDate);
+        if (beforeDate >= goal.startDate) {
+          amountChange -= this.calculateContribution(goal.type, before);
+        }
       }
       if (after) {
-        amountChange += this.calculateContribution(goal.type, after);
+        // Só adiciona se o lançamento foi depois do início da meta
+        const afterDate = new Date(after.dueDate);
+        if (afterDate >= goal.startDate) {
+          amountChange += this.calculateContribution(goal.type, after);
+        }
       }
 
       if (amountChange !== 0) {

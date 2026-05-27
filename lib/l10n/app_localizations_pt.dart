@@ -167,6 +167,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get goalCurrentAmountLabel => 'Valor Atual';
 
   @override
+  String get goalStartDateLabel => 'Data de Início';
+
+  @override
   String get goalDeadlineLabel => 'Prazo';
 
   @override

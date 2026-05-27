@@ -140,60 +140,7 @@ class JourneyTab extends ConsumerWidget {
   Widget _buildGoalCard(BuildContext context, WidgetRef ref, GoalModel goal) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-
-    // Cálculo de Progresso e Status
-    final double percent;
-    final String statusText;
-    final Color statusColor;
-    final bool isLost;
-
-    final now = DateTime.now();
-    final totalDays = goal.deadline.difference(DateTime.now().subtract(const Duration(days: 30))).inDays.toDouble(); // Simplificado
-    final daysPassed = 30.0; // Simplificado para exemplo
-    final timePercent = (daysPassed / (totalDays + daysPassed)).clamp(0.0, 1.0);
-
-    if (goal.type == GoalType.saveMoney) {
-      percent = (goal.currentAmount / goal.targetAmount).clamp(0.0, 1.0);
-      isLost = percent < timePercent * 0.5 && goal.deadline.isBefore(now.add(const Duration(days: 7)));
-      
-      if (percent >= 1.0) {
-        statusText = l10n.statusOnTrack;
-        statusColor = AppColors.brightCyan;
-      } else if (isLost) {
-        statusText = l10n.statusLost;
-        statusColor = AppColors.coralOrange;
-      } else if (percent < timePercent * 0.8) {
-        statusText = l10n.statusBehind;
-        statusColor = AppColors.coralOrange;
-      } else if (percent < timePercent) {
-        statusText = l10n.statusAtRisk;
-        statusColor = AppColors.successGold;
-      } else {
-        statusText = l10n.statusOnTrack;
-        statusColor = AppColors.limeGreen;
-      }
-    } else {
-      // Redução de gastos
-      final currentSpending = goal.currentAmount; // Valor gasto no mês atual para a categoria
-      
-      // Se gastou menos que a meta, está indo bem.
-      // Progresso aqui é o quanto do "limite" ainda tenho ou o quão longe estou do estouro
-      percent = (currentSpending / goal.targetAmount).clamp(0.0, 1.0);
-      
-      if (currentSpending > goal.targetAmount) {
-        statusText = l10n.statusLost;
-        statusColor = AppColors.coralOrange;
-        isLost = true;
-      } else if (currentSpending > goal.targetAmount * 0.9) {
-        statusText = l10n.statusAtRisk;
-        statusColor = AppColors.successGold;
-        isLost = false;
-      } else {
-        statusText = l10n.statusOnTrack;
-        statusColor = AppColors.limeGreen;
-        isLost = false;
-      }
-    }
+    final progress = ref.watch(goalProgressProvider(goal));
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -240,12 +187,12 @@ class JourneyTab extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
+                      color: progress.getStatusColor(context).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      statusText,
-                      style: theme.textTheme.labelSmall?.copyWith(color: statusColor, fontWeight: FontWeight.bold),
+                      progress.getStatusText(l10n),
+                      style: theme.textTheme.labelSmall?.copyWith(color: progress.getStatusColor(context), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -261,11 +208,16 @@ class JourneyTab extends ConsumerWidget {
                     ),
                   ),
                   FractionallySizedBox(
-                    widthFactor: goal.type == GoalType.saveMoney ? percent : (1 - percent),
+                    widthFactor: progress.percent,
                     child: Container(
                       height: 12,
                       decoration: BoxDecoration(
-                        gradient: AppGradients.progressGradient,
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.limeGreen,
+                            progress.getStatusColor(context),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ),
@@ -279,7 +231,7 @@ class JourneyTab extends ConsumerWidget {
                   Text(
                     goal.type == GoalType.saveMoney
                         ? l10n.goalRemainingAmount('R\$ ${(goal.targetAmount - goal.currentAmount).toStringAsFixed(0)}')
-                        : '${(percent * 100).toInt()}% do limite gasto',
+                        : '${(progress.percent * 100).toInt()}% do limite gasto',
                     style: theme.textTheme.bodySmall,
                   ),
                   Text(
