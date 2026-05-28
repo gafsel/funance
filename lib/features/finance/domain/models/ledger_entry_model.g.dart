@@ -6,8 +6,8 @@ part of 'ledger_entry_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-LedgerEntryModel _$LedgerEntryModelFromJson(Map<String, dynamic> json) =>
-    LedgerEntryModel(
+_LedgerEntryModel _$LedgerEntryModelFromJson(Map<String, dynamic> json) =>
+    _LedgerEntryModel(
       id: json['id'] as String,
       orderId: json['order_id'] as String?,
       category: json['category'] as String,
@@ -19,7 +19,7 @@ LedgerEntryModel _$LedgerEntryModelFromJson(Map<String, dynamic> json) =>
       isDeductible: json['is_deductible'] as bool? ?? false,
     );
 
-Map<String, dynamic> _$LedgerEntryModelToJson(LedgerEntryModel instance) =>
+Map<String, dynamic> _$LedgerEntryModelToJson(_LedgerEntryModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'order_id': instance.orderId,

@@ -6,8 +6,8 @@ part of 'workspace_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
-    WorkspaceModel(
+_WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
+    _WorkspaceModel(
       id: json['id'] as String,
       name: json['name'] as String,
       type: $enumDecode(_$WorkspaceTypeEnumMap, json['type']),
@@ -17,7 +17,7 @@ WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
 
-Map<String, dynamic> _$WorkspaceModelToJson(WorkspaceModel instance) =>
+Map<String, dynamic> _$WorkspaceModelToJson(_WorkspaceModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,

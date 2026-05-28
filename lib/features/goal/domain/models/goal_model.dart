@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+part 'goal_model.freezed.dart';
 part 'goal_model.g.dart';
 
 enum GoalType {
@@ -21,46 +21,32 @@ enum GoalStatus {
   lost,
 }
 
-class GoalProgress {
-  final double percent;
-  final GoalStatus status;
-  final bool isLost;
-
-  GoalProgress({
-    required this.percent,
-    required this.status,
-    required this.isLost,
-  });
+@freezed
+sealed class GoalProgress with _$GoalProgress {
+  const factory GoalProgress({
+    required double percent,
+    required GoalStatus status,
+    required bool isLost,
+  }) = _GoalProgress;
 }
 
-@JsonSerializable()
-class GoalModel {
-  final String id;
-  final String name;
-  final double targetAmount;
-  final double currentAmount;
-  final DateTime deadline;
-  final String? icon;
-  final GoalType type;
-  @JsonKey(name: 'accountId')
-  final String? accountId;
-  final DateTime startDate;
-  final Map<String, dynamic>? metadata;
-  final bool isDeleted;
+@freezed
+sealed class GoalModel with _$GoalModel {
+  const GoalModel._();
 
-  GoalModel({
-    required this.id,
-    required this.name,
-    required this.targetAmount,
-    required this.currentAmount,
-    required this.deadline,
-    this.icon,
-    required this.type,
-    this.accountId,
-    DateTime? startDate,
-    this.metadata,
-    this.isDeleted = false,
-  }) : startDate = startDate ?? DateTime.now();
+  const factory GoalModel({
+    required String id,
+    required String name,
+    required double targetAmount,
+    required double currentAmount,
+    required DateTime deadline,
+    String? icon,
+    required GoalType type,
+    @JsonKey(name: 'accountId') String? accountId,
+    required DateTime startDate,
+    Map<String, dynamic>? metadata,
+    @Default(false) bool isDeleted,
+  }) = _GoalModel;
 
   double get monthlyRequirement {
     final now = DateTime.now();
@@ -78,52 +64,6 @@ class GoalModel {
   }
 
   factory GoalModel.fromJson(Map<String, dynamic> json) => _$GoalModelFromJson(json);
-  Map<String, dynamic> toJson() => _$GoalModelToJson(this);
-
-  factory GoalModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>?;
-    if (data == null) throw Exception('Goal data is null');
-
-    DateTime parseDate(dynamic value) {
-      if (value is Timestamp) return value.toDate();
-      if (value is String) return DateTime.parse(value);
-      return DateTime.now();
-    }
-
-    return GoalModel.fromJson({
-      'type': 'save_money',
-      ...data,
-      'id': doc.id,
-      'startDate': parseDate(data['startDate'] ?? data['start_date']).toIso8601String(),
-      'deadline': parseDate(data['deadline']).toIso8601String(),
-    });
-  }
-
-  GoalModel copyWith({
-    String? name,
-    double? targetAmount,
-    double? currentAmount,
-    DateTime? startDate,
-    DateTime? deadline,
-    String? icon,
-    String? accountId,
-    Map<String, dynamic>? metadata,
-    bool? isDeleted,
-  }) {
-    return GoalModel(
-      id: id,
-      name: name ?? this.name,
-      targetAmount: targetAmount ?? this.targetAmount,
-      currentAmount: currentAmount ?? this.currentAmount,
-      startDate: startDate ?? this.startDate,
-      deadline: deadline ?? this.deadline,
-      icon: icon ?? this.icon,
-      type: type,
-      accountId: accountId ?? this.accountId,
-      metadata: metadata ?? this.metadata,
-      isDeleted: isDeleted ?? this.isDeleted,
-    );
-  }
 
   GoalProgress calculateProgress() {
     final double percent;
@@ -138,12 +78,6 @@ class GoalModel {
     if (type == GoalType.saveMoney || type == GoalType.payDebt) {
       percent = (currentAmount / targetAmount).clamp(0.0, 1.0);
       
-      if (type == GoalType.payDebt) {
-        // Para dívida, o progresso pode ser inverso se considerarmos o saldo negativo,
-        // mas aqui assumimos que currentAmount é o quanto JÁ FOI PAGO da dívida total (targetAmount).
-        // Se currentAmount for o saldo da conta (negativo), precisamos tratar.
-      }
-
       isLost = percent < timePercent * 0.5 && deadline.isBefore(now.add(const Duration(days: 7)));
 
       if (percent >= 1.0) {

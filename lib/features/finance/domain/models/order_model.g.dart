@@ -6,7 +6,7 @@ part of 'order_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
+ExpenseOrder _$ExpenseOrderFromJson(Map<String, dynamic> json) => ExpenseOrder(
   id: json['id'] as String,
   description: json['description'] as String,
   totalAmount: (json['total_amount'] as num).toDouble(),
@@ -14,23 +14,25 @@ OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => OrderModel(
   installmentsCount: (json['installments_count'] as num).toInt(),
   date: DateTime.parse(json['date'] as String),
   status: $enumDecode(_$OrderStatusEnumMap, json['status']),
-  type: $enumDecode(_$OrderTypeEnumMap, json['type']),
   planningId: json['planning_id'] as String?,
-  metadata: json['metadata'] as Map<String, dynamic>?,
+  accountId: json['accountId'] as String?,
+  isDeleted: json['is_deleted'] as bool?,
+  $type: json['runtimeType'] as String?,
 );
 
-Map<String, dynamic> _$OrderModelToJson(OrderModel instance) =>
+Map<String, dynamic> _$ExpenseOrderToJson(ExpenseOrder instance) =>
     <String, dynamic>{
       'id': instance.id,
       'description': instance.description,
       'total_amount': instance.totalAmount,
-      'category': instance.category.toJson(),
+      'category': instance.category,
       'installments_count': instance.installmentsCount,
       'date': instance.date.toIso8601String(),
       'status': _$OrderStatusEnumMap[instance.status]!,
-      'type': _$OrderTypeEnumMap[instance.type]!,
       'planning_id': instance.planningId,
-      'metadata': instance.metadata,
+      'accountId': instance.accountId,
+      'is_deleted': instance.isDeleted,
+      'runtimeType': instance.$type,
     };
 
 const _$OrderStatusEnumMap = {
@@ -39,8 +41,65 @@ const _$OrderStatusEnumMap = {
   OrderStatus.cancelled: 'cancelled',
 };
 
-const _$OrderTypeEnumMap = {
-  OrderType.expense: 'expense',
-  OrderType.income: 'income',
-  OrderType.transfer: 'transfer',
-};
+IncomeOrder _$IncomeOrderFromJson(Map<String, dynamic> json) => IncomeOrder(
+  id: json['id'] as String,
+  description: json['description'] as String,
+  totalAmount: (json['total_amount'] as num).toDouble(),
+  category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
+  installmentsCount: (json['installments_count'] as num).toInt(),
+  date: DateTime.parse(json['date'] as String),
+  status: $enumDecode(_$OrderStatusEnumMap, json['status']),
+  planningId: json['planning_id'] as String?,
+  accountId: json['accountId'] as String?,
+  isDeleted: json['is_deleted'] as bool?,
+  $type: json['runtimeType'] as String?,
+);
+
+Map<String, dynamic> _$IncomeOrderToJson(IncomeOrder instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'description': instance.description,
+      'total_amount': instance.totalAmount,
+      'category': instance.category,
+      'installments_count': instance.installmentsCount,
+      'date': instance.date.toIso8601String(),
+      'status': _$OrderStatusEnumMap[instance.status]!,
+      'planning_id': instance.planningId,
+      'accountId': instance.accountId,
+      'is_deleted': instance.isDeleted,
+      'runtimeType': instance.$type,
+    };
+
+TransferOrder _$TransferOrderFromJson(Map<String, dynamic> json) =>
+    TransferOrder(
+      id: json['id'] as String,
+      description: json['description'] as String,
+      totalAmount: (json['total_amount'] as num).toDouble(),
+      category: CategoryModel.fromJson(
+        json['category'] as Map<String, dynamic>,
+      ),
+      installmentsCount: (json['installments_count'] as num).toInt(),
+      date: DateTime.parse(json['date'] as String),
+      status: $enumDecode(_$OrderStatusEnumMap, json['status']),
+      planningId: json['planning_id'] as String?,
+      fromAccountId: json['fromAccountId'] as String?,
+      toAccountId: json['toAccountId'] as String?,
+      isDeleted: json['is_deleted'] as bool?,
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$TransferOrderToJson(TransferOrder instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'description': instance.description,
+      'total_amount': instance.totalAmount,
+      'category': instance.category,
+      'installments_count': instance.installmentsCount,
+      'date': instance.date.toIso8601String(),
+      'status': _$OrderStatusEnumMap[instance.status]!,
+      'planning_id': instance.planningId,
+      'fromAccountId': instance.fromAccountId,
+      'toAccountId': instance.toAccountId,
+      'is_deleted': instance.isDeleted,
+      'runtimeType': instance.$type,
+    };

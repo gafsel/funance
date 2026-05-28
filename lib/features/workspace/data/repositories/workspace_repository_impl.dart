@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/features/workspace/data/models/workspace_mapper.dart';
 import '../../domain/models/workspace_model.dart';
 import '../../domain/repositories/workspace_repository.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
@@ -15,7 +16,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
           .where('members', arrayContains: userUid)
           .get();
 
-      return snapshot.docs.map((doc) => WorkspaceModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toWorkspaceModel()).toList();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
@@ -46,7 +47,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
     try {
       final doc = await _firestore.collection(_collection).doc(id).get();
       if (!doc.exists) return null;
-      return WorkspaceModel.fromFirestore(doc);
+      return doc.toWorkspaceModel();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }

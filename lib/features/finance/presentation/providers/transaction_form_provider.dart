@@ -3,43 +3,32 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/models/planning_model.dart';
 import 'package:funances/features/finance/presentation/providers/transaction_providers.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'transaction_form_provider.freezed.dart';
 
 enum TransactionFormType { simple, installment, recurrent }
 
-class TransactionFormState {
-  final TransactionType currentType;
-  final TransactionFormType formType;
-  final String description;
-  final double amount;
-  final int installments;
-  final DateTime selectedDate;
-  final CategoryModel? selectedCategory;
-  final String? selectedAccountId;
-  final String? toAccountId;
-  final String? existingOrderId;
-  final String? planningId;
-  final bool isTransfer;
-  final bool isLoading;
-  final String? errorMessage;
-  final bool isSuccess;
-
-  TransactionFormState({
-    required this.currentType,
-    required this.formType,
-    required this.description,
-    required this.amount,
-    required this.installments,
-    required this.selectedDate,
-    this.selectedCategory,
-    this.selectedAccountId,
-    this.toAccountId,
-    this.existingOrderId,
-    this.planningId,
-    required this.isTransfer,
-    this.isLoading = false,
-    this.errorMessage,
-    this.isSuccess = false,
-  });
+@freezed
+sealed class TransactionFormState with _$TransactionFormState {
+  const TransactionFormState._();
+  const factory TransactionFormState({
+    required TransactionType currentType,
+    required TransactionFormType formType,
+    required String description,
+    required double amount,
+    required int installments,
+    required DateTime selectedDate,
+    CategoryModel? selectedCategory,
+    String? selectedAccountId,
+    String? toAccountId,
+    String? existingOrderId,
+    String? planningId,
+    required bool isTransfer,
+    @Default(false) bool isLoading,
+    String? errorMessage,
+    @Default(false) bool isSuccess,
+  }) = _TransactionFormState;
 
   factory TransactionFormState.initial({
     required TransactionType initialType,
@@ -62,6 +51,23 @@ class TransactionFormState {
           ? TransactionFormType.installment 
           : TransactionFormType.simple;
 
+    String? accountId;
+    String? fromAccountId;
+    String? toAccountId;
+    bool? isDeleted;
+
+    if (initialOrder is ExpenseOrder) {
+      accountId = initialOrder.accountId;
+      isDeleted = initialOrder.isDeleted;
+    } else if (initialOrder is IncomeOrder) {
+      accountId = initialOrder.accountId;
+      isDeleted = initialOrder.isDeleted;
+    } else if (initialOrder is TransferOrder) {
+      fromAccountId = initialOrder.fromAccountId;
+      toAccountId = initialOrder.toAccountId;
+      isDeleted = initialOrder.isDeleted;
+    }
+
     return TransactionFormState(
       currentType: initialType,
       formType: formType,
@@ -70,47 +76,11 @@ class TransactionFormState {
       installments: initialOrder?.installmentsCount ?? 1,
       selectedDate: initialOrder?.date ?? selectedDate,
       selectedCategory: initialCategory ?? initialOrder?.category,
-      selectedAccountId: initialAccountId ?? (initialOrder?.metadata?['fromAccountId'] ?? initialOrder?.metadata?['accountId']),
-      toAccountId: initialToAccountId ?? initialOrder?.metadata?['toAccountId'],
+      selectedAccountId: initialAccountId ?? (fromAccountId ?? accountId),
+      toAccountId: initialToAccountId ?? toAccountId,
       existingOrderId: initialOrder?.id,
       planningId: initialOrder?.planningId,
-      isTransfer: isTransfer || (initialOrder?.type == OrderType.transfer),
-    );
-  }
-
-  TransactionFormState copyWith({
-    TransactionType? currentType,
-    TransactionFormType? formType,
-    String? description,
-    double? amount,
-    int? installments,
-    DateTime? selectedDate,
-    CategoryModel? selectedCategory,
-    String? selectedAccountId,
-    String? toAccountId,
-    String? existingOrderId,
-    String? planningId,
-    bool? isTransfer,
-    bool? isLoading,
-    String? errorMessage,
-    bool? isSuccess,
-  }) {
-    return TransactionFormState(
-      currentType: currentType ?? this.currentType,
-      formType: formType ?? this.formType,
-      description: description ?? this.description,
-      amount: amount ?? this.amount,
-      installments: installments ?? this.installments,
-      selectedDate: selectedDate ?? this.selectedDate,
-      selectedCategory: selectedCategory ?? this.selectedCategory,
-      selectedAccountId: selectedAccountId ?? this.selectedAccountId,
-      toAccountId: toAccountId ?? this.toAccountId,
-      existingOrderId: existingOrderId ?? this.existingOrderId,
-      planningId: planningId ?? this.planningId,
-      isTransfer: isTransfer ?? this.isTransfer,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-      isSuccess: isSuccess ?? this.isSuccess,
+      isTransfer: isTransfer || (initialOrder is TransferOrder),
     );
   }
 }
@@ -207,13 +177,10 @@ class TransactionFormNotifier extends StateNotifier<TransactionFormState> {
       }
     }
 
-    final metadata = <String, dynamic>{
-      'accountId': state.selectedAccountId,
+    final metadata = {
+      if (state.isTransfer) 'fromAccountId': state.selectedAccountId else 'accountId': state.selectedAccountId,
+      if (state.isTransfer) 'toAccountId': state.toAccountId,
     };
-    if (state.isTransfer) {
-      metadata['fromAccountId'] = state.selectedAccountId;
-      metadata['toAccountId'] = state.toAccountId;
-    }
 
     int installments = 1;
     if (state.formType == TransactionFormType.installment) {

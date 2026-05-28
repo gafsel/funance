@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/features/finance/data/models/planning_mapper.dart';
+import 'package:funances/features/finance/data/models/summary_mapper.dart';
 import '../../domain/models/planning_model.dart';
 import '../../domain/models/planning_month_summary_model.dart';
 import '../../domain/repositories/planning_repository.dart';
@@ -25,7 +27,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
     }
 
     final snapshot = await query.get();
-    final items = snapshot.docs.map((doc) => PlanningModel.fromFirestore(doc)).toList();
+    final items = snapshot.docs.map((doc) => doc.toPlanningModel()).toList();
 
     if (periodStart != null) {
       return items.where((p) => p.endDate.isAfter(periodStart.subtract(const Duration(milliseconds: 1))) || p.endDate.isAtSameMomentAs(periodStart)).toList();
@@ -44,7 +46,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
         .where('start_date', isLessThanOrEqualTo: Timestamp.fromDate(periodEnd));
 
     return query.snapshots().map((snapshot) {
-      final all = snapshot.docs.map((doc) => PlanningModel.fromFirestore(doc)).toList();
+      final all = snapshot.docs.map((doc) => doc.toPlanningModel()).toList();
       return all.where((p) => p.endDate.isAfter(periodStart.subtract(const Duration(milliseconds: 1))) || p.endDate.isAtSameMomentAs(periodStart)).toList();
     });
   }
@@ -88,7 +90,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
         .get();
 
     if (!doc.exists) return null;
-    return PlanningMonthSummaryModel.fromFirestore(doc);
+    return doc.toPlanningMonthSummaryModel();
   }
 
   @override
@@ -105,6 +107,6 @@ class PlanningRepositoryImpl implements IPlanningRepository {
         .collection('summaries')
         .doc(docId)
         .snapshots()
-        .map((doc) => doc.exists ? PlanningMonthSummaryModel.fromFirestore(doc) : null);
+        .map((doc) => doc.exists ? doc.toPlanningMonthSummaryModel() : null);
   }
 }

@@ -1,40 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../data/repositories/workspace_repository_impl.dart';
 import '../../domain/repositories/workspace_repository.dart';
 import '../../domain/models/workspace_model.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
+part 'workspace_providers.freezed.dart';
+
 final workspaceRepositoryProvider = Provider<IWorkspaceRepository>((ref) {
   return WorkspaceRepositoryImpl();
 });
 
-class WorkspaceState {
-  final WorkspaceModel? currentWorkspace;
-  final List<WorkspaceModel> availableWorkspaces;
-  final bool isLoading;
-  final bool initialLoadDone;
-
-  WorkspaceState({
-    this.currentWorkspace,
-    this.availableWorkspaces = const [],
-    this.isLoading = false,
-    this.initialLoadDone = false,
-  });
-
-  WorkspaceState copyWith({
+@freezed
+sealed class WorkspaceState with _$WorkspaceState {
+  const factory WorkspaceState({
     WorkspaceModel? currentWorkspace,
-    List<WorkspaceModel>? availableWorkspaces,
-    bool? isLoading,
-    bool? initialLoadDone,
-  }) {
-    return WorkspaceState(
-      currentWorkspace: currentWorkspace ?? this.currentWorkspace,
-      availableWorkspaces: availableWorkspaces ?? this.availableWorkspaces,
-      isLoading: isLoading ?? this.isLoading,
-      initialLoadDone: initialLoadDone ?? this.initialLoadDone,
-    );
-  }
+    @Default([]) List<WorkspaceModel> availableWorkspaces,
+    @Default(false) bool isLoading,
+    @Default(false) bool initialLoadDone,
+  }) = _WorkspaceState;
 }
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../finance/domain/models/account_model.dart';
 import '../../../goal/domain/models/goal_model.dart';
 import '../../../workspace/domain/models/workspace_model.dart';
@@ -14,6 +15,8 @@ import '../../../goal/presentation/providers/goal_providers.dart';
 import '../../../workspace/presentation/providers/workspace_providers.dart';
 import '../../../workspace/presentation/providers/invite_providers.dart';
 import '../../../workspace/presentation/providers/category_providers.dart';
+
+part 'onboarding_providers.freezed.dart';
 
 // Providers de Serviço
 final aiRepositoryProvider = Provider<IAIRepository>((ref) {
@@ -32,72 +35,25 @@ final onboardingServiceProvider = Provider<IOnboardingService>((ref) {
   );
 });
 
-class OnboardingState {
-  final int currentStep;
-  final int currentSubStep; // Para navegar dentro de passos complexos
-  final WorkspaceType? workspaceType;
-  final String workspaceName;
-  final bool isSubmitting;
-  final String createdWorkspaceId;
-  final bool isFinalizing;
-  final List<String> inviteEmails;
-  final List<AccountModel> onboardingAccounts;
-  final List<GoalModel> onboardingGoals;
-  final List<OrderModel> onboardingOrders;
-  final List<PlanningModel> onboardingPlannings;
-  final bool isAnalyzing;
-  final String? analysisError;
-
-  OnboardingState({
-    this.currentStep = 0,
-    this.currentSubStep = 0,
-    this.workspaceType,
-    this.workspaceName = '',
-    this.isSubmitting = false,
-    this.createdWorkspaceId = '',
-    this.isFinalizing = false,
-    this.inviteEmails = const [],
-    this.onboardingAccounts = const [],
-    this.onboardingGoals = const [],
-    this.onboardingOrders = const [],
-    this.onboardingPlannings = const [],
-    this.isAnalyzing = false,
-    this.analysisError,
-  });
-
-  OnboardingState copyWith({
-    int? currentStep,
-    int? currentSubStep,
+@freezed
+sealed class OnboardingState with _$OnboardingState {
+  const OnboardingState._();
+  const factory OnboardingState({
+    @Default(0) int currentStep,
+    @Default(0) int currentSubStep, // Para navegar dentro de passos complexos
     WorkspaceType? workspaceType,
-    String? workspaceName,
-    bool? isSubmitting,
-    String? createdWorkspaceId,
-    bool? isFinalizing,
-    List<String>? inviteEmails,
-    List<AccountModel>? onboardingAccounts,
-    List<GoalModel>? onboardingGoals,
-    List<OrderModel>? onboardingOrders,
-    List<PlanningModel>? onboardingPlannings,
-    bool? isAnalyzing,
+    @Default('') String workspaceName,
+    @Default(false) bool isSubmitting,
+    @Default('') String createdWorkspaceId,
+    @Default(false) bool isFinalizing,
+    @Default([]) List<String> inviteEmails,
+    @Default([]) List<AccountModel> onboardingAccounts,
+    @Default([]) List<GoalModel> onboardingGoals,
+    @Default([]) List<OrderModel> onboardingOrders,
+    @Default([]) List<PlanningModel> onboardingPlannings,
+    @Default(false) bool isAnalyzing,
     String? analysisError,
-  }) {
-    return OnboardingState(
-      currentStep: currentStep ?? this.currentStep,
-      currentSubStep: currentSubStep ?? this.currentSubStep,
-      workspaceType: workspaceType ?? this.workspaceType,
-      workspaceName: workspaceName ?? this.workspaceName,
-      isSubmitting: isSubmitting ?? this.isSubmitting,
-      createdWorkspaceId: createdWorkspaceId ?? this.createdWorkspaceId,
-      isFinalizing: isFinalizing ?? this.isFinalizing,
-      inviteEmails: inviteEmails ?? this.inviteEmails,
-      onboardingAccounts: onboardingAccounts ?? this.onboardingAccounts,
-      onboardingGoals: onboardingGoals ?? this.onboardingGoals,
-      onboardingOrders: onboardingOrders ?? this.onboardingOrders,
-      onboardingPlannings: onboardingPlannings ?? this.onboardingPlannings,
-      isAnalyzing: isAnalyzing ?? this.isAnalyzing,
-      analysisError: analysisError ?? this.analysisError,
-    );
-  }
+  }) = _OnboardingState;
 }
 
 class OnboardingNotifier extends StateNotifier<OnboardingState> {

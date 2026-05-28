@@ -3,31 +3,25 @@ import 'package:funances/features/finance/presentation/providers/account_provide
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
 import 'package:uuid/uuid.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class GoalFormState {
-  final String name;
-  final double targetAmount;
-  final double currentAmount;
-  final double averageSpending;
-  final DateTime startDate;
-  final DateTime deadline;
-  final GoalType type;
-  final String? selectedCategory;
-  final String? selectedAccountId;
-  final bool isLoading;
+part 'goal_form_provider.freezed.dart';
 
-  GoalFormState({
-    required this.name,
-    required this.targetAmount,
-    required this.currentAmount,
-    required this.averageSpending,
-    required this.startDate,
-    required this.deadline,
-    required this.type,
-    this.selectedCategory,
-    this.selectedAccountId,
-    this.isLoading = false,
-  });
+@freezed
+sealed class GoalFormState with _$GoalFormState {
+  const GoalFormState._();
+  const factory GoalFormState({
+    required String name,
+    required double targetAmount,
+    required double currentAmount,
+    required double averageSpending,
+    required DateTime startDate,
+    required DateTime deadline,
+    required GoalType type,
+    String? selectedCategory,
+    String? selectedAccountId,
+    @Default(false) bool isLoading,
+  }) = _GoalFormState;
 
   factory GoalFormState.initial(GoalModel? goal) {
     return GoalFormState(
@@ -40,32 +34,6 @@ class GoalFormState {
       type: goal?.type ?? GoalType.saveMoney,
       selectedCategory: goal?.metadata?['category'],
       selectedAccountId: goal?.accountId,
-    );
-  }
-
-  GoalFormState copyWith({
-    String? name,
-    double? targetAmount,
-    double? currentAmount,
-    double? averageSpending,
-    DateTime? startDate,
-    DateTime? deadline,
-    GoalType? type,
-    String? selectedCategory,
-    String? selectedAccountId,
-    bool? isLoading,
-  }) {
-    return GoalFormState(
-      name: name ?? this.name,
-      targetAmount: targetAmount ?? this.targetAmount,
-      currentAmount: currentAmount ?? this.currentAmount,
-      averageSpending: averageSpending ?? this.averageSpending,
-      startDate: startDate ?? this.startDate,
-      deadline: deadline ?? this.deadline,
-      type: type ?? this.type,
-      selectedCategory: selectedCategory ?? this.selectedCategory,
-      selectedAccountId: selectedAccountId ?? this.selectedAccountId,
-      isLoading: isLoading ?? this.isLoading,
     );
   }
 }

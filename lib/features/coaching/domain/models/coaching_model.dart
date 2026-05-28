@@ -1,6 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:json_annotation/json_annotation.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
+part 'coaching_model.freezed.dart';
 part 'coaching_model.g.dart';
 
 enum CoachingType {
@@ -12,29 +12,14 @@ enum CoachingType {
   tip,
 }
 
-@JsonSerializable()
-class CoachingModel {
-  final String id;
-  final String message;
-  final DateTime date;
-  final CoachingType type;
-
-  CoachingModel({
-    required this.id,
-    required this.message,
-    required this.date,
-    required this.type,
-  });
+@freezed
+sealed class CoachingModel with _$CoachingModel {
+  const factory CoachingModel({
+    required String id,
+    required String message,
+    required DateTime date,
+    required CoachingType type,
+  }) = _CoachingModel;
 
   factory CoachingModel.fromJson(Map<String, dynamic> json) => _$CoachingModelFromJson(json);
-  Map<String, dynamic> toJson() => _$CoachingModelToJson(this);
-
-  factory CoachingModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    return CoachingModel.fromJson({
-      ...data,
-      'id': doc.id,
-      'date': (data['date'] as Timestamp).toDate().toIso8601String(),
-    });
-  }
 }

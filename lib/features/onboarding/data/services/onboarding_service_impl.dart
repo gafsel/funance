@@ -118,17 +118,20 @@ class OnboardingService implements IOnboardingService {
           finalCategory = order.category.copyWith(id: existingCategoryId);
         }
 
-        // Recuperar o accountId do metadata da order (preenchido no AccountFormNotifier)
-        final String? accountId = order.metadata?['accountId'];
+        // Recuperar o accountId dependendo do tipo da order
+        String? accountId;
+        if (order is ExpenseOrder) {
+          accountId = order.accountId;
+        } else if (order is IncomeOrder) {
+          accountId = order.accountId;
+        } else if (order is TransferOrder) {
+          accountId = order.fromAccountId;
+        }
 
         await _financeRepository.addOrder(
           workspaceId,
           order.copyWith(
             category: finalCategory,
-            metadata: {
-              ...(order.metadata ?? {}),
-              'accountId': accountId,
-            }..removeWhere((key, value) => value == null),
           ),
         );
       }
@@ -153,17 +156,10 @@ class OnboardingService implements IOnboardingService {
           finalCategory = planning.category.copyWith(id: existingCategoryId);
         }
 
-        // Tenta recuperar o accountId para associar ao planejamento, se disponível no metadata
-        final String? accountId = planning.metadata?['accountId'];
-
         await _financeRepository.addPlanning(
           workspaceId,
           planning.copyWith(
             category: finalCategory,
-            metadata: {
-              ...(planning.metadata ?? {}),
-              'accountId': accountId,
-            }..removeWhere((key, value) => value == null),
           ),
         );
       }
@@ -175,7 +171,7 @@ class OnboardingService implements IOnboardingService {
       if (workspace != null) {
         for (final email in inviteEmails) {
           final invite = InviteModel(
-            id: '',
+            id: const Uuid().v4(),
             workspace: workspace,
             senderId: userId,
             senderName: userId,

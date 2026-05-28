@@ -1,44 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class LoginFormState {
-  final String email;
-  final String password;
-  final String displayName;
-  final bool isSignUp;
-  final bool isLoading;
-  final String? errorMessage;
-  final bool isSuccess;
+part 'login_form_provider.freezed.dart';
 
-  LoginFormState({
-    this.email = '',
-    this.password = '',
-    this.displayName = '',
-    this.isSignUp = false,
-    this.isLoading = false,
-    this.errorMessage,
-    this.isSuccess = false,
-  });
-
-  LoginFormState copyWith({
-    String? email,
-    String? password,
-    String? displayName,
-    bool? isSignUp,
-    bool? isLoading,
+@freezed
+sealed class LoginFormState with _$LoginFormState {
+  const factory LoginFormState({
+    @Default('') String email,
+    @Default('') String password,
+    @Default('') String displayName,
+    @Default(false) bool isSignUp,
+    @Default(false) bool isLoading,
     String? errorMessage,
-    bool? isSuccess,
-  }) {
-    return LoginFormState(
-      email: email ?? this.email,
-      password: password ?? this.password,
-      displayName: displayName ?? this.displayName,
-      isSignUp: isSignUp ?? this.isSignUp,
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-      isSuccess: isSuccess ?? this.isSuccess,
-    );
-  }
+    @Default(false) bool isSuccess,
+  }) = _LoginFormState;
 }
 
 class LoginFormNotifier extends StateNotifier<LoginFormState> {

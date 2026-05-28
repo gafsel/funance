@@ -6,8 +6,8 @@ part of 'category_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-CategoryModel _$CategoryModelFromJson(Map<String, dynamic> json) =>
-    CategoryModel(
+_CategoryModel _$CategoryModelFromJson(Map<String, dynamic> json) =>
+    _CategoryModel(
       id: json['id'] as String,
       name: json['name'] as String,
       icon: json['icon'] as String,
@@ -17,7 +17,7 @@ CategoryModel _$CategoryModelFromJson(Map<String, dynamic> json) =>
           CategoryType.expense,
     );
 
-Map<String, dynamic> _$CategoryModelToJson(CategoryModel instance) =>
+Map<String, dynamic> _$CategoryModelToJson(_CategoryModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,

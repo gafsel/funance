@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/features/goal/data/models/goal_mapper.dart';
 import '../../domain/models/goal_model.dart';
 import '../../domain/repositories/goal_repository.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
@@ -16,7 +17,7 @@ class GoalRepositoryImpl implements IGoalRepository {
       final snapshot = await _getCollection(workspaceId)
           .where('isDeleted', isEqualTo: false)
           .get();
-      return snapshot.docs.map((doc) => GoalModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toGoalModel()).toList();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }

@@ -60,6 +60,7 @@ class FirebaseAIRepository implements IAIRepository {
             (e) => e.name == map['type'],
             orElse: () => GoalType.saveMoney,
           ),
+          startDate: DateTime.now(),
           deadline: DateTime.now().add(Duration(days: (map['deadlineMonths'] ?? 6) * 30)),
           icon: map['icon'] ?? 'star',
         );

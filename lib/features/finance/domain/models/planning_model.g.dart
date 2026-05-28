@@ -6,34 +6,80 @@ part of 'planning_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-PlanningModel _$PlanningModelFromJson(Map<String, dynamic> json) =>
-    PlanningModel(
+UniquePlanning _$UniquePlanningFromJson(Map<String, dynamic> json) =>
+    UniquePlanning(
       id: json['id'] as String,
       category: CategoryModel.fromJson(
         json['category'] as Map<String, dynamic>,
       ),
       amount: (json['amount'] as num).toDouble(),
-      type: $enumDecode(_$PlanningTypeEnumMap, json['type']),
       installmentsCount: (json['installments_count'] as num?)?.toInt(),
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
-      metadata: json['metadata'] as Map<String, dynamic>?,
+      accountId: json['accountId'] as String?,
+      $type: json['runtimeType'] as String?,
     );
 
-Map<String, dynamic> _$PlanningModelToJson(PlanningModel instance) =>
+Map<String, dynamic> _$UniquePlanningToJson(UniquePlanning instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'category': instance.category.toJson(),
+      'category': instance.category,
       'amount': instance.amount,
-      'type': _$PlanningTypeEnumMap[instance.type]!,
       'installments_count': instance.installmentsCount,
       'startDate': instance.startDate.toIso8601String(),
       'endDate': instance.endDate.toIso8601String(),
-      'metadata': instance.metadata,
+      'accountId': instance.accountId,
+      'runtimeType': instance.$type,
     };
 
-const _$PlanningTypeEnumMap = {
-  PlanningType.unique: 'unique',
-  PlanningType.recurrent: 'recurrent',
-  PlanningType.parcelado: 'parcelado',
-};
+RecurrentPlanning _$RecurrentPlanningFromJson(Map<String, dynamic> json) =>
+    RecurrentPlanning(
+      id: json['id'] as String,
+      category: CategoryModel.fromJson(
+        json['category'] as Map<String, dynamic>,
+      ),
+      amount: (json['amount'] as num).toDouble(),
+      installmentsCount: (json['installments_count'] as num?)?.toInt(),
+      startDate: DateTime.parse(json['startDate'] as String),
+      endDate: DateTime.parse(json['endDate'] as String),
+      accountId: json['accountId'] as String?,
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$RecurrentPlanningToJson(RecurrentPlanning instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'category': instance.category,
+      'amount': instance.amount,
+      'installments_count': instance.installmentsCount,
+      'startDate': instance.startDate.toIso8601String(),
+      'endDate': instance.endDate.toIso8601String(),
+      'accountId': instance.accountId,
+      'runtimeType': instance.$type,
+    };
+
+ParceladoPlanning _$ParceladoPlanningFromJson(Map<String, dynamic> json) =>
+    ParceladoPlanning(
+      id: json['id'] as String,
+      category: CategoryModel.fromJson(
+        json['category'] as Map<String, dynamic>,
+      ),
+      amount: (json['amount'] as num).toDouble(),
+      installmentsCount: (json['installments_count'] as num?)?.toInt(),
+      startDate: DateTime.parse(json['startDate'] as String),
+      endDate: DateTime.parse(json['endDate'] as String),
+      accountId: json['accountId'] as String?,
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$ParceladoPlanningToJson(ParceladoPlanning instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'category': instance.category,
+      'amount': instance.amount,
+      'installments_count': instance.installmentsCount,
+      'startDate': instance.startDate.toIso8601String(),
+      'endDate': instance.endDate.toIso8601String(),
+      'accountId': instance.accountId,
+      'runtimeType': instance.$type,
+    };

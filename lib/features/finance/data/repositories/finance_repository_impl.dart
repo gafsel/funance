@@ -5,6 +5,9 @@ import '../../domain/models/planning_model.dart';
 import '../../domain/models/category_month_summary_model.dart';
 import '../../domain/repositories/finance_repository.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import '../models/order_mapper.dart';
+import '../models/ledger_mapper.dart';
+import '../models/summary_mapper.dart';
 
 class FinanceRepositoryImpl implements IFinanceRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -58,7 +61,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       }
 
       final snapshot = await query.get();
-      return snapshot.docs.map((doc) => OrderModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toOrderModel()).toList();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
@@ -69,7 +72,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final doc = await _getWorkspaceDoc(workspaceId).collection('orders').doc(orderId).get();
       if (!doc.exists) return null;
-      return OrderModel.fromFirestore(doc);
+      return doc.toOrderModel();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
@@ -119,7 +122,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       }
       
       final snapshot = await query.orderBy('due_date', descending: true).get();
-      return snapshot.docs.map((doc) => LedgerEntryModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toLedgerEntryModel()).toList();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
@@ -182,7 +185,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
           .where('month', isEqualTo: month)
           .get();
       
-      return snapshot.docs.map((doc) => CategoryMonthSummaryModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toCategoryMonthSummaryModel()).toList();
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
@@ -196,7 +199,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         .where('month', isEqualTo: month)
         .snapshots()
         .map((snapshot) => snapshot.docs
-            .map((doc) => CategoryMonthSummaryModel.fromFirestore(doc))
+            .map((doc) => doc.toCategoryMonthSummaryModel())
             .toList());
   }
 }

@@ -464,44 +464,44 @@ class AccountFormDialog extends ConsumerWidget {
         if (state.type == AccountType.creditCard) ...[
           const SizedBox(height: 16),
           TextFormField(
-            controller: TextEditingController(text: state.metadata['limit']?.toString() ?? '')
-              ..selection = TextSelection.collapsed(offset: (state.metadata['limit']?.toString() ?? '').length),
+            controller: TextEditingController(text: state.limit?.toString() ?? '')
+              ..selection = TextSelection.collapsed(offset: (state.limit?.toString() ?? '').length),
             style: TextStyle(color: isDark ? AppColors.pureWhite : null),
             decoration: InputDecoration(
               labelText: l10n.accountLimitLabel,
               labelStyle: labelStyle,
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (v) => notifier.updateMetadata('limit', double.tryParse(v) ?? 0.0),
+            onChanged: (v) => notifier.updateMetadata('limit', double.tryParse(v)),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
                 child: TextFormField(
-                  controller: TextEditingController(text: state.metadata['dueDay']?.toString() ?? '')
-                    ..selection = TextSelection.collapsed(offset: (state.metadata['dueDay']?.toString() ?? '').length),
+                  controller: TextEditingController(text: state.dueDay?.toString() ?? '')
+                    ..selection = TextSelection.collapsed(offset: (state.dueDay?.toString() ?? '').length),
                   style: TextStyle(color: isDark ? AppColors.pureWhite : null),
                   decoration: InputDecoration(
                     labelText: l10n.accountDueDayLabel,
                     labelStyle: labelStyle,
                   ),
                   keyboardType: TextInputType.number,
-                  onChanged: (v) => notifier.updateMetadata('dueDay', int.tryParse(v) ?? 1),
+                  onChanged: (v) => notifier.updateMetadata('dueDay', int.tryParse(v)),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: TextFormField(
-                  controller: TextEditingController(text: state.metadata['closingDay']?.toString() ?? '')
-                    ..selection = TextSelection.collapsed(offset: (state.metadata['closingDay']?.toString() ?? '').length),
+                  controller: TextEditingController(text: state.closingDay?.toString() ?? '')
+                    ..selection = TextSelection.collapsed(offset: (state.closingDay?.toString() ?? '').length),
                   style: TextStyle(color: isDark ? AppColors.pureWhite : null),
                   decoration: InputDecoration(
                     labelText: l10n.accountClosingDayLabel,
                     labelStyle: labelStyle,
                   ),
                   keyboardType: TextInputType.number,
-                  onChanged: (v) => notifier.updateMetadata('closingDay', int.tryParse(v) ?? 1),
+                  onChanged: (v) => notifier.updateMetadata('closingDay', int.tryParse(v)),
                 ),
               ),
             ],
@@ -510,15 +510,15 @@ class AccountFormDialog extends ConsumerWidget {
         if (state.type == AccountType.investment || state.type == AccountType.debt) ...[
           const SizedBox(height: 16),
           TextFormField(
-            controller: TextEditingController(text: state.metadata['interestRate']?.toString() ?? '')
-              ..selection = TextSelection.collapsed(offset: (state.metadata['interestRate']?.toString() ?? '').length),
+            controller: TextEditingController(text: state.interestRate?.toString() ?? '')
+              ..selection = TextSelection.collapsed(offset: (state.interestRate?.toString() ?? '').length),
             style: TextStyle(color: isDark ? AppColors.pureWhite : null),
             decoration: InputDecoration(
               labelText: l10n.accountInterestRateLabel,
               labelStyle: labelStyle,
             ),
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (v) => notifier.updateMetadata('interestRate', double.tryParse(v) ?? 0.0),
+            onChanged: (v) => notifier.updateMetadata('interestRate', double.tryParse(v)),
           ),
         ],
       ],

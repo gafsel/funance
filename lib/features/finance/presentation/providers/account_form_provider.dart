@@ -10,45 +10,36 @@ import 'package:funances/features/finance/domain/models/planning_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
 import 'package:uuid/uuid.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'account_form_provider.freezed.dart';
 
 enum AccountRegistrationMethod { document, manual }
 
-class AccountFormState {
-  final String name;
-  final double initialBalance;
-  final DateTime initialBalanceDate;
-  final AccountType type;
-  final String color;
-  final String icon;
-  final Map<String, dynamic> metadata;
-  final File? selectedFile;
-  final String? fileName;
-  final AccountProcessingStatus processingStatus;
-  final AccountRegistrationMethod registrationMethod;
-  final List<OrderModel> detectedOrders;
-  final List<PlanningModel> detectedPlannings;
-  final bool isLoading;
-  final bool isSuccess;
-  final String? errorMessage;
-
-  AccountFormState({
-    required this.name,
-    required this.initialBalance,
-    required this.initialBalanceDate,
-    required this.type,
-    required this.color,
-    required this.icon,
-    this.metadata = const {},
-    this.selectedFile,
-    this.fileName,
-    this.processingStatus = AccountProcessingStatus.none,
-    this.registrationMethod = AccountRegistrationMethod.document,
-    this.detectedOrders = const [],
-    this.detectedPlannings = const [],
-    this.isLoading = false,
-    this.isSuccess = false,
-    this.errorMessage,
-  });
+@freezed
+sealed class AccountFormState with _$AccountFormState {
+  const AccountFormState._();
+  const factory AccountFormState({
+    required String name,
+    required double initialBalance,
+    required DateTime initialBalanceDate,
+    required AccountType type,
+    required String color,
+    required String icon,
+    double? limit,
+    int? dueDay,
+    int? closingDay,
+    double? interestRate,
+    File? selectedFile,
+    String? fileName,
+    @Default(AccountProcessingStatus.none) AccountProcessingStatus processingStatus,
+    @Default(AccountRegistrationMethod.document) AccountRegistrationMethod registrationMethod,
+    @Default([]) List<OrderModel> detectedOrders,
+    @Default([]) List<PlanningModel> detectedPlannings,
+    @Default(false) bool isLoading,
+    @Default(false) bool isSuccess,
+    String? errorMessage,
+  }) = _AccountFormState;
 
   factory AccountFormState.initial(AccountModel? account, AccountType? initialType) {
     return AccountFormState(
@@ -58,48 +49,17 @@ class AccountFormState {
       type: account?.type ?? initialType ?? AccountType.checking,
       color: account?.color ?? '#4A8C9C',
       icon: account?.icon ?? 'account_balance',
-      metadata: account?.metadata ?? {},
+      limit: account is CreditCardAccount ? account.limit : null,
+      dueDay: account is CreditCardAccount ? account.dueDay : null,
+      closingDay: account is CreditCardAccount ? account.closingDay : null,
+      interestRate: account is InvestmentAccount 
+          ? account.interestRate 
+          : account is DebtAccount 
+              ? account.interestRate 
+              : null,
       fileName: account?.fileName,
       processingStatus: account?.processingStatus ?? AccountProcessingStatus.none,
       registrationMethod: account != null ? AccountRegistrationMethod.manual : AccountRegistrationMethod.document,
-    );
-  }
-
-  AccountFormState copyWith({
-    String? name,
-    double? initialBalance,
-    DateTime? initialBalanceDate,
-    AccountType? type,
-    String? color,
-    String? icon,
-    Map<String, dynamic>? metadata,
-    File? selectedFile,
-    String? fileName,
-    AccountProcessingStatus? processingStatus,
-    AccountRegistrationMethod? registrationMethod,
-    List<OrderModel>? detectedOrders,
-    List<PlanningModel>? detectedPlannings,
-    bool? isLoading,
-    bool? isSuccess,
-    String? errorMessage,
-  }) {
-    return AccountFormState(
-      name: name ?? this.name,
-      initialBalance: initialBalance ?? this.initialBalance,
-      initialBalanceDate: initialBalanceDate ?? this.initialBalanceDate,
-      type: type ?? this.type,
-      color: color ?? this.color,
-      icon: icon ?? this.icon,
-      metadata: metadata ?? this.metadata,
-      selectedFile: selectedFile ?? this.selectedFile,
-      fileName: fileName ?? this.fileName,
-      processingStatus: processingStatus ?? this.processingStatus,
-      registrationMethod: registrationMethod ?? this.registrationMethod,
-      detectedOrders: detectedOrders ?? this.detectedOrders,
-      detectedPlannings: detectedPlannings ?? this.detectedPlannings,
-      isLoading: isLoading ?? this.isLoading,
-      isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage,
     );
   }
 }
@@ -157,40 +117,46 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
 
         final accountData = analysis.accountData;
 
-        final orders = analysis.orders.map((o) => OrderModel(
-          id: const Uuid().v4(),
-          description: o['description'] ?? '',
-          totalAmount: (o['totalAmount'] as num?)?.toDouble() ?? 0.0,
-          type: o['type'] == 'income' ? OrderType.income : OrderType.expense,
-          status: OrderStatus.paid,
-          category: CategoryModel(
-            id: '',
-            name: o['categoryName'] ?? 'Uncategorized',
-            color: o['categoryColor'] ?? '#4A8C9C',
-            icon: o['categoryIcon'] ?? 'category',
-            type: o['type'] == 'income' ? CategoryType.income : CategoryType.expense,
-          ),
-          installmentsCount: 1,
-          date: DateTime.tryParse(o['date'] ?? '') ?? DateTime.now(),
-        )).toList();
+        final orders = analysis.orders.map((o) {
+          final type = o['type'] == 'income' ? OrderType.income : OrderType.expense;
+          final commonFields = {
+            'id': const Uuid().v4(),
+            'description': o['description'] ?? '',
+            'total_amount': (o['totalAmount'] as num?)?.toDouble() ?? 0.0,
+            'status': 'paid',
+            'category': {
+              'id': '',
+              'name': o['categoryName'] ?? 'Uncategorized',
+              'color': o['categoryColor'] ?? '#4A8C9C',
+              'icon': o['categoryIcon'] ?? 'category',
+              'type': o['type'] == 'income' ? 'income' : 'expense',
+            },
+            'installments_count': 1,
+            'date': DateTime.tryParse(o['date'] ?? '')?.toIso8601String() ?? DateTime.now().toIso8601String(),
+            'runtimeType': type.name,
+          };
+          return OrderModel.fromJson(commonFields);
+        }).toList();
 
-        final plannings = analysis.plannings.map((p) => PlanningModel(
-          id: const Uuid().v4(),
-          category: CategoryModel(
-            id: '',
-            name: p['categoryName'] ?? 'Uncategorized',
-            color: p['categoryColor'] ?? '#4A8C9C',
-            icon: p['categoryIcon'] ?? 'category',
-            type: CategoryType.expense, // Default to expense for planning
-          ),
-          amount: (p['amount'] as num?)?.toDouble() ?? 0.0,
-          type: p['type'] == 'recurrent' ? PlanningType.recurrent : PlanningType.unique,
-          startDate: DateTime.now(),
-          endDate: DateTime.now().add(const Duration(days: 30)),
-          // metadata: {
-          //   'accountId': accountData,
-          // },
-        )).toList();
+        final plannings = analysis.plannings.map((p) {
+          final type = p['type'] == 'recurrent' ? PlanningType.recurrent : PlanningType.unique;
+          final commonFields = {
+            'id': const Uuid().v4(),
+            'category': {
+              'id': '',
+              'name': p['categoryName'] ?? 'Uncategorized',
+              'color': p['categoryColor'] ?? '#4A8C9C',
+              'icon': p['categoryIcon'] ?? 'category',
+              'type': 'expense',
+            },
+            'amount': (p['amount'] as num?)?.toDouble() ?? 0.0,
+            'installments_count': 1,
+            'startDate': DateTime.now().toIso8601String(),
+            'endDate': DateTime.now().add(const Duration(days: 30)).toIso8601String(),
+            'runtimeType': type.name,
+          };
+          return PlanningModel.fromJson(commonFields);
+        }).toList();
 
         state = state.copyWith(
           name: accountData['name'] ?? state.name,
@@ -201,7 +167,10 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
           color: accountData['color'] ?? state.color,
           icon: accountData['icon'] ?? state.icon,
           initialBalance: _parseSafeDouble(accountData['initialBalance']),
-          metadata: accountData['metadata'] ?? state.metadata,
+          limit: (accountData['metadata']?['limit'] as num?)?.toDouble(),
+          dueDay: accountData['metadata']?['dueDay'] as int?,
+          closingDay: accountData['metadata']?['closingDay'] as int?,
+          interestRate: (accountData['metadata']?['interestRate'] as num?)?.toDouble(),
           detectedOrders: orders,
           detectedPlannings: plannings,
           processingStatus: AccountProcessingStatus.completed,
@@ -224,9 +193,15 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
   }
 
   void updateMetadata(String key, dynamic value) {
-    final newMetadata = Map<String, dynamic>.from(state.metadata);
-    newMetadata[key] = value;
-    state = state.copyWith(metadata: newMetadata);
+    if (key == 'limit') {
+      state = state.copyWith(limit: (value as num?)?.toDouble());
+    } else if (key == 'dueDay') {
+      state = state.copyWith(dueDay: value as int?);
+    } else if (key == 'closingDay') {
+      state = state.copyWith(closingDay: value as int?);
+    } else if (key == 'interestRate') {
+      state = state.copyWith(interestRate: (value as num?)?.toDouble());
+    }
   }
 
   Future<void> submit({Function(AccountModel, List<OrderModel>, List<PlanningModel>)? onSave}) async {
@@ -240,18 +215,27 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
 
     final accountId = initialAccount?.id ?? const Uuid().v4();
     
-    AccountModel account = AccountModel(
-      id: accountId,
-      name: state.name,
-      icon: state.icon,
-      color: state.color,
-      type: state.type,
-      initialBalance: state.initialBalance,
-      initialBalanceDate: state.initialBalanceDate,
-      metadata: state.metadata,
-      fileName: state.fileName,
-      processingStatus: state.processingStatus,
-    );
+    final commonFields = {
+      'id': accountId,
+      'name': state.name,
+      'icon': state.icon,
+      'color': state.color,
+      'initial_balance': state.initialBalance,
+      'initial_balance_date': state.initialBalanceDate.toIso8601String(),
+      'file_name': state.fileName,
+      'processing_status': state.processingStatus.name,
+      'runtimeType': state.type.name,
+    };
+
+    if (state.type == AccountType.creditCard) {
+      commonFields['limit'] = state.limit;
+      commonFields['due_day'] = state.dueDay;
+      commonFields['closing_day'] = state.closingDay;
+    } else if (state.type == AccountType.investment || state.type == AccountType.debt) {
+      commonFields['interestRate'] = state.interestRate;
+    }
+
+    AccountModel account = AccountModel.fromJson(commonFields);
 
     try {
       if (onSave != null) {
@@ -285,10 +269,10 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
 
           processedOrders.add(order.copyWith(
             category: order.category.copyWith(id: categoryId),
-            metadata: {
-              ...(order.metadata ?? {}),
-              'accountId': accountId,
-            },
+          ).map(
+            expense: (o) => o.copyWith(accountId: accountId),
+            income: (o) => o.copyWith(accountId: accountId),
+            transfer: (o) => o.copyWith(fromAccountId: accountId),
           ));
         }
 
@@ -314,10 +298,10 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
 
           processedPlannings.add(planning.copyWith(
             category: planning.category.copyWith(id: categoryId),
-            metadata: {
-              ...(planning.metadata ?? {}),
-              'accountId': accountId,
-            },
+          ).map(
+            unique: (p) => p.copyWith(accountId: accountId),
+            recurrent: (p) => p.copyWith(accountId: accountId),
+            parcelado: (p) => p.copyWith(accountId: accountId),
           ));
         }
 

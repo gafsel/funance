@@ -4,6 +4,7 @@ import '../../domain/models/account_model.dart';
 import '../../domain/repositories/account_repository.dart';
 import '../../../onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import '../models/account_mapper.dart';
 
 class AccountRepositoryImpl implements IAccountRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -18,7 +19,7 @@ class AccountRepositoryImpl implements IAccountRepository {
         .where('isDeleted', isEqualTo: false)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => AccountModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toAccountModel()).toList();
     });
   }
 
@@ -69,7 +70,7 @@ class AccountRepositoryImpl implements IAccountRepository {
         .snapshots()
         .map((snapshot) {
       if (snapshot.docs.isEmpty) return null;
-      return AccountBalanceModel.fromFirestore(snapshot.docs.first);
+      return snapshot.docs.first.toAccountBalanceModel();
     });
   }
 

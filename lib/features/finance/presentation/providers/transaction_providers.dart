@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_month_summary_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -9,6 +10,8 @@ import 'package:funances/features/finance/presentation/providers/account_provide
 import 'package:funances/features/finance/presentation/providers/planning_providers.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
+
+part 'transaction_providers.freezed.dart';
 
 enum TransactionType { expense, income, plannedExpense, plannedIncome, transfer }
 
@@ -51,16 +54,18 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
         if (category == null)
           throw Exception('Category is required for planning');
 
-        final planning = PlanningModel(
-          id: existingOrderId ?? '',
-          category: category,
-          amount: amount,
-          type: planningType ?? PlanningType.unique,
-          installmentsCount: planningInstallments,
-          startDate: startDate ?? date,
-          endDate: endDate ?? date,
-          metadata: metadata,
-        );
+        final planningData = {
+          ...metadata ?? {},
+          'id': existingOrderId ?? '',
+          'category': category.toJson(),
+          'amount': amount,
+          'installments_count': planningInstallments,
+          'startDate': (startDate ?? date).toIso8601String(),
+          'endDate': (endDate ?? date).toIso8601String(),
+          'runtimeType': planningType?.name ?? 'unique',
+        };
+
+        final planning = PlanningModel.fromJson(planningData);
 
         if (existingOrderId != null && existingOrderId.isNotEmpty) {
           await _planningRepository.updatePlanning(_workspaceId!, planning);
@@ -78,18 +83,20 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
               type: CategoryType.both,
             );
 
-        final order = OrderModel(
-          id: existingOrderId ?? '',
-          description: description,
-          totalAmount: amount,
-          category: finalCategory,
-          installmentsCount: installments,
-          date: date,
-          status: status,
-          type: type,
-          planningId: planningId,
-          metadata: metadata,
-        );
+        final orderData = {
+          ...metadata ?? {},
+          'id': existingOrderId ?? '',
+          'description': description,
+          'total_amount': amount,
+          'category': finalCategory.toJson(),
+          'installments_count': installments,
+          'date': date.toIso8601String(),
+          'status': status.name,
+          'planning_id': planningId,
+          'runtimeType': type.name,
+        };
+
+        final order = OrderModel.fromJson(orderData);
 
         if (existingOrderId != null && existingOrderId.isNotEmpty) {
           await _repository.updateOrder(_workspaceId!, order);
@@ -116,7 +123,7 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
       if (order != null) {
         final updatedOrder = order.copyWith(
           status: OrderStatus.cancelled,
-          metadata: {...?(order.metadata), 'is_deleted': true},
+          isDeleted: true,
         );
         await _repository.updateOrder(_workspaceId!, updatedOrder);
       }
@@ -133,44 +140,18 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
   }
 }
 
-class HistoryState {
-  final List<OrderModel> orders;
-  final bool isLoading;
-  final bool hasMore;
-  final OrderModel? lastOrder;
-  final String? accountId;
-  final DateTime? startDate;
-  final DateTime? endDate;
-
-  HistoryState({
-    this.orders = const [],
-    this.isLoading = false,
-    this.hasMore = true,
-    this.lastOrder,
-    this.accountId,
-    this.startDate,
-    this.endDate,
-  });
-
-  HistoryState copyWith({
-    List<OrderModel>? orders,
-    bool? isLoading,
-    bool? hasMore,
+@freezed
+sealed class HistoryState with _$HistoryState {
+  const HistoryState._();
+  const factory HistoryState({
+    @Default([]) List<OrderModel> orders,
+    @Default(false) bool isLoading,
+    @Default(true) bool hasMore,
     OrderModel? lastOrder,
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
-  }) {
-    return HistoryState(
-      orders: orders ?? this.orders,
-      isLoading: isLoading ?? this.isLoading,
-      hasMore: hasMore ?? this.hasMore,
-      lastOrder: lastOrder ?? this.lastOrder,
-      accountId: accountId ?? this.accountId,
-      startDate: startDate ?? this.startDate,
-      endDate: endDate ?? this.endDate,
-    );
-  }
+  }) = _HistoryState;
 }
 
 class HistoryNotifier extends StateNotifier<HistoryState> {
@@ -227,7 +208,12 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
 
       // Filtra ordens excluídas logicamente
       final activeOrders = newOrders
-          .where((o) => o.metadata?['is_deleted'] != true)
+          .where((o) {
+            if (o is ExpenseOrder) return o.isDeleted != true;
+            if (o is IncomeOrder) return o.isDeleted != true;
+            if (o is TransferOrder) return o.isDeleted != true;
+            return true;
+          })
           .toList();
 
       state = state.copyWith(

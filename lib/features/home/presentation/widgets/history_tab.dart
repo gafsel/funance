@@ -267,29 +267,37 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
 
     final accountData = accountsAsync.when(
       data: (accs) {
-        final metadata = order.metadata ?? {};
-        final accountId = metadata['accountId'] ??
-            metadata['fromAccountId'] ??
-            metadata['account_id'];
+        String? accountId;
+        String? fromAccountId;
+        String? toAccountId;
+
+        if (order is ExpenseOrder) {
+          accountId = order.accountId;
+        } else if (order is IncomeOrder) {
+          accountId = order.accountId;
+        } else if (order is TransferOrder) {
+          fromAccountId = order.fromAccountId;
+          toAccountId = order.toAccountId;
+        }
+
+        final effectiveMainId = accountId ?? fromAccountId;
         
         AccountModel mainAcc;
-        if (accountId == null) {
-          if (order.type == OrderType.transfer) {
-            final toId = metadata['toAccountId'];
-            mainAcc = toId != null 
-              ? accs.firstWhere((a) => a.id == toId, orElse: () => _unknownAccount())
+        if (effectiveMainId == null) {
+          if (order is TransferOrder) {
+            mainAcc = toAccountId != null 
+              ? accs.firstWhere((a) => a.id == toAccountId, orElse: () => _unknownAccount())
               : _unknownAccount();
           } else {
             mainAcc = _unknownAccount();
           }
         } else {
           mainAcc = accs.firstWhere(
-            (a) => a.id == accountId,
+            (a) => a.id == effectiveMainId,
             orElse: () {
-              if (order.type == OrderType.transfer) {
-                final toId = metadata['toAccountId'];
-                return toId != null
-                  ? accs.firstWhere((a) => a.id == toId, orElse: () => _unknownAccount())
+              if (order is TransferOrder) {
+                return toAccountId != null
+                  ? accs.firstWhere((a) => a.id == toAccountId, orElse: () => _unknownAccount())
                   : _unknownAccount();
               }
               return _unknownAccount();
@@ -298,12 +306,9 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
         }
 
         String name = mainAcc.name;
-        if (order.type == OrderType.transfer && mainAcc.id.isNotEmpty) {
-          final toId = metadata['toAccountId'];
-          final fromId = metadata['fromAccountId'] ?? metadata['accountId'];
-          
-          final fromAccount = accs.firstWhere((a) => a.id == fromId, orElse: () => _unknownAccount());
-          final toAccount = accs.firstWhere((a) => a.id == toId, orElse: () => _unknownAccount());
+        if (order is TransferOrder && mainAcc.id.isNotEmpty) {
+          final fromAccount = accs.firstWhere((a) => a.id == fromAccountId, orElse: () => _unknownAccount());
+          final toAccount = accs.firstWhere((a) => a.id == toAccountId, orElse: () => _unknownAccount());
           
           if (fromAccount.id.isNotEmpty && toAccount.id.isNotEmpty) {
              name = '${fromAccount.name} → ${toAccount.name}';
@@ -312,23 +317,21 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
         return (account: mainAcc, name: name);
       },
       loading: () => (
-        account: AccountModel(
+        account: AccountModel.checking(
           id: '',
           name: '...',
           color: '#808080',
           icon: 'help',
-          type: AccountType.checking,
           initialBalanceDate: DateTime.now(),
         ),
         name: '...'
       ),
       error: (_, __) => (
-        account: AccountModel(
+        account: AccountModel.checking(
           id: '',
           name: '!',
           icon: 'help',
           color: '#808080',
-          type: AccountType.checking,
           initialBalanceDate: DateTime.now(),
         ),
         name: '!'
@@ -420,12 +423,11 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
   }
 
   AccountModel _unknownAccount() {
-    return AccountModel(
+    return AccountModel.checking(
       id: '',
       name: '?',
       color: '#808080',
       icon: 'help',
-      type: AccountType.checking,
       initialBalanceDate: DateTime.now(),
     );
   }

@@ -2,25 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers/category_providers.dart';
 import 'package:uuid/uuid.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class CategoryFormState {
-  final String name;
-  final CategoryType type;
-  final String color;
-  final String icon;
-  final bool isLoading;
-  final bool isSuccess;
-  final String? errorMessage;
+part 'category_form_provider.freezed.dart';
 
-  CategoryFormState({
-    required this.name,
-    required this.type,
-    required this.color,
-    required this.icon,
-    this.isLoading = false,
-    this.isSuccess = false,
-    this.errorMessage,
-  });
+@freezed
+sealed class CategoryFormState with _$CategoryFormState {
+  const CategoryFormState._();
+  const factory CategoryFormState({
+    required String name,
+    required CategoryType type,
+    required String color,
+    required String icon,
+    @Default(false) bool isLoading,
+    @Default(false) bool isSuccess,
+    String? errorMessage,
+  }) = _CategoryFormState;
 
   factory CategoryFormState.initial(CategoryModel? category) {
     return CategoryFormState(
@@ -28,26 +25,6 @@ class CategoryFormState {
       type: category?.type ?? CategoryType.expense,
       color: category?.color ?? '#4A8C9C',
       icon: category?.icon ?? 'category',
-    );
-  }
-
-  CategoryFormState copyWith({
-    String? name,
-    CategoryType? type,
-    String? color,
-    String? icon,
-    bool? isLoading,
-    bool? isSuccess,
-    String? errorMessage,
-  }) {
-    return CategoryFormState(
-      name: name ?? this.name,
-      type: type ?? this.type,
-      color: color ?? this.color,
-      icon: icon ?? this.icon,
-      isLoading: isLoading ?? this.isLoading,
-      isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage,
     );
   }
 }

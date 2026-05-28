@@ -1,36 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../data/repositories/invite_repository_impl.dart';
 import '../../domain/repositories/invite_repository.dart';
 import '../../domain/models/invite_model.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
 
+part 'invite_providers.freezed.dart';
+
 final inviteRepositoryProvider = Provider<IInviteRepository>((ref) {
   return InviteRepositoryImpl();
 });
 
-class InviteState {
-  final List<InviteModel> pendingInvites;
-  final bool isLoading;
-  final bool initialLoadDone;
-
-  InviteState({
-    this.pendingInvites = const [],
-    this.isLoading = false,
-    this.initialLoadDone = false,
-  });
-
-  InviteState copyWith({
-    List<InviteModel>? pendingInvites,
-    bool? isLoading,
-    bool? initialLoadDone,
-  }) {
-    return InviteState(
-      pendingInvites: pendingInvites ?? this.pendingInvites,
-      isLoading: isLoading ?? this.isLoading,
-      initialLoadDone: initialLoadDone ?? this.initialLoadDone,
-    );
-  }
+@freezed
+sealed class InviteState with _$InviteState {
+  const factory InviteState({
+    @Default([]) List<InviteModel> pendingInvites,
+    @Default(false) bool isLoading,
+    @Default(false) bool initialLoadDone,
+  }) = _InviteState;
 }
 
 class InviteNotifier extends StateNotifier<InviteState> {

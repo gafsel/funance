@@ -6,7 +6,7 @@ part of 'invite_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-InviteModel _$InviteModelFromJson(Map<String, dynamic> json) => InviteModel(
+_InviteModel _$InviteModelFromJson(Map<String, dynamic> json) => _InviteModel(
   id: json['id'] as String,
   workspace: WorkspaceModel.fromJson(json['workspace'] as Map<String, dynamic>),
   senderId: json['senderId'] as String,
@@ -16,7 +16,7 @@ InviteModel _$InviteModelFromJson(Map<String, dynamic> json) => InviteModel(
   createdAt: DateTime.parse(json['createdAt'] as String),
 );
 
-Map<String, dynamic> _$InviteModelToJson(InviteModel instance) =>
+Map<String, dynamic> _$InviteModelToJson(_InviteModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'workspace': instance.workspace.toJson(),

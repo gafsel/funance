@@ -305,19 +305,19 @@ class TransactionSelectionScreen extends ConsumerWidget {
                       initialAmount: planned - actual > 0
                           ? planned - actual
                           : planning.amount,
-                      initialOrder: OrderModel(
-                        id: '',
-                        description: planning.category.name,
-                        totalAmount: planned - actual > 0
+                      initialOrder: OrderModel.fromJson({
+                        'runtimeType': isExpense ? 'expense' : 'income',
+                        'id': '',
+                        'description': planning.category.name,
+                        'total_amount': planned - actual > 0
                             ? planned - actual
                             : planning.amount,
-                        category: planning.category,
-                        installmentsCount: 1,
-                        date: DateTime.now(),
-                        status: OrderStatus.active,
-                        type: isExpense ? OrderType.expense : OrderType.income,
-                        planningId: planning.id,
-                      ),
+                        'category': planning.category.toJson(),
+                        'installments_count': 1,
+                        'date': DateTime.now().toIso8601String(),
+                        'status': 'active',
+                        'planning_id': planning.id,
+                      }),
                     ),
                   ),
                 );

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/features/workspace/data/models/category_mapper.dart';
 import '../../domain/models/category_model.dart';
 import '../../domain/repositories/category_repository.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
@@ -13,7 +14,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   @override
   Stream<List<CategoryModel>> getCategories(String workspaceId) {
     return _getCollection(workspaceId).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => CategoryModel.fromFirestore(doc)).toList();
+      return snapshot.docs.map((doc) => doc.toCategoryModel()).toList();
     });
   }
 

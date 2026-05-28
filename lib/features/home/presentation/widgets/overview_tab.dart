@@ -560,7 +560,7 @@ class OverviewTab extends ConsumerWidget {
         final icon = _getIconData(account.icon);
 
         if (account.type == AccountType.creditCard) {
-          final limit = (account.metadata['limit'] as num?)?.toDouble() ?? 0.0;
+          final limit = account is CreditCardAccount ? (account.limit ?? 0.0) : 0.0;
           final usedPercent = limit > 0
               ? (currentBalance.abs() / limit).clamp(0.0, 1.0)
               : 0.0;
