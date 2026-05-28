@@ -13,6 +13,7 @@ export interface IFinanceRepository {
   getOrderById(workspaceId: string, orderId: string): Promise<OrderModel | null>;
   updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void>;
   deleteOrder(workspaceId: string, orderId: string): Promise<void>;
+  deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void>;
 
   // Ledger Entries
   createLedgerEntries(workspaceId: string, entries: Omit<LedgerEntryModel, "id">[]): Promise<void>;

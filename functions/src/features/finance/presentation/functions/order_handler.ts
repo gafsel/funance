@@ -16,6 +16,7 @@ export const onOrderWritten = onDocumentWritten(
     }
 
     const data = event.data.after.data();
+
     const order: OrderModel = {
       id: orderId,
       ...data,
@@ -24,6 +25,7 @@ export const onOrderWritten = onDocumentWritten(
       installmentsCount: data?.installments_count || data?.installmentsCount,
       planningId: data?.planning_id || data?.planningId,
       category: data?.category,
+      accountIds: data?.accountIds,
     } as OrderModel;
 
     console.log(`Order ${orderId} criada/alterada no workspace ${workspaceId}. Sincronizando ledger entries.`);

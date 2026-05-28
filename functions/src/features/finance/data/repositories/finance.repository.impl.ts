@@ -67,6 +67,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     await this.getOrdersCollection(workspaceId).doc(orderId).delete();
   }
 
+  async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
+    const ordersCollection = this.getOrdersCollection(workspaceId);
+
+    const snapshot = await ordersCollection.where("account_ids", "array-contains", accountId).get();
+    const batch = this.firestore.batch();
+
+    snapshot.docs.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+
+    await batch.commit();
+  }
+
   async createLedgerEntries(workspaceId: string, entries: Omit<LedgerEntryModel, "id">[]): Promise<void> {
     const batch = this.firestore.batch();
     const collection = this.getLedgerCollection(workspaceId);

@@ -22,6 +22,7 @@ export interface OrderModel {
   status: OrderStatus;
   type: OrderType;
   planningId?: string;
+  accountIds: string[];
   metadata?: Record<string, any>;
 }
 

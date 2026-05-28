@@ -2,6 +2,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'order_model.freezed.dart';
+
 part 'order_model.g.dart';
 
 enum OrderStatus {
@@ -24,6 +25,7 @@ enum OrderType {
 
 @freezed
 sealed class OrderModel with _$OrderModel {
+  @JsonSerializable(explicitToJson: true)
   const OrderModel._();
 
   const factory OrderModel.expense({
@@ -72,5 +74,25 @@ sealed class OrderModel with _$OrderModel {
     transfer: (_) => OrderType.transfer,
   );
 
-  factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
+  List<String> get computedAccountIds => map(
+    expense: (o) => [if (o.accountId != null) o.accountId!],
+    income: (o) => [if (o.accountId != null) o.accountId!],
+    transfer: (o) => [
+      if (o.fromAccountId != null) o.fromAccountId!,
+      if (o.toAccountId != null) o.toAccountId!,
+    ],
+  );
+
+  @override
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> jsonMap = map(
+      expense: (o) => o.toJson(),
+      income: (o) => o.toJson(),
+      transfer: (o) => o.toJson(),
+    );
+    return {...jsonMap, 'account_ids': computedAccountIds};
+  }
+
+  factory OrderModel.fromJson(Map<String, dynamic> json) =>
+      _$OrderModelFromJson(json);
 }

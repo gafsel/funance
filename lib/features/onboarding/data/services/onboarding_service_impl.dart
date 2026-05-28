@@ -78,17 +78,12 @@ class OnboardingService implements IOnboardingService {
     List<OrderModel> orders = const [],
     List<PlanningModel> plannings = const [],
   }) async {
-    // 1. Salvar Contas
-    for (final account in accounts) {
-      await _accountRepository.createAccount(workspaceId, account);
-    }
-
-    // 2. Salvar Metas
-    for (final goal in goals) {
-      await _goalRepository.addGoal(workspaceId, goal);
-    }
-
-    // 3. Persistir Transações e Planejamentos (mapeando categorias)
+    // 1. Salvar Contas (Apenas as que não foram salvas ainda ou garantir que todas existam)
+    // No novo fluxo elas já são salvas ao adicionar, mas por segurança mantemos ou refatoramos.
+    // Como queremos "incluir todos os registros diretamente no banco de dados quando a conta for salva",
+    // o finalize agora foca em Transações, Planejamentos e Convites.
+    
+    // 2. Persistir Transações e Planejamentos (mapeando categorias)
     if (orders.isNotEmpty || plannings.isNotEmpty) {
       final categories = await _categoryRepository.getCategories(workspaceId).first;
       final Map<String, String> categoryMap = {

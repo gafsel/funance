@@ -110,13 +110,21 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     }
   }
 
-  void addOnboardingAccount(AccountModel account) {
+  Future<void> addOnboardingAccount(AccountModel account) async {
+    final workspaceId = state.createdWorkspaceId;
+    if (workspaceId.isNotEmpty) {
+      await _ref.read(accountRepositoryProvider).createAccount(workspaceId, account);
+    }
     state = state.copyWith(
       onboardingAccounts: [...state.onboardingAccounts, account],
     );
   }
 
-  void removeOnboardingAccount(String accountId) {
+  Future<void> removeOnboardingAccount(String accountId) async {
+    final workspaceId = state.createdWorkspaceId;
+    if (workspaceId.isNotEmpty) {
+      await _ref.read(accountRepositoryProvider).deleteAccount(workspaceId, accountId);
+    }
     state = state.copyWith(
       onboardingAccounts: state.onboardingAccounts.where((a) => a.id != accountId).toList(),
     );
@@ -138,13 +146,20 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     );
   }
 
-  void toggleOnboardingGoal(GoalModel goal) {
+  Future<void> toggleOnboardingGoal(GoalModel goal) async {
+    final workspaceId = state.createdWorkspaceId;
     final exists = state.onboardingGoals.any((g) => g.id == goal.id);
     if (exists) {
+      if (workspaceId.isNotEmpty) {
+        await _ref.read(goalRepositoryProvider).deleteGoal(workspaceId, goal.id);
+      }
       state = state.copyWith(
         onboardingGoals: state.onboardingGoals.where((g) => g.id != goal.id).toList(),
       );
     } else {
+      if (workspaceId.isNotEmpty) {
+        await _ref.read(goalRepositoryProvider).addGoal(workspaceId, goal);
+      }
       state = state.copyWith(
         onboardingGoals: [...state.onboardingGoals, goal],
       );
