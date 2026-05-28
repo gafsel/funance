@@ -26,47 +26,50 @@ class CategoryManagementScreen extends ConsumerWidget {
         ],
       ),
       body: categoriesAsync.when(
-        data: (categories) => categories.isEmpty
-            ? Center(child: Text(l10n.categoryManagementEmpty))
-            : ListView.separated(
-                itemCount: categories.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Color(
-                        int.parse(category.color.replaceAll('#', '0xFF')),
-                      ),
-                      child: Icon(
-                        _getIconData(category.icon),
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    title: Text(category.name),
-                    subtitle: Text(category.type.name.toUpperCase()),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () =>
-                              _showCategoryDialog(context, ref, category),
+        data: (rawCategories) {
+          final categories = [...rawCategories]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          return categories.isEmpty
+              ? Center(child: Text(l10n.categoryManagementEmpty))
+              : ListView.separated(
+                  itemCount: categories.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Color(
+                          int.parse(category.color.replaceAll('#', '0xFF')),
                         ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: Colors.red,
+                        child: Icon(
+                          _getIconData(category.icon),
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(category.name),
+                      subtitle: Text(category.type.name.toUpperCase()),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () =>
+                                _showCategoryDialog(context, ref, category),
                           ),
-                          onPressed: () =>
-                              _confirmDelete(context, ref, category),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: Colors.red,
+                            ),
+                            onPressed: () =>
+                                _confirmDelete(context, ref, category),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+        },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text(err.toString())),
       ),

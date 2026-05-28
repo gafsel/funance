@@ -145,7 +145,8 @@ class GoalFormDialog extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 accountsAsync.when(
-                  data: (accounts) {
+                  data: (rawAccounts) {
+                    final accounts = [...rawAccounts]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
                     final debtAccounts = accounts.where((a) => a.type == AccountType.debt).toList();
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

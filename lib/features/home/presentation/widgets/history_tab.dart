@@ -65,10 +65,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.pureWhite.withValues(alpha: 0.1),
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppColors.pureWhite.withValues(alpha: 0.2),
+                          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                       child: DropdownButtonHideUnderline(
@@ -76,31 +76,31 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                           value: historyState.accountId,
                           hint: Text(
                             l10n.homeAllAccounts,
-                            style: const TextStyle(color: AppColors.pureWhite),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                          dropdownColor: AppColors.darkNavy,
-                          icon: const Icon(
+                          dropdownColor: Theme.of(context).colorScheme.surface,
+                          icon: Icon(
                             Icons.account_balance_wallet,
-                            color: AppColors.paleGold,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           items: [
                             DropdownMenuItem<String?>(
                               value: null,
                               child: Text(
                                 l10n.homeAllAccounts,
-                                style:
-                                    const TextStyle(color: AppColors.pureWhite),
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface,
+                                ),
                               ),
                             ),
-                            ..._buildAccountItems(accounts),
+                            ..._buildAccountItems(context, accounts),
                           ],
                           onChanged: (value) {
-                            ref
-                                .read(historyProvider.notifier)
-                                .setFilters(
+                            ref.read(historyProvider.notifier).setFilters(
                                   accountId: value,
-                                  startDate: historyState.startDate,
-                                  endDate: historyState.endDate,
+                                  clearAccountId: value == null,
                                 );
                           },
                         ),
@@ -127,17 +127,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                       firstDate: DateTime(2020),
                       lastDate: DateTime(2100),
                       builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.dark(
-                              primary: AppColors.paleGold,
-                              onPrimary: AppColors.darkNavy,
-                              surface: AppColors.darkNavy,
-                              onSurface: AppColors.pureWhite,
-                            ),
-                          ),
-                          child: child!,
-                        );
+                        return child!;
                       },
                     );
 
@@ -145,7 +135,6 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                       ref
                           .read(historyProvider.notifier)
                           .setFilters(
-                            accountId: historyState.accountId,
                             startDate: picked.start,
                             endDate: DateTime(
                               picked.end.year,
@@ -156,35 +145,77 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                               59,
                             ),
                           );
+                    } else {
+                      // Se o usuário fechar ou cancelar, podemos oferecer uma forma de limpar?
+                      // Para facilitar, se clicar e não escolher nada, não faz nada.
+                      // Mas o usuário pediu "Todo o período". Vou adicionar um botão dedicado ou usar o null.
                     }
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.pureWhite.withValues(alpha: 0.1),
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppColors.pureWhite.withValues(alpha: 0.2),
+                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
                       ),
                     ),
-                    child: const Icon(
-                      Icons.calendar_month,
-                      color: AppColors.paleGold,
+                    child: Icon(
+                      historyState.startDate == null 
+                          ? Icons.calendar_today
+                          : Icons.calendar_month,
+                      color: historyState.startDate == null
+                          ? Theme.of(context).colorScheme.outline
+                          : Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
               ),
+              if (historyState.startDate != null) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: () {
+                    ref.read(historyProvider.notifier).setFilters(clearDate: true);
+                  },
+                  icon: const Icon(Icons.close),
+                  tooltip: l10n.clear, // Assumindo que existe, se não, "Limpar"
+                ),
+              ],
             ],
           ),
         ),
+        if (historyState.startDate != null || historyState.endDate != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.filter_alt,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${DateFormat.yMd().format(historyState.startDate!)} - ${DateFormat.yMd().format(historyState.endDate!)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
         // Lista de Transações
         Expanded(
           child: historyState.orders.isEmpty && !historyState.isLoading
               ? Center(
                   child: Text(
                     l10n.noTransactionsInPeriod,
-                    style: const TextStyle(color: AppColors.pureWhite),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -234,42 +265,78 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                       ),
                     );
 
-                    final account = accountsAsync.when(
-                      data: (accs) {
-                        final accountId = order.metadata?['accountId'] ??
-                            order.metadata?['account_id'] ??
-                            '';
-                        return accs.firstWhere(
-                          (a) => a.id == accountId,
-                          orElse: () => AccountModel(
-                            id: '',
-                            name: '?',
-                            color: '#808080',
-                            icon: 'help',
-                            type: AccountType.checking,
-                            initialBalanceDate: DateTime.now(),
-                          ),
-                        );
-                      },
-                      loading: () => AccountModel(
-                        id: '',
-                        name: '...',
-                        color: '#808080',
-                        icon: 'help',
-                        type: AccountType.checking,
-                        initialBalanceDate: DateTime.now(),
-                      ),
-                      error: (_, __) => AccountModel(
-                        id: '',
-                        name: '!',
-                        icon: 'help',
-                        color: '#808080',
-                        type: AccountType.checking,
-                        initialBalanceDate: DateTime.now(),
-                      ),
-                    );
+    final accountData = accountsAsync.when(
+      data: (accs) {
+        final metadata = order.metadata ?? {};
+        final accountId = metadata['accountId'] ??
+            metadata['fromAccountId'] ??
+            metadata['account_id'];
+        
+        AccountModel mainAcc;
+        if (accountId == null) {
+          if (order.type == OrderType.transfer) {
+            final toId = metadata['toAccountId'];
+            mainAcc = toId != null 
+              ? accs.firstWhere((a) => a.id == toId, orElse: () => _unknownAccount())
+              : _unknownAccount();
+          } else {
+            mainAcc = _unknownAccount();
+          }
+        } else {
+          mainAcc = accs.firstWhere(
+            (a) => a.id == accountId,
+            orElse: () {
+              if (order.type == OrderType.transfer) {
+                final toId = metadata['toAccountId'];
+                return toId != null
+                  ? accs.firstWhere((a) => a.id == toId, orElse: () => _unknownAccount())
+                  : _unknownAccount();
+              }
+              return _unknownAccount();
+            },
+          );
+        }
 
-                    final accountName = account.name;
+        String name = mainAcc.name;
+        if (order.type == OrderType.transfer && mainAcc.id.isNotEmpty) {
+          final toId = metadata['toAccountId'];
+          final fromId = metadata['fromAccountId'] ?? metadata['accountId'];
+          
+          final fromAccount = accs.firstWhere((a) => a.id == fromId, orElse: () => _unknownAccount());
+          final toAccount = accs.firstWhere((a) => a.id == toId, orElse: () => _unknownAccount());
+          
+          if (fromAccount.id.isNotEmpty && toAccount.id.isNotEmpty) {
+             name = '${fromAccount.name} → ${toAccount.name}';
+          }
+        }
+        return (account: mainAcc, name: name);
+      },
+      loading: () => (
+        account: AccountModel(
+          id: '',
+          name: '...',
+          color: '#808080',
+          icon: 'help',
+          type: AccountType.checking,
+          initialBalanceDate: DateTime.now(),
+        ),
+        name: '...'
+      ),
+      error: (_, __) => (
+        account: AccountModel(
+          id: '',
+          name: '!',
+          icon: 'help',
+          color: '#808080',
+          type: AccountType.checking,
+          initialBalanceDate: DateTime.now(),
+        ),
+        name: '!'
+      ),
+    );
+
+    final account = accountData.account;
+    final accountName = accountData.name;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,7 +360,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
     );
   }
 
-  List<DropdownMenuItem<String?>> _buildAccountItems(List<AccountModel> accounts) {
+  List<DropdownMenuItem<String?>> _buildAccountItems(
+    BuildContext context,
+    List<AccountModel> accounts,
+  ) {
     final grouped = <AccountType, List<AccountModel>>{};
     for (final acc in accounts) {
       grouped.putIfAbsent(acc.type, () => []).add(acc);
@@ -312,8 +382,8 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
           value: 'header_${type.name}',
           child: Text(
             type.name.toUpperCase(),
-            style: const TextStyle(
-              color: AppColors.paleGold,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.primary,
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
@@ -335,7 +405,9 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                 const SizedBox(width: 8),
                 Text(
                   acc.name,
-                  style: const TextStyle(color: AppColors.pureWhite),
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
               ],
             ),
@@ -345,6 +417,17 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
     }
 
     return items;
+  }
+
+  AccountModel _unknownAccount() {
+    return AccountModel(
+      id: '',
+      name: '?',
+      color: '#808080',
+      icon: 'help',
+      type: AccountType.checking,
+      initialBalanceDate: DateTime.now(),
+    );
   }
 
   bool _isSameDay(DateTime d1, DateTime d2) {
@@ -376,9 +459,9 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Text(
         dateText,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
           fontWeight: FontWeight.bold,
-          color: AppColors.vibrantTeal,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -394,6 +477,23 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
   }) {
     final theme = Theme.of(context);
     final isExpense = order.type == OrderType.expense;
+    final isTransfer = order.type == OrderType.transfer;
+
+    Color amountColor;
+    if (isTransfer) {
+      amountColor = Theme.of(context).colorScheme.primary;
+    } else if (isExpense) {
+      amountColor = Theme.of(context).colorScheme.error;
+    } else {
+      amountColor = AppColors.limeGreen;
+    }
+
+    String amountPrefix;
+    if (isTransfer) {
+      amountPrefix = '';
+    } else {
+      amountPrefix = isExpense ? '-' : '+';
+    }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
@@ -404,27 +504,33 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
           children: [
             SlidableAction(
               onPressed: (context) {
+                TransactionType initialType;
+                if (order.type == OrderType.transfer) {
+                  initialType = TransactionType.transfer;
+                } else if (order.type == OrderType.expense) {
+                  initialType = TransactionType.expense;
+                } else {
+                  initialType = TransactionType.income;
+                }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => TransactionFormScreen(
-                      initialType: (order.type == OrderType.expense
-                          ? TransactionType.expense
-                          : TransactionType.income),
+                      initialType: initialType,
                       initialOrder: order,
                     ),
                   ),
                 );
               },
-              backgroundColor: AppColors.vibrantTeal,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              foregroundColor: Theme.of(context).colorScheme.onPrimary,
               icon: Icons.edit,
               label: l10n.historyEdit,
             ),
             SlidableAction(
               onPressed: (context) => _confirmDelete(context, order, l10n),
-              backgroundColor: AppColors.coralOrange,
-              foregroundColor: Colors.white,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               icon: Icons.delete,
               label: l10n.historyDelete,
             ),
@@ -432,13 +538,19 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
         ),
         child: InkWell(
           onTap: () {
+            TransactionType initialType;
+            if (order.type == OrderType.transfer) {
+              initialType = TransactionType.transfer;
+            } else if (order.type == OrderType.expense) {
+              initialType = TransactionType.expense;
+            } else {
+              initialType = TransactionType.income;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => TransactionFormScreen(
-                  initialType: (order.type == OrderType.expense
-                      ? TransactionType.expense
-                      : TransactionType.income),
+                  initialType: initialType,
                   initialOrder: order,
                 ),
               ),
@@ -451,14 +563,20 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: _parseColor(
-                      category?.color ?? '#14404C',
-                    ).withValues(alpha: 0.1),
+                    color: isTransfer
+                        ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
+                        : _parseColor(
+                            category?.color ?? '#14404C',
+                          ).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    _getIconData(category?.icon ?? 'category'),
-                    color: _parseColor(category?.color ?? '#14404C'),
+                    isTransfer
+                        ? Icons.swap_horiz
+                        : _getIconData(category?.icon ?? 'category'),
+                    color: isTransfer
+                        ? Theme.of(context).colorScheme.primary
+                        : _parseColor(category?.color ?? '#14404C'),
                     size: 20,
                   ),
                 ),
@@ -474,19 +592,17 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                         ),
                       ),
                       Text(
-                        '${category?.name ?? order.category} • $accountName',
+                        '${isTransfer ? l10n.transactionActionTransfer : (category?.name ?? order.category)} • $accountName',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
                 Text(
-                  '${isExpense ? '-' : '+'} ${currencyFormat.format(order.totalAmount)}',
+                  '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${currencyFormat.format(order.totalAmount)}',
                   style: theme.textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: isExpense
-                        ? AppColors.coralOrange
-                        : AppColors.limeGreen,
+                    color: amountColor,
                   ),
                 ),
               ],

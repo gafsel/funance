@@ -29,6 +29,8 @@ class TransactionSelectionScreen extends ConsumerWidget {
       return c.type == CategoryType.income || c.type == CategoryType.both;
     }).toList();
 
+    filteredCategories.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+
     return Scaffold(
       appBar: AppBar(
         title: Text(isPlannedFlow ? l10n.transactionPlanExpense : l10n.transactionCategoriesSection),
@@ -62,106 +64,50 @@ class TransactionSelectionScreen extends ConsumerWidget {
                     final hasSpentB = (summaryB?.actualAmount ?? 0) > 0;
                     if (hasSpentA && !hasSpentB) return 1;
                     if (!hasSpentA && hasSpentB) return -1;
-                    return 0;
+                    
+                    return a.category.name.toLowerCase().compareTo(b.category.name.toLowerCase());
                   });
 
                   return sortedPlannings.isEmpty
                     ? const SliverToBoxAdapter(child: SizedBox())
                     : SliverPadding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final planning = sortedPlannings[index];
-                              final summaryAsync = ref.watch(planningSummaryProvider(planning.id));
+                        sliver: SliverLayoutBuilder(
+                          builder: (context, constraints) {
+                            final crossAxisCount = constraints.crossAxisExtent > 900
+                                ? 3
+                                : constraints.crossAxisExtent > 600
+                                    ? 2
+                                    : 1;
 
-                              return summaryAsync.when(
-                                data: (summary) {
-                                  final actual = summary?.actualAmount ?? 0;
-                                  final planned = planning.amount; // Usar o valor do próprio planejamento como alvo
-                                  final progress = planned > 0 ? actual / planned : 0.0;
-                                  final hasSpent = actual >= planned && planned > 0;
-
-                                  return Opacity(
-                                    opacity: hasSpent ? 0.6 : 1.0,
-                                    child: Card(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      child: Column(
-                                        children: [
-                                          ListTile(
-                                            leading: CircleAvatar(
-                                              backgroundColor: hasSpent ? AppColors.vibrantTeal.withValues(alpha: 0.5) : AppColors.vibrantTeal,
-                                              child: const Icon(Icons.event_note, color: Colors.white),
-                                            ),
-                                            title: Text(planning.category.name),
-                                            subtitle: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'R\$ ${actual.toStringAsFixed(2)} / R\$ ${planned.toStringAsFixed(2)}',
-                                                  style: TextStyle(
-                                                    color: hasSpent ? Colors.grey : AppColors.deepTurquoise,
-                                                    fontWeight: hasSpent ? null : FontWeight.bold,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                ClipRRect(
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  child: LinearProgressIndicator(
-                                                    value: progress.clamp(0, 1),
-                                                    backgroundColor: AppColors.vibrantTeal.withValues(alpha: 0.1),
-                                                    color: progress > 1 ? Colors.red : AppColors.brightCyan,
-                                                    minHeight: 6,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            trailing: const Icon(Icons.chevron_right),
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => TransactionFormScreen(
-                                                    initialType: type,
-                                                    initialCategory: planning.category,
-                                                    initialAmount: planned - actual > 0 ? planned - actual : planning.amount,
-                                                    initialOrder: OrderModel(
-                                                      id: '',
-                                                      description: planning.category.name,
-                                                      totalAmount: planned - actual > 0 ? planned - actual : planning.amount,
-                                                      category: planning.category,
-                                                      installmentsCount: 1,
-                                                      date: DateTime.now(),
-                                                      status: OrderStatus.active,
-                                                      type: isExpense ? OrderType.expense : OrderType.income,
-                                                      planningId: planning.id,
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          if (planned > 0)
-                                            Padding(
-                                              padding: const EdgeInsets.only(left: 72, right: 16, bottom: 8),
-                                              child: LinearProgressIndicator(
-                                                value: progress.clamp(0.0, 1.0),
-                                                backgroundColor: Colors.grey[200],
-                                                color: progress >= 1.0 ? AppColors.successGold : AppColors.brightCyan,
-                                                minHeight: 4,
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                                loading: () => const Card(child: ListTile(title: LinearProgressIndicator())),
-                                error: (_, __) => const SizedBox(),
+                            if (crossAxisCount == 1) {
+                              return SliverList(
+                                delegate: SliverChildBuilderDelegate(
+                                  (context, index) {
+                                    final planning = sortedPlannings[index];
+                                    return _buildPlanningItem(context, ref, planning, type, isExpense);
+                                  },
+                                  childCount: filteredPlannings.length,
+                                ),
                               );
-                            },
-                            childCount: filteredPlannings.length,
-                          ),
+                            }
+
+                            return SliverGrid(
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 16,
+                                mainAxisSpacing: 16,
+                                mainAxisExtent: 100,
+                              ),
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  final planning = sortedPlannings[index];
+                                  return _buildPlanningItem(context, ref, planning, type, isExpense);
+                                },
+                                childCount: filteredPlannings.length,
+                              ),
+                            );
+                          },
                         ),
                       );
                 },
@@ -181,95 +127,208 @@ class TransactionSelectionScreen extends ConsumerWidget {
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  if (index == filteredCategories.length) {
-                    // Opção de transferência
-                    return _CategoryItem(
-                      icon: Icons.swap_horiz,
-                      color: AppColors.brightCyan,
-                      label: l10n.transactionTypeTransfer,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AccountSelectionScreen(
-                              title: l10n.transactionFromAccountLabel,
-                              onAccountSelected: (fromAcc) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AccountSelectionScreen(
-                                      title: l10n.transactionToAccountLabel,
-                                      excludeAccountId: fromAcc.id,
-                                      onAccountSelected: (toAcc) {
-                                        Navigator.pushAndRemoveUntil(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) => TransactionFormScreen(
-                                              initialType: type,
-                                              isTransfer: true,
-                                              initialAccountId: fromAcc.id,
-                                              initialToAccountId: toAcc.id,
-                                            ),
-                                          ),
-                                          (route) => route.isFirst,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }
+            sliver: SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.crossAxisExtent > 1200
+                    ? 8
+                    : constraints.crossAxisExtent > 900
+                        ? 6
+                        : constraints.crossAxisExtent > 600
+                            ? 4
+                            : 3;
 
-                  final cat = filteredCategories[index];
-                  return _CategoryItem(
-                    icon: _getIconData(cat.icon),
-                    color: Color(int.parse(cat.color.replaceFirst('#', '0xFF'))),
-                    label: cat.name,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AccountSelectionScreen(
-                            title: l10n.transactionAccountLabel,
-                            onAccountSelected: (acc) {
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TransactionFormScreen(
-                                    initialType: type,
-                                    initialCategory: cat,
-                                    initialAccountId: acc.id,
-                                  ),
+                return SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 1,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index == filteredCategories.length) {
+                        // Opção de transferência
+                        return _CategoryItem(
+                          icon: Icons.swap_horiz,
+                          color: AppColors.brightCyan,
+                          label: l10n.transactionTypeTransfer,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AccountSelectionScreen(
+                                  title: l10n.transactionFromAccountLabel,
+                                  onAccountSelected: (fromAcc) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AccountSelectionScreen(
+                                          title: l10n.transactionToAccountLabel,
+                                          excludeAccountId: fromAcc.id,
+                                          onAccountSelected: (toAcc) {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    TransactionFormScreen(
+                                                  initialType: type,
+                                                  isTransfer: true,
+                                                  initialAccountId: fromAcc.id,
+                                                  initialToAccountId: toAcc.id,
+                                                ),
+                                              ),
+                                              (route) => route.isFirst,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
-                                (route) => route.isFirst,
-                              );
-                            },
-                          ),
-                        ),
+                              ),
+                            );
+                          },
+                        );
+                      }
+
+                      final cat = filteredCategories[index];
+                      return _CategoryItem(
+                        icon: _getIconData(cat.icon),
+                        color:
+                            Color(int.parse(cat.color.replaceFirst('#', '0xFF'))),
+                        label: cat.name,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AccountSelectionScreen(
+                                title: l10n.transactionAccountLabel,
+                                onAccountSelected: (acc) {
+                                  Navigator.pushAndRemoveUntil(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => TransactionFormScreen(
+                                        initialType: type,
+                                        initialCategory: cat,
+                                        initialAccountId: acc.id,
+                                      ),
+                                    ),
+                                    (route) => route.isFirst,
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       );
                     },
-                  );
-                },
-                childCount: filteredCategories.length + (isPlannedFlow ? 0 : 1),
-              ),
+                    childCount:
+                        filteredCategories.length + (isPlannedFlow ? 0 : 1),
+                  ),
+                );
+              },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPlanningItem(
+    BuildContext context,
+    WidgetRef ref,
+    PlanningModel planning,
+    TransactionType type,
+    bool isExpense,
+  ) {
+    final summaryAsync = ref.watch(planningSummaryProvider(planning.id));
+
+    return summaryAsync.when(
+      data: (summary) {
+        final actual = summary?.actualAmount ?? 0;
+        final planned =
+            planning.amount; // Usar o valor do próprio planejamento como alvo
+        final progress = planned > 0 ? actual / planned : 0.0;
+        final hasSpent = actual >= planned && planned > 0;
+
+        return Opacity(
+          opacity: hasSpent ? 0.6 : 1.0,
+          child: Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: hasSpent
+                    ? AppColors.vibrantTeal.withValues(alpha: 0.5)
+                    : AppColors.vibrantTeal,
+                child: const Icon(Icons.event_note, color: Colors.white),
+              ),
+              title: Text(
+                planning.category.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'R\$ ${actual.toStringAsFixed(2)} / R\$ ${planned.toStringAsFixed(2)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: hasSpent ? Colors.grey : AppColors.deepTurquoise,
+                      fontWeight: hasSpent ? null : FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: progress.clamp(0, 1),
+                      backgroundColor:
+                          AppColors.vibrantTeal.withValues(alpha: 0.1),
+                      color: progress > 1 ? Colors.red : AppColors.brightCyan,
+                      minHeight: 4,
+                    ),
+                  ),
+                ],
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TransactionFormScreen(
+                      initialType: type,
+                      initialCategory: planning.category,
+                      initialAmount: planned - actual > 0
+                          ? planned - actual
+                          : planning.amount,
+                      initialOrder: OrderModel(
+                        id: '',
+                        description: planning.category.name,
+                        totalAmount: planned - actual > 0
+                            ? planned - actual
+                            : planning.amount,
+                        category: planning.category,
+                        installmentsCount: 1,
+                        date: DateTime.now(),
+                        status: OrderStatus.active,
+                        type: isExpense ? OrderType.expense : OrderType.income,
+                        planningId: planning.id,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+      },
+      loading: () =>
+          const Card(child: ListTile(title: LinearProgressIndicator())),
+      error: (_, __) => const SizedBox(),
     );
   }
 

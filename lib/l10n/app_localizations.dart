@@ -830,6 +830,42 @@ abstract class AppLocalizations {
   /// **'Membros'**
   String get workspaceSettingsMembers;
 
+  /// No description provided for @workspaceSettingsEditNameDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Altere o nome do seu workspace para melhor identificação.'**
+  String get workspaceSettingsEditNameDesc;
+
+  /// No description provided for @workspaceSettingsCategoriesDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerencie as categorias de receitas e despesas do seu workspace.'**
+  String get workspaceSettingsCategoriesDesc;
+
+  /// No description provided for @workspaceSettingsAccountsDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configure suas contas bancárias, cartões de crédito e investimentos.'**
+  String get workspaceSettingsAccountsDesc;
+
+  /// No description provided for @workspaceSettingsMembersDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convide sócios ou familiares para gerirem as finanças juntos.'**
+  String get workspaceSettingsMembersDesc;
+
+  /// No description provided for @workspaceSettingsLogout.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sair'**
+  String get workspaceSettingsLogout;
+
+  /// No description provided for @workspaceSettingsLogoutDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Encerre sua sessão atual de forma segura.'**
+  String get workspaceSettingsLogoutDesc;
+
   /// No description provided for @categoryManagementTitle.
   ///
   /// In pt, this message translates to:
@@ -1052,6 +1088,12 @@ abstract class AppLocalizations {
   /// **'Adicionar Conta'**
   String get addAccountButton;
 
+  /// No description provided for @addWorkspaceButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Adicionar Workspace'**
+  String get addWorkspaceButton;
+
   /// No description provided for @goalAccountLabel.
   ///
   /// In pt, this message translates to:
@@ -1081,6 +1123,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Planejar Receita'**
   String get transactionPlanIncome;
+
+  /// No description provided for @transactionActionTransfer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transferência'**
+  String get transactionActionTransfer;
 
   /// No description provided for @transactionPlannedSection.
   ///
@@ -1373,8 +1421,50 @@ abstract class AppLocalizations {
   /// No description provided for @transactionSelectDestinationAccount.
   ///
   /// In pt, this message translates to:
-  /// **'Selecionar Conta de Destino'**
+  /// **'Selecione a Conta de Destino'**
   String get transactionSelectDestinationAccount;
+
+  /// No description provided for @transactionAddExpenseDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registre uma despesa pontual que ocorreu hoje ou no passado.'**
+  String get transactionAddExpenseDesc;
+
+  /// No description provided for @transactionAddIncomeDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registre uma receita pontual que ocorreu hoje ou no passado.'**
+  String get transactionAddIncomeDesc;
+
+  /// No description provided for @transactionPlanExpenseDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agende uma despesa futura, recorrente ou parcelada.'**
+  String get transactionPlanExpenseDesc;
+
+  /// No description provided for @transactionPlanIncomeDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agende uma receita futura, recorrente ou parcelada.'**
+  String get transactionPlanIncomeDesc;
+
+  /// No description provided for @transactionTransferDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Movimente saldo entre suas contas bancárias ou cartões.'**
+  String get transactionTransferDesc;
+
+  /// No description provided for @transactionOrderTypeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo do Lançamento'**
+  String get transactionOrderTypeLabel;
+
+  /// No description provided for @clear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get clear;
 }
 
 class _AppLocalizationsDelegate

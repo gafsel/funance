@@ -417,6 +417,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workspaceSettingsMembers => 'Members';
 
   @override
+  String get workspaceSettingsEditNameDesc =>
+      'Change your workspace name for better identification.';
+
+  @override
+  String get workspaceSettingsCategoriesDesc =>
+      'Manage income and expense categories for your workspace.';
+
+  @override
+  String get workspaceSettingsAccountsDesc =>
+      'Set up your bank accounts, credit cards, and investments.';
+
+  @override
+  String get workspaceSettingsMembersDesc =>
+      'Invite partners or family members to manage finances together.';
+
+  @override
+  String get workspaceSettingsLogout => 'Logout';
+
+  @override
+  String get workspaceSettingsLogoutDesc => 'Safely end your current session.';
+
+  @override
   String get categoryManagementTitle => 'Category Management';
 
   @override
@@ -532,6 +554,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addAccountButton => 'Add Account';
 
   @override
+  String get addWorkspaceButton => 'Add Workspace';
+
+  @override
   String get goalAccountLabel => 'Associated Account';
 
   @override
@@ -545,6 +570,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionPlanIncome => 'Plan Income';
+
+  @override
+  String get transactionActionTransfer => 'Transfer';
 
   @override
   String get transactionPlannedSection => 'Planned Transactions';
@@ -714,4 +742,30 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get transactionSelectDestinationAccount =>
       'Select Destination Account';
+
+  @override
+  String get transactionAddExpenseDesc =>
+      'Record a single expense that happened today or in the past.';
+
+  @override
+  String get transactionAddIncomeDesc =>
+      'Record a single income that happened today or in the past.';
+
+  @override
+  String get transactionPlanExpenseDesc =>
+      'Schedule a future expense, recurring or installment-based.';
+
+  @override
+  String get transactionPlanIncomeDesc =>
+      'Schedule a future income, recurring or installment-based.';
+
+  @override
+  String get transactionTransferDesc =>
+      'Move money between your bank accounts or credit cards.';
+
+  @override
+  String get transactionOrderTypeLabel => 'Transaction Type';
+
+  @override
+  String get clear => 'Clear';
 }

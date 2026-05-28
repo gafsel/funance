@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/onboarding/presentation/providers/onboarding_providers.dart';
+import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
-import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -22,6 +24,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  bool _isNavigationRailExtended = false;
 
   @override
   void initState() {
@@ -37,42 +40,145 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    // final l10n = AppLocalizations.of(context)!;
     // final workspaceState = ref.watch(workspaceNotifierProvider);
     final authUser = ref.watch(authStateProvider).value;
 
-    return Scaffold(
-      extendBody: true,
-      appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 8.0),
-          child: Center(
-            child: authUser?.photoUrl != null
-                ? CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage(authUser!.photoUrl!),
-                  )
-                : const CircleAvatar(
-                    radius: 16,
-                    child: Icon(Icons.person, size: 20),
+    return LayoutBuilder(builder: (context, constraints) {
+      final isLargeScreen = constraints.maxWidth > 800;
+
+      return Scaffold(
+        extendBody: true,
+        appBar: isLargeScreen
+            ? null
+            : AppBar(
+                leading: Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: Center(
+                    child: authUser?.photoUrl != null
+                        ? CircleAvatar(
+                            radius: 16,
+                            backgroundImage: NetworkImage(authUser!.photoUrl!),
+                          )
+                        : const CircleAvatar(
+                            radius: 16,
+                            child: Icon(Icons.person, size: 20),
+                          ),
                   ),
-          ),
+                ),
+                title: _buildWorkspaceSelector(context, ref),
+                centerTitle: true,
+              ),
+        body: Row(
+          children: [
+            if (isLargeScreen)
+              _buildNavigationRail(context, authUser),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                physics: isLargeScreen ? const NeverScrollableScrollPhysics() : null,
+                children: const [
+                  OverviewTab(),
+                  JourneyTab(),
+                  HistoryTab(),
+                  WorkspaceSettingsScreen(),
+                ],
+              ),
+            ),
+          ],
         ),
-        title: _buildWorkspaceSelector(context, ref),
-        centerTitle: true,
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [
-          OverviewTab(),
-          JourneyTab(),
-          HistoryTab(),
-          WorkspaceSettingsScreen(),
+        bottomNavigationBar: isLargeScreen ? null : _buildBottomBar(context),
+        floatingActionButton: _buildFab(context),
+        floatingActionButtonLocation: isLargeScreen
+            ? FloatingActionButtonLocation.endFloat
+            : FloatingActionButtonLocation.centerDocked,
+      );
+    });
+  }
+
+  Widget _buildNavigationRail(BuildContext context, dynamic authUser) {
+    final l10n = AppLocalizations.of(context)!;
+    return NavigationRail(
+      extended: _isNavigationRailExtended,
+      minExtendedWidth: 200,
+      backgroundColor: AppColors.deepTurquoise,
+      unselectedIconTheme: const IconThemeData(color: AppColors.pureWhite, opacity: 0.7),
+      selectedIconTheme: const IconThemeData(color: AppColors.pureWhite),
+      unselectedLabelTextStyle: const TextStyle(color: AppColors.pureWhite),
+      selectedLabelTextStyle: const TextStyle(color: AppColors.pureWhite, fontWeight: FontWeight.bold),
+      leading: Column(
+        children: [
+          const SizedBox(height: 16),
+          IconButton(
+            icon: Icon(
+              _isNavigationRailExtended ? Icons.menu_open : Icons.menu,
+              color: AppColors.pureWhite,
+            ),
+            onPressed: () {
+              setState(() {
+                _isNavigationRailExtended = !_isNavigationRailExtended;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          if (_isNavigationRailExtended)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: _buildWorkspaceSelector(context, ref),
+            )
+          else
+            const Icon(Icons.account_balance_wallet, color: AppColors.pureWhite),
+          const SizedBox(height: 24),
         ],
       ),
-      bottomNavigationBar: _buildBottomBar(context),
-      floatingActionButton: _buildFab(context),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      trailing: Expanded(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            if (authUser?.photoUrl != null)
+              CircleAvatar(
+                radius: 16,
+                backgroundImage: NetworkImage(authUser!.photoUrl!),
+              )
+            else
+              const CircleAvatar(
+                radius: 16,
+                child: Icon(Icons.person, size: 20),
+              ),
+            if (_isNavigationRailExtended) ...[
+              const SizedBox(height: 8),
+              Text(
+                authUser?.displayName ?? '',
+                style: const TextStyle(color: AppColors.pureWhite, fontSize: 12),
+              ),
+            ],
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+      selectedIndex: _tabController.index,
+      onDestinationSelected: (index) {
+        setState(() {
+          _tabController.animateTo(index);
+        });
+      },
+      destinations: [
+        NavigationRailDestination(
+          icon: const Icon(Icons.bar_chart_outlined),
+          label: Text(l10n.homeOverviewTab),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.rocket_launch_outlined),
+          label: Text(l10n.homeJourneyTab),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.history_outlined),
+          label: Text(l10n.homeHistoryTab),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.settings_outlined),
+          label: Text(l10n.homeSettings),
+        ),
+      ],
     );
   }
 
@@ -105,6 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   }
 
   void _showWorkspacePicker(BuildContext context, WidgetRef ref, dynamic workspaceState) {
+    final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(
       context: context,
       builder: (context) {
@@ -120,31 +227,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: ListView(
                   shrinkWrap: true,
-                  itemCount: workspaceState.availableWorkspaces.length,
-                  itemBuilder: (context, index) {
-                    final workspace = workspaceState.availableWorkspaces[index];
-                    final isSelected = workspace.id == workspaceState.currentWorkspace?.id;
-                    return ListTile(
-                      leading: Icon(
-                        workspace.type == WorkspaceType.business ? Icons.business : Icons.home_outlined,
-                        color: isSelected ? AppColors.vibrantTeal : null,
-                      ),
-                      title: Text(
-                        workspace.name,
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : null,
+                  children: [
+                    ...workspaceState.availableWorkspaces.map((workspace) {
+                      final isSelected = workspace.id == workspaceState.currentWorkspace?.id;
+                      return ListTile(
+                        leading: Icon(
+                          workspace.type == WorkspaceType.business ? Icons.business : Icons.home_outlined,
                           color: isSelected ? AppColors.vibrantTeal : null,
                         ),
+                        title: Text(
+                          workspace.name,
+                          style: TextStyle(
+                            fontWeight: isSelected ? FontWeight.bold : null,
+                            color: isSelected ? AppColors.vibrantTeal : null,
+                          ),
+                        ),
+                        selected: isSelected,
+                        onTap: () {
+                          ref.read(workspaceNotifierProvider.notifier).setCurrentWorkspace(workspace);
+                          Navigator.pop(context);
+                        },
+                      );
+                    }),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.add_circle_outline, color: AppColors.vibrantTeal),
+                      title: Text(
+                        l10n.addWorkspaceButton,
+                        style: const TextStyle(
+                          color: AppColors.vibrantTeal,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      selected: isSelected,
                       onTap: () {
-                        ref.read(workspaceNotifierProvider.notifier).setCurrentWorkspace(workspace);
                         Navigator.pop(context);
+                        ref.read(onboardingNotifierProvider.notifier).reset();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const OnboardingScreen(),
+                          ),
+                        );
                       },
-                    );
-                  },
+                    ),
+                  ],
                 ),
               ),
             ],

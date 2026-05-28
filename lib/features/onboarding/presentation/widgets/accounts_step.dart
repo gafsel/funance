@@ -13,6 +13,7 @@ class AccountsStep extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final accounts = ref.watch(onboardingNotifierProvider.select((s) => s.onboardingAccounts));
     final isAnalyzing = ref.watch(onboardingNotifierProvider.select((s) => s.isAnalyzing));
+    final currentStep = ref.watch(onboardingNotifierProvider.select((s) => s.currentStep));
     final notifier = ref.read(onboardingNotifierProvider.notifier);
 
     return Padding(
@@ -23,7 +24,11 @@ class AccountsStep extends ConsumerWidget {
           IconButton(
             alignment: Alignment.centerLeft,
             icon: const Icon(Icons.arrow_back, color: AppColors.pureWhite),
-            onPressed: () => notifier.previousStep(),
+            onPressed: () {
+              if (currentStep > 0) {
+                notifier.previousStep();
+              }
+            },
           ),
           const SizedBox(height: 24),
           Text(

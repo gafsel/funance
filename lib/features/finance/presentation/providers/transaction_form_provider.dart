@@ -145,6 +145,29 @@ class TransactionFormNotifier extends StateNotifier<TransactionFormState> {
   void updateAccountId(String? value) => state = state.copyWith(selectedAccountId: value);
   void updateToAccountId(String? value) => state = state.copyWith(toAccountId: value);
   void updateFormType(TransactionFormType value) => state = state.copyWith(formType: value);
+  
+  void updateOrderType(OrderType value) {
+    bool isTransfer = value == OrderType.transfer;
+    TransactionType currentType = state.currentType;
+    
+    // Adjust currentType based on OrderType if needed
+    if (!isTransfer) {
+      if (value == OrderType.income) {
+        if (currentType == TransactionType.expense) currentType = TransactionType.income;
+        if (currentType == TransactionType.plannedExpense) currentType = TransactionType.plannedIncome;
+      } else {
+        if (currentType == TransactionType.income) currentType = TransactionType.expense;
+        if (currentType == TransactionType.plannedIncome) currentType = TransactionType.plannedExpense;
+      }
+    }
+
+    state = state.copyWith(
+      isTransfer: isTransfer,
+      currentType: currentType,
+      selectedCategory: isTransfer ? null : state.selectedCategory,
+    );
+  }
+
   void updateCurrentType(TransactionType value) => state = state.copyWith(currentType: value);
   void updateIsTransfer(bool value) => state = state.copyWith(isTransfer: value);
 
@@ -173,7 +196,20 @@ class TransactionFormNotifier extends StateNotifier<TransactionFormState> {
       type = OrderType.income;
     }
 
-    final metadata = <String, dynamic>{'accountId': state.selectedAccountId};
+    // Se o tipo mudou e estamos editando, excluímos a antiga e criamos uma nova
+    // como sugerido pelo usuário ("na prática ele vai excluir a antiga e cadastrar uma nova")
+    String? finalExistingOrderId = state.existingOrderId;
+    if (state.existingOrderId != null) {
+      final oldOrder = await ref.read(transactionNotifierProvider.notifier).getOrder(state.existingOrderId!);
+      if (oldOrder != null && oldOrder.type != type) {
+        await ref.read(transactionNotifierProvider.notifier).deleteTransaction(state.existingOrderId!);
+        finalExistingOrderId = null;
+      }
+    }
+
+    final metadata = <String, dynamic>{
+      'accountId': state.selectedAccountId,
+    };
     if (state.isTransfer) {
       metadata['fromAccountId'] = state.selectedAccountId;
       metadata['toAccountId'] = state.toAccountId;
@@ -218,7 +254,7 @@ class TransactionFormNotifier extends StateNotifier<TransactionFormState> {
           status: status,
           installments: installments,
           metadata: metadata,
-          existingOrderId: state.existingOrderId,
+          existingOrderId: finalExistingOrderId,
           isPlannedFlow: isPlannedFlow,
           planningType: planningType,
           planningInstallments: installments,

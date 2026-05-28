@@ -14,6 +14,7 @@ class WorkspaceInfoStep extends ConsumerWidget {
     final workspaceType = ref.watch(onboardingNotifierProvider.select((s) => s.workspaceType));
     final workspaceName = ref.watch(onboardingNotifierProvider.select((s) => s.workspaceName));
     final isSubmitting = ref.watch(onboardingNotifierProvider.select((s) => s.isSubmitting));
+    final currentStep = ref.watch(onboardingNotifierProvider.select((s) => s.currentStep));
     final notifier = ref.read(onboardingNotifierProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
@@ -24,7 +25,11 @@ class WorkspaceInfoStep extends ConsumerWidget {
           IconButton(
             alignment: Alignment.centerLeft,
             icon: const Icon(Icons.arrow_back, color: AppColors.pureWhite),
-            onPressed: () => notifier.previousStep(),
+            onPressed: () {
+              if (currentStep > 0) {
+                notifier.previousStep();
+              }
+            },
           ),
           const SizedBox(height: 32),
           Text(

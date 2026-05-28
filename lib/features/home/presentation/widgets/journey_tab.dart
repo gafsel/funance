@@ -52,18 +52,30 @@ class JourneyTab extends ConsumerWidget {
               }
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 600 ? 2 : 1;
+                  int crossAxisCount = 1;
+                  if (constraints.maxWidth > 1200) {
+                    crossAxisCount = 4;
+                  } else if (constraints.maxWidth > 900) {
+                    crossAxisCount = 3;
+                  } else if (constraints.maxWidth > 600) {
+                    crossAxisCount = 2;
+                  }
                   
                   if (crossAxisCount > 1) {
-                    return Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: goals.map((goal) {
-                        return SizedBox(
-                          width: (constraints.maxWidth - 16) / 2,
-                          child: _buildGoalCard(context, ref, goal),
-                        );
-                      }).toList(),
+                    final spacing = 16.0;
+                    final width = (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+                    return Align(
+                      alignment: Alignment.topLeft,
+                      child: Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        children: goals.map((goal) {
+                          return SizedBox(
+                            width: width.clamp(0.0, 400.0),
+                            child: _buildGoalCard(context, ref, goal),
+                          );
+                        }).toList(),
+                      ),
                     );
                   }
 

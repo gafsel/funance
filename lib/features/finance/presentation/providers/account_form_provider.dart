@@ -314,6 +314,10 @@ class AccountFormNotifier extends StateNotifier<AccountFormState> {
 
           processedPlannings.add(planning.copyWith(
             category: planning.category.copyWith(id: categoryId),
+            metadata: {
+              ...(planning.metadata ?? {}),
+              'accountId': accountId,
+            },
           ));
         }
 

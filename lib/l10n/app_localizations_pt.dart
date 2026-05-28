@@ -420,6 +420,29 @@ class AppLocalizationsPt extends AppLocalizations {
   String get workspaceSettingsMembers => 'Membros';
 
   @override
+  String get workspaceSettingsEditNameDesc =>
+      'Altere o nome do seu workspace para melhor identificação.';
+
+  @override
+  String get workspaceSettingsCategoriesDesc =>
+      'Gerencie as categorias de receitas e despesas do seu workspace.';
+
+  @override
+  String get workspaceSettingsAccountsDesc =>
+      'Configure suas contas bancárias, cartões de crédito e investimentos.';
+
+  @override
+  String get workspaceSettingsMembersDesc =>
+      'Convide sócios ou familiares para gerirem as finanças juntos.';
+
+  @override
+  String get workspaceSettingsLogout => 'Sair';
+
+  @override
+  String get workspaceSettingsLogoutDesc =>
+      'Encerre sua sessão atual de forma segura.';
+
+  @override
   String get categoryManagementTitle => 'Gestão de Categorias';
 
   @override
@@ -535,6 +558,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get addAccountButton => 'Adicionar Conta';
 
   @override
+  String get addWorkspaceButton => 'Adicionar Workspace';
+
+  @override
   String get goalAccountLabel => 'Conta associada';
 
   @override
@@ -548,6 +574,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactionPlanIncome => 'Planejar Receita';
+
+  @override
+  String get transactionActionTransfer => 'Transferência';
 
   @override
   String get transactionPlannedSection => 'Lançamentos Planejados';
@@ -716,5 +745,31 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactionSelectDestinationAccount =>
-      'Selecionar Conta de Destino';
+      'Selecione a Conta de Destino';
+
+  @override
+  String get transactionAddExpenseDesc =>
+      'Registre uma despesa pontual que ocorreu hoje ou no passado.';
+
+  @override
+  String get transactionAddIncomeDesc =>
+      'Registre uma receita pontual que ocorreu hoje ou no passado.';
+
+  @override
+  String get transactionPlanExpenseDesc =>
+      'Agende uma despesa futura, recorrente ou parcelada.';
+
+  @override
+  String get transactionPlanIncomeDesc =>
+      'Agende uma receita futura, recorrente ou parcelada.';
+
+  @override
+  String get transactionTransferDesc =>
+      'Movimente saldo entre suas contas bancárias ou cartões.';
+
+  @override
+  String get transactionOrderTypeLabel => 'Tipo do Lançamento';
+
+  @override
+  String get clear => 'Limpar';
 }

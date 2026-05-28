@@ -10,7 +10,7 @@ import 'package:funances/features/finance/presentation/providers/planning_provid
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
 
-enum TransactionType { expense, income, plannedExpense, plannedIncome }
+enum TransactionType { expense, income, plannedExpense, plannedIncome, transfer }
 
 class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
   final IFinanceRepository _repository;
@@ -59,6 +59,7 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
           installmentsCount: planningInstallments,
           startDate: startDate ?? date,
           endDate: endDate ?? date,
+          metadata: metadata,
         );
 
         if (existingOrderId != null && existingOrderId.isNotEmpty) {
@@ -113,21 +114,18 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
       // Como o blueprint diz "exclusão lógica", vou usar updateOrder para marcar como cancelled ou similar.
       final order = await _repository.getOrder(_workspaceId!, orderId);
       if (order != null) {
-        final updatedOrder = OrderModel(
-          id: order.id,
-          description: order.description,
-          totalAmount: order.totalAmount,
-          category: order.category,
-          installmentsCount: order.installmentsCount,
-          date: order.date,
+        final updatedOrder = order.copyWith(
           status: OrderStatus.cancelled,
-          type: order.type,
-          planningId: order.planningId,
           metadata: {...?(order.metadata), 'is_deleted': true},
         );
         await _repository.updateOrder(_workspaceId!, updatedOrder);
       }
     });
+  }
+
+  Future<OrderModel?> getOrder(String orderId) async {
+    if (_workspaceId == null) return null;
+    return _repository.getOrder(_workspaceId!, orderId);
   }
 
   Future<List<OrderModel>> getPlannedOrders(OrderType type) async {
@@ -181,16 +179,6 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
   static const int _pageSize = 20;
 
   HistoryNotifier(this._repository, this._workspaceId) : super(HistoryState()) {
-    // Inicializar com o mês atual por padrão
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-    
-    state = state.copyWith(
-      startDate: startOfMonth,
-      endDate: endOfMonth,
-    );
-    
     loadOrders();
   }
 
@@ -198,14 +186,16 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    bool clearAccountId = false,
+    bool clearDate = false,
   }) async {
-    state = state.copyWith(
+    state = HistoryState(
       orders: [],
       lastOrder: null,
       hasMore: true,
-      accountId: accountId,
-      startDate: startDate,
-      endDate: endDate,
+      accountId: clearAccountId ? null : (accountId ?? state.accountId),
+      startDate: clearDate ? null : (startDate ?? state.startDate),
+      endDate: clearDate ? null : (endDate ?? state.endDate),
     );
     await loadOrders(isRefresh: true);
   }

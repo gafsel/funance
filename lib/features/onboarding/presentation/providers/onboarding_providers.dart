@@ -105,6 +105,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   OnboardingNotifier(this._ref) : super(OnboardingState());
 
+  void reset() {
+    state = OnboardingState();
+  }
+
   void nextStep() {
     state = state.copyWith(currentStep: state.currentStep + 1);
   }

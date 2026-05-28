@@ -36,8 +36,10 @@ class AccountFormDialog extends ConsumerWidget {
     final descriptionStyle = TextStyle(color: isDark ? AppColors.pureWhite.withValues(alpha: 0.7) : Colors.black54, fontSize: 13);
 
     ref.listen(accountFormProvider(args), (previous, next) {
-      if (next.isSuccess) {
-        Navigator.pop(context);
+      if (next.isSuccess && !(previous?.isSuccess ?? false)) {
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
       } else if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(next.errorMessage!), backgroundColor: AppColors.coralOrange),
@@ -178,7 +180,11 @@ class AccountFormDialog extends ConsumerWidget {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+          },
           child: Text(l10n.cancelButton, style: TextStyle(color: isDark ? AppColors.pureWhite.withValues(alpha: 0.7) : null)),
         ),
         ElevatedButton(
