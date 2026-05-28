@@ -23,6 +23,9 @@ class AppColors {
   // Ouro Pálido (Título): Texto de título principal sobre fundos escuros.
   static const Color paleGold = Color(0xFFFDF3BB);
 
+  // Marinho Escuro: Texto principal em fundos claros
+  static const Color darkNavy = Color(0xFF0A2329);
+
   // --- 3. Paleta de Gamificação e Feedback ---
   
   // Ciano Brilhante: Barras de progresso (estado final), estrelas.

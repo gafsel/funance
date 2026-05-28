@@ -6,7 +6,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../providers/onboarding_providers.dart';
 import '../widgets/welcome_step.dart';
 import '../widgets/workspace_info_step.dart';
-import '../widgets/goals_step.dart';
+import '../widgets/accounts_step.dart';
+import '../widgets/goals_analysis_step.dart';
 import '../widgets/members_step.dart';
 
 class OnboardingScreen extends ConsumerWidget {
@@ -14,9 +15,8 @@ class OnboardingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(onboardingNotifierProvider);
-    final notifier = ref.read(onboardingNotifierProvider.notifier);
-
+    final currentStep = ref.watch(onboardingNotifierProvider.select((s) => s.currentStep));
+    
     // Tema customizado para fundo escuro do onboarding
     final darkContentTheme = Theme.of(context).copyWith(
       textTheme: AppTheme.darkTextTheme,
@@ -37,7 +37,7 @@ class OnboardingScreen extends ConsumerWidget {
             data: darkContentTheme,
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: _buildStep(context, state, notifier),
+              child: _buildStep(context, currentStep),
             ),
           ),
         ),
@@ -45,18 +45,20 @@ class OnboardingScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStep(BuildContext context, OnboardingState state, OnboardingNotifier notifier) {
-    switch (state.currentStep) {
+  Widget _buildStep(BuildContext context, int currentStep) {
+    switch (currentStep) {
       case 0:
-        return WelcomeStep(notifier: notifier);
+        return const WelcomeStep();
       case 1:
-        return WorkspaceInfoStep(state: state, notifier: notifier);
+        return const WorkspaceInfoStep();
       case 2:
-        return GoalsStep(notifier: notifier);
+        return const AccountsStep();
       case 3:
-        return MembersStep(state: state, notifier: notifier);
+        return const GoalsAnalysisStep();
+      case 4:
+        return const MembersStep();
       default:
-        return WelcomeStep(notifier: notifier);
+        return const WelcomeStep();
     }
   }
 }

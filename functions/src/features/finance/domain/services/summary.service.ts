@@ -1,4 +1,4 @@
-import { LedgerEntryModel, LedgerEntryType, PlanningModel, PlanningType } from "../models/finance.models";
+import { LedgerEntryModel, LedgerEntryType, OrderType, PlanningModel, PlanningType } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 
 export class SummaryService {
@@ -78,6 +78,12 @@ export class SummaryService {
     before: LedgerEntryModel | null,
     after: LedgerEntryModel | null
   ): Promise<void> {
+    if (!before && !after) return;
+
+    // Ignorar transferências
+    if (before?.orderType === OrderType.transfer) before = null;
+    if (after?.orderType === OrderType.transfer) after = null;
+
     if (!before && !after) return;
 
     // Se for criação

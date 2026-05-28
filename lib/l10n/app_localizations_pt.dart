@@ -81,6 +81,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get errorNetworkRequestFailed => 'Falha na conexão com a internet.';
 
   @override
+  String get errorGoogleSignInConfig =>
+      'Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.';
+
+  @override
   String get onboardingWelcomeTitle => 'Boas-vindas ao Funances!';
 
   @override
@@ -146,6 +150,79 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onboardingFinish => 'CONCLUIR ONBOARDING';
+
+  @override
+  String get onboardingAccountsTitle => 'DEFINIR CONTAS';
+
+  @override
+  String get onboardingAccountsDesc =>
+      'Cadastre suas contas bancárias ou cartões de crédito. Você pode anexar extratos (PDF/OFX) para automatizar o processo.';
+
+  @override
+  String get onboardingAccountsEmpty => 'Nenhuma conta adicionada';
+
+  @override
+  String get onboardingAccountsAdd => 'ADICIONAR CONTA';
+
+  @override
+  String get onboardingAccountsAddAnother => 'ADICIONAR OUTRA CONTA';
+
+  @override
+  String get onboardingAccountsManual => 'Cadastro manual';
+
+  @override
+  String onboardingAccountsAttachment(String fileName) {
+    return 'Anexo: $fileName';
+  }
+
+  @override
+  String get onboardingGoalsAnalysisTitle => 'TRAÇAR METAS';
+
+  @override
+  String get onboardingGoalsAnalysisDesc =>
+      'Com base no seu perfil, nossa IA sugere algumas metas para você.';
+
+  @override
+  String get onboardingMembersListTitle => 'Lista de convites';
+
+  @override
+  String get onboardingMembersEmpty => 'Nenhum e-mail adicionado';
+
+  @override
+  String goalRemainingMonthly(String amount) {
+    return '$amount/mês';
+  }
+
+  @override
+  String goalTargetTarget(String amount) {
+    return 'Alvo: $amount';
+  }
+
+  @override
+  String get goalRemainingMonthlyDesc => 'Valor por mês';
+
+  @override
+  String goalRemainingMonthlyTarget(String amount, String date) {
+    return '$amount/mês até $date';
+  }
+
+  @override
+  String get goalMonthlyRequirementLabel => 'Valor por mês';
+
+  @override
+  String goalMonthlyRequirementValue(String amount) {
+    return '$amount/mês';
+  }
+
+  @override
+  String goalRemainingValue(String amount) {
+    return 'Faltam $amount';
+  }
+
+  @override
+  String goalProgressValue(String percent) {
+    return '$percent%';
+  }
 
   @override
   String get goalEmptyMessage =>
@@ -308,6 +385,12 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get noTransactionsInPeriod =>
       'Nenhuma transação encontrada para este período';
+
+  @override
+  String get historyFilterPeriod => 'Selecionar Período';
+
+  @override
+  String get historyFilterAllAccounts => 'Todas as Contas';
 
   @override
   String get homeSettings => 'Configurações';
@@ -513,6 +596,74 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get initialBalanceDateLabel => 'Data do Saldo Inicial';
+
+  @override
+  String get accountMethodDocument => 'Por Documento';
+
+  @override
+  String get accountMethodManual => 'Manual';
+
+  @override
+  String get accountDocumentDescription =>
+      'Anexe seu extrato bancário (PDF) ou arquivo de transações (OFX). Nossa IA analisará os dados para configurar sua conta, saldo e transações automaticamente.';
+
+  @override
+  String get accountDocumentAcceptedTypes => 'Formatos aceitos: PDF, OFX';
+
+  @override
+  String get accountManualDescription =>
+      'Preencha os dados da conta manualmente caso não possua um documento ou prefira configurar do seu jeito.';
+
+  @override
+  String get accountDetectedDataTitle => 'Dados detectados por IA';
+
+  @override
+  String accountDetectedTransactions(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transações encontradas',
+      one: '1 transação encontrada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String accountDetectedPlannings(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count planejamentos sugeridos',
+      one: '1 planejamento sugerido',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get accountDetectedConfirmation =>
+      'Confirme os dados abaixo para concluir o registro.';
+
+  @override
+  String get accountSelectFile => 'SELECIONAR ARQUIVO';
+
+  @override
+  String get accountDropFile =>
+      'Arraste e solte o arquivo aqui ou clique para selecionar';
+
+  @override
+  String get accountAnalyzing => 'Analisando documento...';
+
+  @override
+  String get accountViewTransactions => 'Ver Transações';
+
+  @override
+  String get accountViewPlannings => 'Ver Planejamentos';
+
+  @override
+  String get accountDetectedTransactionsTitle => 'Transações Detectadas';
+
+  @override
+  String get accountDetectedPlanningsTitle => 'Planejamentos Sugeridos';
 
   @override
   String get historyEdit => 'Editar';

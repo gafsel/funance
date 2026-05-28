@@ -11,6 +11,7 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'features/workspace/presentation/providers/workspace_providers.dart';
+import 'features/onboarding/presentation/providers/onboarding_providers.dart';
 import 'core/exceptions/business_exception.dart';
 import 'core/utils/error_messages.dart';
 import 'firebase_options.dart';
@@ -54,6 +55,7 @@ class AuthWrapper extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final workspaceState = ref.watch(workspaceNotifierProvider);
     final inviteState = ref.watch(inviteNotifierProvider);
+    final onboardingState = ref.watch(onboardingNotifierProvider);
 
     return authState.when(
       data: (user) {
@@ -73,8 +75,9 @@ class AuthWrapper extends ConsumerWidget {
             return const InviteListScreen();
           }
 
-          // 3. Se não tem workspaces, vai para onboarding
-          if (workspaceState.availableWorkspaces.isEmpty) {
+          // 3. Se não tem workspaces ou está no onboarding e ainda não finalizou
+          if (workspaceState.availableWorkspaces.isEmpty || 
+              (onboardingState.createdWorkspaceId.isNotEmpty && !onboardingState.isFinalizing)) {
             return const OnboardingScreen();
           }
 

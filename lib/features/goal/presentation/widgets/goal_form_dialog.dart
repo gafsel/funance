@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
-import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
+import 'package:funances/features/goal/presentation/providers/goal_form_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -9,119 +9,57 @@ import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers/account_providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 
-class GoalFormDialog extends ConsumerStatefulWidget {
+class GoalFormDialog extends ConsumerWidget {
   final GoalModel? goal;
 
-  const GoalFormDialog({super.key, this.goal});
+  GoalFormDialog({super.key, this.goal});
 
-  @override
-  ConsumerState<GoalFormDialog> createState() => _GoalFormDialogState();
-}
-
-class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _targetAmountController;
-  late TextEditingController _currentAmountController;
-  late TextEditingController _averageSpendingController;
-  late DateTime _startDate;
-  late DateTime _deadline;
-  late GoalType _type;
-  String? _selectedCategory;
-  String? _selectedAccountId;
 
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(text: widget.goal?.name);
-    _targetAmountController = TextEditingController(text: widget.goal?.targetAmount.toString());
-    _currentAmountController = TextEditingController(text: widget.goal?.currentAmount.toString());
-    _averageSpendingController = TextEditingController(
-      text: widget.goal?.metadata?['averageSpending']?.toString() ?? '',
-    );
-    _startDate = widget.goal?.startDate ?? DateTime.now();
-    _deadline = widget.goal?.deadline ?? DateTime.now().add(const Duration(days: 30));
-    _type = widget.goal?.type ?? GoalType.saveMoney;
-    _selectedCategory = widget.goal?.metadata?['category'];
-    _selectedAccountId = widget.goal?.accountId;
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _targetAmountController.dispose();
-    _currentAmountController.dispose();
-    _averageSpendingController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _selectStartDate() async {
+  Future<void> _selectStartDate(BuildContext context, WidgetRef ref, GoalModel? goal) async {
+    final state = ref.read(goalFormProvider(goal));
     final picked = await showDatePicker(
       context: context,
-      initialDate: _startDate,
+      initialDate: state.startDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
     if (picked != null) {
-      setState(() {
-        _startDate = picked;
-      });
+      ref.read(goalFormProvider(goal).notifier).updateStartDate(picked);
     }
   }
 
-  Future<void> _selectDeadline() async {
+  Future<void> _selectDeadline(BuildContext context, WidgetRef ref, GoalModel? goal) async {
+    final state = ref.read(goalFormProvider(goal));
     final picked = await showDatePicker(
       context: context,
-      initialDate: _deadline,
+      initialDate: state.deadline,
       firstDate: DateTime(2000),
       lastDate: DateTime.now().add(const Duration(days: 3650)),
     );
     if (picked != null) {
-      setState(() {
-        _deadline = picked;
-      });
+      ref.read(goalFormProvider(goal).notifier).updateDeadline(picked);
     }
   }
 
-  void _save() {
+  void _save(BuildContext context, WidgetRef ref, GoalModel? goal) async {
     if (_formKey.currentState!.validate()) {
-      final metadata = <String, dynamic>{};
-      if (_type == GoalType.reduceExpense) {
-        metadata['category'] = _selectedCategory;
-        metadata['averageSpending'] = double.tryParse(_averageSpendingController.text) ?? 0.0;
-      } else if (_type == GoalType.reduceCreditCard) {
-        metadata['averageSpending'] = double.tryParse(_averageSpendingController.text) ?? 0.0;
+      final success = await ref.read(goalFormProvider(goal).notifier).submit();
+      if (success && context.mounted) {
+        Navigator.of(context).pop();
       }
-
-      final goal = GoalModel(
-        id: widget.goal?.id ?? '',
-        name: _nameController.text,
-        targetAmount: double.parse(_targetAmountController.text),
-        currentAmount: double.parse(_currentAmountController.text),
-        startDate: _startDate,
-        deadline: _deadline,
-        type: _type,
-        accountId: _selectedAccountId,
-        metadata: metadata.isEmpty ? null : metadata,
-      );
-
-      if (widget.goal == null) {
-        ref.read(goalsProvider.notifier).addGoal(goal);
-      } else {
-        ref.read(goalsProvider.notifier).updateGoal(goal);
-      }
-      Navigator.of(context).pop();
     }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(goalFormProvider(goal));
+    final notifier = ref.read(goalFormProvider(goal).notifier);
     final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
     final accountsAsync = ref.watch(accountsProvider);
 
     return AlertDialog(
-      title: Text(widget.goal == null ? l10n.addGoalButton : l10n.continueButton),
+      title: Text(goal == null ? l10n.addGoalButton : l10n.continueButton),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -130,7 +68,7 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
             children: [
               // Tipo de Meta (Somente leitura se estiver editando)
               DropdownButtonFormField<GoalType>(
-                value: _type,
+                value: state.type,
                 decoration: InputDecoration(labelText: l10n.goalTypeLabel),
                 items: GoalType.values.map((type) {
                   String label = '';
@@ -144,149 +82,191 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                     case GoalType.reduceCreditCard:
                       label = l10n.goalTypeReduceCreditCard;
                       break;
+                    case GoalType.payDebt:
+                      label = 'Pagar Dívida';
+                      break;
                   }
                   return DropdownMenuItem(value: type, child: Text(label));
                 }).toList(),
-                onChanged: widget.goal == null
-                    ? (value) {
-                        if (value != null) setState(() => _type = value);
-                      }
-                    : null,
+                onChanged: goal == null ? (value) {
+                  if (value != null) notifier.updateType(value);
+                } : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _nameController,
+                initialValue: state.name,
                 decoration: InputDecoration(labelText: l10n.goalNameLabel),
+                onChanged: notifier.updateName,
                 validator: (v) => v == null || v.isEmpty ? l10n.errorUnknown : null,
               ),
               const SizedBox(height: 16),
-              if (_type == GoalType.saveMoney) ...[
+              if (state.type == GoalType.saveMoney) ...[
                 TextFormField(
-                  controller: _targetAmountController,
+                  initialValue: state.targetAmount > 0 ? state.targetAmount.toString() : '',
                   decoration: InputDecoration(labelText: l10n.goalTargetAmountLabel),
                   keyboardType: TextInputType.number,
+                  onChanged: (v) => notifier.updateTargetAmount(double.tryParse(v) ?? 0),
                   validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _currentAmountController,
+                  key: ValueKey('currentAmount_${state.currentAmount}'),
+                  initialValue: state.currentAmount > 0 ? state.currentAmount.toString() : '0.0',
                   decoration: InputDecoration(labelText: l10n.goalCurrentAmountLabel),
                   keyboardType: TextInputType.number,
-                  enabled: _selectedAccountId == null,
+                  enabled: state.selectedAccountId == null,
+                  onChanged: (v) => notifier.updateCurrentAmount(double.tryParse(v) ?? 0),
                   validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
                 ),
+                const SizedBox(height: 16),
+              ] else if (state.type == GoalType.payDebt) ...[
+                TextFormField(
+                  initialValue: state.targetAmount > 0 ? state.targetAmount.toString() : '',
+                  decoration: InputDecoration(
+                    labelText: 'Valor Total da Dívida',
+                    hintText: 'Quanto você deve no total?',
+                  ),
+                  keyboardType: TextInputType.number,
+                  onChanged: (v) => notifier.updateTargetAmount(double.tryParse(v) ?? 0),
+                  validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: ValueKey('currentAmount_${state.currentAmount}'),
+                  initialValue: state.currentAmount > 0 ? state.currentAmount.toString() : '0.0',
+                  decoration: InputDecoration(
+                    labelText: 'Valor Já Pago',
+                    hintText: 'Quanto você já amortizou?',
+                  ),
+                  keyboardType: TextInputType.number,
+                  enabled: state.selectedAccountId == null,
+                  onChanged: (v) => notifier.updateCurrentAmount(double.tryParse(v) ?? 0),
+                  validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
+                ),
+                const SizedBox(height: 16),
+                accountsAsync.when(
+                  data: (accounts) {
+                    final debtAccounts = accounts.where((a) => a.type == AccountType.debt).toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: state.selectedAccountId,
+                          decoration: InputDecoration(labelText: 'Vincular à Conta de Dívida'),
+                          items: debtAccounts.map((a) {
+                            return DropdownMenuItem(value: a.id, child: Text(a.name));
+                          }).toList(),
+                          onChanged: notifier.updateAccountId,
+                        ),
+                        if (debtAccounts.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.add),
+                              label: Text(l10n.addAccountButton),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const AccountManagementScreen()),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 16),
               ] else ...[
                 // Para redução de gastos
                 TextFormField(
-                  controller: _targetAmountController,
+                  initialValue: state.targetAmount > 0 ? state.targetAmount.toString() : '',
                   decoration: InputDecoration(
                     labelText: l10n.goalTargetAmountLabel,
                     hintText: 'Ex: 500.00 (Limite de gasto)',
                   ),
                   keyboardType: TextInputType.number,
+                  onChanged: (v) => notifier.updateTargetAmount(double.tryParse(v) ?? 0),
                   validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
-                  controller: _averageSpendingController,
+                  initialValue: state.averageSpending > 0 ? state.averageSpending.toString() : '',
                   decoration: InputDecoration(labelText: l10n.goalAverageSpendingLabel),
                   keyboardType: TextInputType.number,
+                  onChanged: (v) => notifier.updateAverageSpending(double.tryParse(v) ?? 0),
                   validator: (v) => v == null || double.tryParse(v) == null ? l10n.errorUnknown : null,
                 ),
-              if (_type == GoalType.reduceExpense) ...[
+              ],
+              if (state.type == GoalType.reduceExpense) ...[
                 DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  value: state.selectedCategory,
                   decoration: InputDecoration(labelText: l10n.goalCategoryLabel),
                   items: ['Moradia', 'Lazer', 'Alimentação', 'Transporte'].map((c) {
                     return DropdownMenuItem(value: c, child: Text(c));
                   }).toList(),
-                  onChanged: (v) => setState(() => _selectedCategory = v),
+                  onChanged: notifier.updateCategory,
                   validator: (v) => v == null ? l10n.errorUnknown : null,
                 ),
                 const SizedBox(height: 16),
                 accountsAsync.when(
                   data: (accounts) => DropdownButtonFormField<String>(
-                    value: _selectedAccountId,
+                    value: state.selectedAccountId,
                     decoration: InputDecoration(labelText: l10n.goalAccountLabel),
                     items: accounts.map((a) {
                       return DropdownMenuItem(value: a.id, child: Text(a.name));
                     }).toList(),
-                    onChanged: (v) => setState(() => _selectedAccountId = v),
+                    onChanged: notifier.updateAccountId,
                   ),
                   loading: () => const LinearProgressIndicator(),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
               ],
-                if (_type == GoalType.reduceCreditCard)
-                  accountsAsync.when(
-                    data: (accounts) {
-                      final creditCards = accounts.where((a) => a.type == AccountType.creditCard).toList();
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          DropdownButtonFormField<String>(
-                            value: _selectedAccountId,
-                            decoration: InputDecoration(labelText: l10n.goalCreditCardLabel),
-                            items: creditCards.map((a) {
-                              return DropdownMenuItem(value: a.id, child: Text(a.name));
-                            }).toList(),
-                            onChanged: (v) {
-                              setState(() => _selectedAccountId = v);
-                              if (v != null) {
-                                ref.read(latestAccountBalanceProvider(v).stream).first.then((balance) {
-                                  setState(() {
-                                    // Para cartão de crédito, o saldo geralmente é negativo (débito acumulado), 
-                                    // mas para a meta de redução talvez interesse o valor absoluto ou o saldo atual.
-                                    // Como a meta de redução usa targetAmount como limite, 
-                                    // currentAmount pode ser o quanto já gastou.
-                                    _currentAmountController.text = balance.balance.abs().toString();
-                                  });
-                                });
-                              }
-                            },
-                            validator: (v) => v == null ? l10n.errorUnknown : null,
-                          ),
-                          if (creditCards.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8.0),
-                              child: TextButton.icon(
-                                icon: const Icon(Icons.add),
-                                label: Text(l10n.addAccountButton),
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const AccountManagementScreen()),
-                                ),
+              if (state.type == GoalType.reduceCreditCard)
+                accountsAsync.when(
+                  data: (accounts) {
+                    final creditCards = accounts.where((a) => a.type == AccountType.creditCard).toList();
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DropdownButtonFormField<String>(
+                          value: state.selectedAccountId,
+                          decoration: InputDecoration(labelText: l10n.goalCreditCardLabel),
+                          items: creditCards.map((a) {
+                            return DropdownMenuItem(value: a.id, child: Text(a.name));
+                          }).toList(),
+                          onChanged: notifier.updateAccountId,
+                          validator: (v) => v == null ? l10n.errorUnknown : null,
+                        ),
+                        if (creditCards.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: TextButton.icon(
+                              icon: const Icon(Icons.add),
+                              label: Text(l10n.addAccountButton),
+                              onPressed: () => Navigator.of(context).push(
+                                MaterialPageRoute(builder: (_) => const AccountManagementScreen()),
                               ),
                             ),
-                        ],
-                      );
-                    },
-                    loading: () => const LinearProgressIndicator(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  ),
-              ],
+                          ),
+                      ],
+                    );
+                  },
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
               const SizedBox(height: 16),
-              if (_type == GoalType.saveMoney)
+              if (state.type == GoalType.saveMoney)
                 accountsAsync.when(
                   data: (accounts) => Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       DropdownButtonFormField<String>(
-                        value: _selectedAccountId,
+                        value: state.selectedAccountId,
                         decoration: InputDecoration(labelText: l10n.goalAccountLabel),
                         items: accounts.map((a) {
                           return DropdownMenuItem(value: a.id, child: Text(a.name));
                         }).toList(),
-                        onChanged: (v) {
-                          setState(() => _selectedAccountId = v);
-                          if (v != null) {
-                            final account = accounts.firstWhere((a) => a.id == v);
-                            ref.read(latestAccountBalanceProvider(v).stream).first.then((balance) {
-                              setState(() {
-                                _currentAmountController.text = balance.balance.toString();
-                              });
-                            });
-                          }
-                        },
+                        onChanged: notifier.updateAccountId,
                       ),
                       if (accounts.isEmpty)
                         Padding(
@@ -306,16 +286,16 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
                 ),
               ListTile(
                 title: Text(l10n.goalStartDateLabel),
-                subtitle: Text(DateFormat.yMd().format(_startDate)),
+                subtitle: Text(DateFormat.yMd().format(state.startDate)),
                 trailing: const Icon(Icons.calendar_today),
-                onTap: _selectStartDate,
+                onTap: () => _selectStartDate(context, ref, goal),
                 contentPadding: EdgeInsets.zero,
               ),
               ListTile(
                 title: Text(l10n.goalDeadlineLabel),
-                subtitle: Text(DateFormat.yMd().format(_deadline)),
+                subtitle: Text(DateFormat.yMd().format(state.deadline)),
                 trailing: const Icon(Icons.calendar_today),
-                onTap: _selectDeadline,
+                onTap: () => _selectDeadline(context, ref, goal),
                 contentPadding: EdgeInsets.zero,
               ),
             ],
@@ -328,8 +308,8 @@ class _GoalFormDialogState extends ConsumerState<GoalFormDialog> {
           child: Text(l10n.cancelButton),
         ),
         ElevatedButton(
-          onPressed: _save,
-          child: Text(l10n.continueButton),
+          onPressed: state.isLoading ? null : () => _save(context, ref, goal),
+          child: state.isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : Text(l10n.continueButton),
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../data/repositories/invite_repository_impl.dart';
 import '../../domain/repositories/invite_repository.dart';
 import '../../domain/models/invite_model.dart';
@@ -86,4 +87,15 @@ final inviteNotifierProvider = StateNotifierProvider<InviteNotifier, InviteState
   });
 
   return notifier;
+});
+
+final sentInvitesProvider = StreamProvider<List<InviteModel>>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value([]);
+
+  return FirebaseFirestore.instance
+      .collection('invites')
+      .where('senderId', isEqualTo: user.id)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => InviteModel.fromFirestore(doc)).toList());
 });

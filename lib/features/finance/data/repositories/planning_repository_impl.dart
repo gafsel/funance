@@ -12,7 +12,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
 
   @override
   Future<List<PlanningModel>> getPlannings(String workspaceId, {DateTime? startDate, DateTime? endDate}) async {
-    Query query = _getWorkspaceDoc(workspaceId).collection('planning');
+    Query query = _getWorkspaceDoc(workspaceId).collection('plannings');
 
     // Queremos todos os planejamentos que impactam o período informado.
     // Firestore limita range filters a um único campo; então aplicamos um filtro por
@@ -40,7 +40,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
 
     // start_date <= periodEnd, pós-filtra por end_date >= periodStart
     final query = _getWorkspaceDoc(workspaceId)
-        .collection('planning')
+        .collection('plannings')
         .where('start_date', isLessThanOrEqualTo: Timestamp.fromDate(periodEnd));
 
     return query.snapshots().map((snapshot) {
@@ -55,7 +55,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
     data.remove('id');
     data['start_date'] = Timestamp.fromDate(planning.startDate);
     data['end_date'] = Timestamp.fromDate(planning.endDate);
-    await _getWorkspaceDoc(workspaceId).collection('planning').add(data);
+    await _getWorkspaceDoc(workspaceId).collection('plannings').add(data);
   }
 
   @override
@@ -64,12 +64,12 @@ class PlanningRepositoryImpl implements IPlanningRepository {
     data.remove('id');
     data['start_date'] = Timestamp.fromDate(planning.startDate);
     data['end_date'] = Timestamp.fromDate(planning.endDate);
-    await _getWorkspaceDoc(workspaceId).collection('planning').doc(planning.id).update(data);
+    await _getWorkspaceDoc(workspaceId).collection('plannings').doc(planning.id).update(data);
   }
 
   @override
   Future<void> deletePlanning(String workspaceId, String planningId) async {
-    await _getWorkspaceDoc(workspaceId).collection('planning').doc(planningId).delete();
+    await _getWorkspaceDoc(workspaceId).collection('plannings').doc(planningId).delete();
   }
 
   @override
@@ -81,7 +81,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
   ) async {
     final docId = '$year-${month.toString().padLeft(2, '0')}';
     final doc = await _getWorkspaceDoc(workspaceId)
-        .collection('planning')
+        .collection('plannings')
         .doc(planningId)
         .collection('summaries')
         .doc(docId)
@@ -100,7 +100,7 @@ class PlanningRepositoryImpl implements IPlanningRepository {
   ) {
     final docId = '$year-${month.toString().padLeft(2, '0')}';
     return _getWorkspaceDoc(workspaceId)
-        .collection('planning')
+        .collection('plannings')
         .doc(planningId)
         .collection('summaries')
         .doc(docId)

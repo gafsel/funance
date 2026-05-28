@@ -10,6 +10,8 @@ enum GoalType {
   reduceExpense,
   @JsonValue('reduce_credit_card')
   reduceCreditCard,
+  @JsonValue('pay_debt')
+  payDebt,
 }
 
 enum GoalStatus {
@@ -60,6 +62,21 @@ class GoalModel {
     this.isDeleted = false,
   }) : startDate = startDate ?? DateTime.now();
 
+  double get monthlyRequirement {
+    final now = DateTime.now();
+    if (deadline.isBefore(now)) return 0;
+    
+    final monthsRemaining = (deadline.year - now.year) * 12 + deadline.month - now.month;
+    final effectiveMonths = monthsRemaining <= 0 ? 1 : monthsRemaining;
+    
+    if (type == GoalType.saveMoney || type == GoalType.payDebt) {
+      final remaining = targetAmount - currentAmount;
+      return remaining > 0 ? remaining / effectiveMonths : 0;
+    }
+    
+    return 0;
+  }
+
   factory GoalModel.fromJson(Map<String, dynamic> json) => _$GoalModelFromJson(json);
   Map<String, dynamic> toJson() => _$GoalModelToJson(this);
 
@@ -67,12 +84,18 @@ class GoalModel {
     final data = doc.data() as Map<String, dynamic>?;
     if (data == null) throw Exception('Goal data is null');
 
+    DateTime parseDate(dynamic value) {
+      if (value is Timestamp) return value.toDate();
+      if (value is String) return DateTime.parse(value);
+      return DateTime.now();
+    }
+
     return GoalModel.fromJson({
       'type': 'save_money',
       ...data,
       'id': doc.id,
-      'startDate': (data['startDate'] as Timestamp?)?.toDate().toIso8601String() ?? (data['start_date'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
-      'deadline': (data['deadline'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
+      'startDate': parseDate(data['startDate'] ?? data['start_date']).toIso8601String(),
+      'deadline': parseDate(data['deadline']).toIso8601String(),
     });
   }
 
@@ -112,8 +135,15 @@ class GoalModel {
     final elapsedDuration = now.difference(startDate).inDays;
     final timePercent = totalDuration > 0 ? (elapsedDuration / totalDuration).clamp(0.0, 1.0) : 1.0;
 
-    if (type == GoalType.saveMoney) {
+    if (type == GoalType.saveMoney || type == GoalType.payDebt) {
       percent = (currentAmount / targetAmount).clamp(0.0, 1.0);
+      
+      if (type == GoalType.payDebt) {
+        // Para dívida, o progresso pode ser inverso se considerarmos o saldo negativo,
+        // mas aqui assumimos que currentAmount é o quanto JÁ FOI PAGO da dívida total (targetAmount).
+        // Se currentAmount for o saldo da conta (negativo), precisamos tratar.
+      }
+
       isLost = percent < timePercent * 0.5 && deadline.isBefore(now.add(const Duration(days: 7)));
 
       if (percent >= 1.0) {

@@ -16,6 +16,6 @@ export * from "./core/container";
 export * from "./features/finance/presentation/functions/order_handler";
 export * from "./features/finance/presentation/functions/ledger_handler";
 export * from "./features/finance/presentation/functions/planning_handler";
-export * from "./features/finance/presentation/functions/account_handler";
+export * from "./features/goal/presentation/functions/ai_handler";
 export * from "./features/workspace/presentation/functions/invite_handler";
 export * from "./features/workspace/presentation/functions/category_handler";

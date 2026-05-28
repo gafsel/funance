@@ -4,32 +4,17 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/onboarding_providers.dart';
 
-class WorkspaceInfoStep extends StatefulWidget {
-  final OnboardingState state;
-  final OnboardingNotifier notifier;
-  const WorkspaceInfoStep({super.key, required this.state, required this.notifier});
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class WorkspaceInfoStep extends ConsumerWidget {
+  const WorkspaceInfoStep({super.key});
 
   @override
-  State<WorkspaceInfoStep> createState() => _WorkspaceInfoStepState();
-}
-
-class _WorkspaceInfoStepState extends State<WorkspaceInfoStep> {
-  late TextEditingController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.state.workspaceName);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final workspaceType = ref.watch(onboardingNotifierProvider.select((s) => s.workspaceType));
+    final workspaceName = ref.watch(onboardingNotifierProvider.select((s) => s.workspaceName));
+    final isSubmitting = ref.watch(onboardingNotifierProvider.select((s) => s.isSubmitting));
+    final notifier = ref.read(onboardingNotifierProvider.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(32.0),
@@ -39,7 +24,7 @@ class _WorkspaceInfoStepState extends State<WorkspaceInfoStep> {
           IconButton(
             alignment: Alignment.centerLeft,
             icon: const Icon(Icons.arrow_back, color: AppColors.pureWhite),
-            onPressed: () => widget.notifier.previousStep(),
+            onPressed: () => notifier.previousStep(),
           ),
           const SizedBox(height: 32),
           Text(
@@ -48,34 +33,34 @@ class _WorkspaceInfoStepState extends State<WorkspaceInfoStep> {
           ),
           const SizedBox(height: 8),
           Text(
-            widget.state.workspaceType == WorkspaceType.personal
+            workspaceType == WorkspaceType.personal
                 ? l10n.onboardingWorkspaceNamePersonalHint
                 : l10n.onboardingWorkspaceNameBusinessHint,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 32),
-          TextField(
-            controller: _controller,
+          TextFormField(
+            initialValue: workspaceName,
             decoration: InputDecoration(
               labelText: l10n.onboardingWorkspaceNameLabel,
             ),
-            onChanged: (value) => widget.notifier.setWorkspaceName(value),
+            onChanged: (value) => notifier.setWorkspaceName(value),
           ),
           const Spacer(),
           ElevatedButton(
-            onPressed: widget.state.workspaceName.isEmpty || widget.state.isSubmitting
+            onPressed: workspaceName.isEmpty || isSubmitting
                 ? null
                 : () async {
-                    final success = await widget.notifier.createWorkspace();
+                    final success = await notifier.createWorkspace();
                     if (success) {
-                      widget.notifier.nextStep();
+                      notifier.nextStep();
                     } else if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text(l10n.onboardingWorkspaceCreateError)),
                       );
                     }
                   },
-            child: widget.state.isSubmitting
+            child: isSubmitting
                 ? const CircularProgressIndicator(color: AppColors.deepTurquoise)
                 : Text(l10n.continueButton.toUpperCase()),
           ),

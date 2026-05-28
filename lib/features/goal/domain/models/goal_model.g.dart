@@ -40,4 +40,5 @@ const _$GoalTypeEnumMap = {
   GoalType.saveMoney: 'save_money',
   GoalType.reduceExpense: 'reduce_expense',
   GoalType.reduceCreditCard: 'reduce_credit_card',
+  GoalType.payDebt: 'pay_debt',
 };

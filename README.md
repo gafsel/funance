@@ -72,7 +72,17 @@ Acompanhamento do desenvolvimento baseado nos requisitos do Blueprint e evoluç�
 
 ## 🏗️ Padrões de Código
 
-O projeto preza pela **Tipagem Forte** e **Segurança de Dados**:
+O projeto preza pela **Tipagem Forte**, **Segurança de Dados** e **Redução de Boilerplate**:
+
+### Padrão de Formulários (Riverpod State Management)
+Adotamos o padrão de **Form Controllers** utilizando Riverpod para gerenciar a lógica de formulários, eliminando o uso manual de `TextEditingController` e `setState` dentro dos Widgets.
+
+**Estrutura:**
+1. **FormState:** Classe imutável que representa todos os campos, estados de carregamento e erro do formulário.
+2. **FormNotifier:** Um `StateNotifier` que gerencia as mudanças de estado, validações e submissão dos dados.
+3. **ConsumerWidget:** A UI "escuta" o estado do provider e reage de forma declarativa, utilizando `initialValue` e `onChanged` vinculados ao notifier.
+
+Este padrão garante que a lógica de negócio esteja isolada da UI, facilitando testes unitários e mantendo os Widgets limpos e focados na renderização.
 
 - **Enums:** Todos os status e tipos (Order, Ledger, Account, Workspace) são gerenciados via Enums tanto no Flutter quanto no Cloud Functions.
 - **Resiliência:** Models possuem tratamento defensivo para dados nulos e conversão segura de Timestamps do Firestore.

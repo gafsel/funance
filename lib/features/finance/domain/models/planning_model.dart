@@ -25,6 +25,7 @@ class PlanningModel {
   final DateTime startDate;
   @JsonKey(name: 'endDate')
   final DateTime endDate;
+  final Map<String, dynamic>? metadata;
 
   PlanningModel({
     required this.id,
@@ -34,6 +35,7 @@ class PlanningModel {
     this.installmentsCount,
     required this.startDate,
     required this.endDate,
+    this.metadata,
   });
 
   factory PlanningModel.fromJson(Map<String, dynamic> json) => _$PlanningModelFromJson(json);
@@ -49,5 +51,27 @@ class PlanningModel {
       'startDate': (data['start_date'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
       'endDate': (data['end_date'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
     });
+  }
+
+  PlanningModel copyWith({
+    String? id,
+    CategoryModel? category,
+    double? amount,
+    PlanningType? type,
+    int? installmentsCount,
+    DateTime? startDate,
+    DateTime? endDate,
+    Map<String, dynamic>? metadata,
+  }) {
+    return PlanningModel(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      amount: amount ?? this.amount,
+      type: type ?? this.type,
+      installmentsCount: installmentsCount ?? this.installmentsCount,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      metadata: metadata ?? this.metadata,
+    );
   }
 }

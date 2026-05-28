@@ -14,6 +14,19 @@ enum AccountType {
   debt,
 }
 
+enum AccountProcessingStatus {
+  @JsonValue('none')
+  none,
+  @JsonValue('pending')
+  pending,
+  @JsonValue('processing')
+  processing,
+  @JsonValue('completed')
+  completed,
+  @JsonValue('failed')
+  failed,
+}
+
 @JsonSerializable()
 class AccountModel {
   final String id;
@@ -27,6 +40,12 @@ class AccountModel {
   final double initialBalance;
   @JsonKey(name: 'initial_balance_date')
   final DateTime initialBalanceDate;
+  @JsonKey(name: 'file_path')
+  final String? filePath;
+  @JsonKey(name: 'file_name')
+  final String? fileName;
+  @JsonKey(name: 'processing_status')
+  final AccountProcessingStatus processingStatus;
 
   AccountModel({
     required this.id,
@@ -38,6 +57,9 @@ class AccountModel {
     this.isDeleted = false,
     this.initialBalance = 0.0,
     required this.initialBalanceDate,
+    this.filePath,
+    this.fileName,
+    this.processingStatus = AccountProcessingStatus.none,
   });
 
   factory AccountModel.fromJson(Map<String, dynamic> json) => _$AccountModelFromJson(json);
@@ -50,11 +72,13 @@ class AccountModel {
     return AccountModel.fromJson({
       'type': 'checking',
       'isDeleted': false,
-      'initial_balance': 0.0,
       ...data,
       'id': doc.id,
       'initial_balance': (data['initial_balance'] ?? data['initialBalance'] ?? 0.0).toDouble(),
       'initial_balance_date': (data['initial_balance_date'] as Timestamp? ?? data['initialBalanceDate'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
+      'processing_status': data['processing_status'] ?? data['processingStatus'] ?? 'none',
+      'file_path': data['file_path'] ?? data['filePath'],
+      'file_name': data['file_name'] ?? data['fileName'],
     });
   }
 
@@ -68,6 +92,9 @@ class AccountModel {
     bool? isDeleted,
     double? initialBalance,
     DateTime? initialBalanceDate,
+    String? filePath,
+    String? fileName,
+    AccountProcessingStatus? processingStatus,
   }) {
     return AccountModel(
       id: id ?? this.id,
@@ -79,6 +106,9 @@ class AccountModel {
       isDeleted: isDeleted ?? this.isDeleted,
       initialBalance: initialBalance ?? this.initialBalance,
       initialBalanceDate: initialBalanceDate ?? this.initialBalanceDate,
+      filePath: filePath ?? this.filePath,
+      fileName: fileName ?? this.fileName,
+      processingStatus: processingStatus ?? this.processingStatus,
     );
   }
 }

@@ -20,6 +20,8 @@ extension ErrorCodeExtension on ErrorCode {
         return l10n.errorInvalidEmail;
       case ErrorCode.networkRequestFailed:
         return l10n.errorNetworkRequestFailed;
+      case ErrorCode.googleSignInConfigError:
+        return l10n.errorGoogleSignInConfig;
       case ErrorCode.goalNotFound:
         return l10n.errorGoalNotFound;
       case ErrorCode.goalTypeCannotBeChanged:

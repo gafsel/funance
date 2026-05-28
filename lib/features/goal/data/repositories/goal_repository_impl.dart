@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../domain/models/goal_model.dart';
 import '../../domain/repositories/goal_repository.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
 
 class GoalRepositoryImpl implements IGoalRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -11,30 +12,48 @@ class GoalRepositoryImpl implements IGoalRepository {
 
   @override
   Future<List<GoalModel>> getGoals(String workspaceId) async {
-    final snapshot = await _getCollection(workspaceId)
-        .where('isDeleted', isEqualTo: false)
-        .get();
-    return snapshot.docs.map((doc) => GoalModel.fromFirestore(doc)).toList();
+    try {
+      final snapshot = await _getCollection(workspaceId)
+          .where('isDeleted', isEqualTo: false)
+          .get();
+      return snapshot.docs.map((doc) => GoalModel.fromFirestore(doc)).toList();
+    } catch (e, s) {
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+    }
   }
 
   @override
   Future<void> addGoal(String workspaceId, GoalModel goal) async {
-    final data = goal.toJson();
-    data.remove('id');
-    data['deadline'] = Timestamp.fromDate(goal.deadline);
-    await _getCollection(workspaceId).add(data);
+    try {
+      final data = goal.toJson();
+      data.remove('id');
+      data['deadline'] = Timestamp.fromDate(goal.deadline);
+      data['startDate'] = Timestamp.fromDate(goal.startDate);
+      await _getCollection(workspaceId).add(data);
+    } catch (e, s) {
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+    }
   }
 
   @override
   Future<void> updateGoal(String workspaceId, GoalModel goal) async {
-    final data = goal.toJson();
-    data.remove('id');
-    data['deadline'] = Timestamp.fromDate(goal.deadline);
-    await _getCollection(workspaceId).doc(goal.id).update(data);
+    try {
+      final data = goal.toJson();
+      data.remove('id');
+      data['deadline'] = Timestamp.fromDate(goal.deadline);
+      data['startDate'] = Timestamp.fromDate(goal.startDate);
+      await _getCollection(workspaceId).doc(goal.id).update(data);
+    } catch (e, s) {
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+    }
   }
 
   @override
   Future<void> deleteGoal(String workspaceId, String goalId) async {
-    await _getCollection(workspaceId).doc(goalId).update({'isDeleted': true});
+    try {
+      await _getCollection(workspaceId).doc(goalId).update({'isDeleted': true});
+    } catch (e, s) {
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+    }
   }
 }

@@ -45,13 +45,17 @@ class AuthRepositoryImpl implements IAuthRepository {
       if (firebaseUser == null) return null;
 
       return await _handleUserPersistance(firebaseUser);
-    } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthException(e);
-    } catch (e) {
-      if (e.toString().contains('keychain-error')) {
-        throw BusinessException(ErrorCode.keychainError, originalError: e);
+    } on FirebaseAuthException catch (e, s) {
+      throw _handleFirebaseAuthException(e, s);
+    } catch (e, s) {
+      final errorStr = e.toString();
+      if (errorStr.contains('keychain-error')) {
+        throw BusinessException(ErrorCode.keychainError, originalError: e, stackTrace: s);
       }
-      throw BusinessException(ErrorCode.unknown, originalError: e);
+      if (errorStr.contains('sign_in_failed') || errorStr.contains('ApiException: 10')) {
+        throw BusinessException(ErrorCode.googleSignInConfigError, originalError: e, stackTrace: s);
+      }
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
   }
 
@@ -67,10 +71,10 @@ class AuthRepositoryImpl implements IAuthRepository {
       if (firebaseUser == null) return null;
 
       return await _handleUserPersistance(firebaseUser);
-    } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthException(e);
-    } catch (e) {
-      throw BusinessException(ErrorCode.unknown, originalError: e);
+    } on FirebaseAuthException catch (e, s) {
+      throw _handleFirebaseAuthException(e, s);
+    } catch (e, s) {
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
   }
 
@@ -88,32 +92,41 @@ class AuthRepositoryImpl implements IAuthRepository {
       await firebaseUser.updateDisplayName(displayName);
       
       return await _handleUserPersistance(firebaseUser, displayName: displayName);
-    } on FirebaseAuthException catch (e) {
-      throw _handleFirebaseAuthException(e);
-    } catch (e) {
-      throw BusinessException(ErrorCode.unknown, originalError: e);
+    } on FirebaseAuthException catch (e, s) {
+      throw _handleFirebaseAuthException(e, s);
+    } catch (e, s) {
+      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
   }
 
-  BusinessException _handleFirebaseAuthException(FirebaseAuthException e) {
+  BusinessException _handleFirebaseAuthException(FirebaseAuthException e, StackTrace s) {
     switch (e.code) {
       case 'user-not-found':
-        return BusinessException(ErrorCode.userNotFound, originalError: e);
+        return BusinessException(ErrorCode.userNotFound, originalError: e, stackTrace: s);
       case 'wrong-password':
-        return BusinessException(ErrorCode.wrongPassword, originalError: e);
+        return BusinessException(ErrorCode.wrongPassword, originalError: e, stackTrace: s);
       case 'email-already-in-use':
-        return BusinessException(ErrorCode.emailAlreadyInUse, originalError: e);
+        return BusinessException(ErrorCode.emailAlreadyInUse, originalError: e, stackTrace: s);
       case 'weak-password':
-        return BusinessException(ErrorCode.weakPassword, originalError: e);
+        return BusinessException(ErrorCode.weakPassword, originalError: e, stackTrace: s);
       case 'invalid-email':
-        return BusinessException(ErrorCode.invalidEmail, originalError: e);
+        return BusinessException(ErrorCode.invalidEmail, originalError: e, stackTrace: s);
       case 'network-request-failed':
-        return BusinessException(ErrorCode.networkRequestFailed, originalError: e);
+        return BusinessException(ErrorCode.networkRequestFailed, originalError: e, stackTrace: s);
+      case 'account-exists-with-different-credential':
+        // Adicione este caso se necessário ou deixe no default
+        return BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      case 'invalid-credential':
+        return BusinessException(ErrorCode.wrongPassword, originalError: e, stackTrace: s);
+      case 'user-disabled':
+        return BusinessException(ErrorCode.userNotFound, originalError: e, stackTrace: s);
+      case 'operation-not-allowed':
+        return BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
       default:
         if (e.message?.contains('keychain-error') ?? false) {
-          return BusinessException(ErrorCode.keychainError, originalError: e);
+          return BusinessException(ErrorCode.keychainError, originalError: e, stackTrace: s);
         }
-        return BusinessException(ErrorCode.unknown, originalError: e);
+        return BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }
   }
 

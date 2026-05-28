@@ -3,7 +3,7 @@ import { container } from "../../../../core/container";
 import { PlanningModel } from "../../domain/models/finance.models";
 
 export const onPlanningWritten = onDocumentWritten(
-  "workspaces/{workspaceId}/planning/{planningId}",
+  "workspaces/{workspaceId}/plannings/{planningId}",
   async (event) => {
     const workspaceId = event.params.workspaceId;
 

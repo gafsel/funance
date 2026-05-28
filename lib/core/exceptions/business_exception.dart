@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 enum ErrorCode {
   unknown,
   keychainError,
@@ -7,6 +9,7 @@ enum ErrorCode {
   weakPassword,
   invalidEmail,
   networkRequestFailed,
+  googleSignInConfigError,
   goalNotFound,
   goalTypeCannotBeChanged,
 }
@@ -14,8 +17,16 @@ enum ErrorCode {
 class BusinessException implements Exception {
   final ErrorCode code;
   final dynamic originalError;
+  final StackTrace? stackTrace;
 
-  BusinessException(this.code, {this.originalError});
+  BusinessException(this.code, {this.originalError, this.stackTrace}) {
+    developer.log(
+      'BusinessException: $code',
+      name: 'funances.exception',
+      error: originalError,
+      stackTrace: stackTrace,
+    );
+  }
 
   @override
   String toString() => 'BusinessException: $code';

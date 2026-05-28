@@ -16,6 +16,7 @@ export const onLedgerEntryWritten = onDocumentWritten(
       dueDate: beforeData.due_date ? beforeData.due_date.toDate() : (beforeData.dueDate?.toDate ? beforeData.dueDate.toDate() : new Date(beforeData.dueDate)),
       accountId: beforeData.account_id || beforeData.accountId,
       orderId: beforeData.order_id || beforeData.orderId,
+      orderType: beforeData.order_type || beforeData.orderType,
       planningId: beforeData.planning_id || beforeData.planningId,
     } as LedgerEntryModel : null;
 
@@ -25,6 +26,7 @@ export const onLedgerEntryWritten = onDocumentWritten(
       dueDate: afterData.due_date ? afterData.due_date.toDate() : (afterData.dueDate?.toDate ? afterData.dueDate.toDate() : new Date(afterData.dueDate)),
       accountId: afterData.account_id || afterData.accountId,
       orderId: afterData.order_id || afterData.orderId,
+      orderType: afterData.order_type || afterData.orderType,
       planningId: afterData.planning_id || afterData.planningId,
     } as LedgerEntryModel : null;
 

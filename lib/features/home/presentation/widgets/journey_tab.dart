@@ -18,7 +18,12 @@ class JourneyTab extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        top: 16.0,
+        bottom: 120.0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -45,8 +50,30 @@ class JourneyTab extends ConsumerWidget {
               if (goals.isEmpty) {
                 return _buildEmptyGoals(context, l10n, theme);
               }
-              return Column(
-                children: goals.map((goal) => _buildGoalCard(context, ref, goal)).toList(),
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth > 600 ? 2 : 1;
+                  
+                  if (crossAxisCount > 1) {
+                    return Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: goals.map((goal) {
+                        return SizedBox(
+                          width: (constraints.maxWidth - 16) / 2,
+                          child: _buildGoalCard(context, ref, goal),
+                        );
+                      }).toList(),
+                    );
+                  }
+
+                  return Column(
+                    children: goals.map((goal) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _buildGoalCard(context, ref, goal),
+                    )).toList(),
+                  );
+                },
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
@@ -133,7 +160,7 @@ class JourneyTab extends ConsumerWidget {
   void _showAddGoalDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => const GoalFormDialog(),
+      builder: (context) => GoalFormDialog(),
     );
   }
 
@@ -143,7 +170,7 @@ class JourneyTab extends ConsumerWidget {
     final progress = ref.watch(goalProgressProvider(goal));
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.zero,
       child: InkWell(
         onTap: () => showDialog(
           context: context,
@@ -164,7 +191,11 @@ class JourneyTab extends ConsumerWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      goal.type == GoalType.saveMoney ? Icons.savings : Icons.trending_down,
+                      goal.type == GoalType.saveMoney
+                          ? Icons.savings
+                          : goal.type == GoalType.payDebt
+                              ? Icons.handshake
+                              : Icons.trending_down,
                       color: AppColors.deepTurquoise,
                     ),
                   ),
@@ -178,9 +209,17 @@ class JourneyTab extends ConsumerWidget {
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         Text(
-                          '${l10n.goalTargetAmountLabel}: R\$ ${goal.targetAmount.toStringAsFixed(0)}',
+                          l10n.goalTargetTarget(NumberFormat.simpleCurrency().format(goal.targetAmount)),
                           style: theme.textTheme.bodySmall,
                         ),
+                        if (goal.monthlyRequirement > 0)
+                          Text(
+                            l10n.goalMonthlyRequirementValue(NumberFormat.simpleCurrency().format(goal.monthlyRequirement)),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.deepTurquoise,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -229,9 +268,9 @@ class JourneyTab extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    goal.type == GoalType.saveMoney
-                        ? l10n.goalRemainingAmount('R\$ ${(goal.targetAmount - goal.currentAmount).toStringAsFixed(0)}')
-                        : '${(progress.percent * 100).toInt()}% do limite gasto',
+                    goal.type == GoalType.saveMoney || goal.type == GoalType.payDebt
+                        ? l10n.goalRemainingValue(NumberFormat.simpleCurrency().format(goal.targetAmount - goal.currentAmount))
+                        : l10n.goalProgressValue((progress.percent * 100).toInt().toString()),
                     style: theme.textTheme.bodySmall,
                   ),
                   Text(

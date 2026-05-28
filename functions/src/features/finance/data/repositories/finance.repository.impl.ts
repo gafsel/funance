@@ -25,7 +25,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   private getPlanningSummariesCollection(workspaceId: string, planningId: string) {
-    return this.firestore.collection(`workspaces/${workspaceId}/planning/${planningId}/summaries`);
+    return this.firestore.collection(`workspaces/${workspaceId}/plannings/${planningId}/summaries`);
   }
 
   private getAccountsCollection(workspaceId: string) {

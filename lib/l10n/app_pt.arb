@@ -24,6 +24,7 @@
   "errorWeakPassword": "A senha fornecida é muito fraca.",
   "errorInvalidEmail": "O endereço de e-mail não é válido.",
   "errorNetworkRequestFailed": "Falha na conexão com a internet.",
+  "errorGoogleSignInConfig": "Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.",
 
   "onboardingWelcomeTitle": "Boas-vindas ao Funances!",
   "onboardingWelcomeDesc": "O app que transforma sua gestão financeira em uma jornada de conquistas.",
@@ -45,6 +46,67 @@
   "onboardingMembersTitle": "Convide membros",
   "onboardingMembersDesc": "Você pode compartilhar seu workspace com sócios ou familiares para gerirem as finanças juntos.",
   "onboardingFinish": "CONCLUIR ONBOARDING",
+  "onboardingAccountsTitle": "DEFINIR CONTAS",
+  "onboardingAccountsDesc": "Cadastre suas contas bancárias ou cartões de crédito. Você pode anexar extratos (PDF/OFX) para automatizar o processo.",
+  "onboardingAccountsEmpty": "Nenhuma conta adicionada",
+  "onboardingAccountsAdd": "ADICIONAR CONTA",
+  "onboardingAccountsAddAnother": "ADICIONAR OUTRA CONTA",
+  "onboardingAccountsManual": "Cadastro manual",
+  "onboardingAccountsAttachment": "Anexo: {fileName}",
+  "@onboardingAccountsAttachment": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingGoalsAnalysisTitle": "TRAÇAR METAS",
+  "onboardingGoalsAnalysisDesc": "Com base no seu perfil, nossa IA sugere algumas metas para você.",
+  "onboardingMembersListTitle": "Lista de convites",
+  "onboardingMembersEmpty": "Nenhum e-mail adicionado",
+  "goalRemainingMonthly": "{amount}/mês",
+  "@goalRemainingMonthly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalTargetTarget": "Alvo: {amount}",
+  "@goalTargetTarget": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalRemainingMonthlyDesc": "Valor por mês",
+  "goalRemainingMonthlyTarget": "{amount}/mês até {date}",
+  "@goalRemainingMonthlyTarget": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "date": { "type": "String" }
+    }
+  },
+  "goalMonthlyRequirementLabel": "Valor por mês",
+  "goalMonthlyRequirementValue": "{amount}/mês",
+  "@goalMonthlyRequirementValue": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "goalRemainingValue": "Faltam {amount}",
+  "@goalRemainingValue": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "goalProgressValue": "{percent}%",
+  "@goalProgressValue": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
   "goalEmptyMessage": "Que tal começar a planejar o seu futuro? Crie a sua primeira meta agora!",
   "goalEmptyExample": "Ex.: Viagem pra Disney",
   "addGoalButton": "Nova Meta",
@@ -107,6 +169,8 @@
   "homeNewTransaction": "Novo Lançamento",
   "homeConsolidate": "Consolidar",
   "noTransactionsInPeriod": "Nenhuma transação encontrada para este período",
+  "historyFilterPeriod": "Selecionar Período",
+  "historyFilterAllAccounts": "Todas as Contas",
   "homeSettings": "Configurações",
   "homeNoWorkspaceSelected": "Nenhum workspace selecionado",
   "workspaceSettingsTitle": "Configurações do Workspace",
@@ -188,6 +252,22 @@
   "noAccountsFound": "Nenhuma conta encontrada.",
   "initialBalanceLabel": "Saldo Inicial",
   "initialBalanceDateLabel": "Data do Saldo Inicial",
+  "accountMethodDocument": "Por Documento",
+  "accountMethodManual": "Manual",
+  "accountDocumentDescription": "Anexe seu extrato bancário (PDF) ou arquivo de transações (OFX). Nossa IA analisará os dados para configurar sua conta, saldo e transações automaticamente.",
+  "accountDocumentAcceptedTypes": "Formatos aceitos: PDF, OFX",
+  "accountManualDescription": "Preencha os dados da conta manualmente caso não possua um documento ou prefira configurar do seu jeito.",
+  "accountDetectedDataTitle": "Dados detectados por IA",
+  "accountDetectedTransactions": "{count, plural, =1{1 transação encontrada} other{{count} transações encontradas}}",
+  "accountDetectedPlannings": "{count, plural, =1{1 planejamento sugerido} other{{count} planejamentos sugeridos}}",
+  "accountDetectedConfirmation": "Confirme os dados abaixo para concluir o registro.",
+  "accountSelectFile": "SELECIONAR ARQUIVO",
+  "accountDropFile": "Arraste e solte o arquivo aqui ou clique para selecionar",
+  "accountAnalyzing": "Analisando documento...",
+  "accountViewTransactions": "Ver Transações",
+  "accountViewPlannings": "Ver Planejamentos",
+  "accountDetectedTransactionsTitle": "Transações Detectadas",
+  "accountDetectedPlanningsTitle": "Planejamentos Sugeridos",
   "historyEdit": "Editar",
   "historyDelete": "Excluir",
   "historyDeleteTitle": "Excluir Lançamento",

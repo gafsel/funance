@@ -17,6 +17,7 @@ PlanningModel _$PlanningModelFromJson(Map<String, dynamic> json) =>
       installmentsCount: (json['installments_count'] as num?)?.toInt(),
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
+      metadata: json['metadata'] as Map<String, dynamic>?,
     );
 
 Map<String, dynamic> _$PlanningModelToJson(PlanningModel instance) =>
@@ -28,6 +29,7 @@ Map<String, dynamic> _$PlanningModelToJson(PlanningModel instance) =>
       'installments_count': instance.installmentsCount,
       'startDate': instance.startDate.toIso8601String(),
       'endDate': instance.endDate.toIso8601String(),
+      'metadata': instance.metadata,
     };
 
 const _$PlanningTypeEnumMap = {

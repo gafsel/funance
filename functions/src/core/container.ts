@@ -1,3 +1,5 @@
+import { GeminiAIRepositoryImpl, IAIRepository } from "../core/services/ai.service";
+import { IOnboardingService, OnboardingServiceImpl } from "../features/onboarding/domain/services/onboarding.service";
 import { IWorkspaceRepository } from "../features/workspace/domain/repositories/workspace.repository";
 import { IFinanceRepository } from "../features/finance/domain/repositories/finance.repository";
 import { IUserRepository } from "../features/user/domain/repositories/user.repository";
@@ -31,6 +33,8 @@ class Container {
   private static _goalService: IGoalService;
   private static _financeService: FinanceService;
   private static _summaryService: SummaryService;
+  private static _aiRepository: IAIRepository;
+  private static _onboardingService: IOnboardingService;
 
   static get workspaceRepository(): IWorkspaceRepository {
     if (!this._workspaceRepository) {
@@ -107,6 +111,20 @@ class Container {
       this._goalService = new GoalServiceImpl(this.goalRepository);
     }
     return this._goalService;
+  }
+
+  static get aiRepository(): IAIRepository {
+    if (!this._aiRepository) {
+      this._aiRepository = new GeminiAIRepositoryImpl();
+    }
+    return this._aiRepository;
+  }
+
+  static get onboardingService(): IOnboardingService {
+    if (!this._onboardingService) {
+      this._onboardingService = new OnboardingServiceImpl(this.aiRepository);
+    }
+    return this._onboardingService;
   }
 }
 

@@ -5,8 +5,9 @@ service cloud.firestore {
     
     // Auxiliar para verificar se o usuário é membro do workspace
     function isMember(workspaceId) {
-      return request.auth != null && 
-        request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.members;
+      return request.auth != null && (
+        request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.members
+      );
     }
 
     match /workspaces/{workspaceId} {
@@ -34,7 +35,7 @@ service cloud.firestore {
       }
 
       // Planning: Membros podem ler e escrever
-      match /planning/{planningId} {
+      match /plannings/{planningId} {
         allow read, write: if isMember(workspaceId);
 
         // Planning Summaries: Membros podem apenas ler

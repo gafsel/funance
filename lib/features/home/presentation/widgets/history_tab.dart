@@ -53,31 +53,147 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
 
     return Column(
       children: [
-        // Topo: Filtros (Placeholders por enquanto)
+        // Topo: Filtros
         Padding(
           padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip(
-                  context,
-                  l10n.homeAllAccounts,
-                  isSelected: true,
+          child: Row(
+            children: [
+              // Seletor de Conta
+              Expanded(
+                child: accountsAsync.when(
+                  data: (accounts) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.pureWhite.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.pureWhite.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String?>(
+                          value: historyState.accountId,
+                          hint: Text(
+                            l10n.homeAllAccounts,
+                            style: const TextStyle(color: AppColors.pureWhite),
+                          ),
+                          dropdownColor: AppColors.darkNavy,
+                          icon: const Icon(
+                            Icons.account_balance_wallet,
+                            color: AppColors.paleGold,
+                          ),
+                          items: [
+                            DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(
+                                l10n.homeAllAccounts,
+                                style:
+                                    const TextStyle(color: AppColors.pureWhite),
+                              ),
+                            ),
+                            ..._buildAccountItems(accounts),
+                          ],
+                          onChanged: (value) {
+                            ref
+                                .read(historyProvider.notifier)
+                                .setFilters(
+                                  accountId: value,
+                                  startDate: historyState.startDate,
+                                  endDate: historyState.endDate,
+                                );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  loading: () => const LinearProgressIndicator(),
+                  error: (_, __) => const Icon(Icons.error),
                 ),
-                _buildPeriodChip(context, l10n.homeThisMonth, isSelected: true),
-                _buildPeriodChip(context, l10n.homeLastMonth),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              // Seletor de Período
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showDateRangePicker(
+                      context: context,
+                      initialDateRange: DateTimeRange(
+                        start: historyState.startDate ??
+                            DateTime.now().subtract(const Duration(days: 30)),
+                        end: historyState.endDate ?? DateTime.now(),
+                      ),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2100),
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: const ColorScheme.dark(
+                              primary: AppColors.paleGold,
+                              onPrimary: AppColors.darkNavy,
+                              surface: AppColors.darkNavy,
+                              onSurface: AppColors.pureWhite,
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+
+                    if (picked != null) {
+                      ref
+                          .read(historyProvider.notifier)
+                          .setFilters(
+                            accountId: historyState.accountId,
+                            startDate: picked.start,
+                            endDate: DateTime(
+                              picked.end.year,
+                              picked.end.month,
+                              picked.end.day,
+                              23,
+                              59,
+                              59,
+                            ),
+                          );
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.pureWhite.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.pureWhite.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.calendar_month,
+                      color: AppColors.paleGold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         // Lista de Transações
         Expanded(
           child: historyState.orders.isEmpty && !historyState.isLoading
-              ? Center(child: Text(l10n.noTransactionsInPeriod))
+              ? Center(
+                  child: Text(
+                    l10n.noTransactionsInPeriod,
+                    style: const TextStyle(color: AppColors.pureWhite),
+                  ),
+                )
               : ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: 120,
+                  ),
                   itemCount:
                       historyState.orders.length +
                       (historyState.hasMore ? 1 : 0),
@@ -120,7 +236,9 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
 
                     final account = accountsAsync.when(
                       data: (accs) {
-                        final accountId = order.metadata?['accountId'] ?? order.metadata?['account_id'] ?? '';
+                        final accountId = order.metadata?['accountId'] ??
+                            order.metadata?['account_id'] ??
+                            '';
                         return accs.firstWhere(
                           (a) => a.id == accountId,
                           orElse: () => AccountModel(
@@ -144,12 +262,14 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                       error: (_, __) => AccountModel(
                         id: '',
                         name: '!',
-                        color: '#808080',
                         icon: 'help',
+                        color: '#808080',
                         type: AccountType.checking,
                         initialBalanceDate: DateTime.now(),
                       ),
                     );
+
+                    final accountName = account.name;
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,7 +280,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                           context,
                           order: order,
                           category: category,
-                          accountName: account?.name ?? '',
+                          accountName: accountName,
                           currencyFormat: currencyFormat,
                           l10n: l10n,
                         ),
@@ -173,45 +293,62 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
     );
   }
 
+  List<DropdownMenuItem<String?>> _buildAccountItems(List<AccountModel> accounts) {
+    final grouped = <AccountType, List<AccountModel>>{};
+    for (final acc in accounts) {
+      grouped.putIfAbsent(acc.type, () => []).add(acc);
+    }
+
+    final items = <DropdownMenuItem<String?>>[];
+
+    for (final type in AccountType.values) {
+      final typeAccounts = grouped[type];
+      if (typeAccounts == null || typeAccounts.isEmpty) continue;
+
+      // Header do grupo
+      items.add(
+        DropdownMenuItem<String?>(
+          enabled: false,
+          value: 'header_${type.name}',
+          child: Text(
+            type.name.toUpperCase(),
+            style: const TextStyle(
+              color: AppColors.paleGold,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      );
+
+      for (final acc in typeAccounts) {
+        items.add(
+          DropdownMenuItem<String?>(
+            value: acc.id,
+            child: Row(
+              children: [
+                Icon(
+                  _getIconData(acc.icon),
+                  size: 16,
+                  color: Color(int.parse(acc.color.replaceAll('#', '0xFF'))),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  acc.name,
+                  style: const TextStyle(color: AppColors.pureWhite),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    return items;
+  }
+
   bool _isSameDay(DateTime d1, DateTime d2) {
     return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
-  }
-
-  Widget _buildFilterChip(
-    BuildContext context,
-    String label, {
-    bool isSelected = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (val) {},
-        backgroundColor: AppColors.pureWhite,
-        selectedColor: AppColors.vibrantTeal.withValues(alpha: 0.2),
-        checkmarkColor: AppColors.deepTurquoise,
-        labelStyle: TextStyle(
-          color: isSelected ? AppColors.deepTurquoise : AppColors.vibrantTeal,
-          fontWeight: isSelected ? FontWeight.bold : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPeriodChip(
-    BuildContext context,
-    String label, {
-    bool isSelected = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: ChoiceChip(
-        label: Text(label, style: const TextStyle(fontSize: 12)),
-        selected: isSelected,
-        onSelected: (val) {},
-      ),
-    );
   }
 
   Widget _buildDateHeader(

@@ -236,6 +236,12 @@ abstract class AppLocalizations {
   /// **'Falha na conexão com a internet.'**
   String get errorNetworkRequestFailed;
 
+  /// No description provided for @errorGoogleSignInConfig.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.'**
+  String get errorGoogleSignInConfig;
+
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In pt, this message translates to:
@@ -355,6 +361,120 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'CONCLUIR ONBOARDING'**
   String get onboardingFinish;
+
+  /// No description provided for @onboardingAccountsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'DEFINIR CONTAS'**
+  String get onboardingAccountsTitle;
+
+  /// No description provided for @onboardingAccountsDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastre suas contas bancárias ou cartões de crédito. Você pode anexar extratos (PDF/OFX) para automatizar o processo.'**
+  String get onboardingAccountsDesc;
+
+  /// No description provided for @onboardingAccountsEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma conta adicionada'**
+  String get onboardingAccountsEmpty;
+
+  /// No description provided for @onboardingAccountsAdd.
+  ///
+  /// In pt, this message translates to:
+  /// **'ADICIONAR CONTA'**
+  String get onboardingAccountsAdd;
+
+  /// No description provided for @onboardingAccountsAddAnother.
+  ///
+  /// In pt, this message translates to:
+  /// **'ADICIONAR OUTRA CONTA'**
+  String get onboardingAccountsAddAnother;
+
+  /// No description provided for @onboardingAccountsManual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastro manual'**
+  String get onboardingAccountsManual;
+
+  /// No description provided for @onboardingAccountsAttachment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anexo: {fileName}'**
+  String onboardingAccountsAttachment(String fileName);
+
+  /// No description provided for @onboardingGoalsAnalysisTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'TRAÇAR METAS'**
+  String get onboardingGoalsAnalysisTitle;
+
+  /// No description provided for @onboardingGoalsAnalysisDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Com base no seu perfil, nossa IA sugere algumas metas para você.'**
+  String get onboardingGoalsAnalysisDesc;
+
+  /// No description provided for @onboardingMembersListTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lista de convites'**
+  String get onboardingMembersListTitle;
+
+  /// No description provided for @onboardingMembersEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum e-mail adicionado'**
+  String get onboardingMembersEmpty;
+
+  /// No description provided for @goalRemainingMonthly.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount}/mês'**
+  String goalRemainingMonthly(String amount);
+
+  /// No description provided for @goalTargetTarget.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alvo: {amount}'**
+  String goalTargetTarget(String amount);
+
+  /// No description provided for @goalRemainingMonthlyDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor por mês'**
+  String get goalRemainingMonthlyDesc;
+
+  /// No description provided for @goalRemainingMonthlyTarget.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount}/mês até {date}'**
+  String goalRemainingMonthlyTarget(String amount, String date);
+
+  /// No description provided for @goalMonthlyRequirementLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor por mês'**
+  String get goalMonthlyRequirementLabel;
+
+  /// No description provided for @goalMonthlyRequirementValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount}/mês'**
+  String goalMonthlyRequirementValue(String amount);
+
+  /// No description provided for @goalRemainingValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faltam {amount}'**
+  String goalRemainingValue(String amount);
+
+  /// No description provided for @goalProgressValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'{percent}%'**
+  String goalProgressValue(String percent);
 
   /// No description provided for @goalEmptyMessage.
   ///
@@ -643,6 +763,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhuma transação encontrada para este período'**
   String get noTransactionsInPeriod;
+
+  /// No description provided for @historyFilterPeriod.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecionar Período'**
+  String get historyFilterPeriod;
+
+  /// No description provided for @historyFilterAllAccounts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todas as Contas'**
+  String get historyFilterAllAccounts;
 
   /// No description provided for @homeSettings.
   ///
@@ -1045,6 +1177,102 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Data do Saldo Inicial'**
   String get initialBalanceDateLabel;
+
+  /// No description provided for @accountMethodDocument.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por Documento'**
+  String get accountMethodDocument;
+
+  /// No description provided for @accountMethodManual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manual'**
+  String get accountMethodManual;
+
+  /// No description provided for @accountDocumentDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Anexe seu extrato bancário (PDF) ou arquivo de transações (OFX). Nossa IA analisará os dados para configurar sua conta, saldo e transações automaticamente.'**
+  String get accountDocumentDescription;
+
+  /// No description provided for @accountDocumentAcceptedTypes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formatos aceitos: PDF, OFX'**
+  String get accountDocumentAcceptedTypes;
+
+  /// No description provided for @accountManualDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preencha os dados da conta manualmente caso não possua um documento ou prefira configurar do seu jeito.'**
+  String get accountManualDescription;
+
+  /// No description provided for @accountDetectedDataTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dados detectados por IA'**
+  String get accountDetectedDataTitle;
+
+  /// No description provided for @accountDetectedTransactions.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 transação encontrada} other{{count} transações encontradas}}'**
+  String accountDetectedTransactions(num count);
+
+  /// No description provided for @accountDetectedPlannings.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 planejamento sugerido} other{{count} planejamentos sugeridos}}'**
+  String accountDetectedPlannings(num count);
+
+  /// No description provided for @accountDetectedConfirmation.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirme os dados abaixo para concluir o registro.'**
+  String get accountDetectedConfirmation;
+
+  /// No description provided for @accountSelectFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'SELECIONAR ARQUIVO'**
+  String get accountSelectFile;
+
+  /// No description provided for @accountDropFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arraste e solte o arquivo aqui ou clique para selecionar'**
+  String get accountDropFile;
+
+  /// No description provided for @accountAnalyzing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando documento...'**
+  String get accountAnalyzing;
+
+  /// No description provided for @accountViewTransactions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver Transações'**
+  String get accountViewTransactions;
+
+  /// No description provided for @accountViewPlannings.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver Planejamentos'**
+  String get accountViewPlannings;
+
+  /// No description provided for @accountDetectedTransactionsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transações Detectadas'**
+  String get accountDetectedTransactionsTitle;
+
+  /// No description provided for @accountDetectedPlanningsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejamentos Sugeridos'**
+  String get accountDetectedPlanningsTitle;
 
   /// No description provided for @historyEdit.
   ///

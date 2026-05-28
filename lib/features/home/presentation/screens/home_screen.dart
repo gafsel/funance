@@ -26,7 +26,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this, initialIndex: 1);
+    _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
   }
 
   @override
@@ -37,46 +37,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    // final theme = Theme.of(context);
-    final workspaceState = ref.watch(workspaceNotifierProvider);
-    // final currentWorkspace = workspaceState.currentWorkspace;
+    // final l10n = AppLocalizations.of(context)!;
+    // final workspaceState = ref.watch(workspaceNotifierProvider);
     final authUser = ref.watch(authStateProvider).value;
 
     return Scaffold(
       extendBody: true,
       appBar: AppBar(
-        title: _buildWorkspaceSelector(context, ref),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WorkspaceSettingsScreen()),
-              );
-            },
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 8.0),
+          child: Center(
+            child: authUser?.photoUrl != null
+                ? CircleAvatar(
+                    radius: 16,
+                    backgroundImage: NetworkImage(authUser!.photoUrl!),
+                  )
+                : const CircleAvatar(
+                    radius: 16,
+                    child: Icon(Icons.person, size: 20),
+                  ),
           ),
-          const SizedBox(width: 8),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.successGold,
-          labelColor: AppColors.pureWhite,
-          unselectedLabelColor: AppColors.pureWhite.withValues(alpha: 0.6),
-          tabs: [
-            Tab(text: l10n.homeJourneyTab, icon: const Icon(Icons.rocket_launch_outlined)),
-            Tab(text: l10n.homeOverviewTab, icon: const Icon(Icons.bar_chart_outlined)),
-            Tab(text: l10n.homeHistoryTab, icon: const Icon(Icons.history_outlined)),
-          ],
         ),
+        title: _buildWorkspaceSelector(context, ref),
+        centerTitle: true,
       ),
-      drawer: _buildDrawer(context, ref, authUser, workspaceState),
       body: TabBarView(
         controller: _tabController,
         children: const [
-          JourneyTab(),
           OverviewTab(),
+          JourneyTab(),
           HistoryTab(),
+          WorkspaceSettingsScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomBar(context),
@@ -91,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     final l10n = AppLocalizations.of(context)!;
 
     return InkWell(
-      onTap: () => Scaffold.of(context).openDrawer(),
+      onTap: () => _showWorkspacePicker(context, ref, workspaceState),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -100,9 +91,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             size: 20,
           ),
           const SizedBox(width: 8),
-          Text(
-            currentWorkspace?.name ?? l10n.homeNoWorkspaceSelected,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          Flexible(
+            child: Text(
+              currentWorkspace?.name ?? l10n.homeNoWorkspaceSelected,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const Icon(Icons.arrow_drop_down),
         ],
@@ -110,81 +104,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildDrawer(BuildContext context, WidgetRef ref, dynamic authUser, dynamic workspaceState) {
-    // final l10n = AppLocalizations.of(context)!;
-    
-    return Drawer(
-      child: Column(
-        children: [
-          UserAccountsDrawerHeader(
-            currentAccountPicture: authUser?.photoUrl != null
-                ? CircleAvatar(backgroundImage: NetworkImage(authUser!.photoUrl!))
-                : const CircleAvatar(child: Icon(Icons.person)),
-            accountName: Text(authUser?.displayName ?? 'Usuário'),
-            accountEmail: Text(authUser?.email ?? ''),
-            decoration: const BoxDecoration(
-              color: AppColors.deepTurquoise,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
+  void _showWorkspacePicker(BuildContext context, WidgetRef ref, dynamic workspaceState) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(
                   'Workspaces',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline, size: 20),
-                  onPressed: () {
-                    // TODO: Iniciar fluxo de criação de novo workspace
+              ),
+              Expanded(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: workspaceState.availableWorkspaces.length,
+                  itemBuilder: (context, index) {
+                    final workspace = workspaceState.availableWorkspaces[index];
+                    final isSelected = workspace.id == workspaceState.currentWorkspace?.id;
+                    return ListTile(
+                      leading: Icon(
+                        workspace.type == WorkspaceType.business ? Icons.business : Icons.home_outlined,
+                        color: isSelected ? AppColors.vibrantTeal : null,
+                      ),
+                      title: Text(
+                        workspace.name,
+                        style: TextStyle(
+                          fontWeight: isSelected ? FontWeight.bold : null,
+                          color: isSelected ? AppColors.vibrantTeal : null,
+                        ),
+                      ),
+                      selected: isSelected,
+                      onTap: () {
+                        ref.read(workspaceNotifierProvider.notifier).setCurrentWorkspace(workspace);
+                        Navigator.pop(context);
+                      },
+                    );
                   },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Expanded(
-            child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: workspaceState.availableWorkspaces.length,
-              itemBuilder: (context, index) {
-                final workspace = workspaceState.availableWorkspaces[index];
-                final isSelected = workspace.id == workspaceState.currentWorkspace?.id;
-                return ListTile(
-                  leading: Icon(
-                    workspace.type == 'business' ? Icons.business : Icons.home_outlined,
-                    color: isSelected ? AppColors.vibrantTeal : null,
-                  ),
-                  title: Text(
-                    workspace.name,
-                    style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : null,
-                      color: isSelected ? AppColors.vibrantTeal : null,
-                    ),
-                  ),
-                  selected: isSelected,
-                  onTap: () {
-                    ref.read(workspaceNotifierProvider.notifier).setCurrentWorkspace(workspace);
-                    Navigator.pop(context);
-                  },
-                );
-              },
-            ),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.logout, color: AppColors.coralOrange),
-            title: const Text('Sair', style: TextStyle(color: AppColors.coralOrange)),
-            onTap: () {
-              ref.read(authNotifierProvider.notifier).signOut();
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
+        );
+      },
     );
   }
+
 
   Widget _buildBottomBar(BuildContext context) {
     return BottomAppBar(
@@ -197,13 +166,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             IconButton(
-              icon: const Icon(Icons.rocket_launch_outlined, color: AppColors.pureWhite),
+              icon: const Icon(Icons.bar_chart_outlined, color: AppColors.pureWhite),
               onPressed: () => _tabController.animateTo(0),
+            ),
+            IconButton(
+              icon: const Icon(Icons.rocket_launch_outlined, color: AppColors.pureWhite),
+              onPressed: () => _tabController.animateTo(1),
             ),
             const SizedBox(width: 48), // Espaço para o FAB
             IconButton(
               icon: const Icon(Icons.history_outlined, color: AppColors.pureWhite),
               onPressed: () => _tabController.animateTo(2),
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined, color: AppColors.pureWhite),
+              onPressed: () => _tabController.animateTo(3),
             ),
           ],
         ),

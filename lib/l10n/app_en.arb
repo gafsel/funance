@@ -24,6 +24,7 @@
   "errorWeakPassword": "The provided password is too weak.",
   "errorInvalidEmail": "The email address is not valid.",
   "errorNetworkRequestFailed": "Internet connection failure.",
+  "errorGoogleSignInConfig": "Google Sign-In configuration error. Please verify if the SHA-1 key has been added to the Firebase Console.",
 
   "onboardingWelcomeTitle": "Welcome to Funances!",
   "onboardingWelcomeDesc": "The app that transforms your financial management into a journey of achievements.",
@@ -45,6 +46,67 @@
   "onboardingMembersTitle": "Invite members",
   "onboardingMembersDesc": "You can share your workspace with partners or family members to manage finances together.",
   "onboardingFinish": "FINISH ONBOARDING",
+  "onboardingAccountsTitle": "DEFINE ACCOUNTS",
+  "onboardingAccountsDesc": "Register your bank accounts or credit cards. You can attach statements (PDF/OFX) to automate the process.",
+  "onboardingAccountsEmpty": "No accounts added",
+  "onboardingAccountsAdd": "ADD ACCOUNT",
+  "onboardingAccountsAddAnother": "ADD ANOTHER ACCOUNT",
+  "onboardingAccountsManual": "Manual registration",
+  "onboardingAccountsAttachment": "Attachment: {fileName}",
+  "@onboardingAccountsAttachment": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingGoalsAnalysisTitle": "TRACE GOALS",
+  "onboardingGoalsAnalysisDesc": "Based on your profile, our AI suggests some goals for you.",
+  "onboardingMembersListTitle": "Invite list",
+  "onboardingMembersEmpty": "No email added",
+  "goalRemainingMonthly": "{amount}/mo",
+  "@goalRemainingMonthly": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalTargetTarget": "Target: {amount}",
+  "@goalTargetTarget": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalRemainingMonthlyDesc": "Monthly value",
+  "goalRemainingMonthlyTarget": "{amount}/mo until {date}",
+  "@goalRemainingMonthlyTarget": {
+    "placeholders": {
+      "amount": { "type": "String" },
+      "date": { "type": "String" }
+    }
+  },
+  "goalMonthlyRequirementLabel": "Monthly value",
+  "goalMonthlyRequirementValue": "{amount}/mo",
+  "@goalMonthlyRequirementValue": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "goalRemainingValue": "{amount} left",
+  "@goalRemainingValue": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "goalProgressValue": "{percent}%",
+  "@goalProgressValue": {
+    "placeholders": {
+      "percent": { "type": "String" }
+    }
+  },
   "goalEmptyMessage": "How about starting to plan your future? Create your first goal now!",
   "goalEmptyExample": "Ex.: Disney Trip",
   "addGoalButton": "New Goal",
@@ -107,6 +169,8 @@
   "homeNewTransaction": "New Transaction",
   "homeConsolidate": "Consolidate",
   "noTransactionsInPeriod": "No transactions found for this period",
+  "historyFilterPeriod": "Select Period",
+  "historyFilterAllAccounts": "All Accounts",
   "homeSettings": "Settings",
   "homeNoWorkspaceSelected": "No workspace selected",
   "workspaceSettingsTitle": "Workspace Settings",
@@ -188,6 +252,22 @@
   "noAccountsFound": "No accounts found.",
   "initialBalanceLabel": "Initial Balance",
   "initialBalanceDateLabel": "Initial Balance Date",
+  "accountMethodDocument": "By Document",
+  "accountMethodManual": "Manual",
+  "accountDocumentDescription": "Attach your bank statement (PDF) or transaction file (OFX). Our AI will analyze the data to automatically set up your account, balance, and transactions.",
+  "accountDocumentAcceptedTypes": "Accepted formats: PDF, OFX",
+  "accountManualDescription": "Fill in the account details manually if you don't have a document or prefer to set it up your way.",
+  "accountDetectedDataTitle": "AI Detected Data",
+  "accountDetectedTransactions": "{count, plural, =1{1 transaction found} other{{count} transactions found}}",
+  "accountDetectedPlannings": "{count, plural, =1{1 suggested planning} other{{count} suggested plannings}}",
+  "accountDetectedConfirmation": "Confirm the details below to complete the registration.",
+  "accountSelectFile": "SELECT FILE",
+  "accountDropFile": "Drag and drop the file here or click to select",
+  "accountAnalyzing": "Analyzing document...",
+  "accountViewTransactions": "View Transactions",
+  "accountViewPlannings": "View Plannings",
+  "accountDetectedTransactionsTitle": "Detected Transactions",
+  "accountDetectedPlanningsTitle": "Suggested Plannings",
   "historyEdit": "Edit",
   "historyDelete": "Delete",
   "historyDeleteTitle": "Delete Transaction",

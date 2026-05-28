@@ -28,6 +28,7 @@ class OverviewTab extends ConsumerWidget {
     final monthFormat = DateFormat.MMMM(
       Localizations.localeOf(context).toString(),
     );
+    final selectedAccountType = ref.watch(overviewAccountTypeProvider);
 
     Map<AccountType, double> totalByGroup = {
       for (var type in AccountType.values) type: 0.0,
@@ -44,11 +45,14 @@ class OverviewTab extends ConsumerWidget {
       }
     }
 
-    return DefaultTabController(
-      length: AccountType.values.length,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        top: 16.0,
+        bottom: 120.0,
+      ),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Saldos e Faturas
@@ -73,84 +77,117 @@ class OverviewTab extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
             accountsByTypeAsync.when(
-              data: (groupedAccounts) => Column(
-                children: [
-                  TabBar(
-                    isScrollable: true,
-                    labelColor: AppColors.deepTurquoise,
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: AppColors.vibrantTeal,
-                    tabs: AccountType.values.map((type) {
-                      final count = groupedAccounts[type]?.length ?? 0;
-                      return Tab(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(_getAccountTypeName(context, type)),
-                            if (count > 0) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.vibrantTeal.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Text(
-                                  count.toString(),
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: AppColors.deepTurquoise,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+              data: (groupedAccounts) {
+                final types = AccountType.values;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: types.map((type) {
+                          final isSelected = selectedAccountType == type;
+                          final count = groupedAccounts[type]?.length ?? 0;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(_getAccountTypeName(context, type)),
+                                  if (count > 0) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '($count)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isSelected
+                                            ? AppColors.deepTurquoise
+                                            : Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ],
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 140,
-                    child: TabBarView(
-                      children: AccountType.values.map((type) {
-                        final accounts = groupedAccounts[type] ?? [];
-                        final total = totalByGroup[type] ?? 0;
-
-                        return ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: accounts.length + 2,
-                          itemBuilder: (context, index) {
-                            if (index == 0) {
-                              return _buildGroupTotalCard(
-                                context,
-                                type,
-                                total,
-                                currencyFormat,
-                              );
-                            }
-                            if (index == accounts.length + 1) {
-                              return _buildAddAccountCard(context, type);
-                            }
-                            final account = accounts[index - 1];
-                            return _buildAccountItem(
-                              context,
-                              ref,
-                              account,
-                              currencyFormat,
-                            );
-                          },
-                        );
-                      }).toList(),
+                              selected: isSelected,
+                              onSelected: (selected) {
+                                ref
+                                    .read(overviewAccountTypeProvider.notifier)
+                                    .state = selected ? type : null;
+                              },
+                              selectedColor: AppColors.vibrantTeal.withValues(
+                                alpha: 0.2,
+                              ),
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? AppColors.deepTurquoise
+                                    : Colors.grey,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 140,
+                      child: Builder(
+                        builder: (context) {
+                          final displayTypes = selectedAccountType != null
+                              ? [selectedAccountType]
+                              : types;
+
+                          return ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: displayTypes.fold<int>(
+                              0,
+                              (total, type) =>
+                                  total +
+                                  (groupedAccounts[type]?.length ?? 0) +
+                                  2,
+                            ),
+                            itemBuilder: (context, index) {
+                              int currentIdx = 0;
+                              for (final type in displayTypes) {
+                                final accounts = groupedAccounts[type] ?? [];
+                                final typeCount = accounts.length + 2;
+
+                                if (index >= currentIdx &&
+                                    index < currentIdx + typeCount) {
+                                  final innerIndex = index - currentIdx;
+                                  if (innerIndex == 0) {
+                                    return _buildGroupTotalCard(
+                                      context,
+                                      type,
+                                      totalByGroup[type] ?? 0,
+                                      currencyFormat,
+                                    );
+                                  }
+                                  if (innerIndex == accounts.length + 1) {
+                                    return _buildAddAccountCard(context, type);
+                                  }
+                                  final account = accounts[innerIndex - 1];
+                                  return _buildAccountItem(
+                                    context,
+                                    ref,
+                                    account,
+                                    currencyFormat,
+                                  );
+                                }
+                                currentIdx += typeCount;
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
               loading: () => const SizedBox(
                 height: 180,
                 child: Center(child: CircularProgressIndicator()),
@@ -221,8 +258,12 @@ class OverviewTab extends ConsumerWidget {
               data: (allSummaries) {
                 final viewType = ref.watch(overviewViewTypeProvider);
 
+                // Filtrar para mostrar apenas categorias de despesas (expense)
+                // Ignorar categorias de receitas (income)
+                final filteredSummaries = allSummaries.where((s) => s.category.type != CategoryType.income).toList();
+
                 // Ordenar por valor (de maior para menor) baseado no viewType
-                final sortedSummaries = [...allSummaries];
+                final sortedSummaries = [...filteredSummaries];
                 sortedSummaries.sort((a, b) {
                   double valA = 0;
                   double valB = 0;
@@ -281,18 +322,18 @@ class OverviewTab extends ConsumerWidget {
 
                 double totalAmount = 0;
                 if (viewType == OverviewViewType.planning) {
-                  totalAmount = allSummaries.fold<double>(
+                  totalAmount = filteredSummaries.fold<double>(
                     0,
                     (sum, item) => sum + item.plannedAmount,
                   );
                 } else {
-                  totalAmount = allSummaries.fold<double>(
+                  totalAmount = filteredSummaries.fold<double>(
                     0,
                     (sum, item) => sum + item.totalDebit,
                   );
                 }
 
-                if (allSummaries.isEmpty) {
+                if (filteredSummaries.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
@@ -320,9 +361,11 @@ class OverviewTab extends ConsumerWidget {
                   );
                 }
 
-                return Column(
-                  children: [
-                    Center(
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isSmallScreen = constraints.maxWidth < 600;
+
+                    final chart = Center(
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -379,41 +422,61 @@ class OverviewTab extends ConsumerWidget {
                           ),
                         ],
                       ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Lista de Categorias Reais (exibindo as processadas para o gráfico)
-                    ...displaySummaries.map((summary) {
-                      final color = Color(
-                        int.parse(
-                          summary.category.color.replaceAll('#', '0xFF'),
-                        ),
-                      );
-                      String value = '';
-                      double? progress;
+                    );
 
-                      if (viewType == OverviewViewType.planning) {
-                        value = currencyFormat.format(summary.plannedAmount);
-                      } else if (viewType == OverviewViewType.effective) {
-                        value = currencyFormat.format(summary.totalDebit);
-                      } else {
-                        value =
-                            '${currencyFormat.format(summary.totalDebit)} / ${currencyFormat.format(summary.plannedAmount)}';
-                        if (summary.plannedAmount > 0) {
-                          progress =
-                              (summary.totalDebit / summary.plannedAmount)
-                                  .clamp(0, 1.2);
+                    final legendList = Column(
+                      children: displaySummaries.map((summary) {
+                        final color = Color(
+                          int.parse(
+                            summary.category.color.replaceAll('#', '0xFF'),
+                          ),
+                        );
+                        String value = '';
+                        double? progress;
+
+                        if (viewType == OverviewViewType.planning) {
+                          value = currencyFormat.format(summary.plannedAmount);
+                        } else if (viewType == OverviewViewType.effective) {
+                          value = currencyFormat.format(summary.totalDebit);
+                        } else {
+                          value =
+                              '${currencyFormat.format(summary.totalDebit)} / ${currencyFormat.format(summary.plannedAmount)}';
+                          if (summary.plannedAmount > 0) {
+                            progress =
+                                (summary.totalDebit / summary.plannedAmount)
+                                    .clamp(0, 1.2);
+                          }
                         }
-                      }
 
-                      return _buildCategoryItem(
-                        context,
-                        summary.category.name,
-                        value,
-                        color,
-                        progress: progress,
+                        return _buildCategoryItem(
+                          context,
+                          summary.category.name,
+                          value,
+                          color,
+                          progress: progress,
+                        );
+                      }).toList(),
+                    );
+
+                    if (isSmallScreen) {
+                      return Column(
+                        children: [
+                          chart,
+                          const SizedBox(height: 32),
+                          legendList,
+                        ],
                       );
-                    }),
-                  ],
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: chart),
+                        const SizedBox(width: 32),
+                        Expanded(child: legendList),
+                      ],
+                    );
+                  },
                 );
               },
               loading: () => const Center(
@@ -426,7 +489,6 @@ class OverviewTab extends ConsumerWidget {
             ),
           ],
         ),
-      ),
     );
   }
 

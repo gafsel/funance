@@ -51,6 +51,32 @@ class OrderModel {
     this.metadata,
   });
 
+  OrderModel copyWith({
+    String? id,
+    String? description,
+    double? totalAmount,
+    CategoryModel? category,
+    int? installmentsCount,
+    DateTime? date,
+    OrderStatus? status,
+    OrderType? type,
+    String? planningId,
+    Map<String, dynamic>? metadata,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      description: description ?? this.description,
+      totalAmount: totalAmount ?? this.totalAmount,
+      category: category ?? this.category,
+      installmentsCount: installmentsCount ?? this.installmentsCount,
+      date: date ?? this.date,
+      status: status ?? this.status,
+      type: type ?? this.type,
+      planningId: planningId ?? this.planningId,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
   factory OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
   Map<String, dynamic> toJson() => _$OrderModelToJson(this);
 
@@ -61,7 +87,6 @@ class OrderModel {
     return OrderModel.fromJson({
       'type': 'expense',
       'status': 'active',
-      'installments_count': 1,
       ...data,
       'id': doc.id,
       'total_amount': (data['total_amount'] ?? data['totalAmount'] ?? 0.0).toDouble(),

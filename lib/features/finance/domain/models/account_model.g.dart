@@ -16,6 +16,14 @@ AccountModel _$AccountModelFromJson(Map<String, dynamic> json) => AccountModel(
   isDeleted: json['isDeleted'] as bool? ?? false,
   initialBalance: (json['initial_balance'] as num?)?.toDouble() ?? 0.0,
   initialBalanceDate: DateTime.parse(json['initial_balance_date'] as String),
+  filePath: json['file_path'] as String?,
+  fileName: json['file_name'] as String?,
+  processingStatus:
+      $enumDecodeNullable(
+        _$AccountProcessingStatusEnumMap,
+        json['processing_status'],
+      ) ??
+      AccountProcessingStatus.none,
 );
 
 Map<String, dynamic> _$AccountModelToJson(AccountModel instance) =>
@@ -29,6 +37,10 @@ Map<String, dynamic> _$AccountModelToJson(AccountModel instance) =>
       'isDeleted': instance.isDeleted,
       'initial_balance': instance.initialBalance,
       'initial_balance_date': instance.initialBalanceDate.toIso8601String(),
+      'file_path': instance.filePath,
+      'file_name': instance.fileName,
+      'processing_status':
+          _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
     };
 
 const _$AccountTypeEnumMap = {
@@ -36,6 +48,14 @@ const _$AccountTypeEnumMap = {
   AccountType.investment: 'investment',
   AccountType.creditCard: 'credit_card',
   AccountType.debt: 'debt',
+};
+
+const _$AccountProcessingStatusEnumMap = {
+  AccountProcessingStatus.none: 'none',
+  AccountProcessingStatus.pending: 'pending',
+  AccountProcessingStatus.processing: 'processing',
+  AccountProcessingStatus.completed: 'completed',
+  AccountProcessingStatus.failed: 'failed',
 };
 
 AccountBalanceModel _$AccountBalanceModelFromJson(Map<String, dynamic> json) =>

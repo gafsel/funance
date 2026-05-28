@@ -5,6 +5,8 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import '../providers/category_providers.dart';
 
+import 'package:funances/features/workspace/presentation/providers/category_form_provider.dart';
+
 class CategoryManagementScreen extends ConsumerWidget {
   const CategoryManagementScreen({super.key});
 
@@ -76,172 +78,10 @@ class CategoryManagementScreen extends ConsumerWidget {
     WidgetRef ref, [
     CategoryModel? category,
   ]) {
-    final l10n = AppLocalizations.of(context)!;
-    final nameController = TextEditingController(text: category?.name);
-    CategoryType selectedType = category?.type ?? CategoryType.expense;
-    String selectedColor = category?.color ?? '#4A8C9C';
-    String selectedIcon = category?.icon ?? 'category';
-
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(
-            category == null
-                ? l10n.categoryCreateTitle
-                : l10n.categoryEditTitle,
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.categoryNameLabel,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<CategoryType>(
-                  value: selectedType,
-                  decoration: InputDecoration(
-                    labelText: l10n.categoryTypeLabel,
-                  ),
-                  items: [
-                    DropdownMenuItem(
-                      value: CategoryType.income,
-                      child: Text(l10n.categoryTypeIncome),
-                    ),
-                    DropdownMenuItem(
-                      value: CategoryType.expense,
-                      child: Text(l10n.categoryTypeExpense),
-                    ),
-                    DropdownMenuItem(
-                      value: CategoryType.both,
-                      child: Text(l10n.categoryTypeBoth),
-                    ),
-                  ],
-                  onChanged: (val) => setState(() => selectedType = val as CategoryType),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  l10n.categoryColorLabel,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: AppColors.categoryColors.map((color) {
-                    final colorHex =
-                        '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
-                    final isSelected = selectedColor == colorHex;
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedColor = colorHex),
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: isSelected
-                              ? Border.all(color: Colors.white, width: 2)
-                              : null,
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 4,
-                                    spreadRadius: 1,
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.white,
-                              )
-                            : null,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  l10n.categoryIconLabel,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _availableIcons.entries.map((entry) {
-                    final isSelected = selectedIcon == entry.key;
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedIcon = entry.key),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Color(
-                                  int.parse(
-                                    selectedColor.replaceAll('#', '0xFF'),
-                                  ),
-                                )
-                              : Colors.grey.withAlpha(50),
-                          borderRadius: BorderRadius.circular(8),
-                          border: isSelected
-                              ? Border.all(color: Colors.white, width: 2)
-                              : null,
-                        ),
-                        child: Icon(
-                          entry.value,
-                          size: 20,
-                          color: isSelected ? Colors.white : Colors.grey,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancelButton),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isEmpty) return;
-                
-                final newCategory = CategoryModel(
-                  id: category?.id ?? '',
-                  name: nameController.text,
-                  type: selectedType,
-                  color: selectedColor,
-                  icon: selectedIcon,
-                );
-
-                if (category == null) {
-                  ref
-                      .read(categoryNotifierProvider.notifier)
-                      .createCategory(newCategory);
-                } else {
-                  ref
-                      .read(categoryNotifierProvider.notifier)
-                      .updateCategory(newCategory);
-                }
-                Navigator.pop(context);
-              },
-              child: Text(l10n.saveButton),
-            ),
-          ],
-        ),
-      ),
+      barrierDismissible: false,
+      builder: (context) => _CategoryFormDialog(category: category),
     );
   }
 
@@ -313,4 +153,164 @@ class CategoryManagementScreen extends ConsumerWidget {
     'fastfood': Icons.fastfood,
     'celebration': Icons.celebration,
   };
+}
+
+class _CategoryFormDialog extends ConsumerWidget {
+  final CategoryModel? category;
+
+  const _CategoryFormDialog({this.category});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final state = ref.watch(categoryFormProvider(category));
+    final notifier = ref.read(categoryFormProvider(category).notifier);
+
+    ref.listen(categoryFormProvider(category), (previous, next) {
+      if (next.isSuccess) {
+        Navigator.pop(context);
+      } else if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.errorMessage!), backgroundColor: AppColors.coralOrange),
+        );
+      }
+    });
+
+    return AlertDialog(
+      title: Text(
+        category == null ? l10n.categoryCreateTitle : l10n.categoryEditTitle,
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              initialValue: state.name,
+              decoration: InputDecoration(
+                labelText: l10n.categoryNameLabel,
+              ),
+              onChanged: notifier.updateName,
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<CategoryType>(
+              value: state.type,
+              decoration: InputDecoration(
+                labelText: l10n.categoryTypeLabel,
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: CategoryType.income,
+                  child: Text(l10n.categoryTypeIncome),
+                ),
+                DropdownMenuItem(
+                  value: CategoryType.expense,
+                  child: Text(l10n.categoryTypeExpense),
+                ),
+                DropdownMenuItem(
+                  value: CategoryType.both,
+                  child: Text(l10n.categoryTypeBoth),
+                ),
+              ],
+              onChanged: (val) => notifier.updateType(val!),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.categoryColorLabel,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: AppColors.categoryColors.map((color) {
+                final colorHex =
+                    '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                final isSelected = state.color.toUpperCase() == colorHex;
+                return GestureDetector(
+                  onTap: () => notifier.updateColor(colorHex),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: color,
+                      shape: BoxShape.circle,
+                      border: isSelected
+                          ? Border.all(color: Colors.white, width: 2)
+                          : null,
+                      boxShadow: isSelected
+                          ? [
+                              const BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 4,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: isSelected
+                        ? const Icon(
+                            Icons.check,
+                            size: 16,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              l10n.categoryIconLabel,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: CategoryManagementScreen._availableIcons.entries.map((entry) {
+                final isSelected = state.icon == entry.key;
+                return GestureDetector(
+                  onTap: () => notifier.updateIcon(entry.key),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Color(
+                              int.parse(
+                                state.color.replaceAll('#', '0xFF'),
+                              ),
+                            )
+                          : Colors.grey.withAlpha(50),
+                      borderRadius: BorderRadius.circular(8),
+                      border: isSelected
+                          ? Border.all(color: Colors.white, width: 2)
+                          : null,
+                    ),
+                    child: Icon(
+                      entry.value,
+                      size: 20,
+                      color: isSelected ? Colors.white : Colors.grey,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancelButton),
+        ),
+        ElevatedButton(
+          onPressed: state.isLoading ? null : notifier.submit,
+          child: state.isLoading 
+            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            : Text(l10n.saveButton),
+        ),
+      ],
+    );
+  }
 }

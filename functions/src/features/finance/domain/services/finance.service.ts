@@ -26,6 +26,7 @@ export class FinanceService {
       if (fromAccountId) {
         expectedEntries.push({
           orderId: orderId,
+          orderType: order.type,
           category: order.category,
           amount: order.totalAmount,
           dueDate: order.date,
@@ -39,6 +40,7 @@ export class FinanceService {
       if (toAccountId) {
         expectedEntries.push({
           orderId: orderId,
+          orderType: order.type,
           category: order.category,
           amount: order.totalAmount,
           dueDate: order.date,
@@ -67,6 +69,7 @@ export class FinanceService {
 
           expectedEntries.push({
             orderId: orderId,
+            orderType: order.type,
             category: order.category,
             amount: currentAmount,
             dueDate: dueDate,
@@ -97,6 +100,7 @@ export class FinanceService {
           existing.accountId !== expected.accountId ||
           existing.category.id !== expected.category.id ||
           existing.planningId !== expected.planningId ||
+          existing.orderType !== expected.orderType ||
           String(existing.type) !== String(expected.type);
 
         if (hasChanged) {

@@ -39,6 +39,7 @@ export enum LedgerEntryType {
 export interface LedgerEntryModel {
   id: string;
   orderId: string;
+  orderType?: OrderType;
   category: CategoryModel;
   amount: number;
   dueDate: Date;

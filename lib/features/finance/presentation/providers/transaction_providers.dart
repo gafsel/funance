@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_month_summary_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/models/planning_model.dart';
@@ -139,12 +140,18 @@ class HistoryState {
   final bool isLoading;
   final bool hasMore;
   final OrderModel? lastOrder;
+  final String? accountId;
+  final DateTime? startDate;
+  final DateTime? endDate;
 
   HistoryState({
     this.orders = const [],
     this.isLoading = false,
     this.hasMore = true,
     this.lastOrder,
+    this.accountId,
+    this.startDate,
+    this.endDate,
   });
 
   HistoryState copyWith({
@@ -152,12 +159,18 @@ class HistoryState {
     bool? isLoading,
     bool? hasMore,
     OrderModel? lastOrder,
+    String? accountId,
+    DateTime? startDate,
+    DateTime? endDate,
   }) {
     return HistoryState(
       orders: orders ?? this.orders,
       isLoading: isLoading ?? this.isLoading,
       hasMore: hasMore ?? this.hasMore,
       lastOrder: lastOrder ?? this.lastOrder,
+      accountId: accountId ?? this.accountId,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
     );
   }
 }
@@ -168,7 +181,33 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
   static const int _pageSize = 20;
 
   HistoryNotifier(this._repository, this._workspaceId) : super(HistoryState()) {
+    // Inicializar com o mês atual por padrão
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    final endOfMonth = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+    
+    state = state.copyWith(
+      startDate: startOfMonth,
+      endDate: endOfMonth,
+    );
+    
     loadOrders();
+  }
+
+  Future<void> setFilters({
+    String? accountId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    state = state.copyWith(
+      orders: [],
+      lastOrder: null,
+      hasMore: true,
+      accountId: accountId,
+      startDate: startDate,
+      endDate: endDate,
+    );
+    await loadOrders(isRefresh: true);
   }
 
   Future<void> loadOrders({bool isRefresh = false}) async {
@@ -176,16 +215,24 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
     if (state.isLoading || (!state.hasMore && !isRefresh)) return;
 
     if (isRefresh) {
-      state = HistoryState();
+      state = state.copyWith(
+        orders: [],
+        lastOrder: null,
+        hasMore: true,
+        isLoading: true,
+      );
+    } else {
+      state = state.copyWith(isLoading: true);
     }
-
-    state = state.copyWith(isLoading: true);
 
     try {
       final newOrders = await _repository.getOrders(
         _workspaceId!,
         limit: _pageSize,
         lastOrder: state.lastOrder,
+        accountId: state.accountId,
+        startDate: state.startDate,
+        endDate: state.endDate,
       );
 
       // Filtra ordens excluídas logicamente
@@ -194,7 +241,7 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
           .toList();
 
       state = state.copyWith(
-        orders: [...state.orders, ...activeOrders],
+        orders: isRefresh ? activeOrders : [...state.orders, ...activeOrders],
         isLoading: false,
         hasMore: newOrders.length == _pageSize,
         lastOrder: newOrders.isNotEmpty ? newOrders.last : state.lastOrder,
@@ -275,6 +322,8 @@ final categorySummariesProvider =
         date.month,
       );
     });
+
+final overviewAccountTypeProvider = StateProvider<AccountType?>((ref) => null);
 
 final overviewViewTypeProvider = StateProvider<OverviewViewType>(
   (ref) => OverviewViewType.effective,
