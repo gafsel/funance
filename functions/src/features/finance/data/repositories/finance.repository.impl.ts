@@ -1,4 +1,4 @@
-import {CategoryModel} from "../../../workspace/domain/models/category.model";
+import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import * as admin from "firebase-admin";
 import {
     OrderModel,
@@ -7,7 +7,7 @@ import {
     AccountModel,
     AccountBalanceModel,
 } from "../../domain/models/finance.models";
-import {IFinanceRepository} from "../../domain/repositories/finance.repository";
+import { IFinanceRepository } from "../../domain/repositories/finance.repository";
 
 export class FinanceRepositoryImpl implements IFinanceRepository {
     private firestore = admin.firestore();
@@ -21,8 +21,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     private getCategoryPlanningCollection(workspaceId: string) {
-    return this.firestore.collection(`workspaces/${workspaceId}/category_planning`);
-  }
+        return this.firestore.collection(`workspaces/${workspaceId}/category_planning`);
+    }
 
     private getPeriodSummariesCollection(workspaceId: string) {
         return this.firestore.collection(`workspaces/${workspaceId}/period_summaries`);
@@ -61,14 +61,14 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]> {
         let query = this.getOrdersCollection(workspaceId)
-            .orderBy('startMonth', 'desc');
+            .orderBy("startMonth", "desc");
 
         if (limit) {
             query = query.limit(limit);
         }
 
         const snapshot = await query.get();
-        return snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as OrderModel));
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as OrderModel));
     }
 
     async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
@@ -101,7 +101,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void> {
-        const data = {...installment} as any;
+        const data = { ...installment } as any;
         if (data.dueDate) {
             data.dueDate = admin.firestore.Timestamp.fromDate(data.dueDate as Date);
         }
@@ -166,7 +166,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null> {
         const doc = await this.getCategoryPlanningCollection(workspaceId).doc(id).get();
         if (!doc.exists) return null;
-        return {id: doc.id, ...doc.data()} as CategoryPlanningModel;
+        return { id: doc.id, ...doc.data() } as CategoryPlanningModel;
     }
 
     async createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string> {
@@ -184,7 +184,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]> {
         const snapshot = await this.getCategoryPlanningCollection(workspaceId).get();
-        return snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as CategoryPlanningModel));
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CategoryPlanningModel));
     }
 
     async updatePeriodSummary(
@@ -214,7 +214,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                     actualAmount: Math.max(0, data.actualDelta ?? 0),
                     lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
                 });
-            } else {
+            }
+            else {
                 const currentData = doc.data()!;
                 transaction.update(docRef, {
                     category,
@@ -247,7 +248,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null> {
         const doc = await this.getAccountsCollection(workspaceId).doc(accountId).get();
         if (!doc.exists) return null;
-        return {id: doc.id, ...doc.data()} as AccountModel;
+        return { id: doc.id, ...doc.data() } as AccountModel;
     }
 
     async updateAccountBalance(
@@ -270,7 +271,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                     balance: initialBalance + delta,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
-            } else {
+            }
+            else {
                 const currentBalance = doc.data()!.balance;
                 transaction.update(docRef, {
                     balance: currentBalance + delta,

@@ -22,115 +22,115 @@ import { FinanceService } from "../features/finance/domain/services/finance.serv
 import { SummaryService } from "../features/finance/domain/services/summary.service";
 
 class Container {
-  private static _workspaceRepository: IWorkspaceRepository;
-  private static _financeRepository: IFinanceRepository;
-  private static _userRepository: IUserRepository;
-  private static _inviteRepository: IInviteRepository;
-  private static _categoryRepository: ICategoryRepository;
-  private static _categoryService: ICategoryService;
-  private static _inviteService: IInviteService;
-  private static _goalRepository: IGoalRepository;
-  private static _goalService: IGoalService;
-  private static _financeService: FinanceService;
-  private static _summaryService: SummaryService;
-  private static _aiRepository: IAIRepository;
-  private static _onboardingService: IOnboardingService;
+    private static _workspaceRepository: IWorkspaceRepository;
+    private static _financeRepository: IFinanceRepository;
+    private static _userRepository: IUserRepository;
+    private static _inviteRepository: IInviteRepository;
+    private static _categoryRepository: ICategoryRepository;
+    private static _categoryService: ICategoryService;
+    private static _inviteService: IInviteService;
+    private static _goalRepository: IGoalRepository;
+    private static _goalService: IGoalService;
+    private static _financeService: FinanceService;
+    private static _summaryService: SummaryService;
+    private static _aiRepository: IAIRepository;
+    private static _onboardingService: IOnboardingService;
 
-  static get workspaceRepository(): IWorkspaceRepository {
-    if (!this._workspaceRepository) {
-      this._workspaceRepository = new WorkspaceRepositoryImpl();
+    static get workspaceRepository(): IWorkspaceRepository {
+        if (!this._workspaceRepository) {
+            this._workspaceRepository = new WorkspaceRepositoryImpl();
+        }
+        return this._workspaceRepository;
     }
-    return this._workspaceRepository;
-  }
 
-  static get financeRepository(): IFinanceRepository {
-    if (!this._financeRepository) {
-      this._financeRepository = new FinanceRepositoryImpl();
+    static get financeRepository(): IFinanceRepository {
+        if (!this._financeRepository) {
+            this._financeRepository = new FinanceRepositoryImpl();
+        }
+        return this._financeRepository;
     }
-    return this._financeRepository;
-  }
 
-  static get userRepository(): IUserRepository {
-    if (!this._userRepository) {
-      this._userRepository = new UserRepositoryImpl();
+    static get userRepository(): IUserRepository {
+        if (!this._userRepository) {
+            this._userRepository = new UserRepositoryImpl();
+        }
+        return this._userRepository;
     }
-    return this._userRepository;
-  }
 
-  static get inviteRepository(): IInviteRepository {
-    if (!this._inviteRepository) {
-      this._inviteRepository = new InviteRepositoryImpl();
+    static get inviteRepository(): IInviteRepository {
+        if (!this._inviteRepository) {
+            this._inviteRepository = new InviteRepositoryImpl();
+        }
+        return this._inviteRepository;
     }
-    return this._inviteRepository;
-  }
 
-  static get inviteService(): IInviteService {
-    if (!this._inviteService) {
-      this._inviteService = new InviteServiceImpl(this.userRepository, this.workspaceRepository);
+    static get inviteService(): IInviteService {
+        if (!this._inviteService) {
+            this._inviteService = new InviteServiceImpl(this.userRepository, this.workspaceRepository);
+        }
+        return this._inviteService;
     }
-    return this._inviteService;
-  }
 
-  static get categoryRepository(): ICategoryRepository {
-    if (!this._categoryRepository) {
-      this._categoryRepository = new CategoryRepositoryImpl();
+    static get categoryRepository(): ICategoryRepository {
+        if (!this._categoryRepository) {
+            this._categoryRepository = new CategoryRepositoryImpl();
+        }
+        return this._categoryRepository;
     }
-    return this._categoryRepository;
-  }
 
-  static get categoryService(): ICategoryService {
-    if (!this._categoryService) {
-      this._categoryService = new CategoryServiceImpl(this.categoryRepository, this.financeRepository);
+    static get categoryService(): ICategoryService {
+        if (!this._categoryService) {
+            this._categoryService = new CategoryServiceImpl(this.categoryRepository, this.financeRepository);
+        }
+        return this._categoryService;
     }
-    return this._categoryService;
-  }
 
-  static get financeService(): FinanceService {
-    if (!this._financeService) {
-      this._financeService = new FinanceService(this.financeRepository);
+    static get financeService(): FinanceService {
+        if (!this._financeService) {
+            this._financeService = new FinanceService(this.financeRepository);
+        }
+        return this._financeService;
     }
-    return this._financeService;
-  }
 
-  static get summaryService(): SummaryService {
-    if (!this._summaryService) {
-      this._summaryService = new SummaryService(this.financeRepository);
+    static get summaryService(): SummaryService {
+        if (!this._summaryService) {
+            this._summaryService = new SummaryService(this.financeRepository);
+        }
+        return this._summaryService;
     }
-    return this._summaryService;
-  }
 
-  static get goalRepository(): IGoalRepository {
-    if (!this._goalRepository) {
-      this._goalRepository = new GoalRepositoryImpl();
+    static get goalRepository(): IGoalRepository {
+        if (!this._goalRepository) {
+            this._goalRepository = new GoalRepositoryImpl();
+        }
+        return this._goalRepository;
     }
-    return this._goalRepository;
-  }
 
-  static get goalService(): IGoalService {
-    if (!this._goalService) {
-      this._goalService = new GoalServiceImpl(this.goalRepository);
+    static get goalService(): IGoalService {
+        if (!this._goalService) {
+            this._goalService = new GoalServiceImpl(this.goalRepository);
+        }
+        return this._goalService;
     }
-    return this._goalService;
-  }
 
-  static get aiRepository(): IAIRepository {
-    if (!this._aiRepository) {
-      this._aiRepository = new GeminiAIRepositoryImpl();
+    static get aiRepository(): IAIRepository {
+        if (!this._aiRepository) {
+            this._aiRepository = new GeminiAIRepositoryImpl();
+        }
+        return this._aiRepository;
     }
-    return this._aiRepository;
-  }
 
-  static get onboardingService(): IOnboardingService {
-    if (!this._onboardingService) {
-      this._onboardingService = new OnboardingServiceImpl(
-        this.aiRepository,
-        this.categoryRepository,
-        this.financeRepository,
-        this.workspaceRepository
-      );
+    static get onboardingService(): IOnboardingService {
+        if (!this._onboardingService) {
+            this._onboardingService = new OnboardingServiceImpl(
+                this.aiRepository,
+                this.categoryRepository,
+                this.financeRepository,
+                this.workspaceRepository
+            );
+        }
+        return this._onboardingService;
     }
-    return this._onboardingService;
-  }
 }
 
 export const container = Container;

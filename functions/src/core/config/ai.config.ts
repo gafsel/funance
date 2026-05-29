@@ -10,12 +10,12 @@ export interface AIConfig {
 }
 
 export const DEFAULT_CONFIG: AIConfig = {
-  models: {
-    goals: "gemini-1.5-flash-latest",
-    document: "gemini-1.5-pro-latest",
-  },
-  prompts: {
-    goals: `
+    models: {
+        goals: "gemini-1.5-flash-latest",
+        document: "gemini-1.5-pro-latest",
+    },
+    prompts: {
+        goals: `
             Você é um assistente financeiro especialista em planejamento financeiro. 
             Analise o contexto do workspace do tipo "{{workspaceType}}":
             Categorias existentes: {{categories}}
@@ -52,7 +52,7 @@ export const DEFAULT_CONFIG: AIConfig = {
                 ]
             }
         `,
-    document: `
+        document: `
             Você é um assistente financeiro especializado em análise de documentos financeiros (extratos, faturas, contratos de empréstimo, etc).
             Analise o conteúdo do arquivo em anexo "{{fileName}}" e sugira os dados para cadastro de uma conta no app Funances.
             Além dos dados da conta, extraia a lista de transações (orders) presentes no documento.
@@ -95,5 +95,5 @@ export const DEFAULT_CONFIG: AIConfig = {
                 ]
             }
         `,
-  },
+    },
 };

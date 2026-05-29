@@ -1,10 +1,10 @@
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
-  OrderModel,
-  InstallmentModel,
-  CategoryPlanningModel,
-  AccountModel,
-  AccountBalanceModel,
+    OrderModel,
+    InstallmentModel,
+    CategoryPlanningModel,
+    AccountModel,
+    AccountBalanceModel,
 } from "../models/finance.models";
 
 export interface IFinanceRepository {

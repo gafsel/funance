@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { defineString } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
-import {OrderModel} from "../../features/finance/domain/models/finance.models";
+import { OrderModel } from "../../features/finance/domain/models/finance.models";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
 
@@ -16,95 +16,95 @@ export interface IAIRepository {
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
-  private genAI: GoogleGenerativeAI;
+    private genAI: GoogleGenerativeAI;
 
-  constructor() {
-    this.genAI = new GoogleGenerativeAI(geminiApiKey.value());
-  }
+    constructor() {
+        this.genAI = new GoogleGenerativeAI(geminiApiKey.value());
+    }
 
-  private async getConfig(): Promise<AIConfig> {
-    try {
-      const doc = await admin.firestore().collection("config").doc("ai").get();
-      if (doc.exists) {
-        const data = doc.data() as any;
+    private async getConfig(): Promise<AIConfig> {
+        try {
+            const doc = await admin.firestore().collection("config").doc("ai").get();
+            if (doc.exists) {
+                const data = doc.data() as any;
+                return {
+                    models: {
+                        goals: data?.models?.goals || DEFAULT_CONFIG.models.goals,
+                        document: data?.models?.document || DEFAULT_CONFIG.models.document,
+                    },
+                    prompts: {
+                        goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
+                        document: data?.prompts?.document || DEFAULT_CONFIG.prompts.document,
+                    },
+                };
+            }
+        }
+        catch (error) {
+            console.error("Erro ao buscar config de IA no Firestore, usando padrão:", error);
+        }
+        return DEFAULT_CONFIG;
+    }
+
+    async analyzePlanningAndSuggestGoals(
+        workspaceType: string, 
+        categories: string[], 
+        orders: OrderModel[],
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.goals });
+
+        const prompt = config.prompts.goals
+            .replace("{{workspaceType}}", workspaceType)
+            .replace("{{categories}}", categories.join(" | "))
+            .replace("{{orders}}", JSON.stringify(orders));
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        return { goals: [], plannings: [] };
+    }
+
+    async analyzeAccountDocument(fileBuffer: Buffer, mimeType: string, fileName: string, existingCategories: string[]): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.document });
+
+        const prompt = config.prompts.document
+            .replace("{{fileName}}", fileName)
+            .replace("{{existingCategories}}", existingCategories.join(" | "));
+
+        const result = await model.generateContent([
+            prompt,
+            {
+                inlineData: {
+                    data: fileBuffer.toString("base64"),
+                    mimeType: mimeType,
+                },
+            },
+        ]);
+        const response = await result.response;
+        const text = response.text();
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
         return {
-          models: {
-            goals: data?.models?.goals || DEFAULT_CONFIG.models.goals,
-            document: data?.models?.document || DEFAULT_CONFIG.models.document,
-          },
-          prompts: {
-            goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
-            document: data?.prompts?.document || DEFAULT_CONFIG.prompts.document,
-          },
+            account: {
+                name: fileName.split(".")[0],
+                type: "checking",
+                color: "#4A8C9C",
+                icon: "account_balance",
+                initialBalance: 0.0,
+                metadata: {},
+            },
+            orders: [],
         };
-      }
     }
-    catch (error) {
-      console.error("Erro ao buscar config de IA no Firestore, usando padrão:", error);
-    }
-    return DEFAULT_CONFIG;
-  }
-
-  async analyzePlanningAndSuggestGoals(
-    workspaceType: string, 
-    categories: string[], 
-    orders: OrderModel[],
-  ): Promise<any> {
-    const config = await this.getConfig();
-    const model = this.genAI.getGenerativeModel({ model: config.models.goals });
-
-    const prompt = config.prompts.goals
-      .replace("{{workspaceType}}", workspaceType)
-      .replace("{{categories}}", categories.join(" | "))
-      .replace("{{orders}}", JSON.stringify(orders));
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-
-    return { goals: [], plannings: [] };
-  }
-
-  async analyzeAccountDocument(fileBuffer: Buffer, mimeType: string, fileName: string, existingCategories: string[]): Promise<any> {
-    const config = await this.getConfig();
-    const model = this.genAI.getGenerativeModel({ model: config.models.document });
-
-    const prompt = config.prompts.document
-      .replace("{{fileName}}", fileName)
-      .replace("{{existingCategories}}", existingCategories.join(" | "));
-
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: fileBuffer.toString("base64"),
-          mimeType: mimeType,
-        },
-      },
-    ]);
-    const response = await result.response;
-    const text = response.text();
-
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
-    }
-
-    return {
-      account: {
-        name: fileName.split(".")[0],
-        type: "checking",
-        color: "#4A8C9C",
-        icon: "account_balance",
-        initialBalance: 0.0,
-        metadata: {},
-      },
-      orders: [],
-    };
-  }
 }

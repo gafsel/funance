@@ -1,8 +1,8 @@
-import {IAIRepository} from "../../../../core/services/ai.service";
-import {OrderModel, CategoryPlanningModel} from "../../../finance/domain/models/finance.models";
-import {ICategoryRepository} from "../../../workspace/domain/repositories/category.repository";
-import {IFinanceRepository} from "../../../finance/domain/repositories/finance.repository";
-import {IWorkspaceRepository} from "../../../workspace/domain/repositories/workspace.repository";
+import { IAIRepository } from "../../../../core/services/ai.service";
+import { OrderModel, CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
+import { ICategoryRepository } from "../../../workspace/domain/repositories/category.repository";
+import { IFinanceRepository } from "../../../finance/domain/repositories/finance.repository";
+import { IWorkspaceRepository } from "../../../workspace/domain/repositories/workspace.repository";
 import * as admin from "firebase-admin";
 
 export interface IOnboardingService {
