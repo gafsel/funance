@@ -42,7 +42,7 @@ OrderModel _$OrderModelFromJson(
 /// @nodoc
 mixin _$OrderModel {
 
- String get id; String get description;@JsonKey(name: 'total_amount') double get totalAmount; CategoryModel get category;@JsonKey(name: 'installments_count') int get installmentsCount; DateTime get date; OrderStatus get status;@JsonKey(name: 'planning_id') String? get planningId;@JsonKey(name: 'is_deleted') bool? get isDeleted;
+ String get id; String get description; double get totalAmount; CategoryModel get category; int get installmentsCount; DateTime get date; OrderStatus get status; String? get planningId; bool? get isDeleted;
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -75,7 +75,7 @@ abstract mixin class $OrderModelCopyWith<$Res>  {
   factory $OrderModelCopyWith(OrderModel value, $Res Function(OrderModel) _then) = _$OrderModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String description,@JsonKey(name: 'total_amount') double totalAmount, CategoryModel category,@JsonKey(name: 'installments_count') int installmentsCount, DateTime date, OrderStatus status,@JsonKey(name: 'planning_id') String? planningId,@JsonKey(name: 'is_deleted') bool? isDeleted
+ String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, bool isDeleted
 });
 
 
@@ -92,7 +92,7 @@ class _$OrderModelCopyWithImpl<$Res>
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? isDeleted = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? isDeleted = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -102,8 +102,8 @@ as CategoryModel,installmentsCount: null == installmentsCount ? _self.installmen
 as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as OrderStatus,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
-as String?,isDeleted: freezed == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
-as bool?,
+as String?,isDeleted: null == isDeleted ? _self.isDeleted! : isDeleted // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of OrderModel
@@ -200,7 +200,7 @@ return transfer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? accountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)?  expense,TResult Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? accountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)?  income,TResult Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? fromAccountId,  String? toAccountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)?  transfer,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  expense,TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  income,TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? fromAccountId,  String? toAccountId,  bool isDeleted)?  transfer,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case ExpenseOrder() when expense != null:
 return expense(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case IncomeOrder() when income != null:
@@ -223,7 +223,7 @@ return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? accountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)  expense,required TResult Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? accountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)  income,required TResult Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? fromAccountId,  String? toAccountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)  transfer,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)  expense,required TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)  income,required TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? fromAccountId,  String? toAccountId,  bool isDeleted)  transfer,}) {final _that = this;
 switch (_that) {
 case ExpenseOrder():
 return expense(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case IncomeOrder():
@@ -242,7 +242,7 @@ return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? accountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)?  expense,TResult? Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? accountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)?  income,TResult? Function( String id,  String description, @JsonKey(name: 'total_amount')  double totalAmount,  CategoryModel category, @JsonKey(name: 'installments_count')  int installmentsCount,  DateTime date,  OrderStatus status, @JsonKey(name: 'planning_id')  String? planningId,  String? fromAccountId,  String? toAccountId, @JsonKey(name: 'is_deleted')  bool? isDeleted)?  transfer,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  expense,TResult? Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  income,TResult? Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? fromAccountId,  String? toAccountId,  bool isDeleted)?  transfer,}) {final _that = this;
 switch (_that) {
 case ExpenseOrder() when expense != null:
 return expense(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case IncomeOrder() when income != null:
@@ -256,22 +256,22 @@ return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_tha
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class ExpenseOrder extends OrderModel {
-  const ExpenseOrder({required this.id, required this.description, @JsonKey(name: 'total_amount') required this.totalAmount, required this.category, @JsonKey(name: 'installments_count') required this.installmentsCount, required this.date, required this.status, @JsonKey(name: 'planning_id') this.planningId, this.accountId, @JsonKey(name: 'is_deleted') this.isDeleted, final  String? $type}): $type = $type ?? 'expense',super._();
+  const ExpenseOrder({required this.id, required this.description, required this.totalAmount, required this.category, required this.installmentsCount, required this.date, required this.status, this.planningId, this.accountId, this.isDeleted, final  String? $type}): $type = $type ?? 'expense',super._();
   factory ExpenseOrder.fromJson(Map<String, dynamic> json) => _$ExpenseOrderFromJson(json);
 
 @override final  String id;
 @override final  String description;
-@override@JsonKey(name: 'total_amount') final  double totalAmount;
+@override final  double totalAmount;
 @override final  CategoryModel category;
-@override@JsonKey(name: 'installments_count') final  int installmentsCount;
+@override final  int installmentsCount;
 @override final  DateTime date;
 @override final  OrderStatus status;
-@override@JsonKey(name: 'planning_id') final  String? planningId;
+@override final  String? planningId;
  final  String? accountId;
-@override@JsonKey(name: 'is_deleted') final  bool? isDeleted;
+@override final  bool? isDeleted;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -310,7 +310,7 @@ abstract mixin class $ExpenseOrderCopyWith<$Res> implements $OrderModelCopyWith<
   factory $ExpenseOrderCopyWith(ExpenseOrder value, $Res Function(ExpenseOrder) _then) = _$ExpenseOrderCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String description,@JsonKey(name: 'total_amount') double totalAmount, CategoryModel category,@JsonKey(name: 'installments_count') int installmentsCount, DateTime date, OrderStatus status,@JsonKey(name: 'planning_id') String? planningId, String? accountId,@JsonKey(name: 'is_deleted') bool? isDeleted
+ String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, String? accountId, bool? isDeleted
 });
 
 
@@ -356,22 +356,22 @@ $CategoryModelCopyWith<$Res> get category {
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class IncomeOrder extends OrderModel {
-  const IncomeOrder({required this.id, required this.description, @JsonKey(name: 'total_amount') required this.totalAmount, required this.category, @JsonKey(name: 'installments_count') required this.installmentsCount, required this.date, required this.status, @JsonKey(name: 'planning_id') this.planningId, this.accountId, @JsonKey(name: 'is_deleted') this.isDeleted, final  String? $type}): $type = $type ?? 'income',super._();
+  const IncomeOrder({required this.id, required this.description, required this.totalAmount, required this.category, required this.installmentsCount, required this.date, required this.status, this.planningId, this.accountId, this.isDeleted, final  String? $type}): $type = $type ?? 'income',super._();
   factory IncomeOrder.fromJson(Map<String, dynamic> json) => _$IncomeOrderFromJson(json);
 
 @override final  String id;
 @override final  String description;
-@override@JsonKey(name: 'total_amount') final  double totalAmount;
+@override final  double totalAmount;
 @override final  CategoryModel category;
-@override@JsonKey(name: 'installments_count') final  int installmentsCount;
+@override final  int installmentsCount;
 @override final  DateTime date;
 @override final  OrderStatus status;
-@override@JsonKey(name: 'planning_id') final  String? planningId;
+@override final  String? planningId;
  final  String? accountId;
-@override@JsonKey(name: 'is_deleted') final  bool? isDeleted;
+@override final  bool? isDeleted;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -410,7 +410,7 @@ abstract mixin class $IncomeOrderCopyWith<$Res> implements $OrderModelCopyWith<$
   factory $IncomeOrderCopyWith(IncomeOrder value, $Res Function(IncomeOrder) _then) = _$IncomeOrderCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String description,@JsonKey(name: 'total_amount') double totalAmount, CategoryModel category,@JsonKey(name: 'installments_count') int installmentsCount, DateTime date, OrderStatus status,@JsonKey(name: 'planning_id') String? planningId, String? accountId,@JsonKey(name: 'is_deleted') bool? isDeleted
+ String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, String? accountId, bool? isDeleted
 });
 
 
@@ -456,23 +456,23 @@ $CategoryModelCopyWith<$Res> get category {
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class TransferOrder extends OrderModel {
-  const TransferOrder({required this.id, required this.description, @JsonKey(name: 'total_amount') required this.totalAmount, required this.category, @JsonKey(name: 'installments_count') required this.installmentsCount, required this.date, required this.status, @JsonKey(name: 'planning_id') this.planningId, this.fromAccountId, this.toAccountId, @JsonKey(name: 'is_deleted') this.isDeleted, final  String? $type}): $type = $type ?? 'transfer',super._();
+  const TransferOrder({required this.id, required this.description, required this.totalAmount, required this.category, required this.installmentsCount, required this.date, required this.status, this.planningId, this.fromAccountId, this.toAccountId, this.isDeleted = false, final  String? $type}): $type = $type ?? 'transfer',super._();
   factory TransferOrder.fromJson(Map<String, dynamic> json) => _$TransferOrderFromJson(json);
 
 @override final  String id;
 @override final  String description;
-@override@JsonKey(name: 'total_amount') final  double totalAmount;
+@override final  double totalAmount;
 @override final  CategoryModel category;
-@override@JsonKey(name: 'installments_count') final  int installmentsCount;
+@override final  int installmentsCount;
 @override final  DateTime date;
 @override final  OrderStatus status;
-@override@JsonKey(name: 'planning_id') final  String? planningId;
+@override final  String? planningId;
  final  String? fromAccountId;
  final  String? toAccountId;
-@override@JsonKey(name: 'is_deleted') final  bool? isDeleted;
+@override@JsonKey() final  bool isDeleted;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -511,7 +511,7 @@ abstract mixin class $TransferOrderCopyWith<$Res> implements $OrderModelCopyWith
   factory $TransferOrderCopyWith(TransferOrder value, $Res Function(TransferOrder) _then) = _$TransferOrderCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String description,@JsonKey(name: 'total_amount') double totalAmount, CategoryModel category,@JsonKey(name: 'installments_count') int installmentsCount, DateTime date, OrderStatus status,@JsonKey(name: 'planning_id') String? planningId, String? fromAccountId, String? toAccountId,@JsonKey(name: 'is_deleted') bool? isDeleted
+ String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, String? fromAccountId, String? toAccountId, bool isDeleted
 });
 
 
@@ -528,7 +528,7 @@ class _$TransferOrderCopyWithImpl<$Res>
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? fromAccountId = freezed,Object? toAccountId = freezed,Object? isDeleted = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? fromAccountId = freezed,Object? toAccountId = freezed,Object? isDeleted = null,}) {
   return _then(TransferOrder(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -540,8 +540,8 @@ as DateTime,status: null == status ? _self.status : status // ignore: cast_nulla
 as OrderStatus,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
 as String?,fromAccountId: freezed == fromAccountId ? _self.fromAccountId : fromAccountId // ignore: cast_nullable_to_non_nullable
 as String?,toAccountId: freezed == toAccountId ? _self.toAccountId : toAccountId // ignore: cast_nullable_to_non_nullable
-as String?,isDeleted: freezed == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
-as bool?,
+as String?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

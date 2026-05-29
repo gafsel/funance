@@ -46,7 +46,7 @@ AccountModel _$AccountModelFromJson(
 /// @nodoc
 mixin _$AccountModel {
 
- String get id; String get name; String get icon; String get color; bool get isDeleted;@JsonKey(name: 'initial_balance') double get initialBalance;@JsonKey(name: 'initial_balance_date') DateTime get initialBalanceDate;@JsonKey(name: 'file_path') String? get filePath;@JsonKey(name: 'file_name') String? get fileName;@JsonKey(name: 'processing_status') AccountProcessingStatus get processingStatus;
+ String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance; DateTime get initialBalanceDate; String? get filePath; String? get fileName; AccountProcessingStatus get processingStatus;
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -79,7 +79,7 @@ abstract mixin class $AccountModelCopyWith<$Res>  {
   factory $AccountModelCopyWith(AccountModel value, $Res Function(AccountModel) _then) = _$AccountModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted,@JsonKey(name: 'initial_balance') double initialBalance,@JsonKey(name: 'initial_balance_date') DateTime initialBalanceDate,@JsonKey(name: 'file_path') String? filePath,@JsonKey(name: 'file_name') String? fileName,@JsonKey(name: 'processing_status') AccountProcessingStatus processingStatus
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus
 });
 
 
@@ -199,7 +199,7 @@ return debt(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? limit, @JsonKey(name: 'due_day')  int? dueDay, @JsonKey(name: 'closing_day')  int? closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? interestRate)?  debt,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? limit,  int? dueDay,  int? closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  debt,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus);case InvestmentAccount() when investment != null:
@@ -223,7 +223,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? limit, @JsonKey(name: 'due_day')  int? dueDay, @JsonKey(name: 'closing_day')  int? closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? interestRate)  debt,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? limit,  int? dueDay,  int? closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount():
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus);case InvestmentAccount():
@@ -243,7 +243,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? limit, @JsonKey(name: 'due_day')  int? dueDay, @JsonKey(name: 'closing_day')  int? closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted, @JsonKey(name: 'initial_balance')  double initialBalance, @JsonKey(name: 'initial_balance_date')  DateTime initialBalanceDate, @JsonKey(name: 'file_path')  String? filePath, @JsonKey(name: 'file_name')  String? fileName, @JsonKey(name: 'processing_status')  AccountProcessingStatus processingStatus,  double? interestRate)?  debt,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? limit,  int? dueDay,  int? closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus);case InvestmentAccount() when investment != null:
@@ -261,7 +261,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 @JsonSerializable()
 
 class CheckingAccount extends AccountModel {
-  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, @JsonKey(name: 'initial_balance') this.initialBalance = 0.0, @JsonKey(name: 'initial_balance_date') required this.initialBalanceDate, @JsonKey(name: 'file_path') this.filePath, @JsonKey(name: 'file_name') this.fileName, @JsonKey(name: 'processing_status') this.processingStatus = AccountProcessingStatus.none, final  String? $type}): $type = $type ?? 'checking',super._();
+  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, final  String? $type}): $type = $type ?? 'checking',super._();
   factory CheckingAccount.fromJson(Map<String, dynamic> json) => _$CheckingAccountFromJson(json);
 
 @override final  String id;
@@ -269,11 +269,11 @@ class CheckingAccount extends AccountModel {
 @override final  String icon;
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
-@override@JsonKey(name: 'initial_balance') final  double initialBalance;
-@override@JsonKey(name: 'initial_balance_date') final  DateTime initialBalanceDate;
-@override@JsonKey(name: 'file_path') final  String? filePath;
-@override@JsonKey(name: 'file_name') final  String? fileName;
-@override@JsonKey(name: 'processing_status') final  AccountProcessingStatus processingStatus;
+@override@JsonKey() final  double initialBalance;
+@override final  DateTime initialBalanceDate;
+@override final  String? filePath;
+@override final  String? fileName;
+@override@JsonKey() final  AccountProcessingStatus processingStatus;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -312,7 +312,7 @@ abstract mixin class $CheckingAccountCopyWith<$Res> implements $AccountModelCopy
   factory $CheckingAccountCopyWith(CheckingAccount value, $Res Function(CheckingAccount) _then) = _$CheckingAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted,@JsonKey(name: 'initial_balance') double initialBalance,@JsonKey(name: 'initial_balance_date') DateTime initialBalanceDate,@JsonKey(name: 'file_path') String? filePath,@JsonKey(name: 'file_name') String? fileName,@JsonKey(name: 'processing_status') AccountProcessingStatus processingStatus
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus
 });
 
 
@@ -352,7 +352,7 @@ as AccountProcessingStatus,
 @JsonSerializable()
 
 class InvestmentAccount extends AccountModel {
-  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, @JsonKey(name: 'initial_balance') this.initialBalance = 0.0, @JsonKey(name: 'initial_balance_date') required this.initialBalanceDate, @JsonKey(name: 'file_path') this.filePath, @JsonKey(name: 'file_name') this.fileName, @JsonKey(name: 'processing_status') this.processingStatus = AccountProcessingStatus.none, this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
+  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
   factory InvestmentAccount.fromJson(Map<String, dynamic> json) => _$InvestmentAccountFromJson(json);
 
 @override final  String id;
@@ -360,11 +360,11 @@ class InvestmentAccount extends AccountModel {
 @override final  String icon;
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
-@override@JsonKey(name: 'initial_balance') final  double initialBalance;
-@override@JsonKey(name: 'initial_balance_date') final  DateTime initialBalanceDate;
-@override@JsonKey(name: 'file_path') final  String? filePath;
-@override@JsonKey(name: 'file_name') final  String? fileName;
-@override@JsonKey(name: 'processing_status') final  AccountProcessingStatus processingStatus;
+@override@JsonKey() final  double initialBalance;
+@override final  DateTime initialBalanceDate;
+@override final  String? filePath;
+@override final  String? fileName;
+@override@JsonKey() final  AccountProcessingStatus processingStatus;
  final  double? interestRate;
 
 @JsonKey(name: 'runtimeType')
@@ -404,7 +404,7 @@ abstract mixin class $InvestmentAccountCopyWith<$Res> implements $AccountModelCo
   factory $InvestmentAccountCopyWith(InvestmentAccount value, $Res Function(InvestmentAccount) _then) = _$InvestmentAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted,@JsonKey(name: 'initial_balance') double initialBalance,@JsonKey(name: 'initial_balance_date') DateTime initialBalanceDate,@JsonKey(name: 'file_path') String? filePath,@JsonKey(name: 'file_name') String? fileName,@JsonKey(name: 'processing_status') AccountProcessingStatus processingStatus, double? interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus, double? interestRate
 });
 
 
@@ -445,7 +445,7 @@ as double?,
 @JsonSerializable()
 
 class CreditCardAccount extends AccountModel {
-  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, @JsonKey(name: 'initial_balance') this.initialBalance = 0.0, @JsonKey(name: 'initial_balance_date') required this.initialBalanceDate, @JsonKey(name: 'file_path') this.filePath, @JsonKey(name: 'file_name') this.fileName, @JsonKey(name: 'processing_status') this.processingStatus = AccountProcessingStatus.none, this.limit, @JsonKey(name: 'due_day') this.dueDay, @JsonKey(name: 'closing_day') this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
+  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.limit, this.dueDay, this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
   factory CreditCardAccount.fromJson(Map<String, dynamic> json) => _$CreditCardAccountFromJson(json);
 
 @override final  String id;
@@ -453,14 +453,14 @@ class CreditCardAccount extends AccountModel {
 @override final  String icon;
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
-@override@JsonKey(name: 'initial_balance') final  double initialBalance;
-@override@JsonKey(name: 'initial_balance_date') final  DateTime initialBalanceDate;
-@override@JsonKey(name: 'file_path') final  String? filePath;
-@override@JsonKey(name: 'file_name') final  String? fileName;
-@override@JsonKey(name: 'processing_status') final  AccountProcessingStatus processingStatus;
+@override@JsonKey() final  double initialBalance;
+@override final  DateTime initialBalanceDate;
+@override final  String? filePath;
+@override final  String? fileName;
+@override@JsonKey() final  AccountProcessingStatus processingStatus;
  final  double? limit;
-@JsonKey(name: 'due_day') final  int? dueDay;
-@JsonKey(name: 'closing_day') final  int? closingDay;
+ final  int? dueDay;
+ final  int? closingDay;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -499,7 +499,7 @@ abstract mixin class $CreditCardAccountCopyWith<$Res> implements $AccountModelCo
   factory $CreditCardAccountCopyWith(CreditCardAccount value, $Res Function(CreditCardAccount) _then) = _$CreditCardAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted,@JsonKey(name: 'initial_balance') double initialBalance,@JsonKey(name: 'initial_balance_date') DateTime initialBalanceDate,@JsonKey(name: 'file_path') String? filePath,@JsonKey(name: 'file_name') String? fileName,@JsonKey(name: 'processing_status') AccountProcessingStatus processingStatus, double? limit,@JsonKey(name: 'due_day') int? dueDay,@JsonKey(name: 'closing_day') int? closingDay
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus, double? limit, int? dueDay, int? closingDay
 });
 
 
@@ -542,7 +542,7 @@ as int?,
 @JsonSerializable()
 
 class DebtAccount extends AccountModel {
-  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, @JsonKey(name: 'initial_balance') this.initialBalance = 0.0, @JsonKey(name: 'initial_balance_date') required this.initialBalanceDate, @JsonKey(name: 'file_path') this.filePath, @JsonKey(name: 'file_name') this.fileName, @JsonKey(name: 'processing_status') this.processingStatus = AccountProcessingStatus.none, this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
+  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
   factory DebtAccount.fromJson(Map<String, dynamic> json) => _$DebtAccountFromJson(json);
 
 @override final  String id;
@@ -550,11 +550,11 @@ class DebtAccount extends AccountModel {
 @override final  String icon;
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
-@override@JsonKey(name: 'initial_balance') final  double initialBalance;
-@override@JsonKey(name: 'initial_balance_date') final  DateTime initialBalanceDate;
-@override@JsonKey(name: 'file_path') final  String? filePath;
-@override@JsonKey(name: 'file_name') final  String? fileName;
-@override@JsonKey(name: 'processing_status') final  AccountProcessingStatus processingStatus;
+@override@JsonKey() final  double initialBalance;
+@override final  DateTime initialBalanceDate;
+@override final  String? filePath;
+@override final  String? fileName;
+@override@JsonKey() final  AccountProcessingStatus processingStatus;
  final  double? interestRate;
 
 @JsonKey(name: 'runtimeType')
@@ -594,7 +594,7 @@ abstract mixin class $DebtAccountCopyWith<$Res> implements $AccountModelCopyWith
   factory $DebtAccountCopyWith(DebtAccount value, $Res Function(DebtAccount) _then) = _$DebtAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted,@JsonKey(name: 'initial_balance') double initialBalance,@JsonKey(name: 'initial_balance_date') DateTime initialBalanceDate,@JsonKey(name: 'file_path') String? filePath,@JsonKey(name: 'file_name') String? fileName,@JsonKey(name: 'processing_status') AccountProcessingStatus processingStatus, double? interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus, double? interestRate
 });
 
 
@@ -636,7 +636,7 @@ as double?,
 mixin _$AccountBalanceModel {
 
  String get id;// Date string YYYY-MM-DD
- double get balance;@JsonKey(name: 'updatedAt') DateTime get updatedAt;
+ double get balance; DateTime get updatedAt;
 /// Create a copy of AccountBalanceModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -669,7 +669,7 @@ abstract mixin class $AccountBalanceModelCopyWith<$Res>  {
   factory $AccountBalanceModelCopyWith(AccountBalanceModel value, $Res Function(AccountBalanceModel) _then) = _$AccountBalanceModelCopyWithImpl;
 @useResult
 $Res call({
- String id, double balance,@JsonKey(name: 'updatedAt') DateTime updatedAt
+ String id, double balance, DateTime updatedAt
 });
 
 
@@ -773,7 +773,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double balance, @JsonKey(name: 'updatedAt')  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double balance,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AccountBalanceModel() when $default != null:
 return $default(_that.id,_that.balance,_that.updatedAt);case _:
@@ -794,7 +794,7 @@ return $default(_that.id,_that.balance,_that.updatedAt);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double balance, @JsonKey(name: 'updatedAt')  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double balance,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _AccountBalanceModel():
 return $default(_that.id,_that.balance,_that.updatedAt);}
@@ -811,7 +811,7 @@ return $default(_that.id,_that.balance,_that.updatedAt);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double balance, @JsonKey(name: 'updatedAt')  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double balance,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _AccountBalanceModel() when $default != null:
 return $default(_that.id,_that.balance,_that.updatedAt);case _:
@@ -826,13 +826,13 @@ return $default(_that.id,_that.balance,_that.updatedAt);case _:
 @JsonSerializable()
 
 class _AccountBalanceModel extends AccountBalanceModel {
-  const _AccountBalanceModel({required this.id, required this.balance, @JsonKey(name: 'updatedAt') required this.updatedAt}): super._();
+  const _AccountBalanceModel({required this.id, required this.balance, required this.updatedAt}): super._();
   factory _AccountBalanceModel.fromJson(Map<String, dynamic> json) => _$AccountBalanceModelFromJson(json);
 
 @override final  String id;
 // Date string YYYY-MM-DD
 @override final  double balance;
-@override@JsonKey(name: 'updatedAt') final  DateTime updatedAt;
+@override final  DateTime updatedAt;
 
 /// Create a copy of AccountBalanceModel
 /// with the given fields replaced by the non-null parameter values.
@@ -867,7 +867,7 @@ abstract mixin class _$AccountBalanceModelCopyWith<$Res> implements $AccountBala
   factory _$AccountBalanceModelCopyWith(_AccountBalanceModel value, $Res Function(_AccountBalanceModel) _then) = __$AccountBalanceModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, double balance,@JsonKey(name: 'updatedAt') DateTime updatedAt
+ String id, double balance, DateTime updatedAt
 });
 
 

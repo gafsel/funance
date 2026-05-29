@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import '../providers/onboarding_providers.dart';
@@ -19,7 +20,7 @@ class WelcomeStep extends ConsumerWidget {
         children: [
           Image.asset(
             'assets/logo/logo-horizontal.png',
-            height: 50,
+            height: 100,
           ),
           const SizedBox(height: 32),
           Text(
@@ -31,6 +32,9 @@ class WelcomeStep extends ConsumerWidget {
           Text(
             l10n.onboardingWelcomeDesc,
             textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: AppColors.pureWhite
+            ),
           ),
           const SizedBox(height: 48),
           TypeCard(

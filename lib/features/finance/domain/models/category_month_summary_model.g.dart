@@ -13,12 +13,12 @@ _CategoryMonthSummaryModel _$CategoryMonthSummaryModelFromJson(
   year: (json['year'] as num).toInt(),
   month: (json['month'] as num).toInt(),
   category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
-  totalDebit: (json['total_debit'] as num).toDouble(),
-  totalCredit: (json['total_credit'] as num).toDouble(),
-  plannedAmount: (json['planned_amount'] as num).toDouble(),
-  actualAmount: (json['actual_amount'] as num).toDouble(),
+  totalDebit: (json['totalDebit'] as num).toDouble(),
+  totalCredit: (json['totalCredit'] as num).toDouble(),
+  plannedAmount: (json['plannedAmount'] as num).toDouble(),
+  actualAmount: (json['actualAmount'] as num).toDouble(),
   count: (json['count'] as num).toInt(),
-  lastUpdate: DateTime.parse(json['last_update'] as String),
+  lastUpdate: DateTime.parse(json['lastUpdate'] as String),
 );
 
 Map<String, dynamic> _$CategoryMonthSummaryModelToJson(
@@ -28,10 +28,10 @@ Map<String, dynamic> _$CategoryMonthSummaryModelToJson(
   'year': instance.year,
   'month': instance.month,
   'category': instance.category,
-  'total_debit': instance.totalDebit,
-  'total_credit': instance.totalCredit,
-  'planned_amount': instance.plannedAmount,
-  'actual_amount': instance.actualAmount,
+  'totalDebit': instance.totalDebit,
+  'totalCredit': instance.totalCredit,
+  'plannedAmount': instance.plannedAmount,
+  'actualAmount': instance.actualAmount,
   'count': instance.count,
-  'last_update': instance.lastUpdate.toIso8601String(),
+  'lastUpdate': instance.lastUpdate.toIso8601String(),
 };

@@ -42,7 +42,7 @@ PlanningModel _$PlanningModelFromJson(
 /// @nodoc
 mixin _$PlanningModel {
 
- String get id; CategoryModel get category; double get amount;@JsonKey(name: 'installments_count') int? get installmentsCount;@JsonKey(name: 'startDate') DateTime get startDate;@JsonKey(name: 'endDate') DateTime get endDate; String? get accountId;
+ String get id; CategoryModel get category; double get amount; int? get installmentsCount; DateTime get startDate; DateTime get endDate; String? get accountId;
 /// Create a copy of PlanningModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -75,7 +75,7 @@ abstract mixin class $PlanningModelCopyWith<$Res>  {
   factory $PlanningModelCopyWith(PlanningModel value, $Res Function(PlanningModel) _then) = _$PlanningModelCopyWithImpl;
 @useResult
 $Res call({
- String id, CategoryModel category, double amount,@JsonKey(name: 'installments_count') int? installmentsCount,@JsonKey(name: 'startDate') DateTime startDate,@JsonKey(name: 'endDate') DateTime endDate, String? accountId
+ String id, CategoryModel category, double amount, int? installmentsCount, DateTime startDate, DateTime endDate, String? accountId
 });
 
 
@@ -198,7 +198,7 @@ return parcelado(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)?  unique,TResult Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)?  recurrent,TResult Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)?  parcelado,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)?  unique,TResult Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)?  recurrent,TResult Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)?  parcelado,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case UniquePlanning() when unique != null:
 return unique(_that.id,_that.category,_that.amount,_that.installmentsCount,_that.startDate,_that.endDate,_that.accountId);case RecurrentPlanning() when recurrent != null:
@@ -221,7 +221,7 @@ return parcelado(_that.id,_that.category,_that.amount,_that.installmentsCount,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)  unique,required TResult Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)  recurrent,required TResult Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)  parcelado,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)  unique,required TResult Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)  recurrent,required TResult Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)  parcelado,}) {final _that = this;
 switch (_that) {
 case UniquePlanning():
 return unique(_that.id,_that.category,_that.amount,_that.installmentsCount,_that.startDate,_that.endDate,_that.accountId);case RecurrentPlanning():
@@ -240,7 +240,7 @@ return parcelado(_that.id,_that.category,_that.amount,_that.installmentsCount,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)?  unique,TResult? Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)?  recurrent,TResult? Function( String id,  CategoryModel category,  double amount, @JsonKey(name: 'installments_count')  int? installmentsCount, @JsonKey(name: 'startDate')  DateTime startDate, @JsonKey(name: 'endDate')  DateTime endDate,  String? accountId)?  parcelado,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)?  unique,TResult? Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)?  recurrent,TResult? Function( String id,  CategoryModel category,  double amount,  int? installmentsCount,  DateTime startDate,  DateTime endDate,  String? accountId)?  parcelado,}) {final _that = this;
 switch (_that) {
 case UniquePlanning() when unique != null:
 return unique(_that.id,_that.category,_that.amount,_that.installmentsCount,_that.startDate,_that.endDate,_that.accountId);case RecurrentPlanning() when recurrent != null:
@@ -254,18 +254,18 @@ return parcelado(_that.id,_that.category,_that.amount,_that.installmentsCount,_t
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class UniquePlanning extends PlanningModel {
-  const UniquePlanning({required this.id, required this.category, required this.amount, @JsonKey(name: 'installments_count') this.installmentsCount, @JsonKey(name: 'startDate') required this.startDate, @JsonKey(name: 'endDate') required this.endDate, this.accountId, final  String? $type}): $type = $type ?? 'unique',super._();
+  const UniquePlanning({required this.id, required this.category, required this.amount, this.installmentsCount, required this.startDate, required this.endDate, this.accountId, final  String? $type}): $type = $type ?? 'unique',super._();
   factory UniquePlanning.fromJson(Map<String, dynamic> json) => _$UniquePlanningFromJson(json);
 
 @override final  String id;
 @override final  CategoryModel category;
 @override final  double amount;
-@override@JsonKey(name: 'installments_count') final  int? installmentsCount;
-@override@JsonKey(name: 'startDate') final  DateTime startDate;
-@override@JsonKey(name: 'endDate') final  DateTime endDate;
+@override final  int? installmentsCount;
+@override final  DateTime startDate;
+@override final  DateTime endDate;
 @override final  String? accountId;
 
 @JsonKey(name: 'runtimeType')
@@ -305,7 +305,7 @@ abstract mixin class $UniquePlanningCopyWith<$Res> implements $PlanningModelCopy
   factory $UniquePlanningCopyWith(UniquePlanning value, $Res Function(UniquePlanning) _then) = _$UniquePlanningCopyWithImpl;
 @override @useResult
 $Res call({
- String id, CategoryModel category, double amount,@JsonKey(name: 'installments_count') int? installmentsCount,@JsonKey(name: 'startDate') DateTime startDate,@JsonKey(name: 'endDate') DateTime endDate, String? accountId
+ String id, CategoryModel category, double amount, int? installmentsCount, DateTime startDate, DateTime endDate, String? accountId
 });
 
 
@@ -348,18 +348,18 @@ $CategoryModelCopyWith<$Res> get category {
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class RecurrentPlanning extends PlanningModel {
-  const RecurrentPlanning({required this.id, required this.category, required this.amount, @JsonKey(name: 'installments_count') this.installmentsCount, @JsonKey(name: 'startDate') required this.startDate, @JsonKey(name: 'endDate') required this.endDate, this.accountId, final  String? $type}): $type = $type ?? 'recurrent',super._();
+  const RecurrentPlanning({required this.id, required this.category, required this.amount, this.installmentsCount, required this.startDate, required this.endDate, this.accountId, final  String? $type}): $type = $type ?? 'recurrent',super._();
   factory RecurrentPlanning.fromJson(Map<String, dynamic> json) => _$RecurrentPlanningFromJson(json);
 
 @override final  String id;
 @override final  CategoryModel category;
 @override final  double amount;
-@override@JsonKey(name: 'installments_count') final  int? installmentsCount;
-@override@JsonKey(name: 'startDate') final  DateTime startDate;
-@override@JsonKey(name: 'endDate') final  DateTime endDate;
+@override final  int? installmentsCount;
+@override final  DateTime startDate;
+@override final  DateTime endDate;
 @override final  String? accountId;
 
 @JsonKey(name: 'runtimeType')
@@ -399,7 +399,7 @@ abstract mixin class $RecurrentPlanningCopyWith<$Res> implements $PlanningModelC
   factory $RecurrentPlanningCopyWith(RecurrentPlanning value, $Res Function(RecurrentPlanning) _then) = _$RecurrentPlanningCopyWithImpl;
 @override @useResult
 $Res call({
- String id, CategoryModel category, double amount,@JsonKey(name: 'installments_count') int? installmentsCount,@JsonKey(name: 'startDate') DateTime startDate,@JsonKey(name: 'endDate') DateTime endDate, String? accountId
+ String id, CategoryModel category, double amount, int? installmentsCount, DateTime startDate, DateTime endDate, String? accountId
 });
 
 
@@ -442,18 +442,18 @@ $CategoryModelCopyWith<$Res> get category {
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class ParceladoPlanning extends PlanningModel {
-  const ParceladoPlanning({required this.id, required this.category, required this.amount, @JsonKey(name: 'installments_count') this.installmentsCount, @JsonKey(name: 'startDate') required this.startDate, @JsonKey(name: 'endDate') required this.endDate, this.accountId, final  String? $type}): $type = $type ?? 'parcelado',super._();
+  const ParceladoPlanning({required this.id, required this.category, required this.amount, this.installmentsCount, required this.startDate, required this.endDate, this.accountId, final  String? $type}): $type = $type ?? 'parcelado',super._();
   factory ParceladoPlanning.fromJson(Map<String, dynamic> json) => _$ParceladoPlanningFromJson(json);
 
 @override final  String id;
 @override final  CategoryModel category;
 @override final  double amount;
-@override@JsonKey(name: 'installments_count') final  int? installmentsCount;
-@override@JsonKey(name: 'startDate') final  DateTime startDate;
-@override@JsonKey(name: 'endDate') final  DateTime endDate;
+@override final  int? installmentsCount;
+@override final  DateTime startDate;
+@override final  DateTime endDate;
 @override final  String? accountId;
 
 @JsonKey(name: 'runtimeType')
@@ -493,7 +493,7 @@ abstract mixin class $ParceladoPlanningCopyWith<$Res> implements $PlanningModelC
   factory $ParceladoPlanningCopyWith(ParceladoPlanning value, $Res Function(ParceladoPlanning) _then) = _$ParceladoPlanningCopyWithImpl;
 @override @useResult
 $Res call({
- String id, CategoryModel category, double amount,@JsonKey(name: 'installments_count') int? installmentsCount,@JsonKey(name: 'startDate') DateTime startDate,@JsonKey(name: 'endDate') DateTime endDate, String? accountId
+ String id, CategoryModel category, double amount, int? installmentsCount, DateTime startDate, DateTime endDate, String? accountId
 });
 
 

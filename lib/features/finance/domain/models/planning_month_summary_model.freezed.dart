@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlanningMonthSummaryModel {
 
- String get id; int get year; int get month;@JsonKey(name: 'planned_amount') double get plannedAmount;@JsonKey(name: 'actual_amount') double get actualAmount;@JsonKey(name: 'last_update') DateTime get lastUpdate;
+ String get id; int get year; int get month; double get plannedAmount; double get actualAmount; DateTime get lastUpdate;
 /// Create a copy of PlanningMonthSummaryModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $PlanningMonthSummaryModelCopyWith<$Res>  {
   factory $PlanningMonthSummaryModelCopyWith(PlanningMonthSummaryModel value, $Res Function(PlanningMonthSummaryModel) _then) = _$PlanningMonthSummaryModelCopyWithImpl;
 @useResult
 $Res call({
- String id, int year, int month,@JsonKey(name: 'planned_amount') double plannedAmount,@JsonKey(name: 'actual_amount') double actualAmount,@JsonKey(name: 'last_update') DateTime lastUpdate
+ String id, int year, int month, double plannedAmount, double actualAmount, DateTime lastUpdate
 });
 
 
@@ -155,7 +155,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int year,  int month, @JsonKey(name: 'planned_amount')  double plannedAmount, @JsonKey(name: 'actual_amount')  double actualAmount, @JsonKey(name: 'last_update')  DateTime lastUpdate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int year,  int month,  double plannedAmount,  double actualAmount,  DateTime lastUpdate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlanningMonthSummaryModel() when $default != null:
 return $default(_that.id,_that.year,_that.month,_that.plannedAmount,_that.actualAmount,_that.lastUpdate);case _:
@@ -176,7 +176,7 @@ return $default(_that.id,_that.year,_that.month,_that.plannedAmount,_that.actual
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int year,  int month, @JsonKey(name: 'planned_amount')  double plannedAmount, @JsonKey(name: 'actual_amount')  double actualAmount, @JsonKey(name: 'last_update')  DateTime lastUpdate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int year,  int month,  double plannedAmount,  double actualAmount,  DateTime lastUpdate)  $default,) {final _that = this;
 switch (_that) {
 case _PlanningMonthSummaryModel():
 return $default(_that.id,_that.year,_that.month,_that.plannedAmount,_that.actualAmount,_that.lastUpdate);}
@@ -193,7 +193,7 @@ return $default(_that.id,_that.year,_that.month,_that.plannedAmount,_that.actual
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int year,  int month, @JsonKey(name: 'planned_amount')  double plannedAmount, @JsonKey(name: 'actual_amount')  double actualAmount, @JsonKey(name: 'last_update')  DateTime lastUpdate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int year,  int month,  double plannedAmount,  double actualAmount,  DateTime lastUpdate)?  $default,) {final _that = this;
 switch (_that) {
 case _PlanningMonthSummaryModel() when $default != null:
 return $default(_that.id,_that.year,_that.month,_that.plannedAmount,_that.actualAmount,_that.lastUpdate);case _:
@@ -208,15 +208,15 @@ return $default(_that.id,_that.year,_that.month,_that.plannedAmount,_that.actual
 @JsonSerializable()
 
 class _PlanningMonthSummaryModel extends PlanningMonthSummaryModel {
-  const _PlanningMonthSummaryModel({required this.id, required this.year, required this.month, @JsonKey(name: 'planned_amount') required this.plannedAmount, @JsonKey(name: 'actual_amount') required this.actualAmount, @JsonKey(name: 'last_update') required this.lastUpdate}): super._();
+  const _PlanningMonthSummaryModel({required this.id, required this.year, required this.month, required this.plannedAmount, required this.actualAmount, required this.lastUpdate}): super._();
   factory _PlanningMonthSummaryModel.fromJson(Map<String, dynamic> json) => _$PlanningMonthSummaryModelFromJson(json);
 
 @override final  String id;
 @override final  int year;
 @override final  int month;
-@override@JsonKey(name: 'planned_amount') final  double plannedAmount;
-@override@JsonKey(name: 'actual_amount') final  double actualAmount;
-@override@JsonKey(name: 'last_update') final  DateTime lastUpdate;
+@override final  double plannedAmount;
+@override final  double actualAmount;
+@override final  DateTime lastUpdate;
 
 /// Create a copy of PlanningMonthSummaryModel
 /// with the given fields replaced by the non-null parameter values.
@@ -251,7 +251,7 @@ abstract mixin class _$PlanningMonthSummaryModelCopyWith<$Res> implements $Plann
   factory _$PlanningMonthSummaryModelCopyWith(_PlanningMonthSummaryModel value, $Res Function(_PlanningMonthSummaryModel) _then) = __$PlanningMonthSummaryModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int year, int month,@JsonKey(name: 'planned_amount') double plannedAmount,@JsonKey(name: 'actual_amount') double actualAmount,@JsonKey(name: 'last_update') DateTime lastUpdate
+ String id, int year, int month, double plannedAmount, double actualAmount, DateTime lastUpdate
 });
 
 

@@ -39,7 +39,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       }
 
       if (accountId != null && accountId.isNotEmpty) {
-        query = query.where('account_ids', arrayContains: accountId);
+        query = query.where('accountIds', arrayContains: accountId);
       }
 
       if (startDate != null) {

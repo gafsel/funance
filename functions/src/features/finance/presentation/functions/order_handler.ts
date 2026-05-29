@@ -21,11 +21,6 @@ export const onOrderWritten = onDocumentWritten(
       id: orderId,
       ...data,
       date: data?.date?.toDate ? data.date.toDate() : new Date(data?.date),
-      totalAmount: data?.total_amount || data?.totalAmount,
-      installmentsCount: data?.installments_count || data?.installmentsCount,
-      planningId: data?.planning_id || data?.planningId,
-      category: data?.category,
-      accountIds: data?.accountIds,
     } as OrderModel;
 
     console.log(`Order ${orderId} criada/alterada no workspace ${workspaceId}. Sincronizando ledger entries.`);

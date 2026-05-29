@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$AccountFormState {
 
- String get name; double get initialBalance; DateTime get initialBalanceDate; AccountType get type; String get color; String get icon; double? get limit; int? get dueDay; int? get closingDay; double? get interestRate; File? get selectedFile; String? get fileName; AccountProcessingStatus get processingStatus; AccountRegistrationMethod get registrationMethod; List<OrderModel> get detectedOrders; List<PlanningModel> get detectedPlannings; bool get isLoading; bool get isSuccess; String? get errorMessage;
+ String get id; String get name; double get initialBalance; DateTime get initialBalanceDate; AccountType get type; String get color; String get icon; double? get limit; int? get dueDay; int? get closingDay; double? get interestRate; File? get selectedFile; String? get fileName; AccountProcessingStatus get processingStatus; AccountRegistrationMethod get registrationMethod; List<OrderModel> get detectedOrders; List<PlanningModel> get detectedPlannings; bool get isLoading; bool get isSuccess; String? get errorMessage;
 /// Create a copy of AccountFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $AccountFormStateCopyWith<AccountFormState> get copyWith => _$AccountFormStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountFormState&&(identical(other.name, name) || other.name == name)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.color, color) || other.color == color)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate)&&(identical(other.selectedFile, selectedFile) || other.selectedFile == selectedFile)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.registrationMethod, registrationMethod) || other.registrationMethod == registrationMethod)&&const DeepCollectionEquality().equals(other.detectedOrders, detectedOrders)&&const DeepCollectionEquality().equals(other.detectedPlannings, detectedPlannings)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.color, color) || other.color == color)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate)&&(identical(other.selectedFile, selectedFile) || other.selectedFile == selectedFile)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.registrationMethod, registrationMethod) || other.registrationMethod == registrationMethod)&&const DeepCollectionEquality().equals(other.detectedOrders, detectedOrders)&&const DeepCollectionEquality().equals(other.detectedPlannings, detectedPlannings)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,name,initialBalance,initialBalanceDate,type,color,icon,limit,dueDay,closingDay,interestRate,selectedFile,fileName,processingStatus,registrationMethod,const DeepCollectionEquality().hash(detectedOrders),const DeepCollectionEquality().hash(detectedPlannings),isLoading,isSuccess,errorMessage]);
+int get hashCode => Object.hashAll([runtimeType,id,name,initialBalance,initialBalanceDate,type,color,icon,limit,dueDay,closingDay,interestRate,selectedFile,fileName,processingStatus,registrationMethod,const DeepCollectionEquality().hash(detectedOrders),const DeepCollectionEquality().hash(detectedPlannings),isLoading,isSuccess,errorMessage]);
 
 @override
 String toString() {
-  return 'AccountFormState(name: $name, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, type: $type, color: $color, icon: $icon, limit: $limit, dueDay: $dueDay, closingDay: $closingDay, interestRate: $interestRate, selectedFile: $selectedFile, fileName: $fileName, processingStatus: $processingStatus, registrationMethod: $registrationMethod, detectedOrders: $detectedOrders, detectedPlannings: $detectedPlannings, isLoading: $isLoading, isSuccess: $isSuccess, errorMessage: $errorMessage)';
+  return 'AccountFormState(id: $id, name: $name, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, type: $type, color: $color, icon: $icon, limit: $limit, dueDay: $dueDay, closingDay: $closingDay, interestRate: $interestRate, selectedFile: $selectedFile, fileName: $fileName, processingStatus: $processingStatus, registrationMethod: $registrationMethod, detectedOrders: $detectedOrders, detectedPlannings: $detectedPlannings, isLoading: $isLoading, isSuccess: $isSuccess, errorMessage: $errorMessage)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $AccountFormStateCopyWith<$Res>  {
   factory $AccountFormStateCopyWith(AccountFormState value, $Res Function(AccountFormState) _then) = _$AccountFormStateCopyWithImpl;
 @useResult
 $Res call({
- String name, double initialBalance, DateTime initialBalanceDate, AccountType type, String color, String icon, double? limit, int? dueDay, int? closingDay, double? interestRate, File? selectedFile, String? fileName, AccountProcessingStatus processingStatus, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders, List<PlanningModel> detectedPlannings, bool isLoading, bool isSuccess, String? errorMessage
+ String id, String name, double initialBalance, DateTime initialBalanceDate, AccountType type, String color, String icon, double? limit, int? dueDay, int? closingDay, double? interestRate, File? selectedFile, String? fileName, AccountProcessingStatus processingStatus, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders, List<PlanningModel> detectedPlannings, bool isLoading, bool isSuccess, String? errorMessage
 });
 
 
@@ -62,9 +62,10 @@ class _$AccountFormStateCopyWithImpl<$Res>
 
 /// Create a copy of AccountFormState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? type = null,Object? color = null,Object? icon = null,Object? limit = freezed,Object? dueDay = freezed,Object? closingDay = freezed,Object? interestRate = freezed,Object? selectedFile = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? registrationMethod = null,Object? detectedOrders = null,Object? detectedPlannings = null,Object? isLoading = null,Object? isSuccess = null,Object? errorMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? type = null,Object? color = null,Object? icon = null,Object? limit = freezed,Object? dueDay = freezed,Object? closingDay = freezed,Object? interestRate = freezed,Object? selectedFile = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? registrationMethod = null,Object? detectedOrders = null,Object? detectedPlannings = null,Object? isLoading = null,Object? isSuccess = null,Object? errorMessage = freezed,}) {
   return _then(_self.copyWith(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
 as DateTime,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -165,10 +166,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  double initialBalance,  DateTime initialBalanceDate,  AccountType type,  String color,  String icon,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  File? selectedFile,  String? fileName,  AccountProcessingStatus processingStatus,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders,  List<PlanningModel> detectedPlannings,  bool isLoading,  bool isSuccess,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  double initialBalance,  DateTime initialBalanceDate,  AccountType type,  String color,  String icon,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  File? selectedFile,  String? fileName,  AccountProcessingStatus processingStatus,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders,  List<PlanningModel> detectedPlannings,  bool isLoading,  bool isSuccess,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AccountFormState() when $default != null:
-return $default(_that.name,_that.initialBalance,_that.initialBalanceDate,_that.type,_that.color,_that.icon,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.selectedFile,_that.fileName,_that.processingStatus,_that.registrationMethod,_that.detectedOrders,_that.detectedPlannings,_that.isLoading,_that.isSuccess,_that.errorMessage);case _:
+return $default(_that.id,_that.name,_that.initialBalance,_that.initialBalanceDate,_that.type,_that.color,_that.icon,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.selectedFile,_that.fileName,_that.processingStatus,_that.registrationMethod,_that.detectedOrders,_that.detectedPlannings,_that.isLoading,_that.isSuccess,_that.errorMessage);case _:
   return orElse();
 
 }
@@ -186,10 +187,10 @@ return $default(_that.name,_that.initialBalance,_that.initialBalanceDate,_that.t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  double initialBalance,  DateTime initialBalanceDate,  AccountType type,  String color,  String icon,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  File? selectedFile,  String? fileName,  AccountProcessingStatus processingStatus,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders,  List<PlanningModel> detectedPlannings,  bool isLoading,  bool isSuccess,  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  double initialBalance,  DateTime initialBalanceDate,  AccountType type,  String color,  String icon,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  File? selectedFile,  String? fileName,  AccountProcessingStatus processingStatus,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders,  List<PlanningModel> detectedPlannings,  bool isLoading,  bool isSuccess,  String? errorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _AccountFormState():
-return $default(_that.name,_that.initialBalance,_that.initialBalanceDate,_that.type,_that.color,_that.icon,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.selectedFile,_that.fileName,_that.processingStatus,_that.registrationMethod,_that.detectedOrders,_that.detectedPlannings,_that.isLoading,_that.isSuccess,_that.errorMessage);}
+return $default(_that.id,_that.name,_that.initialBalance,_that.initialBalanceDate,_that.type,_that.color,_that.icon,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.selectedFile,_that.fileName,_that.processingStatus,_that.registrationMethod,_that.detectedOrders,_that.detectedPlannings,_that.isLoading,_that.isSuccess,_that.errorMessage);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -203,10 +204,10 @@ return $default(_that.name,_that.initialBalance,_that.initialBalanceDate,_that.t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  double initialBalance,  DateTime initialBalanceDate,  AccountType type,  String color,  String icon,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  File? selectedFile,  String? fileName,  AccountProcessingStatus processingStatus,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders,  List<PlanningModel> detectedPlannings,  bool isLoading,  bool isSuccess,  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  double initialBalance,  DateTime initialBalanceDate,  AccountType type,  String color,  String icon,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  File? selectedFile,  String? fileName,  AccountProcessingStatus processingStatus,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders,  List<PlanningModel> detectedPlannings,  bool isLoading,  bool isSuccess,  String? errorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _AccountFormState() when $default != null:
-return $default(_that.name,_that.initialBalance,_that.initialBalanceDate,_that.type,_that.color,_that.icon,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.selectedFile,_that.fileName,_that.processingStatus,_that.registrationMethod,_that.detectedOrders,_that.detectedPlannings,_that.isLoading,_that.isSuccess,_that.errorMessage);case _:
+return $default(_that.id,_that.name,_that.initialBalance,_that.initialBalanceDate,_that.type,_that.color,_that.icon,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.selectedFile,_that.fileName,_that.processingStatus,_that.registrationMethod,_that.detectedOrders,_that.detectedPlannings,_that.isLoading,_that.isSuccess,_that.errorMessage);case _:
   return null;
 
 }
@@ -218,9 +219,10 @@ return $default(_that.name,_that.initialBalance,_that.initialBalanceDate,_that.t
 
 
 class _AccountFormState extends AccountFormState {
-  const _AccountFormState({required this.name, required this.initialBalance, required this.initialBalanceDate, required this.type, required this.color, required this.icon, this.limit, this.dueDay, this.closingDay, this.interestRate, this.selectedFile, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.registrationMethod = AccountRegistrationMethod.document, final  List<OrderModel> detectedOrders = const [], final  List<PlanningModel> detectedPlannings = const [], this.isLoading = false, this.isSuccess = false, this.errorMessage}): _detectedOrders = detectedOrders,_detectedPlannings = detectedPlannings,super._();
+  const _AccountFormState({required this.id, required this.name, required this.initialBalance, required this.initialBalanceDate, required this.type, required this.color, required this.icon, this.limit, this.dueDay, this.closingDay, this.interestRate, this.selectedFile, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.registrationMethod = AccountRegistrationMethod.document, final  List<OrderModel> detectedOrders = const [], final  List<PlanningModel> detectedPlannings = const [], this.isLoading = false, this.isSuccess = false, this.errorMessage}): _detectedOrders = detectedOrders,_detectedPlannings = detectedPlannings,super._();
   
 
+@override final  String id;
 @override final  String name;
 @override final  double initialBalance;
 @override final  DateTime initialBalanceDate;
@@ -263,16 +265,16 @@ _$AccountFormStateCopyWith<_AccountFormState> get copyWith => __$AccountFormStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountFormState&&(identical(other.name, name) || other.name == name)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.color, color) || other.color == color)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate)&&(identical(other.selectedFile, selectedFile) || other.selectedFile == selectedFile)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.registrationMethod, registrationMethod) || other.registrationMethod == registrationMethod)&&const DeepCollectionEquality().equals(other._detectedOrders, _detectedOrders)&&const DeepCollectionEquality().equals(other._detectedPlannings, _detectedPlannings)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.type, type) || other.type == type)&&(identical(other.color, color) || other.color == color)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate)&&(identical(other.selectedFile, selectedFile) || other.selectedFile == selectedFile)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.registrationMethod, registrationMethod) || other.registrationMethod == registrationMethod)&&const DeepCollectionEquality().equals(other._detectedOrders, _detectedOrders)&&const DeepCollectionEquality().equals(other._detectedPlannings, _detectedPlannings)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 
 @override
-int get hashCode => Object.hashAll([runtimeType,name,initialBalance,initialBalanceDate,type,color,icon,limit,dueDay,closingDay,interestRate,selectedFile,fileName,processingStatus,registrationMethod,const DeepCollectionEquality().hash(_detectedOrders),const DeepCollectionEquality().hash(_detectedPlannings),isLoading,isSuccess,errorMessage]);
+int get hashCode => Object.hashAll([runtimeType,id,name,initialBalance,initialBalanceDate,type,color,icon,limit,dueDay,closingDay,interestRate,selectedFile,fileName,processingStatus,registrationMethod,const DeepCollectionEquality().hash(_detectedOrders),const DeepCollectionEquality().hash(_detectedPlannings),isLoading,isSuccess,errorMessage]);
 
 @override
 String toString() {
-  return 'AccountFormState(name: $name, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, type: $type, color: $color, icon: $icon, limit: $limit, dueDay: $dueDay, closingDay: $closingDay, interestRate: $interestRate, selectedFile: $selectedFile, fileName: $fileName, processingStatus: $processingStatus, registrationMethod: $registrationMethod, detectedOrders: $detectedOrders, detectedPlannings: $detectedPlannings, isLoading: $isLoading, isSuccess: $isSuccess, errorMessage: $errorMessage)';
+  return 'AccountFormState(id: $id, name: $name, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, type: $type, color: $color, icon: $icon, limit: $limit, dueDay: $dueDay, closingDay: $closingDay, interestRate: $interestRate, selectedFile: $selectedFile, fileName: $fileName, processingStatus: $processingStatus, registrationMethod: $registrationMethod, detectedOrders: $detectedOrders, detectedPlannings: $detectedPlannings, isLoading: $isLoading, isSuccess: $isSuccess, errorMessage: $errorMessage)';
 }
 
 
@@ -283,7 +285,7 @@ abstract mixin class _$AccountFormStateCopyWith<$Res> implements $AccountFormSta
   factory _$AccountFormStateCopyWith(_AccountFormState value, $Res Function(_AccountFormState) _then) = __$AccountFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- String name, double initialBalance, DateTime initialBalanceDate, AccountType type, String color, String icon, double? limit, int? dueDay, int? closingDay, double? interestRate, File? selectedFile, String? fileName, AccountProcessingStatus processingStatus, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders, List<PlanningModel> detectedPlannings, bool isLoading, bool isSuccess, String? errorMessage
+ String id, String name, double initialBalance, DateTime initialBalanceDate, AccountType type, String color, String icon, double? limit, int? dueDay, int? closingDay, double? interestRate, File? selectedFile, String? fileName, AccountProcessingStatus processingStatus, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders, List<PlanningModel> detectedPlannings, bool isLoading, bool isSuccess, String? errorMessage
 });
 
 
@@ -300,9 +302,10 @@ class __$AccountFormStateCopyWithImpl<$Res>
 
 /// Create a copy of AccountFormState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? type = null,Object? color = null,Object? icon = null,Object? limit = freezed,Object? dueDay = freezed,Object? closingDay = freezed,Object? interestRate = freezed,Object? selectedFile = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? registrationMethod = null,Object? detectedOrders = null,Object? detectedPlannings = null,Object? isLoading = null,Object? isSuccess = null,Object? errorMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? type = null,Object? color = null,Object? icon = null,Object? limit = freezed,Object? dueDay = freezed,Object? closingDay = freezed,Object? interestRate = freezed,Object? selectedFile = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? registrationMethod = null,Object? detectedOrders = null,Object? detectedPlannings = null,Object? isLoading = null,Object? isSuccess = null,Object? errorMessage = freezed,}) {
   return _then(_AccountFormState(
-name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
 as DateTime,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable

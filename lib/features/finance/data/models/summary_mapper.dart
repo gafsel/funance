@@ -10,10 +10,8 @@ extension CategoryMonthSummaryFirestoreX on DocumentSnapshot {
     return CategoryMonthSummaryModel.fromJson({
       ...data,
       'id': id,
-      if (data['last_update'] is Timestamp)
-        'last_update': (data['last_update'] as Timestamp).toDate().toIso8601String(),
       if (data['lastUpdate'] is Timestamp)
-        'last_update': (data['lastUpdate'] as Timestamp).toDate().toIso8601String(),
+        'lastUpdate': (data['lastUpdate'] as Timestamp).toDate().toIso8601String(),
     });
   }
 }
@@ -26,10 +24,8 @@ extension PlanningMonthSummaryFirestoreX on DocumentSnapshot {
     return PlanningMonthSummaryModel.fromJson({
       ...data,
       'id': id,
-      if (data['last_update'] is Timestamp)
-        'last_update': (data['last_update'] as Timestamp).toDate().toIso8601String(),
       if (data['lastUpdate'] is Timestamp)
-        'last_update': (data['lastUpdate'] as Timestamp).toDate().toIso8601String(),
+        'lastUpdate': (data['lastUpdate'] as Timestamp).toDate().toIso8601String(),
     });
   }
 }

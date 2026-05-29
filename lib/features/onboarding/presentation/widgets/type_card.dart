@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_theme.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class TypeCard extends StatelessWidget {
@@ -42,8 +43,8 @@ class TypeCard extends StatelessWidget {
                     Text(
                       description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.pureWhite.withValues(alpha: 0.8),
-                          ),
+                        color: AppColors.pureWhite.withValues(alpha: 0.8),
+                      ),
                     ),
                   ],
                 ),

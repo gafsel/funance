@@ -272,7 +272,7 @@ as bool,
 /// @nodoc
 mixin _$GoalModel {
 
- String get id; String get name; double get targetAmount; double get currentAmount; DateTime get deadline; String? get icon; GoalType get type;@JsonKey(name: 'accountId') String? get accountId; DateTime get startDate; Map<String, dynamic>? get metadata; bool get isDeleted;
+ String get id; String get name; double get targetAmount; double get currentAmount; DateTime get deadline; String? get icon; GoalType get type; String? get accountId; DateTime get startDate; Map<String, dynamic>? get metadata; bool get isDeleted;
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -305,7 +305,7 @@ abstract mixin class $GoalModelCopyWith<$Res>  {
   factory $GoalModelCopyWith(GoalModel value, $Res Function(GoalModel) _then) = _$GoalModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, DateTime deadline, String? icon, GoalType type,@JsonKey(name: 'accountId') String? accountId, DateTime startDate, Map<String, dynamic>? metadata, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, String? icon, GoalType type, String? accountId, DateTime startDate, Map<String, dynamic>? metadata, bool isDeleted
 });
 
 
@@ -417,7 +417,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String? icon,  GoalType type, @JsonKey(name: 'accountId')  String? accountId,  DateTime startDate,  Map<String, dynamic>? metadata,  bool isDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String? icon,  GoalType type,  String? accountId,  DateTime startDate,  Map<String, dynamic>? metadata,  bool isDeleted)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GoalModel() when $default != null:
 return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.icon,_that.type,_that.accountId,_that.startDate,_that.metadata,_that.isDeleted);case _:
@@ -438,7 +438,7 @@ return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String? icon,  GoalType type, @JsonKey(name: 'accountId')  String? accountId,  DateTime startDate,  Map<String, dynamic>? metadata,  bool isDeleted)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String? icon,  GoalType type,  String? accountId,  DateTime startDate,  Map<String, dynamic>? metadata,  bool isDeleted)  $default,) {final _that = this;
 switch (_that) {
 case _GoalModel():
 return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.icon,_that.type,_that.accountId,_that.startDate,_that.metadata,_that.isDeleted);}
@@ -455,7 +455,7 @@ return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String? icon,  GoalType type, @JsonKey(name: 'accountId')  String? accountId,  DateTime startDate,  Map<String, dynamic>? metadata,  bool isDeleted)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String? icon,  GoalType type,  String? accountId,  DateTime startDate,  Map<String, dynamic>? metadata,  bool isDeleted)?  $default,) {final _that = this;
 switch (_that) {
 case _GoalModel() when $default != null:
 return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.icon,_that.type,_that.accountId,_that.startDate,_that.metadata,_that.isDeleted);case _:
@@ -470,7 +470,7 @@ return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that
 @JsonSerializable()
 
 class _GoalModel extends GoalModel {
-  const _GoalModel({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, this.icon, required this.type, @JsonKey(name: 'accountId') this.accountId, required this.startDate, final  Map<String, dynamic>? metadata, this.isDeleted = false}): _metadata = metadata,super._();
+  const _GoalModel({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, this.icon, required this.type, this.accountId, required this.startDate, final  Map<String, dynamic>? metadata, this.isDeleted = false}): _metadata = metadata,super._();
   factory _GoalModel.fromJson(Map<String, dynamic> json) => _$GoalModelFromJson(json);
 
 @override final  String id;
@@ -480,7 +480,7 @@ class _GoalModel extends GoalModel {
 @override final  DateTime deadline;
 @override final  String? icon;
 @override final  GoalType type;
-@override@JsonKey(name: 'accountId') final  String? accountId;
+@override final  String? accountId;
 @override final  DateTime startDate;
  final  Map<String, dynamic>? _metadata;
 @override Map<String, dynamic>? get metadata {
@@ -526,7 +526,7 @@ abstract mixin class _$GoalModelCopyWith<$Res> implements $GoalModelCopyWith<$Re
   factory _$GoalModelCopyWith(_GoalModel value, $Res Function(_GoalModel) _then) = __$GoalModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, DateTime deadline, String? icon, GoalType type,@JsonKey(name: 'accountId') String? accountId, DateTime startDate, Map<String, dynamic>? metadata, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, String? icon, GoalType type, String? accountId, DateTime startDate, Map<String, dynamic>? metadata, bool isDeleted
 });
 
 

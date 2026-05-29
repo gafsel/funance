@@ -70,6 +70,6 @@ class CategoryFormNotifier extends StateNotifier<CategoryFormState> {
   }
 }
 
-final categoryFormProvider = StateNotifierProvider.family<CategoryFormNotifier, CategoryFormState, CategoryModel?>((ref, category) {
+final categoryFormProvider = StateNotifierProvider.autoDispose.family<CategoryFormNotifier, CategoryFormState, CategoryModel?>((ref, category) {
   return CategoryFormNotifier(ref, category);
 });

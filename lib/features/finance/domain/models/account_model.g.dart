@@ -13,16 +13,14 @@ CheckingAccount _$CheckingAccountFromJson(Map<String, dynamic> json) =>
       icon: json['icon'] as String,
       color: json['color'] as String,
       isDeleted: json['isDeleted'] as bool? ?? false,
-      initialBalance: (json['initial_balance'] as num?)?.toDouble() ?? 0.0,
-      initialBalanceDate: DateTime.parse(
-        json['initial_balance_date'] as String,
-      ),
-      filePath: json['file_path'] as String?,
-      fileName: json['file_name'] as String?,
+      initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
+      initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+      filePath: json['filePath'] as String?,
+      fileName: json['fileName'] as String?,
       processingStatus:
           $enumDecodeNullable(
             _$AccountProcessingStatusEnumMap,
-            json['processing_status'],
+            json['processingStatus'],
           ) ??
           AccountProcessingStatus.none,
       $type: json['runtimeType'] as String?,
@@ -35,11 +33,11 @@ Map<String, dynamic> _$CheckingAccountToJson(CheckingAccount instance) =>
       'icon': instance.icon,
       'color': instance.color,
       'isDeleted': instance.isDeleted,
-      'initial_balance': instance.initialBalance,
-      'initial_balance_date': instance.initialBalanceDate.toIso8601String(),
-      'file_path': instance.filePath,
-      'file_name': instance.fileName,
-      'processing_status':
+      'initialBalance': instance.initialBalance,
+      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'filePath': instance.filePath,
+      'fileName': instance.fileName,
+      'processingStatus':
           _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'runtimeType': instance.$type,
     };
@@ -59,16 +57,14 @@ InvestmentAccount _$InvestmentAccountFromJson(Map<String, dynamic> json) =>
       icon: json['icon'] as String,
       color: json['color'] as String,
       isDeleted: json['isDeleted'] as bool? ?? false,
-      initialBalance: (json['initial_balance'] as num?)?.toDouble() ?? 0.0,
-      initialBalanceDate: DateTime.parse(
-        json['initial_balance_date'] as String,
-      ),
-      filePath: json['file_path'] as String?,
-      fileName: json['file_name'] as String?,
+      initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
+      initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+      filePath: json['filePath'] as String?,
+      fileName: json['fileName'] as String?,
       processingStatus:
           $enumDecodeNullable(
             _$AccountProcessingStatusEnumMap,
-            json['processing_status'],
+            json['processingStatus'],
           ) ??
           AccountProcessingStatus.none,
       interestRate: (json['interestRate'] as num?)?.toDouble(),
@@ -82,11 +78,11 @@ Map<String, dynamic> _$InvestmentAccountToJson(InvestmentAccount instance) =>
       'icon': instance.icon,
       'color': instance.color,
       'isDeleted': instance.isDeleted,
-      'initial_balance': instance.initialBalance,
-      'initial_balance_date': instance.initialBalanceDate.toIso8601String(),
-      'file_path': instance.filePath,
-      'file_name': instance.fileName,
-      'processing_status':
+      'initialBalance': instance.initialBalance,
+      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'filePath': instance.filePath,
+      'fileName': instance.fileName,
+      'processingStatus':
           _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'interestRate': instance.interestRate,
       'runtimeType': instance.$type,
@@ -99,21 +95,19 @@ CreditCardAccount _$CreditCardAccountFromJson(Map<String, dynamic> json) =>
       icon: json['icon'] as String,
       color: json['color'] as String,
       isDeleted: json['isDeleted'] as bool? ?? false,
-      initialBalance: (json['initial_balance'] as num?)?.toDouble() ?? 0.0,
-      initialBalanceDate: DateTime.parse(
-        json['initial_balance_date'] as String,
-      ),
-      filePath: json['file_path'] as String?,
-      fileName: json['file_name'] as String?,
+      initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
+      initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+      filePath: json['filePath'] as String?,
+      fileName: json['fileName'] as String?,
       processingStatus:
           $enumDecodeNullable(
             _$AccountProcessingStatusEnumMap,
-            json['processing_status'],
+            json['processingStatus'],
           ) ??
           AccountProcessingStatus.none,
       limit: (json['limit'] as num?)?.toDouble(),
-      dueDay: (json['due_day'] as num?)?.toInt(),
-      closingDay: (json['closing_day'] as num?)?.toInt(),
+      dueDay: (json['dueDay'] as num?)?.toInt(),
+      closingDay: (json['closingDay'] as num?)?.toInt(),
       $type: json['runtimeType'] as String?,
     );
 
@@ -124,15 +118,15 @@ Map<String, dynamic> _$CreditCardAccountToJson(CreditCardAccount instance) =>
       'icon': instance.icon,
       'color': instance.color,
       'isDeleted': instance.isDeleted,
-      'initial_balance': instance.initialBalance,
-      'initial_balance_date': instance.initialBalanceDate.toIso8601String(),
-      'file_path': instance.filePath,
-      'file_name': instance.fileName,
-      'processing_status':
+      'initialBalance': instance.initialBalance,
+      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'filePath': instance.filePath,
+      'fileName': instance.fileName,
+      'processingStatus':
           _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'limit': instance.limit,
-      'due_day': instance.dueDay,
-      'closing_day': instance.closingDay,
+      'dueDay': instance.dueDay,
+      'closingDay': instance.closingDay,
       'runtimeType': instance.$type,
     };
 
@@ -142,14 +136,14 @@ DebtAccount _$DebtAccountFromJson(Map<String, dynamic> json) => DebtAccount(
   icon: json['icon'] as String,
   color: json['color'] as String,
   isDeleted: json['isDeleted'] as bool? ?? false,
-  initialBalance: (json['initial_balance'] as num?)?.toDouble() ?? 0.0,
-  initialBalanceDate: DateTime.parse(json['initial_balance_date'] as String),
-  filePath: json['file_path'] as String?,
-  fileName: json['file_name'] as String?,
+  initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
+  initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+  filePath: json['filePath'] as String?,
+  fileName: json['fileName'] as String?,
   processingStatus:
       $enumDecodeNullable(
         _$AccountProcessingStatusEnumMap,
-        json['processing_status'],
+        json['processingStatus'],
       ) ??
       AccountProcessingStatus.none,
   interestRate: (json['interestRate'] as num?)?.toDouble(),
@@ -163,11 +157,11 @@ Map<String, dynamic> _$DebtAccountToJson(DebtAccount instance) =>
       'icon': instance.icon,
       'color': instance.color,
       'isDeleted': instance.isDeleted,
-      'initial_balance': instance.initialBalance,
-      'initial_balance_date': instance.initialBalanceDate.toIso8601String(),
-      'file_path': instance.filePath,
-      'file_name': instance.fileName,
-      'processing_status':
+      'initialBalance': instance.initialBalance,
+      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'filePath': instance.filePath,
+      'fileName': instance.fileName,
+      'processingStatus':
           _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'interestRate': instance.interestRate,
       'runtimeType': instance.$type,

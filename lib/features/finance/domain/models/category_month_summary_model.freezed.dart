@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CategoryMonthSummaryModel {
 
- String get id; int get year; int get month; CategoryModel get category;@JsonKey(name: 'total_debit') double get totalDebit;@JsonKey(name: 'total_credit') double get totalCredit;@JsonKey(name: 'planned_amount') double get plannedAmount;@JsonKey(name: 'actual_amount') double get actualAmount; int get count;@JsonKey(name: 'last_update') DateTime get lastUpdate;
+ String get id; int get year; int get month; CategoryModel get category; double get totalDebit; double get totalCredit; double get plannedAmount; double get actualAmount; int get count; DateTime get lastUpdate;
 /// Create a copy of CategoryMonthSummaryModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $CategoryMonthSummaryModelCopyWith<$Res>  {
   factory $CategoryMonthSummaryModelCopyWith(CategoryMonthSummaryModel value, $Res Function(CategoryMonthSummaryModel) _then) = _$CategoryMonthSummaryModelCopyWithImpl;
 @useResult
 $Res call({
- String id, int year, int month, CategoryModel category,@JsonKey(name: 'total_debit') double totalDebit,@JsonKey(name: 'total_credit') double totalCredit,@JsonKey(name: 'planned_amount') double plannedAmount,@JsonKey(name: 'actual_amount') double actualAmount, int count,@JsonKey(name: 'last_update') DateTime lastUpdate
+ String id, int year, int month, CategoryModel category, double totalDebit, double totalCredit, double plannedAmount, double actualAmount, int count, DateTime lastUpdate
 });
 
 
@@ -168,7 +168,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int year,  int month,  CategoryModel category, @JsonKey(name: 'total_debit')  double totalDebit, @JsonKey(name: 'total_credit')  double totalCredit, @JsonKey(name: 'planned_amount')  double plannedAmount, @JsonKey(name: 'actual_amount')  double actualAmount,  int count, @JsonKey(name: 'last_update')  DateTime lastUpdate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  int year,  int month,  CategoryModel category,  double totalDebit,  double totalCredit,  double plannedAmount,  double actualAmount,  int count,  DateTime lastUpdate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CategoryMonthSummaryModel() when $default != null:
 return $default(_that.id,_that.year,_that.month,_that.category,_that.totalDebit,_that.totalCredit,_that.plannedAmount,_that.actualAmount,_that.count,_that.lastUpdate);case _:
@@ -189,7 +189,7 @@ return $default(_that.id,_that.year,_that.month,_that.category,_that.totalDebit,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int year,  int month,  CategoryModel category, @JsonKey(name: 'total_debit')  double totalDebit, @JsonKey(name: 'total_credit')  double totalCredit, @JsonKey(name: 'planned_amount')  double plannedAmount, @JsonKey(name: 'actual_amount')  double actualAmount,  int count, @JsonKey(name: 'last_update')  DateTime lastUpdate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  int year,  int month,  CategoryModel category,  double totalDebit,  double totalCredit,  double plannedAmount,  double actualAmount,  int count,  DateTime lastUpdate)  $default,) {final _that = this;
 switch (_that) {
 case _CategoryMonthSummaryModel():
 return $default(_that.id,_that.year,_that.month,_that.category,_that.totalDebit,_that.totalCredit,_that.plannedAmount,_that.actualAmount,_that.count,_that.lastUpdate);}
@@ -206,7 +206,7 @@ return $default(_that.id,_that.year,_that.month,_that.category,_that.totalDebit,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int year,  int month,  CategoryModel category, @JsonKey(name: 'total_debit')  double totalDebit, @JsonKey(name: 'total_credit')  double totalCredit, @JsonKey(name: 'planned_amount')  double plannedAmount, @JsonKey(name: 'actual_amount')  double actualAmount,  int count, @JsonKey(name: 'last_update')  DateTime lastUpdate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  int year,  int month,  CategoryModel category,  double totalDebit,  double totalCredit,  double plannedAmount,  double actualAmount,  int count,  DateTime lastUpdate)?  $default,) {final _that = this;
 switch (_that) {
 case _CategoryMonthSummaryModel() when $default != null:
 return $default(_that.id,_that.year,_that.month,_that.category,_that.totalDebit,_that.totalCredit,_that.plannedAmount,_that.actualAmount,_that.count,_that.lastUpdate);case _:
@@ -221,19 +221,19 @@ return $default(_that.id,_that.year,_that.month,_that.category,_that.totalDebit,
 @JsonSerializable()
 
 class _CategoryMonthSummaryModel implements CategoryMonthSummaryModel {
-  const _CategoryMonthSummaryModel({required this.id, required this.year, required this.month, required this.category, @JsonKey(name: 'total_debit') required this.totalDebit, @JsonKey(name: 'total_credit') required this.totalCredit, @JsonKey(name: 'planned_amount') required this.plannedAmount, @JsonKey(name: 'actual_amount') required this.actualAmount, required this.count, @JsonKey(name: 'last_update') required this.lastUpdate});
+  const _CategoryMonthSummaryModel({required this.id, required this.year, required this.month, required this.category, required this.totalDebit, required this.totalCredit, required this.plannedAmount, required this.actualAmount, required this.count, required this.lastUpdate});
   factory _CategoryMonthSummaryModel.fromJson(Map<String, dynamic> json) => _$CategoryMonthSummaryModelFromJson(json);
 
 @override final  String id;
 @override final  int year;
 @override final  int month;
 @override final  CategoryModel category;
-@override@JsonKey(name: 'total_debit') final  double totalDebit;
-@override@JsonKey(name: 'total_credit') final  double totalCredit;
-@override@JsonKey(name: 'planned_amount') final  double plannedAmount;
-@override@JsonKey(name: 'actual_amount') final  double actualAmount;
+@override final  double totalDebit;
+@override final  double totalCredit;
+@override final  double plannedAmount;
+@override final  double actualAmount;
 @override final  int count;
-@override@JsonKey(name: 'last_update') final  DateTime lastUpdate;
+@override final  DateTime lastUpdate;
 
 /// Create a copy of CategoryMonthSummaryModel
 /// with the given fields replaced by the non-null parameter values.
@@ -268,7 +268,7 @@ abstract mixin class _$CategoryMonthSummaryModelCopyWith<$Res> implements $Categ
   factory _$CategoryMonthSummaryModelCopyWith(_CategoryMonthSummaryModel value, $Res Function(_CategoryMonthSummaryModel) _then) = __$CategoryMonthSummaryModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, int year, int month, CategoryModel category,@JsonKey(name: 'total_debit') double totalDebit,@JsonKey(name: 'total_credit') double totalCredit,@JsonKey(name: 'planned_amount') double plannedAmount,@JsonKey(name: 'actual_amount') double actualAmount, int count,@JsonKey(name: 'last_update') DateTime lastUpdate
+ String id, int year, int month, CategoryModel category, double totalDebit, double totalCredit, double plannedAmount, double actualAmount, int count, DateTime lastUpdate
 });
 
 

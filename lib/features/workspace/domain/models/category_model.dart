@@ -24,4 +24,5 @@ sealed class CategoryModel with _$CategoryModel {
   }) = _CategoryModel;
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) => _$CategoryModelFromJson(json);
+
 }

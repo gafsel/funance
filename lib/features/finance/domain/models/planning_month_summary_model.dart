@@ -9,9 +9,9 @@ sealed class PlanningMonthSummaryModel with _$PlanningMonthSummaryModel {
     required String id,
     required int year,
     required int month,
-    @JsonKey(name: 'planned_amount') required double plannedAmount,
-    @JsonKey(name: 'actual_amount') required double actualAmount,
-    @JsonKey(name: 'last_update') required DateTime lastUpdate,
+    required double plannedAmount,
+    required double actualAmount,
+    required DateTime lastUpdate,
   }) = _PlanningMonthSummaryModel;
 
   const PlanningMonthSummaryModel._();

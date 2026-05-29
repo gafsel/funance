@@ -42,7 +42,7 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     String? icon,
     required GoalType type,
-    @JsonKey(name: 'accountId') String? accountId,
+    String? accountId,
     required DateTime startDate,
     Map<String, dynamic>? metadata,
     @Default(false) bool isDeleted,

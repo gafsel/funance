@@ -87,12 +87,12 @@ class TransactionNotifier extends StateNotifier<AsyncValue<void>> {
           ...metadata ?? {},
           'id': existingOrderId ?? '',
           'description': description,
-          'total_amount': amount,
+          'totalAmount': amount,
           'category': finalCategory.toJson(),
-          'installments_count': installments,
+          'installmentsCount': installments,
           'date': date.toIso8601String(),
           'status': status.name,
-          'planning_id': planningId,
+          'planningId': planningId,
           'runtimeType': type.name,
         };
 

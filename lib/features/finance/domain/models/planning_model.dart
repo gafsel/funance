@@ -17,33 +17,36 @@ enum PlanningType {
 sealed class PlanningModel with _$PlanningModel {
   const PlanningModel._();
 
+  @JsonSerializable(explicitToJson: true)
   const factory PlanningModel.unique({
     required String id,
     required CategoryModel category,
     required double amount,
-    @JsonKey(name: 'installments_count') int? installmentsCount,
-    @JsonKey(name: 'startDate') required DateTime startDate,
-    @JsonKey(name: 'endDate') required DateTime endDate,
+    int? installmentsCount,
+    required DateTime startDate,
+    required DateTime endDate,
     String? accountId,
   }) = UniquePlanning;
 
+  @JsonSerializable(explicitToJson: true)
   const factory PlanningModel.recurrent({
     required String id,
     required CategoryModel category,
     required double amount,
-    @JsonKey(name: 'installments_count') int? installmentsCount,
-    @JsonKey(name: 'startDate') required DateTime startDate,
-    @JsonKey(name: 'endDate') required DateTime endDate,
+    int? installmentsCount,
+    required DateTime startDate,
+    required DateTime endDate,
     String? accountId,
   }) = RecurrentPlanning;
 
+  @JsonSerializable(explicitToJson: true)
   const factory PlanningModel.parcelado({
     required String id,
     required CategoryModel category,
     required double amount,
-    @JsonKey(name: 'installments_count') int? installmentsCount,
-    @JsonKey(name: 'startDate') required DateTime startDate,
-    @JsonKey(name: 'endDate') required DateTime endDate,
+    int? installmentsCount,
+    required DateTime startDate,
+    required DateTime endDate,
     String? accountId,
   }) = ParceladoPlanning;
 

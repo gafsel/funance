@@ -13,7 +13,7 @@ UniquePlanning _$UniquePlanningFromJson(Map<String, dynamic> json) =>
         json['category'] as Map<String, dynamic>,
       ),
       amount: (json['amount'] as num).toDouble(),
-      installmentsCount: (json['installments_count'] as num?)?.toInt(),
+      installmentsCount: (json['installmentsCount'] as num?)?.toInt(),
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
       accountId: json['accountId'] as String?,
@@ -23,9 +23,9 @@ UniquePlanning _$UniquePlanningFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$UniquePlanningToJson(UniquePlanning instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'category': instance.category,
+      'category': instance.category.toJson(),
       'amount': instance.amount,
-      'installments_count': instance.installmentsCount,
+      'installmentsCount': instance.installmentsCount,
       'startDate': instance.startDate.toIso8601String(),
       'endDate': instance.endDate.toIso8601String(),
       'accountId': instance.accountId,
@@ -39,7 +39,7 @@ RecurrentPlanning _$RecurrentPlanningFromJson(Map<String, dynamic> json) =>
         json['category'] as Map<String, dynamic>,
       ),
       amount: (json['amount'] as num).toDouble(),
-      installmentsCount: (json['installments_count'] as num?)?.toInt(),
+      installmentsCount: (json['installmentsCount'] as num?)?.toInt(),
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
       accountId: json['accountId'] as String?,
@@ -49,9 +49,9 @@ RecurrentPlanning _$RecurrentPlanningFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$RecurrentPlanningToJson(RecurrentPlanning instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'category': instance.category,
+      'category': instance.category.toJson(),
       'amount': instance.amount,
-      'installments_count': instance.installmentsCount,
+      'installmentsCount': instance.installmentsCount,
       'startDate': instance.startDate.toIso8601String(),
       'endDate': instance.endDate.toIso8601String(),
       'accountId': instance.accountId,
@@ -65,7 +65,7 @@ ParceladoPlanning _$ParceladoPlanningFromJson(Map<String, dynamic> json) =>
         json['category'] as Map<String, dynamic>,
       ),
       amount: (json['amount'] as num).toDouble(),
-      installmentsCount: (json['installments_count'] as num?)?.toInt(),
+      installmentsCount: (json['installmentsCount'] as num?)?.toInt(),
       startDate: DateTime.parse(json['startDate'] as String),
       endDate: DateTime.parse(json['endDate'] as String),
       accountId: json['accountId'] as String?,
@@ -75,9 +75,9 @@ ParceladoPlanning _$ParceladoPlanningFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$ParceladoPlanningToJson(ParceladoPlanning instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'category': instance.category,
+      'category': instance.category.toJson(),
       'amount': instance.amount,
-      'installments_count': instance.installmentsCount,
+      'installmentsCount': instance.installmentsCount,
       'startDate': instance.startDate.toIso8601String(),
       'endDate': instance.endDate.toIso8601String(),
       'accountId': instance.accountId,
