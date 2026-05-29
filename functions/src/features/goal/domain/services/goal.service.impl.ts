@@ -1,5 +1,5 @@
 import { IGoalService } from "./goal.service";
-import { InstallmentModel, InstallmentStatus, OrderType } from "../../../finance/domain/models/finance.models";
+import { InstallmentModel, InstallmentStatus } from "../../../finance/domain/models/finance.models";
 import { IGoalRepository } from "../repositories/goal.repository";
 import { GoalType } from "../models/goal.model";
 

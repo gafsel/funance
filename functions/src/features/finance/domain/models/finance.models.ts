@@ -51,6 +51,9 @@ export interface InstallmentModel {
   dueDate: Date;
   paidAmount?: number;
   paidDate?: Date;
+  installmentNumber?: number;
+  installmentCount?: number;
+  installmentType: InstallmentType;
   status: InstallmentStatus;
   type: OrderType;
   accounts?: Record<string, "debt" | "credit">;
@@ -60,31 +63,20 @@ export interface InstallmentModel {
 
 export interface CategoryPlanningModel {
   id: string;
-  categoryId: string;
+  category: CategoryModel;
   amount: number;
   startMonth: string; // YYYY-MM
   endMonth: string; // YYYY-MM
 }
 
-export interface PlanningMonthSummaryModel {
-  id: string; // "YYYY-MM"
+export interface PeriodSummaryModel {
+  id: string; // YYYY-MM-categoryId ou YYYY-categoryId
   year: number;
-  month: number;
-  plannedAmount: number;
-  actualAmount: number;
-  lastUpdate: Date;
-}
-
-export interface CategoryMonthSummaryModel {
-  id: string; // "YYYY-MM_categoryId"
-  year: number;
-  month: number;
+  month?: number;
   category: CategoryModel;
-  totalDebit: number;
-  totalCredit: number;
-  plannedAmount: number;
-  actualAmount: number;
-  count: number;
+  generalPlannedAmount: number; // Da CategoryPlanning
+  specificPlannedAmount: number; // Das Installments projetadas
+  actualAmount: number; // Do Realizado
   lastUpdate: Date;
 }
 

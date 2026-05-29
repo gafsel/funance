@@ -1,12 +1,17 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { defineString } from "firebase-functions/params";
 import * as admin from "firebase-admin";
-import { AIConfig, DEFAULT_CONFIG } from "../models/ai.models";
+import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
+import {OrderModel} from "../../features/finance/domain/models/finance.models";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
 
 export interface IAIRepository {
-    analyzeAccountsAndSuggestGoals(workspaceType: string, transactions: any[]): Promise<any[]>;
+    analyzePlanningAndSuggestGoals(
+        workspaceType: string, 
+        categories: string[], 
+        orders: OrderModel[],
+    ): Promise<any>;
     analyzeAccountDocument(fileBuffer: Buffer, mimeType: string, fileName: string, existingCategories: string[]): Promise<any>;
 }
 
@@ -40,24 +45,29 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     return DEFAULT_CONFIG;
   }
 
-  async analyzeAccountsAndSuggestGoals(workspaceType: string, transactions: any[]): Promise<any[]> {
+  async analyzePlanningAndSuggestGoals(
+    workspaceType: string, 
+    categories: string[], 
+    orders: OrderModel[],
+  ): Promise<any> {
     const config = await this.getConfig();
     const model = this.genAI.getGenerativeModel({ model: config.models.goals });
 
     const prompt = config.prompts.goals
       .replace("{{workspaceType}}", workspaceType)
-      .replace("{{transactions}}", JSON.stringify(transactions));
+      .replace("{{categories}}", categories.join(" | "))
+      .replace("{{orders}}", JSON.stringify(orders));
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       return JSON.parse(jsonMatch[0]);
     }
 
-    return [];
+    return { goals: [], plannings: [] };
   }
 
   async analyzeAccountDocument(fileBuffer: Buffer, mimeType: string, fileName: string, existingCategories: string[]): Promise<any> {
@@ -66,7 +76,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
     const prompt = config.prompts.document
       .replace("{{fileName}}", fileName)
-      .replace("{{existingCategories}}", existingCategories.join(", "));
+      .replace("{{existingCategories}}", existingCategories.join(" | "));
 
     const result = await model.generateContent([
       prompt,
@@ -95,7 +105,6 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         metadata: {},
       },
       orders: [],
-      plannings: [],
     };
   }
 }

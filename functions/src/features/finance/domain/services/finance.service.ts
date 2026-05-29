@@ -1,5 +1,4 @@
-import { OrderModel, InstallmentModel, AccountModel, OrderStatus, OrderType, InstallmentStatus, InstallmentType } from "../models/finance.models";
-import { CategoryType } from "../../../workspace/domain/models/category.model";
+import { OrderModel, InstallmentModel, AccountModel, OrderStatus, InstallmentStatus, InstallmentType } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 
 export class FinanceService {
@@ -33,15 +32,13 @@ export class FinanceService {
     const [startYear, startMonth] = order.startMonth.split("-").map(Number);
 
     for (let i = 0; i < installmentsToGenerate; i++) {
-      const dueDate = new Date(startYear, startMonth - 1 + i, order.dueDay);
-      // Ajustar se o dia não existe no mês (ex: 31 de fevereiro)
-      if (dueDate.getDate() !== order.dueDay) {
-          dueDate.setDate(0); // Último dia do mês anterior ao pretendido, mas como avançamos meses, precisa de cuidado
-          // Uma forma mais segura de pegar o último dia do mês:
-          // const lastDayOfMonth = new Date(startYear, startMonth + i, 0).getDate();
-          // const day = Math.min(order.dueDay, lastDayOfMonth);
-          // const dueDate = new Date(startYear, startMonth - 1 + i, day);
-      }
+      const date = new Date(startYear, startMonth - 1 + i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth(); // 0-indexed
+      
+      const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+      const day = Math.min(order.dueDay, lastDayOfMonth);
+      const dueDate = new Date(year, month, day);
 
       expectedInstallments.push({
         orderId: orderId,
@@ -49,6 +46,9 @@ export class FinanceService {
         dueDate: dueDate,
         status: InstallmentStatus.pending,
         type: order.type,
+        installmentType: order.installmentType,
+        installmentNumber: order.installmentType === InstallmentType.installment ? i + 1 : undefined,
+        installmentCount: order.installmentType === InstallmentType.installment ? order.installmentCount : undefined,
         accounts: order.accounts,
         category: order.category,
       });
@@ -78,7 +78,10 @@ export class FinanceService {
           existing.dueDate.getTime() !== expected.dueDate.getTime() ||
           JSON.stringify(existing.accounts) !== JSON.stringify(expected.accounts) ||
           existing.category?.id !== expected.category?.id ||
-          existing.type !== expected.type;
+          existing.type !== expected.type ||
+          existing.installmentType !== expected.installmentType ||
+          existing.installmentNumber !== expected.installmentNumber ||
+          existing.installmentCount !== expected.installmentCount;
 
         if (hasChanged) {
           await this.financeRepository.updateInstallment(workspaceId, existing.id, expected);

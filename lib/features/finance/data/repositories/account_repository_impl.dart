@@ -150,7 +150,10 @@ class AccountRepositoryImpl implements IAccountRepository {
 
       final callable = _functions.httpsCallable('analyzeAccountDocument');
 
-      final result = await callable.call({'storagePath': storagePath});
+      final result = await callable.call({
+        'workspaceId': workspaceId,
+        'storagePath': storagePath,
+      });
 
       return AccountDocumentAnalysisResult.fromJson(
         (result.data as Map).map((k, v) => MapEntry(k.toString(), v)),

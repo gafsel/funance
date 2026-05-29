@@ -3,7 +3,6 @@ import {
   OrderModel,
   InstallmentModel,
   CategoryPlanningModel,
-  CategoryMonthSummaryModel,
   AccountModel,
   AccountBalanceModel,
 } from "../models/finance.models";
@@ -15,6 +14,7 @@ export interface IFinanceRepository {
   updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void>;
   deleteOrder(workspaceId: string, orderId: string): Promise<void>;
   deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void>;
+  getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]>;
 
   // Installments
   createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id">[]): Promise<void>;
@@ -29,17 +29,21 @@ export interface IFinanceRepository {
   createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string>;
   updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void>;
   deleteCategoryPlanning(workspaceId: string, id: string): Promise<void>;
+  getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
 
-  // Category Month Summary
-  updateCategoryMonthSummary(
+  // Period Summaries
+  updatePeriodSummary(
     workspaceId: string,
     year: number,
-    month: number,
+    month: number | undefined,
     category: CategoryModel,
-    data: { debitDelta: number, creditDelta: number, countDelta: number }
+    data: {
+      generalPlannedDelta?: number,
+      specificPlannedDelta?: number,
+      actualDelta?: number
+    }
   ): Promise<void>;
   updateSummaryCategoryInfo(workspaceId: string, category: CategoryModel): Promise<void>;
-  getCategoryMonthSummaries(workspaceId: string, year: number, month: number): Promise<CategoryMonthSummaryModel[]>;
 
   // Accounts
   getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null>;
@@ -56,23 +60,6 @@ export interface IFinanceRepository {
     accountId: string,
     date: Date
   ): Promise<AccountBalanceModel | null>;
-
-  // Planning
-  updateCategoryMonthSummaryPlanning(
-    workspaceId: string,
-    year: number,
-    month: number,
-    category: CategoryModel,
-    plannedDelta: number
-  ): Promise<void>;
-
-  updatePlanningMonthSummary(
-    workspaceId: string,
-    planningId: string,
-    year: number,
-    month: number,
-    data: { plannedDelta: number, actualDelta: number }
-  ): Promise<void>;
 
   // Generic Query
   getAllWorkspaces(): Promise<string[]>;

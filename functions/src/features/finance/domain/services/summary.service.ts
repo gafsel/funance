@@ -40,20 +40,22 @@ export class SummaryService {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
 
-      // Buscar info da categoria para o repositório (que precisa do CategoryModel)
-      // Como o CategoryPlanningModel só tem categoryId, talvez precisemos de um método no repo 
-      // que aceite apenas o ID ou buscar a categoria antes.
-      // Para manter o padrão, vou assumir que temos um helper ou que o repo pode ser ajustado.
-      // O repositório atual pede CategoryModel para ícone/cor no resumo.
-      
-      // Ajuste: Vou usar um objeto parcial ou buscar a categoria.
-      // Para o refactoring crítico, vamos assumir que o sistema de sumários já lida com a categoria.
-      await this.financeRepository.updateCategoryMonthSummaryPlanning(
+      // Meta Mensal (Month)
+      await this.financeRepository.updatePeriodSummary(
         workspaceId,
         year,
         month,
-        { id: planning.categoryId } as any, 
-        planning.amount * multiplier
+        planning.category,
+        { generalPlannedDelta: planning.amount * multiplier }
+      );
+
+      // Meta Anual (Year)
+      await this.financeRepository.updatePeriodSummary(
+        workspaceId,
+        year,
+        undefined,
+        planning.category,
+        { generalPlannedDelta: planning.amount * multiplier }
       );
     }
   }
@@ -66,18 +68,18 @@ export class SummaryService {
     if (!before && !after) return;
 
     // 1. Processar Valor Planejado (Projeção) no dueDate
-    if (before && before.status !== "removed") {
+    if (before && before.status !== InstallmentStatus.removed) {
       await this.updateSummaryProjetado(workspaceId, before, -1);
     }
-    if (after && after.status !== "removed") {
+    if (after && after.status !== InstallmentStatus.removed) {
       await this.updateSummaryProjetado(workspaceId, after, 1);
     }
 
     // 2. Processar Valor Realizado (Fluxo de Caixa) no paidDate
-    if (before && before.status === InstallmentStatus.paid && before.paidDate && before.paidAmount) {
+    if (before && before.status === InstallmentStatus.paid && before.paidDate && (before.paidAmount ?? before.amount)) {
       await this.updateSummaryRealizado(workspaceId, before, -1);
     }
-    if (after && after.status === InstallmentStatus.paid && after.paidDate && after.paidAmount) {
+    if (after && after.status === InstallmentStatus.paid && after.paidDate && (after.paidAmount ?? after.amount)) {
       await this.updateSummaryRealizado(workspaceId, after, 1);
     }
   }
@@ -85,42 +87,36 @@ export class SummaryService {
   private async updateSummaryProjetado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
     if (inst.type === OrderType.transfer || !inst.category) return;
 
-    await this.financeRepository.updateCategoryMonthSummary(
-      workspaceId,
-      inst.dueDate.getFullYear(),
-      inst.dueDate.getMonth() + 1,
-      inst.category,
-      {
-        debitDelta: 0, // No novo modelo, debit/credit delta pode ser para o REALIZADO?
-        creditDelta: 0, 
-        countDelta: 0,
-        // O repositório precisa de suporte para separar planejado (de installments) vs planejado (de category_planning)
-        // vs realizado.
-      } as any // TODO: Ajustar repositório conforme 2.4 da especificação
-    );
-    
-    // Na verdade, a especificação 2.4 diz:
-    // 1. Valor Planejado (Projeção): amount no dueDate
-    // 2. Valor Realizado (Fluxo de Caixa): paidAmount no paidDate
-    
-    // Vou usar o updateCategoryMonthSummaryPlanning para o planejado vindo de installments? 
-    // Não, category_planning é meta.
-    // O sumário precisa de novos campos: totalProjetado e totalRealizado.
+    const year = inst.dueDate.getFullYear();
+    const month = inst.dueDate.getMonth() + 1;
+    const amount = inst.amount * multiplier;
+
+    // Month
+    await this.financeRepository.updatePeriodSummary(workspaceId, year, month, inst.category, {
+      specificPlannedDelta: amount,
+    });
+
+    // Year
+    await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, inst.category, {
+      specificPlannedDelta: amount,
+    });
   }
 
   private async updateSummaryRealizado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
-    if (inst.type === OrderType.transfer || !inst.category || !inst.paidDate || !inst.paidAmount) return;
+    if (inst.type === OrderType.transfer || !inst.category || !inst.paidDate) return;
 
-    await this.financeRepository.updateCategoryMonthSummary(
-      workspaceId,
-      inst.paidDate.getFullYear(),
-      inst.paidDate.getMonth() + 1,
-      inst.category,
-      {
-        debitDelta: inst.type === OrderType.expense ? inst.paidAmount * multiplier : 0,
-        creditDelta: inst.type === OrderType.income ? inst.paidAmount * multiplier : 0,
-        countDelta: multiplier,
-      }
-    );
+    const year = inst.paidDate.getFullYear();
+    const month = inst.paidDate.getMonth() + 1;
+    const amount = (inst.paidAmount ?? inst.amount) * multiplier;
+
+    // Month
+    await this.financeRepository.updatePeriodSummary(workspaceId, year, month, inst.category, {
+      actualDelta: amount,
+    });
+
+    // Year
+    await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, inst.category, {
+      actualDelta: amount,
+    });
   }
 }

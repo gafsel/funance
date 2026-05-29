@@ -21,20 +21,21 @@ O projeto segue princípios de **Clean Architecture** com **DDD (Domain-Driven D
 - **Processamento Assíncrono:** Triggers de Firestore para automação de saldos, metas e sumários.
 - **Scheduler:** Funções programadas para processamento de recorrências mensais.
 - **Authentication:** Google Sign-In e E-mail/Senha integrados.
-- **Security Rules:** Regras granulares por workspace e nível de acesso.
+- **Cloud Storage:** Armazenamento de documentos e avatares com regras de acesso por workspace.
+- **Security Rules:** Regras granulares por workspace e nível de acesso para Firestore e Storage.
 
 ---
 
-## 📊 Modelo de Dados: "Order-Ledger-Planning" (v5.0)
+## 📊 Modelo de Dados: CategoryPlanning-Order-Installment (v6.0)
 
 A integridade dos dados é garantida pela separação entre **Planejamento**, **Intenção** e **Realidade**:
 
-- **Planning (O Futuro):** Projeções mensais únicas, parceladas ou recorrentes por categoria.
-- **Orders (As "Virtuais"):** Compromissos assumidos, contratos ou compras parceladas em andamento.
-- **Ledger Entries (As "Físicas"):** Movimentações contábeis reais (débitos/créditos) efetivadas no caixa.
-- **Accounts & Balances:** Controle de contas bancárias e cartões com saldos diários automatizados e suporte a saldo inicial.
-- **Summaries:** Agregadores mensais por categoria e planejamento que permitem dashboards em tempo real.
-- **Goals (Metas):** Sistema de metas gamificadas vinculadas a contas e categorias com cálculo de progresso dinâmico.
+- **Category Planning (O Planejado):** Metas mensais por categoria (`category_plannings`).
+- **Orders (A Intenção):** A matriz de um lançamento financeiro, definindo recorrência e regras (`orders`).
+- **Installments (A Realidade):** Parcelas individuais vinculadas a uma Order, com ciclo de vida (pending, paid, etc) e impacto real no saldo (`installments`).
+- **Accounts & Balances:** Controle de contas bancárias e cartões com saldos diários automatizados.
+- **Period Summaries:** Consolidação de dados por período (Ano/Mês) e Categoria, unificando metas e realizado (`period_summaries`).
+- **Goals (Metas):** Sistema de metas gamificadas vinculadas a contas e categorias.
 
 Este modelo permite gerar um **Livro Diário** profissional e facilita a conciliação bancária futura.
 

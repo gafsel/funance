@@ -19,9 +19,9 @@ service cloud.firestore {
         allow read, write: if isMember(workspaceId);
       }
 
-      // Ledger Entries: Membros podem apenas ler
+      // Installments: Membros podem ler e escrever
       match /installments/{installmentId} {
-        allow read: if isMember(workspaceId);
+        allow read, write: if isMember(workspaceId);
       }
 
       // Goals: Membros podem ler e escrever
@@ -39,7 +39,7 @@ service cloud.firestore {
         allow read, write: if isMember(workspaceId);
       }
 
-      // Category Month Summaries: Membros podem apenas ler
+      // Period Summaries: Membros podem apenas ler
       match /period_summaries/{summaryId} {
         allow read: if isMember(workspaceId);
       }
@@ -48,7 +48,7 @@ service cloud.firestore {
       match /accounts/{accountId} {
         allow read, write: if isMember(workspaceId);
 
-        // Account Balances: Membros podem apenas ler
+        // Account Balances: Membros podem ler e escrever
         match /balance/{balanceId} {
           allow read: if isMember(workspaceId);
         }

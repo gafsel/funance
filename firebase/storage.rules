@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Auxiliar para verificar se o usuário é membro do workspace no Firestore
+    function isMember(workspaceId) {
+      return request.auth != null && 
+        firestore.exists(/databases/(default)/documents/workspaces/$(workspaceId)) &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/workspaces/$(workspaceId)).data.members;
+    }
+
+    // Regras para arquivos de onboarding/extratos
+    match /workspaces/{workspaceId}/onboarding/{allPaths=**} {
+      allow read, write: if isMember(workspaceId);
+    }
+
+    // Regras para avatares de usuários
+    match /users/{userId}/avatar/{allPaths=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Padrão: nega tudo
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

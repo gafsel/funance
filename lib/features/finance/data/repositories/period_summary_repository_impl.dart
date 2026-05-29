@@ -7,7 +7,7 @@ class PeriodSummaryRepositoryImpl implements IPeriodSummaryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   CollectionReference collection(String workspaceId) {
-    return _firestore.collection("workspace/$workspaceId/period_summary");
+    return _firestore.collection("workspaces/$workspaceId/period_summaries");
   }
 
   @override

@@ -122,7 +122,12 @@ class Container {
 
   static get onboardingService(): IOnboardingService {
     if (!this._onboardingService) {
-      this._onboardingService = new OnboardingServiceImpl(this.aiRepository);
+      this._onboardingService = new OnboardingServiceImpl(
+        this.aiRepository,
+        this.categoryRepository,
+        this.financeRepository,
+        this.workspaceRepository
+      );
     }
     return this._onboardingService;
   }
