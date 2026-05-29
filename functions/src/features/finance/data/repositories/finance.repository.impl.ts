@@ -180,8 +180,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
       }
       else {
         const currentData = doc.data()!;
-        const newDebit = Math.max(0, (currentData.totalDebit || currentData.total_debit || 0) + data.debitDelta);
-        const newCredit = Math.max(0, (currentData.totalCredit || currentData.total_credit || 0) + data.creditDelta);
+        const newDebit = Math.max(0, (currentData.totalDebit || 0) + data.debitDelta);
+        const newCredit = Math.max(0, (currentData.totalCredit || 0) + data.creditDelta);
         transaction.update(docRef, {
           category: category,
           totalDebit: newDebit,
@@ -287,8 +287,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
       else {
         const currentData = doc.data() as any;
         transaction.update(docRef, {
-          plannedAmount: Math.max(0, (currentData.plannedAmount || currentData.planned_amount || 0) + data.plannedDelta),
-          actualAmount: Math.max(0, (currentData.actualAmount || currentData.actual_amount || 0) + data.actualDelta),
+          plannedAmount: Math.max(0, (currentData.plannedAmount || 0) + data.plannedDelta),
+          actualAmount: Math.max(0, (currentData.actualAmount || 0) + data.actualDelta),
           lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
         });
       }

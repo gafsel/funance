@@ -13,21 +13,21 @@ export const onLedgerEntryWritten = onDocumentWritten(
     const before = beforeData ? {
       ...beforeData,
       id: event.data?.before.id,
-      dueDate: beforeData.due_date ? beforeData.due_date.toDate() : (beforeData.dueDate?.toDate ? beforeData.dueDate.toDate() : new Date(beforeData.dueDate)),
-      accountId: beforeData.account_id || beforeData.accountId,
-      orderId: beforeData.order_id || beforeData.orderId,
-      orderType: beforeData.order_type || beforeData.orderType,
-      planningId: beforeData.planning_id || beforeData.planningId,
+      dueDate: (beforeData.dueDate?.toDate ? beforeData.dueDate.toDate() : new Date(beforeData.dueDate)),
+      accountId: beforeData.accountId,
+      orderId: beforeData.orderId,
+      orderType: beforeData.orderType,
+      planningId: beforeData.planningId,
     } as LedgerEntryModel : null;
 
     const after = afterData ? {
       ...afterData,
       id: event.data?.after.id,
-      dueDate: afterData.due_date ? afterData.due_date.toDate() : (afterData.dueDate?.toDate ? afterData.dueDate.toDate() : new Date(afterData.dueDate)),
-      accountId: afterData.account_id || afterData.accountId,
-      orderId: afterData.order_id || afterData.orderId,
-      orderType: afterData.order_type || afterData.orderType,
-      planningId: afterData.planning_id || afterData.planningId,
+      dueDate: afterData.dueDate?.toDate ? afterData.dueDate.toDate() : new Date(afterData.dueDate),
+      accountId: afterData.accountId,
+      orderId: afterData.orderId,
+      orderType: afterData.orderType,
+      planningId: afterData.planningId,
     } as LedgerEntryModel : null;
 
     // Atualizar sumários mensais por categoria

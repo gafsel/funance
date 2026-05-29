@@ -13,17 +13,17 @@ export const onPlanningWritten = onDocumentWritten(
     const before = beforeData ? {
       ...beforeData,
       id: event.data?.before.id,
-      startDate: (beforeData.start_date || beforeData.startDate).toDate(),
-      endDate: (beforeData.end_date || beforeData.endDate).toDate(),
-      installmentsCount: beforeData.installments_count || beforeData.installmentsCount,
+      startDate: (beforeData.startDate).toDate(),
+      endDate: (beforeData.endDate).toDate(),
+      installmentsCount: beforeData.installmentsCount,
     } as PlanningModel : null;
 
     const after = afterData ? {
       ...afterData,
       id: event.data?.after.id,
-      startDate: (afterData.start_date || afterData.startDate).toDate(),
-      endDate: (afterData.end_date || afterData.endDate).toDate(),
-      installmentsCount: afterData.installments_count || afterData.installmentsCount,
+      startDate: afterData.startDate.toDate(),
+      endDate: afterData.endDate.toDate(),
+      installmentsCount: afterData.installmentsCount,
     } as PlanningModel : null;
 
     // Atualizar sumários mensais por categoria (Planejado)

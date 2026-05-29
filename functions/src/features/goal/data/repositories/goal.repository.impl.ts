@@ -54,7 +54,7 @@ export class GoalRepositoryImpl implements IGoalRepository {
     return {
       ...data,
       id: doc.id,
-      startDate: data.startDate?.toDate() || data.start_date?.toDate() || new Date(),
+      startDate: data.startDate?.toDate() || new Date(),
       deadline: data.deadline.toDate(),
     } as GoalModel;
   }
