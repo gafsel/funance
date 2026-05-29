@@ -4,21 +4,25 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/goal/data/repositories/goal_repository_impl.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/domain/repositories/goal_repository.dart';
-import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 final goalRepositoryProvider = Provider<IGoalRepository>((ref) {
   return GoalRepositoryImpl();
 });
 
-final goalsProvider = StateNotifierProvider<GoalNotifier, AsyncValue<List<GoalModel>>>((ref) {
-  final repository = ref.watch(goalRepositoryProvider);
-  final workspaceState = ref.watch(workspaceNotifierProvider);
-  final workspace = workspaceState.currentWorkspace;
-  return GoalNotifier(repository, workspace?.id);
-});
+final goalsProvider =
+    StateNotifierProvider<GoalNotifier, AsyncValue<List<GoalModel>>>((ref) {
+      final repository = ref.watch(goalRepositoryProvider);
+      final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
+      final workspace = workspaceState.currentWorkspace;
+      return GoalNotifier(repository, workspace?.id);
+    });
 
-final goalProgressProvider = Provider.family<GoalProgress, GoalModel>((ref, goal) {
+final goalProgressProvider = Provider.family<GoalProgress, GoalModel>((
+  ref,
+  goal,
+) {
   return goal.calculateProgress();
 });
 
@@ -53,7 +57,8 @@ class GoalNotifier extends StateNotifier<AsyncValue<List<GoalModel>>> {
   final IGoalRepository _repository;
   final String? _workspaceId;
 
-  GoalNotifier(this._repository, this._workspaceId) : super(const AsyncValue.loading()) {
+  GoalNotifier(this._repository, this._workspaceId)
+    : super(const AsyncValue.loading()) {
     loadGoals();
   }
 

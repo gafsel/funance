@@ -1465,6 +1465,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Limpar'**
   String get clear;
+
+  /// No description provided for @validationEmailMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'E-mail inválido'**
+  String get validationEmailMessage;
+
+  /// No description provided for @validationLengthMaxMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deve possuir no mínimo {min} caracteres.'**
+  String validationLengthMaxMessage(Object min);
+
+  /// No description provided for @validationLenghtMinMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deve possuir no máximo {max} caracteres.'**
+  String validationLenghtMinMessage(Object max);
+
+  /// No description provided for @validationNotEmptyMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Campo obrigatório.'**
+  String get validationNotEmptyMessage;
+
+  /// No description provided for @validationNotNullMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Campo obrigatório.'**
+  String get validationNotNullMessage;
+
+  /// No description provided for @noRecordsFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum registro encontrado.'**
+  String get noRecordsFound;
+
+  /// No description provided for @formatSimpleDate.
+  ///
+  /// In pt, this message translates to:
+  /// **'dd/MM/yyyy'**
+  String get formatSimpleDate;
 }
 
 class _AppLocalizationsDelegate

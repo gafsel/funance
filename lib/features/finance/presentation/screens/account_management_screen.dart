@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/enum_messages.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import '../../domain/models/account_model.dart';
-import '../providers/account_providers.dart';
 import '../widgets/account_form_dialog.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
+
   const AccountManagementScreen({super.key, this.initialType});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final accountsAsync = ref.watch(accountsProvider);
+    final accountsAsync = ref.watch(AccountViewProviders.all);
 
-    // Se o initialType estiver presente e o diálogo ainda não tiver sido mostrado, 
+    // Se o initialType estiver presente e o diálogo ainda não tiver sido mostrado,
     // podemos disparar a abertura do diálogo após o primeiro frame.
     if (initialType != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -34,7 +37,10 @@ class AccountManagementScreen extends ConsumerWidget {
       ),
       body: accountsAsync.when(
         data: (rawAccounts) {
-          final accounts = [...rawAccounts]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          final accounts = [...rawAccounts]
+            ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            );
           if (accounts.isEmpty) {
             return Center(child: Text(l10n.accountManagementEmpty));
           }
@@ -44,8 +50,8 @@ class AccountManagementScreen extends ConsumerWidget {
               final crossAxisCount = constraints.maxWidth > 900
                   ? 3
                   : constraints.maxWidth > 600
-                      ? 2
-                      : 1;
+                  ? 2
+                  : 1;
 
               if (crossAxisCount == 1) {
                 return ListView.separated(
@@ -65,8 +71,12 @@ class AccountManagementScreen extends ConsumerWidget {
                   mainAxisExtent: 80,
                 ),
                 itemCount: accounts.length,
-                itemBuilder: (context, index) =>
-                    _buildAccountTile(context, ref, accounts[index], isGrid: true),
+                itemBuilder: (context, index) => _buildAccountTile(
+                  context,
+                  ref,
+                  accounts[index],
+                  isGrid: true,
+                ),
               );
             },
           );
@@ -77,24 +87,27 @@ class AccountManagementScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAccountTile(BuildContext context, WidgetRef ref, AccountModel account, {bool isGrid = false}) {
+  Widget _buildAccountTile(
+    BuildContext context,
+    WidgetRef ref,
+    AccountModel account, {
+    bool isGrid = false,
+  }) {
+    final l10n = context.l10n;
+
     final tile = ListTile(
-      contentPadding: isGrid ? const EdgeInsets.symmetric(horizontal: 12) : null,
+      contentPadding: isGrid
+          ? const EdgeInsets.symmetric(horizontal: 12)
+          : null,
       leading: CircleAvatar(
-        backgroundColor: Color(int.parse(account.color.replaceAll('#', '0xFF'))),
-        child: Icon(
-          _getIconData(account.icon),
-          color: Colors.white,
-          size: 20,
+        backgroundColor: Color(
+          int.parse(account.color.replaceAll('#', '0xFF')),
         ),
+        child: Icon(_getIconData(account.icon), color: Colors.white, size: 20),
       ),
-      title: Text(
-        account.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(
-        _getAccountTypeName(context, account.type),
+        l10n.fromAccountType(account.type),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -127,29 +140,25 @@ class AccountManagementScreen extends ConsumerWidget {
     return tile;
   }
 
-  String _getAccountTypeName(BuildContext context, AccountType type) {
-    final l10n = AppLocalizations.of(context)!;
-    switch (type) {
-      case AccountType.checking:
-        return l10n.accountTypeChecking;
-      case AccountType.investment:
-        return l10n.accountTypeInvestment;
-      case AccountType.creditCard:
-        return l10n.accountTypeCreditCard;
-      case AccountType.debt:
-        return l10n.accountTypeDebt;
-    }
-  }
-
-  void _showAccountDialog(BuildContext context, WidgetRef ref, [AccountModel? account, AccountType? initialType]) {
+  void _showAccountDialog(
+    BuildContext context,
+    WidgetRef ref, [
+    AccountModel? account,
+    AccountType? initialType,
+  ]) {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AccountFormDialog(account: account, initialType: initialType),
+      builder: (context) =>
+          AccountFormDialog(account: account, initialType: initialType),
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, AccountModel account) {
+  void _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AccountModel account,
+  ) {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
@@ -163,7 +172,7 @@ class AccountManagementScreen extends ConsumerWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(accountNotifierProvider.notifier).deleteAccount(account.id);
+              ref.read(AccountDomainProviders.service).delete(account.id);
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

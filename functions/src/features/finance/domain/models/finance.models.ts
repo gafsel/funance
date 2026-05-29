@@ -2,7 +2,6 @@ import { CategoryModel } from "../../../workspace/domain/models/category.model";
 
 export enum OrderStatus {
   active = "active",
-  paid = "paid",
   cancelled = "cancelled",
 }
 
@@ -12,58 +11,59 @@ export enum OrderType {
   transfer = "transfer",
 }
 
+export enum InstallmentType {
+  single = "single",
+  installment = "installment",
+  recurring = "recurring",
+}
+
 export interface OrderModel {
   id: string;
-  description: string;
-  totalAmount: number;
-  category: CategoryModel;
-  installmentsCount: number;
-  date: Date;
+  amount: number;
+  dueDay: number;
+  startMonth: string; // YYYY-MM
+  endMonth?: string; // YYYY-MM
+  installmentCount?: number;
+  installmentType: InstallmentType;
   status: OrderStatus;
   type: OrderType;
-  planningId?: string;
-  accountIds: string[];
-  metadata?: Record<string, any>;
+  accounts?: Record<string, "debt" | "credit">;
+  category?: CategoryModel;
 }
 
-export enum LedgerEntryStatus {
-  forecast = "forecast",
-  cleared = "cleared",
+export enum InstallmentStatus {
+  pending = "pending",
+  paid = "paid",
+  settled = "settled",
+  removed = "removed",
 }
 
-export enum LedgerEntryType {
-  debit = "debit",
-  credit = "credit",
-  initial_balance = "initial_balance",
+export enum ReplicationCascade {
+  none = "none",
+  all = "all",
+  future = "future",
 }
 
-export interface LedgerEntryModel {
+export interface InstallmentModel {
   id: string;
   orderId: string;
-  orderType?: OrderType;
-  category: CategoryModel;
   amount: number;
   dueDate: Date;
-  status: LedgerEntryStatus;
-  type: LedgerEntryType;
-  accountId: string;
-  planningId?: string;
+  paidAmount?: number;
+  paidDate?: Date;
+  status: InstallmentStatus;
+  type: OrderType;
+  accounts?: Record<string, "debt" | "credit">;
+  category?: CategoryModel;
+  replicationCascade?: ReplicationCascade;
 }
 
-export enum PlanningType {
-  unique = "unique",
-  recurrent = "recurrent",
-  parcelado = "parcelado",
-}
-
-export interface PlanningModel {
+export interface CategoryPlanningModel {
   id: string;
-  category: CategoryModel;
+  categoryId: string;
   amount: number;
-  type: PlanningType;
-  installmentsCount?: number;
-  startDate: Date;
-  endDate: Date;
+  startMonth: string; // YYYY-MM
+  endMonth: string; // YYYY-MM
 }
 
 export interface PlanningMonthSummaryModel {

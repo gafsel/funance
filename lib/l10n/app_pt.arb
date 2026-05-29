@@ -300,5 +300,11 @@
   "transactionTransferDesc": "Movimente saldo entre suas contas bancárias ou cartões.",
   "transactionOrderTypeLabel": "Tipo do Lançamento",
   "clear": "Limpar",
-  "addWorkspaceButton": "Adicionar Workspace"
+  "validationEmailMessage": "E-mail inválido",
+  "validationLengthMaxMessage": "Deve possuir no mínimo {min} caracteres.",
+  "validationLenghtMinMessage": "Deve possuir no máximo {max} caracteres.",
+  "validationNotEmptyMessage": "Campo obrigatório.",
+  "validationNotNullMessage": "Campo obrigatório.",
+  "noRecordsFound": "Nenhum registro encontrado.",
+  "formatSimpleDate": "dd/MM/yyyy"
 }

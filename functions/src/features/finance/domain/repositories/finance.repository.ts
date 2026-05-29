@@ -1,7 +1,8 @@
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
   OrderModel,
-  LedgerEntryModel,
+  InstallmentModel,
+  CategoryPlanningModel,
   CategoryMonthSummaryModel,
   AccountModel,
   AccountBalanceModel,
@@ -15,13 +16,19 @@ export interface IFinanceRepository {
   deleteOrder(workspaceId: string, orderId: string): Promise<void>;
   deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void>;
 
-  // Ledger Entries
-  createLedgerEntries(workspaceId: string, entries: Omit<LedgerEntryModel, "id">[]): Promise<void>;
-  updateLedgerEntry(workspaceId: string, entryId: string, entry: Partial<LedgerEntryModel>): Promise<void>;
-  deleteLedgerEntry(workspaceId: string, entryId: string): Promise<void>;
-  getLedgerEntriesByOrderId(workspaceId: string, orderId: string): Promise<LedgerEntryModel[]>;
-  deleteLedgerEntriesByOrderId(workspaceId: string, orderId: string): Promise<void>;
-  getLedgerEntries(workspaceId: string, filters: { accountId?: string }): Promise<LedgerEntryModel[]>;
+  // Installments
+  createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id">[]): Promise<void>;
+  updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;
+  deleteInstallment(workspaceId: string, installmentId: string): Promise<void>;
+  getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;
+  deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void>;
+  getInstallments(workspaceId: string, filters: { accountId?: string }): Promise<InstallmentModel[]>;
+
+  // Category Planning
+  getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null>;
+  createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string>;
+  updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void>;
+  deleteCategoryPlanning(workspaceId: string, id: string): Promise<void>;
 
   // Category Month Summary
   updateCategoryMonthSummary(

@@ -300,5 +300,12 @@
   "transactionTransferDesc": "Move money between your bank accounts or credit cards.",
   "transactionOrderTypeLabel": "Transaction Type",
   "clear": "Clear",
-  "addWorkspaceButton": "Add Workspace"
+
+  "validationEmailMessage": "Invalid E-mail",
+  "validationLengthMaxMessage": "At least {min} characters.",
+  "validationLenghtMinMessage": "No more than {max} characters.",
+  "validationNotEmptyMessage": "Required field.",
+  "validationNotNullMessage": "Required field.",
+  "noRecordsFound": "No records found.",
+  "formatSimpleDate": "MM/dd/yyyy"
 }

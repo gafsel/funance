@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
-import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
+
 import '../../../../core/theme/app_colors.dart';
-import '../providers/onboarding_providers.dart';
 
 class MembersStep extends ConsumerStatefulWidget {
   const MembersStep({super.key});
@@ -25,9 +25,11 @@ class _MembersStepState extends ConsumerState<MembersStep> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final inviteEmails = ref.watch(onboardingNotifierProvider.select((s) => s.inviteEmails));
-    final isSubmitting = ref.watch(onboardingNotifierProvider.select((s) => s.isSubmitting));
-    final notifier = ref.read(onboardingNotifierProvider.notifier);
+    final inviteEmails = ref.watch(
+      OnboardingViewProviders.onboarding.select((s) => s.inviteEmails),
+    );
+
+    final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
 
     return Center(
       child: ConstrainedBox(
@@ -37,20 +39,27 @@ class _MembersStepState extends ConsumerState<MembersStep> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.group_add_outlined, size: 64, color: AppColors.brightCyan),
+              const Icon(
+                Icons.group_add_outlined,
+                size: 64,
+                color: AppColors.brightCyan,
+              ),
               const SizedBox(height: 24),
               Text(
                 l10n.onboardingMembersTitle,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppColors.paleGold,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  color: AppColors.paleGold,
+                  fontWeight: FontWeight.bold,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 l10n.onboardingMembersDesc,
-                style: const TextStyle(color: AppColors.pureWhite, fontSize: 16),
+                style: const TextStyle(
+                  color: AppColors.pureWhite,
+                  fontSize: 16,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -99,13 +108,17 @@ class _MembersStepState extends ConsumerState<MembersStep> {
                   decoration: BoxDecoration(
                     color: AppColors.deepTurquoise.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.paleGold.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: AppColors.paleGold.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: inviteEmails.isEmpty
                       ? Center(
                           child: Text(
                             l10n.onboardingMembersEmpty,
-                            style: TextStyle(color: AppColors.pureWhite.withValues(alpha: 0.5)),
+                            style: TextStyle(
+                              color: AppColors.pureWhite.withValues(alpha: 0.5),
+                            ),
                           ),
                         )
                       : ListView.builder(
@@ -114,14 +127,24 @@ class _MembersStepState extends ConsumerState<MembersStep> {
                           itemBuilder: (context, index) {
                             final email = inviteEmails[index];
                             return ListTile(
-                              leading: const Icon(Icons.mail_outline, color: AppColors.brightCyan),
+                              leading: const Icon(
+                                Icons.mail_outline,
+                                color: AppColors.brightCyan,
+                              ),
                               title: Text(
                                 email,
-                                style: const TextStyle(color: AppColors.pureWhite),
+                                style: const TextStyle(
+                                  color: AppColors.pureWhite,
+                                ),
                               ),
                               trailing: IconButton(
-                                icon: const Icon(Icons.close, color: AppColors.coralOrange, size: 20),
-                                onPressed: () => notifier.removeInviteEmail(email),
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: AppColors.coralOrange,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    notifier.removeInviteEmail(email),
                               ),
                             );
                           },
@@ -129,28 +152,24 @@ class _MembersStepState extends ConsumerState<MembersStep> {
                 ),
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: isSubmitting
-                    ? null
-                    : () async {
-                        await notifier.finalize();
-                        if (mounted) {
-                          ref.read(workspaceNotifierProvider.notifier).reset();
-                          final user = ref.read(authStateProvider).value;
-                          if (user != null) {
-                            ref.read(workspaceNotifierProvider.notifier).loadWorkspaces(user.id);
-                          }
-                        }
-                      },
+              LoadingButton.elevated(
+                onPressed: (loading) async {
+                  final navigator = Navigator.of(context);
+
+                  await loading(notifier.nextStep());
+
+                  navigator.pop();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.limeGreen,
                   foregroundColor: AppColors.deepTurquoise,
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textStyle: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                child: isSubmitting
-                    ? const CircularProgressIndicator()
-                    : Text(l10n.onboardingFinish),
+                child: Text(l10n.onboardingFinish),
               ),
             ],
           ),

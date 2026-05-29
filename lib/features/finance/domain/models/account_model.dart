@@ -1,6 +1,9 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/features/finance/domain/models/category_planning_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 
 part 'account_model.freezed.dart';
+
 part 'account_model.g.dart';
 
 enum AccountType {
@@ -12,19 +15,6 @@ enum AccountType {
   creditCard,
   @JsonValue('debt')
   debt,
-}
-
-enum AccountProcessingStatus {
-  @JsonValue('none')
-  none,
-  @JsonValue('pending')
-  pending,
-  @JsonValue('processing')
-  processing,
-  @JsonValue('completed')
-  completed,
-  @JsonValue('failed')
-  failed,
 }
 
 @freezed
@@ -39,9 +29,6 @@ sealed class AccountModel with _$AccountModel {
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
     required DateTime initialBalanceDate,
-    String? filePath,
-    String? fileName,
-    @Default(AccountProcessingStatus.none) AccountProcessingStatus processingStatus,
   }) = CheckingAccount;
 
   const factory AccountModel.investment({
@@ -52,10 +39,7 @@ sealed class AccountModel with _$AccountModel {
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
     required DateTime initialBalanceDate,
-    String? filePath,
-    String? fileName,
-    @Default(AccountProcessingStatus.none) AccountProcessingStatus processingStatus,
-    double? interestRate,
+    required double interestRate,
   }) = InvestmentAccount;
 
   const factory AccountModel.creditCard({
@@ -66,12 +50,9 @@ sealed class AccountModel with _$AccountModel {
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
     required DateTime initialBalanceDate,
-    String? filePath,
-    String? fileName,
-    @Default(AccountProcessingStatus.none) AccountProcessingStatus processingStatus,
-    double? limit,
-    int? dueDay,
-    int? closingDay,
+    required double limit,
+    required int dueDay,
+    required int closingDay,
   }) = CreditCardAccount;
 
   const factory AccountModel.debt({
@@ -82,10 +63,7 @@ sealed class AccountModel with _$AccountModel {
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
     required DateTime initialBalanceDate,
-    String? filePath,
-    String? fileName,
-    @Default(AccountProcessingStatus.none) AccountProcessingStatus processingStatus,
-    double? interestRate,
+    required double interestRate,
   }) = DebtAccount;
 
   AccountType get type => map(
@@ -95,19 +73,36 @@ sealed class AccountModel with _$AccountModel {
     debt: (_) => AccountType.debt,
   );
 
-  factory AccountModel.fromJson(Map<String, dynamic> json) => _$AccountModelFromJson(json);
+  factory AccountModel.fromJson(Map<String, dynamic> json) =>
+      _$AccountModelFromJson(json);
 }
 
 @freezed
 sealed class AccountBalanceModel with _$AccountBalanceModel {
   const AccountBalanceModel._();
+
   const factory AccountBalanceModel({
     required String id, // Date string YYYY-MM-DD
     required double balance,
     required DateTime updatedAt,
   }) = _AccountBalanceModel;
 
-  factory AccountBalanceModel.zero() => AccountBalanceModel(id: "", balance: 0, updatedAt: DateTime.now());
+  factory AccountBalanceModel.zero() =>
+      AccountBalanceModel(id: "", balance: 0, updatedAt: DateTime.now());
 
-  factory AccountBalanceModel.fromJson(Map<String, dynamic> json) => _$AccountBalanceModelFromJson(json);
+  factory AccountBalanceModel.fromJson(Map<String, dynamic> json) =>
+      _$AccountBalanceModelFromJson(json);
+}
+
+@freezed
+sealed class AccountDocumentAnalysisResult with _$AccountDocumentAnalysisResult {
+  factory AccountDocumentAnalysisResult({
+    required AccountModel account,
+    @Default([]) List<OrderModel> orders,
+  }) = _AccountDocumentAnalysisResult;
+
+  const AccountDocumentAnalysisResult._();
+
+  factory AccountDocumentAnalysisResult.fromJson(Map<String, dynamic> json) =>
+      _$AccountDocumentAnalysisResultFromJson(json);
 }

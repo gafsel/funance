@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import '../providers/onboarding_providers.dart';
+
 import 'type_card.dart';
 
 class WelcomeStep extends ConsumerWidget {
@@ -11,7 +12,7 @@ class WelcomeStep extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notifier = ref.read(onboardingNotifierProvider.notifier);
+    final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.all(32.0),

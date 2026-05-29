@@ -15,14 +15,6 @@ CheckingAccount _$CheckingAccountFromJson(Map<String, dynamic> json) =>
       isDeleted: json['isDeleted'] as bool? ?? false,
       initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
       initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
-      filePath: json['filePath'] as String?,
-      fileName: json['fileName'] as String?,
-      processingStatus:
-          $enumDecodeNullable(
-            _$AccountProcessingStatusEnumMap,
-            json['processingStatus'],
-          ) ??
-          AccountProcessingStatus.none,
       $type: json['runtimeType'] as String?,
     );
 
@@ -35,20 +27,8 @@ Map<String, dynamic> _$CheckingAccountToJson(CheckingAccount instance) =>
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
       'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
-      'filePath': instance.filePath,
-      'fileName': instance.fileName,
-      'processingStatus':
-          _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'runtimeType': instance.$type,
     };
-
-const _$AccountProcessingStatusEnumMap = {
-  AccountProcessingStatus.none: 'none',
-  AccountProcessingStatus.pending: 'pending',
-  AccountProcessingStatus.processing: 'processing',
-  AccountProcessingStatus.completed: 'completed',
-  AccountProcessingStatus.failed: 'failed',
-};
 
 InvestmentAccount _$InvestmentAccountFromJson(Map<String, dynamic> json) =>
     InvestmentAccount(
@@ -59,15 +39,7 @@ InvestmentAccount _$InvestmentAccountFromJson(Map<String, dynamic> json) =>
       isDeleted: json['isDeleted'] as bool? ?? false,
       initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
       initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
-      filePath: json['filePath'] as String?,
-      fileName: json['fileName'] as String?,
-      processingStatus:
-          $enumDecodeNullable(
-            _$AccountProcessingStatusEnumMap,
-            json['processingStatus'],
-          ) ??
-          AccountProcessingStatus.none,
-      interestRate: (json['interestRate'] as num?)?.toDouble(),
+      interestRate: (json['interestRate'] as num).toDouble(),
       $type: json['runtimeType'] as String?,
     );
 
@@ -80,10 +52,6 @@ Map<String, dynamic> _$InvestmentAccountToJson(InvestmentAccount instance) =>
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
       'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
-      'filePath': instance.filePath,
-      'fileName': instance.fileName,
-      'processingStatus':
-          _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'interestRate': instance.interestRate,
       'runtimeType': instance.$type,
     };
@@ -97,17 +65,9 @@ CreditCardAccount _$CreditCardAccountFromJson(Map<String, dynamic> json) =>
       isDeleted: json['isDeleted'] as bool? ?? false,
       initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
       initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
-      filePath: json['filePath'] as String?,
-      fileName: json['fileName'] as String?,
-      processingStatus:
-          $enumDecodeNullable(
-            _$AccountProcessingStatusEnumMap,
-            json['processingStatus'],
-          ) ??
-          AccountProcessingStatus.none,
-      limit: (json['limit'] as num?)?.toDouble(),
-      dueDay: (json['dueDay'] as num?)?.toInt(),
-      closingDay: (json['closingDay'] as num?)?.toInt(),
+      limit: (json['limit'] as num).toDouble(),
+      dueDay: (json['dueDay'] as num).toInt(),
+      closingDay: (json['closingDay'] as num).toInt(),
       $type: json['runtimeType'] as String?,
     );
 
@@ -120,10 +80,6 @@ Map<String, dynamic> _$CreditCardAccountToJson(CreditCardAccount instance) =>
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
       'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
-      'filePath': instance.filePath,
-      'fileName': instance.fileName,
-      'processingStatus':
-          _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'limit': instance.limit,
       'dueDay': instance.dueDay,
       'closingDay': instance.closingDay,
@@ -138,15 +94,7 @@ DebtAccount _$DebtAccountFromJson(Map<String, dynamic> json) => DebtAccount(
   isDeleted: json['isDeleted'] as bool? ?? false,
   initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
   initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
-  filePath: json['filePath'] as String?,
-  fileName: json['fileName'] as String?,
-  processingStatus:
-      $enumDecodeNullable(
-        _$AccountProcessingStatusEnumMap,
-        json['processingStatus'],
-      ) ??
-      AccountProcessingStatus.none,
-  interestRate: (json['interestRate'] as num?)?.toDouble(),
+  interestRate: (json['interestRate'] as num).toDouble(),
   $type: json['runtimeType'] as String?,
 );
 
@@ -159,10 +107,6 @@ Map<String, dynamic> _$DebtAccountToJson(DebtAccount instance) =>
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
       'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
-      'filePath': instance.filePath,
-      'fileName': instance.fileName,
-      'processingStatus':
-          _$AccountProcessingStatusEnumMap[instance.processingStatus]!,
       'interestRate': instance.interestRate,
       'runtimeType': instance.$type,
     };
@@ -181,3 +125,18 @@ Map<String, dynamic> _$AccountBalanceModelToJson(
   'balance': instance.balance,
   'updatedAt': instance.updatedAt.toIso8601String(),
 };
+
+_AccountDocumentAnalysisResult _$AccountDocumentAnalysisResultFromJson(
+  Map<String, dynamic> json,
+) => _AccountDocumentAnalysisResult(
+  account: AccountModel.fromJson(json['account'] as Map<String, dynamic>),
+  orders:
+      (json['orders'] as List<dynamic>?)
+          ?.map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+);
+
+Map<String, dynamic> _$AccountDocumentAnalysisResultToJson(
+  _AccountDocumentAnalysisResult instance,
+) => <String, dynamic>{'account': instance.account, 'orders': instance.orders};

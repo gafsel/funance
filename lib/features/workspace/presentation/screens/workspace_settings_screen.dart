@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import '../../presentation/providers/workspace_providers.dart';
-import 'category_management_screen.dart';
-import '../../../finance/presentation/screens/account_management_screen.dart';
+
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../finance/presentation/screens/account_management_screen.dart';
+import 'category_management_screen.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
   const WorkspaceSettingsScreen({super.key});
@@ -12,40 +13,114 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final workspace = ref.watch(workspaceNotifierProvider).currentWorkspace;
+    final workspace = ref
+        .watch(WorkspaceViewProviders.workspace)
+        .currentWorkspace;
     final isTab = Navigator.of(context).canPop() == false;
 
     final body = workspace == null
         ? const Center(child: CircularProgressIndicator())
-        : LayoutBuilder(builder: (context, constraints) {
-            if (constraints.maxWidth > 600) {
-              final crossAxisCount = constraints.maxWidth > 900 ? 3 : 2;
-              final itemWidth = constraints.maxWidth / crossAxisCount;
-              // Ajusta o aspect ratio para manter uma altura máxima razoável
-              final childAspectRatio = itemWidth / 160; 
+        : LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 600) {
+                final crossAxisCount = constraints.maxWidth > 900 ? 3 : 2;
+                final itemWidth = constraints.maxWidth / crossAxisCount;
+                // Ajusta o aspect ratio para manter uma altura máxima razoável
+                final childAspectRatio = itemWidth / 160;
 
-              return GridView.count(
-                crossAxisCount: crossAxisCount,
-                padding: const EdgeInsets.all(16),
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: childAspectRatio > 1.5 ? childAspectRatio : 1.5,
+                return GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  padding: const EdgeInsets.all(16),
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: childAspectRatio > 1.5
+                      ? childAspectRatio
+                      : 1.5,
+                  children: [
+                    _buildGridItem(
+                      context,
+                      icon: Icons.edit_outlined,
+                      title: l10n.workspaceSettingsEditName,
+                      description: l10n.workspaceSettingsEditNameDesc,
+                      subtitle: workspace.name,
+                      onTap: () {
+                        // TODO: Implementar edição de nome do workspace
+                      },
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.category_outlined,
+                      title: l10n.workspaceSettingsCategories,
+                      description: l10n.workspaceSettingsCategoriesDesc,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const CategoryManagementScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.account_balance_wallet_outlined,
+                      title: l10n.workspaceSettingsAccounts,
+                      description: l10n.workspaceSettingsAccountsDesc,
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AccountManagementScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.people_outline,
+                      title: l10n.workspaceSettingsMembers,
+                      description: l10n.workspaceSettingsMembersDesc,
+                      onTap: () {
+                        // TODO: Implementar gestão de membros
+                      },
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.logout,
+                      title: l10n.workspaceSettingsLogout,
+                      description: l10n.workspaceSettingsLogoutDesc,
+                      iconColor: Colors.red,
+                      titleColor: Colors.red,
+                      onTap: () {
+                        ref.read(authNotifierProvider.notifier).signOut();
+                      },
+                    ),
+                  ],
+                );
+              }
+
+              return ListView(
+                padding: EdgeInsets.only(bottom: isTab ? 120 : 0),
                 children: [
-                  _buildGridItem(
+                  _buildSectionHeader(
                     context,
-                    icon: Icons.edit_outlined,
-                    title: l10n.workspaceSettingsEditName,
-                    description: l10n.workspaceSettingsEditNameDesc,
-                    subtitle: workspace.name,
+                    l10n.workspaceSettingsGeneralSection,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: Text(l10n.workspaceSettingsEditName),
+                    subtitle: Text(workspace.name),
                     onTap: () {
                       // TODO: Implementar edição de nome do workspace
                     },
                   ),
-                  _buildGridItem(
+                  const Divider(),
+                  _buildSectionHeader(
                     context,
-                    icon: Icons.category_outlined,
-                    title: l10n.workspaceSettingsCategories,
-                    description: l10n.workspaceSettingsCategoriesDesc,
+                    l10n.workspaceSettingsDataSection,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.category_outlined),
+                    title: Text(l10n.workspaceSettingsCategories),
+                    trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -54,11 +129,10 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  _buildGridItem(
-                    context,
-                    icon: Icons.account_balance_wallet_outlined,
-                    title: l10n.workspaceSettingsAccounts,
-                    description: l10n.workspaceSettingsAccountsDesc,
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_wallet_outlined),
+                    title: Text(l10n.workspaceSettingsAccounts),
+                    trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -67,98 +141,41 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  _buildGridItem(
+                  const Divider(),
+                  _buildSectionHeader(
                     context,
-                    icon: Icons.people_outline,
-                    title: l10n.workspaceSettingsMembers,
-                    description: l10n.workspaceSettingsMembersDesc,
+                    l10n.workspaceSettingsTeamSection,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.people_outline),
+                    title: Text(l10n.workspaceSettingsMembers),
+                    trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       // TODO: Implementar gestão de membros
                     },
                   ),
-                  _buildGridItem(
-                    context,
-                    icon: Icons.logout,
-                    title: l10n.workspaceSettingsLogout,
-                    description: l10n.workspaceSettingsLogoutDesc,
-                    iconColor: Colors.red,
-                    titleColor: Colors.red,
+                  const Divider(),
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: Colors.red),
+                    title: Text(
+                      l10n.workspaceSettingsLogout,
+                      style: const TextStyle(color: Colors.red),
+                    ),
                     onTap: () {
                       ref.read(authNotifierProvider.notifier).signOut();
                     },
                   ),
                 ],
               );
-            }
-
-            return ListView(
-              padding: EdgeInsets.only(bottom: isTab ? 120 : 0),
-              children: [
-                _buildSectionHeader(context, l10n.workspaceSettingsGeneralSection),
-                ListTile(
-                  leading: const Icon(Icons.edit_outlined),
-                  title: Text(l10n.workspaceSettingsEditName),
-                  subtitle: Text(workspace.name),
-                  onTap: () {
-                    // TODO: Implementar edição de nome do workspace
-                  },
-                ),
-                const Divider(),
-                _buildSectionHeader(context, l10n.workspaceSettingsDataSection),
-                ListTile(
-                  leading: const Icon(Icons.category_outlined),
-                  title: Text(l10n.workspaceSettingsCategories),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const CategoryManagementScreen(),
-                      ),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.account_balance_wallet_outlined),
-                  title: Text(l10n.workspaceSettingsAccounts),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AccountManagementScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const Divider(),
-                _buildSectionHeader(context, l10n.workspaceSettingsTeamSection),
-                ListTile(
-                  leading: const Icon(Icons.people_outline),
-                  title: Text(l10n.workspaceSettingsMembers),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // TODO: Implementar gestão de membros
-                  },
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: Text(l10n.workspaceSettingsLogout, style: const TextStyle(color: Colors.red)),
-                  onTap: () {
-                    ref.read(authNotifierProvider.notifier).signOut();
-                  },
-                ),
-              ],
-            );
-          });
+            },
+          );
 
     if (isTab) {
       return body;
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.workspaceSettingsTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.workspaceSettingsTitle)),
       body: body,
     );
   }
@@ -169,9 +186,9 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
       child: Text(
         title.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

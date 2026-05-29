@@ -6,28 +6,26 @@ part of 'onboarding_models.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-ExtractedFinanceData _$ExtractedFinanceDataFromJson(
-  Map<String, dynamic> json,
-) => ExtractedFinanceData(
-  transactions: (json['transactions'] as List<dynamic>)
-      .map((e) => OrderModel.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  planningSuggestions: (json['planningSuggestions'] as List<dynamic>)
-      .map((e) => PlanningModel.fromJson(e as Map<String, dynamic>))
-      .toList(),
-  initialBalance: (json['initialBalance'] as num).toDouble(),
-  initialDate: json['initialDate'] == null
-      ? null
-      : DateTime.parse(json['initialDate'] as String),
-);
+_PlanningSuggestions _$PlanningSuggestionsFromJson(Map<String, dynamic> json) =>
+    _PlanningSuggestions(
+      plannings:
+          (json['plannings'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    CategoryPlanningModel.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          const [],
+      goals:
+          (json['goals'] as List<dynamic>?)
+              ?.map((e) => GoalModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
 
-Map<String, dynamic> _$ExtractedFinanceDataToJson(
-  ExtractedFinanceData instance,
+Map<String, dynamic> _$PlanningSuggestionsToJson(
+  _PlanningSuggestions instance,
 ) => <String, dynamic>{
-  'transactions': instance.transactions.map((e) => e.toJson()).toList(),
-  'planningSuggestions': instance.planningSuggestions
-      .map((e) => e.toJson())
-      .toList(),
-  'initialBalance': instance.initialBalance,
-  'initialDate': instance.initialDate?.toIso8601String(),
+  'plannings': instance.plannings,
+  'goals': instance.goals,
 };

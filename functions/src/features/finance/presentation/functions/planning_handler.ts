@@ -1,9 +1,9 @@
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
-import { PlanningModel } from "../../domain/models/finance.models";
+import { CategoryPlanningModel } from "../../domain/models/finance.models";
 
-export const onPlanningWritten = onDocumentWritten(
-  "workspaces/{workspaceId}/plannings/{planningId}",
+export const onCategoryPlanningWritten = onDocumentWritten(
+  "workspaces/{workspaceId}/category_planning/{planningId}",
   async (event) => {
     const workspaceId = event.params.workspaceId;
 
@@ -11,21 +11,15 @@ export const onPlanningWritten = onDocumentWritten(
     const afterData = event.data?.after.exists ? event.data.after.data() : null;
 
     const before = beforeData ? {
-      ...beforeData,
       id: event.data?.before.id,
-      startDate: (beforeData.startDate).toDate(),
-      endDate: (beforeData.endDate).toDate(),
-      installmentsCount: beforeData.installmentsCount,
-    } as PlanningModel : null;
+      ...beforeData,
+    } as CategoryPlanningModel : null;
 
     const after = afterData ? {
-      ...afterData,
       id: event.data?.after.id,
-      startDate: afterData.startDate.toDate(),
-      endDate: afterData.endDate.toDate(),
-      installmentsCount: afterData.installmentsCount,
-    } as PlanningModel : null;
+      ...afterData,
+    } as CategoryPlanningModel : null;
 
     // Atualizar sumários mensais por categoria (Planejado)
-    await container.summaryService.processPlanningChange(workspaceId, before, after);
+    await container.summaryService.processCategoryPlanningChange(workspaceId, before, after);
   });

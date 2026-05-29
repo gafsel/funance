@@ -1,0 +1,38 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
+import 'package:funances/features/onboarding/data/repositories/onboarding_repository_impl.dart';
+import 'package:funances/features/onboarding/domain/services/onboarding_service.dart';
+import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
+import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
+
+class OnboardingDomainProviders {
+  static final repository = Provider((ref) => OnboardingRepositoryImpl());
+
+  static final service = Provider(
+    (ref) => OnboardingService(
+      user: ref.watch(authStateProvider).value!,
+      accountRepository: ref.read(AccountDomainProviders.repository),
+      categoryRepository: ref.read(CategoryDomainProviders.repository),
+      financeRepository: ref.read(FinanceDomainProviders.repository),
+      authRepository: ref.read(authRepositoryProvider),
+      onboardingRepository: ref.read(repository),
+      workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
+      inviteRepository: ref.read(inviteRepositoryProvider),
+      planningRepository: ref.read(PlanningDomainProviders.repository),
+      goalRepository: ref.read(goalRepositoryProvider),
+    ),
+  );
+}
+
+class OnboardingViewProviders {
+  static final onboarding = StateNotifierProvider.autoDispose((ref) {
+    return OnboardingNotifier(
+      onboardingService: ref.read(OnboardingDomainProviders.service),
+      accountRepository: ref.read(AccountDomainProviders.repository),
+      workspaceNotifier: ref.read(WorkspaceViewProviders.workspace.notifier),
+    );
+  });
+}

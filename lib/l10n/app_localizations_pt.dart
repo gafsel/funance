@@ -772,4 +772,29 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get clear => 'Limpar';
+
+  @override
+  String get validationEmailMessage => 'E-mail inválido';
+
+  @override
+  String validationLengthMaxMessage(Object min) {
+    return 'Deve possuir no mínimo $min caracteres.';
+  }
+
+  @override
+  String validationLenghtMinMessage(Object max) {
+    return 'Deve possuir no máximo $max caracteres.';
+  }
+
+  @override
+  String get validationNotEmptyMessage => 'Campo obrigatório.';
+
+  @override
+  String get validationNotNullMessage => 'Campo obrigatório.';
+
+  @override
+  String get noRecordsFound => 'Nenhum registro encontrado.';
+
+  @override
+  String get formatSimpleDate => 'dd/MM/yyyy';
 }

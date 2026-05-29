@@ -6,100 +6,75 @@ part of 'order_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-ExpenseOrder _$ExpenseOrderFromJson(Map<String, dynamic> json) => ExpenseOrder(
+_OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => _OrderModel(
   id: json['id'] as String,
+  amount: (json['amount'] as num).toDouble(),
   description: json['description'] as String,
-  totalAmount: (json['totalAmount'] as num).toDouble(),
-  category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
-  installmentsCount: (json['installmentsCount'] as num).toInt(),
-  date: DateTime.parse(json['date'] as String),
+  dueDay: (json['dueDay'] as num).toInt(),
+  startMonth: json['startMonth'] as String,
+  installmentCount: (json['installmentCount'] as num?)?.toInt(),
+  installmentType: $enumDecode(
+    _$InstallmentTypeEnumMap,
+    json['installmentType'],
+  ),
   status: $enumDecode(_$OrderStatusEnumMap, json['status']),
-  planningId: json['planningId'] as String?,
-  accountId: json['accountId'] as String?,
-  isDeleted: json['isDeleted'] as bool?,
-  $type: json['runtimeType'] as String?,
+  type: $enumDecode(_$OrderTypeEnumMap, json['type']),
+  installmentCreationStatus: $enumDecodeNullable(
+    _$InstallmentStatusEnumMap,
+    json['installmentCreationStatus'],
+  ),
+  accounts: (json['accounts'] as Map<String, dynamic>?)?.map(
+    (k, e) => MapEntry(k, $enumDecode(_$AccountImpactEnumMap, e)),
+  ),
+  category: json['category'] == null
+      ? null
+      : CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
 );
 
-Map<String, dynamic> _$ExpenseOrderToJson(ExpenseOrder instance) =>
+Map<String, dynamic> _$OrderModelToJson(_OrderModel instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'amount': instance.amount,
       'description': instance.description,
-      'totalAmount': instance.totalAmount,
-      'category': instance.category.toJson(),
-      'installmentsCount': instance.installmentsCount,
-      'date': instance.date.toIso8601String(),
+      'dueDay': instance.dueDay,
+      'startMonth': instance.startMonth,
+      'installmentCount': instance.installmentCount,
+      'installmentType': _$InstallmentTypeEnumMap[instance.installmentType]!,
       'status': _$OrderStatusEnumMap[instance.status]!,
-      'planningId': instance.planningId,
-      'accountId': instance.accountId,
-      'isDeleted': instance.isDeleted,
-      'runtimeType': instance.$type,
+      'type': _$OrderTypeEnumMap[instance.type]!,
+      'installmentCreationStatus':
+          _$InstallmentStatusEnumMap[instance.installmentCreationStatus],
+      'accounts': instance.accounts?.map(
+        (k, e) => MapEntry(k, _$AccountImpactEnumMap[e]!),
+      ),
+      'category': instance.category,
     };
+
+const _$InstallmentTypeEnumMap = {
+  InstallmentType.single: 'single',
+  InstallmentType.installment: 'installment',
+  InstallmentType.recurring: 'recurring',
+};
 
 const _$OrderStatusEnumMap = {
   OrderStatus.active: 'active',
-  OrderStatus.paid: 'paid',
   OrderStatus.cancelled: 'cancelled',
 };
 
-IncomeOrder _$IncomeOrderFromJson(Map<String, dynamic> json) => IncomeOrder(
-  id: json['id'] as String,
-  description: json['description'] as String,
-  totalAmount: (json['totalAmount'] as num).toDouble(),
-  category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
-  installmentsCount: (json['installmentsCount'] as num).toInt(),
-  date: DateTime.parse(json['date'] as String),
-  status: $enumDecode(_$OrderStatusEnumMap, json['status']),
-  planningId: json['planningId'] as String?,
-  accountId: json['accountId'] as String?,
-  isDeleted: json['isDeleted'] as bool?,
-  $type: json['runtimeType'] as String?,
-);
+const _$OrderTypeEnumMap = {
+  OrderType.expense: 'expense',
+  OrderType.income: 'income',
+  OrderType.transfer: 'transfer',
+};
 
-Map<String, dynamic> _$IncomeOrderToJson(IncomeOrder instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'description': instance.description,
-      'totalAmount': instance.totalAmount,
-      'category': instance.category.toJson(),
-      'installmentsCount': instance.installmentsCount,
-      'date': instance.date.toIso8601String(),
-      'status': _$OrderStatusEnumMap[instance.status]!,
-      'planningId': instance.planningId,
-      'accountId': instance.accountId,
-      'isDeleted': instance.isDeleted,
-      'runtimeType': instance.$type,
-    };
+const _$InstallmentStatusEnumMap = {
+  InstallmentStatus.pending: 'pending',
+  InstallmentStatus.paid: 'paid',
+  InstallmentStatus.settled: 'settled',
+  InstallmentStatus.removed: 'removed',
+};
 
-TransferOrder _$TransferOrderFromJson(Map<String, dynamic> json) =>
-    TransferOrder(
-      id: json['id'] as String,
-      description: json['description'] as String,
-      totalAmount: (json['totalAmount'] as num).toDouble(),
-      category: CategoryModel.fromJson(
-        json['category'] as Map<String, dynamic>,
-      ),
-      installmentsCount: (json['installmentsCount'] as num).toInt(),
-      date: DateTime.parse(json['date'] as String),
-      status: $enumDecode(_$OrderStatusEnumMap, json['status']),
-      planningId: json['planningId'] as String?,
-      fromAccountId: json['fromAccountId'] as String?,
-      toAccountId: json['toAccountId'] as String?,
-      isDeleted: json['isDeleted'] as bool? ?? false,
-      $type: json['runtimeType'] as String?,
-    );
-
-Map<String, dynamic> _$TransferOrderToJson(TransferOrder instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'description': instance.description,
-      'totalAmount': instance.totalAmount,
-      'category': instance.category.toJson(),
-      'installmentsCount': instance.installmentsCount,
-      'date': instance.date.toIso8601String(),
-      'status': _$OrderStatusEnumMap[instance.status]!,
-      'planningId': instance.planningId,
-      'fromAccountId': instance.fromAccountId,
-      'toAccountId': instance.toAccountId,
-      'isDeleted': instance.isDeleted,
-      'runtimeType': instance.$type,
-    };
+const _$AccountImpactEnumMap = {
+  AccountImpact.debt: 'debt',
+  AccountImpact.credit: 'credit',
+};

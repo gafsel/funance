@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../l10n/app_localizations.dart';
+import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/models/invite_model.dart';
-import '../providers/invite_providers.dart';
 
 class InviteListScreen extends ConsumerWidget {
   const InviteListScreen({super.key});

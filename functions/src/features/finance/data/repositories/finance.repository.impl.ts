@@ -2,7 +2,8 @@ import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import * as admin from "firebase-admin";
 import {
   OrderModel,
-  LedgerEntryModel,
+  InstallmentModel,
+  CategoryPlanningModel,
   CategoryMonthSummaryModel,
   AccountModel,
   AccountBalanceModel,
@@ -16,8 +17,12 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     return this.firestore.collection(`workspaces/${workspaceId}/orders`);
   }
 
-  private getLedgerCollection(workspaceId: string) {
-    return this.firestore.collection(`workspaces/${workspaceId}/ledger_entries`);
+  private getInstallmentsCollection(workspaceId: string) {
+    return this.firestore.collection(`workspaces/${workspaceId}/installments`);
+  }
+
+  private getCategoryPlanningCollection(workspaceId: string) {
+    return this.firestore.collection(`workspaces/${workspaceId}/category_planning`);
   }
 
   private getSummariesCollection(workspaceId: string) {
@@ -25,7 +30,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   private getPlanningSummariesCollection(workspaceId: string, planningId: string) {
-    return this.firestore.collection(`workspaces/${workspaceId}/plannings/${planningId}/summaries`);
+    return this.firestore.collection(`workspaces/${workspaceId}/category_planning/${planningId}/summaries`);
   }
 
   private getAccountsCollection(workspaceId: string) {
@@ -37,10 +42,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   async createOrder(workspaceId: string, order: Omit<OrderModel, "id">): Promise<string> {
-    const docRef = await this.getOrdersCollection(workspaceId).add({
-      ...order,
-      date: admin.firestore.Timestamp.fromDate(order.date),
-    });
+    const docRef = await this.getOrdersCollection(workspaceId).add(order);
     return docRef.id;
   }
 
@@ -51,16 +53,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     return {
       id: doc.id,
       ...data,
-      date: data.date.toDate(),
     } as OrderModel;
   }
 
   async updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void> {
-    const updateData: any = { ...order };
-    if (order.date) {
-      updateData.date = admin.firestore.Timestamp.fromDate(order.date);
-    }
-    await this.getOrdersCollection(workspaceId).doc(orderId).update(updateData);
+    await this.getOrdersCollection(workspaceId).doc(orderId).update(order);
   }
 
   async deleteOrder(workspaceId: string, orderId: string): Promise<void> {
@@ -70,7 +67,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
   async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
     const ordersCollection = this.getOrdersCollection(workspaceId);
 
-    const snapshot = await ordersCollection.where("accountIds", "array-contains", accountId).get();
+    const snapshot = await ordersCollection.orderBy(`accounts.${accountId}`).get();
     const batch = this.firestore.batch();
 
     snapshot.docs.forEach((doc) => {
@@ -80,35 +77,39 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     await batch.commit();
   }
 
-  async createLedgerEntries(workspaceId: string, entries: Omit<LedgerEntryModel, "id">[]): Promise<void> {
+  async createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id">[]): Promise<void> {
     const batch = this.firestore.batch();
-    const collection = this.getLedgerCollection(workspaceId);
+    const collection = this.getInstallmentsCollection(workspaceId);
 
-    entries.forEach((entry) => {
+    installments.forEach((installment) => {
       const docRef = collection.doc();
       batch.set(docRef, {
-        ...entry,
-        dueDate: admin.firestore.Timestamp.fromDate(entry.dueDate),
+        ...installment,
+        dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
+        paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
       });
     });
 
     await batch.commit();
   }
 
-  async updateLedgerEntry(workspaceId: string, entryId: string, entry: Partial<LedgerEntryModel>): Promise<void> {
-    const data = { ...entry } as any;
+  async updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void> {
+    const data = { ...installment } as any;
     if (data.dueDate) {
       data.dueDate = admin.firestore.Timestamp.fromDate(data.dueDate as Date);
     }
-    await this.getLedgerCollection(workspaceId).doc(entryId).update(data);
+    if (data.paidDate) {
+      data.paidDate = admin.firestore.Timestamp.fromDate(data.paidDate as Date);
+    }
+    await this.getInstallmentsCollection(workspaceId).doc(installmentId).update(data);
   }
 
-  async deleteLedgerEntry(workspaceId: string, entryId: string): Promise<void> {
-    await this.getLedgerCollection(workspaceId).doc(entryId).delete();
+  async deleteInstallment(workspaceId: string, installmentId: string): Promise<void> {
+    await this.getInstallmentsCollection(workspaceId).doc(installmentId).delete();
   }
 
-  async getLedgerEntriesByOrderId(workspaceId: string, orderId: string): Promise<LedgerEntryModel[]> {
-    const snapshot = await this.getLedgerCollection(workspaceId)
+  async getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]> {
+    const snapshot = await this.getInstallmentsCollection(workspaceId)
       .where("orderId", "==", orderId)
       .get();
 
@@ -118,12 +119,13 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         id: doc.id,
         ...data,
         dueDate: data.dueDate.toDate(),
-      } as LedgerEntryModel;
+        paidDate: data.paidDate?.toDate(),
+      } as InstallmentModel;
     });
   }
 
-  async deleteLedgerEntriesByOrderId(workspaceId: string, orderId: string): Promise<void> {
-    const snapshot = await this.getLedgerCollection(workspaceId)
+  async deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void> {
+    const snapshot = await this.getInstallmentsCollection(workspaceId)
       .where("orderId", "==", orderId)
       .get();
 
@@ -134,11 +136,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     await batch.commit();
   }
 
-  async getLedgerEntries(workspaceId: string, filters: { accountId?: string }): Promise<LedgerEntryModel[]> {
-    let query: admin.firestore.Query = this.getLedgerCollection(workspaceId);
+  async getInstallments(workspaceId: string, filters: { accountId?: string }): Promise<InstallmentModel[]> {
+    let query: admin.firestore.Query = this.getInstallmentsCollection(workspaceId);
 
     if (filters.accountId) {
-      query = query.where("accountId", "==", filters.accountId);
+      query = query.orderBy(`accounts.${filters.accountId}`);
     }
 
     const snapshot = await query.get();
@@ -149,8 +151,28 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         id: doc.id,
         ...data,
         dueDate: data.dueDate.toDate(),
-      } as LedgerEntryModel;
+        paidDate: data.paidDate?.toDate(),
+      } as InstallmentModel;
     });
+  }
+
+  async getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null> {
+    const doc = await this.getCategoryPlanningCollection(workspaceId).doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as CategoryPlanningModel;
+  }
+
+  async createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string> {
+    const docRef = await this.getCategoryPlanningCollection(workspaceId).add(planning);
+    return docRef.id;
+  }
+
+  async updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void> {
+    await this.getCategoryPlanningCollection(workspaceId).doc(id).update(planning);
+  }
+
+  async deleteCategoryPlanning(workspaceId: string, id: string): Promise<void> {
+    await this.getCategoryPlanningCollection(workspaceId).doc(id).delete();
   }
 
   async updateCategoryMonthSummary(

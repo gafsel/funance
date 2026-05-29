@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/features/onboarding/presentation/providers/onboarding_providers.dart';
-import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
-import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
-import 'package:funances/features/workspace/presentation/providers/workspace_providers.dart';
-import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
-import 'package:funances/l10n/app_localizations.dart';
-import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
-import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
-import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
+import 'package:funances/features/home/presentation/widgets/history_tab.dart';
+import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
+import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
+import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -183,7 +182,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   }
 
   Widget _buildWorkspaceSelector(BuildContext context, WidgetRef ref) {
-    final workspaceState = ref.watch(workspaceNotifierProvider);
+    final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final currentWorkspace = workspaceState.currentWorkspace;
     final l10n = AppLocalizations.of(context)!;
 
@@ -246,7 +245,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                         ),
                         selected: isSelected,
                         onTap: () {
-                          ref.read(workspaceNotifierProvider.notifier).setCurrentWorkspace(workspace);
+                          ref.read(WorkspaceViewProviders.workspace.notifier).setCurrentWorkspace(workspace);
                           Navigator.pop(context);
                         },
                       );
@@ -263,7 +262,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                       ),
                       onTap: () {
                         Navigator.pop(context);
-                        ref.read(onboardingNotifierProvider.notifier).reset();
+                        ref.read(WorkspaceViewProviders.workspace.notifier).reset();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -349,7 +348,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             Navigator.pop(context);
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => TransactionFormScreen(initialType: type),
+                builder: (_) => TransactionFormScreen.creation(type: type),
               ),
             );
           },

@@ -1,55 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/list/infinite_list_view.dart';
+import 'package:funances/core/model/core_models.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
-import 'package:funances/features/finance/presentation/providers/account_providers.dart';
-import 'package:funances/features/finance/presentation/providers/transaction_providers.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/presentation/providers/category_providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
-class HistoryTab extends ConsumerStatefulWidget {
+class HistoryTab extends ConsumerWidget {
   const HistoryTab({super.key});
 
   @override
-  ConsumerState<HistoryTab> createState() => _HistoryTabState();
-}
-
-class _HistoryTabState extends ConsumerState<HistoryTab> {
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      ref.read(historyProvider.notifier).loadOrders();
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final historyState = ref.watch(historyProvider);
-    final categoriesAsync = ref.watch(categoriesProvider);
-    final accountsAsync = ref.watch(accountsProvider);
-    final currencyFormat = NumberFormat.simpleCurrency(
-      locale: Localizations.localeOf(context).toString(),
-    );
+    final accounts = ref.watch(AccountViewProviders.all);
+    final historyNotifier = ref.watch(FinanceViewProviders.history.notifier);
+    final query = ref
+        .watch(FinanceViewProviders.history)
+        .map((state) => state.query);
 
     return Column(
       children: [
@@ -60,24 +39,30 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
             children: [
               // Seletor de Conta
               Expanded(
-                child: accountsAsync.when(
+                child: accounts.when(
                   data: (accounts) {
                     return Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                          color: Theme.of(
+                            context,
+                          ).dividerColor.withValues(alpha: 0.1),
                         ),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String?>(
-                          value: historyState.accountId,
+                          value: query.accountId,
                           hint: Text(
                             l10n.homeAllAccounts,
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                           dropdownColor: Theme.of(context).colorScheme.surface,
@@ -91,17 +76,18 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                               child: Text(
                                 l10n.homeAllAccounts,
                                 style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                               ),
                             ),
                             ..._buildAccountItems(context, accounts),
                           ],
                           onChanged: (value) {
-                            ref.read(historyProvider.notifier).setFilters(
-                                  accountId: value,
-                                  clearAccountId: value == null,
-                                );
+                            historyNotifier.reset(
+                              query: query.copyWith(accountId: value),
+                            );
                           },
                         ),
                       ),
@@ -120,9 +106,10 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                     final picked = await showDateRangePicker(
                       context: context,
                       initialDateRange: DateTimeRange(
-                        start: historyState.startDate ??
+                        start:
+                            query.startDate ??
                             DateTime.now().subtract(const Duration(days: 30)),
-                        end: historyState.endDate ?? DateTime.now(),
+                        end: query.endDate ?? DateTime.now(),
                       ),
                       firstDate: DateTime(2020),
                       lastDate: DateTime(2100),
@@ -132,19 +119,19 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                     );
 
                     if (picked != null) {
-                      ref
-                          .read(historyProvider.notifier)
-                          .setFilters(
-                            startDate: picked.start,
-                            endDate: DateTime(
-                              picked.end.year,
-                              picked.end.month,
-                              picked.end.day,
-                              23,
-                              59,
-                              59,
-                            ),
-                          );
+                      historyNotifier.reset(
+                        query: query.copyWith(
+                          startDate: picked.start,
+                          endDate: DateTime(
+                            picked.end.year,
+                            picked.end.month,
+                            picked.end.day,
+                            23,
+                            59,
+                            59,
+                          ),
+                        ),
+                      );
                     } else {
                       // Se o usuário fechar ou cancelar, podemos oferecer uma forma de limpar?
                       // Para facilitar, se clicar e não escolher nada, não faz nada.
@@ -155,28 +142,34 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                        color: Theme.of(
+                          context,
+                        ).dividerColor.withValues(alpha: 0.1),
                       ),
                     ),
                     child: Icon(
-                      historyState.startDate == null 
+                      query.startDate == null
                           ? Icons.calendar_today
                           : Icons.calendar_month,
-                      color: historyState.startDate == null
+                      color: query.startDate == null
                           ? Theme.of(context).colorScheme.outline
                           : Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ),
               ),
-              if (historyState.startDate != null) ...[
+              if (query.startDate != null) ...[
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () {
-                    ref.read(historyProvider.notifier).setFilters(clearDate: true);
+                    historyNotifier.reset(
+                      query: query.copyWith(startDate: null, endDate: null),
+                    );
                   },
                   icon: const Icon(Icons.close),
                   tooltip: l10n.clear, // Assumindo que existe, se não, "Limpar"
@@ -185,7 +178,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
             ],
           ),
         ),
-        if (historyState.startDate != null || historyState.endDate != null)
+        if (query.startDate != null || query.endDate != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
@@ -197,7 +190,7 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  '${DateFormat.yMd().format(historyState.startDate!)} - ${DateFormat.yMd().format(historyState.endDate!)}',
+                  '${DateFormat.yMd().format(query.startDate!)} - ${DateFormat.yMd().format(query.endDate!)}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Theme.of(context).colorScheme.primary,
@@ -209,155 +202,40 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
           ),
         // Lista de Transações
         Expanded(
-          child: historyState.orders.isEmpty && !historyState.isLoading
-              ? Center(
-                  child: Text(
-                    l10n.noTransactionsInPeriod,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                )
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: 120,
-                  ),
-                  itemCount:
-                      historyState.orders.length +
-                      (historyState.hasMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == historyState.orders.length) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
+          child: InfiniteListView.separator(
+            FinanceViewProviders.history,
+            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 120),
+            separatorBuilder: (context, before, after) {
+              final showDateHeader =
+                  after != null &&
+                  (before == null ||
+                      !_isSameDay(before.referenceDate, after.referenceDate));
 
-                    final order = historyState.orders[index];
-                    final showDateHeader =
-                        index == 0 ||
-                        !_isSameDay(
-                          order.date,
-                          historyState.orders[index - 1].date,
-                        );
-
-                    final category = categoriesAsync.when(
-                      data: (cats) => cats.firstWhere(
-                        (c) => c.id == order.category.id,
-                        orElse: () => order.category,
-                      ),
-                      loading: () => CategoryModel(
-                        id: '',
-                        name: '...',
-                        icon: 'category',
-                        color: '#4A8C9C',
-                      ),
-                      error: (_, __) => CategoryModel(
-                        id: '',
-                        name: '!',
-                        icon: 'category',
-                        color: '#4A8C9C',
-                      ),
-                    );
-
-    final accountData = accountsAsync.when(
-      data: (accs) {
-        String? accountId;
-        String? fromAccountId;
-        String? toAccountId;
-
-        if (order is ExpenseOrder) {
-          accountId = order.accountId;
-        } else if (order is IncomeOrder) {
-          accountId = order.accountId;
-        } else if (order is TransferOrder) {
-          fromAccountId = order.fromAccountId;
-          toAccountId = order.toAccountId;
-        }
-
-        final effectiveMainId = accountId ?? fromAccountId;
-        
-        AccountModel mainAcc;
-        if (effectiveMainId == null) {
-          if (order is TransferOrder) {
-            mainAcc = toAccountId != null 
-              ? accs.firstWhere((a) => a.id == toAccountId, orElse: () => _unknownAccount())
-              : _unknownAccount();
-          } else {
-            mainAcc = _unknownAccount();
-          }
-        } else {
-          mainAcc = accs.firstWhere(
-            (a) => a.id == effectiveMainId,
-            orElse: () {
-              if (order is TransferOrder) {
-                return toAccountId != null
-                  ? accs.firstWhere((a) => a.id == toAccountId, orElse: () => _unknownAccount())
-                  : _unknownAccount();
+              if (showDateHeader) {
+                return _buildDateHeader(context, after.referenceDate, l10n);
               }
-              return _unknownAccount();
+
+              return SizedBox.shrink();
             },
-          );
-        }
+            itemBuilder: (context, item) {
+              final category = item.category;
 
-        String name = mainAcc.name;
-        if (order is TransferOrder && mainAcc.id.isNotEmpty) {
-          final fromAccount = accs.firstWhere((a) => a.id == fromAccountId, orElse: () => _unknownAccount());
-          final toAccount = accs.firstWhere((a) => a.id == toAccountId, orElse: () => _unknownAccount());
-          
-          if (fromAccount.id.isNotEmpty && toAccount.id.isNotEmpty) {
-             name = '${fromAccount.name} → ${toAccount.name}';
-          }
-        }
-        return (account: mainAcc, name: name);
-      },
-      loading: () => (
-        account: AccountModel.checking(
-          id: '',
-          name: '...',
-          color: '#808080',
-          icon: 'help',
-          initialBalanceDate: DateTime.now(),
-        ),
-        name: '...'
-      ),
-      error: (_, __) => (
-        account: AccountModel.checking(
-          id: '',
-          name: '!',
-          icon: 'help',
-          color: '#808080',
-          initialBalanceDate: DateTime.now(),
-        ),
-        name: '!'
-      ),
-    );
-
-    final account = accountData.account;
-    final accountName = accountData.name;
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (showDateHeader)
-                          _buildDateHeader(context, order.date, l10n),
-                        _buildTransactionItem(
-                          context,
-                          order: order,
-                          category: category,
-                          accountName: accountName,
-                          currencyFormat: currencyFormat,
-                          l10n: l10n,
-                        ),
-                      ],
-                    );
-                  },
+              return _buildTransactionItem(
+                context,
+                notifier: historyNotifier,
+                installment: item,
+                category: category,
+              );
+            },
+            emptyStateBuilder: (context) => Center(
+              child: Text(
+                l10n.noTransactionsInPeriod,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -471,21 +349,21 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
 
   Widget _buildTransactionItem(
     BuildContext context, {
-    required OrderModel order,
+    required TransactionListNotifier notifier,
+    required InstallmentModel installment,
     required CategoryModel? category,
-    required String accountName,
-    required NumberFormat currencyFormat,
-    required AppLocalizations l10n,
   }) {
+    final l10n = context.l10n;
+    final locale = context.locale;
     final theme = Theme.of(context);
-    final isExpense = order.type == OrderType.expense;
-    final isTransfer = order.type == OrderType.transfer;
+    final isExpense = installment.type == OrderType.expense;
+    final isTransfer = installment.type == OrderType.transfer;
 
     Color amountColor;
     if (isTransfer) {
       amountColor = Theme.of(context).colorScheme.primary;
     } else if (isExpense) {
-      amountColor = Theme.of(context).colorScheme.error;
+      amountColor = AppColors.error;
     } else {
       amountColor = AppColors.limeGreen;
     }
@@ -497,129 +375,130 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
       amountPrefix = isExpense ? '-' : '+';
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Slidable(
-        key: ValueKey(order.id),
-        endActionPane: ActionPane(
-          motion: const DrawerMotion(),
-          children: [
-            SlidableAction(
-              onPressed: (context) {
-                TransactionType initialType;
-                if (order.type == OrderType.transfer) {
-                  initialType = TransactionType.transfer;
-                } else if (order.type == OrderType.expense) {
-                  initialType = TransactionType.expense;
-                } else {
-                  initialType = TransactionType.income;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TransactionFormScreen(
-                      initialType: initialType,
-                      initialOrder: order,
-                    ),
-                  ),
-                );
-              },
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              icon: Icons.edit,
-              label: l10n.historyEdit,
-            ),
-            SlidableAction(
-              onPressed: (context) => _confirmDelete(context, order, l10n),
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-              icon: Icons.delete,
-              label: l10n.historyDelete,
-            ),
-          ],
-        ),
-        child: InkWell(
-          onTap: () {
-            TransactionType initialType;
-            if (order.type == OrderType.transfer) {
-              initialType = TransactionType.transfer;
-            } else if (order.type == OrderType.expense) {
-              initialType = TransactionType.expense;
-            } else {
-              initialType = TransactionType.income;
-            }
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => TransactionFormScreen(
-                  initialType: initialType,
-                  initialOrder: order,
-                ),
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4.0),
-            child: Row(
+    return Consumer(
+      builder: (context, ref, _) {
+        String accountName;
+        final source = installment.accountIdSource != null
+            ? ref
+                  .read(AccountViewProviders.byId(installment.accountIdSource!))
+                  .whenOrNull(data: (data) => data)
+            : null;
+
+        if (isTransfer) {
+          final target = installment.accountIdTarget != null
+              ? ref
+                    .read(
+                      AccountViewProviders.byId(installment.accountIdTarget!),
+                    )
+                    .whenOrNull(data: (data) => data)
+              : null;
+
+          accountName = "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
+        } else {
+          accountName = source?.name ?? "-";
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Slidable(
+            key: ValueKey(installment.id),
+            endActionPane: ActionPane(
+              motion: const DrawerMotion(),
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: isTransfer
-                        ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
-                        : _parseColor(
-                            category?.color ?? '#14404C',
-                          ).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    isTransfer
-                        ? Icons.swap_horiz
-                        : _getIconData(category?.icon ?? 'category'),
-                    color: isTransfer
-                        ? Theme.of(context).colorScheme.primary
-                        : _parseColor(category?.color ?? '#14404C'),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        order.description,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                SlidableAction(
+                  onPressed: (context) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            TransactionFormScreen.updateInstallment(installment: installment),
                       ),
-                      Text(
-                        '${isTransfer ? l10n.transactionActionTransfer : (category?.name ?? order.category)} • $accountName',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+                    );
+                  },
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                  icon: Icons.edit,
+                  label: l10n.historyEdit,
                 ),
-                Text(
-                  '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${currencyFormat.format(order.totalAmount)}',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: amountColor,
-                  ),
+                SlidableAction(
+                  onPressed: (context) =>
+                      _confirmDelete(context, notifier, installment),
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                  foregroundColor: Theme.of(context).colorScheme.onError,
+                  icon: Icons.delete,
+                  label: l10n.historyDelete,
                 ),
               ],
             ),
+            child: InkWell(
+              onTap: () {},
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isTransfer
+                            ? Theme.of(context).colorScheme.primaryContainer
+                                  .withValues(alpha: 0.3)
+                            : _parseColor(
+                                category?.color ?? '#14404C',
+                              ).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isTransfer
+                            ? Icons.swap_horiz
+                            : _getIconData(category?.icon ?? 'category'),
+                        color: isTransfer
+                            ? Theme.of(context).colorScheme.primary
+                            : _parseColor(category?.color ?? '#14404C'),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            installment.description,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${isTransfer ? l10n.transactionActionTransfer : (category?.name ?? installment.category)} • $accountName',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${installment.referenceAmount.asCurrency(locale: locale)}',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: amountColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   void _confirmDelete(
     BuildContext context,
-    OrderModel order,
-    AppLocalizations l10n,
+    TransactionListNotifier notifier,
+    InstallmentModel installment,
   ) {
+    final l10n = context.l10n;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -630,13 +509,18 @@ class _HistoryTabState extends ConsumerState<HistoryTab> {
             onPressed: () => Navigator.pop(context),
             child: Text(l10n.cancelButton),
           ),
-          TextButton(
-            onPressed: () {
-              ref
-                  .read(transactionNotifierProvider.notifier)
-                  .deleteTransaction(order.id);
-              ref.read(historyProvider.notifier).loadOrders(isRefresh: true);
-              Navigator.pop(context);
+          LoadingButton.text(
+            onPressed: (loading) async {
+              final navigator = Navigator.of(context);
+
+              await loading(
+                notifier.delete(
+                  installment.id,
+                  replicationCascade: ReplicationCascade.none,
+                ),
+              );
+
+              navigator.pop();
             },
             child: Text(
               l10n.deleteButton,

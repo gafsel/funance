@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
+import 'package:funances/features/onboarding/presentation/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../providers/onboarding_providers.dart';
 import '../widgets/welcome_step.dart';
 import '../widgets/workspace_info_step.dart';
 import '../widgets/accounts_step.dart';
@@ -15,7 +16,7 @@ class OnboardingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final currentStep = ref.watch(onboardingNotifierProvider.select((s) => s.currentStep));
+    final currentStep = ref.watch(OnboardingViewProviders.onboarding.select((s) => s.currentStep));
     
     // Tema customizado para fundo escuro do onboarding
     final darkContentTheme = Theme.of(context).copyWith(
@@ -45,17 +46,17 @@ class OnboardingScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStep(BuildContext context, int currentStep) {
+  Widget _buildStep(BuildContext context, OnboardingSteps currentStep) {
     switch (currentStep) {
-      case 0:
+      case OnboardingSteps.type:
         return const WelcomeStep();
-      case 1:
+      case OnboardingSteps.name:
         return const WorkspaceInfoStep();
-      case 2:
+      case OnboardingSteps.accounts:
         return const AccountsStep();
-      case 3:
+      case OnboardingSteps.planning:
         return const GoalsAnalysisStep();
-      case 4:
+      case OnboardingSteps.invites:
         return const MembersStep();
       default:
         return const WelcomeStep();

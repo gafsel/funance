@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../domain/models/order_model.dart';
-import '../../domain/models/ledger_entry_model.dart';
-import '../../domain/models/planning_model.dart';
-import '../../domain/models/category_month_summary_model.dart';
-import '../../domain/repositories/finance_repository.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/model/core_models.dart';
+
+import '../../domain/models/category_planning_model.dart';
+import '../../domain/models/installment_model.dart';
+import '../../domain/models/order_model.dart';
+import '../../domain/repositories/finance_repository.dart';
+import '../models/installment_mapper.dart';
 import '../models/order_mapper.dart';
-import '../models/ledger_mapper.dart';
-import '../models/summary_mapper.dart';
 
 class FinanceRepositoryImpl implements IFinanceRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -17,64 +17,69 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
-  Future<List<OrderModel>> getOrders(
+  Future<QueryChunk<InstallmentModel>> queryInstallments(
     String workspaceId, {
-    OrderStatus? status,
-    OrderType? type,
     int? limit,
-    OrderModel? lastOrder,
+    dynamic chunkRef,
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
   }) async {
     try {
-      Query query = _getWorkspaceDoc(workspaceId).collection('orders');
-
-      if (status != null) {
-        query = query.where('status', isEqualTo: status.name);
-      }
-
-      if (type != null) {
-        query = query.where('type', isEqualTo: type.name);
-      }
+      Query query = _getWorkspaceDoc(workspaceId)
+          .collection('installments')
+          .where("status", isNotEqualTo: InstallmentStatus.removed);
 
       if (accountId != null && accountId.isNotEmpty) {
-        query = query.where('accountIds', arrayContains: accountId);
+        query = query.where('accounts.$accountId', isNull: false);
       }
 
       if (startDate != null) {
-        query = query.where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+        query = query.where("referenceDate", isGreaterThanOrEqualTo: startDate);
       }
 
       if (endDate != null) {
-        query = query.where('date', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+        query = query.where("referenceDate", isLessThanOrEqualTo: endDate);
       }
 
-      query = query.orderBy('date', descending: true);
-
-      if (lastOrder != null) {
-        query = query.startAfter([Timestamp.fromDate(lastOrder.date)]);
-      }
+      query = query.orderBy("referenceDate", descending: true);
 
       if (limit != null) {
         query = query.limit(limit);
       }
 
+      if (chunkRef != null) {
+        query = query.startAfterDocument(chunkRef);
+      }
+
       final snapshot = await query.get();
-      return snapshot.docs.map((doc) => doc.toOrderModel()).toList();
+      return QueryChunk(
+        items: snapshot.docs.map((doc) => doc.toInstallmentModel()).toList(),
+        nextChunckRef: snapshot.docs.lastOrNull,
+      );
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
   @override
   Future<OrderModel?> getOrder(String workspaceId, String orderId) async {
     try {
-      final doc = await _getWorkspaceDoc(workspaceId).collection('orders').doc(orderId).get();
+      final doc = await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('orders').doc(orderId).get();
       if (!doc.exists) return null;
       return doc.toOrderModel();
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
@@ -83,10 +88,13 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = order.toJson();
       data.remove('id');
-      data['date'] = Timestamp.fromDate(order.date);
       await _getWorkspaceDoc(workspaceId).collection('orders').add(data);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
@@ -95,111 +103,143 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = order.toJson();
       data.remove('id');
-      data['date'] = Timestamp.fromDate(order.date);
-      await _getWorkspaceDoc(workspaceId).collection('orders').doc(order.id).update(data);
+      await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('orders').doc(order.id).update(data);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
   @override
   Future<void> deleteOrder(String workspaceId, String orderId) async {
     try {
-      await _getWorkspaceDoc(workspaceId).collection('orders').doc(orderId).delete();
+      await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('orders').doc(orderId).delete();
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
-  // Ledger Entries
   @override
-  Future<List<LedgerEntryModel>> getLedgerEntries(String workspaceId, {String? orderId}) async {
+  Future<List<InstallmentModel>> getInstallments(
+    String workspaceId, {
+    String? orderId,
+  }) async {
     try {
-      Query query = _getWorkspaceDoc(workspaceId).collection('ledger_entries');
-      
+      Query query = _getWorkspaceDoc(workspaceId).collection('installments');
       if (orderId != null) {
-        query = query.where('order_id', isEqualTo: orderId);
+        query = query.where('orderId', isEqualTo: orderId);
       }
-      
-      final snapshot = await query.orderBy('due_date', descending: true).get();
-      return snapshot.docs.map((doc) => doc.toLedgerEntryModel()).toList();
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
   @override
-  Future<void> addLedgerEntry(String workspaceId, LedgerEntryModel entry) async {
+  Future<void> addInstallment(
+    String workspaceId,
+    InstallmentModel entry,
+  ) async {
     try {
       final data = entry.toJson();
       data.remove('id');
-      data['due_date'] = Timestamp.fromDate(entry.dueDate);
-      await _getWorkspaceDoc(workspaceId).collection('ledger_entries').add(data);
+      data['dueDate'] = Timestamp.fromDate(entry.dueDate);
+      if (entry.paidDate != null) {
+        data['paidDate'] = Timestamp.fromDate(entry.paidDate!);
+      }
+      await _getWorkspaceDoc(workspaceId).collection('installments').add(data);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
   @override
-  Future<void> updateLedgerEntry(String workspaceId, LedgerEntryModel entry) async {
+  Future<void> updateInstallment(
+    String workspaceId,
+    InstallmentModel entry,
+  ) async {
     try {
       final data = entry.toJson();
       data.remove('id');
-      data['due_date'] = Timestamp.fromDate(entry.dueDate);
-      await _getWorkspaceDoc(workspaceId).collection('ledger_entries').doc(entry.id).update(data);
+      data['dueDate'] = Timestamp.fromDate(entry.dueDate);
+      if (entry.paidDate != null) {
+        data['paidDate'] = Timestamp.fromDate(entry.paidDate!);
+      }
+      await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('installments').doc(entry.id).update(data);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
   @override
-  Future<void> deleteLedgerEntry(String workspaceId, String entryId) async {
+  Future<void> deleteInstallment(String workspaceId, String entryId) async {
     try {
-      await _getWorkspaceDoc(workspaceId).collection('ledger_entries').doc(entryId).delete();
+      await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('installments').doc(entryId).delete();
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
-  // Plannings
   @override
-  Future<void> addPlanning(String workspaceId, PlanningModel planning) async {
+  Future<InstallmentModel> getInstallment(
+    String workspaceId,
+    String installmentId,
+  ) async {
+    final doc = await _getWorkspaceDoc(
+      workspaceId,
+    ).collection('installments').doc(installmentId).get();
+    return doc.toInstallmentModel();
+  }
+
+  @override
+  Future<void> addCategoryPlanning(
+    String workspaceId,
+    CategoryPlanningModel planning,
+  ) async {
     try {
       final data = planning.toJson();
       data.remove('id');
-      data['start_date'] = Timestamp.fromDate(planning.startDate);
-      data['end_date'] = Timestamp.fromDate(planning.endDate);
-      await _getWorkspaceDoc(workspaceId).collection('plannings').add(data);
+      await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('category_planning').add(data);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
-  }
-
-  // Summaries
-  @override
-  Future<List<CategoryMonthSummaryModel>> getCategorySummaries(String workspaceId, int year, int month) async {
-    try {
-      final snapshot = await _getWorkspaceDoc(workspaceId)
-          .collection('category_month_summaries')
-          .where('year', isEqualTo: year)
-          .where('month', isEqualTo: month)
-          .get();
-      
-      return snapshot.docs.map((doc) => doc.toCategoryMonthSummaryModel()).toList();
-    } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
-    }
-  }
-
-  @override
-  Stream<List<CategoryMonthSummaryModel>> watchCategorySummaries(String workspaceId, int year, int month) {
-    return _getWorkspaceDoc(workspaceId)
-        .collection('category_month_summaries')
-        .where('year', isEqualTo: year)
-        .where('month', isEqualTo: month)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => doc.toCategoryMonthSummaryModel())
-            .toList());
   }
 }

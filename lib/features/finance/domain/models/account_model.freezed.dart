@@ -46,7 +46,7 @@ AccountModel _$AccountModelFromJson(
 /// @nodoc
 mixin _$AccountModel {
 
- String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance; DateTime get initialBalanceDate; String? get filePath; String? get fileName; AccountProcessingStatus get processingStatus;
+ String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance; DateTime get initialBalanceDate;
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -59,16 +59,16 @@ $AccountModelCopyWith<AccountModel> get copyWith => _$AccountModelCopyWithImpl<A
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,filePath,fileName,processingStatus);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate);
 
 @override
 String toString() {
-  return 'AccountModel(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, filePath: $filePath, fileName: $fileName, processingStatus: $processingStatus)';
+  return 'AccountModel(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate)';
 }
 
 
@@ -79,7 +79,7 @@ abstract mixin class $AccountModelCopyWith<$Res>  {
   factory $AccountModelCopyWith(AccountModel value, $Res Function(AccountModel) _then) = _$AccountModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate
 });
 
 
@@ -96,7 +96,7 @@ class _$AccountModelCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? filePath = freezed,Object? fileName = freezed,Object? processingStatus = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -105,10 +105,7 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,filePath: freezed == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
-as String?,fileName: freezed == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
-as String?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
-as AccountProcessingStatus,
+as DateTime,
   ));
 }
 
@@ -199,13 +196,13 @@ return debt(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? limit,  int? dueDay,  int? closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  debt,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  debt,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
-return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus);case InvestmentAccount() when investment != null:
-return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.interestRate);case CreditCardAccount() when creditCard != null:
-return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount() when debt != null:
-return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.interestRate);case _:
+return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount() when investment != null:
+return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case CreditCardAccount() when creditCard != null:
+return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount() when debt != null:
+return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case _:
   return orElse();
 
 }
@@ -223,13 +220,13 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? limit,  int? dueDay,  int? closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)  debt,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount():
-return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus);case InvestmentAccount():
-return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.interestRate);case CreditCardAccount():
-return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount():
-return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.interestRate);}
+return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount():
+return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case CreditCardAccount():
+return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount():
+return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -243,13 +240,13 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? limit,  int? dueDay,  int? closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  String? filePath,  String? fileName,  AccountProcessingStatus processingStatus,  double? interestRate)?  debt,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
-return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus);case InvestmentAccount() when investment != null:
-return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.interestRate);case CreditCardAccount() when creditCard != null:
-return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount() when debt != null:
-return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.filePath,_that.fileName,_that.processingStatus,_that.interestRate);case _:
+return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount() when investment != null:
+return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case CreditCardAccount() when creditCard != null:
+return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount() when debt != null:
+return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case _:
   return null;
 
 }
@@ -261,7 +258,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 @JsonSerializable()
 
 class CheckingAccount extends AccountModel {
-  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, final  String? $type}): $type = $type ?? 'checking',super._();
+  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, final  String? $type}): $type = $type ?? 'checking',super._();
   factory CheckingAccount.fromJson(Map<String, dynamic> json) => _$CheckingAccountFromJson(json);
 
 @override final  String id;
@@ -271,9 +268,6 @@ class CheckingAccount extends AccountModel {
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
 @override final  DateTime initialBalanceDate;
-@override final  String? filePath;
-@override final  String? fileName;
-@override@JsonKey() final  AccountProcessingStatus processingStatus;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -292,16 +286,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CheckingAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CheckingAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,filePath,fileName,processingStatus);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate);
 
 @override
 String toString() {
-  return 'AccountModel.checking(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, filePath: $filePath, fileName: $fileName, processingStatus: $processingStatus)';
+  return 'AccountModel.checking(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate)';
 }
 
 
@@ -312,7 +306,7 @@ abstract mixin class $CheckingAccountCopyWith<$Res> implements $AccountModelCopy
   factory $CheckingAccountCopyWith(CheckingAccount value, $Res Function(CheckingAccount) _then) = _$CheckingAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate
 });
 
 
@@ -329,7 +323,7 @@ class _$CheckingAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? filePath = freezed,Object? fileName = freezed,Object? processingStatus = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,}) {
   return _then(CheckingAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -338,10 +332,7 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,filePath: freezed == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
-as String?,fileName: freezed == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
-as String?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
-as AccountProcessingStatus,
+as DateTime,
   ));
 }
 
@@ -352,7 +343,7 @@ as AccountProcessingStatus,
 @JsonSerializable()
 
 class InvestmentAccount extends AccountModel {
-  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
+  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
   factory InvestmentAccount.fromJson(Map<String, dynamic> json) => _$InvestmentAccountFromJson(json);
 
 @override final  String id;
@@ -362,10 +353,7 @@ class InvestmentAccount extends AccountModel {
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
 @override final  DateTime initialBalanceDate;
-@override final  String? filePath;
-@override final  String? fileName;
-@override@JsonKey() final  AccountProcessingStatus processingStatus;
- final  double? interestRate;
+ final  double interestRate;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -384,16 +372,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvestmentAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvestmentAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,filePath,fileName,processingStatus,interestRate);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,interestRate);
 
 @override
 String toString() {
-  return 'AccountModel.investment(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, filePath: $filePath, fileName: $fileName, processingStatus: $processingStatus, interestRate: $interestRate)';
+  return 'AccountModel.investment(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, interestRate: $interestRate)';
 }
 
 
@@ -404,7 +392,7 @@ abstract mixin class $InvestmentAccountCopyWith<$Res> implements $AccountModelCo
   factory $InvestmentAccountCopyWith(InvestmentAccount value, $Res Function(InvestmentAccount) _then) = _$InvestmentAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus, double? interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, double interestRate
 });
 
 
@@ -421,7 +409,7 @@ class _$InvestmentAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? filePath = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? interestRate = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? interestRate = null,}) {
   return _then(InvestmentAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -430,11 +418,8 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,filePath: freezed == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
-as String?,fileName: freezed == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
-as String?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
-as AccountProcessingStatus,interestRate: freezed == interestRate ? _self.interestRate : interestRate // ignore: cast_nullable_to_non_nullable
-as double?,
+as DateTime,interestRate: null == interestRate ? _self.interestRate : interestRate // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -445,7 +430,7 @@ as double?,
 @JsonSerializable()
 
 class CreditCardAccount extends AccountModel {
-  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.limit, this.dueDay, this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
+  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
   factory CreditCardAccount.fromJson(Map<String, dynamic> json) => _$CreditCardAccountFromJson(json);
 
 @override final  String id;
@@ -455,12 +440,9 @@ class CreditCardAccount extends AccountModel {
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
 @override final  DateTime initialBalanceDate;
-@override final  String? filePath;
-@override final  String? fileName;
-@override@JsonKey() final  AccountProcessingStatus processingStatus;
- final  double? limit;
- final  int? dueDay;
- final  int? closingDay;
+ final  double limit;
+ final  int dueDay;
+ final  int closingDay;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -479,16 +461,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreditCardAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreditCardAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,filePath,fileName,processingStatus,limit,dueDay,closingDay);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,limit,dueDay,closingDay);
 
 @override
 String toString() {
-  return 'AccountModel.creditCard(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, filePath: $filePath, fileName: $fileName, processingStatus: $processingStatus, limit: $limit, dueDay: $dueDay, closingDay: $closingDay)';
+  return 'AccountModel.creditCard(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, limit: $limit, dueDay: $dueDay, closingDay: $closingDay)';
 }
 
 
@@ -499,7 +481,7 @@ abstract mixin class $CreditCardAccountCopyWith<$Res> implements $AccountModelCo
   factory $CreditCardAccountCopyWith(CreditCardAccount value, $Res Function(CreditCardAccount) _then) = _$CreditCardAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus, double? limit, int? dueDay, int? closingDay
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, double limit, int dueDay, int closingDay
 });
 
 
@@ -516,7 +498,7 @@ class _$CreditCardAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? filePath = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? limit = freezed,Object? dueDay = freezed,Object? closingDay = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? limit = null,Object? dueDay = null,Object? closingDay = null,}) {
   return _then(CreditCardAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -525,13 +507,10 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,filePath: freezed == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
-as String?,fileName: freezed == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
-as String?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
-as AccountProcessingStatus,limit: freezed == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
-as double?,dueDay: freezed == dueDay ? _self.dueDay : dueDay // ignore: cast_nullable_to_non_nullable
-as int?,closingDay: freezed == closingDay ? _self.closingDay : closingDay // ignore: cast_nullable_to_non_nullable
-as int?,
+as DateTime,limit: null == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
+as double,dueDay: null == dueDay ? _self.dueDay : dueDay // ignore: cast_nullable_to_non_nullable
+as int,closingDay: null == closingDay ? _self.closingDay : closingDay // ignore: cast_nullable_to_non_nullable
+as int,
   ));
 }
 
@@ -542,7 +521,7 @@ as int?,
 @JsonSerializable()
 
 class DebtAccount extends AccountModel {
-  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, this.filePath, this.fileName, this.processingStatus = AccountProcessingStatus.none, this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
+  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
   factory DebtAccount.fromJson(Map<String, dynamic> json) => _$DebtAccountFromJson(json);
 
 @override final  String id;
@@ -552,10 +531,7 @@ class DebtAccount extends AccountModel {
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
 @override final  DateTime initialBalanceDate;
-@override final  String? filePath;
-@override final  String? fileName;
-@override@JsonKey() final  AccountProcessingStatus processingStatus;
- final  double? interestRate;
+ final  double interestRate;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -574,16 +550,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DebtAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.filePath, filePath) || other.filePath == filePath)&&(identical(other.fileName, fileName) || other.fileName == fileName)&&(identical(other.processingStatus, processingStatus) || other.processingStatus == processingStatus)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DebtAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,filePath,fileName,processingStatus,interestRate);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,interestRate);
 
 @override
 String toString() {
-  return 'AccountModel.debt(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, filePath: $filePath, fileName: $fileName, processingStatus: $processingStatus, interestRate: $interestRate)';
+  return 'AccountModel.debt(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, interestRate: $interestRate)';
 }
 
 
@@ -594,7 +570,7 @@ abstract mixin class $DebtAccountCopyWith<$Res> implements $AccountModelCopyWith
   factory $DebtAccountCopyWith(DebtAccount value, $Res Function(DebtAccount) _then) = _$DebtAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, String? filePath, String? fileName, AccountProcessingStatus processingStatus, double? interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, double interestRate
 });
 
 
@@ -611,7 +587,7 @@ class _$DebtAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? filePath = freezed,Object? fileName = freezed,Object? processingStatus = null,Object? interestRate = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? interestRate = null,}) {
   return _then(DebtAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -620,11 +596,8 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,filePath: freezed == filePath ? _self.filePath : filePath // ignore: cast_nullable_to_non_nullable
-as String?,fileName: freezed == fileName ? _self.fileName : fileName // ignore: cast_nullable_to_non_nullable
-as String?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
-as AccountProcessingStatus,interestRate: freezed == interestRate ? _self.interestRate : interestRate // ignore: cast_nullable_to_non_nullable
-as double?,
+as DateTime,interestRate: null == interestRate ? _self.interestRate : interestRate // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -894,6 +867,290 @@ as DateTime,
 }
 
 
+}
+
+
+/// @nodoc
+mixin _$AccountDocumentAnalysisResult {
+
+ AccountModel get account; List<OrderModel> get orders;
+/// Create a copy of AccountDocumentAnalysisResult
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$AccountDocumentAnalysisResultCopyWith<AccountDocumentAnalysisResult> get copyWith => _$AccountDocumentAnalysisResultCopyWithImpl<AccountDocumentAnalysisResult>(this as AccountDocumentAnalysisResult, _$identity);
+
+  /// Serializes this AccountDocumentAnalysisResult to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountDocumentAnalysisResult&&(identical(other.account, account) || other.account == account)&&const DeepCollectionEquality().equals(other.orders, orders));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,account,const DeepCollectionEquality().hash(orders));
+
+@override
+String toString() {
+  return 'AccountDocumentAnalysisResult(account: $account, orders: $orders)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $AccountDocumentAnalysisResultCopyWith<$Res>  {
+  factory $AccountDocumentAnalysisResultCopyWith(AccountDocumentAnalysisResult value, $Res Function(AccountDocumentAnalysisResult) _then) = _$AccountDocumentAnalysisResultCopyWithImpl;
+@useResult
+$Res call({
+ AccountModel account, List<OrderModel> orders
+});
+
+
+$AccountModelCopyWith<$Res> get account;
+
+}
+/// @nodoc
+class _$AccountDocumentAnalysisResultCopyWithImpl<$Res>
+    implements $AccountDocumentAnalysisResultCopyWith<$Res> {
+  _$AccountDocumentAnalysisResultCopyWithImpl(this._self, this._then);
+
+  final AccountDocumentAnalysisResult _self;
+  final $Res Function(AccountDocumentAnalysisResult) _then;
+
+/// Create a copy of AccountDocumentAnalysisResult
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? account = null,Object? orders = null,}) {
+  return _then(_self.copyWith(
+account: null == account ? _self.account : account // ignore: cast_nullable_to_non_nullable
+as AccountModel,orders: null == orders ? _self.orders : orders // ignore: cast_nullable_to_non_nullable
+as List<OrderModel>,
+  ));
+}
+/// Create a copy of AccountDocumentAnalysisResult
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$AccountModelCopyWith<$Res> get account {
+  
+  return $AccountModelCopyWith<$Res>(_self.account, (value) {
+    return _then(_self.copyWith(account: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [AccountDocumentAnalysisResult].
+extension AccountDocumentAnalysisResultPatterns on AccountDocumentAnalysisResult {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _AccountDocumentAnalysisResult value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _AccountDocumentAnalysisResult() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _AccountDocumentAnalysisResult value)  $default,){
+final _that = this;
+switch (_that) {
+case _AccountDocumentAnalysisResult():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _AccountDocumentAnalysisResult value)?  $default,){
+final _that = this;
+switch (_that) {
+case _AccountDocumentAnalysisResult() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AccountModel account,  List<OrderModel> orders)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _AccountDocumentAnalysisResult() when $default != null:
+return $default(_that.account,_that.orders);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AccountModel account,  List<OrderModel> orders)  $default,) {final _that = this;
+switch (_that) {
+case _AccountDocumentAnalysisResult():
+return $default(_that.account,_that.orders);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AccountModel account,  List<OrderModel> orders)?  $default,) {final _that = this;
+switch (_that) {
+case _AccountDocumentAnalysisResult() when $default != null:
+return $default(_that.account,_that.orders);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _AccountDocumentAnalysisResult extends AccountDocumentAnalysisResult {
+   _AccountDocumentAnalysisResult({required this.account, final  List<OrderModel> orders = const []}): _orders = orders,super._();
+  factory _AccountDocumentAnalysisResult.fromJson(Map<String, dynamic> json) => _$AccountDocumentAnalysisResultFromJson(json);
+
+@override final  AccountModel account;
+ final  List<OrderModel> _orders;
+@override@JsonKey() List<OrderModel> get orders {
+  if (_orders is EqualUnmodifiableListView) return _orders;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_orders);
+}
+
+
+/// Create a copy of AccountDocumentAnalysisResult
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$AccountDocumentAnalysisResultCopyWith<_AccountDocumentAnalysisResult> get copyWith => __$AccountDocumentAnalysisResultCopyWithImpl<_AccountDocumentAnalysisResult>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$AccountDocumentAnalysisResultToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _AccountDocumentAnalysisResult&&(identical(other.account, account) || other.account == account)&&const DeepCollectionEquality().equals(other._orders, _orders));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,account,const DeepCollectionEquality().hash(_orders));
+
+@override
+String toString() {
+  return 'AccountDocumentAnalysisResult(account: $account, orders: $orders)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$AccountDocumentAnalysisResultCopyWith<$Res> implements $AccountDocumentAnalysisResultCopyWith<$Res> {
+  factory _$AccountDocumentAnalysisResultCopyWith(_AccountDocumentAnalysisResult value, $Res Function(_AccountDocumentAnalysisResult) _then) = __$AccountDocumentAnalysisResultCopyWithImpl;
+@override @useResult
+$Res call({
+ AccountModel account, List<OrderModel> orders
+});
+
+
+@override $AccountModelCopyWith<$Res> get account;
+
+}
+/// @nodoc
+class __$AccountDocumentAnalysisResultCopyWithImpl<$Res>
+    implements _$AccountDocumentAnalysisResultCopyWith<$Res> {
+  __$AccountDocumentAnalysisResultCopyWithImpl(this._self, this._then);
+
+  final _AccountDocumentAnalysisResult _self;
+  final $Res Function(_AccountDocumentAnalysisResult) _then;
+
+/// Create a copy of AccountDocumentAnalysisResult
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? account = null,Object? orders = null,}) {
+  return _then(_AccountDocumentAnalysisResult(
+account: null == account ? _self.account : account // ignore: cast_nullable_to_non_nullable
+as AccountModel,orders: null == orders ? _self._orders : orders // ignore: cast_nullable_to_non_nullable
+as List<OrderModel>,
+  ));
+}
+
+/// Create a copy of AccountDocumentAnalysisResult
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$AccountModelCopyWith<$Res> get account {
+  
+  return $AccountModelCopyWith<$Res>(_self.account, (value) {
+    return _then(_self.copyWith(account: value));
+  });
+}
 }
 
 // dart format on

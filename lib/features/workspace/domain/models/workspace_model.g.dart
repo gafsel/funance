@@ -11,9 +11,11 @@ _WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       name: json['name'] as String,
       type: $enumDecode(_$WorkspaceTypeEnumMap, json['type']),
-      members: (json['members'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
+      members:
+          (json['members'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
 

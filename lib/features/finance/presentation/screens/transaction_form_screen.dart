@@ -1,215 +1,196 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/finance/domain/models/account_model.dart';
-import 'package:funances/features/workspace/presentation/providers/category_providers.dart';
-import 'package:intl/intl.dart';
-import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/form/manual_form.dart';
+import 'package:funances/core/form/responsive_grid.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
+import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/finance/presentation/providers/account_providers.dart';
-import 'package:funances/features/finance/presentation/providers/transaction_providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
-import 'package:funances/features/finance/presentation/providers/transaction_form_provider.dart';
+class TransactionFormScreen extends StatelessWidget {
+  final OrderType type;
+  final OrderModel? order;
+  final InstallmentModel? installment;
+  final CategoryModel? category;
+  final String? accountIdSource;
+  final String? accountIdTarget;
 
-class TransactionFormScreen extends ConsumerWidget {
-  final TransactionType initialType;
-  final OrderModel? initialOrder;
-  final CategoryModel? initialCategory;
-  final String? initialAccountId;
-  final String? initialToAccountId;
-  final bool isTransfer;
-  final double? initialAmount;
-
-  const TransactionFormScreen({
+  const TransactionFormScreen._({
     super.key,
-    required this.initialType,
-    this.initialOrder,
-    this.initialCategory,
-    this.initialAccountId,
-    this.initialToAccountId,
-    this.isTransfer = false,
-    this.initialAmount,
+    required this.type,
+    this.order,
+    this.installment,
+    this.category,
+    this.accountIdSource,
+    this.accountIdTarget,
   });
 
-  static final _formKey = GlobalKey<FormState>();
+  factory TransactionFormScreen.creation({
+    required OrderType type,
+    CategoryModel? category,
+    String? accountIdSource,
+    String? accountIdTarget,
+  }) {
+    return TransactionFormScreen._(
+      type: type,
+      category: category,
+      accountIdSource: accountIdSource,
+      accountIdTarget: accountIdTarget,
+    );
+  }
+
+  factory TransactionFormScreen.updateInstallment({
+    required InstallmentModel installment,
+  }) {
+    return TransactionFormScreen._(
+      type: installment.type,
+      installment: installment,
+    );
+  }
+
+  factory TransactionFormScreen.updateOrder({required OrderModel order}) {
+    return TransactionFormScreen._(type: order.type, order: order);
+  }
+
+  bool get updateOrder => order != null;
+
+  bool get updateInstallment => installment != null;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final args = TransactionFormArgs(
-      initialType: initialType,
-      initialOrder: initialOrder,
-      initialCategory: initialCategory,
-      initialAccountId: initialAccountId,
-      initialToAccountId: initialToAccountId,
-      isTransfer: isTransfer,
-      initialAmount: initialAmount,
-    );
-    
-    final state = ref.watch(transactionFormProvider(args));
-    final notifier = ref.read(transactionFormProvider(args).notifier);
-    final l10n = AppLocalizations.of(context)!;
-    final rawAccounts = ref.watch(accountsProvider).value ?? [];
-    final accounts = [...rawAccounts]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
 
-    final allCategories = ref.watch(categoriesProvider).value ?? [];
-
-    final isPlannedFlow =
-        state.currentType == TransactionType.plannedExpense ||
-        state.currentType == TransactionType.plannedIncome;
-
-    ref.listen(transactionFormProvider(args), (previous, next) {
-      if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.transactionSaveSuccess)),
-        );
-        Navigator.pop(context);
-      } else if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(next.errorMessage!),
-            backgroundColor: AppColors.coralOrange,
-          ),
-        );
-      }
-    });
-
-    OrderType currentOrderType = OrderType.expense;
-    if (state.isTransfer) {
-      currentOrderType = OrderType.transfer;
-    } else if (state.currentType == TransactionType.income ||
-        state.currentType == TransactionType.plannedIncome) {
-      currentOrderType = OrderType.income;
-    }
+    final provider = updateOrder
+        ? FinanceViewProviders.updateOrderForm(order!)
+        : updateInstallment
+        ? FinanceViewProviders.updateInstallmentForm(installment!)
+        : FinanceViewProviders.creationForm(
+            TransactionCreationArgs(
+              type: type,
+              category: category,
+              accountIdSource: accountIdSource,
+            ),
+          );
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          state.existingOrderId != null
+          updateOrder || updateInstallment
               ? l10n.historyEdit
-              : (isPlannedFlow ? l10n.transactionPlanExpense : l10n.transactionAddExpense),
+              : l10n.transactionAddExpense,
         ),
       ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isLargeScreen = constraints.maxWidth > 800;
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: ManualForm<TransactionFormState, void, TransactionFormNotifier>(
+          provider,
+          formBuilder: (context, snapshot) {
+            final state = snapshot.model;
+            final notifier = snapshot.notifier;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (state.selectedCategory != null && !state.isTransfer) ...[
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      onTap: () async {
-                        final category = await _showCategoryPicker(
-                            context, allCategories, currentOrderType);
-                        if (category != null) {
-                          notifier.updateCategory(category);
-                        }
-                      },
-                      leading: CircleAvatar(
-                        backgroundColor: Color(
+            return ResponsiveGrid(
+              children: [
+                if (state.category != null &&
+                    state.type != OrderType.transfer) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    onTap: () async {
+                      final category = await _showCategoryPicker(
+                        context,
+                        state.type,
+                      );
+                      if (category != null) {
+                        notifier.updateCategory(category);
+                      }
+                    },
+                    leading: CircleAvatar(
+                      backgroundColor: Color(
+                        int.parse(
+                          state.category!.color.replaceFirst('#', '0xFF'),
+                        ),
+                      ).withValues(alpha: 0.2),
+                      child: Icon(
+                        _getIconData(state.category!.icon),
+                        color: Color(
                           int.parse(
-                            state.selectedCategory!.color
-                                .replaceFirst('#', '0xFF'),
-                          ),
-                        ).withValues(alpha: 0.2),
-                        child: Icon(
-                          _getIconData(state.selectedCategory!.icon),
-                          color: Color(
-                            int.parse(
-                              state.selectedCategory!.color
-                                  .replaceFirst('#', '0xFF'),
-                            ),
+                            state.category!.color.replaceFirst('#', '0xFF'),
                           ),
                         ),
                       ),
-                      title: Text(state.selectedCategory!.name),
-                      subtitle: Text(l10n.transactionCategoriesSection),
-                      trailing: const Icon(Icons.chevron_right),
                     ),
-                    const SizedBox(height: 16),
-                  ] else if (state.isTransfer) ...[
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.brightCyan,
-                        child: Icon(Icons.swap_horiz, color: Colors.white),
-                      ),
-                      title: Text(l10n.transactionTypeTransfer),
-                      subtitle: Text(l10n.transactionCategoriesSection),
-                    ),
-                    const SizedBox(height: 16),
-                  ] else if (!state.isTransfer &&
-                      state.selectedCategory == null) ...[
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      onTap: () async {
-                        final category = await _showCategoryPicker(
-                            context, allCategories, currentOrderType);
-                        if (category != null) {
-                          notifier.updateCategory(category);
-                        }
-                      },
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.softGrey,
-                        child: Icon(Icons.category, color: Colors.white),
-                      ),
-                      title: Text(l10n.transactionCategoriesSection),
-                      subtitle: Text(l10n.fieldRequired),
-                      trailing: const Icon(Icons.chevron_right),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  if (isLargeScreen)
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            children: _buildBasicFields(context, state, notifier,
-                                l10n, isPlannedFlow, allCategories),
-                          ),
-                        ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          child: Column(
-                            children: _buildAccountFields(
-                                state, notifier, l10n, accounts),
-                          ),
-                        ),
-                      ],
-                    )
-                  else ...[
-                    ..._buildBasicFields(context, state, notifier, l10n,
-                        isPlannedFlow, allCategories),
-                    ..._buildAccountFields(state, notifier, l10n, accounts),
-                  ],
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: state.isLoading
-                        ? null
-                        : () {
-                            if (_formKey.currentState!.validate()) {
-                              notifier.submit();
-                            }
-                          },
-                    child: state.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2))
-                        : Text(l10n.saveButton),
+                    title: Text(state.category!.name),
+                    subtitle: Text(l10n.transactionCategoriesSection),
+                    trailing: const Icon(Icons.chevron_right),
                   ),
+                  const SizedBox(height: 16),
+                ] else if (state.type == OrderType.transfer) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(
+                      backgroundColor: AppColors.brightCyan,
+                      child: Icon(Icons.swap_horiz, color: Colors.white),
+                    ),
+                    title: Text(l10n.transactionTypeTransfer),
+                    subtitle: Text(l10n.transactionCategoriesSection),
+                  ),
+                  const SizedBox(height: 16),
+                ] else if (state.type != OrderType.transfer &&
+                    state.category == null) ...[
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    onTap: () async {
+                      final category = await _showCategoryPicker(
+                        context,
+                        state.type,
+                      );
+                      if (category != null) {
+                        notifier.updateCategory(category);
+                      }
+                    },
+                    leading: const CircleAvatar(
+                      backgroundColor: AppColors.softGrey,
+                      child: Icon(Icons.category, color: Colors.white),
+                    ),
+                    title: Text(l10n.transactionCategoriesSection),
+                    subtitle: Text(l10n.fieldRequired),
+                    trailing: const Icon(Icons.chevron_right),
+                  ),
+                  const SizedBox(height: 16),
                 ],
-              ),
-            ),
-          );
-        },
+
+                ..._buildBasicFields(context, state, notifier),
+                ..._buildAccountFields(context, state, notifier),
+                const SizedBox(height: 32),
+                LoadingButton.elevated(
+                  onPressed: (loading) async {
+                    if (snapshot.validate()) {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+
+                      await loading(notifier.submit());
+
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(l10n.transactionSaveSuccess)),
+                      );
+
+                      navigator.pop();
+                    }
+                  },
+                  child: Text(l10n.saveButton),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -218,22 +199,13 @@ class TransactionFormScreen extends ConsumerWidget {
     BuildContext context,
     TransactionFormState state,
     TransactionFormNotifier notifier,
-    AppLocalizations l10n,
-    bool isPlannedFlow,
-    List<CategoryModel> allCategories,
   ) {
-    OrderType currentOrderType = OrderType.expense;
-    if (state.isTransfer) {
-      currentOrderType = OrderType.transfer;
-    } else if (state.currentType == TransactionType.income ||
-        state.currentType == TransactionType.plannedIncome) {
-      currentOrderType = OrderType.income;
-    }
+    final l10n = context.l10n;
 
     return [
-      if (state.existingOrderId != null) ...[
+      if (state.orderId != null) ...[
         DropdownButtonFormField<OrderType>(
-          value: currentOrderType,
+          initialValue: state.type,
           decoration: InputDecoration(
             labelText: l10n.transactionOrderTypeLabel,
           ),
@@ -279,32 +251,27 @@ class TransactionFormScreen extends ConsumerWidget {
         validator: (v) => v?.isEmpty ?? true ? l10n.fieldRequired : null,
       ),
       const SizedBox(height: 16),
-      if (!state.isTransfer) ...[
-        DropdownButtonFormField<TransactionFormType>(
-          value: state.formType,
-          decoration: InputDecoration(
-            labelText: l10n.transactionTypeLabel,
-          ),
+      if (state.type != OrderType.transfer) ...[
+        DropdownButtonFormField<InstallmentType>(
+          initialValue: state.installmentType,
+          decoration: InputDecoration(labelText: l10n.transactionTypeLabel),
           items: [
             DropdownMenuItem(
-              value: TransactionFormType.simple,
+              value: InstallmentType.single,
               child: Text(l10n.transactionTypeSimple),
             ),
             DropdownMenuItem(
-              value: TransactionFormType.installment,
+              value: InstallmentType.installment,
               child: Text(l10n.transactionTypeInstallment),
             ),
             DropdownMenuItem(
-              value: TransactionFormType.recurrent,
+              value: InstallmentType.recurring,
               child: Text(l10n.transactionTypeRecurrent),
             ),
           ],
           onChanged: (v) {
             if (v != null) {
-              notifier.updateFormType(v);
-              if (v == TransactionFormType.simple) {
-                notifier.updateInstallments(1);
-              }
+              notifier.updateInstallmentType(v);
             }
           },
         ),
@@ -312,16 +279,16 @@ class TransactionFormScreen extends ConsumerWidget {
       ],
       ListTile(
         title: Text(l10n.transactionDateLabel),
-        subtitle: Text(DateFormat.yMd().format(state.selectedDate)),
+        subtitle: Text(state.dueDate.formated(l10n.formatSimpleDate)),
         trailing: const Icon(Icons.calendar_today),
         onTap: () async {
           final date = await showDatePicker(
             context: context,
-            initialDate: state.selectedDate,
-            firstDate: isPlannedFlow ? DateTime.now() : DateTime(2000),
-            lastDate: isPlannedFlow ? DateTime(2100) : DateTime.now(),
+            initialDate: state.dueDate,
+            firstDate: DateTime(2000),
+            lastDate: DateTime(2100),
           );
-          if (date != null) notifier.updateDate(date);
+          if (date != null) notifier.updateDueDate(date);
         },
       ),
       const Divider(),
@@ -329,63 +296,44 @@ class TransactionFormScreen extends ConsumerWidget {
   }
 
   List<Widget> _buildAccountFields(
+    BuildContext context,
     TransactionFormState state,
     TransactionFormNotifier notifier,
-    AppLocalizations l10n,
-    List<AccountModel> accounts,
   ) {
+    final l10n = context.l10n;
+
     return [
-      DropdownButtonFormField<String>(
-        value: accounts.any((a) => a.id == state.selectedAccountId)
-            ? state.selectedAccountId
-            : null,
+      AccountFormField(
+        initialValue: state.accountIdSource,
         decoration: InputDecoration(
-          labelText: state.isTransfer
+          labelText: state.type == OrderType.transfer
               ? l10n.transactionFromAccountLabel
               : l10n.transactionAccountLabel,
         ),
-        items: accounts
-            .map(
-              (acc) => DropdownMenuItem(
-                value: acc.id,
-                child: Text(acc.name),
-              ),
-            )
-            .toList(),
-        onChanged: notifier.updateAccountId,
+        onChanged: notifier.updateAccountIdSource,
         validator: (v) => v == null ? l10n.fieldRequired : null,
       ),
-      if (state.isTransfer) ...[
+      if (state.type == OrderType.transfer) ...[
         const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          value: accounts.any((a) => a.id == state.toAccountId)
-              ? state.toAccountId
-              : null,
+        AccountFormField(
+          initialValue: state.accountIdTarget,
           decoration: InputDecoration(
             labelText: l10n.transactionToAccountLabel,
           ),
-          items: accounts
-              .where((acc) => acc.id != state.selectedAccountId)
-              .map(
-                (acc) => DropdownMenuItem(
-                  value: acc.id,
-                  child: Text(acc.name),
-                ),
-              )
-              .toList(),
-          onChanged: notifier.updateToAccountId,
+          onChanged: notifier.updateAccountIdTarget,
           validator: (v) => v == null ? l10n.fieldRequired : null,
         ),
       ],
       if (state.formType == TransactionFormType.installment) ...[
         const SizedBox(height: 16),
         TextFormField(
-          initialValue: state.installments.toString(),
+          initialValue: state.installmentCount?.toString(),
           decoration: InputDecoration(
             labelText: l10n.transactionInstallmentsLabel,
           ),
           keyboardType: TextInputType.number,
-          onChanged: (v) => notifier.updateInstallments(int.tryParse(v) ?? 1),
+          onChanged: (v) =>
+              notifier.updateInstallmentCount(int.tryParse(v) ?? 1),
           validator: (v) {
             if (state.formType == TransactionFormType.installment) {
               final n = int.tryParse(v ?? '');
@@ -400,57 +348,63 @@ class TransactionFormScreen extends ConsumerWidget {
 
   Future<CategoryModel?> _showCategoryPicker(
     BuildContext context,
-    List<CategoryModel> allCategories,
     OrderType orderType,
   ) async {
-    final filteredCategories = allCategories.where((c) {
-      if (orderType == OrderType.income) {
-        return c.type == CategoryType.income || c.type == CategoryType.both;
-      }
-      return c.type == CategoryType.expense || c.type == CategoryType.both;
-    }).toList();
-    filteredCategories.sort(
-        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-
     return showModalBottomSheet<CategoryModel>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                AppLocalizations.of(context)!.transactionCategoriesSection,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: filteredCategories.length,
-                itemBuilder: (context, index) {
-                  final category = filteredCategories[index];
-                  return ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Color(
-                        int.parse(category.color.replaceFirst('#', '0xFF')),
-                      ).withValues(alpha: 0.2),
-                      child: Icon(
-                        _getIconData(category.icon),
-                        color: Color(
-                          int.parse(category.color.replaceFirst('#', '0xFF')),
+      builder: (context) => Consumer(
+        builder: (context, ref, _) {
+          final categories = ref
+              .watch(CategoryViewProviders.allStream)
+              .when(
+                data: (data) => data
+                    .where((c) => c.type == orderType.categoryType)
+                    .toList(),
+                error: (error, stack) => [],
+                loading: () => [],
+              );
+
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text(
+                    AppLocalizations.of(context)!.transactionCategoriesSection,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: categories.length,
+                    itemBuilder: (context, index) {
+                      final category = categories[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Color(
+                            int.parse(category.color.replaceFirst('#', '0xFF')),
+                          ).withValues(alpha: 0.2),
+                          child: Icon(
+                            _getIconData(category.icon),
+                            color: Color(
+                              int.parse(
+                                category.color.replaceFirst('#', '0xFF'),
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    title: Text(category.name),
-                    onTap: () => Navigator.pop(context, category),
-                  );
-                },
-              ),
+                        title: Text(category.name),
+                        onTap: () => Navigator.pop(context, category),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

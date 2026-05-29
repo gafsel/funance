@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/finance/presentation/providers/account_providers.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
 import 'package:uuid/uuid.dart';
@@ -56,7 +56,7 @@ class GoalFormNotifier extends StateNotifier<GoalFormState> {
   void updateAccountId(String? value) {
     state = state.copyWith(selectedAccountId: value);
     if (value != null) {
-      ref.read(latestAccountBalanceProvider(value).stream).first.then((balance) {
+      ref.read(AccountViewProviders.latestBalanceById(value).stream).first.then((balance) {
         if (state.type == GoalType.reduceCreditCard) {
           updateCurrentAmount(balance.balance.abs());
         } else if (state.type == GoalType.payDebt) {

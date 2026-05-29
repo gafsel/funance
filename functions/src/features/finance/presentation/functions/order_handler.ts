@@ -10,8 +10,8 @@ export const onOrderWritten = onDocumentWritten(
 
     // Se o dado foi deletado
     if (!event.data?.after.exists) {
-      console.log(`Order ${orderId} deletada no workspace ${workspaceId}. Removendo ledger entries.`);
-      await financeService.syncLedgerEntries(workspaceId, orderId, null);
+      console.log(`Order ${orderId} deletada no workspace ${workspaceId}. Removendo installments.`);
+      await financeService.syncInstallments(workspaceId, orderId, null);
       return;
     }
 
@@ -20,10 +20,9 @@ export const onOrderWritten = onDocumentWritten(
     const order: OrderModel = {
       id: orderId,
       ...data,
-      date: data?.date?.toDate ? data.date.toDate() : new Date(data?.date),
     } as OrderModel;
 
-    console.log(`Order ${orderId} criada/alterada no workspace ${workspaceId}. Sincronizando ledger entries.`);
-    await financeService.syncLedgerEntries(workspaceId, orderId, order);
+    console.log(`Order ${orderId} criada/alterada no workspace ${workspaceId}. Sincronizando installments.`);
+    await financeService.syncInstallments(workspaceId, orderId, order);
   }
 );

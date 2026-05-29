@@ -11,38 +11,11 @@ part of 'order_model.dart';
 
 // dart format off
 T _$identity<T>(T value) => value;
-OrderModel _$OrderModelFromJson(
-  Map<String, dynamic> json
-) {
-        switch (json['runtimeType']) {
-                  case 'expense':
-          return ExpenseOrder.fromJson(
-            json
-          );
-                case 'income':
-          return IncomeOrder.fromJson(
-            json
-          );
-                case 'transfer':
-          return TransferOrder.fromJson(
-            json
-          );
-        
-          default:
-            throw CheckedFromJsonException(
-  json,
-  'runtimeType',
-  'OrderModel',
-  'Invalid union type "${json['runtimeType']}"!'
-);
-        }
-      
-}
 
 /// @nodoc
 mixin _$OrderModel {
 
- String get id; String get description; double get totalAmount; CategoryModel get category; int get installmentsCount; DateTime get date; OrderStatus get status; String? get planningId; bool? get isDeleted;
+ String get id; double get amount; String get description; int get dueDay; String get startMonth; int? get installmentCount; InstallmentType get installmentType; OrderStatus get status; OrderType get type; InstallmentStatus? get installmentCreationStatus; Map<String, AccountImpact>? get accounts; CategoryModel? get category;
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -55,16 +28,16 @@ $OrderModelCopyWith<OrderModel> get copyWith => _$OrderModelCopyWithImpl<OrderMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.description, description) || other.description == description)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.installmentsCount, installmentsCount) || other.installmentsCount == installmentsCount)&&(identical(other.date, date) || other.date == date)&&(identical(other.status, status) || other.status == status)&&(identical(other.planningId, planningId) || other.planningId == planningId)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.description, description) || other.description == description)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.startMonth, startMonth) || other.startMonth == startMonth)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.status, status) || other.status == status)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentCreationStatus, installmentCreationStatus) || other.installmentCreationStatus == installmentCreationStatus)&&const DeepCollectionEquality().equals(other.accounts, accounts)&&(identical(other.category, category) || other.category == category));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,description,totalAmount,category,installmentsCount,date,status,planningId,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,amount,description,dueDay,startMonth,installmentCount,installmentType,status,type,installmentCreationStatus,const DeepCollectionEquality().hash(accounts),category);
 
 @override
 String toString() {
-  return 'OrderModel(id: $id, description: $description, totalAmount: $totalAmount, category: $category, installmentsCount: $installmentsCount, date: $date, status: $status, planningId: $planningId, isDeleted: $isDeleted)';
+  return 'OrderModel(id: $id, amount: $amount, description: $description, dueDay: $dueDay, startMonth: $startMonth, installmentCount: $installmentCount, installmentType: $installmentType, status: $status, type: $type, installmentCreationStatus: $installmentCreationStatus, accounts: $accounts, category: $category)';
 }
 
 
@@ -75,11 +48,11 @@ abstract mixin class $OrderModelCopyWith<$Res>  {
   factory $OrderModelCopyWith(OrderModel value, $Res Function(OrderModel) _then) = _$OrderModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, bool isDeleted
+ String id, double amount, String description, int dueDay, String startMonth, int? installmentCount, InstallmentType installmentType, OrderStatus status, OrderType type, InstallmentStatus? installmentCreationStatus, Map<String, AccountImpact>? accounts, CategoryModel? category
 });
 
 
-$CategoryModelCopyWith<$Res> get category;
+$CategoryModelCopyWith<$Res>? get category;
 
 }
 /// @nodoc
@@ -92,27 +65,33 @@ class _$OrderModelCopyWithImpl<$Res>
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? isDeleted = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? amount = null,Object? description = null,Object? dueDay = null,Object? startMonth = null,Object? installmentCount = freezed,Object? installmentType = null,Object? status = null,Object? type = null,Object? installmentCreationStatus = freezed,Object? accounts = freezed,Object? category = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
-as double,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as CategoryModel,installmentsCount: null == installmentsCount ? _self.installmentsCount : installmentsCount // ignore: cast_nullable_to_non_nullable
-as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as OrderStatus,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
-as String?,isDeleted: null == isDeleted ? _self.isDeleted! : isDeleted // ignore: cast_nullable_to_non_nullable
-as bool,
+as String,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as double,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,dueDay: null == dueDay ? _self.dueDay : dueDay // ignore: cast_nullable_to_non_nullable
+as int,startMonth: null == startMonth ? _self.startMonth : startMonth // ignore: cast_nullable_to_non_nullable
+as String,installmentCount: freezed == installmentCount ? _self.installmentCount : installmentCount // ignore: cast_nullable_to_non_nullable
+as int?,installmentType: null == installmentType ? _self.installmentType : installmentType // ignore: cast_nullable_to_non_nullable
+as InstallmentType,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as OrderStatus,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as OrderType,installmentCreationStatus: freezed == installmentCreationStatus ? _self.installmentCreationStatus : installmentCreationStatus // ignore: cast_nullable_to_non_nullable
+as InstallmentStatus?,accounts: freezed == accounts ? _self.accounts : accounts // ignore: cast_nullable_to_non_nullable
+as Map<String, AccountImpact>?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel?,
   ));
 }
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$CategoryModelCopyWith<$Res> get category {
-  
-  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+$CategoryModelCopyWith<$Res>? get category {
+    if (_self.category == null) {
+    return null;
+  }
+
+  return $CategoryModelCopyWith<$Res>(_self.category!, (value) {
     return _then(_self.copyWith(category: value));
   });
 }
@@ -133,13 +112,11 @@ extension OrderModelPatterns on OrderModel {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( ExpenseOrder value)?  expense,TResult Function( IncomeOrder value)?  income,TResult Function( TransferOrder value)?  transfer,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OrderModel value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case ExpenseOrder() when expense != null:
-return expense(_that);case IncomeOrder() when income != null:
-return income(_that);case TransferOrder() when transfer != null:
-return transfer(_that);case _:
+case _OrderModel() when $default != null:
+return $default(_that);case _:
   return orElse();
 
 }
@@ -157,13 +134,11 @@ return transfer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( ExpenseOrder value)  expense,required TResult Function( IncomeOrder value)  income,required TResult Function( TransferOrder value)  transfer,}){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OrderModel value)  $default,){
 final _that = this;
 switch (_that) {
-case ExpenseOrder():
-return expense(_that);case IncomeOrder():
-return income(_that);case TransferOrder():
-return transfer(_that);}
+case _OrderModel():
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -177,13 +152,11 @@ return transfer(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( ExpenseOrder value)?  expense,TResult? Function( IncomeOrder value)?  income,TResult? Function( TransferOrder value)?  transfer,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OrderModel value)?  $default,){
 final _that = this;
 switch (_that) {
-case ExpenseOrder() when expense != null:
-return expense(_that);case IncomeOrder() when income != null:
-return income(_that);case TransferOrder() when transfer != null:
-return transfer(_that);case _:
+case _OrderModel() when $default != null:
+return $default(_that);case _:
   return null;
 
 }
@@ -200,12 +173,10 @@ return transfer(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  expense,TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  income,TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? fromAccountId,  String? toAccountId,  bool isDeleted)?  transfer,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case ExpenseOrder() when expense != null:
-return expense(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case IncomeOrder() when income != null:
-return income(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case TransferOrder() when transfer != null:
-return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.fromAccountId,_that.toAccountId,_that.isDeleted);case _:
+case _OrderModel() when $default != null:
+return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category);case _:
   return orElse();
 
 }
@@ -223,12 +194,10 @@ return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)  expense,required TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)  income,required TResult Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? fromAccountId,  String? toAccountId,  bool isDeleted)  transfer,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category)  $default,) {final _that = this;
 switch (_that) {
-case ExpenseOrder():
-return expense(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case IncomeOrder():
-return income(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case TransferOrder():
-return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.fromAccountId,_that.toAccountId,_that.isDeleted);}
+case _OrderModel():
+return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -242,12 +211,10 @@ return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  expense,TResult? Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? accountId,  bool? isDeleted)?  income,TResult? Function( String id,  String description,  double totalAmount,  CategoryModel category,  int installmentsCount,  DateTime date,  OrderStatus status,  String? planningId,  String? fromAccountId,  String? toAccountId,  bool isDeleted)?  transfer,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category)?  $default,) {final _that = this;
 switch (_that) {
-case ExpenseOrder() when expense != null:
-return expense(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case IncomeOrder() when income != null:
-return income(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.accountId,_that.isDeleted);case TransferOrder() when transfer != null:
-return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_that.installmentsCount,_that.date,_that.status,_that.planningId,_that.fromAccountId,_that.toAccountId,_that.isDeleted);case _:
+case _OrderModel() when $default != null:
+return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category);case _:
   return null;
 
 }
@@ -256,90 +223,98 @@ return transfer(_that.id,_that.description,_that.totalAmount,_that.category,_tha
 }
 
 /// @nodoc
+@JsonSerializable()
 
-@JsonSerializable(explicitToJson: true)
-class ExpenseOrder extends OrderModel {
-  const ExpenseOrder({required this.id, required this.description, required this.totalAmount, required this.category, required this.installmentsCount, required this.date, required this.status, this.planningId, this.accountId, this.isDeleted, final  String? $type}): $type = $type ?? 'expense',super._();
-  factory ExpenseOrder.fromJson(Map<String, dynamic> json) => _$ExpenseOrderFromJson(json);
+class _OrderModel extends OrderModel {
+  const _OrderModel({required this.id, required this.amount, required this.description, required this.dueDay, required this.startMonth, this.installmentCount, required this.installmentType, required this.status, required this.type, this.installmentCreationStatus, final  Map<String, AccountImpact>? accounts, this.category}): _accounts = accounts,super._();
+  factory _OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
 
 @override final  String id;
+@override final  double amount;
 @override final  String description;
-@override final  double totalAmount;
-@override final  CategoryModel category;
-@override final  int installmentsCount;
-@override final  DateTime date;
+@override final  int dueDay;
+@override final  String startMonth;
+@override final  int? installmentCount;
+@override final  InstallmentType installmentType;
 @override final  OrderStatus status;
-@override final  String? planningId;
- final  String? accountId;
-@override final  bool? isDeleted;
+@override final  OrderType type;
+@override final  InstallmentStatus? installmentCreationStatus;
+ final  Map<String, AccountImpact>? _accounts;
+@override Map<String, AccountImpact>? get accounts {
+  final value = _accounts;
+  if (value == null) return null;
+  if (_accounts is EqualUnmodifiableMapView) return _accounts;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
 
-@JsonKey(name: 'runtimeType')
-final String $type;
-
+@override final  CategoryModel? category;
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$ExpenseOrderCopyWith<ExpenseOrder> get copyWith => _$ExpenseOrderCopyWithImpl<ExpenseOrder>(this, _$identity);
+_$OrderModelCopyWith<_OrderModel> get copyWith => __$OrderModelCopyWithImpl<_OrderModel>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$ExpenseOrderToJson(this, );
+  return _$OrderModelToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ExpenseOrder&&(identical(other.id, id) || other.id == id)&&(identical(other.description, description) || other.description == description)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.installmentsCount, installmentsCount) || other.installmentsCount == installmentsCount)&&(identical(other.date, date) || other.date == date)&&(identical(other.status, status) || other.status == status)&&(identical(other.planningId, planningId) || other.planningId == planningId)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.description, description) || other.description == description)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.startMonth, startMonth) || other.startMonth == startMonth)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.status, status) || other.status == status)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentCreationStatus, installmentCreationStatus) || other.installmentCreationStatus == installmentCreationStatus)&&const DeepCollectionEquality().equals(other._accounts, _accounts)&&(identical(other.category, category) || other.category == category));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,description,totalAmount,category,installmentsCount,date,status,planningId,accountId,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,amount,description,dueDay,startMonth,installmentCount,installmentType,status,type,installmentCreationStatus,const DeepCollectionEquality().hash(_accounts),category);
 
 @override
 String toString() {
-  return 'OrderModel.expense(id: $id, description: $description, totalAmount: $totalAmount, category: $category, installmentsCount: $installmentsCount, date: $date, status: $status, planningId: $planningId, accountId: $accountId, isDeleted: $isDeleted)';
+  return 'OrderModel(id: $id, amount: $amount, description: $description, dueDay: $dueDay, startMonth: $startMonth, installmentCount: $installmentCount, installmentType: $installmentType, status: $status, type: $type, installmentCreationStatus: $installmentCreationStatus, accounts: $accounts, category: $category)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $ExpenseOrderCopyWith<$Res> implements $OrderModelCopyWith<$Res> {
-  factory $ExpenseOrderCopyWith(ExpenseOrder value, $Res Function(ExpenseOrder) _then) = _$ExpenseOrderCopyWithImpl;
+abstract mixin class _$OrderModelCopyWith<$Res> implements $OrderModelCopyWith<$Res> {
+  factory _$OrderModelCopyWith(_OrderModel value, $Res Function(_OrderModel) _then) = __$OrderModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, String? accountId, bool? isDeleted
+ String id, double amount, String description, int dueDay, String startMonth, int? installmentCount, InstallmentType installmentType, OrderStatus status, OrderType type, InstallmentStatus? installmentCreationStatus, Map<String, AccountImpact>? accounts, CategoryModel? category
 });
 
 
-@override $CategoryModelCopyWith<$Res> get category;
+@override $CategoryModelCopyWith<$Res>? get category;
 
 }
 /// @nodoc
-class _$ExpenseOrderCopyWithImpl<$Res>
-    implements $ExpenseOrderCopyWith<$Res> {
-  _$ExpenseOrderCopyWithImpl(this._self, this._then);
+class __$OrderModelCopyWithImpl<$Res>
+    implements _$OrderModelCopyWith<$Res> {
+  __$OrderModelCopyWithImpl(this._self, this._then);
 
-  final ExpenseOrder _self;
-  final $Res Function(ExpenseOrder) _then;
+  final _OrderModel _self;
+  final $Res Function(_OrderModel) _then;
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? accountId = freezed,Object? isDeleted = freezed,}) {
-  return _then(ExpenseOrder(
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? amount = null,Object? description = null,Object? dueDay = null,Object? startMonth = null,Object? installmentCount = freezed,Object? installmentType = null,Object? status = null,Object? type = null,Object? installmentCreationStatus = freezed,Object? accounts = freezed,Object? category = freezed,}) {
+  return _then(_OrderModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
-as double,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as CategoryModel,installmentsCount: null == installmentsCount ? _self.installmentsCount : installmentsCount // ignore: cast_nullable_to_non_nullable
-as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as OrderStatus,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
-as String?,accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
-as String?,isDeleted: freezed == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
-as bool?,
+as String,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as double,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,dueDay: null == dueDay ? _self.dueDay : dueDay // ignore: cast_nullable_to_non_nullable
+as int,startMonth: null == startMonth ? _self.startMonth : startMonth // ignore: cast_nullable_to_non_nullable
+as String,installmentCount: freezed == installmentCount ? _self.installmentCount : installmentCount // ignore: cast_nullable_to_non_nullable
+as int?,installmentType: null == installmentType ? _self.installmentType : installmentType // ignore: cast_nullable_to_non_nullable
+as InstallmentType,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as OrderStatus,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as OrderType,installmentCreationStatus: freezed == installmentCreationStatus ? _self.installmentCreationStatus : installmentCreationStatus // ignore: cast_nullable_to_non_nullable
+as InstallmentStatus?,accounts: freezed == accounts ? _self._accounts : accounts // ignore: cast_nullable_to_non_nullable
+as Map<String, AccountImpact>?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel?,
   ));
 }
 
@@ -347,211 +322,12 @@ as bool?,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$CategoryModelCopyWith<$Res> get category {
-  
-  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
-    return _then(_self.copyWith(category: value));
-  });
-}
-}
+$CategoryModelCopyWith<$Res>? get category {
+    if (_self.category == null) {
+    return null;
+  }
 
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class IncomeOrder extends OrderModel {
-  const IncomeOrder({required this.id, required this.description, required this.totalAmount, required this.category, required this.installmentsCount, required this.date, required this.status, this.planningId, this.accountId, this.isDeleted, final  String? $type}): $type = $type ?? 'income',super._();
-  factory IncomeOrder.fromJson(Map<String, dynamic> json) => _$IncomeOrderFromJson(json);
-
-@override final  String id;
-@override final  String description;
-@override final  double totalAmount;
-@override final  CategoryModel category;
-@override final  int installmentsCount;
-@override final  DateTime date;
-@override final  OrderStatus status;
-@override final  String? planningId;
- final  String? accountId;
-@override final  bool? isDeleted;
-
-@JsonKey(name: 'runtimeType')
-final String $type;
-
-
-/// Create a copy of OrderModel
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$IncomeOrderCopyWith<IncomeOrder> get copyWith => _$IncomeOrderCopyWithImpl<IncomeOrder>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$IncomeOrderToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is IncomeOrder&&(identical(other.id, id) || other.id == id)&&(identical(other.description, description) || other.description == description)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.installmentsCount, installmentsCount) || other.installmentsCount == installmentsCount)&&(identical(other.date, date) || other.date == date)&&(identical(other.status, status) || other.status == status)&&(identical(other.planningId, planningId) || other.planningId == planningId)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,description,totalAmount,category,installmentsCount,date,status,planningId,accountId,isDeleted);
-
-@override
-String toString() {
-  return 'OrderModel.income(id: $id, description: $description, totalAmount: $totalAmount, category: $category, installmentsCount: $installmentsCount, date: $date, status: $status, planningId: $planningId, accountId: $accountId, isDeleted: $isDeleted)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $IncomeOrderCopyWith<$Res> implements $OrderModelCopyWith<$Res> {
-  factory $IncomeOrderCopyWith(IncomeOrder value, $Res Function(IncomeOrder) _then) = _$IncomeOrderCopyWithImpl;
-@override @useResult
-$Res call({
- String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, String? accountId, bool? isDeleted
-});
-
-
-@override $CategoryModelCopyWith<$Res> get category;
-
-}
-/// @nodoc
-class _$IncomeOrderCopyWithImpl<$Res>
-    implements $IncomeOrderCopyWith<$Res> {
-  _$IncomeOrderCopyWithImpl(this._self, this._then);
-
-  final IncomeOrder _self;
-  final $Res Function(IncomeOrder) _then;
-
-/// Create a copy of OrderModel
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? accountId = freezed,Object? isDeleted = freezed,}) {
-  return _then(IncomeOrder(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
-as double,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as CategoryModel,installmentsCount: null == installmentsCount ? _self.installmentsCount : installmentsCount // ignore: cast_nullable_to_non_nullable
-as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as OrderStatus,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
-as String?,accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
-as String?,isDeleted: freezed == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
-as bool?,
-  ));
-}
-
-/// Create a copy of OrderModel
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$CategoryModelCopyWith<$Res> get category {
-  
-  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
-    return _then(_self.copyWith(category: value));
-  });
-}
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class TransferOrder extends OrderModel {
-  const TransferOrder({required this.id, required this.description, required this.totalAmount, required this.category, required this.installmentsCount, required this.date, required this.status, this.planningId, this.fromAccountId, this.toAccountId, this.isDeleted = false, final  String? $type}): $type = $type ?? 'transfer',super._();
-  factory TransferOrder.fromJson(Map<String, dynamic> json) => _$TransferOrderFromJson(json);
-
-@override final  String id;
-@override final  String description;
-@override final  double totalAmount;
-@override final  CategoryModel category;
-@override final  int installmentsCount;
-@override final  DateTime date;
-@override final  OrderStatus status;
-@override final  String? planningId;
- final  String? fromAccountId;
- final  String? toAccountId;
-@override@JsonKey() final  bool isDeleted;
-
-@JsonKey(name: 'runtimeType')
-final String $type;
-
-
-/// Create a copy of OrderModel
-/// with the given fields replaced by the non-null parameter values.
-@override @JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$TransferOrderCopyWith<TransferOrder> get copyWith => _$TransferOrderCopyWithImpl<TransferOrder>(this, _$identity);
-
-@override
-Map<String, dynamic> toJson() {
-  return _$TransferOrderToJson(this, );
-}
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransferOrder&&(identical(other.id, id) || other.id == id)&&(identical(other.description, description) || other.description == description)&&(identical(other.totalAmount, totalAmount) || other.totalAmount == totalAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.installmentsCount, installmentsCount) || other.installmentsCount == installmentsCount)&&(identical(other.date, date) || other.date == date)&&(identical(other.status, status) || other.status == status)&&(identical(other.planningId, planningId) || other.planningId == planningId)&&(identical(other.fromAccountId, fromAccountId) || other.fromAccountId == fromAccountId)&&(identical(other.toAccountId, toAccountId) || other.toAccountId == toAccountId)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
-}
-
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,description,totalAmount,category,installmentsCount,date,status,planningId,fromAccountId,toAccountId,isDeleted);
-
-@override
-String toString() {
-  return 'OrderModel.transfer(id: $id, description: $description, totalAmount: $totalAmount, category: $category, installmentsCount: $installmentsCount, date: $date, status: $status, planningId: $planningId, fromAccountId: $fromAccountId, toAccountId: $toAccountId, isDeleted: $isDeleted)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $TransferOrderCopyWith<$Res> implements $OrderModelCopyWith<$Res> {
-  factory $TransferOrderCopyWith(TransferOrder value, $Res Function(TransferOrder) _then) = _$TransferOrderCopyWithImpl;
-@override @useResult
-$Res call({
- String id, String description, double totalAmount, CategoryModel category, int installmentsCount, DateTime date, OrderStatus status, String? planningId, String? fromAccountId, String? toAccountId, bool isDeleted
-});
-
-
-@override $CategoryModelCopyWith<$Res> get category;
-
-}
-/// @nodoc
-class _$TransferOrderCopyWithImpl<$Res>
-    implements $TransferOrderCopyWith<$Res> {
-  _$TransferOrderCopyWithImpl(this._self, this._then);
-
-  final TransferOrder _self;
-  final $Res Function(TransferOrder) _then;
-
-/// Create a copy of OrderModel
-/// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? description = null,Object? totalAmount = null,Object? category = null,Object? installmentsCount = null,Object? date = null,Object? status = null,Object? planningId = freezed,Object? fromAccountId = freezed,Object? toAccountId = freezed,Object? isDeleted = null,}) {
-  return _then(TransferOrder(
-id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
-as double,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as CategoryModel,installmentsCount: null == installmentsCount ? _self.installmentsCount : installmentsCount // ignore: cast_nullable_to_non_nullable
-as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
-as DateTime,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as OrderStatus,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
-as String?,fromAccountId: freezed == fromAccountId ? _self.fromAccountId : fromAccountId // ignore: cast_nullable_to_non_nullable
-as String?,toAccountId: freezed == toAccountId ? _self.toAccountId : toAccountId // ignore: cast_nullable_to_non_nullable
-as String?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
-as bool,
-  ));
-}
-
-/// Create a copy of OrderModel
-/// with the given fields replaced by the non-null parameter values.
-@override
-@pragma('vm:prefer-inline')
-$CategoryModelCopyWith<$Res> get category {
-  
-  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+  return $CategoryModelCopyWith<$Res>(_self.category!, (value) {
     return _then(_self.copyWith(category: value));
   });
 }

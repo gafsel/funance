@@ -2,25 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:funances/features/onboarding/presentation/provider.dart';
+import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import 'package:funances/features/workspace/presentation/providers/invite_providers.dart';
 import 'package:funances/features/workspace/presentation/screens/invite_list_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_providers.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
-import 'features/workspace/presentation/providers/workspace_providers.dart';
-import 'features/onboarding/presentation/providers/onboarding_providers.dart';
 import 'core/exceptions/business_exception.dart';
 import 'core/utils/error_messages.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -37,10 +35,7 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('pt', ''),
-        Locale('en', ''),
-      ],
+      supportedLocales: const [Locale('pt', ''), Locale('en', '')],
       theme: AppTheme.theme,
       home: const AuthWrapper(),
     );
@@ -53,17 +48,16 @@ class AuthWrapper extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
-    final workspaceState = ref.watch(workspaceNotifierProvider);
+    final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final inviteState = ref.watch(inviteNotifierProvider);
-    final onboardingState = ref.watch(onboardingNotifierProvider);
 
     return authState.when(
       data: (user) {
         if (user != null) {
           // 1. Aguarda carregamento inicial de tudo
-          if (workspaceState.isLoading || 
-              !workspaceState.initialLoadDone || 
-              inviteState.isLoading || 
+          if (workspaceState.isLoading ||
+              !workspaceState.initialLoadDone ||
+              inviteState.isLoading ||
               !inviteState.initialLoadDone) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
@@ -76,9 +70,11 @@ class AuthWrapper extends ConsumerWidget {
           }
 
           // 3. Se não tem workspaces ou está no onboarding e ainda não finalizou
-          if (workspaceState.availableWorkspaces.isEmpty || 
-              (onboardingState.createdWorkspaceId.isNotEmpty && !onboardingState.isFinalizing)) {
-            return const OnboardingScreen();
+          if (workspaceState.availableWorkspaces.isEmpty) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            );
           }
 
           // 4. Se tem workspaces, vai para o dashboard
@@ -87,19 +83,15 @@ class AuthWrapper extends ConsumerWidget {
           return const LoginScreen();
         }
       },
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, s) {
         String message = e.toString();
         if (e is BusinessException) {
           message = e.code.message(context);
         }
-        return Scaffold(
-          body: Center(child: Text(message)),
-        );
+        return Scaffold(body: Center(child: Text(message)));
       },
     );
   }
 }
-

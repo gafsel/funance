@@ -20,7 +20,7 @@ service cloud.firestore {
       }
 
       // Ledger Entries: Membros podem apenas ler
-      match /ledger_entries/{entryId} {
+      match /installments/{installmentId} {
         allow read: if isMember(workspaceId);
       }
 
@@ -35,17 +35,12 @@ service cloud.firestore {
       }
 
       // Planning: Membros podem ler e escrever
-      match /plannings/{planningId} {
+      match /category_planning/{planningId} {
         allow read, write: if isMember(workspaceId);
-
-        // Planning Summaries: Membros podem apenas ler
-        match /summaries/{summaryId} {
-          allow read: if isMember(workspaceId);
-        }
       }
 
       // Category Month Summaries: Membros podem apenas ler
-      match /category_month_summaries/{summaryId} {
+      match /period_summaries/{summaryId} {
         allow read: if isMember(workspaceId);
       }
 

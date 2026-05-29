@@ -1,23 +1,16 @@
-import 'package:json_annotation/json_annotation.dart';
-import '../../../finance/domain/models/order_model.dart';
-import '../../../finance/domain/models/planning_model.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/features/finance/domain/models/category_planning_model.dart';
+import 'package:funances/features/goal/domain/models/goal_model.dart';
 
 part 'onboarding_models.g.dart';
+part 'onboarding_models.freezed.dart';
 
-@JsonSerializable(explicitToJson: true)
-class ExtractedFinanceData {
-  final List<OrderModel> transactions;
-  final List<PlanningModel> planningSuggestions;
-  final double initialBalance;
-  final DateTime? initialDate;
+@freezed
+sealed class PlanningSuggestions with _$PlanningSuggestions {
+  factory PlanningSuggestions({
+    @Default([]) List<CategoryPlanningModel> plannings,
+    @Default([]) List<GoalModel> goals,
+  }) = _PlanningSuggestions;
 
-  ExtractedFinanceData({
-    required this.transactions,
-    required this.planningSuggestions,
-    required this.initialBalance,
-    this.initialDate,
-  });
-
-  factory ExtractedFinanceData.fromJson(Map<String, dynamic> json) => _$ExtractedFinanceDataFromJson(json);
-  Map<String, dynamic> toJson() => _$ExtractedFinanceDataToJson(this);
+  factory PlanningSuggestions.fromJson(Map<String, dynamic> json) => _$PlanningSuggestionsFromJson(json);
 }

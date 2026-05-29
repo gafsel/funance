@@ -207,14 +207,14 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);ca
 @JsonSerializable()
 
 class _WorkspaceModel implements WorkspaceModel {
-  const _WorkspaceModel({required this.id, required this.name, required this.type, required final  List<String> members, required this.createdAt}): _members = members;
+  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt}): _members = members;
   factory _WorkspaceModel.fromJson(Map<String, dynamic> json) => _$WorkspaceModelFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override final  WorkspaceType type;
  final  List<String> _members;
-@override List<String> get members {
+@override@JsonKey() List<String> get members {
   if (_members is EqualUnmodifiableListView) return _members;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_members);
