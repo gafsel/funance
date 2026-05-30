@@ -23,6 +23,7 @@ class TransactionFormScreen extends StatelessWidget {
   const TransactionFormScreen._({
     super.key,
     required this.type,
+    this.status,
     this.order,
     this.installment,
     this.category,
@@ -32,17 +33,21 @@ class TransactionFormScreen extends StatelessWidget {
 
   factory TransactionFormScreen.creation({
     required OrderType type,
+    InstallmentStatus? status,
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
   }) {
     return TransactionFormScreen._(
       type: type,
+      status: status,
       category: category,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
     );
   }
+
+  final InstallmentStatus? status;
 
   factory TransactionFormScreen.updateInstallment({
     required InstallmentModel installment,
@@ -74,8 +79,10 @@ class TransactionFormScreen extends StatelessWidget {
         : FinanceViewProviders.creationForm(
             TransactionCreationArgs(
               type: type,
+              status: status,
               category: category,
               accountIdSource: accountIdSource,
+              accountIdTarget: accountIdTarget,
             ),
           );
 
@@ -156,7 +163,10 @@ class TransactionFormScreen extends StatelessWidget {
                     ? l10n.transactionFromAccountLabel
                     : l10n.transactionAccountLabel,
               ),
-              onChanged: notifier.updateAccountIdSource,
+              onChanged:
+                  state.status != InstallmentStatus.paid || state.creation
+                  ? notifier.updateAccountIdSource
+                  : null,
               validator: v.all([v.notEmpty()]),
             ),
             if (state.type == OrderType.transfer) ...[
@@ -165,7 +175,10 @@ class TransactionFormScreen extends StatelessWidget {
                 decoration: InputDecoration(
                   labelText: l10n.transactionToAccountLabel,
                 ),
-                onChanged: notifier.updateAccountIdTarget,
+                onChanged:
+                    state.status != InstallmentStatus.paid || state.creation
+                    ? notifier.updateAccountIdTarget
+                    : null,
                 validator: v.all([v.notEmpty()]),
               ),
             ],
@@ -195,8 +208,42 @@ class TransactionFormScreen extends StatelessWidget {
   ) {
     final l10n = context.l10n;
     final v = context.validations;
+    final isPaid = state.status == InstallmentStatus.paid;
 
     return [
+      if (state.creation || state.formType == TransactionFormType.installment)
+        ChipFormField<InstallmentStatus>(
+          initialValue: state.status,
+          decoration: InputDecoration(
+            labelText: state.creation ? "Tipo de Cadastro" : "Status",
+          ),
+          options: state.creation
+              ? [
+                  const ChipFormFieldOption(
+                    value: InstallmentStatus.pending,
+                    label: "Planejamento",
+                  ),
+                  const ChipFormFieldOption(
+                    value: InstallmentStatus.paid,
+                    label: "Realizado",
+                  ),
+                ]
+              : [
+                  const ChipFormFieldOption(
+                    value: InstallmentStatus.pending,
+                    label: "Pendente",
+                  ),
+                  const ChipFormFieldOption(
+                    value: InstallmentStatus.paid,
+                    label: "Pago",
+                  ),
+                ],
+          onChanged: (v) {
+            if (v != null) {
+              notifier.updateStatus(v);
+            }
+          },
+        ),
       TextFormField(
         initialValue: state.description,
         decoration: InputDecoration(
@@ -204,6 +251,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         onChanged: notifier.updateDescription,
         validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
+        enabled: !isPaid || state.creation,
       ),
       DateFormField(
         initialValue: state.dueDate,
@@ -213,7 +261,7 @@ class TransactionFormScreen extends StatelessWidget {
           }
         },
         decoration: InputDecoration(labelText: l10n.transactionDateLabel),
-        enabled: state.orderId == null,
+        enabled: (state.orderId == null) && (!isPaid || state.creation),
         validator: v.all([v.notNull()]),
       ),
       TextFormField(
@@ -225,7 +273,30 @@ class TransactionFormScreen extends StatelessWidget {
         keyboardType: TextInputType.number,
         onChanged: (v) => notifier.updateAmount(double.tryParse(v) ?? 0),
         validator: v.all([v.notNull()]),
+        enabled: !isPaid || state.creation,
       ),
+      if (state.formType == TransactionFormType.installment && isPaid) ...[
+        DateFormField(
+          initialValue: state.paidDate,
+          onChanged: (date) {
+            if (date != null) {
+              notifier.updatePaidDate(date);
+            }
+          },
+          decoration: const InputDecoration(labelText: "Data de Pagamento"),
+          validator: v.all([v.notNull()]),
+        ),
+        TextFormField(
+          initialValue: state.paidAmount?.toString(),
+          decoration: const InputDecoration(
+            labelText: "Valor Pago",
+            prefixText: 'R\$ ',
+          ),
+          keyboardType: TextInputType.number,
+          onChanged: (v) => notifier.updatePaidAmount(double.tryParse(v) ?? 0),
+          validator: v.all([v.notNull()]),
+        ),
+      ],
       if (state.type != OrderType.transfer) ...[
         ChipFormField<InstallmentType>(
           initialValue: state.installmentType,

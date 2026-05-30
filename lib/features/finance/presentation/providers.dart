@@ -151,6 +151,7 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.creation(
             type: args.type,
+            status: args.status,
             category: args.category,
             accountIdSource: args.accountIdSource,
             accountIdTarget: args.accountIdTarget,

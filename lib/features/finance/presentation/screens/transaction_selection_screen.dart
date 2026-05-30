@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -11,8 +12,13 @@ import 'transaction_form_screen.dart';
 
 class TransactionSelectionScreen extends ConsumerWidget {
   final OrderType type;
+  final InstallmentStatus status;
 
-  const TransactionSelectionScreen({super.key, required this.type});
+  const TransactionSelectionScreen({
+    super.key,
+    required this.type,
+    this.status = InstallmentStatus.paid,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -94,6 +100,7 @@ class TransactionSelectionScreen extends ConsumerWidget {
                                           builder: (context) =>
                                               TransactionFormScreen.creation(
                                                 type: type,
+                                                status: status,
                                                 accountIdSource: fromAcc?.id,
                                                 accountIdTarget: toAcc?.id,
                                               ),
@@ -132,6 +139,7 @@ class TransactionSelectionScreen extends ConsumerWidget {
                                   builder: (context) =>
                                       TransactionFormScreen.creation(
                                         type: type,
+                                        status: status,
                                         category: cat,
                                         accountIdSource: acc?.id,
                                       ),

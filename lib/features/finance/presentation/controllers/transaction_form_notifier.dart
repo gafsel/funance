@@ -1,4 +1,5 @@
 import 'package:funances/core/form/form_notifier.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -41,6 +42,18 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
         category: type == OrderType.transfer ? null : state.category,
       );
     }
+  }
+
+  void updatePaidDate(DateTime? value) => state = state.copyWith(paidDate: value);
+
+  void updatePaidAmount(double? value) => state = state.copyWith(paidAmount: value);
+
+  void updateStatus(InstallmentStatus value) {
+    state = state.copyWith(
+      status: value,
+      paidAmount: value == InstallmentStatus.paid ? state.amount : state.paidAmount,
+      paidDate: value == InstallmentStatus.paid ? DateTime.now() : state.paidDate,
+    );
   }
 
   Future<bool> submit() async {

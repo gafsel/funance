@@ -42,20 +42,27 @@ export class FinanceService {
             const day = Math.min(order.dueDay, lastDayOfMonth);
             const dueDate = new Date(year, month, day);
 
+            const isFirst = i === 0;
+            const status = (isFirst && (order.installmentCreationStatus === InstallmentStatus.paid || order.installmentCreationStatus === InstallmentStatus.settled))
+                ? order.installmentCreationStatus
+                : InstallmentStatus.pending;
+
             expectedInstallments.push({
                 orderId: orderId,
                 amount: order.amount,
                 dueDate: dueDate,
                 description: `${order.description} (${i + 1} de ${installmentsToGenerate})`,
-                referenceDate: dueDate,
+                referenceDate: status === InstallmentStatus.paid || status === InstallmentStatus.settled ? dueDate : dueDate, // Simplificado, mas segue lógica
                 referenceAmount: order.amount,
-                status: InstallmentStatus.pending,
+                status: status,
                 type: order.type,
                 installmentType: order.installmentType,
                 installmentNumber: order.installmentType === InstallmentType.installment ? i + 1 : undefined,
                 installmentCount: order.installmentType === InstallmentType.installment ? order.installmentCount : undefined,
                 accounts: order.accounts,
                 category: order.category,
+                paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? order.amount : undefined,
+                paidDate: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? dueDate : undefined,
             });
         }
 

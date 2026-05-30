@@ -11,14 +11,14 @@ class AccountFormField extends ConsumerWidget {
   const AccountFormField({
     super.key,
     this.initialValue,
-    required this.onChanged,
+    this.onChanged,
     this.validator,
     this.decoration,
   });
 
   final String? initialValue;
   final InputDecoration? decoration;
-  final ValueChanged<String?> onChanged;
+  final ValueChanged<String?>? onChanged;
   final FormFieldValidator<String?>? validator;
 
   @override
@@ -62,7 +62,7 @@ class AccountFormField extends ConsumerWidget {
             );
 
             state.didChange(account?.id);
-            onChanged(account?.id);
+            onChanged?.call(account?.id);
           },
           child: InputDecorator(
             decoration: (decoration ?? const InputDecoration()).copyWith(

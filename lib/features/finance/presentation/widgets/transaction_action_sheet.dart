@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -59,46 +60,7 @@ class TransactionActionSheet extends StatelessWidget {
                       color: AppColors.vibrantTeal,
                       title: l10n.transactionTransfer,
                       description: l10n.transactionTransferDesc,
-                      onTap: () {
-                        Navigator.pop(context);
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          useSafeArea: true,
-                          builder: (context) => AccountSelectionScreen(
-                            title: l10n.transactionSelectSourceAccount,
-                            onAccountSelected: (sourceAccount) {
-                              Navigator.pop(context);
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                useSafeArea: true,
-                                builder: (context) => AccountSelectionScreen(
-                                  title: l10n
-                                      .transactionSelectDestinationAccount,
-                                  excludeAccountId: sourceAccount?.id,
-                                  onAccountSelected: (targetAccount) {
-                                    Navigator.pop(context);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            TransactionFormScreen.creation(
-                                              type: OrderType.transfer,
-                                              accountIdSource:
-                                                  sourceAccount?.id,
-                                              accountIdTarget:
-                                                  targetAccount?.id,
-                                            ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
+                      onTap: () => _handleTransfer(context, InstallmentStatus.paid, l10n),
                     ),
                     _buildGridItem(
                       context,
@@ -112,8 +74,9 @@ class TransactionActionSheet extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const TransactionSelectionScreen(
+                                TransactionSelectionScreen(
                                   type: OrderType.expense,
+                                  status: InstallmentStatus.paid,
                                 ),
                           ),
                         );
@@ -131,8 +94,57 @@ class TransactionActionSheet extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
-                                const TransactionSelectionScreen(
+                                TransactionSelectionScreen(
                                   type: OrderType.income,
+                                  status: InstallmentStatus.paid,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.swap_horiz,
+                      color: AppColors.vibrantTeal.withValues(alpha: 0.7),
+                      title: "Planejamento de Transferência",
+                      description: "Planeje uma transferência futura",
+                      onTap: () => _handleTransfer(context, InstallmentStatus.pending, l10n),
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.remove_circle_outline,
+                      color: AppColors.coralOrange.withValues(alpha: 0.7),
+                      title: "Planejamento de Despesa",
+                      description: "Planeje uma despesa futura",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TransactionSelectionScreen(
+                                  type: OrderType.expense,
+                                  status: InstallmentStatus.pending,
+                                ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildGridItem(
+                      context,
+                      icon: Icons.add_circle_outline,
+                      color: AppColors.successGold.withValues(alpha: 0.7),
+                      title: "Planejamento de Receita",
+                      description: "Planeje uma receita futura",
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                TransactionSelectionScreen(
+                                  type: OrderType.income,
+                                  status: InstallmentStatus.pending,
                                 ),
                           ),
                         );
@@ -145,6 +157,44 @@ class TransactionActionSheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _handleTransfer(BuildContext context, InstallmentStatus status, AppLocalizations l10n) {
+    Navigator.pop(context);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => AccountSelectionScreen(
+        title: l10n.transactionSelectSourceAccount,
+        onAccountSelected: (sourceAccount) {
+          Navigator.pop(context);
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            builder: (context) => AccountSelectionScreen(
+              title: l10n.transactionSelectDestinationAccount,
+              excludeAccountId: sourceAccount?.id,
+              onAccountSelected: (targetAccount) {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TransactionFormScreen.creation(
+                      type: OrderType.transfer,
+                      status: status,
+                      accountIdSource: sourceAccount?.id,
+                      accountIdTarget: targetAccount?.id,
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 

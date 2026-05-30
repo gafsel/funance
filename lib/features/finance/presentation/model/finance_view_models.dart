@@ -11,6 +11,7 @@ part 'finance_view_models.freezed.dart';
 sealed class TransactionCreationArgs with _$TransactionCreationArgs {
   factory TransactionCreationArgs({
     required OrderType type,
+    InstallmentStatus? status,
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
@@ -47,6 +48,7 @@ sealed class TransactionFormState with _$TransactionFormState {
 
   factory TransactionFormState.creation({
     required OrderType type,
+    InstallmentStatus? status,
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
@@ -56,6 +58,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       type: type,
       category: category,
       dueDate: DateTime.now(),
+      status: status ?? InstallmentStatus.pending,
       installmentType: InstallmentType.single,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
@@ -110,6 +113,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       installmentType: installmentType,
       installmentCount: installmentCount,
       status: OrderStatus.active,
+      installmentCreationStatus: status,
       type: type,
       accounts: {
         if (accountIdSource != null &&

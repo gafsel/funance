@@ -28,6 +28,7 @@ export interface OrderModel {
   installmentType: InstallmentType;
   status: OrderStatus;
   type: OrderType;
+  installmentCreationStatus?: InstallmentStatus;
   accounts?: Record<string, "debt" | "credit">;
   category?: CategoryModel;
 }
