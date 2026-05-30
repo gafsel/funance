@@ -26,7 +26,7 @@ sealed class CategoryFormState with _$CategoryFormState {
     );
   }
 
-  bool get creation => category != null;
+  bool get creation => category == null;
 
   CategoryModel asModel() {
     if (category != null) {

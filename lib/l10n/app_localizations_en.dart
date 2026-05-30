@@ -793,4 +793,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get formatSimpleDate => 'MM/dd/yyyy';
+
+  @override
+  String get errorLoadingData => 'Failed to load data.';
+
+  @override
+  String get retry => 'Try again';
 }

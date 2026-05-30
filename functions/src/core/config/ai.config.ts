@@ -64,15 +64,18 @@ export const DEFAULT_CONFIG: AIConfig = {
             CONSIDERAÇÕES DE DOCUMENTO:
             - Se for um EXTRATO/FATURA: Extraia transações reais (orders).
             - Se for um CONTRATO DE EMPRÉSTIMO/DÍVIDA: Configure a conta como tipo "debt", defina o saldo inicial como o valor total da dívida (negativo) e extraia as parcelas futuras se houver
+            - A data e o saldo inicial devem indicar o valor antes dos lançamentos (orders) identificados.
 
             Retorne apenas um objeto JSON no seguinte formato:
             {
                 "account": {
+                    "id": "temp-id",
                     "name": "Nome sugerido para a conta",
                     "runtimeType": "checking" | "investment" | "creditCard" | "debt",
                     "color": "#HEXCODE",
                     "icon": "ícone_material_design",
                     "initialBalance": 0.0,
+                    "initialBalanceDate": "YYYY-MM-DD",
                     "interestRate": 0.0,
                     "limit": 0.0,
                     "dueDay": 1,
@@ -88,9 +91,9 @@ export const DEFAULT_CONFIG: AIConfig = {
                         },
                         "description": "Descrição",
                         "amount": 100.0,
-                        "dueDate": "YYYY-MM-DD"
+                        "dueDate": "YYYY-MM-DD",
                         "installmentType": "single" | "installment" | "recurring",
-                        "installmentCount": 1,
+                        "installmentCount": 1
                     }
                 ]
             }

@@ -306,5 +306,7 @@
   "validationNotEmptyMessage": "Campo obrigatório.",
   "validationNotNullMessage": "Campo obrigatório.",
   "noRecordsFound": "Nenhum registro encontrado.",
-  "formatSimpleDate": "dd/MM/yyyy"
+  "formatSimpleDate": "dd/MM/yyyy",
+  "errorLoadingData": "Falha ao carregar os dados.",
+  "retry": "Tentar novamente"
 }

@@ -19,7 +19,9 @@ class TransactionListNotifier
             lastOrderId: chunkRef,
           );
         },
-      );
+      ) {
+    load();
+  }
 
   Future<void> delete(
     String id, {

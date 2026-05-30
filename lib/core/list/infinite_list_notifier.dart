@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/model/core_models.dart';
 
@@ -53,4 +54,7 @@ abstract class InfiniteListNotifier<Q, E>
       state = state.copyWith(status: InfiniteListStatus.error, error: ex);
     }
   }
+
+  @protected
+  void load() => _load();
 }

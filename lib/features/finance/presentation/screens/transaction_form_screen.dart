@@ -129,9 +129,7 @@ class TransactionFormScreen extends StatelessWidget {
                       }
                     }
                   : null,
-              validator: v.all([
-                v.notNull(),
-              ]),
+              validator: v.all([v.notNull()]),
             ),
             if (state.type == OrderType.transfer) ...[
               CategoryFormField.transfer(
@@ -147,9 +145,7 @@ class TransactionFormScreen extends StatelessWidget {
                   labelText: l10n.transactionCategoriesSection,
                 ),
                 onChanged: notifier.updateCategory,
-                validator: v.all([
-                  v.notNull(),
-                ]),
+                validator: v.all([v.notNull()]),
               ),
             ],
 
@@ -161,9 +157,7 @@ class TransactionFormScreen extends StatelessWidget {
                     : l10n.transactionAccountLabel,
               ),
               onChanged: notifier.updateAccountIdSource,
-              validator: v.all([
-                v.notEmpty(),
-              ]),
+              validator: v.all([v.notEmpty()]),
             ),
             if (state.type == OrderType.transfer) ...[
               AccountFormField(
@@ -172,9 +166,7 @@ class TransactionFormScreen extends StatelessWidget {
                   labelText: l10n.transactionToAccountLabel,
                 ),
                 onChanged: notifier.updateAccountIdTarget,
-                validator: v.all([
-                  v.notEmpty(),
-                ]),
+                validator: v.all([v.notEmpty()]),
               ),
             ],
             if (state.formType == TransactionFormType.installment) ...[
@@ -186,9 +178,7 @@ class TransactionFormScreen extends StatelessWidget {
                 keyboardType: TextInputType.number,
                 onChanged: (v) =>
                     notifier.updateInstallmentCount(int.tryParse(v) ?? 1),
-                validator: v.all([
-                  v.notEmpty(),
-                ]),
+                validator: v.all([v.notEmpty()]),
               ),
             ],
             ..._buildBasicFields(context, state, notifier),
@@ -213,10 +203,7 @@ class TransactionFormScreen extends StatelessWidget {
           labelText: l10n.transactionDescriptionLabel,
         ),
         onChanged: notifier.updateDescription,
-        validator: v.all([
-          v.notEmpty(),
-          v.length(max: 150, min: 3)
-        ]),
+        validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
       ),
       DateFormField(
         initialValue: state.dueDate,
@@ -227,9 +214,7 @@ class TransactionFormScreen extends StatelessWidget {
         },
         decoration: InputDecoration(labelText: l10n.transactionDateLabel),
         enabled: state.orderId == null,
-        validator: v.all([
-          v.notNull(),
-        ]),
+        validator: v.all([v.notNull()]),
       ),
       TextFormField(
         initialValue: state.amount > 0 ? state.amount.toString() : '',
@@ -239,9 +224,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         keyboardType: TextInputType.number,
         onChanged: (v) => notifier.updateAmount(double.tryParse(v) ?? 0),
-        validator: v.all([
-          v.notNull(),
-        ]),
+        validator: v.all([v.notNull()]),
       ),
       if (state.type != OrderType.transfer) ...[
         ChipFormField<InstallmentType>(
@@ -270,9 +253,13 @@ class TransactionFormScreen extends StatelessWidget {
       ],
       if (state.installmentType == InstallmentType.installment)
         TextFormField(
+          initialValue: (state.installmentCount ?? 1).toString(),
+          onChanged: (installment) =>
+              notifier.updateInstallmentCount(int.tryParse(installment) ?? 1),
           decoration: InputDecoration(
             labelText: l10n.transactionInstallmentsLabel,
           ),
+          validator: v.all([v.notEmpty()]),
         ),
     ];
   }

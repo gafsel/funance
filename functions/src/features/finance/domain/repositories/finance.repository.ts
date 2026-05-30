@@ -17,7 +17,7 @@ export interface IFinanceRepository {
   getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]>;
 
   // Installments
-  createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id">[]): Promise<void>;
+  createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void>;
   updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;
   deleteInstallment(workspaceId: string, installmentId: string): Promise<void>;
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;

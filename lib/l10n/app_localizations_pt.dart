@@ -797,4 +797,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get formatSimpleDate => 'dd/MM/yyyy';
+
+  @override
+  String get errorLoadingData => 'Falha ao carregar os dados.';
+
+  @override
+  String get retry => 'Tentar novamente';
 }

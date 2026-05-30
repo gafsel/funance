@@ -97,11 +97,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
         return {
             account: {
+                id: "temp-id",
                 name: fileName.split(".")[0],
-                type: "checking",
+                runtimeType: "checking",
                 color: "#4A8C9C",
                 icon: "account_balance",
                 initialBalance: 0.0,
+                initialBalanceDate: new Date().toISOString().split("T")[0],
                 metadata: {},
             },
             orders: [],

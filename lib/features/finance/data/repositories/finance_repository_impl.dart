@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/model/core_models.dart';
@@ -28,7 +30,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       Query query = _getWorkspaceDoc(workspaceId)
           .collection('installments')
-          .where("status", isNotEqualTo: InstallmentStatus.removed);
+          .where("status", isNotEqualTo: InstallmentStatus.removed.name);
 
       if (accountId != null && accountId.isNotEmpty) {
         query = query.where('accounts.$accountId', isNull: false);
@@ -58,6 +60,8 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         nextChunckRef: snapshot.docs.lastOrNull,
       );
     } catch (e, s) {
+      log("Failed to query installments: ${e.toString()}", error: e, stackTrace: s);
+
       throw BusinessException(
         ErrorCode.unknown,
         originalError: e,
@@ -163,6 +167,8 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       if (entry.paidDate != null) {
         data['paidDate'] = Timestamp.fromDate(entry.paidDate!);
       }
+      data['referenceDate'] = Timestamp.fromDate(entry.referenceDate);
+      data['referenceAmount'] = entry.referenceAmount;
       await _getWorkspaceDoc(workspaceId).collection('installments').add(data);
     } catch (e, s) {
       throw BusinessException(
@@ -185,6 +191,8 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       if (entry.paidDate != null) {
         data['paidDate'] = Timestamp.fromDate(entry.paidDate!);
       }
+      data['referenceDate'] = Timestamp.fromDate(entry.referenceDate);
+      data['referenceAmount'] = entry.referenceAmount;
       await _getWorkspaceDoc(
         workspaceId,
       ).collection('installments').doc(entry.id).update(data);

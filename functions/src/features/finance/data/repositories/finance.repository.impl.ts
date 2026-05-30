@@ -84,16 +84,23 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await batch.commit();
     }
 
-    async createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id">[]): Promise<void> {
+    async createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void> {
         const batch = this.firestore.batch();
         const collection = this.getInstallmentsCollection(workspaceId);
 
         installments.forEach((installment) => {
             const docRef = collection.doc();
+            const referenceDate = installment.paidDate || installment.dueDate;
+            const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null 
+                ? installment.paidAmount 
+                : installment.amount;
+
             batch.set(docRef, {
                 ...installment,
                 dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
                 paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
+                referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
+                referenceAmount: referenceAmount,
             });
         });
 
@@ -101,14 +108,39 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void> {
-        const data = { ...installment } as any;
-        if (data.dueDate) {
-            data.dueDate = admin.firestore.Timestamp.fromDate(data.dueDate as Date);
-        }
-        if (data.paidDate) {
-            data.paidDate = admin.firestore.Timestamp.fromDate(data.paidDate as Date);
-        }
-        await this.getInstallmentsCollection(workspaceId).doc(installmentId).update(data);
+        const docRef = this.getInstallmentsCollection(workspaceId).doc(installmentId);
+        
+        await this.firestore.runTransaction(async (transaction) => {
+            const doc = await transaction.get(docRef);
+            if (!doc.exists) return;
+
+            const currentData = doc.data() as any;
+            const data = { ...installment } as any;
+
+            if (data.dueDate) {
+                data.dueDate = admin.firestore.Timestamp.fromDate(data.dueDate as Date);
+            }
+            if (data.paidDate) {
+                data.paidDate = admin.firestore.Timestamp.fromDate(data.paidDate as Date);
+            }
+
+            // Recalcular referenceDate se dueDate ou paidDate mudarem
+            if (installment.paidDate !== undefined || installment.dueDate !== undefined) {
+                const paidDate = installment.paidDate !== undefined ? installment.paidDate : currentData.paidDate?.toDate();
+                const dueDate = installment.dueDate !== undefined ? installment.dueDate : currentData.dueDate.toDate();
+                const referenceDate = paidDate || dueDate;
+                data.referenceDate = admin.firestore.Timestamp.fromDate(referenceDate);
+            }
+
+            // Recalcular referenceAmount se paidAmount ou amount mudarem
+            if (installment.paidAmount !== undefined || installment.amount !== undefined) {
+                const paidAmount = installment.paidAmount !== undefined ? installment.paidAmount : currentData.paidAmount;
+                const amount = installment.amount !== undefined ? installment.amount : currentData.amount;
+                data.referenceAmount = (paidAmount !== undefined && paidAmount !== null) ? paidAmount : amount;
+            }
+
+            transaction.update(docRef, data);
+        });
     }
 
     async deleteInstallment(workspaceId: string, installmentId: string): Promise<void> {
@@ -202,30 +234,16 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const summaryId = `${year}${monthStr}-${category.id}`;
         const docRef = this.getPeriodSummariesCollection(workspaceId).doc(summaryId);
 
-        await this.firestore.runTransaction(async (transaction) => {
-            const doc = await transaction.get(docRef);
-            if (!doc.exists) {
-                transaction.set(docRef, {
-                    year,
-                    month: month ?? null,
-                    category,
-                    generalPlannedAmount: Math.max(0, data.generalPlannedDelta ?? 0),
-                    specificPlannedAmount: Math.max(0, data.specificPlannedDelta ?? 0),
-                    actualAmount: Math.max(0, data.actualDelta ?? 0),
-                    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-                });
-            }
-            else {
-                const currentData = doc.data()!;
-                transaction.update(docRef, {
-                    category,
-                    generalPlannedAmount: Math.max(0, (currentData.generalPlannedAmount || 0) + (data.generalPlannedDelta ?? 0)),
-                    specificPlannedAmount: Math.max(0, (currentData.specificPlannedAmount || 0) + (data.specificPlannedDelta ?? 0)),
-                    actualAmount: Math.max(0, (currentData.actualAmount || 0) + (data.actualDelta ?? 0)),
-                    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-                });
-            }
-        });
+        await docRef.set({
+            year,
+            month: month ?? null,
+            category,
+            generalPlannedAmount: admin.firestore.FieldValue.increment(data.generalPlannedDelta ?? 0),
+            specificPlannedAmount: admin.firestore.FieldValue.increment(data.specificPlannedDelta ?? 0),
+            actualAmount: admin.firestore.FieldValue.increment(data.actualDelta ?? 0),
+            lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+            runtimeType: month !== undefined ? "month" : "year",
+        }, { merge: true });
     }
 
     async updateSummaryCategoryInfo(workspaceId: string, category: CategoryModel): Promise<void> {
@@ -262,6 +280,13 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         await this.firestore.runTransaction(async (transaction) => {
             const doc = await transaction.get(docRef);
+
+            // Impactar saldos futuros dentro da mesma transação para garantir atomicidade
+            const futureBalances = await transaction.get(
+                this.getAccountBalanceCollection(workspaceId, accountId)
+                    .where(admin.firestore.FieldPath.documentId(), ">", dateId)
+            );
+
             if (!doc.exists) {
                 // Se não existe saldo no dia, precisamos buscar o último saldo anterior para compor o inicial
                 const lastBalanceDoc = await this.getLastBalanceBefore(workspaceId, accountId, date);
@@ -270,32 +295,24 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 transaction.set(docRef, {
                     balance: initialBalance + delta,
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
+                }, { merge: true });
             }
             else {
-                const currentBalance = doc.data()!.balance;
                 transaction.update(docRef, {
-                    balance: currentBalance + delta,
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
-            }
-        });
-
-        // Impactar saldos futuros
-        const futureBalances = await this.getAccountBalanceCollection(workspaceId, accountId)
-            .where(admin.firestore.FieldPath.documentId(), ">", dateId)
-            .get();
-
-        if (!futureBalances.empty) {
-            const batch = this.firestore.batch();
-            futureBalances.docs.forEach((doc) => {
-                batch.update(doc.ref, {
                     balance: admin.firestore.FieldValue.increment(delta),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
-            });
-            await batch.commit();
-        }
+            }
+
+            if (!futureBalances.empty) {
+                futureBalances.docs.forEach((d) => {
+                    transaction.update(d.ref, {
+                        balance: admin.firestore.FieldValue.increment(delta),
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    });
+                });
+            }
+        });
     }
 
     async getLastBalanceBefore(

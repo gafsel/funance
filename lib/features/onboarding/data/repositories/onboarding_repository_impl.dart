@@ -1,7 +1,9 @@
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/features/finance/data/models/finance_mapper.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/domain/repositories/onboarding_repository.dart';
+import 'package:uuid/uuid.dart';
 
 class OnboardingRepositoryImpl implements OnboardingRepository {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
@@ -15,9 +17,7 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
 
       final result = await callable.call({'workspaceId': workspaceId});
 
-      return PlanningSuggestions.fromJson(
-        (result.data as Map).map((k, v) => MapEntry(k.toString(), v)),
-      );
+      return FinanceMapper.toPlanningSuggestions(result.data);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

@@ -3,13 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:funances/features/onboarding/domain/repositories/onboarding_repository.dart';
+import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:uuid/uuid.dart';
 import '../../domain/models/account_model.dart';
-import '../../domain/repositories/account_repository.dart';
-import '../../../onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import '../models/account_mapper.dart';
+import '../models/finance_mapper.dart';
 
 class AccountRepositoryImpl implements IAccountRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -144,7 +143,7 @@ class AccountRepositoryImpl implements IAccountRepository {
       // 1. Upload para o Storage
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final storagePath =
-          'workspace/$workspaceId/account_analysis/${_auth.currentUser!.uid}_${timestamp}_$name';
+          'workspaces/$workspaceId/account_analysis/${_auth.currentUser!.uid}_${timestamp}_$name';
 
       await _storage.ref().child(storagePath).putFile(file);
 
@@ -155,9 +154,7 @@ class AccountRepositoryImpl implements IAccountRepository {
         'storagePath': storagePath,
       });
 
-      return AccountDocumentAnalysisResult.fromJson(
-        (result.data as Map).map((k, v) => MapEntry(k.toString(), v)),
-      );
+      return FinanceMapper.toAnalysisResult(result.data);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

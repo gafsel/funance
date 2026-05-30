@@ -1507,6 +1507,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'dd/MM/yyyy'**
   String get formatSimpleDate;
+
+  /// No description provided for @errorLoadingData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao carregar os dados.'**
+  String get errorLoadingData;
+
+  /// No description provided for @retry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar novamente'**
+  String get retry;
 }
 
 class _AppLocalizationsDelegate

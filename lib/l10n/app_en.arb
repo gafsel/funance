@@ -307,5 +307,7 @@
   "validationNotEmptyMessage": "Required field.",
   "validationNotNullMessage": "Required field.",
   "noRecordsFound": "No records found.",
-  "formatSimpleDate": "MM/dd/yyyy"
+  "formatSimpleDate": "MM/dd/yyyy",
+  "errorLoadingData": "Failed to load data.",
+  "retry": "Try again"
 }

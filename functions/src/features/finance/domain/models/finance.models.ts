@@ -21,6 +21,7 @@ export interface OrderModel {
   id: string;
   amount: number;
   dueDay: number;
+  description: string;
   startMonth: string; // YYYY-MM
   endMonth?: string; // YYYY-MM
   installmentCount?: number;
@@ -49,6 +50,7 @@ export interface InstallmentModel {
   orderId: string;
   amount: number;
   dueDate: Date;
+  description: string ;
   paidAmount?: number;
   paidDate?: Date;
   installmentNumber?: number;
@@ -59,6 +61,8 @@ export interface InstallmentModel {
   accounts?: Record<string, "debt" | "credit">;
   category?: CategoryModel;
   replicationCascade?: ReplicationCascade;
+  referenceDate: Date;
+  referenceAmount: number;
 }
 
 export interface CategoryPlanningModel {

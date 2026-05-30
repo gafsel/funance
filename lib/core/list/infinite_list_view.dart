@@ -58,9 +58,25 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
       itemBuilder: (context, index) {
         if (index >= state.items.length) {
           if (state.status == InfiniteListStatus.loading) {
-            return CircularProgressIndicator();
+            return const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            );
           } else if (state.status == InfiniteListStatus.error) {
-            return Container();
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red),
+                  SizedBox(height: 8),
+                  Text(l10n.errorLoadingData),
+                  TextButton(
+                    onPressed: () => notifier.reset(),
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
+            );
           } else if (state.hasNextChunk) {
             notifier.more();
           } else if (state.items.isEmpty) {

@@ -46,6 +46,9 @@ export class FinanceService {
                 orderId: orderId,
                 amount: order.amount,
                 dueDate: dueDate,
+                description: `${order.description} (${i + 1} de ${installmentsToGenerate})`,
+                referenceDate: dueDate,
+                referenceAmount: order.amount,
                 status: InstallmentStatus.pending,
                 type: order.type,
                 installmentType: order.installmentType,
@@ -81,6 +84,7 @@ export class FinanceService {
           JSON.stringify(existing.accounts) !== JSON.stringify(expected.accounts) ||
           existing.category?.id !== expected.category?.id ||
           existing.type !== expected.type ||
+          existing.description !== expected.description ||
           existing.installmentType !== expected.installmentType ||
           existing.installmentNumber !== expected.installmentNumber ||
           existing.installmentCount !== expected.installmentCount;
@@ -110,22 +114,57 @@ export class FinanceService {
         before: InstallmentModel | null,
         after: InstallmentModel | null
     ): Promise<void> {
-    // Só afeta saldo se status for 'paid'
-    
-        // Estorno do 'before' se era 'paid'
-        if (before && before.status === InstallmentStatus.paid && before.accounts && before.paidAmount && before.paidDate) {
-            for (const [accountId, role] of Object.entries(before.accounts)) {
-                const delta = role === "credit" ? -before.paidAmount : before.paidAmount;
-                await this.financeRepository.updateAccountBalance(workspaceId, accountId, before.paidDate, delta);
+        const isBeforePaid = before?.status === InstallmentStatus.paid;
+        const isAfterPaid = after?.status === InstallmentStatus.paid;
+
+        // Caso 1: Estorno (Era pago e deixou de ser, ou foi deletado)
+        if (isBeforePaid && (!after || !isAfterPaid)) {
+            await this.applyInstallmentBalance(workspaceId, before!, true);
+        }
+        // Caso 2: Novo pagamento (Não era pago e passou a ser)
+        else if (!isBeforePaid && after && isAfterPaid) {
+            await this.applyInstallmentBalance(workspaceId, after, false);
+        }
+        // Caso 3: Alteração em pagamento existente (Era pago e continua pago)
+        else if (isBeforePaid && isAfterPaid && before && after) {
+            const hasChangedAccount = JSON.stringify(before.accounts) !== JSON.stringify(after.accounts);
+            const hasChangedAmount = before.paidAmount !== after.paidAmount;
+            const hasChangedDate = before.paidDate?.getTime() !== after.paidDate?.getTime();
+
+            if (hasChangedAccount || hasChangedAmount || hasChangedDate) {
+                // Estorna o anterior e aplica o novo
+                await this.applyInstallmentBalance(workspaceId, before, true);
+                await this.applyInstallmentBalance(workspaceId, after, false);
             }
         }
+    }
 
-        // Aplicação do 'after' se é 'paid'
-        if (after && after.status === InstallmentStatus.paid && after.accounts && after.paidAmount && after.paidDate) {
-            for (const [accountId, role] of Object.entries(after.accounts)) {
-                const delta = role === "credit" ? after.paidAmount : -after.paidAmount;
-                await this.financeRepository.updateAccountBalance(workspaceId, accountId, after.paidDate, delta);
+    private async applyInstallmentBalance(
+        workspaceId: string,
+        installment: InstallmentModel,
+        isReversal: boolean
+    ): Promise<void> {
+        if (!installment.accounts || !installment.paidAmount || !installment.paidDate) {
+            return;
+        }
+
+        for (const [accountId, role] of Object.entries(installment.accounts)) {
+            // Se for expense/transfer (debt): -amount. Se for income (credit): +amount.
+            // Se for estorno (isReversal), inverte o sinal.
+            
+            let delta = 0;
+            if (role === "credit") {
+                delta = installment.paidAmount;
             }
+            else {
+                delta = -installment.paidAmount;
+            }
+
+            if (isReversal) {
+                delta = -delta;
+            }
+
+            await this.financeRepository.updateAccountBalance(workspaceId, accountId, installment.paidDate, delta);
         }
     }
 
