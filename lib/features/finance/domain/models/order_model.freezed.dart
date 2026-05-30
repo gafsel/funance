@@ -223,8 +223,8 @@ return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.start
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _OrderModel extends OrderModel {
   const _OrderModel({required this.id, required this.amount, required this.description, required this.dueDay, required this.startMonth, this.installmentCount, required this.installmentType, required this.status, required this.type, this.installmentCreationStatus, final  Map<String, AccountImpact>? accounts, this.category}): _accounts = accounts,super._();
   factory _OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);

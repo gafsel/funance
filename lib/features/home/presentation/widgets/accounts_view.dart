@@ -16,124 +16,113 @@ class AccountsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final accountsByTypeAsync = ref.watch(AccountViewProviders.byTypeMap);
     final selectedAccountType = ref.watch(AccountViewProviders.overviewType);
+    final groupedAccounts =
+        ref.watch(AccountViewProviders.byTypeMap).value ??
+        {selectedAccountType: []};
 
-    return accountsByTypeAsync.when(
-      data: (groupedAccounts) {
-        final types = AccountType.values;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: types.map((type) {
-                  final isSelected = selectedAccountType == type;
-                  final count = groupedAccounts[type]?.length ?? 0;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(l10n.fromAccountType(type)),
-                          if (count > 0) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              '($count)',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isSelected
-                                    ? AppColors.deepTurquoise
-                                    : Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      selected: isSelected,
-                      onSelected: (_) {
-                        ref
-                                .read(
-                                  AccountViewProviders.overviewType.notifier,
-                                )
-                                .state =
-                            type;
-                      },
-                      selectedColor: AppColors.vibrantTeal.withValues(
-                        alpha: 0.2,
-                      ),
-                      labelStyle: TextStyle(
-                        color: isSelected
-                            ? AppColors.deepTurquoise
-                            : Colors.grey,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 140,
-              child: Builder(
-                builder: (context) {
-                  return ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount:
-                        (groupedAccounts[selectedAccountType]?.length ?? 0),
-                    itemBuilder: (context, index) {
-                      int currentIdx = 0;
-                      final accounts =
-                          groupedAccounts[selectedAccountType] ?? [];
-                      final typeCount = accounts.length + 2;
+    final types = AccountType.values;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildOptions(types, selectedAccountType, groupedAccounts, l10n, ref),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 140,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount:
+            (groupedAccounts[selectedAccountType]?.length ?? 0) + 2,
+            itemBuilder: (context, index) {
+              int currentIdx = 0;
+              final accounts =
+                  groupedAccounts[selectedAccountType] ?? [];
+              final typeCount = accounts.length + 2;
 
-                      if (index >= currentIdx &&
-                          index < currentIdx + typeCount) {
-                        final innerIndex = index - currentIdx;
-                        if (innerIndex == 0) {
-                          if (accounts.length > 1) {
-                            return _buildGroupTotalCard(
-                              context,
-                              selectedAccountType,
-                            );
-                          } else {
-                            return SizedBox.shrink();
-                          }
-                        }
-                        if (innerIndex == accounts.length + 1) {
-                          if (accounts.isEmpty) {
-                            return _buildAddAccountCard(
-                              context,
-                              selectedAccountType,
-                            );
-                          } else {
-                            return SizedBox.shrink();
-                          }
-                        }
-                        final account = accounts[innerIndex - 1];
-                        return _buildAccountItem(context, account);
-                      }
-                      currentIdx += typeCount;
-                      return const SizedBox.shrink();
-                    },
+              if (index >= currentIdx &&
+                  index < currentIdx + typeCount) {
+                final innerIndex = index - currentIdx;
+                if (innerIndex == 0) {
+                  if (accounts.length > 1) {
+                    return _buildGroupTotalCard(
+                      context,
+                      selectedAccountType,
+                    );
+                  } else {
+                    return SizedBox.shrink();
+                  }
+                }
+                if (innerIndex == accounts.length + 1) {
+                  return _buildAddAccountCard(
+                    context,
+                    selectedAccountType,
                   );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-      loading: () => const SizedBox(
-        height: 180,
-        child: Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, __) => Text(err.toString()),
+                }
+                final account = accounts[innerIndex - 1];
+                return _buildAccountItem(context, account);
+              }
+              currentIdx += typeCount;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ],
     );
+  }
+
+  SingleChildScrollView _buildOptions(List<AccountType> types, AccountType selectedAccountType, Map<AccountType, List<AccountModel>> groupedAccounts, AppLocalizations l10n, WidgetRef ref) {
+    return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: types.map((type) {
+            final isSelected = selectedAccountType == type;
+            final count = groupedAccounts[type]?.length ?? 0;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(l10n.fromAccountType(type)),
+                    if (count > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '($count)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isSelected
+                              ? AppColors.deepTurquoise
+                              : Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                selected: isSelected,
+                onSelected: (_) {
+                  ref
+                      .read(
+                    AccountViewProviders.overviewType.notifier,
+                  )
+                      .state =
+                      type;
+                },
+                selectedColor: AppColors.vibrantTeal.withValues(
+                  alpha: 0.2,
+                ),
+                labelStyle: TextStyle(
+                  color: isSelected
+                      ? AppColors.deepTurquoise
+                      : Colors.grey,
+                  fontWeight: isSelected
+                      ? FontWeight.bold
+                      : FontWeight.normal,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      );
   }
 
   Widget _buildAddAccountCard(BuildContext context, AccountType type) {

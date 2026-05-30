@@ -61,39 +61,41 @@ class TransactionActionSheet extends StatelessWidget {
                       description: l10n.transactionTransferDesc,
                       onTap: () {
                         Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AccountSelectionScreen(
-                              title: l10n.transactionSelectSourceAccount,
-                              onAccountSelected: (sourceAccount) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AccountSelectionScreen(
-                                      title: l10n
-                                          .transactionSelectDestinationAccount,
-                                      excludeAccountId: sourceAccount.id,
-                                      onAccountSelected: (targetAccount) {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                TransactionFormScreen.creation(
-                                                  type: OrderType.transfer,
-                                                  accountIdSource:
-                                                      sourceAccount.id,
-                                                  accountIdTarget:
-                                                      targetAccount.id,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          builder: (context) => AccountSelectionScreen(
+                            title: l10n.transactionSelectSourceAccount,
+                            onAccountSelected: (sourceAccount) {
+                              Navigator.pop(context);
+                              showModalBottomSheet(
+                                context: context,
+                                isScrollControlled: true,
+                                useSafeArea: true,
+                                builder: (context) => AccountSelectionScreen(
+                                  title: l10n
+                                      .transactionSelectDestinationAccount,
+                                  excludeAccountId: sourceAccount?.id,
+                                  onAccountSelected: (targetAccount) {
+                                    Navigator.pop(context);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            TransactionFormScreen.creation(
+                                              type: OrderType.transfer,
+                                              accountIdSource:
+                                                  sourceAccount?.id,
+                                              accountIdTarget:
+                                                  targetAccount?.id,
+                                            ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
                           ),
                         );
                       },

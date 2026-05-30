@@ -50,6 +50,7 @@ enum InstallmentType {
 sealed class OrderModel with _$OrderModel {
   const OrderModel._();
 
+  @JsonSerializable(explicitToJson: true)
   const factory OrderModel({
     required String id,
     required double amount,

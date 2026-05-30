@@ -47,7 +47,7 @@ Map<String, dynamic> _$OrderModelToJson(_OrderModel instance) =>
       'accounts': instance.accounts?.map(
         (k, e) => MapEntry(k, _$AccountImpactEnumMap[e]!),
       ),
-      'category': instance.category,
+      'category': instance.category?.toJson(),
     };
 
 const _$InstallmentTypeEnumMap = {

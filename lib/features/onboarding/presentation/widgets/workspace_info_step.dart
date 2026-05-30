@@ -15,9 +15,6 @@ class WorkspaceInfoStep extends ConsumerWidget {
     final workspace = ref.watch(
       OnboardingViewProviders.onboarding.select((s) => s.workspace),
     );
-    final currentStep = ref.watch(
-      OnboardingViewProviders.onboarding.select((s) => s.currentStep),
-    );
     final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
     final l10n = AppLocalizations.of(context)!;
     return Padding(

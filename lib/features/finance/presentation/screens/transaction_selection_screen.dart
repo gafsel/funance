@@ -71,37 +71,39 @@ class TransactionSelectionScreen extends ConsumerWidget {
                         color: AppColors.brightCyan,
                         label: l10n.transactionTypeTransfer,
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => AccountSelectionScreen(
-                                title: l10n.transactionFromAccountLabel,
-                                onAccountSelected: (fromAcc) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => AccountSelectionScreen(
-                                        title: l10n.transactionToAccountLabel,
-                                        excludeAccountId: fromAcc.id,
-                                        onAccountSelected: (toAcc) {
-                                          Navigator.pushAndRemoveUntil(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  TransactionFormScreen.creation(
-                                                    type: type,
-                                                    accountIdSource: fromAcc.id,
-                                                    accountIdTarget: toAcc.id,
-                                                  ),
-                                            ),
-                                            (route) => route.isFirst,
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            useSafeArea: true,
+                            builder: (context) => AccountSelectionScreen(
+                              title: l10n.transactionFromAccountLabel,
+                              onAccountSelected: (fromAcc) {
+                                Navigator.pop(context); // Fecha primeiro modal
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  useSafeArea: true,
+                                  builder: (context) => AccountSelectionScreen(
+                                    title: l10n.transactionToAccountLabel,
+                                    excludeAccountId: fromAcc?.id,
+                                    onAccountSelected: (toAcc) {
+                                      Navigator.pop(context); // Fecha segundo modal
+                                      Navigator.pushAndRemoveUntil(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              TransactionFormScreen.creation(
+                                                type: type,
+                                                accountIdSource: fromAcc?.id,
+                                                accountIdTarget: toAcc?.id,
+                                              ),
+                                        ),
+                                        (route) => route.isFirst,
+                                      );
+                                    },
+                                  ),
+                                );
+                              },
                             ),
                           );
                         },
@@ -116,26 +118,27 @@ class TransactionSelectionScreen extends ConsumerWidget {
                       ),
                       label: cat.name,
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AccountSelectionScreen(
-                              title: l10n.transactionAccountLabel,
-                              onAccountSelected: (acc) {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        TransactionFormScreen.creation(
-                                          type: type,
-                                          category: cat,
-                                          accountIdSource: acc.id,
-                                        ),
-                                  ),
-                                  (route) => route.isFirst,
-                                );
-                              },
-                            ),
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          builder: (context) => AccountSelectionScreen(
+                            title: l10n.transactionAccountLabel,
+                            onAccountSelected: (acc) {
+                              Navigator.pop(context);
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      TransactionFormScreen.creation(
+                                        type: type,
+                                        category: cat,
+                                        accountIdSource: acc?.id,
+                                      ),
+                                ),
+                                (route) => route.isFirst,
+                              );
+                            },
                           ),
                         );
                       },

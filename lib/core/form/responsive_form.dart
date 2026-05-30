@@ -1,0 +1,116 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/form/form_notifier.dart';
+import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/form/manual_form.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+
+typedef FieldsBuilder<I, O, N extends FormNotifier<I, O>> =
+    List<Widget> Function(
+      BuildContext context,
+      FormBuilderSnapshot<I, O, N> snapshot,
+    );
+
+class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
+    extends StatelessWidget {
+  const ResponsiveForm(
+    this.provider, {
+    super.key,
+    required this.fieldsBuilder,
+    this.submitLabel,
+    this.extraActions = const [],
+    this.onSuccess,
+  });
+
+  final AutoDisposeStateNotifierProvider<N, I> provider;
+  final FieldsBuilder<I, O, N> fieldsBuilder;
+  final String? submitLabel;
+  final List<Widget> extraActions;
+  final ValueChanged<O>? onSuccess;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: ManualForm<I, O, N>(
+        provider,
+        formBuilder: (context, snapshot) {
+          return Column(
+            children: [
+              _ResponsiveGrid(
+                spacing: 16,
+                children: fieldsBuilder(context, snapshot),
+              ),
+              Divider(height: 32),
+              Row(
+                children: [
+                  LoadingButton.elevated(
+                    child: Text(submitLabel ?? l10n.saveButton),
+                    onPressed: (loading) async {
+                      if (snapshot.validate()) {
+                        final output = await loading(
+                          snapshot.notifier.submit(),
+                        );
+
+                        if (output != null) {
+                          onSuccess?.call(output);
+                        }
+                      }
+                    },
+                  ),
+                  Spacer(),
+                  ...extraActions,
+                ],
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ResponsiveGrid extends StatelessWidget {
+  const _ResponsiveGrid({
+    super.key,
+    required this.children,
+    this.spacing = 0.0,
+  });
+
+  final List<Widget> children;
+  final double spacing;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double maxWidth = constraints.maxWidth;
+        final bool isLargeScreen = maxWidth > 800;
+
+        if (isLargeScreen) {
+          final int columns = (maxWidth / 350).toInt().clamp(1, 4);
+          final double itemWidth =
+              (maxWidth - (spacing * (columns - 1))) / columns;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: children
+                .map((child) => SizedBox(width: itemWidth, child: child))
+                .toList(),
+          );
+        }
+
+        return Column(
+          spacing: spacing,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        );
+      },
+    );
+  }
+}

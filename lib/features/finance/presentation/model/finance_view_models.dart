@@ -106,7 +106,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       amount: amount,
       description: description,
       dueDay: dueDate.day,
-      startMonth: dueDate.formated("YYYY-MM"),
+      startMonth: dueDate.formated("yyyy-MM"),
       installmentType: installmentType,
       installmentCount: installmentCount,
       status: OrderStatus.active,

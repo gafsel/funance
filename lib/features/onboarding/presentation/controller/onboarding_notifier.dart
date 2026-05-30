@@ -54,6 +54,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   void setWorkspaceType(WorkspaceType type) {
     state = state.copyWith(workspace: state.workspace.copyWith(type: type));
+
+    nextStep();
   }
 
   void setWorkspaceName(String name) {
