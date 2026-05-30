@@ -139,6 +139,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 data.referenceAmount = (paidAmount !== undefined && paidAmount !== null) ? paidAmount : amount;
             }
 
+            // Sincronizar accountIds se accounts mudar
+            if (installment.accounts !== undefined) {
+                data.accountIds = Object.keys(installment.accounts || {});
+            }
+
             transaction.update(docRef, data);
         });
     }
@@ -179,7 +184,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         let query: admin.firestore.Query = this.getInstallmentsCollection(workspaceId);
 
         if (filters.accountId) {
-            query = query.orderBy(`accounts.${filters.accountId}`);
+            query = query.where("accountIds", "array-contains", filters.accountId);
         }
 
         const snapshot = await query.get();

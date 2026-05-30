@@ -15,3 +15,11 @@ sealed class SummaryState with _$SummaryState {
     required double totalAmount,
   }) = _SummaryState;
 }
+
+@freezed
+sealed class BalanceState with _$BalanceState {
+  factory BalanceState({
+    required double totalPlanned,
+    required double totalActual,
+  }) = _BalanceState;
+}

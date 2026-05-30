@@ -7,5 +7,15 @@ class HomeViewProviders {
 
   static final viewType = StateProvider((ref) => SummaryViewType.effective);
 
-  static final summary = NotifierProvider<SummaryNotifier, SummaryState>(() => SummaryNotifier());
+  static final summaryExpenses = NotifierProvider<ExpenseSummaryNotifier, SummaryState>(
+    ExpenseSummaryNotifier.new,
+  );
+
+  static final summaryIncomes = NotifierProvider<IncomeSummaryNotifier, SummaryState>(
+    IncomeSummaryNotifier.new,
+  );
+
+  static final summaryBalance = NotifierProvider<BalanceSummaryNotifier, BalanceState>(
+    BalanceSummaryNotifier.new,
+  );
 }

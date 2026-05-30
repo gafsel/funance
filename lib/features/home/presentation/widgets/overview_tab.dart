@@ -62,9 +62,8 @@ class OverviewTab extends ConsumerWidget {
           const SizedBox(height: 32),
           // Onde está o dinheiro?
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(l10n.homeWhereIsMoney, style: theme.textTheme.titleLarge),
+              Expanded(child: Text(l10n.homeWhereIsMoney, style: theme.textTheme.titleLarge)),
               _PeriodSelection(),
             ],
           ),
@@ -72,21 +71,49 @@ class OverviewTab extends ConsumerWidget {
           // View Type Selector
           _SummaryTypeSelection(),
           const SizedBox(height: 24),
-          _ChatView(),
+          Text(
+            l10n.expenses,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.deepTurquoise,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const CategorySummaryView(categoryType: CategoryType.expense),
+          const SizedBox(height: 32),
+          Text(
+            l10n.incomes,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.deepTurquoise,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const CategorySummaryView(categoryType: CategoryType.income),
+          const SizedBox(height: 32),
+          const BalanceSummaryView(),
         ],
       ),
     );
   }
 }
 
-class _ChatView extends ConsumerWidget {
-  const _ChatView({super.key});
+class CategorySummaryView extends ConsumerWidget {
+  final CategoryType categoryType;
+
+  const CategorySummaryView({
+    super.key,
+    required this.categoryType,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final state = ref.watch(HomeViewProviders.summary);
+    final provider = categoryType == CategoryType.expense
+        ? HomeViewProviders.summaryExpenses
+        : HomeViewProviders.summaryIncomes;
+    final state = ref.watch(provider);
     final overviewDate = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
     final locale = context.locale;
@@ -102,7 +129,7 @@ class _ChatView extends ConsumerWidget {
             name: l10n.categoryOthers,
             icon: 'more_horiz',
             color: '#808080',
-            type: CategoryType.both,
+            type: categoryType,
           ),
           year: overviewDate.year,
           month: overviewDate.month,
@@ -318,6 +345,52 @@ class _ChatView extends ConsumerWidget {
   }
 }
 
+class BalanceSummaryView extends ConsumerWidget {
+  const BalanceSummaryView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final state = ref.watch(HomeViewProviders.summaryBalance);
+    final viewType = ref.watch(HomeViewProviders.viewType);
+    final locale = context.locale;
+
+    final amount =
+        viewType == SummaryViewType.planning ? state.totalPlanned : state.totalActual;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            l10n.balance,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.deepTurquoise,
+            ),
+          ),
+          Text(
+            amount.asCurrency(locale: locale),
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: amount >= 0 ? AppColors.limeGreen : AppColors.error,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PeriodSelection extends ConsumerWidget {
   const _PeriodSelection({super.key});
 
@@ -328,6 +401,7 @@ class _PeriodSelection extends ConsumerWidget {
     final locale = context.locale;
 
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
           icon: const Icon(Icons.chevron_left),

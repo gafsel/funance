@@ -312,5 +312,8 @@
   "planningExpenseLimits": "Limites de Despesas",
   "planningIncomeLimits": "Expectativa de Receitas",
   "planningLimitDefined": "Expectativa definida",
-  "planningSave": "SALVAR"
+  "planningSave": "SALVAR",
+  "expenses": "Despesas",
+  "incomes": "Receitas",
+  "balance": "Saldo"
 }

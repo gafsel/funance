@@ -313,5 +313,8 @@
   "planningExpenseLimits": "Expense Limits",
   "planningIncomeLimits": "Income Expectations",
   "planningLimitDefined": "Expectation defined",
-  "planningSave": "SAVE"
+  "planningSave": "SAVE",
+  "expenses": "Expenses",
+  "incomes": "Incomes",
+  "balance": "Balance"
 }

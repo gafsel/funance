@@ -811,4 +811,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planningSave => 'SAVE';
+
+  @override
+  String get expenses => 'Expenses';
+
+  @override
+  String get incomes => 'Incomes';
+
+  @override
+  String get balance => 'Balance';
 }

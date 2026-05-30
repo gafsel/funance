@@ -1,4 +1,4 @@
-import { OrderModel, InstallmentModel, AccountModel, OrderStatus, InstallmentStatus, InstallmentType } from "../models/finance.models";
+import { OrderModel, InstallmentModel, AccountModel, OrderStatus, InstallmentStatus, InstallmentType, AccountType } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 
 export class FinanceService {
@@ -33,6 +33,19 @@ export class FinanceService {
 
         const [startYear, startMonth] = order.startMonth.split("-").map(Number);
 
+        let shouldAllBePaid = false;
+        if (order.installmentType === InstallmentType.installment && 
+            (order.installmentCreationStatus === InstallmentStatus.paid || order.installmentCreationStatus === InstallmentStatus.settled)) {
+            // Verificar se é conta de cartão de crédito
+            const accountIds = Object.keys(order.accounts || {});
+            if (accountIds.length > 0) {
+                const account = await this.financeRepository.getAccountById(workspaceId, accountIds[0]);
+                if (account?.type === AccountType.credit_card) {
+                    shouldAllBePaid = true;
+                }
+            }
+        }
+
         for (let i = 0; i < installmentsToGenerate; i++) {
             const date = new Date(startYear, startMonth - 1 + i, 1);
             const year = date.getFullYear();
@@ -43,8 +56,8 @@ export class FinanceService {
             const dueDate = new Date(year, month, day);
 
             const isFirst = i === 0;
-            const status = (isFirst && (order.installmentCreationStatus === InstallmentStatus.paid || order.installmentCreationStatus === InstallmentStatus.settled))
-                ? order.installmentCreationStatus
+            const status = (shouldAllBePaid || (isFirst && (order.installmentCreationStatus === InstallmentStatus.paid || order.installmentCreationStatus === InstallmentStatus.settled)))
+                ? order.installmentCreationStatus!
                 : InstallmentStatus.pending;
 
             expectedInstallments.push({
@@ -60,6 +73,7 @@ export class FinanceService {
                 installmentNumber: order.installmentType === InstallmentType.installment ? i + 1 : undefined,
                 installmentCount: order.installmentType === InstallmentType.installment ? order.installmentCount : undefined,
                 accounts: order.accounts,
+                accountIds: Object.keys(order.accounts || {}),
                 category: order.category,
                 paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? order.amount : undefined,
                 paidDate: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? dueDate : undefined,

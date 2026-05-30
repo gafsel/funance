@@ -1543,6 +1543,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'SALVAR'**
   String get planningSave;
+
+  /// No description provided for @expenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Despesas'**
+  String get expenses;
+
+  /// No description provided for @incomes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receitas'**
+  String get incomes;
+
+  /// No description provided for @balance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo'**
+  String get balance;
 }
 
 class _AppLocalizationsDelegate

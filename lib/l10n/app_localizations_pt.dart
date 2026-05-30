@@ -815,4 +815,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get planningSave => 'SALVAR';
+
+  @override
+  String get expenses => 'Despesas';
+
+  @override
+  String get incomes => 'Receitas';
+
+  @override
+  String get balance => 'Saldo';
 }

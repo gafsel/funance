@@ -48,6 +48,9 @@ sealed class InstallmentModel with _$InstallmentModel {
   }) = _InstallmentModel;
 
   @JsonKey(includeToJson: true)
+  List<String> get accountIds => accounts.keys.toList();
+
+  @JsonKey(includeToJson: true)
   DateTime get referenceDate => paidDate ?? dueDate;
 
   @JsonKey(includeToJson: true)

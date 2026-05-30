@@ -60,6 +60,7 @@ export interface InstallmentModel {
   status: InstallmentStatus;
   type: OrderType;
   accounts?: Record<string, "debt" | "credit">;
+  accountIds: string[];
   category?: CategoryModel;
   replicationCascade?: ReplicationCascade;
   referenceDate: Date;

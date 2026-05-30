@@ -33,7 +33,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
           .where("status", isNotEqualTo: InstallmentStatus.removed.name);
 
       if (accountId != null && accountId.isNotEmpty) {
-        query = query.where('accounts.$accountId', isNull: false);
+        query = query.where('accountIds', arrayContains: accountId);
       }
 
       if (startDate != null) {

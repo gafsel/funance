@@ -41,6 +41,7 @@ _InstallmentModel _$InstallmentModelFromJson(Map<String, dynamic> json) =>
 
 Map<String, dynamic> _$InstallmentModelToJson(_InstallmentModel instance) =>
     <String, dynamic>{
+      'accountIds': instance.accountIds,
       'referenceDate': instance.referenceDate.toIso8601String(),
       'referenceAmount': instance.referenceAmount,
       'id': instance.id,
