@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 
@@ -8,252 +9,246 @@ import '../screens/account_selection_screen.dart';
 import '../screens/transaction_form_screen.dart';
 import '../screens/transaction_selection_screen.dart';
 
-class TransactionActionSheet extends StatelessWidget {
-  final Function(OrderType) onSelect;
+enum TransactionActionStep { initial, selectType }
 
-  const TransactionActionSheet({super.key, required this.onSelect});
+class TransactionActionSheet extends StatefulWidget {
+  final Function(OrderType)? onSelect;
 
+  const TransactionActionSheet({
+    super.key,
+    this.onSelect,
+  });
+
+  @override
+  State<TransactionActionSheet> createState() => _TransactionActionSheetState();
+}
+
+class _TransactionActionSheetState extends State<TransactionActionSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 600;
-        final crossAxisCount = isLargeScreen ? 3 : 2;
-
-        // Calculate child aspect ratio based on width to keep it reasonable
-        final itemWidth = constraints.maxWidth / crossAxisCount;
-        final childAspectRatio = itemWidth / (isLargeScreen ? 140 : 160);
-
-        return Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: theme.dividerColor.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Flexible(
-                child: GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: crossAxisCount,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: childAspectRatio.clamp(0.8, 1.8),
-                  children: [
-                    _buildGridItem(
-                      context,
-                      icon: Icons.swap_horiz,
-                      color: AppColors.vibrantTeal,
-                      title: l10n.transactionTransfer,
-                      description: l10n.transactionTransferDesc,
-                      onTap: () => _handleTransfer(context, InstallmentStatus.paid, l10n),
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.remove_circle_outline,
-                      color: AppColors.coralOrange,
-                      title: l10n.transactionAddExpense,
-                      description: l10n.transactionAddExpenseDesc,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TransactionSelectionScreen(
-                                  type: OrderType.expense,
-                                  status: InstallmentStatus.paid,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.add_circle_outline,
-                      color: AppColors.successGold,
-                      title: l10n.transactionAddIncome,
-                      description: l10n.transactionAddIncomeDesc,
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TransactionSelectionScreen(
-                                  type: OrderType.income,
-                                  status: InstallmentStatus.paid,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.swap_horiz,
-                      color: AppColors.vibrantTeal.withValues(alpha: 0.7),
-                      title: "Planejamento de Transferência",
-                      description: "Planeje uma transferência futura",
-                      onTap: () => _handleTransfer(context, InstallmentStatus.pending, l10n),
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.remove_circle_outline,
-                      color: AppColors.coralOrange.withValues(alpha: 0.7),
-                      title: "Planejamento de Despesa",
-                      description: "Planeje uma despesa futura",
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TransactionSelectionScreen(
-                                  type: OrderType.expense,
-                                  status: InstallmentStatus.pending,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.add_circle_outline,
-                      color: AppColors.successGold.withValues(alpha: 0.7),
-                      title: "Planejamento de Receita",
-                      description: "Planeje uma receita futura",
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                TransactionSelectionScreen(
-                                  type: OrderType.income,
-                                  status: InstallmentStatus.pending,
-                                ),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _handleTransfer(BuildContext context, InstallmentStatus status, AppLocalizations l10n) {
-    Navigator.pop(context);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => AccountSelectionScreen(
-        title: l10n.transactionSelectSourceAccount,
-        onAccountSelected: (sourceAccount) {
-          Navigator.pop(context);
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            builder: (context) => AccountSelectionScreen(
-              title: l10n.transactionSelectDestinationAccount,
-              excludeAccountId: sourceAccount?.id,
-              onAccountSelected: (targetAccount) {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => TransactionFormScreen.creation(
-                      type: OrderType.transfer,
-                      status: status,
-                      accountIdSource: sourceAccount?.id,
-                      accountIdTarget: targetAccount?.id,
-                    ),
-                  ),
-                );
-              },
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: AppGradients.backgroundGradient,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.pureWhite.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Nova Transação",
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.pureWhite,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: AppColors.pureWhite),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.pureWhite.withValues(alpha: 0.1),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(
+                    context,
+                    "Lançamentos Realizados",
+                    "Transações que já aconteceram e impactaram seu saldo.",
+                    Icons.check_circle_outline,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildActionGrid(context, InstallmentStatus.paid),
+                  const SizedBox(height: 40),
+                  _buildSectionTitle(
+                    context,
+                    "Planejamentos",
+                    "Previsões de gastos ou ganhos futuros para organizar suas finanças.",
+                    Icons.calendar_today_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildActionGrid(context, InstallmentStatus.pending),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildGridItem(
+  Widget _buildSectionTitle(BuildContext context, String title, String subtitle, IconData icon) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: AppColors.paleGold, size: 28),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.paleGold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.pureWhite.withValues(alpha: 0.7),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionGrid(BuildContext context, InstallmentStatus status) {
+    final isPlanning = status == InstallmentStatus.pending;
+    final l10n = AppLocalizations.of(context)!;
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      mainAxisSpacing: 16,
+      crossAxisSpacing: 16,
+      childAspectRatio: 0.75,
+      children: [
+        _buildActionItem(
+          context,
+          icon: isPlanning ? Icons.savings_outlined : Icons.add_circle_outline,
+          color: AppColors.limeGreen,
+          label: isPlanning ? "Planejar\nReceita" : l10n.transactionAddIncome,
+          onTap: () => _navigateToForm(context, OrderType.income, status),
+        ),
+        _buildActionItem(
+          context,
+          icon: isPlanning ? Icons.event_note_outlined : Icons.remove_circle_outline,
+          color: AppColors.error,
+          label: isPlanning ? "Planejar\nDespesa" : l10n.transactionAddExpense,
+          onTap: () => _navigateToForm(context, OrderType.expense, status),
+        ),
+        _buildActionItem(
+          context,
+          icon: isPlanning ? Icons.pending_actions_outlined : Icons.swap_horiz,
+          color: AppColors.vibrantTeal,
+          label: isPlanning ? "Planejar\nTransferência" : l10n.transactionTransfer,
+          onTap: () => _navigateToForm(context, OrderType.transfer, status),
+        ),
+        if (isPlanning) ...[
+          _buildActionItem(
+            context,
+            icon: Icons.assignment_outlined,
+            color: AppColors.error,
+            label: "Limites\nde Despesas",
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Funcionalidade em desenvolvimento")),
+              );
+            },
+          ),
+          _buildActionItem(
+            context,
+            icon: Icons.assignment_turned_in_outlined,
+            color: AppColors.limeGreen,
+            label: "Limites\nde Receitas",
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Funcionalidade em desenvolvimento")),
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildActionItem(
     BuildContext context, {
     required IconData icon,
     required Color color,
-    required String title,
-    required String description,
+    required String label,
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.pureWhite,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 32),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.darkNavy,
+              ),
+            ),
+          ],
+        ),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Expanded(
-                child: Text(
-                  description,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.textTheme.bodySmall?.color,
-                    fontSize: 10,
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
+    );
+  }
+
+  void _navigateToForm(BuildContext context, OrderType type, InstallmentStatus status) {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TransactionFormScreen.creation(
+          type: type,
+          status: status,
         ),
       ),
     );

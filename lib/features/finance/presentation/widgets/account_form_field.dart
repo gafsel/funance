@@ -14,15 +14,39 @@ class AccountFormField extends ConsumerWidget {
     this.onChanged,
     this.validator,
     this.decoration,
+    this.autoOpen = false,
   });
 
   final String? initialValue;
   final InputDecoration? decoration;
   final ValueChanged<String?>? onChanged;
   final FormFieldValidator<String?>? validator;
+  final bool autoOpen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (autoOpen && initialValue == null) {
+      final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
+      if (!isModalOpen) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final l10n = context.l10n;
+          final account = await showModalBottomSheet<AccountModel?>(
+            context: context,
+            isScrollControlled: true,
+            useSafeArea: true,
+            builder: (context) => AccountSelectionScreen(
+              title: decoration?.labelText ?? l10n.transactionAccountLabel,
+              showClearOption: true,
+              onAccountSelected: (acc) => Navigator.pop(context, acc),
+            ),
+          );
+
+          if (account != null) {
+            onChanged?.call(account.id);
+          }
+        });
+      }
+    }
     final l10n = context.l10n;
 
     String getAccountTypeName(AccountType type) {

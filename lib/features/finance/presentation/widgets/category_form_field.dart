@@ -16,6 +16,7 @@ class CategoryFormField extends ConsumerWidget {
     this.validator,
     this.decoration,
     this.enabled = true,
+    this.autoOpen = false,
   });
 
   final CategoryModel? initialValue;
@@ -24,6 +25,7 @@ class CategoryFormField extends ConsumerWidget {
   final OrderType orderType;
   final FormFieldValidator<CategoryModel?>? validator;
   final bool enabled;
+  final bool autoOpen;
 
   const CategoryFormField.transfer({
     super.key,
@@ -32,12 +34,29 @@ class CategoryFormField extends ConsumerWidget {
   })  : initialValue = null,
         onChanged = _dummyOnChanged,
         orderType = OrderType.transfer,
-        enabled = false;
+        enabled = false,
+        autoOpen = false;
 
   static void _dummyOnChanged(CategoryModel? _) {}
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (autoOpen && initialValue == null && orderType != OrderType.transfer) {
+      final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
+      if (!isModalOpen) {
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          final selectedCategory = await _showCategoryPicker(
+            context,
+            ref,
+            orderType,
+          );
+
+          if (selectedCategory != null) {
+            onChanged(selectedCategory);
+          }
+        });
+      }
+    }
     return FormField<CategoryModel?>(
       key: ValueKey(initialValue),
       initialValue: initialValue,

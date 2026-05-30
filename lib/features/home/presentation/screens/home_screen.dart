@@ -86,7 +86,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           ],
         ),
         bottomNavigationBar: isLargeScreen ? null : _buildBottomBar(context),
-        floatingActionButton: _buildFab(context),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => const TransactionActionSheet(),
+            );
+          },
+          backgroundColor: AppColors.successGold,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.add, color: AppColors.darkNavy),
+        ),
         floatingActionButtonLocation: isLargeScreen
             ? FloatingActionButtonLocation.endFloat
             : FloatingActionButtonLocation.centerDocked,
@@ -315,45 +327,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildFab(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: AppGradients.goldGradient,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.successGold.withValues(alpha: 0.4),
-            blurRadius: 12,
-            spreadRadius: 2,
-          ),
-        ],
-        border: Border.all(color: AppColors.pureWhite, width: 2),
-      ),
-      child: FloatingActionButton(
-        onPressed: () => _showActionMenu(context),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: const Icon(Icons.add, color: AppColors.deepTurquoise, size: 32),
-      ),
-    );
-  }
-
-  void _showActionMenu(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return TransactionActionSheet(
-          onSelect: (type) {
-            Navigator.pop(context);
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => TransactionFormScreen.creation(type: type),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 }

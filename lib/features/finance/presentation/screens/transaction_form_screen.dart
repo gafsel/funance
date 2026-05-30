@@ -108,93 +108,97 @@ class TransactionFormScreen extends StatelessWidget {
           final state = snapshot.model;
           final notifier = snapshot.notifier;
           final v = context.validations;
+          final isPending = state.status == InstallmentStatus.pending;
+
+          final showCategory = state.creation;
+          final showAccounts =
+              !state.creation ||
+              state.category != null ||
+              state.type == OrderType.transfer;
+          final showBasicFields =
+              !state.creation ||
+              (state.type == OrderType.transfer
+                  ? state.accountIdSource != null && state.accountIdTarget != null
+                  : (state.category != null &&
+                      (isPending || state.accountIdSource != null)));
 
           return [
-            ChipFormField<OrderType>(
-              initialValue: state.type,
-              decoration: InputDecoration(
-                labelText: l10n.transactionOrderTypeLabel,
-              ),
-              options: [
-                ChipFormFieldOption(
-                  value: OrderType.expense,
-                  label: l10n.transactionTypeExpense,
+              ChipFormField<OrderType>(
+                initialValue: state.type,
+                decoration: InputDecoration(
+                  labelText: l10n.transactionOrderTypeLabel,
                 ),
-                ChipFormFieldOption(
-                  value: OrderType.income,
-                  label: l10n.transactionTypeIncome,
-                ),
-                ChipFormFieldOption(
-                  value: OrderType.transfer,
-                  label: l10n.transactionTypeTransfer,
-                ),
-              ],
-              onChanged: state.creation
-                  ? (v) {
-                      if (v != null) {
-                        notifier.updateOrderType(v);
+                options: [
+                  ChipFormFieldOption(
+                    value: OrderType.expense,
+                    label: l10n.transactionTypeExpense,
+                  ),
+                  ChipFormFieldOption(
+                    value: OrderType.income,
+                    label: l10n.transactionTypeIncome,
+                  ),
+                  ChipFormFieldOption(
+                    value: OrderType.transfer,
+                    label: l10n.transactionTypeTransfer,
+                  ),
+                ],
+                onChanged: state.creation
+                    ? (v) {
+                        if (v != null) {
+                          notifier.updateOrderType(v);
+                        }
                       }
-                    }
-                  : null,
-              validator: v.all([v.notNull()]),
-            ),
-            if (state.type == OrderType.transfer) ...[
-              CategoryFormField.transfer(
-                decoration: InputDecoration(
-                  labelText: l10n.transactionCategoriesSection,
-                ),
-              ),
-            ] else ...[
-              CategoryFormField(
-                initialValue: state.category,
-                orderType: state.type,
-                decoration: InputDecoration(
-                  labelText: l10n.transactionCategoriesSection,
-                ),
-                onChanged: notifier.updateCategory,
+                    : null,
                 validator: v.all([v.notNull()]),
               ),
-            ],
-
-            AccountFormField(
-              initialValue: state.accountIdSource,
-              decoration: InputDecoration(
-                labelText: state.type == OrderType.transfer
-                    ? l10n.transactionFromAccountLabel
-                    : l10n.transactionAccountLabel,
-              ),
-              onChanged:
-                  state.status != InstallmentStatus.paid || state.creation
-                  ? notifier.updateAccountIdSource
-                  : null,
-              validator: v.all([v.notEmpty()]),
-            ),
-            if (state.type == OrderType.transfer) ...[
+            if (showCategory)
+              if (state.type == OrderType.transfer) ...[
+                CategoryFormField.transfer(
+                  decoration: InputDecoration(
+                    labelText: l10n.transactionCategoriesSection,
+                  ),
+                ),
+              ] else ...[
+                CategoryFormField(
+                  initialValue: state.category,
+                  orderType: state.type,
+                  decoration: InputDecoration(
+                    labelText: l10n.transactionCategoriesSection,
+                  ),
+                  onChanged: notifier.updateCategory,
+                  validator: v.all([v.notNull()]),
+                  autoOpen: state.creation,
+                ),
+              ],
+            if (showAccounts) ...[
               AccountFormField(
-                initialValue: state.accountIdTarget,
+                initialValue: state.accountIdSource,
                 decoration: InputDecoration(
-                  labelText: l10n.transactionToAccountLabel,
+                  labelText: state.type == OrderType.transfer
+                      ? l10n.transactionFromAccountLabel
+                      : l10n.transactionAccountLabel,
                 ),
-                onChanged:
-                    state.status != InstallmentStatus.paid || state.creation
-                    ? notifier.updateAccountIdTarget
+                onChanged: state.status != InstallmentStatus.paid || state.creation
+                    ? notifier.updateAccountIdSource
                     : null,
-                validator: v.all([v.notEmpty()]),
+                validator: isPending ? null : v.all([v.notEmpty()]),
+                autoOpen: state.creation,
               ),
-            ],
-            if (state.formType == TransactionFormType.installment) ...[
-              TextFormField(
-                initialValue: state.installmentCount?.toString(),
-                decoration: InputDecoration(
-                  labelText: l10n.transactionInstallmentsLabel,
+              if (state.type == OrderType.transfer) ...[
+                AccountFormField(
+                  initialValue: state.accountIdTarget,
+                  decoration: InputDecoration(
+                    labelText: l10n.transactionToAccountLabel,
+                  ),
+                  onChanged: state.status != InstallmentStatus.paid || state.creation
+                      ? notifier.updateAccountIdTarget
+                      : null,
+                  validator: isPending ? null : v.all([v.notEmpty()]),
+                  autoOpen: state.creation && state.accountIdSource != null,
                 ),
-                keyboardType: TextInputType.number,
-                onChanged: (v) =>
-                    notifier.updateInstallmentCount(int.tryParse(v) ?? 1),
-                validator: v.all([v.notEmpty()]),
-              ),
+              ],
             ],
-            ..._buildBasicFields(context, state, notifier),
+            if (showBasicFields) ..._buildBasicFields(context, state, notifier),
           ];
         },
       ),
@@ -327,6 +331,7 @@ class TransactionFormScreen extends StatelessWidget {
           initialValue: (state.installmentCount ?? 1).toString(),
           onChanged: (installment) =>
               notifier.updateInstallmentCount(int.tryParse(installment) ?? 1),
+          keyboardType: TextInputType.number,
           decoration: InputDecoration(
             labelText: l10n.transactionInstallmentsLabel,
           ),
