@@ -13,6 +13,7 @@ import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
 import 'package:funances/features/finance/domain/services/planning_service.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
@@ -137,7 +138,7 @@ class PlanningViewProviders {
     final service = ref.watch(PlanningDomainProviders.service);
     final date = DateTime.now();
 
-    return service.watchPlannings(month: date.month + 1, year: date.year);
+    return service.watchPlannings(month: date.month, year: date.year);
   });
 }
 
@@ -187,6 +188,17 @@ class FinanceViewProviders {
       financeiroService: ref.watch(FinanceDomainProviders.service),
     ),
   );
+
+  static final categoryPlanningForm = StateNotifierProvider.autoDispose.family<
+      CategoryPlanningNotifier,
+      CategoryPlanningState,
+      CategoryPlanningArgs>((ref, args) {
+    return CategoryPlanningNotifier(
+      financeService: ref.watch(FinanceDomainProviders.service),
+      categoryService: ref.watch(CategoryDomainProviders.service),
+      type: args.type,
+    );
+  });
 }
 
 class PeriodSummaryDomainProviders {
@@ -207,7 +219,7 @@ class PeriodSummaryViewProviders {
       StreamProvider.family<List<PeriodSummaryModel>, DateTime>((ref, period) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
 
-        return service.watchMonth(period.year, period.month + 1);
+        return service.watchMonth(period.year, period.month);
       });
 
   static final yearSummary =

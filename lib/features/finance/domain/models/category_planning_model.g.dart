@@ -20,7 +20,7 @@ Map<String, dynamic> _$CategoryPlanningModelToJson(
   _CategoryPlanningModel instance,
 ) => <String, dynamic>{
   'id': instance.id,
-  'category': instance.category,
+  'category': instance.category.toJson(),
   'amount': instance.amount,
   'startMonth': instance.startMonth,
   'endMonth': instance.endMonth,

@@ -308,5 +308,9 @@
   "noRecordsFound": "Nenhum registro encontrado.",
   "formatSimpleDate": "dd/MM/yyyy",
   "errorLoadingData": "Falha ao carregar os dados.",
-  "retry": "Tentar novamente"
+  "retry": "Tentar novamente",
+  "planningExpenseLimits": "Limites de Despesas",
+  "planningIncomeLimits": "Expectativa de Receitas",
+  "planningLimitDefined": "Expectativa definida",
+  "planningSave": "SALVAR"
 }

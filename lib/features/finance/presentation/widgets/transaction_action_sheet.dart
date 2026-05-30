@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../screens/account_selection_screen.dart';
+import '../screens/category_planning_screen.dart';
 import '../screens/transaction_form_screen.dart';
-import '../screens/transaction_selection_screen.dart';
 
 enum TransactionActionStep { initial, selectType }
 
@@ -26,7 +26,6 @@ class TransactionActionSheet extends StatefulWidget {
 class _TransactionActionSheetState extends State<TransactionActionSheet> {
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
     return Container(
@@ -167,11 +166,14 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
             context,
             icon: Icons.assignment_outlined,
             color: AppColors.error,
-            label: "Limites\nde Despesas",
+            label: l10n.planningExpenseLimits.replaceAll(' ', '\n'),
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Funcionalidade em desenvolvimento")),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CategoryPlanningScreen(type: CategoryType.expense),
+                ),
               );
             },
           ),
@@ -179,11 +181,14 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
             context,
             icon: Icons.assignment_turned_in_outlined,
             color: AppColors.limeGreen,
-            label: "Limites\nde Receitas",
+            label: l10n.planningIncomeLimits.replaceAll(' ', '\n'),
             onTap: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Funcionalidade em desenvolvimento")),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CategoryPlanningScreen(type: CategoryType.income),
+                ),
               );
             },
           ),

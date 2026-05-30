@@ -202,6 +202,12 @@ class _ChatView extends ConsumerWidget {
               value = summary.plannedAmount.asCurrency(locale: locale);
             } else if (viewType == SummaryViewType.effective) {
               value = summary.actualAmount.asCurrency(locale: locale);
+              if (summary.plannedAmount > 0) {
+                progress = (summary.actualAmount / summary.plannedAmount).clamp(
+                  0,
+                  1.2,
+                );
+              }
             } else {
               value =
                   '${summary.actualAmount.asCurrency(locale: locale)} / ${summary.plannedAmount.asCurrency(locale: locale)}';
@@ -219,6 +225,10 @@ class _ChatView extends ConsumerWidget {
               value,
               summary.category.color.asColor(),
               progress: progress,
+              secondaryProgress: summary.plannedAmount > 0
+                  ? (summary.specificPlannedAmount / summary.plannedAmount)
+                      .clamp(0, 1)
+                  : null,
             );
           }).toList(),
         );
@@ -247,6 +257,7 @@ class _ChatView extends ConsumerWidget {
     String amount,
     Color color, {
     double? progress,
+    double? secondaryProgress,
   }) {
     final theme = Theme.of(context);
     return Padding(
@@ -275,11 +286,29 @@ class _ChatView extends ConsumerWidget {
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: AppColors.deepTurquoise.withValues(alpha: 0.1),
-                color: progress > 1 ? AppColors.coralOrange : color,
+              child: Stack(
+                children: [
+                  Container(
+                    height: 8,
+                    width: double.infinity,
+                    color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+                  ),
+                  if (secondaryProgress != null)
+                    FractionallySizedBox(
+                      widthFactor: secondaryProgress,
+                      child: Container(
+                        height: 8,
+                        color: Colors.grey.withValues(alpha: 0.5),
+                      ),
+                    ),
+                  FractionallySizedBox(
+                    widthFactor: progress.clamp(0, 1),
+                    child: Container(
+                      height: 8,
+                      color: progress > 1 ? AppColors.coralOrange : color,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -296,7 +325,6 @@ class _PeriodSelection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final overviewDate = ref.watch(HomeViewProviders.period);
     final theme = Theme.of(context);
-    final l10n = context.l10n;
     final locale = context.locale;
 
     return Row(

@@ -213,8 +213,8 @@ return $default(_that.id,_that.category,_that.amount,_that.startMonth,_that.endM
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _CategoryPlanningModel implements CategoryPlanningModel {
   const _CategoryPlanningModel({required this.id, required this.category, required this.amount, required this.startMonth, required this.endMonth});
   factory _CategoryPlanningModel.fromJson(Map<String, dynamic> json) => _$CategoryPlanningModelFromJson(json);

@@ -8,6 +8,31 @@ import 'package:uuid/uuid.dart';
 part 'finance_view_models.freezed.dart';
 
 @freezed
+sealed class CategoryPlanningArgs with _$CategoryPlanningArgs {
+  factory CategoryPlanningArgs({
+    required CategoryType type,
+  }) = _CategoryPlanningArgs;
+}
+
+@freezed
+sealed class CategoryPlanningFormItem with _$CategoryPlanningFormItem {
+  factory CategoryPlanningFormItem({
+    required CategoryModel category,
+    @Default(0.0) double amount,
+    String? planningId,
+    @Default(false) bool isDirty,
+  }) = _CategoryPlanningFormItem;
+}
+
+@freezed
+sealed class CategoryPlanningState with _$CategoryPlanningState {
+  factory CategoryPlanningState({
+    @Default([]) List<CategoryPlanningFormItem> items,
+    @Default(true) bool isLoading,
+  }) = _CategoryPlanningState;
+}
+
+@freezed
 sealed class TransactionCreationArgs with _$TransactionCreationArgs {
   factory TransactionCreationArgs({
     required OrderType type,

@@ -45,4 +45,15 @@ abstract class IFinanceRepository {
     String workspaceId,
     CategoryPlanningModel planning,
   );
+
+  Future<void> updateCategoryPlanning(
+    String workspaceId,
+    CategoryPlanningModel planning,
+  );
+
+  Future<List<CategoryPlanningModel>> getCategoryPlannings(
+    String workspaceId, {
+    String? startMonth,
+    String? endMonth,
+  });
 }

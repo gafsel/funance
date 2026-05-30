@@ -309,5 +309,9 @@
   "noRecordsFound": "No records found.",
   "formatSimpleDate": "MM/dd/yyyy",
   "errorLoadingData": "Failed to load data.",
-  "retry": "Try again"
+  "retry": "Try again",
+  "planningExpenseLimits": "Expense Limits",
+  "planningIncomeLimits": "Income Expectations",
+  "planningLimitDefined": "Expectation defined",
+  "planningSave": "SAVE"
 }

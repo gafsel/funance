@@ -1,4 +1,5 @@
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
@@ -53,6 +54,25 @@ class FinanceService {
       startDate: startDate,
       endDate: endDate,
       chunkRef: lastOrderId,
+    );
+  }
+
+  Future<void> addCategoryPlanning(CategoryPlanningModel planning) async {
+    await repository.addCategoryPlanning(workspaceId, planning);
+  }
+
+  Future<void> updateCategoryPlanning(CategoryPlanningModel planning) async {
+    await repository.updateCategoryPlanning(workspaceId, planning);
+  }
+
+  Future<List<CategoryPlanningModel>> getCategoryPlannings({
+    String? startMonth,
+    String? endMonth,
+  }) async {
+    return repository.getCategoryPlannings(
+      workspaceId,
+      startMonth: startMonth,
+      endMonth: endMonth,
     );
   }
 }

@@ -1519,6 +1519,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Tentar novamente'**
   String get retry;
+
+  /// No description provided for @planningExpenseLimits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limites de Despesas'**
+  String get planningExpenseLimits;
+
+  /// No description provided for @planningIncomeLimits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expectativa de Receitas'**
+  String get planningIncomeLimits;
+
+  /// No description provided for @planningLimitDefined.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expectativa definida'**
+  String get planningLimitDefined;
+
+  /// No description provided for @planningSave.
+  ///
+  /// In pt, this message translates to:
+  /// **'SALVAR'**
+  String get planningSave;
 }
 
 class _AppLocalizationsDelegate

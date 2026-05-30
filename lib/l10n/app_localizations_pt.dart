@@ -803,4 +803,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get retry => 'Tentar novamente';
+
+  @override
+  String get planningExpenseLimits => 'Limites de Despesas';
+
+  @override
+  String get planningIncomeLimits => 'Expectativa de Receitas';
+
+  @override
+  String get planningLimitDefined => 'Expectativa definida';
+
+  @override
+  String get planningSave => 'SALVAR';
 }

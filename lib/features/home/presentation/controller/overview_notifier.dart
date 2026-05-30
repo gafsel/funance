@@ -59,6 +59,11 @@ class SummaryNotifier extends Notifier<SummaryState> {
         0,
         (sum, item) => sum + item.plannedAmount,
       );
+    } else if (viewType == SummaryViewType.effective) {
+      totalAmount = filteredSummaries.fold<double>(
+        0,
+        (sum, item) => sum + item.actualAmount,
+      );
     } else {
       totalAmount = filteredSummaries.fold<double>(
         0,

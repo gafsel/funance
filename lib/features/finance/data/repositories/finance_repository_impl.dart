@@ -60,7 +60,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         nextChunckRef: snapshot.docs.lastOrNull,
       );
     } catch (e, s) {
-      log("Failed to query installments: ${e.toString()}", error: e, stackTrace: s);
+      log(
+        "Failed to query installments: ${e.toString()}",
+        error: e,
+        stackTrace: s,
+      );
 
       throw BusinessException(
         ErrorCode.unknown,
@@ -243,6 +247,59 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         workspaceId,
       ).collection('category_planning').add(data);
     } catch (e, s) {
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  @override
+  Future<void> updateCategoryPlanning(
+    String workspaceId,
+    CategoryPlanningModel planning,
+  ) async {
+    try {
+      final data = planning.toJson();
+      data.remove('id');
+      await _getWorkspaceDoc(
+        workspaceId,
+      ).collection('category_planning').doc(planning.id).update(data);
+    } catch (e, s) {
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  @override
+  Future<List<CategoryPlanningModel>> getCategoryPlannings(
+    String workspaceId, {
+    String? startMonth,
+    String? endMonth,
+  }) async {
+    try {
+      Query query = _getWorkspaceDoc(
+        workspaceId,
+      ).collection('category_planning');
+
+      if (startMonth != null) {
+        query = query.where('startMonth', isLessThanOrEqualTo: startMonth);
+        query = query.where('endMonth', isGreaterThanOrEqualTo: startMonth);
+      }
+
+      final snapshot = await query.get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id;
+        return CategoryPlanningModel.fromJson(data);
+      }).toList();
+    } catch (e, s) {
+      log("Failed to load category plannings ${e.toString()}", error: e, stackTrace: s);
+
       throw BusinessException(
         ErrorCode.unknown,
         originalError: e,

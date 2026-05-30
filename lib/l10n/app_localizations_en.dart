@@ -799,4 +799,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retry => 'Try again';
+
+  @override
+  String get planningExpenseLimits => 'Expense Limits';
+
+  @override
+  String get planningIncomeLimits => 'Income Expectations';
+
+  @override
+  String get planningLimitDefined => 'Expectation defined';
+
+  @override
+  String get planningSave => 'SAVE';
 }
