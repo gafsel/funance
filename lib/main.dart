@@ -73,6 +73,16 @@ class AuthWrapper extends ConsumerWidget {
           // 3. Se não tem workspaces ou está no onboarding e ainda não finalizou
           if (workspaceState.availableWorkspaces.isEmpty) {
             return OnboardingScreen();
+          } else if ((workspaceState.currentWorkspace?.lastOnboardingStep ??
+                  ConnectionState.done) !=
+              ConnectionState.done) {
+            Future((){
+              ref
+                  .read(OnboardingViewProviders.onboarding.notifier)
+                  .load(workspaceState.currentWorkspace!);
+
+            });
+            return OnboardingScreen();
           }
 
           // 4. Se tem workspaces, vai para o dashboard

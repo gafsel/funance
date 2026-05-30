@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../widgets/welcome_step.dart';
-import '../widgets/workspace_info_step.dart';
 import '../widgets/accounts_step.dart';
 import '../widgets/goals_analysis_step.dart';
 import '../widgets/members_step.dart';
+import '../widgets/welcome_step.dart';
+import '../widgets/workspace_info_step.dart';
 
 class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
+import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
 
 import '../../../finance/domain/models/account_model.dart';
@@ -13,15 +14,22 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final OnboardingService onboardingService;
   final IAccountRepository accountRepository;
   final WorkspaceNotifier workspaceNotifier;
+  final IWorkspaceRepository workspaceRepository;
 
   OnboardingNotifier({
     required this.onboardingService,
     required this.accountRepository,
     required this.workspaceNotifier,
+    required this.workspaceRepository,
   }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
 
-  void reset() {
-    state = OnboardingState(workspace: WorkspaceModel.empty());
+  void load(WorkspaceModel workspace) {
+    if (state.workspace.id != workspace.id) {
+      state = state.copyWith(
+        workspace: workspace,
+        currentStep: workspace.lastOnboardingStep ?? OnboardingSteps.accounts,
+      );
+    }
   }
 
   Future<void> nextStep() async {
@@ -41,6 +49,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       }
 
       state = state.copyWith(currentStep: nextStep);
+
+      if (state.workspace.id.isNotEmpty) {
+        await workspaceRepository.updateWorkspace(
+          state.workspace.copyWith(lastOnboardingStep: state.currentStep),
+        );
+      }
     }
   }
 
@@ -109,14 +123,17 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       state.workspace,
       state.planningSuggestions ?? PlanningSuggestions(),
     );
-
-    workspaceNotifier.loadWorkspaces(onboardingService.user.id);
   }
 
   Future<void> _createWorkspace() async {
-    await onboardingService.createWorkspace(
+    final workspace = await onboardingService.createWorkspace(
       name: state.workspace.name,
       type: state.workspace.type,
+      lastOnboardingStep: state.currentStep,
     );
+
+    state = state.copyWith(workspace: workspace);
+
+    workspaceNotifier.loadWorkspaces(onboardingService.user.id);
   }
 }

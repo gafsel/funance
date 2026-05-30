@@ -50,12 +50,14 @@ class OnboardingService {
   Future<WorkspaceModel> createWorkspace({
     required String name,
     required WorkspaceType type,
+    required OnboardingSteps lastOnboardingStep,
   }) async {
     final workspace = WorkspaceModel(
       id: const Uuid().v4(),
       name: name,
       type: type,
       createdAt: DateTime.now(),
+      lastOnboardingStep: lastOnboardingStep,
     );
 
     return await workspaceRepository.createWorkspace(workspace);

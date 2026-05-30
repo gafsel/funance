@@ -31,10 +31,6 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   @override
   Future<WorkspaceModel> createWorkspace(WorkspaceModel workspace) async {
     try {
-      final docRef = _firestore
-          .collection(_collection)
-          .doc(workspace.id.isEmpty ? null : workspace.id);
-
       final data = workspace
           .copyWith(members: [_auth.currentUser!.uid])
           .toJson();
@@ -44,8 +40,19 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
       // Convert to Timestamp for Firestore
       data['createdAt'] = Timestamp.now();
 
-      await docRef.set(data);
-      return workspace.copyWith(id: docRef.id);
+      DocumentReference docRef;
+      if (workspace.id.isEmpty) {
+        docRef = await _firestore.collection(_collection).add(data);
+      } else {
+        docRef = _firestore.collection(_collection).doc(workspace.id);
+
+        await docRef.set(data);
+      }
+
+      return workspace.copyWith(
+        id: docRef.id,
+        members: [_auth.currentUser!.uid],
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

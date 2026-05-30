@@ -12,6 +12,8 @@ enum WorkspaceType {
   business,
 }
 
+enum OnboardingSteps { type, name, accounts, planning, invites, done }
+
 @freezed
 sealed class WorkspaceModel with _$WorkspaceModel {
   const factory WorkspaceModel({
@@ -20,6 +22,7 @@ sealed class WorkspaceModel with _$WorkspaceModel {
     required WorkspaceType type,
     @Default([]) List<String> members,
     required DateTime createdAt,
+    OnboardingSteps? lastOnboardingStep,
   }) = _WorkspaceModel;
 
   factory WorkspaceModel.empty() {

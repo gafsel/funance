@@ -17,18 +17,33 @@ _WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const [],
       createdAt: DateTime.parse(json['createdAt'] as String),
+      lastOnboardingStep: $enumDecodeNullable(
+        _$OnboardingStepsEnumMap,
+        json['lastOnboardingStep'],
+      ),
     );
 
-Map<String, dynamic> _$WorkspaceModelToJson(_WorkspaceModel instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'type': _$WorkspaceTypeEnumMap[instance.type]!,
-      'members': instance.members,
-      'createdAt': instance.createdAt.toIso8601String(),
-    };
+Map<String, dynamic> _$WorkspaceModelToJson(
+  _WorkspaceModel instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'type': _$WorkspaceTypeEnumMap[instance.type]!,
+  'members': instance.members,
+  'createdAt': instance.createdAt.toIso8601String(),
+  'lastOnboardingStep': _$OnboardingStepsEnumMap[instance.lastOnboardingStep],
+};
 
 const _$WorkspaceTypeEnumMap = {
   WorkspaceType.personal: 'personal',
   WorkspaceType.business: 'business',
+};
+
+const _$OnboardingStepsEnumMap = {
+  OnboardingSteps.type: 'type',
+  OnboardingSteps.name: 'name',
+  OnboardingSteps.accounts: 'accounts',
+  OnboardingSteps.planning: 'planning',
+  OnboardingSteps.invites: 'invites',
+  OnboardingSteps.done: 'done',
 };

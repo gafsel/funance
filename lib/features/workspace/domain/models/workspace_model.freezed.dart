@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkspaceModel {
 
- String get id; String get name; WorkspaceType get type; List<String> get members; DateTime get createdAt;
+ String get id; String get name; WorkspaceType get type; List<String> get members; DateTime get createdAt; OnboardingSteps? get lastOnboardingStep;
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $WorkspaceModelCopyWith<WorkspaceModel> get copyWith => _$WorkspaceModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.members, members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.members, members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastOnboardingStep, lastOnboardingStep) || other.lastOnboardingStep == lastOnboardingStep));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(members),createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(members),createdAt,lastOnboardingStep);
 
 @override
 String toString() {
-  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt)';
+  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt, lastOnboardingStep: $lastOnboardingStep)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $WorkspaceModelCopyWith<$Res>  {
   factory $WorkspaceModelCopyWith(WorkspaceModel value, $Res Function(WorkspaceModel) _then) = _$WorkspaceModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, WorkspaceType type, List<String> members, DateTime createdAt
+ String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep
 });
 
 
@@ -65,14 +65,15 @@ class _$WorkspaceModelCopyWithImpl<$Res>
 
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,Object? lastOnboardingStep = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as WorkspaceType,members: null == members ? _self.members : members // ignore: cast_nullable_to_non_nullable
 as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,lastOnboardingStep: freezed == lastOnboardingStep ? _self.lastOnboardingStep : lastOnboardingStep // ignore: cast_nullable_to_non_nullable
+as OnboardingSteps?,
   ));
 }
 
@@ -154,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkspaceModel() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep);case _:
   return orElse();
 
 }
@@ -175,10 +176,10 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);ca
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep)  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceModel():
-return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);}
+return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -192,10 +193,10 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceModel() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);case _:
+return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep);case _:
   return null;
 
 }
@@ -207,7 +208,7 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt);ca
 @JsonSerializable()
 
 class _WorkspaceModel implements WorkspaceModel {
-  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt}): _members = members;
+  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt, this.lastOnboardingStep}): _members = members;
   factory _WorkspaceModel.fromJson(Map<String, dynamic> json) => _$WorkspaceModelFromJson(json);
 
 @override final  String id;
@@ -221,6 +222,7 @@ class _WorkspaceModel implements WorkspaceModel {
 }
 
 @override final  DateTime createdAt;
+@override final  OnboardingSteps? lastOnboardingStep;
 
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
@@ -235,16 +237,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._members, _members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._members, _members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastOnboardingStep, lastOnboardingStep) || other.lastOnboardingStep == lastOnboardingStep));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(_members),createdAt);
+int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(_members),createdAt,lastOnboardingStep);
 
 @override
 String toString() {
-  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt)';
+  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt, lastOnboardingStep: $lastOnboardingStep)';
 }
 
 
@@ -255,7 +257,7 @@ abstract mixin class _$WorkspaceModelCopyWith<$Res> implements $WorkspaceModelCo
   factory _$WorkspaceModelCopyWith(_WorkspaceModel value, $Res Function(_WorkspaceModel) _then) = __$WorkspaceModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, WorkspaceType type, List<String> members, DateTime createdAt
+ String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep
 });
 
 
@@ -272,14 +274,15 @@ class __$WorkspaceModelCopyWithImpl<$Res>
 
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,Object? lastOnboardingStep = freezed,}) {
   return _then(_WorkspaceModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as WorkspaceType,members: null == members ? _self._members : members // ignore: cast_nullable_to_non_nullable
 as List<String>,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,lastOnboardingStep: freezed == lastOnboardingStep ? _self.lastOnboardingStep : lastOnboardingStep // ignore: cast_nullable_to_non_nullable
+as OnboardingSteps?,
   ));
 }
 

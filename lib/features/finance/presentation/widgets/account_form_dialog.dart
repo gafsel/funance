@@ -9,6 +9,7 @@ import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/file_extension.dart';
+import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -92,9 +93,12 @@ class AccountFormDialog extends ConsumerWidget {
                             .last
                             .toLowerCase();
                         if (extension == 'pdf' || extension == 'ofx') {
-                          notifier.updateFile(
-                            kIsWeb ? null : File(file.path),
-                            file.name,
+                          showLoadingModal(
+                            context,
+                            notifier.updateFile(
+                              kIsWeb ? null : File(file.path),
+                              file.name,
+                            ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -163,19 +167,26 @@ class AccountFormDialog extends ConsumerWidget {
                             const SizedBox(height: 16),
                             OutlinedButton.icon(
                               onPressed: () async {
-                                final result = await FilePicker.platform
-                                    .pickFiles(
-                                      type: FileType.custom,
-                                      allowedExtensions: ['pdf', 'ofx'],
-                                    );
-                                if (result != null) {
-                                  notifier.updateFile(
-                                    kIsWeb
-                                        ? null
-                                        : File(result.files.single.path!),
-                                    result.files.single.name,
-                                  );
-                                }
+                                showLoadingModal(
+                                  context,
+                                  FilePicker.platform
+                                      .pickFiles(
+                                        type: FileType.custom,
+                                        allowedExtensions: ['pdf', 'ofx'],
+                                      )
+                                      .then((result) async {
+                                        if (result != null) {
+                                          await notifier.updateFile(
+                                            kIsWeb
+                                                ? null
+                                                : File(
+                                                    result.files.single.path!,
+                                                  ),
+                                            result.files.single.name,
+                                          );
+                                        }
+                                      }),
+                                );
                               },
                               icon: const Icon(Icons.upload_file),
                               label: Text(l10n.accountSelectFile),

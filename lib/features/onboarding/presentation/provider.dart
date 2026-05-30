@@ -33,6 +33,7 @@ class OnboardingViewProviders {
       onboardingService: ref.read(OnboardingDomainProviders.service),
       accountRepository: ref.read(AccountDomainProviders.repository),
       workspaceNotifier: ref.read(WorkspaceViewProviders.workspace.notifier),
+      workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
     );
   });
 }
