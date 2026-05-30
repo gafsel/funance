@@ -8,7 +8,8 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
   final FinanceService financeService;
 
-  TransactionFormNotifier(super.initialState, {required this.financeService}):super();
+  TransactionFormNotifier(super.initialState, {required this.financeService})
+    : super();
 
   void updateDescription(String value) =>
       state = state.copyWith(description: value);
@@ -44,16 +45,27 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
     }
   }
 
-  void updatePaidDate(DateTime? value) => state = state.copyWith(paidDate: value);
+  void updatePaidDate(DateTime? value) =>
+      state = state.copyWith(paidDate: value);
 
-  void updatePaidAmount(double? value) => state = state.copyWith(paidAmount: value);
+  void updatePaidAmount(double? value) =>
+      state = state.copyWith(paidAmount: value);
+
+  void updateReplicationCascade(ReplicationCascade? value) =>
+      state = state.copyWith(replicateCascade: value);
 
   void updateStatus(InstallmentStatus value) {
-    state = state.copyWith(
-      status: value,
-      paidAmount: value == InstallmentStatus.paid ? state.amount : state.paidAmount,
-      paidDate: value == InstallmentStatus.paid ? DateTime.now() : state.paidDate,
-    );
+    if (value == InstallmentStatus.paid) {
+      state = state.copyWith(
+        status: value,
+        paidAmount: state.amount,
+        paidDate: state.dueDate.isAfter(DateTime.now())
+            ? DateTime.now()
+            : state.dueDate,
+      );
+    } else {
+      state = state.copyWith(status: value);
+    }
   }
 
   Future<bool> submit() async {
@@ -76,5 +88,25 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
 
       return true;
     }
+  }
+
+  bool get shouldAskCascade {
+    if (state.creation || state.formType != TransactionFormType.installment) {
+      return false;
+    }
+
+    // Se for uma parcela única, não faz sentido perguntar cascade
+    if (state.installmentType == InstallmentType.single) {
+      return false;
+    }
+
+    final original = state.installmentId != null
+        ? state
+              .asInstallmentModel() // Na verdade precisaria do original pra comparar, mas vamos assumir que se mudou algo além desses 3, pergunta.
+        : null;
+
+    // A lógica de "não se aplica pra alterações de status, data de pagamento ou valor de pagamento"
+    // será tratada no momento da submissão na UI para decidir se abre a modal ou não.
+    return true;
   }
 }

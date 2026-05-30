@@ -29,6 +29,7 @@ enum ReplicationCascade {
 @freezed
 sealed class InstallmentModel with _$InstallmentModel {
   const InstallmentModel._();
+  @JsonSerializable(explicitToJson: true)
   const factory InstallmentModel({
     required String id,
     required String orderId,

@@ -152,6 +152,18 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.getInstallmentsCollection(workspaceId).doc(installmentId).delete();
     }
 
+    async getInstallmentById(workspaceId: string, installmentId: string): Promise<InstallmentModel | null> {
+        const doc = await this.getInstallmentsCollection(workspaceId).doc(installmentId).get();
+        if (!doc.exists) return null;
+        const data = doc.data() as any;
+        return {
+            id: doc.id,
+            ...data,
+            dueDate: data.dueDate.toDate(),
+            paidDate: data.paidDate?.toDate(),
+        } as InstallmentModel;
+    }
+
     async getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]> {
         const snapshot = await this.getInstallmentsCollection(workspaceId)
             .where("orderId", "==", orderId)

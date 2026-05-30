@@ -20,6 +20,7 @@ export interface IFinanceRepository {
   createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void>;
   updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;
   deleteInstallment(workspaceId: string, installmentId: string): Promise<void>;
+  getInstallmentById(workspaceId: string, installmentId: string): Promise<InstallmentModel | null>;
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;
   deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void>;
   getInstallments(workspaceId: string, filters: { accountId?: string }): Promise<InstallmentModel[]>;

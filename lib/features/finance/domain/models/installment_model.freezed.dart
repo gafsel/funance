@@ -226,8 +226,8 @@ return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueD
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _InstallmentModel extends InstallmentModel {
   const _InstallmentModel({required this.id, required this.orderId, required this.amount, required this.description, required this.dueDate, this.paidAmount, this.paidDate, this.installmentNumber, this.installmentCount, required this.status, required this.type, required this.installmentType, final  Map<String, AccountImpact> accounts = const {}, this.category, this.replicationCascade}): _accounts = accounts,super._();
   factory _InstallmentModel.fromJson(Map<String, dynamic> json) => _$InstallmentModelFromJson(json);

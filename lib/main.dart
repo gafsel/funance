@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -71,10 +72,7 @@ class AuthWrapper extends ConsumerWidget {
 
           // 3. Se não tem workspaces ou está no onboarding e ainda não finalizou
           if (workspaceState.availableWorkspaces.isEmpty) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-            );
+            return OnboardingScreen();
           }
 
           // 4. Se tem workspaces, vai para o dashboard

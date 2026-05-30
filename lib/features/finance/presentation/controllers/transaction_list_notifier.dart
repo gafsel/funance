@@ -9,7 +9,7 @@ class TransactionListNotifier
 
   TransactionListNotifier({required this.financeiroService})
     : super(
-        initialQuery: TransactionQuery(),
+        initialQuery: TransactionQuery(endDate: DateTime.now()),
         executor: (query, {chunkRef}) async {
           return await financeiroService.queryInstallments(
             limit: 10,

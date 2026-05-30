@@ -109,6 +109,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       state.workspace,
       state.planningSuggestions ?? PlanningSuggestions(),
     );
+
+    workspaceNotifier.loadWorkspaces(onboardingService.user.id);
   }
 
   Future<void> _createWorkspace() async {
@@ -116,7 +118,5 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       name: state.workspace.name,
       type: state.workspace.type,
     );
-
-    workspaceNotifier.loadWorkspaces(onboardingService.user.id);
   }
 }

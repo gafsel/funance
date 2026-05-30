@@ -12,6 +12,12 @@ typedef FieldsBuilder<I, O, N extends FormNotifier<I, O>> =
       FormBuilderSnapshot<I, O, N> snapshot,
     );
 
+typedef OnPressed<I, O, N extends FormNotifier<I, O>> =
+    Future<void> Function(
+      FormBuilderSnapshot<I, O, N> snapshot,
+      LoadingWrapper loading,
+    );
+
 class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     extends StatelessWidget {
   const ResponsiveForm(
@@ -21,6 +27,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     this.submitLabel,
     this.extraActions = const [],
     this.onSuccess,
+    this.onSubmit,
   });
 
   final AutoDisposeStateNotifierProvider<N, I> provider;
@@ -28,6 +35,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   final String? submitLabel;
   final List<Widget> extraActions;
   final ValueChanged<O>? onSuccess;
+  final OnPressed<I, O, N>? onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +58,11 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                   LoadingButton.elevated(
                     child: Text(submitLabel ?? l10n.saveButton),
                     onPressed: (loading) async {
+                      if (onSubmit != null) {
+                        await onSubmit!(snapshot, loading);
+                        return;
+                      }
+
                       if (snapshot.validate()) {
                         final output = await loading(
                           snapshot.notifier.submit(),

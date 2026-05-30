@@ -59,7 +59,7 @@ Map<String, dynamic> _$InstallmentModelToJson(_InstallmentModel instance) =>
       'accounts': instance.accounts.map(
         (k, e) => MapEntry(k, _$AccountImpactEnumMap[e]!),
       ),
-      'category': instance.category,
+      'category': instance.category?.toJson(),
       'replicationCascade':
           _$ReplicationCascadeEnumMap[instance.replicationCascade],
     };

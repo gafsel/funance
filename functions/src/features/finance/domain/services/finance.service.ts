@@ -1,4 +1,4 @@
-import { OrderModel, InstallmentModel, AccountModel, OrderStatus, InstallmentStatus, InstallmentType, AccountType } from "../models/finance.models";
+import { OrderModel, InstallmentModel, AccountModel, OrderStatus, InstallmentStatus, InstallmentType, AccountType, ReplicationCascade } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 
 export class FinanceService {
@@ -64,7 +64,7 @@ export class FinanceService {
                 orderId: orderId,
                 amount: order.amount,
                 dueDate: dueDate,
-                description: `${order.description} (${i + 1} de ${installmentsToGenerate})`,
+                description: order.description,
                 referenceDate: status === InstallmentStatus.paid || status === InstallmentStatus.settled ? dueDate : dueDate, // Simplificado, mas segue lógica
                 referenceAmount: order.amount,
                 status: status,
@@ -135,6 +135,10 @@ export class FinanceService {
         before: InstallmentModel | null,
         after: InstallmentModel | null
     ): Promise<void> {
+        // Se houver cascade, a lógica de saldo será tratada individualmente para cada installment alterada
+        // mas o gatilho da function de trigger (se existir) chamaria este método para cada uma.
+        // Se estivermos chamando manualmente no updateInstallment do service, precisamos tomar cuidado.
+        
         const isBeforePaid = before?.status === InstallmentStatus.paid;
         const isAfterPaid = after?.status === InstallmentStatus.paid;
 
@@ -157,6 +161,56 @@ export class FinanceService {
                 await this.applyInstallmentBalance(workspaceId, before, true);
                 await this.applyInstallmentBalance(workspaceId, after, false);
             }
+        }
+    }
+
+    async updateInstallment(workspaceId: string, installmentId: string, data: Partial<InstallmentModel>): Promise<void> {
+        const existing = await this.financeRepository.getInstallmentById(workspaceId, installmentId);
+        if (!existing) return;
+
+        const cascade = data.replicationCascade || ReplicationCascade.none;
+        const updates: { id: string, data: Partial<InstallmentModel> }[] = [];
+
+        if (cascade === ReplicationCascade.none) {
+            updates.push({ id: installmentId, data });
+        }
+        else {
+            const allInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, existing.orderId);
+            const sorted = allInstallments.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+            
+            const currentIndex = sorted.findIndex(i => i.id === installmentId);
+            const targetInstallments = cascade === ReplicationCascade.all 
+                ? sorted 
+                : sorted.slice(currentIndex);
+
+            for (const inst of targetInstallments) {
+                const isTarget = inst.id === installmentId;
+                
+                const installmentUpdate: Partial<InstallmentModel> = {
+                    description: data.description,
+                    amount: data.amount,
+                    category: data.category,
+                    accounts: data.accounts,
+                    type: data.type,
+                };
+
+                // No cascade, não alteramos status, paidDate, paidAmount das outras
+                if (isTarget) {
+                    installmentUpdate.status = data.status;
+                    installmentUpdate.paidDate = data.paidDate;
+                    installmentUpdate.paidAmount = data.paidAmount;
+                    installmentUpdate.dueDate = data.dueDate;
+                }
+
+                updates.push({ id: inst.id, data: installmentUpdate });
+            }
+        }
+
+        for (const update of updates) {
+            const before = await this.financeRepository.getInstallmentById(workspaceId, update.id);
+            await this.financeRepository.updateInstallment(workspaceId, update.id, update.data);
+            const after = await this.financeRepository.getInstallmentById(workspaceId, update.id);
+            await this.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
         }
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -23,9 +24,11 @@ class AccountFormField extends ConsumerWidget {
   final FormFieldValidator<String?>? validator;
   final bool autoOpen;
 
+  bool get enabled => onChanged != null;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (autoOpen && initialValue == null) {
+    if (enabled && autoOpen && initialValue == null) {
       final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
       if (!isModalOpen) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -49,19 +52,6 @@ class AccountFormField extends ConsumerWidget {
     }
     final l10n = context.l10n;
 
-    String getAccountTypeName(AccountType type) {
-      switch (type) {
-        case AccountType.checking:
-          return l10n.accountTypeChecking;
-        case AccountType.investment:
-          return l10n.accountTypeInvestment;
-        case AccountType.creditCard:
-          return l10n.accountTypeCreditCard;
-        case AccountType.debt:
-          return l10n.accountTypeDebt;
-      }
-    }
-
     return FormField<String?>(
       key: ValueKey(initialValue),
       initialValue: initialValue,
@@ -73,60 +63,69 @@ class AccountFormField extends ConsumerWidget {
             : const AsyncValue<AccountModel?>.data(null);
 
         return InkWell(
-          onTap: () async {
-            final account = await showModalBottomSheet<AccountModel?>(
-              context: context,
-              isScrollControlled: true,
-              useSafeArea: true,
-              builder: (context) => AccountSelectionScreen(
-                title: decoration?.labelText ?? l10n.transactionAccountLabel,
-                showClearOption: true,
-                onAccountSelected: (acc) => Navigator.pop(context, acc),
-              ),
-            );
+          onTap: !enabled
+              ? null
+              : () async {
+                  final account = await showModalBottomSheet<AccountModel?>(
+                    context: context,
+                    isScrollControlled: true,
+                    useSafeArea: true,
+                    builder: (context) => AccountSelectionScreen(
+                      title:
+                          decoration?.labelText ?? l10n.transactionAccountLabel,
+                      showClearOption: true,
+                      onAccountSelected: (acc) => Navigator.pop(context, acc),
+                    ),
+                  );
 
-            state.didChange(account?.id);
-            onChanged?.call(account?.id);
-          },
+                  state.didChange(account?.id);
+                  onChanged?.call(account?.id);
+                },
           child: InputDecorator(
             decoration: (decoration ?? const InputDecoration()).copyWith(
               errorText: state.errorText,
-              suffixIcon: const Icon(Icons.chevron_right),
+              suffixIcon: enabled ? const Icon(Icons.chevron_right) : null,
             ),
             child: accountAsync.when(
               data: (account) {
                 if (account == null) {
                   return Container();
                 }
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                return Row(
                   children: [
-                    Text(
-                      getAccountTypeName(account.type),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).hintColor,
-                          ),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: ShapeDecoration(
+                        shape: const CircleBorder(),
+                        color: account.color.asColor().withValues(alpha: 0.2),
+                      ),
+                      child: Icon(
+                        account.icon.asIcon(),
+                        size: 16,
+                        color: account.color.asColor(),
+                      ),
                     ),
-                    const SizedBox(height: 2),
-                    Row(
+                    const SizedBox(width: 8),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: ShapeDecoration(
-                            shape: const CircleBorder(),
-                            color: account.color.asColor().withValues(alpha: 0.2),
-                          ),
-                          child: Icon(
-                            account.icon.asIcon(),
-                            size: 16,
-                            color: account.color.asColor(),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         Text(
                           account.name,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: enabled ? null : Colors.black38,
+                              ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          l10n.fromAccountType(account.type),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: enabled
+                                    ? Theme.of(context).hintColor
+                                    : Colors.black38,
+                              ),
                         ),
                       ],
                     ),
