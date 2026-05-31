@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
@@ -194,10 +195,7 @@ class JourneyTab extends ConsumerWidget {
   }
 
   void _showAddGoalDialog(BuildContext context, [GoalModel? goal]) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => GoalFormScreen(goal: goal)),
-    );
+    context.push('/goals/form', extra: goal);
   }
 
   Widget _buildGoalCard(BuildContext context, WidgetRef ref, GoalModel goal) {

@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -77,12 +78,7 @@ class _CategoryManagementScreenState
   }
 
   void _showCategoryDialog(BuildContext context, [CategoryModel? category]) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CategoryFormScreen(category: category),
-      ),
-    );
+    context.push('/workspace/categories/form', extra: category);
   }
 
   void _confirmDelete(

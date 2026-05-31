@@ -20,8 +20,8 @@ sealed class GoalDomainProvider {
 sealed class GoalViewProvider {
   static final form = StateNotifierProvider.autoDispose(
     (ref) => GoalFormNotifier(
-      goalService: ref.read(GoalDomainProvider.service),
-      accountService: ref.read(AccountDomainProviders.service),
+      goalService: ref.watch(GoalDomainProvider.service),
+      accountService: ref.watch(AccountDomainProviders.service),
     ),
   );
 }

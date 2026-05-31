@@ -7,7 +7,9 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
+import 'package:funances/features/goal/presentation/model/goal_view_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
+import 'package:funances/features/goal/presentation/providers/goal_form_provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -25,7 +27,7 @@ class GoalFormScreen extends ConsumerWidget {
         title: Text(goal == null ? l10n.addGoalButton : l10n.continueButton),
       ),
       body: SingleChildScrollView(
-        child: ResponsiveForm(
+        child: ResponsiveForm<GoalFormState, void, GoalFormNotifier>(
           GoalViewProvider.form,
           submitLabel: l10n.continueButton,
           onSuccess: (_) => Navigator.pop(context),

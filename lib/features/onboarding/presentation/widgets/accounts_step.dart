@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
@@ -178,9 +179,6 @@ class AccountsStep extends ConsumerWidget {
   }
 
   void _showAddAccount(BuildContext context, OnboardingNotifier notifier) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => AccountFormScreen()),
-    );
+    context.push('/accounts/form');
   }
 }

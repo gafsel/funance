@@ -10,6 +10,7 @@ import 'package:funances/features/workspace/presentation/controller/invite_provi
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/features/workspace/presentation/screens/invite_list_screen.dart';
+import 'package:funances/core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
@@ -24,12 +25,15 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      routerConfig: router,
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       localizationsDelegates: [
         AppLocalizations.delegate,
@@ -39,68 +43,6 @@ class MyApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('pt', ''), Locale('en', '')],
       theme: AppTheme.theme,
-      home: const AuthWrapper(),
-    );
-  }
-}
-
-class AuthWrapper extends ConsumerWidget {
-  const AuthWrapper({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(AuthDomainProviders.user);
-    final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
-    final inviteState = ref.watch(inviteNotifierProvider);
-
-    return user.when(
-      data: (user) {
-
-        if (user != null) {
-          // 1. Aguarda carregamento inicial de tudo
-          if (workspaceState.isLoading ||
-              !workspaceState.initialLoadDone ||
-              inviteState.isLoading ||
-              !inviteState.initialLoadDone) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          // 2. Se houver convites pendentes, mostra a tela de convites
-          if (inviteState.pendingInvites.isNotEmpty) {
-            return const InviteListScreen();
-          }
-
-          // 3. Se não tem workspaces ou está no onboarding e ainda não finalizou
-          if (workspaceState.availableWorkspaces.isEmpty) {
-            return OnboardingScreen();
-          } else if ((workspaceState.currentWorkspace?.lastOnboardingStep ??
-                  OnboardingSteps.done) !=
-              OnboardingSteps.done) {
-            Future(() {
-              ref
-                  .read(OnboardingViewProviders.onboarding.notifier)
-                  .load(workspaceState.currentWorkspace!);
-            });
-            return OnboardingScreen();
-          }
-
-          // 4. Se tem workspaces, vai para o dashboard
-          return const HomeScreen();
-        } else {
-          return const LoginScreen();
-        }
-      },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, s) {
-        String message = e.toString();
-        if (e is BusinessException) {
-          message = e.code.message(context);
-        }
-        return Scaffold(body: Center(child: Text(message)));
-      },
     );
   }
 }

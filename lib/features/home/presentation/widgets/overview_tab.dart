@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -8,7 +9,6 @@ import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/period_summary_model.dart';
-import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/accounts_view.dart';
@@ -46,11 +46,7 @@ class OverviewTab extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AccountManagementScreen(),
-                        ),
-                      );
+                      context.push('/workspace/accounts');
                     },
                   ),
                 ],

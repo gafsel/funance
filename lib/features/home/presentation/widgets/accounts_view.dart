@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -7,7 +8,6 @@ import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 class AccountsView extends ConsumerWidget {
@@ -131,11 +131,7 @@ class AccountsView extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => AccountManagementScreen(initialType: type),
-          ),
-        );
+        context.push('/workspace/accounts?type=${type.name}');
       },
       child: Container(
         width: 160,

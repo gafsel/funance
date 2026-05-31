@@ -3,6 +3,7 @@ import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -181,12 +182,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                 label: l10n.planningExpenseLimits,
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CategoryPlanningScreen(type: CategoryType.expense),
-                    ),
-                  );
+                  context.push('/planning?type=expense');
                 },
               ),
               _buildActionItem(
@@ -196,12 +192,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                 label: l10n.planningIncomeLimits,
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CategoryPlanningScreen(type: CategoryType.income),
-                    ),
-                  );
+                  context.push('/planning?type=income');
                 },
               ),
             ],
@@ -269,14 +260,6 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
 
   void _navigateToForm(BuildContext context, OrderType type, InstallmentStatus status) {
     Navigator.pop(context);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TransactionFormScreen.creation(
-          type: type,
-          status: status,
-        ),
-      ),
-    );
+    context.push('/transactions/form?type=${type.name}&status=${status.name}');
   }
 }

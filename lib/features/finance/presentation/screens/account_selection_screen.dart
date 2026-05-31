@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 class AccountSelectionScreen extends ConsumerWidget {
   final String title;
@@ -269,10 +269,7 @@ class AccountSelectionScreen extends ConsumerWidget {
         ),
         title: Text(l10n.accountCreateTitle),
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AccountFormScreen()),
-          );
+          context.push('/accounts/form');
         },
       ),
     );

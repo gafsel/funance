@@ -4,8 +4,7 @@ import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
-import '../../../finance/presentation/screens/account_management_screen.dart';
-import 'category_management_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
   const WorkspaceSettingsScreen({super.key});
@@ -53,11 +52,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       title: l10n.workspaceSettingsCategories,
                       description: l10n.workspaceSettingsCategoriesDesc,
                       onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const CategoryManagementScreen(),
-                          ),
-                        );
+                        context.push('/workspace/categories');
                       },
                     ),
                     _buildGridItem(
@@ -66,11 +61,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       title: l10n.workspaceSettingsAccounts,
                       description: l10n.workspaceSettingsAccountsDesc,
                       onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const AccountManagementScreen(),
-                          ),
-                        );
+                        context.push('/workspace/accounts');
                       },
                     ),
                     _buildGridItem(
@@ -122,11 +113,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     title: Text(l10n.workspaceSettingsCategories),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const CategoryManagementScreen(),
-                        ),
-                      );
+                      context.push('/workspace/categories');
                     },
                   ),
                   ListTile(
@@ -134,11 +121,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     title: Text(l10n.workspaceSettingsAccounts),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AccountManagementScreen(),
-                        ),
-                      );
+                      context.push('/workspace/accounts');
                     },
                   ),
                   const Divider(),

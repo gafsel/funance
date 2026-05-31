@@ -46,7 +46,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   final FieldsBuilder<I, O, N> fieldsBuilder;
   final String? submitLabel;
   final List<Widget> extraActions;
-  final ValueChanged<O>? onSuccess;
+  final ValueChanged<O?>? onSuccess;
   final OnPressed<I, O, N>? onSubmit;
 
   @override
@@ -83,9 +83,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                           snapshot.notifier.submit(),
                         );
 
-                        if (output != null) {
-                          onSuccess?.call(output);
-                        }
+                        onSuccess?.call(output);
                       }
                     },
                   ),

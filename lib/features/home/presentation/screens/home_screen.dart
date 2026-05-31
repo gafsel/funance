@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
@@ -273,12 +274,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                       onTap: () {
                         Navigator.pop(context);
                         ref.read(WorkspaceViewProviders.workspace.notifier).reset();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const OnboardingScreen(),
-                          ),
-                        );
+                        context.go('/onboarding');
                       },
                     ),
                   ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/list/infinite_list_view.dart';
 import 'package:funances/core/model/core_models.dart';
@@ -407,14 +408,9 @@ class HistoryTab extends ConsumerWidget {
               children: [
                 SlidableAction(
                   onPressed: (context) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            TransactionFormScreen.updateInstallment(
-                              installment: installment,
-                            ),
-                      ),
+                    context.push(
+                      '/transactions/form',
+                      extra: {'installment': installment},
                     );
                   },
                   backgroundColor: Theme.of(context).colorScheme.primary,

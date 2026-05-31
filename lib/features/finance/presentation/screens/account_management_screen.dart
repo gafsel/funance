@@ -4,6 +4,7 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 import '../../domain/models/account_model.dart';
 import 'account_form_screen.dart';
 
@@ -15,7 +16,7 @@ class AccountManagementScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final accountsAsync = ref.watch(AccountViewProviders.all);
+    final accountsByTypeAsync = ref.watch(AccountViewProviders.byTypeMap);
 
     // Se o initialType estiver presente e o diálogo ainda não tiver sido mostrado,
     // podemos disparar a abertura do diálogo após o primeiro frame.
@@ -35,13 +36,9 @@ class AccountManagementScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: accountsAsync.when(
-        data: (rawAccounts) {
-          final accounts = [...rawAccounts]
-            ..sort(
-              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-            );
-          if (accounts.isEmpty) {
+      body: accountsByTypeAsync.when(
+        data: (accountsByType) {
+          if (accountsByType.isEmpty) {
             return Center(child: Text(l10n.accountManagementEmpty));
           }
 
@@ -53,31 +50,86 @@ class AccountManagementScreen extends ConsumerWidget {
                   ? 2
                   : 1;
 
-              if (crossAxisCount == 1) {
-                return ListView.separated(
-                  itemCount: accounts.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) =>
-                      _buildAccountTile(context, ref, accounts[index]),
+              final List<Widget> slivers = [];
+
+              for (final entry in accountsByType.entries) {
+                final typeAccounts = [...entry.value]..sort(
+                  (a, b) =>
+                      a.name.toLowerCase().compareTo(b.name.toLowerCase()),
                 );
+
+                if (typeAccounts.isEmpty) continue;
+
+                // Header do tipo
+                slivers.add(
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    sliver: SliverToBoxAdapter(
+                      child: Text(
+                        l10n.fromAccountType(entry.key),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+
+                if (crossAxisCount == 1) {
+                  slivers.add(
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final account = typeAccounts[index];
+                          return Column(
+                            children: [
+                              _buildAccountTile(context, ref, account),
+                              if (index < typeAccounts.length - 1)
+                                const Divider(height: 1),
+                            ],
+                          );
+                        },
+                        childCount: typeAccounts.length,
+                      ),
+                    ),
+                  );
+                } else {
+                  slivers.add(
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          mainAxisExtent: 80,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _buildAccountTile(
+                            context,
+                            ref,
+                            typeAccounts[index],
+                            isGrid: true,
+                          ),
+                          childCount: typeAccounts.length,
+                        ),
+                      ),
+                    ),
+                  );
+                }
               }
 
-              return GridView.builder(
-                padding: const EdgeInsets.all(16),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  mainAxisExtent: 80,
-                ),
-                itemCount: accounts.length,
-                itemBuilder: (context, index) => _buildAccountTile(
-                  context,
-                  ref,
-                  accounts[index],
-                  isGrid: true,
+              // Adiciona um padding extra no final
+              slivers.add(
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: MediaQuery.of(context).padding.bottom + 16,
+                  ),
                 ),
               );
+
+              return CustomScrollView(slivers: slivers);
             },
           );
         },
@@ -146,13 +198,7 @@ class AccountManagementScreen extends ConsumerWidget {
     AccountModel? account,
     AccountType? initialType,
   ]) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            AccountFormScreen(account: account, initialType: initialType),
-      ),
-    );
+    context.push('/accounts/form?id=${account?.id ?? ''}');
   }
 
   void _confirmDelete(

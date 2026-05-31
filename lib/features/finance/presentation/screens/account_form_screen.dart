@@ -45,7 +45,7 @@ class AccountFormScreen extends ConsumerWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            ResponsiveForm(
+            ResponsiveForm<AccountFormState, void, AccountFormNotifier>(
               AccountViewProviders.form(
                 AccountFormArgs(type: initialType, account: account),
               ),
