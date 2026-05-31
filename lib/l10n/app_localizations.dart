@@ -1837,6 +1837,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Data'**
   String get date;
+
+  /// No description provided for @historyAccountLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta'**
+  String get historyAccountLabel;
 }
 
 class _AppLocalizationsDelegate

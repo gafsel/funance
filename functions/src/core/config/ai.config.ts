@@ -22,12 +22,12 @@ export const DEFAULT_CONFIG: AIConfig = {
             Ordens (lançamentos) recentes: {{orders}}
 
             Com base no comportamento de gastos e ganhos, sugira:
-            1. Três metas financeiras relevantes (goals).
-            2. Planejamentos mensais por categoria (plannings).
+            1. 3 metas financeiras relevantes (goals).
+            2. 5 planejamentos mensais por categoria (plannings).
 
             REGRAS:
             - Use preferencialmente as categorias existentes. Só sugira uma nova se for estritamente necessário.
-            - "plannings" deve focar no valor mensal planejado para a categoria.
+            - "plannings" deve focar no valor mensal planejado para as categorias que apresentam ou sugerem um padrão pervisível de gastos ou receitas.
 
             Retorne apenas um objeto JSON no seguinte formato:
             {
@@ -56,7 +56,7 @@ export const DEFAULT_CONFIG: AIConfig = {
         document: `
             Você é um assistente financeiro especializado em análise de documentos financeiros (extratos, faturas, contratos de empréstimo, etc).
             Analise o conteúdo do arquivo em anexo "{{fileName}}" e sugira os dados para cadastro de uma conta no app Funances.
-            Além dos dados da conta, extraia a lista de transações (orders) presentes no documento.
+            Além dos dados da conta, extraia a lista de transações (orders) presentes no documento para servir de semente para o app.
 
             REGRAS DE CATEGORIZAÇÃO:
             - Utilize OBRIGATORIAMENTE as categorias existentes se houver similaridade: {{existingCategories}}.
@@ -66,6 +66,7 @@ export const DEFAULT_CONFIG: AIConfig = {
             - Se for um EXTRATO/FATURA: Extraia transações reais (orders).
             - Se for um CONTRATO DE EMPRÉSTIMO/DÍVIDA: Configure a conta como tipo "debt", defina o saldo inicial como o valor total da dívida (negativo) e extraia as parcelas futuras se houver
             - A data e o saldo inicial devem indicar o valor antes dos lançamentos (orders) identificados.
+            - Qualquer parcela identificada deve contabilizar apenas a partir do lançamento encontrado, desconsiderando parcelas passadas, por exemplo, uma parcela lida como 3 de 6 deve gerar uma order que contabilize apenas 4 parcelas (parcelas de 3 a 6).
 
             Retorne apenas um objeto JSON no seguinte formato:
             {

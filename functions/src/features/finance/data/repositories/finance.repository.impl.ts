@@ -36,8 +36,13 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return this.firestore.collection(`workspaces/${workspaceId}/accounts/${accountId}/balance`);
     }
 
-    async createOrder(workspaceId: string, order: Omit<OrderModel, "id">): Promise<string> {
-        const docRef = await this.getOrdersCollection(workspaceId).add(order);
+    async createOrder(workspaceId: string, order: Omit<OrderModel, "id">, id?: string): Promise<string> {
+        const collection = this.getOrdersCollection(workspaceId);
+        if (id) {
+            await collection.doc(id).set(order);
+            return id;
+        }
+        const docRef = await collection.add(order);
         return docRef.id;
     }
 
@@ -74,7 +79,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
         const ordersCollection = this.getOrdersCollection(workspaceId);
 
-        const snapshot = await ordersCollection.orderBy(`accounts.${accountId}`).get();
+        const snapshot = await ordersCollection.where("accounts", "array-contains", accountId).get();
         const batch = this.firestore.batch();
 
         snapshot.docs.forEach((doc) => {
@@ -231,6 +236,20 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.getCategoryPlanningCollection(workspaceId).doc(id).delete();
     }
 
+    async deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void> {
+        const snapshot = await this.getCategoryPlanningCollection(workspaceId)
+            .where("category.id", "==", categoryId)
+            .get();
+
+        if (snapshot.empty) return;
+
+        const batch = this.firestore.batch();
+        snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+        });
+        await batch.commit();
+    }
+
     async getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]> {
         const snapshot = await this.getCategoryPlanningCollection(workspaceId).get();
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CategoryPlanningModel));
@@ -293,20 +312,16 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         delta: number
     ): Promise<void> {
         const dateId = date.toISOString().split("T")[0];
-        const docRef = this.getAccountBalanceCollection(workspaceId, accountId).doc(dateId);
+        const balancesColl = this.getAccountBalanceCollection(workspaceId, accountId);
+        const docRef = balancesColl.doc(dateId);
 
         await this.firestore.runTransaction(async (transaction) => {
             const doc = await transaction.get(docRef);
 
-            // Impactar saldos futuros dentro da mesma transação para garantir atomicidade
-            const futureBalances = await transaction.get(
-                this.getAccountBalanceCollection(workspaceId, accountId)
-                    .where(admin.firestore.FieldPath.documentId(), ">", dateId)
-            );
-
             if (!doc.exists) {
                 // Se não existe saldo no dia, precisamos buscar o último saldo anterior para compor o inicial
-                const lastBalanceDoc = await this.getLastBalanceBefore(workspaceId, accountId, date);
+                // Passamos a transaction para garantir leitura consistente
+                const lastBalanceDoc = await this.getLastBalanceBefore(workspaceId, accountId, date, transaction);
                 const initialBalance = lastBalanceDoc ? lastBalanceDoc.balance : 0;
 
                 transaction.set(docRef, {
@@ -320,6 +335,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
             }
+
+            // Impactar saldos futuros dentro da mesma transação para garantir atomicidade
+            // IMPORTANTE: Usar transaction.get() para garantir que a leitura seja parte da transação
+            const futureBalancesQuery = balancesColl.where(admin.firestore.FieldPath.documentId(), ">", dateId);
+            const futureBalances = await transaction.get(futureBalancesQuery);
 
             if (!futureBalances.empty) {
                 futureBalances.docs.forEach((d) => {
@@ -335,21 +355,24 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getLastBalanceBefore(
         workspaceId: string,
         accountId: string,
-        date: Date
+        date: Date,
+        transaction?: admin.firestore.Transaction
     ): Promise<AccountBalanceModel | null> {
         const dateId = date.toISOString().split("T")[0];
-        const snapshot = await this.getAccountBalanceCollection(workspaceId, accountId)
+        const query = this.getAccountBalanceCollection(workspaceId, accountId)
             .where(admin.firestore.FieldPath.documentId(), "<", dateId)
             .orderBy(admin.firestore.FieldPath.documentId(), "desc")
-            .limit(1)
-            .get();
+            .limit(1);
+
+        const snapshot = transaction ? await transaction.get(query) : await query.get();
 
         if (snapshot.empty) return null;
         const doc = snapshot.docs[0];
+        const data = doc.data();
         return {
             id: doc.id,
-            ...doc.data(),
-            updatedAt: doc.data().updatedAt.toDate(),
+            ...data,
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
         } as AccountBalanceModel;
     }
 

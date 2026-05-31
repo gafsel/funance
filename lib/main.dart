@@ -1,22 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:funances/features/auth/presentation/providers.dart';
-import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
-import 'package:funances/features/onboarding/presentation/provider.dart';
-import 'package:funances/features/workspace/domain/models/workspace_model.dart';
-import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
-import 'package:funances/l10n/app_localizations.dart';
-import 'package:funances/features/workspace/presentation/screens/invite_list_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/router/app_router.dart';
+import 'package:funances/l10n/app_localizations.dart';
+
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/screens/login_screen.dart';
-import 'features/home/presentation/screens/home_screen.dart';
-import 'features/onboarding/presentation/screens/onboarding_screen.dart';
-import 'core/exceptions/business_exception.dart';
-import 'core/utils/error_messages.dart';
 import 'firebase_options.dart';
 
 void main() async {

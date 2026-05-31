@@ -1,4 +1,4 @@
-import { onDocumentCreated, onDocumentUpdated, onDocumentDeleted } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentDeleted, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
 import { CategoryModel } from "../../domain/models/category.model";
 import { WorkspaceType } from "../../domain/models/workspace.model";

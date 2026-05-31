@@ -74,7 +74,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           OnboardingSteps.done;
 
       if ((hasNoWorkspaces || needsOnboarding) &&
-          state.matchedLocation != '/onboarding') {
+          state.matchedLocation != '/onboarding' &&
+          state.matchedLocation != '/accounts/form') {
         if (needsOnboarding && workspaceState.currentWorkspace != null) {
           Future(() {
             ref
@@ -100,6 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/onboarding',
+        builder: (context, state) => OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/workspace/form',
         builder: (context, state) => OnboardingScreen(),
       ),
       GoRoute(

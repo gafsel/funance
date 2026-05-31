@@ -8,21 +8,20 @@ export const onOrderWritten = onDocumentWritten(
         const { workspaceId, orderId } = event.params;
         const financeService = container.financeService;
 
-        // Se o dado foi deletado
-        if (!event.data?.after.exists) {
-            console.log(`Order ${orderId} deletada no workspace ${workspaceId}. Removendo installments.`);
-            await financeService.syncInstallments(workspaceId, orderId, null);
-            return;
-        }
+        const beforeData = event.data?.before.exists ? event.data.before.data() : null;
+        const afterData = event.data?.after.exists ? event.data.after.data() : null;
 
-        const data = event.data.after.data();
-
-        const order: OrderModel = {
+        const before = beforeData ? {
             id: orderId,
-            ...data,
-        } as OrderModel;
+            ...beforeData,
+        } as OrderModel : null;
 
-        console.log(`Order ${orderId} criada/alterada no workspace ${workspaceId}. Sincronizando installments.`);
-        await financeService.syncInstallments(workspaceId, orderId, order);
+        const after = afterData ? {
+            id: orderId,
+            ...afterData,
+        } as OrderModel : null;
+
+        console.log(`Order ${orderId} escrita no workspace ${workspaceId}. Sincronizando installments.`);
+        await financeService.syncInstallments(workspaceId, orderId, before, after);
     }
 );

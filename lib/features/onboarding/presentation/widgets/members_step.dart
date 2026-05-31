@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -154,13 +155,9 @@ class _MembersStepState extends ConsumerState<MembersStep> {
               const SizedBox(height: 32),
               LoadingButton.elevated(
                 onPressed: (loading) async {
-                  final navigator = Navigator.of(context);
-
                   await loading(notifier.nextStep());
 
-                  if (navigator.canPop()) {
-                    navigator.pop();
-                  }
+                  context.replace("/");
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.limeGreen,

@@ -57,6 +57,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       }
 
       state = state.copyWith(currentStep: nextStep);
+
+      if (state.currentStep == OnboardingSteps.done) {
+        await workspaceNotifier.loadWorkspaces(onboardingService.user.id);
+
+        workspaceNotifier.setCurrentWorkspace(state.workspace);
+      }
     }
   }
 

@@ -361,5 +361,6 @@
   "statusPending": "Pendente",
   "statusPaid": "Pago",
   "statusSettled": "Conciliado",
-  "date": "Data"
+  "date": "Data",
+  "historyAccountLabel": "Conta"
 }

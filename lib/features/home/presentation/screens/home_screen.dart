@@ -273,8 +273,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                       ),
                       onTap: () {
                         Navigator.pop(context);
-                        ref.read(WorkspaceViewProviders.workspace.notifier).reset();
-                        context.go('/onboarding');
+                        context.go('/workspace/form');
                       },
                     ),
                   ],

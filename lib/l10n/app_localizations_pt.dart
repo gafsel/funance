@@ -974,4 +974,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get date => 'Data';
+
+  @override
+  String get historyAccountLabel => 'Conta';
 }

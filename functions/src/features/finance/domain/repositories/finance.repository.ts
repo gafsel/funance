@@ -1,3 +1,4 @@
+import * as admin from "firebase-admin";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
     OrderModel,
@@ -9,7 +10,7 @@ import {
 
 export interface IFinanceRepository {
   // Orders
-  createOrder(workspaceId: string, order: Omit<OrderModel, "id">): Promise<string>;
+  createOrder(workspaceId: string, order: Omit<OrderModel, "id">, id?: string): Promise<string>;
   getOrderById(workspaceId: string, orderId: string): Promise<OrderModel | null>;
   updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void>;
   deleteOrder(workspaceId: string, orderId: string): Promise<void>;
@@ -30,6 +31,7 @@ export interface IFinanceRepository {
   createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string>;
   updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void>;
   deleteCategoryPlanning(workspaceId: string, id: string): Promise<void>;
+  deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void>;
   getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
 
   // Period Summaries
@@ -59,7 +61,8 @@ export interface IFinanceRepository {
   getLastBalanceBefore(
     workspaceId: string,
     accountId: string,
-    date: Date
+    date: Date,
+    transaction?: admin.firestore.Transaction
   ): Promise<AccountBalanceModel | null>;
 
   // Generic Query

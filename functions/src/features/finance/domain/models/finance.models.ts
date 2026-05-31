@@ -3,6 +3,7 @@ import { CategoryModel } from "../../../workspace/domain/models/category.model";
 export enum OrderStatus {
   active = "active",
   cancelled = "cancelled",
+  settled = "settled",
 }
 
 export enum OrderType {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/utils/error_messages.dart';
 
 // Gerenciador de estado global para as modais de carregamento
 final List<Future<dynamic>> _activeFutures = [];
@@ -24,6 +26,7 @@ Future<T> showLoadingModal<T>(
   // Capturamos o Navigator antes de começar qualquer operação assíncrona
   // para garantir que ainda temos acesso a ele mesmo se o contexto mudar.
   final NavigatorState navigator = Navigator.of(context);
+  ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
 
   _activeFutures.add(future);
 
@@ -80,7 +83,22 @@ Future<T> showLoadingModal<T>(
   }
 
   try {
+    FocusScope.of(context).requestFocus(FocusNode());
+
     return await future;
+  } on BusinessException catch (ex) {
+    scaffoldMessenger.showSnackBar(
+      SnackBar(content: Text(ex.code.message(context))),
+    );
+    rethrow;
+  } catch (ex, stack) {
+    print(
+      "[MAIN CLASS] ERRO NÃO TRATADO: " +
+          ex.toString() +
+          "\n" +
+          stack.toString(),
+    );
+    rethrow;
   } finally {
     _activeFutures.remove(future);
 

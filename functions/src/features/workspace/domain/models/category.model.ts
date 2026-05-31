@@ -1,7 +1,6 @@
 export enum CategoryType {
   income = "income",
   expense = "expense",
-  both = "both",
 }
 
 export interface CategoryModel {

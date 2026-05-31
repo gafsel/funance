@@ -30,5 +30,11 @@ export const onInstallmentWritten = onDocumentWritten(
         // Atualizar metas baseadas no Installment
         await container.goalService.processInstallmentChange(workspaceId, before, after);
 
+        // Atualiza o balance das accounts relacionadas ao Installment
         await container.financeService.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
+
+        // Processar cascata se necessário
+        if (before && after) {
+            await container.financeService.processInstallmentCascade(workspaceId, before, after);
+        }
     });

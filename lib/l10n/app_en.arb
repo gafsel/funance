@@ -353,5 +353,6 @@
   "statusPending": "Pending",
   "statusPaid": "Paid",
   "statusSettled": "Settled",
-  "date": "Date"
+  "date": "Date",
+  "historyAccountLabel": "Account"
 }
