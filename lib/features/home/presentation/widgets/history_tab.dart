@@ -178,7 +178,7 @@ class HistoryTab extends ConsumerWidget {
             ],
           ),
         ),
-        if (query.startDate != null || query.endDate != null)
+        if (query.startDate != null && query.endDate != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
@@ -204,10 +204,10 @@ class HistoryTab extends ConsumerWidget {
         Expanded(
           child: InfiniteListView.separator(
             FinanceViewProviders.history,
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 120),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 120),
             separatorBuilder: (context, before, after) {
-              final showDateHeader =
-                  after != null &&
+              final showDateHeader = after != null &&
                   (before == null ||
                       !_isSameDay(before.referenceDate, after.referenceDate));
 
@@ -411,7 +411,9 @@ class HistoryTab extends ConsumerWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            TransactionFormScreen.updateInstallment(installment: installment),
+                            TransactionFormScreen.updateInstallment(
+                              installment: installment,
+                            ),
                       ),
                     );
                   },
@@ -436,26 +438,57 @@ class HistoryTab extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(vertical: 4.0),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isTransfer
-                            ? Theme.of(context).colorScheme.primaryContainer
-                                  .withValues(alpha: 0.3)
-                            : _parseColor(
-                                category?.color ?? '#14404C',
-                              ).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        isTransfer
-                            ? Icons.swap_horiz
-                            : _getIconData(category?.icon ?? 'category'),
-                        color: isTransfer
-                            ? Theme.of(context).colorScheme.primary
-                            : _parseColor(category?.color ?? '#14404C'),
-                        size: 20,
-                      ),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: isTransfer
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                      .withValues(alpha: 0.3)
+                                : _parseColor(
+                                    category?.color ?? '#14404C',
+                                  ).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            isTransfer
+                                ? Icons.swap_horiz
+                                : _getIconData(category?.icon ?? 'category'),
+                            color: isTransfer
+                                ? Theme.of(context).colorScheme.primary
+                                : _parseColor(category?.color ?? '#14404C'),
+                            size: 20,
+                          ),
+                        ),
+                        Positioned(
+                          bottom: -5,
+                          right: -5,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color:
+                                  installment.status ==
+                                      InstallmentStatus.settled
+                                  ? AppColors.deepPurple
+                                  : installment.status == InstallmentStatus.paid
+                                  ? AppColors.limeGreen
+                                  : AppColors.antiqueGold,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              installment.status == InstallmentStatus.settled
+                                  ? Icons.done_all
+                                  : installment.status == InstallmentStatus.paid
+                                  ? Icons.check
+                                  : Icons.schedule,
+                              size: 10,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -475,12 +508,17 @@ class HistoryTab extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    Text(
-                      '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${installment.referenceAmount.asCurrency(locale: locale)}',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: amountColor,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${installment.referenceAmount.asCurrency(locale: locale)}',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: amountColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

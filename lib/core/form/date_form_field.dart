@@ -32,9 +32,8 @@ class DateFormField extends StatefulWidget {
 
 class _DateFormFieldState extends State<DateFormField> {
   late TextEditingController _controller;
-  DateFormat? _dateFormat;
 
-  DateFormat get dateFormat => _dateFormat ?? DateFormat.yMd(context.locale);
+  DateFormat get dateFormat => DateFormat(context.l10n.dateInputPattern, context.locale);
 
   RegExp get dateRegExp =>
       RegExp("^${dateFormat.pattern!.replaceAll(RegExp("[dMy]"), "\\d")}\$");
@@ -44,19 +43,6 @@ class _DateFormFieldState extends State<DateFormField> {
     super.initState();
 
     _controller = TextEditingController();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    final newDateFormat = DateFormat.yMd(context.locale);
-    if (_dateFormat != newDateFormat) {
-      _dateFormat = newDateFormat;
-      if (widget.initialValue != null) {
-        _controller.text = _dateFormat!.format(widget.initialValue!);
-      }
-    }
   }
 
   @override
@@ -144,7 +130,9 @@ class _DateFormFieldState extends State<DateFormField> {
   }
 
   TextEditingValue _formatData(TextEditingValue antigo, TextEditingValue novo) {
-    String formatado = _formatedAsDate(novo.text);
+    String mark = dateFormat.pattern!.replaceAll(RegExp("[dMy]"), "#");
+
+    String formatado = novo.text.getFormated(mark);
 
     int offset = formatado.length;
 
@@ -158,22 +146,4 @@ class _DateFormFieldState extends State<DateFormField> {
     );
   }
 
-  String _formatedAsDate(String value) {
-    String formatado = "";
-    String cc = value.unformated;
-
-    if (cc.length > 8) {
-      formatado =
-          "${cc.substring(0, 2)}/${cc.substring(2, 4)}/${cc.substring(4, 8)}";
-    } else if (cc.length > 4) {
-      formatado =
-          "${cc.substring(0, 2)}/${cc.substring(2, 4)}/${cc.substring(4)}";
-    } else if (cc.length > 2) {
-      formatado = "${cc.substring(0, 2)}/${cc.substring(2)}";
-    } else if (cc.length > 0) {
-      formatado = "$cc";
-    }
-
-    return formatado;
-  }
 }

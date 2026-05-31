@@ -43,7 +43,6 @@ class WorkspaceInfoStep extends ConsumerWidget {
           ),
           const SizedBox(height: 32),
           TextFormField(
-            initialValue: workspace.name,
             decoration: InputDecoration(
               labelText: l10n.onboardingWorkspaceNameLabel,
             ),

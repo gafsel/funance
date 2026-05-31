@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
@@ -14,13 +15,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final OnboardingService onboardingService;
   final IAccountRepository accountRepository;
   final WorkspaceNotifier workspaceNotifier;
-  final IWorkspaceRepository workspaceRepository;
 
   OnboardingNotifier({
     required this.onboardingService,
     required this.accountRepository,
     required this.workspaceNotifier,
-    required this.workspaceRepository,
   }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
 
   void load(WorkspaceModel workspace) {
@@ -37,24 +36,27 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       var nextStep = OnboardingSteps.values[state.currentStep.index + 1];
 
       if (nextStep == OnboardingSteps.planning) {
-        if (state.accounts.isNotEmpty) {
+        final accounts = await accountRepository
+            .getAccounts(state.workspace.id)
+            .first;
+        if (accounts.isNotEmpty) {
           await _analyzePlanning();
         } else {
           nextStep = OnboardingSteps.invites;
         }
       } else if (nextStep == OnboardingSteps.done) {
         await _finalize();
-      } else if (nextStep == OnboardingSteps.accounts) {
+      } else if (nextStep == OnboardingSteps.name) {
         await _createWorkspace();
       }
 
-      state = state.copyWith(currentStep: nextStep);
-
       if (state.workspace.id.isNotEmpty) {
-        await workspaceRepository.updateWorkspace(
-          state.workspace.copyWith(lastOnboardingStep: state.currentStep),
+        await onboardingService.updateWorkspace(
+          state.workspace.copyWith(lastOnboardingStep: nextStep),
         );
       }
+
+      state = state.copyWith(currentStep: nextStep);
     }
   }
 
@@ -84,16 +86,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(planningSuggestions: suggestions);
   }
 
-  Future<void> addOnboardingAccount(AccountModel account) async {
-    state = state.copyWith(accounts: [...state.accounts, account]);
-  }
-
   Future<void> removeOnboardingAccount(String accountId) async {
     await accountRepository.deleteAccount(state.workspace.id, accountId);
-
-    state = state.copyWith(
-      accounts: state.accounts.where((a) => a.id != accountId).toList(),
-    );
   }
 
   Future<void> removeGoal(GoalModel goal) async {
@@ -101,6 +95,18 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       planningSuggestions: state.planningSuggestions?.copyWith(
         goals:
             state.planningSuggestions?.goals.where((g) => g != goal).toList() ??
+            [],
+      ),
+    );
+  }
+
+  Future<void> removePlanning(CategoryPlanningModel planning) async {
+    state = state.copyWith(
+      planningSuggestions: state.planningSuggestions?.copyWith(
+        plannings:
+            state.planningSuggestions?.plannings
+                .where((p) => p != planning)
+                .toList() ??
             [],
       ),
     );
@@ -127,13 +133,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   Future<void> _createWorkspace() async {
     final workspace = await onboardingService.createWorkspace(
-      name: state.workspace.name,
       type: state.workspace.type,
-      lastOnboardingStep: state.currentStep,
     );
 
     state = state.copyWith(workspace: workspace);
 
-    workspaceNotifier.loadWorkspaces(onboardingService.user.id);
+    await workspaceNotifier.loadWorkspaces(onboardingService.user.id);
+
+    workspaceNotifier.setCurrentWorkspace(workspace);
   }
 }

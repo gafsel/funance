@@ -175,11 +175,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onboardingGoalsAnalysisTitle => 'TRACE GOALS';
+  String get onboardingGoalsAnalysisTitle => 'AI SUGGESTIONS';
 
   @override
   String get onboardingGoalsAnalysisDesc =>
-      'Based on your profile, our AI suggests some goals for you.';
+      'Based on your profile and accounts, our AI suggests some goals and plannings for you.';
+
+  @override
+  String get onboardingSuggestedGoalsTitle => 'Suggested Goals';
+
+  @override
+  String get onboardingSuggestedPlanningsTitle => 'Suggested Plannings';
 
   @override
   String get onboardingMembersListTitle => 'Invite list';
@@ -259,6 +265,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goalTypeReduceCreditCard => 'Reduce Credit Card Spending';
+
+  @override
+  String get goalTypePayDebt => 'Pay Debt';
 
   @override
   String get goalCategoryLabel => 'Category';
@@ -572,10 +581,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionPlanIncome => 'Plan Income';
 
   @override
+  String get transactionPlanTransfer => 'Plan Transfer';
+
+  @override
   String get transactionActionTransfer => 'Transfer';
 
   @override
-  String get transactionPlannedSection => 'Planned Transactions';
+  String get transactionRealizedSection => 'Realized Transactions';
+
+  @override
+  String get transactionRealizedSubtitle =>
+      'Transactions that have already happened and impacted your balance.';
+
+  @override
+  String get transactionPlannedSection => 'Plannings';
+
+  @override
+  String get transactionPlannedSubtitle =>
+      'Forecasts of future income or expenses to organize your finances.';
 
   @override
   String get transactionCategoriesSection => 'Categories';
@@ -677,6 +700,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountAnalyzing => 'Analyzing document...';
+
+  @override
+  String get accountAnalysisDescription =>
+      'Our IA is analyzing your document to prepare your account data and identify transactions automatically.';
+
+  @override
+  String get accountAnalysisProcessing => 'Processing data...';
+
+  @override
+  String get onboardingPlanningAnalyzingTitle => 'Analyzing patterns...';
+
+  @override
+  String get onboardingPlanningAnalyzingDesc =>
+      'Our AI is analyzing your spending patterns to suggest ideal goals and plans for you.';
 
   @override
   String get accountViewTransactions => 'View Transactions';
@@ -820,4 +857,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get balance => 'Balance';
+
+  @override
+  String get securePasswordAtLeast8Characters => 'At least 8 characters';
+
+  @override
+  String get securePasswordAtMost50Characters => 'At most 50 characters';
+
+  @override
+  String get securePasswordDontUseSpaces => 'Don\'t use spaces';
+
+  @override
+  String get securePasswordAtLeast1Uppercase => 'At least one uppercase letter';
+
+  @override
+  String get securePasswordAtLeast1Lowercase => 'At least one lowercase letter';
+
+  @override
+  String get securePasswordAtLeast1Number => 'At least one number';
+
+  @override
+  String get signUpFailed =>
+      'Failed to create account. Please try again or contact our support.';
+
+  @override
+  String get signInFailed =>
+      'Failed to sign in. Please try again or contact our support.';
+
+  @override
+  String get dateInputPattern => 'MM/dd/yyyy';
 }

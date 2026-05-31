@@ -36,6 +36,7 @@ export class OnboardingServiceImpl implements IOnboardingService {
         const categoryNames = categories.map((c) => c.name);
 
         return await this.aiRepository.analyzePlanningAndSuggestGoals(
+            workspaceId,
             workspace.type,
             categoryNames,
             orders,
@@ -67,6 +68,13 @@ export class OnboardingServiceImpl implements IOnboardingService {
 
         const existingCategories = await this.categoryRepository.getCategories(workspaceId);
 
-        return await this.aiRepository.analyzeAccountDocument(content, mimeType, fileName, existingCategories.map(c => c.name));
+        return await this.aiRepository.analyzeAccountDocument(
+            workspaceId,
+            content,
+            mimeType,
+            fileName,
+            existingCategories.map(c => c.name),
+            storagePath
+        );
     }
 }

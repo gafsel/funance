@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/core/theme/app_gradients.dart';
-import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
-import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
@@ -40,7 +38,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     // final workspaceState = ref.watch(workspaceNotifierProvider);
-    final authUser = ref.watch(authStateProvider).value;
+    final authUser = ref.watch(AuthDomainProviders.user).value;
 
     return LayoutBuilder(builder: (context, constraints) {
       final isLargeScreen = constraints.maxWidth > 800;

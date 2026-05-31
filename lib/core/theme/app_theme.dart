@@ -39,6 +39,18 @@ class AppTheme {
         centerTitle: true,
         elevation: 0,
       ),
+      bottomAppBarTheme: const BottomAppBarThemeData(
+        color: AppColors.deepTurquoise,
+        surfaceTintColor: Colors.white,
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.grey.shade400,
+        indicator: BoxDecoration(
+          color: AppColors.vibrantTeal,
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.successGold,

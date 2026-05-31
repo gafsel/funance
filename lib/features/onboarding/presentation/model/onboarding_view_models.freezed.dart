@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OnboardingState {
 
- OnboardingSteps get currentStep; WorkspaceModel get workspace; List<String> get inviteEmails; List<AccountModel> get accounts; PlanningSuggestions? get planningSuggestions;
+ OnboardingSteps get currentStep; WorkspaceModel get workspace; List<String> get inviteEmails; PlanningSuggestions? get planningSuggestions;
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $OnboardingStateCopyWith<OnboardingState> get copyWith => _$OnboardingStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other.inviteEmails, inviteEmails)&&const DeepCollectionEquality().equals(other.accounts, accounts)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other.inviteEmails, inviteEmails)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(inviteEmails),const DeepCollectionEquality().hash(accounts),planningSuggestions);
+int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(inviteEmails),planningSuggestions);
 
 @override
 String toString() {
-  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, accounts: $accounts, planningSuggestions: $planningSuggestions)';
+  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, planningSuggestions: $planningSuggestions)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $OnboardingStateCopyWith<$Res>  {
   factory $OnboardingStateCopyWith(OnboardingState value, $Res Function(OnboardingState) _then) = _$OnboardingStateCopyWithImpl;
 @useResult
 $Res call({
- OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, List<AccountModel> accounts, PlanningSuggestions? planningSuggestions
+ OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, PlanningSuggestions? planningSuggestions
 });
 
 
@@ -62,13 +62,12 @@ class _$OnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? accounts = null,Object? planningSuggestions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? planningSuggestions = freezed,}) {
   return _then(_self.copyWith(
 currentStep: null == currentStep ? _self.currentStep : currentStep // ignore: cast_nullable_to_non_nullable
 as OnboardingSteps,workspace: null == workspace ? _self.workspace : workspace // ignore: cast_nullable_to_non_nullable
 as WorkspaceModel,inviteEmails: null == inviteEmails ? _self.inviteEmails : inviteEmails // ignore: cast_nullable_to_non_nullable
-as List<String>,accounts: null == accounts ? _self.accounts : accounts // ignore: cast_nullable_to_non_nullable
-as List<AccountModel>,planningSuggestions: freezed == planningSuggestions ? _self.planningSuggestions : planningSuggestions // ignore: cast_nullable_to_non_nullable
+as List<String>,planningSuggestions: freezed == planningSuggestions ? _self.planningSuggestions : planningSuggestions // ignore: cast_nullable_to_non_nullable
 as PlanningSuggestions?,
   ));
 }
@@ -172,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  List<AccountModel> accounts,  PlanningSuggestions? planningSuggestions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingState() when $default != null:
-return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.accounts,_that.planningSuggestions);case _:
+return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions);case _:
   return orElse();
 
 }
@@ -193,10 +192,10 @@ return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.accou
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  List<AccountModel> accounts,  PlanningSuggestions? planningSuggestions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingState():
-return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.accounts,_that.planningSuggestions);}
+return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -210,10 +209,10 @@ return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.accou
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  List<AccountModel> accounts,  PlanningSuggestions? planningSuggestions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingState() when $default != null:
-return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.accounts,_that.planningSuggestions);case _:
+return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions);case _:
   return null;
 
 }
@@ -225,7 +224,7 @@ return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.accou
 
 
 class _OnboardingState extends OnboardingState {
-  const _OnboardingState({this.currentStep = OnboardingSteps.type, required this.workspace, final  List<String> inviteEmails = const [], final  List<AccountModel> accounts = const [], this.planningSuggestions}): _inviteEmails = inviteEmails,_accounts = accounts,super._();
+  const _OnboardingState({this.currentStep = OnboardingSteps.type, required this.workspace, final  List<String> inviteEmails = const [], this.planningSuggestions}): _inviteEmails = inviteEmails,super._();
   
 
 @override@JsonKey() final  OnboardingSteps currentStep;
@@ -235,13 +234,6 @@ class _OnboardingState extends OnboardingState {
   if (_inviteEmails is EqualUnmodifiableListView) return _inviteEmails;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_inviteEmails);
-}
-
- final  List<AccountModel> _accounts;
-@override@JsonKey() List<AccountModel> get accounts {
-  if (_accounts is EqualUnmodifiableListView) return _accounts;
-  // ignore: implicit_dynamic_type
-  return EqualUnmodifiableListView(_accounts);
 }
 
 @override final  PlanningSuggestions? planningSuggestions;
@@ -256,16 +248,16 @@ _$OnboardingStateCopyWith<_OnboardingState> get copyWith => __$OnboardingStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other._inviteEmails, _inviteEmails)&&const DeepCollectionEquality().equals(other._accounts, _accounts)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other._inviteEmails, _inviteEmails)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(_inviteEmails),const DeepCollectionEquality().hash(_accounts),planningSuggestions);
+int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(_inviteEmails),planningSuggestions);
 
 @override
 String toString() {
-  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, accounts: $accounts, planningSuggestions: $planningSuggestions)';
+  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, planningSuggestions: $planningSuggestions)';
 }
 
 
@@ -276,7 +268,7 @@ abstract mixin class _$OnboardingStateCopyWith<$Res> implements $OnboardingState
   factory _$OnboardingStateCopyWith(_OnboardingState value, $Res Function(_OnboardingState) _then) = __$OnboardingStateCopyWithImpl;
 @override @useResult
 $Res call({
- OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, List<AccountModel> accounts, PlanningSuggestions? planningSuggestions
+ OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, PlanningSuggestions? planningSuggestions
 });
 
 
@@ -293,13 +285,12 @@ class __$OnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? accounts = null,Object? planningSuggestions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? planningSuggestions = freezed,}) {
   return _then(_OnboardingState(
 currentStep: null == currentStep ? _self.currentStep : currentStep // ignore: cast_nullable_to_non_nullable
 as OnboardingSteps,workspace: null == workspace ? _self.workspace : workspace // ignore: cast_nullable_to_non_nullable
 as WorkspaceModel,inviteEmails: null == inviteEmails ? _self._inviteEmails : inviteEmails // ignore: cast_nullable_to_non_nullable
-as List<String>,accounts: null == accounts ? _self._accounts : accounts // ignore: cast_nullable_to_non_nullable
-as List<AccountModel>,planningSuggestions: freezed == planningSuggestions ? _self.planningSuggestions : planningSuggestions // ignore: cast_nullable_to_non_nullable
+as List<String>,planningSuggestions: freezed == planningSuggestions ? _self.planningSuggestions : planningSuggestions // ignore: cast_nullable_to_non_nullable
 as PlanningSuggestions?,
   ));
 }

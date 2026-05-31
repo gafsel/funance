@@ -1,0 +1,23 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:funances/features/auth/domain/services/auth_service.dart';
+import 'package:funances/features/auth/presentation/controller/login_form_notifier.dart';
+import 'package:funances/features/user/presentation/providers/user_providers.dart';
+
+class AuthDomainProviders {
+  static final repository = Provider(
+    (ref) => AuthRepositoryImpl(ref.read(userRepositoryProvider)),
+  );
+
+  static final service = Provider(
+    (ref) => AuthService(repository: ref.read(repository)),
+  );
+
+  static final user = StreamProvider((ref) => ref.read(service).authStateChanges);
+}
+
+class AuthViewProviders {
+  static final form = StateNotifierProvider.autoDispose(
+    (ref) => LoginFormNotifier(service: ref.read(AuthDomainProviders.service)),
+  );
+}

@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 part 'goal_model.freezed.dart';
+
 part 'goal_model.g.dart';
 
 enum GoalType {
@@ -14,12 +16,7 @@ enum GoalType {
   payDebt,
 }
 
-enum GoalStatus {
-  onTrack,
-  atRisk,
-  behind,
-  lost,
-}
+enum GoalStatus { onTrack, atRisk, behind, lost }
 
 @freezed
 sealed class GoalProgress with _$GoalProgress {
@@ -34,36 +31,81 @@ sealed class GoalProgress with _$GoalProgress {
 sealed class GoalModel with _$GoalModel {
   const GoalModel._();
 
-  const factory GoalModel({
+  @JsonSerializable(explicitToJson: true)
+  const factory GoalModel.payDebt({
     required String id,
     required String name,
     required double targetAmount,
     required double currentAmount,
     required DateTime deadline,
-    String? icon,
-    required GoalType type,
-    String? accountId,
+    required String accountId,
     required DateTime startDate,
-    Map<String, dynamic>? metadata,
     @Default(false) bool isDeleted,
-  }) = _GoalModel;
+  }) = _GoalModelPayDebt;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory GoalModel.reduceCreditCard({
+    required String id,
+    required String name,
+    required double targetAmount,
+    required double currentAmount,
+    required double averageSpending,
+    required DateTime deadline,
+    required String accountId,
+    required DateTime startDate,
+    @Default(false) bool isDeleted,
+  }) = _GoalModelCreditCard;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory GoalModel.reduceExpense({
+    required String id,
+    required String name,
+    required double targetAmount,
+    required double currentAmount,
+    required double averageSpending,
+    required DateTime deadline,
+    required CategoryModel category,
+    required DateTime startDate,
+    @Default(false) bool isDeleted,
+  }) = _GoalModelReduceExpense;
+
+  @JsonSerializable(explicitToJson: true)
+  const factory GoalModel.saveMoney({
+    required String id,
+    required String name,
+    required double targetAmount,
+    required double currentAmount,
+    required DateTime deadline,
+    required String accountId,
+    required DateTime startDate,
+    @Default(false) bool isDeleted,
+  }) = _GoalModelSaveMoney;
+
+  GoalType get type => map(
+    payDebt: (_) => GoalType.payDebt,
+    saveMoney: (_) => GoalType.saveMoney,
+    reduceCreditCard: (_) => GoalType.reduceCreditCard,
+    reduceExpense: (_) => GoalType.reduceExpense,
+  );
 
   double get monthlyRequirement {
     final now = DateTime.now();
     if (deadline.isBefore(now)) return 0;
-    
-    final monthsRemaining = (deadline.year - now.year) * 12 + deadline.month - now.month;
+
+    final monthsRemaining =
+        (deadline.year - now.year) * 12 + deadline.month - now.month;
     final effectiveMonths = monthsRemaining <= 0 ? 1 : monthsRemaining;
-    
+
     if (type == GoalType.saveMoney || type == GoalType.payDebt) {
       final remaining = targetAmount - currentAmount;
       return remaining > 0 ? remaining / effectiveMonths : 0;
     }
-    
+
     return 0;
   }
 
-  factory GoalModel.fromJson(Map<String, dynamic> json) => _$GoalModelFromJson(json);
+  factory GoalModel.fromJson(Map<String, dynamic> json) =>
+      _$GoalModelFromJson(json);
 
   GoalProgress calculateProgress() {
     final double percent;
@@ -73,12 +115,16 @@ sealed class GoalModel with _$GoalModel {
     final now = DateTime.now();
     final totalDuration = deadline.difference(startDate).inDays;
     final elapsedDuration = now.difference(startDate).inDays;
-    final timePercent = totalDuration > 0 ? (elapsedDuration / totalDuration).clamp(0.0, 1.0) : 1.0;
+    final timePercent = totalDuration > 0
+        ? (elapsedDuration / totalDuration).clamp(0.0, 1.0)
+        : 1.0;
 
     if (type == GoalType.saveMoney || type == GoalType.payDebt) {
       percent = (currentAmount / targetAmount).clamp(0.0, 1.0);
-      
-      isLost = percent < timePercent * 0.5 && deadline.isBefore(now.add(const Duration(days: 7)));
+
+      isLost =
+          percent < timePercent * 0.5 &&
+          deadline.isBefore(now.add(const Duration(days: 7)));
 
       if (percent >= 1.0) {
         status = GoalStatus.onTrack;
@@ -109,10 +155,6 @@ sealed class GoalModel with _$GoalModel {
       }
     }
 
-    return GoalProgress(
-      percent: percent,
-      status: status,
-      isLost: isLost,
-    );
+    return GoalProgress(percent: percent, status: status, isLost: isLost);
   }
 }

@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 extension IconsExtension on String {
 
   IconData asIcon({IconData? orElse}) {
-    return _availableIcons[this] ?? orElse ?? Icons.circle;
+    return availableIcons[this] ?? orElse ?? Icons.circle;
   }
 
-  static const Map<String, IconData> _availableIcons = {
+  static const Map<String, IconData> availableIcons = {
     'account_balance': Icons.account_balance,
     'credit_card': Icons.credit_card,
     'savings': Icons.savings,

@@ -27,6 +27,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -49,7 +50,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
           const SizedBox(height: 24),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 40),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -57,38 +58,40 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "Nova Transação",
-                        style: theme.textTheme.headlineSmall?.copyWith(
+                        l10n.homeNewTransaction,
+                        style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.pureWhite,
                         ),
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, color: AppColors.pureWhite),
+                        icon: const Icon(Icons.close, color: AppColors.pureWhite, size: 20),
+                        constraints: const BoxConstraints(),
+                        padding: const EdgeInsets.all(8),
                         style: IconButton.styleFrom(
                           backgroundColor: AppColors.pureWhite.withValues(alpha: 0.1),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  _buildSectionTitle(
+                    context,
+                    l10n.transactionRealizedSection,
+                    l10n.transactionRealizedSubtitle,
+                    Icons.check_circle_outline,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionGrid(context, InstallmentStatus.paid),
                   const SizedBox(height: 32),
                   _buildSectionTitle(
                     context,
-                    "Lançamentos Realizados",
-                    "Transações que já aconteceram e impactaram seu saldo.",
-                    Icons.check_circle_outline,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildActionGrid(context, InstallmentStatus.paid),
-                  const SizedBox(height: 40),
-                  _buildSectionTitle(
-                    context,
-                    "Planejamentos",
-                    "Previsões de gastos ou ganhos futuros para organizar suas finanças.",
+                    l10n.transactionPlannedSection,
+                    l10n.transactionPlannedSubtitle,
                     Icons.calendar_today_outlined,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _buildActionGrid(context, InstallmentStatus.pending),
                 ],
               ),
@@ -106,21 +109,21 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
       children: [
         Row(
           children: [
-            Icon(icon, color: AppColors.paleGold, size: 28),
-            const SizedBox(width: 12),
+            Icon(icon, color: AppColors.paleGold, size: 22),
+            const SizedBox(width: 8),
             Text(
               title,
-              style: theme.textTheme.titleLarge?.copyWith(
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.paleGold,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           subtitle,
-          style: theme.textTheme.bodyMedium?.copyWith(
+          style: theme.textTheme.bodySmall?.copyWith(
             color: AppColors.pureWhite.withValues(alpha: 0.7),
           ),
         ),
@@ -131,69 +134,80 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
   Widget _buildActionGrid(BuildContext context, InstallmentStatus status) {
     final isPlanning = status == InstallmentStatus.pending;
     final l10n = AppLocalizations.of(context)!;
-
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 0.75,
-      children: [
-        _buildActionItem(
-          context,
-          icon: isPlanning ? Icons.savings_outlined : Icons.add_circle_outline,
-          color: AppColors.limeGreen,
-          label: isPlanning ? "Planejar\nReceita" : l10n.transactionAddIncome,
-          onTap: () => _navigateToForm(context, OrderType.income, status),
-        ),
-        _buildActionItem(
-          context,
-          icon: isPlanning ? Icons.event_note_outlined : Icons.remove_circle_outline,
-          color: AppColors.error,
-          label: isPlanning ? "Planejar\nDespesa" : l10n.transactionAddExpense,
-          onTap: () => _navigateToForm(context, OrderType.expense, status),
-        ),
-        _buildActionItem(
-          context,
-          icon: isPlanning ? Icons.pending_actions_outlined : Icons.swap_horiz,
-          color: AppColors.vibrantTeal,
-          label: isPlanning ? "Planejar\nTransferência" : l10n.transactionTransfer,
-          onTap: () => _navigateToForm(context, OrderType.transfer, status),
-        ),
-        if (isPlanning) ...[
-          _buildActionItem(
-            context,
-            icon: Icons.assignment_outlined,
-            color: AppColors.error,
-            label: l10n.planningExpenseLimits.replaceAll(' ', '\n'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // Para telas muito largas (ex: tablets ou desktop), limitamos a largura máxima do grid
+    // para que os botões não fiquem excessivamente largos, mantendo o aspecto de bottom sheet.
+    final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
+    
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: maxGridWidth,
+        child: GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 3,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.85,
+          children: [
+            _buildActionItem(
+              context,
+              icon: isPlanning ? Icons.savings_outlined : Icons.add_circle_outline,
+              color: AppColors.limeGreen,
+              label: isPlanning ? l10n.transactionPlanIncome : l10n.transactionAddIncome,
+              onTap: () => _navigateToForm(context, OrderType.income, status),
+            ),
+            _buildActionItem(
+              context,
+              icon: isPlanning ? Icons.event_note_outlined : Icons.remove_circle_outline,
+              color: AppColors.error,
+              label: isPlanning ? l10n.transactionPlanExpense : l10n.transactionAddExpense,
+              onTap: () => _navigateToForm(context, OrderType.expense, status),
+            ),
+            _buildActionItem(
+              context,
+              icon: isPlanning ? Icons.pending_actions_outlined : Icons.swap_horiz,
+              color: AppColors.vibrantTeal,
+              label: isPlanning ? l10n.transactionPlanTransfer : l10n.transactionTransfer,
+              onTap: () => _navigateToForm(context, OrderType.transfer, status),
+            ),
+            if (isPlanning) ...[
+              _buildActionItem(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoryPlanningScreen(type: CategoryType.expense),
-                ),
-              );
-            },
-          ),
-          _buildActionItem(
-            context,
-            icon: Icons.assignment_turned_in_outlined,
-            color: AppColors.limeGreen,
-            label: l10n.planningIncomeLimits.replaceAll(' ', '\n'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.push(
+                icon: Icons.assignment_outlined,
+                color: AppColors.error,
+                label: l10n.planningExpenseLimits,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CategoryPlanningScreen(type: CategoryType.expense),
+                    ),
+                  );
+                },
+              ),
+              _buildActionItem(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const CategoryPlanningScreen(type: CategoryType.income),
-                ),
-              );
-            },
-          ),
-        ],
-      ],
+                icon: Icons.assignment_turned_in_outlined,
+                color: AppColors.limeGreen,
+                label: l10n.planningIncomeLimits,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const CategoryPlanningScreen(type: CategoryType.income),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -207,11 +221,12 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.pureWhite,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -223,19 +238,25 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: FittedBox(
+                  child: Icon(icon, color: color, size: 24),
+                ),
               ),
-              child: Icon(icon, color: color, size: 32),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
             Text(
               label,
               textAlign: TextAlign.center,
-              style: theme.textTheme.labelLarge?.copyWith(
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.darkNavy,
               ),

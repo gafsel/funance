@@ -14,7 +14,6 @@ sealed class OnboardingState with _$OnboardingState {
     @Default(OnboardingSteps.type) OnboardingSteps currentStep,
     required WorkspaceModel workspace,
     @Default([]) List<String> inviteEmails,
-    @Default([]) List<AccountModel> accounts,
     PlanningSuggestions? planningSuggestions,
   }) = _OnboardingState;
 }

@@ -28,6 +28,10 @@ extension ErrorCodeExtension on ErrorCode {
         return l10n.errorGoalTypeCannotBeChanged;
       case ErrorCode.unknown:
         return l10n.errorUnknown;
+      case ErrorCode.signUpFailed:
+        return l10n.signUpFailed;
+      case ErrorCode.signInFailed:
+        return l10n.signInFailed;
     }
   }
 }

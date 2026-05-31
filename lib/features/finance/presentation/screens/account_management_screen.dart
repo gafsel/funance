@@ -5,7 +5,7 @@ import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import '../../domain/models/account_model.dart';
-import '../widgets/account_form_dialog.dart';
+import 'account_form_screen.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -146,11 +146,12 @@ class AccountManagementScreen extends ConsumerWidget {
     AccountModel? account,
     AccountType? initialType,
   ]) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) =>
-          AccountFormDialog(account: account, initialType: initialType),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            AccountFormScreen(account: account, initialType: initialType),
+      ),
     );
   }
 

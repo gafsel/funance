@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../../finance/presentation/screens/account_management_screen.dart';
 import 'category_management_screen.dart';
 
@@ -90,7 +90,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       iconColor: Colors.red,
                       titleColor: Colors.red,
                       onTap: () {
-                        ref.read(authNotifierProvider.notifier).signOut();
+                        ref.read(AuthDomainProviders.service).signOut();
                       },
                     ),
                   ],
@@ -162,7 +162,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       style: const TextStyle(color: Colors.red),
                     ),
                     onTap: () {
-                      ref.read(authNotifierProvider.notifier).signOut();
+                      ref.read(AuthDomainProviders.service).signOut();
                     },
                   ),
                 ],

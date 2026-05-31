@@ -8,7 +8,7 @@ abstract class IAccountRepository {
     AccountType? type,
   });
 
-  Future<void> createAccount(String workspaceId, AccountModel account);
+  Future<AccountModel> createAccount(String workspaceId, AccountModel account);
 
   Future<void> updateAccount(String workspaceId, AccountModel account);
 

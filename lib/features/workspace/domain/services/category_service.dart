@@ -7,8 +7,8 @@ class CategoryService {
 
   CategoryService({required this.workspaceId, required this.repository});
 
-  Future<void> create(CategoryModel category) async {
-    await repository.createCategory(workspaceId, category);
+  Future<CategoryModel> create(CategoryModel category) async {
+    return await repository.createCategory(workspaceId, category);
   }
 
   Future<void> update(CategoryModel category) async {

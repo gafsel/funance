@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/features/workspace/presentation/screens/invite_list_screen.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/providers/auth_providers.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/home_screen.dart';
 import 'features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -48,12 +49,13 @@ class AuthWrapper extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
+    final user = ref.watch(AuthDomainProviders.user);
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final inviteState = ref.watch(inviteNotifierProvider);
 
-    return authState.when(
+    return user.when(
       data: (user) {
+
         if (user != null) {
           // 1. Aguarda carregamento inicial de tudo
           if (workspaceState.isLoading ||
@@ -74,13 +76,12 @@ class AuthWrapper extends ConsumerWidget {
           if (workspaceState.availableWorkspaces.isEmpty) {
             return OnboardingScreen();
           } else if ((workspaceState.currentWorkspace?.lastOnboardingStep ??
-                  ConnectionState.done) !=
-              ConnectionState.done) {
-            Future((){
+                  OnboardingSteps.done) !=
+              OnboardingSteps.done) {
+            Future(() {
               ref
                   .read(OnboardingViewProviders.onboarding.notifier)
                   .load(workspaceState.currentWorkspace!);
-
             });
             return OnboardingScreen();
           }

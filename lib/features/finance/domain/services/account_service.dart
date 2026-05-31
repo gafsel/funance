@@ -9,8 +9,8 @@ class AccountService {
 
   AccountService({required this.workspaceId, required this.repository});
 
-  Future<void> create(AccountModel account) async {
-    await repository.createAccount(workspaceId, account);
+  Future<AccountModel> create(AccountModel account) async {
+    return await repository.createAccount(workspaceId, account);
   }
 
   Future<void> update(AccountModel account) async {

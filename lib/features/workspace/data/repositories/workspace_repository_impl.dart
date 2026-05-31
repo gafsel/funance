@@ -7,7 +7,6 @@ import 'package:funances/core/exceptions/business_exception.dart';
 
 class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   final _firestore = FirebaseFirestore.instance;
-  final _auth = FirebaseAuth.instance;
   final String _collection = 'workspaces';
 
   @override
@@ -32,7 +31,6 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   Future<WorkspaceModel> createWorkspace(WorkspaceModel workspace) async {
     try {
       final data = workspace
-          .copyWith(members: [_auth.currentUser!.uid])
           .toJson();
 
       data.remove('id'); // ID is the doc path
@@ -51,7 +49,6 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
 
       return workspace.copyWith(
         id: docRef.id,
-        members: [_auth.currentUser!.uid],
       );
     } catch (e, s) {
       throw BusinessException(

@@ -45,7 +45,7 @@ class FinanceService {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
-    String? lastOrderId,
+    dynamic lastOrderId,
   }) async {
     return repository.queryInstallments(
       workspaceId,

@@ -19,11 +19,12 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   }
 
   @override
-  Future<void> createCategory(String workspaceId, CategoryModel category) async {
+  Future<CategoryModel> createCategory(String workspaceId, CategoryModel category) async {
     try {
       final data = category.toJson();
       data.remove('id');
-      await _getCollection(workspaceId).add(data);
+      final doc = await _getCollection(workspaceId).add(data);
+      return category.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
     }

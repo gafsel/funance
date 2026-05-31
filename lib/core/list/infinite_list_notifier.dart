@@ -32,6 +32,7 @@ abstract class InfiniteListNotifier<Q, E>
   }
 
   more() async {
+    if (state.status == InfiniteListStatus.loading || !state.hasNextChunk) return;
     state = state.copyWith(status: InfiniteListStatus.loading);
 
     await _load();

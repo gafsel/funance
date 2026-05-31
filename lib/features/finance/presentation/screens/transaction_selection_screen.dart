@@ -28,9 +28,7 @@ class TransactionSelectionScreen extends ConsumerWidget {
 
     final categories = ref.watch(CategoryViewProviders.allStream).value ?? [];
     final filteredCategories = categories.where((c) {
-      if (orderTypeFilter == OrderType.expense)
-        return c.type == CategoryType.expense || c.type == CategoryType.both;
-      return c.type == CategoryType.income || c.type == CategoryType.both;
+      return c.type == orderTypeFilter.categoryType;
     }).toList();
 
     filteredCategories.sort(
@@ -93,7 +91,9 @@ class TransactionSelectionScreen extends ConsumerWidget {
                                     title: l10n.transactionToAccountLabel,
                                     excludeAccountId: fromAcc?.id,
                                     onAccountSelected: (toAcc) {
-                                      Navigator.pop(context); // Fecha segundo modal
+                                      Navigator.pop(
+                                        context,
+                                      ); // Fecha segundo modal
                                       Navigator.pushAndRemoveUntil(
                                         context,
                                         MaterialPageRoute(

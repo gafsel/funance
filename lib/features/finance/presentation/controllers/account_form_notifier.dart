@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -73,6 +74,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
           color: accountData.color,
           icon: accountData.icon,
           initialBalance: accountData.initialBalance,
+          initialBalanceDate: accountData.initialBalanceDate,
           limit: accountData.mapOrNull(creditCard: (value) => value.limit),
           dueDay: accountData.mapOrNull(creditCard: (value) => value.dueDay),
           closingDay: accountData.mapOrNull(
@@ -100,7 +102,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     AccountModel account = state.asAccountModel();
 
     if (state.originalAccount == null) {
-      await accountService.create(account);
+      account = await accountService.create(account);
 
       state = state.copyWith(originalAccount: account);
     } else {
@@ -108,20 +110,21 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     }
 
     // 1. Garantir que as categorias existam
-    final categories = List.from(await categoryService.getCategories().first);
+    final categories = [...await categoryService.getCategories().first];
 
     // 2. Processar Orders
     final processedOrders = <OrderModel>[];
     for (final order in state.detectedOrders) {
       if (order.category != null) {
-        String categoryId = await _findOrCreateCategory(
+        final category = await _findOrCreateCategory(
           categories,
           order.category!,
         );
 
         processedOrders.add(
           order.copyWith(
-            category: order.category?.copyWith(id: categoryId),
+            installmentCreationStatus: InstallmentStatus.paid,
+            category: category,
             accounts: {
               account.id: order.type == OrderType.expense
                   ? AccountImpact.debt
@@ -138,24 +141,28 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     );
   }
 
-  Future<String> _findOrCreateCategory(
-    List<dynamic> categories,
+  Future<CategoryModel> _findOrCreateCategory(
+    List<CategoryModel> categories,
     CategoryModel category,
   ) async {
-    String? categoryId = categories
-        .where((c) => c.name.toLowerCase() == category.name.toLowerCase())
-        .firstOrNull
-        ?.id;
+    CategoryModel? found = categories
+        .where(
+          (c) =>
+              c.type == category.type &&
+              c.name.toLowerCase() == category.name.toLowerCase(),
+        )
+        .firstOrNull;
 
-    if (categoryId == null) {
-      categoryId = const Uuid().v4();
-      final newCategory = category.copyWith(id: categoryId);
-
-      await categoryService.create(newCategory);
+    if (found == null) {
+      final newCategory = await categoryService.create(
+        category.copyWith(id: const Uuid().v4()),
+      );
 
       categories.add(newCategory);
+
+      return newCategory;
     }
 
-    return categoryId;
+    return found;
   }
 }

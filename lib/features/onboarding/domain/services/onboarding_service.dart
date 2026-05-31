@@ -47,20 +47,21 @@ class OnboardingService {
     return onboardingRepository.analysePlanning(workspaceId: workspaceId);
   }
 
-  Future<WorkspaceModel> createWorkspace({
-    required String name,
-    required WorkspaceType type,
-    required OnboardingSteps lastOnboardingStep,
-  }) async {
+  Future<WorkspaceModel> createWorkspace({required WorkspaceType type}) async {
     final workspace = WorkspaceModel(
       id: const Uuid().v4(),
-      name: name,
+      name: "(novo)",
       type: type,
       createdAt: DateTime.now(),
-      lastOnboardingStep: lastOnboardingStep,
+      lastOnboardingStep: OnboardingSteps.name,
+      members: [user.id],
     );
 
     return await workspaceRepository.createWorkspace(workspace);
+  }
+
+  Future<void> updateWorkspace(WorkspaceModel workspace) async {
+    await workspaceRepository.updateWorkspace(workspace);
   }
 
   Future<void> sendInvitations({

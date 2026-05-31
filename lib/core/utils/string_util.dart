@@ -40,8 +40,8 @@ extension StringExtension on String {
           "${cc.substring(0, 3)}.${cc.substring(3, 6)}.${cc.substring(6)}";
     } else if (cc.length > 3) {
       formatado = "${cc.substring(0, 3)}.${cc.substring(3)}";
-    } else if (cc.length > 0) {
-      formatado = "$cc";
+    } else if (cc.isNotEmpty) {
+      formatado = cc;
     }
 
     return formatado;
@@ -50,13 +50,18 @@ extension StringExtension on String {
   /// Use # para representar placeholder de números
   String getFormated(String format) {
     String formatado = "";
-    String cc = this.unformated;
+    String cc = unformated;
 
-    for (int i = 0; i < format.length && i < cc.length; i++) {
-      if (format[i] == '#') {
-        formatado += cc[i];
+    for (int idxValue = 0, idxFormat = 0; idxValue < cc.length && idxFormat < format.length; idxFormat++) {
+      if (format[idxFormat] == '#') {
+        if (RegExp("^\\d\$").hasMatch(cc[idxValue])) {
+          formatado += cc[idxValue];
+          idxValue++;
+        } else {
+          break;
+        }
       } else {
-        formatado += format[i];
+        formatado += format[idxFormat];
       }
     }
 

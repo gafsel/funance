@@ -12,6 +12,8 @@ enum ErrorCode {
   googleSignInConfigError,
   goalNotFound,
   goalTypeCannotBeChanged,
+  signUpFailed,
+  signInFailed,
 }
 
 class BusinessException implements Exception {

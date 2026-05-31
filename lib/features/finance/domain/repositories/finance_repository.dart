@@ -9,7 +9,7 @@ abstract class IFinanceRepository {
   Future<QueryChunk<InstallmentModel>> queryInstallments(
     String workspaceId, {
     int? limit,
-    String? chunkRef,
+    dynamic chunkRef,
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,

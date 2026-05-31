@@ -8,8 +8,6 @@ enum CategoryType {
   income,
   @JsonValue('expense')
   expense,
-  @JsonValue('both')
-  both,
 }
 
 @freezed

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/auth/presentation/providers/auth_providers.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/data/repositories/workspace_repository_impl.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/controller/category_form_notifier.dart';
@@ -24,7 +24,7 @@ class WorkspaceViewProviders {
         final notifier = WorkspaceNotifier(repository);
 
         // Reagir a mudanças de autenticação para carregar workspaces
-        ref.listen(authStateProvider, (previous, next) {
+        ref.listen(AuthDomainProviders.user, (previous, next) {
           next.when(
             data: (user) {
               if (user != null) {

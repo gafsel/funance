@@ -407,14 +407,26 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingGoalsAnalysisTitle.
   ///
   /// In pt, this message translates to:
-  /// **'TRAÇAR METAS'**
+  /// **'SUGESTÕES DA IA'**
   String get onboardingGoalsAnalysisTitle;
 
   /// No description provided for @onboardingGoalsAnalysisDesc.
   ///
   /// In pt, this message translates to:
-  /// **'Com base no seu perfil, nossa IA sugere algumas metas para você.'**
+  /// **'Com base no seu perfil e contas, nossa IA sugere algumas metas e planejamentos para você.'**
   String get onboardingGoalsAnalysisDesc;
+
+  /// No description provided for @onboardingSuggestedGoalsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metas Sugeridas'**
+  String get onboardingSuggestedGoalsTitle;
+
+  /// No description provided for @onboardingSuggestedPlanningsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejamentos Sugeridos'**
+  String get onboardingSuggestedPlanningsTitle;
 
   /// No description provided for @onboardingMembersListTitle.
   ///
@@ -547,6 +559,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Reduzir Cartão de Crédito'**
   String get goalTypeReduceCreditCard;
+
+  /// No description provided for @goalTypePayDebt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pagar Dívida'**
+  String get goalTypePayDebt;
 
   /// No description provided for @goalCategoryLabel.
   ///
@@ -1124,17 +1142,41 @@ abstract class AppLocalizations {
   /// **'Planejar Receita'**
   String get transactionPlanIncome;
 
+  /// No description provided for @transactionPlanTransfer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar Transferência'**
+  String get transactionPlanTransfer;
+
   /// No description provided for @transactionActionTransfer.
   ///
   /// In pt, this message translates to:
   /// **'Transferência'**
   String get transactionActionTransfer;
 
+  /// No description provided for @transactionRealizedSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançamentos Realizados'**
+  String get transactionRealizedSection;
+
+  /// No description provided for @transactionRealizedSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transações que já aconteceram e impactaram seu saldo.'**
+  String get transactionRealizedSubtitle;
+
   /// No description provided for @transactionPlannedSection.
   ///
   /// In pt, this message translates to:
-  /// **'Lançamentos Planejados'**
+  /// **'Planejamentos'**
   String get transactionPlannedSection;
+
+  /// No description provided for @transactionPlannedSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Previsões de gastos ou ganhos futuros para organizar suas finanças.'**
+  String get transactionPlannedSubtitle;
 
   /// No description provided for @transactionCategoriesSection.
   ///
@@ -1297,6 +1339,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Analisando documento...'**
   String get accountAnalyzing;
+
+  /// No description provided for @accountAnalysisDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nossa IA está analisando seu documento para preparar os dados da sua conta e identificar transações automaticamente.'**
+  String get accountAnalysisDescription;
+
+  /// No description provided for @accountAnalysisProcessing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Processando dados...'**
+  String get accountAnalysisProcessing;
+
+  /// No description provided for @onboardingPlanningAnalyzingTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando padrões...'**
+  String get onboardingPlanningAnalyzingTitle;
+
+  /// No description provided for @onboardingPlanningAnalyzingDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nossa IA está analisando seus padrões de gastos para sugerir metas e planejamentos ideais para você.'**
+  String get onboardingPlanningAnalyzingDesc;
 
   /// No description provided for @accountViewTransactions.
   ///
@@ -1561,6 +1627,60 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Saldo'**
   String get balance;
+
+  /// No description provided for @securePasswordAtLeast8Characters.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao menos 8 caracteres'**
+  String get securePasswordAtLeast8Characters;
+
+  /// No description provided for @securePasswordAtMost50Characters.
+  ///
+  /// In pt, this message translates to:
+  /// **'No máximo 50 caracteres'**
+  String get securePasswordAtMost50Characters;
+
+  /// No description provided for @securePasswordDontUseSpaces.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não use espaços'**
+  String get securePasswordDontUseSpaces;
+
+  /// No description provided for @securePasswordAtLeast1Uppercase.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao menos um caracter maiúsculo'**
+  String get securePasswordAtLeast1Uppercase;
+
+  /// No description provided for @securePasswordAtLeast1Lowercase.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao menos um caracter minúsculo'**
+  String get securePasswordAtLeast1Lowercase;
+
+  /// No description provided for @securePasswordAtLeast1Number.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao menos um número'**
+  String get securePasswordAtLeast1Number;
+
+  /// No description provided for @signUpFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao tentar realizar o cadastro. Tente novamente ou contate nosso suporte.'**
+  String get signUpFailed;
+
+  /// No description provided for @signInFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha ao tentar realizar o acesso. Tente novamente ou contate nosso suporte.'**
+  String get signInFailed;
+
+  /// No description provided for @dateInputPattern.
+  ///
+  /// In pt, this message translates to:
+  /// **'dd/MM/yyyy'**
+  String get dateInputPattern;
 }
 
 class _AppLocalizationsDelegate

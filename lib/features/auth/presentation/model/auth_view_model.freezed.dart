@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'login_form_provider.dart';
+part of 'auth_view_model.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$LoginFormState {
 
- String get email; String get password; String get displayName; bool get isSignUp; bool get isLoading; String? get errorMessage; bool get isSuccess;
+ String get email; String get password; String get displayName; bool get isSignUp;
 /// Create a copy of LoginFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $LoginFormStateCopyWith<LoginFormState> get copyWith => _$LoginFormStateCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginFormState&&(identical(other.email, email) || other.email == email)&&(identical(other.password, password) || other.password == password)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isSignUp, isSignUp) || other.isSignUp == isSignUp)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoginFormState&&(identical(other.email, email) || other.email == email)&&(identical(other.password, password) || other.password == password)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isSignUp, isSignUp) || other.isSignUp == isSignUp));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,email,password,displayName,isSignUp,isLoading,errorMessage,isSuccess);
+int get hashCode => Object.hash(runtimeType,email,password,displayName,isSignUp);
 
 @override
 String toString() {
-  return 'LoginFormState(email: $email, password: $password, displayName: $displayName, isSignUp: $isSignUp, isLoading: $isLoading, errorMessage: $errorMessage, isSuccess: $isSuccess)';
+  return 'LoginFormState(email: $email, password: $password, displayName: $displayName, isSignUp: $isSignUp)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $LoginFormStateCopyWith<$Res>  {
   factory $LoginFormStateCopyWith(LoginFormState value, $Res Function(LoginFormState) _then) = _$LoginFormStateCopyWithImpl;
 @useResult
 $Res call({
- String email, String password, String displayName, bool isSignUp, bool isLoading, String? errorMessage, bool isSuccess
+ String email, String password, String displayName, bool isSignUp
 });
 
 
@@ -62,15 +62,12 @@ class _$LoginFormStateCopyWithImpl<$Res>
 
 /// Create a copy of LoginFormState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? email = null,Object? password = null,Object? displayName = null,Object? isSignUp = null,Object? isLoading = null,Object? errorMessage = freezed,Object? isSuccess = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? email = null,Object? password = null,Object? displayName = null,Object? isSignUp = null,}) {
   return _then(_self.copyWith(
 email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,isSignUp: null == isSignUp ? _self.isSignUp : isSignUp // ignore: cast_nullable_to_non_nullable
-as bool,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
-as String?,isSuccess: null == isSuccess ? _self.isSuccess : isSuccess // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -153,10 +150,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String email,  String password,  String displayName,  bool isSignUp,  bool isLoading,  String? errorMessage,  bool isSuccess)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String email,  String password,  String displayName,  bool isSignUp)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoginFormState() when $default != null:
-return $default(_that.email,_that.password,_that.displayName,_that.isSignUp,_that.isLoading,_that.errorMessage,_that.isSuccess);case _:
+return $default(_that.email,_that.password,_that.displayName,_that.isSignUp);case _:
   return orElse();
 
 }
@@ -174,10 +171,10 @@ return $default(_that.email,_that.password,_that.displayName,_that.isSignUp,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String email,  String password,  String displayName,  bool isSignUp,  bool isLoading,  String? errorMessage,  bool isSuccess)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String email,  String password,  String displayName,  bool isSignUp)  $default,) {final _that = this;
 switch (_that) {
 case _LoginFormState():
-return $default(_that.email,_that.password,_that.displayName,_that.isSignUp,_that.isLoading,_that.errorMessage,_that.isSuccess);}
+return $default(_that.email,_that.password,_that.displayName,_that.isSignUp);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -191,10 +188,10 @@ return $default(_that.email,_that.password,_that.displayName,_that.isSignUp,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String email,  String password,  String displayName,  bool isSignUp,  bool isLoading,  String? errorMessage,  bool isSuccess)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String email,  String password,  String displayName,  bool isSignUp)?  $default,) {final _that = this;
 switch (_that) {
 case _LoginFormState() when $default != null:
-return $default(_that.email,_that.password,_that.displayName,_that.isSignUp,_that.isLoading,_that.errorMessage,_that.isSuccess);case _:
+return $default(_that.email,_that.password,_that.displayName,_that.isSignUp);case _:
   return null;
 
 }
@@ -206,16 +203,13 @@ return $default(_that.email,_that.password,_that.displayName,_that.isSignUp,_tha
 
 
 class _LoginFormState implements LoginFormState {
-  const _LoginFormState({this.email = '', this.password = '', this.displayName = '', this.isSignUp = false, this.isLoading = false, this.errorMessage, this.isSuccess = false});
+  const _LoginFormState({this.email = '', this.password = '', this.displayName = '', this.isSignUp = false});
   
 
 @override@JsonKey() final  String email;
 @override@JsonKey() final  String password;
 @override@JsonKey() final  String displayName;
 @override@JsonKey() final  bool isSignUp;
-@override@JsonKey() final  bool isLoading;
-@override final  String? errorMessage;
-@override@JsonKey() final  bool isSuccess;
 
 /// Create a copy of LoginFormState
 /// with the given fields replaced by the non-null parameter values.
@@ -227,16 +221,16 @@ _$LoginFormStateCopyWith<_LoginFormState> get copyWith => __$LoginFormStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginFormState&&(identical(other.email, email) || other.email == email)&&(identical(other.password, password) || other.password == password)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isSignUp, isSignUp) || other.isSignUp == isSignUp)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage)&&(identical(other.isSuccess, isSuccess) || other.isSuccess == isSuccess));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LoginFormState&&(identical(other.email, email) || other.email == email)&&(identical(other.password, password) || other.password == password)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.isSignUp, isSignUp) || other.isSignUp == isSignUp));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,email,password,displayName,isSignUp,isLoading,errorMessage,isSuccess);
+int get hashCode => Object.hash(runtimeType,email,password,displayName,isSignUp);
 
 @override
 String toString() {
-  return 'LoginFormState(email: $email, password: $password, displayName: $displayName, isSignUp: $isSignUp, isLoading: $isLoading, errorMessage: $errorMessage, isSuccess: $isSuccess)';
+  return 'LoginFormState(email: $email, password: $password, displayName: $displayName, isSignUp: $isSignUp)';
 }
 
 
@@ -247,7 +241,7 @@ abstract mixin class _$LoginFormStateCopyWith<$Res> implements $LoginFormStateCo
   factory _$LoginFormStateCopyWith(_LoginFormState value, $Res Function(_LoginFormState) _then) = __$LoginFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- String email, String password, String displayName, bool isSignUp, bool isLoading, String? errorMessage, bool isSuccess
+ String email, String password, String displayName, bool isSignUp
 });
 
 
@@ -264,15 +258,12 @@ class __$LoginFormStateCopyWithImpl<$Res>
 
 /// Create a copy of LoginFormState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? email = null,Object? password = null,Object? displayName = null,Object? isSignUp = null,Object? isLoading = null,Object? errorMessage = freezed,Object? isSuccess = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? email = null,Object? password = null,Object? displayName = null,Object? isSignUp = null,}) {
   return _then(_LoginFormState(
 email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,password: null == password ? _self.password : password // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
 as String,isSignUp: null == isSignUp ? _self.isSignUp : isSignUp // ignore: cast_nullable_to_non_nullable
-as bool,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
-as String?,isSuccess: null == isSuccess ? _self.isSuccess : isSuccess // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

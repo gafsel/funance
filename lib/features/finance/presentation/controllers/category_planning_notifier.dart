@@ -25,11 +25,7 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
     try {
       final categories = await categoryService.getCategories().first;
       final filteredCategories = categories.where((c) {
-        if (type == CategoryType.income) {
-          return c.type == CategoryType.income || c.type == CategoryType.both;
-        } else {
-          return c.type == CategoryType.expense || c.type == CategoryType.both;
-        }
+        return type == c.type;
       }).toList();
 
       final currentMonth = DateTime.now().formated("yyyy-MM");

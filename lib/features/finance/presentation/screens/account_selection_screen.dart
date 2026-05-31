@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/widgets/account_form_dialog.dart';
+import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 class AccountSelectionScreen extends ConsumerWidget {
@@ -26,8 +26,9 @@ class AccountSelectionScreen extends ConsumerWidget {
 
     return accountsAsync.when(
       data: (accounts) {
-        final filteredAccounts =
-            accounts.where((acc) => acc.id != excludeAccountId).toList();
+        final filteredAccounts = accounts
+            .where((acc) => acc.id != excludeAccountId)
+            .toList();
 
         filteredAccounts.sort(
           (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -53,8 +54,9 @@ class AccountSelectionScreen extends ConsumerWidget {
                 Flexible(
                   child: Consumer(
                     builder: (context, ref, child) {
-                      final accountsByType = ref.watch(AccountViewProviders.byTypeMap).value ?? {};
-                      
+                      final accountsByType =
+                          ref.watch(AccountViewProviders.byTypeMap).value ?? {};
+
                       return LayoutBuilder(
                         builder: (context, constraints) {
                           final crossAxisCount = constraints.maxWidth > 900
@@ -66,22 +68,38 @@ class AccountSelectionScreen extends ConsumerWidget {
                           final List<Widget> slivers = [];
 
                           for (final entry in accountsByType.entries) {
-                            final typeAccounts = entry.value.where((acc) => acc.id != excludeAccountId).toList();
+                            final typeAccounts = entry.value
+                                .where((acc) => acc.id != excludeAccountId)
+                                .toList();
                             if (typeAccounts.isEmpty) continue;
 
-                            typeAccounts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                            typeAccounts.sort(
+                              (a, b) => a.name.toLowerCase().compareTo(
+                                b.name.toLowerCase(),
+                              ),
+                            );
 
                             // Header do tipo
                             slivers.add(
                               SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  16,
+                                  8,
+                                ),
                                 sliver: SliverToBoxAdapter(
                                   child: Text(
                                     _getAccountTypeName(entry.key, l10n),
-                                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                      color: Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelLarge
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
                                 ),
                               ),
@@ -90,12 +108,19 @@ class AccountSelectionScreen extends ConsumerWidget {
                             if (crossAxisCount == 1) {
                               slivers.add(
                                 SliverPadding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   sliver: SliverList(
                                     delegate: SliverChildBuilderDelegate(
                                       (context, index) => Padding(
-                                        padding: const EdgeInsets.only(bottom: 8),
-                                        child: _buildAccountCard(typeAccounts[index], l10n),
+                                        padding: const EdgeInsets.only(
+                                          bottom: 8,
+                                        ),
+                                        child: _buildAccountCard(
+                                          typeAccounts[index],
+                                          l10n,
+                                        ),
                                       ),
                                       childCount: typeAccounts.length,
                                     ),
@@ -105,16 +130,22 @@ class AccountSelectionScreen extends ConsumerWidget {
                             } else {
                               slivers.add(
                                 SliverPadding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
                                   sliver: SliverGrid(
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: crossAxisCount,
-                                      crossAxisSpacing: 16,
-                                      mainAxisSpacing: 16,
-                                      mainAxisExtent: 80,
-                                    ),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: crossAxisCount,
+                                          crossAxisSpacing: 16,
+                                          mainAxisSpacing: 16,
+                                          mainAxisExtent: 80,
+                                        ),
                                     delegate: SliverChildBuilderDelegate(
-                                      (context, index) => _buildAccountCard(typeAccounts[index], l10n),
+                                      (context, index) => _buildAccountCard(
+                                        typeAccounts[index],
+                                        l10n,
+                                      ),
                                       childCount: typeAccounts.length,
                                     ),
                                   ),
@@ -126,18 +157,27 @@ class AccountSelectionScreen extends ConsumerWidget {
                           if (showClearOption) {
                             slivers.add(
                               SliverPadding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 sliver: SliverToBoxAdapter(
                                   child: Column(
                                     children: [
                                       const Divider(),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        child: _buildAddAccountOption(context, l10n),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: _buildAddAccountOption(
+                                          context,
+                                          l10n,
+                                        ),
                                       ),
                                       const SizedBox(height: 8),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
                                         child: _buildClearOption(context, l10n),
                                       ),
                                     ],
@@ -148,14 +188,21 @@ class AccountSelectionScreen extends ConsumerWidget {
                           } else {
                             slivers.add(
                               SliverPadding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 sliver: SliverToBoxAdapter(
                                   child: Column(
                                     children: [
                                       const Divider(),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                                        child: _buildAddAccountOption(context, l10n),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                        ),
+                                        child: _buildAddAccountOption(
+                                          context,
+                                          l10n,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -168,7 +215,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                           slivers.add(
                             SliverToBoxAdapter(
                               child: SizedBox(
-                                height: MediaQuery.of(context).padding.bottom + 16,
+                                height:
+                                    MediaQuery.of(context).padding.bottom + 16,
                               ),
                             ),
                           );
@@ -221,9 +269,9 @@ class AccountSelectionScreen extends ConsumerWidget {
         ),
         title: Text(l10n.accountCreateTitle),
         onTap: () {
-          showDialog(
-            context: context,
-            builder: (context) => const AccountFormDialog(),
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AccountFormScreen()),
           );
         },
       ),

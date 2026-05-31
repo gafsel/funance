@@ -42,14 +42,15 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Future<void> createAccount(String workspaceId, AccountModel account) async {
+  Future<AccountModel> createAccount(String workspaceId, AccountModel account) async {
     try {
       final data = account.toJson();
       data.remove('id');
       data['initial_balance_date'] = Timestamp.fromDate(
         account.initialBalanceDate,
       );
-      await _getCollection(workspaceId).add(data);
+      final doc = await _getCollection(workspaceId).add(data);
+      return account.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

@@ -6,38 +6,113 @@ part of 'goal_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_GoalModel _$GoalModelFromJson(Map<String, dynamic> json) => _GoalModel(
-  id: json['id'] as String,
-  name: json['name'] as String,
-  targetAmount: (json['targetAmount'] as num).toDouble(),
-  currentAmount: (json['currentAmount'] as num).toDouble(),
-  deadline: DateTime.parse(json['deadline'] as String),
-  icon: json['icon'] as String?,
-  type: $enumDecode(_$GoalTypeEnumMap, json['type']),
-  accountId: json['accountId'] as String?,
-  startDate: DateTime.parse(json['startDate'] as String),
-  metadata: json['metadata'] as Map<String, dynamic>?,
-  isDeleted: json['isDeleted'] as bool? ?? false,
-);
+_GoalModelPayDebt _$GoalModelPayDebtFromJson(Map<String, dynamic> json) =>
+    _GoalModelPayDebt(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      targetAmount: (json['targetAmount'] as num).toDouble(),
+      currentAmount: (json['currentAmount'] as num).toDouble(),
+      deadline: DateTime.parse(json['deadline'] as String),
+      accountId: json['accountId'] as String,
+      startDate: DateTime.parse(json['startDate'] as String),
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      $type: json['runtimeType'] as String?,
+    );
 
-Map<String, dynamic> _$GoalModelToJson(_GoalModel instance) =>
+Map<String, dynamic> _$GoalModelPayDebtToJson(_GoalModelPayDebt instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
       'targetAmount': instance.targetAmount,
       'currentAmount': instance.currentAmount,
       'deadline': instance.deadline.toIso8601String(),
-      'icon': instance.icon,
-      'type': _$GoalTypeEnumMap[instance.type]!,
       'accountId': instance.accountId,
       'startDate': instance.startDate.toIso8601String(),
-      'metadata': instance.metadata,
       'isDeleted': instance.isDeleted,
+      'runtimeType': instance.$type,
     };
 
-const _$GoalTypeEnumMap = {
-  GoalType.saveMoney: 'save_money',
-  GoalType.reduceExpense: 'reduce_expense',
-  GoalType.reduceCreditCard: 'reduce_credit_card',
-  GoalType.payDebt: 'pay_debt',
+_GoalModelCreditCard _$GoalModelCreditCardFromJson(Map<String, dynamic> json) =>
+    _GoalModelCreditCard(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      targetAmount: (json['targetAmount'] as num).toDouble(),
+      currentAmount: (json['currentAmount'] as num).toDouble(),
+      averageSpending: (json['averageSpending'] as num).toDouble(),
+      deadline: DateTime.parse(json['deadline'] as String),
+      accountId: json['accountId'] as String,
+      startDate: DateTime.parse(json['startDate'] as String),
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$GoalModelCreditCardToJson(
+  _GoalModelCreditCard instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'targetAmount': instance.targetAmount,
+  'currentAmount': instance.currentAmount,
+  'averageSpending': instance.averageSpending,
+  'deadline': instance.deadline.toIso8601String(),
+  'accountId': instance.accountId,
+  'startDate': instance.startDate.toIso8601String(),
+  'isDeleted': instance.isDeleted,
+  'runtimeType': instance.$type,
 };
+
+_GoalModelReduceExpense _$GoalModelReduceExpenseFromJson(
+  Map<String, dynamic> json,
+) => _GoalModelReduceExpense(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  targetAmount: (json['targetAmount'] as num).toDouble(),
+  currentAmount: (json['currentAmount'] as num).toDouble(),
+  averageSpending: (json['averageSpending'] as num).toDouble(),
+  deadline: DateTime.parse(json['deadline'] as String),
+  category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
+  startDate: DateTime.parse(json['startDate'] as String),
+  isDeleted: json['isDeleted'] as bool? ?? false,
+  $type: json['runtimeType'] as String?,
+);
+
+Map<String, dynamic> _$GoalModelReduceExpenseToJson(
+  _GoalModelReduceExpense instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'targetAmount': instance.targetAmount,
+  'currentAmount': instance.currentAmount,
+  'averageSpending': instance.averageSpending,
+  'deadline': instance.deadline.toIso8601String(),
+  'category': instance.category.toJson(),
+  'startDate': instance.startDate.toIso8601String(),
+  'isDeleted': instance.isDeleted,
+  'runtimeType': instance.$type,
+};
+
+_GoalModelSaveMoney _$GoalModelSaveMoneyFromJson(Map<String, dynamic> json) =>
+    _GoalModelSaveMoney(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      targetAmount: (json['targetAmount'] as num).toDouble(),
+      currentAmount: (json['currentAmount'] as num).toDouble(),
+      deadline: DateTime.parse(json['deadline'] as String),
+      accountId: json['accountId'] as String,
+      startDate: DateTime.parse(json['startDate'] as String),
+      isDeleted: json['isDeleted'] as bool? ?? false,
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$GoalModelSaveMoneyToJson(_GoalModelSaveMoney instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'targetAmount': instance.targetAmount,
+      'currentAmount': instance.currentAmount,
+      'deadline': instance.deadline.toIso8601String(),
+      'accountId': instance.accountId,
+      'startDate': instance.startDate.toIso8601String(),
+      'isDeleted': instance.isDeleted,
+      'runtimeType': instance.$type,
+    };

@@ -66,23 +66,18 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
     final notifier = ref.watch(provider.notifier);
     final state = ref.watch(provider);
 
-    return ListView.separated(
-      padding: padding,
-      itemCount: state.items.length + 1,
-      separatorBuilder: (context, i) {
-        int actualIndex = i - 1;
+    final showLoader = state.status == InfiniteListStatus.loading ||
+        state.status == InfiniteListStatus.error ||
+        state.hasNextChunk;
 
-        return separatorBuilder?.call(
-              context,
-              actualIndex < 0 ? null : state.items[actualIndex],
-              actualIndex + 1 >= state.items.length
-                  ? null
-                  : state.items[actualIndex + 1],
-            ) ??
-            SizedBox.shrink();
-      },
+    final itemCount = (state.items.length * 2) + (showLoader ? 1 : 0);
+
+    return ListView.builder(
+      padding: padding,
+      itemCount: itemCount,
       itemBuilder: (context, index) {
-        if (index >= state.items.length) {
+        // Se for o último item e precisamos mostrar loader/erro
+        if (index == itemCount - 1 && showLoader) {
           if (state.status == InfiniteListStatus.loading) {
             return const Padding(
               padding: EdgeInsets.all(16.0),
@@ -104,16 +99,32 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
               ),
             );
           } else if (state.hasNextChunk) {
-            notifier.more();
-          } else if (state.items.isEmpty) {
-            return emptyStateBuilder?.call(context) ??
-                Center(child: Text(l10n.noRecordsFound));
+            Future(() => notifier.more());
+            return const SizedBox.shrink();
           }
-
-          return SizedBox.shrink();
         }
 
-        return itemBuilder(context, state.items[index]);
+        final isSeparator = index % 2 == 0;
+        final itemIndex = index ~/ 2;
+
+        if (isSeparator) {
+          final before = itemIndex > 0 ? state.items[itemIndex - 1] : null;
+          final after = itemIndex < state.items.length ? state.items[itemIndex] : null;
+
+          return separatorBuilder?.call(context, before, after) ??
+              const SizedBox.shrink();
+        }
+
+        if (itemIndex < state.items.length) {
+          return itemBuilder(context, state.items[itemIndex]);
+        }
+
+        if (state.items.isEmpty && !showLoader) {
+          return emptyStateBuilder?.call(context) ??
+              Center(child: Text(l10n.noRecordsFound));
+        }
+
+        return const SizedBox.shrink();
       },
     );
   }

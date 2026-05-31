@@ -14,9 +14,8 @@ class ChipFormField<T> extends FormField<T> {
     super.autovalidateMode,
     this.onChanged,
     this.decoration = const InputDecoration(),
-    bool enabled = true,
   }) : super(
-          enabled: enabled,
+          enabled: onChanged != null,
           builder: (FormFieldState<T> field) {
             final InputDecoration effectiveDecoration = decoration
                 .applyDefaults(Theme.of(field.context).inputDecorationTheme)
@@ -33,7 +32,7 @@ class ChipFormField<T> extends FormField<T> {
                     label: Text(option.label),
                     selected: field.value == option.value,
                     showCheckmark: false,
-                    onSelected: enabled
+                    onSelected: onChanged != null
                         ? (bool selected) {
                             final newValue = selected ? option.value : null;
                             field.didChange(newValue);
@@ -48,6 +47,7 @@ class ChipFormField<T> extends FormField<T> {
             );
           },
         );
+
 }
 
 class ChipFormFieldOption<T> {

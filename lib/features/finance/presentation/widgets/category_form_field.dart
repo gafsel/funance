@@ -2,57 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
-import 'package:funances/features/workspace/presentation/widgets/category_form_dialog.dart';
+import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 
 class CategoryFormField extends ConsumerWidget {
   const CategoryFormField({
     super.key,
     this.initialValue,
     required this.onChanged,
-    required this.orderType,
+    this.categoryType,
     this.validator,
     this.decoration,
-    this.enabled = true,
     this.autoOpen = false,
-  });
+  }) : transfer = false;
 
   final CategoryModel? initialValue;
   final InputDecoration? decoration;
-  final ValueChanged<CategoryModel?> onChanged;
-  final OrderType orderType;
+  final ValueChanged<CategoryModel?>? onChanged;
+  final CategoryType? categoryType;
   final FormFieldValidator<CategoryModel?>? validator;
-  final bool enabled;
   final bool autoOpen;
+  final bool transfer;
 
-  const CategoryFormField.transfer({
-    super.key,
-    this.decoration,
-    this.validator,
-  })  : initialValue = null,
-        onChanged = _dummyOnChanged,
-        orderType = OrderType.transfer,
-        enabled = false,
-        autoOpen = false;
+  const CategoryFormField.transfer({super.key, this.decoration, this.validator})
+    : initialValue = null,
+      onChanged = _dummyOnChanged,
+      categoryType = null,
+      transfer = true,
+      autoOpen = false;
 
   static void _dummyOnChanged(CategoryModel? _) {}
 
+  bool get enabled => onChanged != null;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (autoOpen && initialValue == null && orderType != OrderType.transfer) {
+    if (autoOpen && initialValue == null && categoryType != null) {
       final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
       if (!isModalOpen) {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           final selectedCategory = await _showCategoryPicker(
             context,
-            ref,
-            orderType,
+            categoryType!,
           );
 
           if (selectedCategory != null) {
-            onChanged(selectedCategory);
+            onChanged?.call(selectedCategory);
           }
         });
       }
@@ -69,13 +65,12 @@ class CategoryFormField extends ConsumerWidget {
               ? () async {
                   final selectedCategory = await _showCategoryPicker(
                     context,
-                    ref,
-                    orderType,
+                    categoryType,
                   );
 
                   if (selectedCategory != null || state.value != null) {
                     state.didChange(selectedCategory);
-                    onChanged(selectedCategory);
+                    onChanged?.call(selectedCategory);
                   }
                 }
               : null,
@@ -84,7 +79,7 @@ class CategoryFormField extends ConsumerWidget {
               errorText: state.errorText,
               suffixIcon: enabled ? const Icon(Icons.chevron_right) : null,
             ),
-            child: orderType == OrderType.transfer
+            child: transfer
                 ? Row(
                     children: [
                       const CircleAvatar(
@@ -99,36 +94,38 @@ class CategoryFormField extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         context.l10n.transactionTypeTransfer,
-                        style: Theme.of(context).textTheme.bodyMedium,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.black38),
                       ),
                     ],
                   )
                 : category != null
-                    ? Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 12,
-                            backgroundColor: Color(
-                              int.parse(
-                                  category.color.replaceFirst('#', '0xFF')),
-                            ).withValues(alpha: 0.2),
-                            child: Icon(
-                              _getIconData(category.icon),
-                              size: 16,
-                              color: Color(
-                                int.parse(
-                                    category.color.replaceFirst('#', '0xFF')),
-                              ),
-                            ),
+                ? Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Color(
+                          int.parse(category.color.replaceFirst('#', '0xFF')),
+                        ).withValues(alpha: 0.2),
+                        child: Icon(
+                          _getIconData(category.icon),
+                          size: 16,
+                          color: Color(
+                            int.parse(category.color.replaceFirst('#', '0xFF')),
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            category.name,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      )
-                    : null,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        category.name,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: enabled ? null : Colors.black38,
+                        ),
+                      ),
+                    ],
+                  )
+                : null,
           ),
         );
       },
@@ -137,101 +134,106 @@ class CategoryFormField extends ConsumerWidget {
 
   Future<CategoryModel?> _showCategoryPicker(
     BuildContext context,
-    WidgetRef ref,
-    OrderType orderType,
+    CategoryType? categoryType,
   ) async {
     return showModalBottomSheet<CategoryModel>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       builder: (context) {
-        final categories = ref.watch(CategoryViewProviders.allStream).when(
+        return Consumer(
+          builder: (context, ref, _) {
+            final categories = ref
+                .watch(CategoryViewProviders.allStream)
+                .when(
               data: (data) => data
-                  .where((c) => c.type == orderType.categoryType)
+                  .where((c) => categoryType == null || c.type == categoryType)
                   .toList(),
               error: (error, stack) => [],
               loading: () => [],
             );
 
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  context.l10n.transactionCategoriesSection,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).padding.bottom + 16,
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(
+                      context.l10n.transactionCategoriesSection,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
-                  itemCount: categories.length + 4, // +1 for Add, +1 for Clear, +2 for Dividers
-                  itemBuilder: (context, index) {
-                    if (index < categories.length) {
-                      final category = categories[index];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Color(
-                            int.parse(category.color.replaceFirst('#', '0xFF')),
-                          ).withValues(alpha: 0.2),
-                          child: Icon(
-                            _getIconData(category.icon),
-                            color: Color(
-                              int.parse(
-                                category.color.replaceFirst('#', '0xFF'),
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.only(
+                        bottom: MediaQuery.of(context).padding.bottom + 16,
+                      ),
+                      itemCount: categories.length + 4,
+                      // +1 for Add, +1 for Clear, +2 for Dividers
+                      itemBuilder: (context, index) {
+                        if (index < categories.length) {
+                          final category = categories[index];
+                          return ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Color(
+                                int.parse(category.color.replaceFirst('#', '0xFF')),
+                              ).withValues(alpha: 0.2),
+                              child: Icon(
+                                _getIconData(category.icon),
+                                color: Color(
+                                  int.parse(
+                                    category.color.replaceFirst('#', '0xFF'),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        title: Text(category.name),
-                        onTap: () => Navigator.pop(context, category),
-                      );
-                    }
-
-                    if (index == categories.length) {
-                      return const Divider();
-                    }
-
-                    if (index == categories.length + 1) {
-                      return ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.transparent,
-                          child: Icon(Icons.add, color: Colors.grey),
-                        ),
-                        title: Text(context.l10n.categoryCreateTitle),
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (context) => CategoryFormDialog(
-                              initialType: orderType.categoryType,
-                            ),
+                            title: Text(category.name),
+                            onTap: () => Navigator.pop(context, category),
                           );
-                        },
-                      );
-                    }
+                        }
 
-                    if (index == categories.length + 2) {
-                      return const Divider();
-                    }
+                        if (index == categories.length) {
+                          return const Divider();
+                        }
 
-                    return ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        child: Icon(Icons.clear, color: Colors.grey),
-                      ),
-                      title: Text(context.l10n.clear),
-                      onTap: () => Navigator.pop(context, null),
-                    );
-                  },
-                ),
+                        if (index == categories.length + 1) {
+                          return ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.transparent,
+                              child: Icon(Icons.add, color: Colors.grey),
+                            ),
+                            title: Text(context.l10n.categoryCreateTitle),
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) =>
+                                    CategoryFormScreen(initialType: categoryType),
+                              );
+                            },
+                          );
+                        }
+
+                        if (index == categories.length + 2) {
+                          return const Divider();
+                        }
+
+                        return ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: Colors.transparent,
+                            child: Icon(Icons.clear, color: Colors.grey),
+                          ),
+                          title: Text(context.l10n.clear),
+                          onTap: () => Navigator.pop(context, null),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          }
         );
       },
     );

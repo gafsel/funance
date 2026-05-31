@@ -4,9 +4,9 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
-import 'package:funances/features/goal/presentation/widgets/goal_form_dialog.dart';
-import 'package:intl/intl.dart';
+import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 class JourneyTab extends ConsumerWidget {
   const JourneyTab({super.key});
@@ -39,7 +39,10 @@ class JourneyTab extends ConsumerWidget {
                 style: theme.textTheme.titleLarge,
               ),
               IconButton(
-                icon: const Icon(Icons.add_circle, color: AppColors.deepTurquoise),
+                icon: const Icon(
+                  Icons.add_circle,
+                  color: AppColors.deepTurquoise,
+                ),
                 onPressed: () => _showAddGoalDialog(context),
               ),
             ],
@@ -60,10 +63,13 @@ class JourneyTab extends ConsumerWidget {
                   } else if (constraints.maxWidth > 600) {
                     crossAxisCount = 2;
                   }
-                  
+
                   if (crossAxisCount > 1) {
                     final spacing = 16.0;
-                    final width = (constraints.maxWidth - (spacing * (crossAxisCount - 1))) / crossAxisCount;
+                    final width =
+                        (constraints.maxWidth -
+                            (spacing * (crossAxisCount - 1))) /
+                        crossAxisCount;
                     return Align(
                       alignment: Alignment.topLeft,
                       child: Wrap(
@@ -80,10 +86,14 @@ class JourneyTab extends ConsumerWidget {
                   }
 
                   return Column(
-                    children: goals.map((goal) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildGoalCard(context, ref, goal),
-                    )).toList(),
+                    children: goals
+                        .map(
+                          (goal) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _buildGoalCard(context, ref, goal),
+                          ),
+                        )
+                        .toList(),
                   );
                 },
               );
@@ -96,7 +106,11 @@ class JourneyTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildMonthlyScore(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _buildMonthlyScore(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -139,13 +153,21 @@ class JourneyTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyGoals(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _buildEmptyGoals(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            const Icon(Icons.flag_outlined, size: 64, color: AppColors.vibrantTeal),
+            const Icon(
+              Icons.flag_outlined,
+              size: 64,
+              color: AppColors.vibrantTeal,
+            ),
             const SizedBox(height: 16),
             Text(
               l10n.goalEmptyMessage,
@@ -155,7 +177,9 @@ class JourneyTab extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               l10n.goalEmptyExample,
-              style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontStyle: FontStyle.italic,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -169,10 +193,10 @@ class JourneyTab extends ConsumerWidget {
     );
   }
 
-  void _showAddGoalDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => GoalFormDialog(),
+  void _showAddGoalDialog(BuildContext context, [GoalModel? goal]) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => GoalFormScreen(goal: goal)),
     );
   }
 
@@ -184,10 +208,7 @@ class JourneyTab extends ConsumerWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: () => showDialog(
-          context: context,
-          builder: (context) => GoalFormDialog(goal: goal),
-        ),
+        onTap: () => _showAddGoalDialog(context, goal),
         onLongPress: () => ref.read(goalsProvider.notifier).deleteGoal(goal.id),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
@@ -206,8 +227,8 @@ class JourneyTab extends ConsumerWidget {
                       goal.type == GoalType.saveMoney
                           ? Icons.savings
                           : goal.type == GoalType.payDebt
-                              ? Icons.handshake
-                              : Icons.trending_down,
+                          ? Icons.handshake
+                          : Icons.trending_down,
                       color: AppColors.deepTurquoise,
                     ),
                   ),
@@ -218,15 +239,25 @@ class JourneyTab extends ConsumerWidget {
                       children: [
                         Text(
                           goal.name,
-                          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         Text(
-                          l10n.goalTargetTarget(NumberFormat.simpleCurrency().format(goal.targetAmount)),
+                          l10n.goalTargetTarget(
+                            NumberFormat.simpleCurrency().format(
+                              goal.targetAmount,
+                            ),
+                          ),
                           style: theme.textTheme.bodySmall,
                         ),
                         if (goal.monthlyRequirement > 0)
                           Text(
-                            l10n.goalMonthlyRequirementValue(NumberFormat.simpleCurrency().format(goal.monthlyRequirement)),
+                            l10n.goalMonthlyRequirementValue(
+                              NumberFormat.simpleCurrency().format(
+                                goal.monthlyRequirement,
+                              ),
+                            ),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.deepTurquoise,
                               fontWeight: FontWeight.bold,
@@ -236,14 +267,22 @@ class JourneyTab extends ConsumerWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: progress.getStatusColor(context).withValues(alpha: 0.1),
+                      color: progress
+                          .getStatusColor(context)
+                          .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       progress.getStatusText(l10n),
-                      style: theme.textTheme.labelSmall?.copyWith(color: progress.getStatusColor(context), fontWeight: FontWeight.bold),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: progress.getStatusColor(context),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
@@ -280,9 +319,16 @@ class JourneyTab extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    goal.type == GoalType.saveMoney || goal.type == GoalType.payDebt
-                        ? l10n.goalRemainingValue(NumberFormat.simpleCurrency().format(goal.targetAmount - goal.currentAmount))
-                        : l10n.goalProgressValue((progress.percent * 100).toInt().toString()),
+                    goal.type == GoalType.saveMoney ||
+                            goal.type == GoalType.payDebt
+                        ? l10n.goalRemainingValue(
+                            NumberFormat.simpleCurrency().format(
+                              goal.targetAmount - goal.currentAmount,
+                            ),
+                          )
+                        : l10n.goalProgressValue(
+                            (progress.percent * 100).toInt().toString(),
+                          ),
                     style: theme.textTheme.bodySmall,
                   ),
                   Text(

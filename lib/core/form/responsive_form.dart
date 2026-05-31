@@ -18,6 +18,18 @@ typedef OnPressed<I, O, N extends FormNotifier<I, O>> =
       LoadingWrapper loading,
     );
 
+class FullWidthItem extends StatelessWidget {
+  const FullWidthItem(this.child, {super.key});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return child;
+  }
+}
+
+
 class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     extends StatelessWidget {
   const ResponsiveForm(
@@ -54,7 +66,10 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
               ),
               Divider(height: 32),
               Row(
+                spacing: 16,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  ...extraActions,
                   LoadingButton.elevated(
                     child: Text(submitLabel ?? l10n.saveButton),
                     onPressed: (loading) async {
@@ -74,8 +89,6 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                       }
                     },
                   ),
-                  Spacer(),
-                  ...extraActions,
                 ],
               ),
             ],
@@ -112,7 +125,7 @@ class _ResponsiveGrid extends StatelessWidget {
             spacing: spacing,
             runSpacing: spacing,
             children: children
-                .map((child) => SizedBox(width: itemWidth, child: child))
+                .map((child) => SizedBox(width: child is FullWidthItem ? maxWidth : itemWidth, child: child))
                 .toList(),
           );
         }

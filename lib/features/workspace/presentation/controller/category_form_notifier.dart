@@ -23,10 +23,10 @@ class CategoryFormNotifier extends FormNotifier<CategoryFormState, void> {
 
   @override
   Future<void> submit() async {
-    final category = state.asModel();
+    var category = state.asModel();
 
     if (state.creation) {
-      await service.create(category);
+      category = await service.create(category);
 
       state = state.copyWith(category: category);
     } else {

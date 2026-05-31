@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/features/finance/domain/models/category_planning_model.dart';
+import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -13,11 +19,12 @@ class GoalsAnalysisStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final goals = ref.watch(
-      OnboardingViewProviders.onboarding.select(
-        (s) => s.planningSuggestions?.goals ?? [],
-      ),
+    final suggestions = ref.watch(
+      OnboardingViewProviders.onboarding.select((s) => s.planningSuggestions),
     );
+    final goals = suggestions?.goals ?? [];
+    final plannings = suggestions?.plannings ?? [];
+
     final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
 
     return Padding(
@@ -34,9 +41,9 @@ class GoalsAnalysisStep extends ConsumerWidget {
           Text(
             l10n.onboardingGoalsAnalysisTitle,
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              color: AppColors.paleGold,
-              fontWeight: FontWeight.bold,
-            ),
+                  color: AppColors.paleGold,
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
@@ -44,10 +51,45 @@ class GoalsAnalysisStep extends ConsumerWidget {
             style: const TextStyle(color: AppColors.pureWhite),
           ),
           const SizedBox(height: 32),
-          Expanded(child: _buildSuggestedGoals(goals, notifier, context)),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (goals.isNotEmpty) ...[
+                    Text(
+                      l10n.onboardingSuggestedGoalsTitle,
+                      style: const TextStyle(
+                        color: AppColors.paleGold,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSuggestedGoals(goals, notifier, context),
+                    const SizedBox(height: 24),
+                  ],
+                  if (plannings.isNotEmpty) ...[
+                    Text(
+                      l10n.onboardingSuggestedPlanningsTitle,
+                      style: const TextStyle(
+                        color: AppColors.paleGold,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSuggestedPlannings(plannings, notifier, context),
+                  ],
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: goals.isEmpty ? null : () => notifier.nextStep(),
+            onPressed: (goals.isEmpty && plannings.isEmpty)
+                ? null
+                : () => notifier.nextStep(),
             child: Text(l10n.onboardingGoalsButton),
           ),
         ],
@@ -56,21 +98,21 @@ class GoalsAnalysisStep extends ConsumerWidget {
   }
 
   Widget _buildSuggestedGoals(
-    List goals,
+    List<GoalModel> goals,
     OnboardingNotifier notifier,
     BuildContext context,
   ) {
     final l10n = AppLocalizations.of(context)!;
+    final locale = context.locale;
     return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: goals.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final goal = goals[index];
-        // Nota: Como estamos usando Riverpod reativo, precisamos saber se está selecionado.
-        // Por simplificação neste step de onboarding, todos os sugeridos estão na lista inicialmente.
-        // O toggle remove ou adiciona da lista de onboardingGoals.
-
         return Card(
+          margin: EdgeInsets.zero,
           color: AppColors.deepTurquoise.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -90,7 +132,7 @@ class GoalsAnalysisStep extends ConsumerWidget {
             ),
             subtitle: Text(
               l10n.goalTargetTarget(
-                NumberFormat.simpleCurrency().format(goal.targetAmount),
+                goal.targetAmount.asCurrency(locale: locale),
               ),
               style: TextStyle(
                 color: AppColors.pureWhite.withValues(alpha: 0.7),
@@ -102,6 +144,60 @@ class GoalsAnalysisStep extends ConsumerWidget {
                 color: AppColors.coralOrange,
               ),
               onPressed: () => notifier.removeGoal(goal),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSuggestedPlannings(
+    List<CategoryPlanningModel> plannings,
+    OnboardingNotifier notifier,
+    BuildContext context,
+  ) {
+    final locale = context.locale;
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: plannings.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final planning = plannings[index];
+        return Card(
+          margin: EdgeInsets.zero,
+          color: AppColors.deepTurquoise.withValues(alpha: 0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: AppColors.paleGold.withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          child: ListTile(
+            leading: Icon(
+              planning.category.icon.asIcon(),
+              color: planning.category.color.asColor(),
+            ),
+            title: Text(
+              planning.category.name,
+              style: const TextStyle(
+                color: AppColors.pureWhite,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            subtitle: Text(
+              planning.amount.asCurrency(locale: locale),
+              style: TextStyle(
+                color: AppColors.pureWhite.withValues(alpha: 0.7),
+              ),
+            ),
+            trailing: IconButton(
+              icon: const Icon(
+                Icons.delete_outline,
+                color: AppColors.coralOrange,
+              ),
+              onPressed: () => notifier.removePlanning(planning),
             ),
           ),
         );

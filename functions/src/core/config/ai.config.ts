@@ -46,6 +46,7 @@ export const DEFAULT_CONFIG: AIConfig = {
                             "name": "Categoria",
                             "icon": "ícone_material_design",
                             "color": "#HEXCODE",
+                            "type": "income" | "expense"
                         },
                         "amount": 500.0
                     }
@@ -88,6 +89,7 @@ export const DEFAULT_CONFIG: AIConfig = {
                             "name": "Categoria",
                             "icon": "ícone_material_design",
                             "color": "#HEXCODE",
+                            "type": "income" | "expense"
                         },
                         "description": "Descrição",
                         "amount": 100.0,

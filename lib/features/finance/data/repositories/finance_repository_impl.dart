@@ -28,29 +28,34 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     DateTime? endDate,
   }) async {
     try {
-      Query query = _getWorkspaceDoc(workspaceId)
-          .collection('installments')
-          .where("status", isNotEqualTo: InstallmentStatus.removed.name);
+      Query query = _getWorkspaceDoc(workspaceId).collection('installments');
 
       if (accountId != null && accountId.isNotEmpty) {
         query = query.where('accountIds', arrayContains: accountId);
       }
 
-      if (startDate != null) {
-        query = query.where("referenceDate", isGreaterThanOrEqualTo: startDate);
-      }
+      query = query.where("status", whereIn: [
+        InstallmentStatus.pending.name,
+        InstallmentStatus.paid.name,
+        InstallmentStatus.settled.name,
+      ]);
 
-      if (endDate != null) {
-        query = query.where("referenceDate", isLessThanOrEqualTo: endDate);
-      }
+      if (startDate != null || endDate != null) {
+        if (startDate != null) {
+          query = query.where("referenceDate", isGreaterThanOrEqualTo: startDate);
+        }
 
+        if (endDate != null) {
+          query = query.where("referenceDate", isLessThanOrEqualTo: endDate);
+        }
+      }
       query = query.orderBy("referenceDate", descending: true);
 
       if (limit != null) {
         query = query.limit(limit);
       }
 
-      if (chunkRef != null) {
+      if (chunkRef != null && chunkRef is DocumentSnapshot) {
         query = query.startAfterDocument(chunkRef);
       }
 

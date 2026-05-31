@@ -109,11 +109,11 @@ class TransactionFormScreen extends StatelessWidget {
             final original = installment!;
             final changedFieldsOtherThanStatusOrPayment =
                 state.description != original.description ||
-                    state.amount != original.amount ||
-                    state.dueDate != original.dueDate ||
-                    state.category?.id != original.category?.id ||
-                    state.accountIdSource != original.accountIdSource ||
-                    state.accountIdTarget != original.accountIdTarget;
+                state.amount != original.amount ||
+                state.dueDate != original.dueDate ||
+                state.category?.id != original.category?.id ||
+                state.accountIdSource != original.accountIdSource ||
+                state.accountIdTarget != original.accountIdTarget;
 
             if (changedFieldsOtherThanStatusOrPayment) {
               final selectedCascade = await showDialog<ReplicationCascade>(
@@ -166,7 +166,6 @@ class TransactionFormScreen extends StatelessWidget {
           final v = context.validations;
           final isPending = state.status == InstallmentStatus.pending;
 
-          final showCategory = state.creation;
           final showAccounts =
               !state.creation ||
               state.category != null ||
@@ -174,59 +173,63 @@ class TransactionFormScreen extends StatelessWidget {
           final showBasicFields =
               !state.creation ||
               (state.type == OrderType.transfer
-                  ? state.accountIdSource != null && state.accountIdTarget != null
+                  ? state.accountIdSource != null &&
+                        state.accountIdTarget != null
                   : (state.category != null &&
-                      (isPending || state.accountIdSource != null)));
+                        (isPending || state.accountIdSource != null)));
 
           return [
-              ChipFormField<OrderType>(
-                initialValue: state.type,
-                decoration: InputDecoration(
-                  labelText: l10n.transactionOrderTypeLabel,
-                ),
-                options: [
-                  ChipFormFieldOption(
-                    value: OrderType.expense,
-                    label: l10n.transactionTypeExpense,
-                  ),
-                  ChipFormFieldOption(
-                    value: OrderType.income,
-                    label: l10n.transactionTypeIncome,
-                  ),
-                  ChipFormFieldOption(
-                    value: OrderType.transfer,
-                    label: l10n.transactionTypeTransfer,
-                  ),
-                ],
-                onChanged: state.creation
-                    ? (v) {
-                        if (v != null) {
-                          notifier.updateOrderType(v);
-                        }
-                      }
-                    : null,
-                enabled: state.creation,
-                validator: v.all([v.notNull()]),
+            ChipFormField<OrderType>(
+              initialValue: state.type,
+              decoration: InputDecoration(
+                labelText: l10n.transactionOrderTypeLabel,
               ),
-            if (showCategory)
-              if (state.type == OrderType.transfer) ...[
-                CategoryFormField.transfer(
-                  decoration: InputDecoration(
-                    labelText: l10n.transactionCategoriesSection,
-                  ),
+              options: [
+                ChipFormFieldOption(
+                  value: OrderType.expense,
+                  label: l10n.transactionTypeExpense,
                 ),
-              ] else ...[
-                CategoryFormField(
-                  initialValue: state.category,
-                  orderType: state.type,
-                  decoration: InputDecoration(
-                    labelText: l10n.transactionCategoriesSection,
-                  ),
-                  onChanged: notifier.updateCategory,
-                  validator: v.all([v.notNull()]),
-                  autoOpen: state.creation,
+                ChipFormFieldOption(
+                  value: OrderType.income,
+                  label: l10n.transactionTypeIncome,
+                ),
+                ChipFormFieldOption(
+                  value: OrderType.transfer,
+                  label: l10n.transactionTypeTransfer,
                 ),
               ],
+              onChanged: state.creation
+                  ? (v) {
+                      if (v != null) {
+                        notifier.updateOrderType(v);
+                      }
+                    }
+                  : null,
+              validator: v.all([v.notNull()]),
+            ),
+            if (state.type == OrderType.transfer) ...[
+              CategoryFormField.transfer(
+                decoration: InputDecoration(
+                  labelText: l10n.transactionCategoriesSection,
+                ),
+              ),
+            ] else ...[
+              CategoryFormField(
+                initialValue: state.category,
+                categoryType: state.type.categoryType,
+                decoration: InputDecoration(
+                  labelText: l10n.transactionCategoriesSection,
+                ),
+                onChanged:
+                    state.creation ||
+                        (state.installmentId != null &&
+                            state.status == InstallmentStatus.pending)
+                    ? notifier.updateCategory
+                    : null,
+                validator: v.all([v.notNull()]),
+                autoOpen: state.creation,
+              ),
+            ],
             if (showAccounts) ...[
               AccountFormField(
                 initialValue: state.accountIdSource,
@@ -235,7 +238,8 @@ class TransactionFormScreen extends StatelessWidget {
                       ? l10n.transactionFromAccountLabel
                       : l10n.transactionAccountLabel,
                 ),
-                onChanged: state.status != InstallmentStatus.paid || state.creation
+                onChanged:
+                    state.status != InstallmentStatus.paid || state.creation
                     ? notifier.updateAccountIdSource
                     : null,
                 validator: isPending ? null : v.all([v.notEmpty()]),
@@ -247,7 +251,8 @@ class TransactionFormScreen extends StatelessWidget {
                   decoration: InputDecoration(
                     labelText: l10n.transactionToAccountLabel,
                   ),
-                  onChanged: state.status != InstallmentStatus.paid || state.creation
+                  onChanged:
+                      state.status != InstallmentStatus.paid || state.creation
                       ? notifier.updateAccountIdTarget
                       : null,
                   validator: isPending ? null : v.all([v.notEmpty()]),
@@ -272,8 +277,7 @@ class TransactionFormScreen extends StatelessWidget {
     final isPaid = state.status == InstallmentStatus.paid;
 
     return [
-      if (state.creation)
-        _buildStatusField(state, notifier),
+      if (state.creation) _buildStatusField(state, notifier),
       TextFormField(
         initialValue: state.description,
         decoration: InputDecoration(
@@ -330,7 +334,6 @@ class TransactionFormScreen extends StatelessWidget {
                   }
                 }
               : null,
-          enabled: state.creation,
         ),
       ],
       if (state.installmentType == InstallmentType.installment)
@@ -371,38 +374,41 @@ class TransactionFormScreen extends StatelessWidget {
     ];
   }
 
-  ChipFormField<InstallmentStatus> _buildStatusField(TransactionFormState state, TransactionFormNotifier notifier) {
+  ChipFormField<InstallmentStatus> _buildStatusField(
+    TransactionFormState state,
+    TransactionFormNotifier notifier,
+  ) {
     return ChipFormField<InstallmentStatus>(
-        initialValue: state.status,
-        decoration: InputDecoration(
-          labelText: state.creation ? "Tipo de Cadastro" : "Status",
-        ),
-        options: state.creation
-            ? [
-                const ChipFormFieldOption(
-                  value: InstallmentStatus.pending,
-                  label: "Planejamento",
-                ),
-                const ChipFormFieldOption(
-                  value: InstallmentStatus.paid,
-                  label: "Realizado",
-                ),
-              ]
-            : [
-                const ChipFormFieldOption(
-                  value: InstallmentStatus.pending,
-                  label: "Pendente",
-                ),
-                const ChipFormFieldOption(
-                  value: InstallmentStatus.paid,
-                  label: "Pago",
-                ),
-              ],
-        onChanged: (v) {
-          if (v != null) {
-            notifier.updateStatus(v);
-          }
-        },
-      );
+      initialValue: state.status,
+      decoration: InputDecoration(
+        labelText: state.creation ? "Tipo de Cadastro" : "Status",
+      ),
+      options: state.creation
+          ? [
+              const ChipFormFieldOption(
+                value: InstallmentStatus.pending,
+                label: "Planejamento",
+              ),
+              const ChipFormFieldOption(
+                value: InstallmentStatus.paid,
+                label: "Realizado",
+              ),
+            ]
+          : [
+              const ChipFormFieldOption(
+                value: InstallmentStatus.pending,
+                label: "Pendente",
+              ),
+              const ChipFormFieldOption(
+                value: InstallmentStatus.paid,
+                label: "Pago",
+              ),
+            ],
+      onChanged: (v) {
+        if (v != null) {
+          notifier.updateStatus(v);
+        }
+      },
+    );
   }
 }

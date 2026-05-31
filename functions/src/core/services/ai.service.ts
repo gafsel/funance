@@ -8,11 +8,19 @@ const geminiApiKey = defineString("GEMINI_API_KEY");
 
 export interface IAIRepository {
     analyzePlanningAndSuggestGoals(
+        workspaceId: string,
         workspaceType: string, 
         categories: string[], 
         orders: OrderModel[],
     ): Promise<any>;
-    analyzeAccountDocument(fileBuffer: Buffer, mimeType: string, fileName: string, existingCategories: string[]): Promise<any>;
+    analyzeAccountDocument(
+        workspaceId: string,
+        fileBuffer: Buffer, 
+        mimeType: string, 
+        fileName: string, 
+        existingCategories: string[],
+        storagePath?: string,
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -46,6 +54,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     }
 
     async analyzePlanningAndSuggestGoals(
+        workspaceId: string,
         workspaceType: string, 
         categories: string[], 
         orders: OrderModel[],
@@ -62,6 +71,15 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const response = await result.response;
         const text = response.text();
 
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "planning_analysis",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             return JSON.parse(jsonMatch[0]);
@@ -70,7 +88,14 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         return { goals: [], plannings: [] };
     }
 
-    async analyzeAccountDocument(fileBuffer: Buffer, mimeType: string, fileName: string, existingCategories: string[]): Promise<any> {
+    async analyzeAccountDocument(
+        workspaceId: string,
+        fileBuffer: Buffer, 
+        mimeType: string, 
+        fileName: string, 
+        existingCategories: string[],
+        storagePath?: string,
+    ): Promise<any> {
         const config = await this.getConfig();
         const model = this.genAI.getGenerativeModel({ model: config.models.document });
 
@@ -89,6 +114,17 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         ]);
         const response = await result.response;
         const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "document_analysis",
+            fileName,
+            storagePath,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
 
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {

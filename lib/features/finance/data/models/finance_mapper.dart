@@ -15,7 +15,7 @@ class FinanceMapper {
         color: '#9E9E9E',
       );
     }
-    
+
     return CategoryModel(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'Sem Categoria',
@@ -27,7 +27,6 @@ class FinanceMapper {
 
   static CategoryType _toCategoryType(dynamic value) {
     if (value == 'income') return CategoryType.income;
-    if (value == 'both') return CategoryType.both;
     return CategoryType.expense;
   }
 
@@ -108,7 +107,8 @@ class FinanceMapper {
         amount: 0.0,
         description: 'Sem descrição',
         dueDay: DateTime.now().day,
-        startMonth: '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+        startMonth:
+            '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
         installmentType: InstallmentType.single,
         status: OrderStatus.active,
         type: OrderType.expense,
@@ -116,14 +116,17 @@ class FinanceMapper {
     }
 
     final dueDateStr = json['dueDate']?.toString();
-    final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) ?? DateTime.now() : DateTime.now();
+    final dueDate = dueDateStr != null
+        ? DateTime.tryParse(dueDateStr) ?? DateTime.now()
+        : DateTime.now();
 
     return OrderModel(
       id: json['id']?.toString() ?? '',
       amount: _toDouble(json['amount']),
       description: json['description']?.toString() ?? 'Lançamento IA',
       dueDay: _toInt(json['dueDay'], dueDate.day),
-      startMonth: json['startMonth']?.toString() ?? 
+      startMonth:
+          json['startMonth']?.toString() ??
           '${dueDate.year}-${dueDate.month.toString().padLeft(2, '0')}',
       installmentCount: _toInt(json['installmentCount'], null),
       installmentType: _toInstallmentType(json['installmentType']),
@@ -143,9 +146,7 @@ class FinanceMapper {
 
     return AccountDocumentAnalysisResult(
       account: toAccount(json['account']),
-      orders: (json['orders'] as List? ?? [])
-          .map((e) => toOrder(e))
-          .toList(),
+      orders: (json['orders'] as List? ?? []).map((e) => toOrder(e)).toList(),
     );
   }
 
@@ -155,8 +156,10 @@ class FinanceMapper {
         id: '',
         category: toCategory(null),
         amount: 0.0,
-        startMonth: '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-        endMonth: '${DateTime.now().year + 1}-${DateTime.now().month.toString().padLeft(2, '0')}',
+        startMonth:
+            '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+        endMonth:
+            '${DateTime.now().year + 1}-${DateTime.now().month.toString().padLeft(2, '0')}',
       );
     }
 
@@ -164,42 +167,105 @@ class FinanceMapper {
       id: json['id']?.toString() ?? '',
       category: toCategory(json['category']),
       amount: _toDouble(json['amount']),
-      startMonth: json['startMonth']?.toString() ?? 
+      startMonth:
+          json['startMonth']?.toString() ??
           '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
-      endMonth: json['endMonth']?.toString() ?? 
+      endMonth:
+          json['endMonth']?.toString() ??
           '${DateTime.now().year + 1}-${DateTime.now().month.toString().padLeft(2, '0')}',
     );
   }
 
   static GoalModel toGoal(dynamic json) {
     if (json == null || json is! Map) {
-      return GoalModel(
+      return GoalModel.saveMoney(
         id: '',
         name: 'Nova Meta',
         targetAmount: 0.0,
         currentAmount: 0.0,
         deadline: DateTime.now().add(const Duration(days: 365)),
-        type: GoalType.saveMoney,
         startDate: DateTime.now(),
+        accountId: "",
       );
     }
 
     final deadlineMonths = _toInt(json['deadlineMonths'], 12);
 
-    return GoalModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'Nova Meta',
-      targetAmount: _toDouble(json['targetAmount']),
-      currentAmount: _toDouble(json['currentAmount']),
-      deadline: json['deadline'] != null 
-          ? _toDateTime(json['deadline']) 
-          : DateTime.now().add(Duration(days: deadlineMonths * 30)),
-      icon: json['icon']?.toString(),
-      type: _toGoalType(json['type']),
-      accountId: json['accountId']?.toString(),
-      startDate: _toDateTime(json['startDate']),
-      metadata: json['metadata'] is Map ? Map<String, dynamic>.from(json['metadata'] as Map) : null,
-      isDeleted: json['isDeleted'] == true,
+    switch (_toGoalType(json['type'])) {
+      case GoalType.saveMoney:
+        return GoalModel.saveMoney(
+          id: json['id']?.toString() ?? '',
+          name: json['name']?.toString() ?? 'Nova Meta',
+          targetAmount: _toDouble(json['targetAmount']),
+          currentAmount: _toDouble(json['currentAmount']),
+          deadline: json['deadline'] != null
+              ? _toDateTime(json['deadline'])
+              : DateTime.now().add(Duration(days: deadlineMonths * 30)),
+          accountId: json['accountId']?.toString() ?? "",
+          startDate: _toDateTime(json['startDate']),
+          isDeleted: json['isDeleted'] == true,
+        );
+      case GoalType.payDebt:
+        return GoalModel.payDebt(
+          id: json['id']?.toString() ?? '',
+          name: json['name']?.toString() ?? 'Nova Meta',
+          targetAmount: _toDouble(json['targetAmount']),
+          currentAmount: _toDouble(json['currentAmount']),
+          deadline: json['deadline'] != null
+              ? _toDateTime(json['deadline'])
+              : DateTime.now().add(Duration(days: deadlineMonths * 30)),
+          accountId: json['accountId']?.toString() ?? "",
+          startDate: _toDateTime(json['startDate']),
+          isDeleted: json['isDeleted'] == true,
+        );
+      case GoalType.reduceCreditCard:
+        return GoalModel.reduceCreditCard(
+          id: json['id']?.toString() ?? '',
+          name: json['name']?.toString() ?? 'Nova Meta',
+          targetAmount: _toDouble(json['targetAmount']),
+          currentAmount: _toDouble(json['currentAmount']),
+          deadline: json['deadline'] != null
+              ? _toDateTime(json['deadline'])
+              : DateTime.now().add(Duration(days: deadlineMonths * 30)),
+          accountId: json['accountId']?.toString() ?? "",
+          startDate: _toDateTime(json['startDate']),
+          averageSpending: _toDouble(json['averageSpending']),
+          isDeleted: json['isDeleted'] == true,
+        );
+      case GoalType.reduceExpense:
+        return GoalModel.reduceExpense(
+          id: json['id']?.toString() ?? '',
+          name: json['name']?.toString() ?? 'Nova Meta',
+          targetAmount: _toDouble(json['targetAmount']),
+          currentAmount: _toDouble(json['currentAmount']),
+          deadline: json['deadline'] != null
+              ? _toDateTime(json['deadline'])
+              : DateTime.now().add(Duration(days: deadlineMonths * 30)),
+          category: _toCategory(json['category']),
+          startDate: _toDateTime(json['startDate']),
+          averageSpending: _toDouble(json['averageSpending']),
+          isDeleted: json['isDeleted'] == true,
+        );
+    }
+  }
+
+  static CategoryModel _toCategory(dynamic json) {
+    if (json == null || json is! Map) {
+      return CategoryModel(
+        id: "",
+        name: "Outros",
+        icon: "category",
+        color: "",
+        type: CategoryType.expense,
+      );
+    }
+
+    return CategoryModel(
+      id: "",
+      name: json['name'],
+      icon: json['icon'],
+      color: json['color'],
+      type: _toCategoryType(json['type']),
     );
   }
 
@@ -212,9 +278,7 @@ class FinanceMapper {
       plannings: (json['plannings'] as List? ?? [])
           .map((e) => toCategoryPlanning(e))
           .toList(),
-      goals: (json['goals'] as List? ?? [])
-          .map((e) => toGoal(e))
-          .toList(),
+      goals: (json['goals'] as List? ?? []).map((e) => toGoal(e)).toList(),
     );
   }
 

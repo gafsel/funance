@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
-import 'package:funances/features/finance/presentation/widgets/account_form_dialog.dart';
+import 'package:funances/core/utils/enum_messages.dart';
+import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -14,9 +19,7 @@ class AccountsStep extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final accounts = ref.watch(
-      OnboardingViewProviders.onboarding.select((s) => s.accounts),
-    );
+    final accountsAsync = ref.watch(AccountViewProviders.all);
     final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
 
     return Padding(
@@ -46,13 +49,31 @@ class AccountsStep extends ConsumerWidget {
           ),
           const SizedBox(height: 32),
           Expanded(
-            child: accounts.isEmpty
-                ? _buildEmptyState(context, notifier)
-                : _buildAccountList(context, accounts, notifier),
+            child: accountsAsync.when(
+              data: (accounts) => accounts.isEmpty
+                  ? _buildEmptyState(context, notifier)
+                  : _buildAccountList(context, accounts, notifier),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, s) => Center(
+                child: Text(
+                  e.toString(),
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           LoadingButton.elevated(
-            onPressed: (loading) => loading(notifier.nextStep()),
+            onPressed: (loading) async {
+              await showLoadingModal(
+                context,
+                notifier.nextStep(),
+                child: AnalysisLoadingView(
+                  title: l10n.onboardingPlanningAnalyzingTitle,
+                  description: l10n.onboardingPlanningAnalyzingDesc,
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.paleGold,
               foregroundColor: AppColors.deepTurquoise,
@@ -97,7 +118,7 @@ class AccountsStep extends ConsumerWidget {
 
   Widget _buildAccountList(
     BuildContext context,
-    List accounts,
+    List<AccountModel> accounts,
     OnboardingNotifier notifier,
   ) {
     final l10n = AppLocalizations.of(context)!;
@@ -138,9 +159,7 @@ class AccountsStep extends ConsumerWidget {
               style: const TextStyle(color: AppColors.pureWhite),
             ),
             subtitle: Text(
-              account.fileName != null
-                  ? l10n.onboardingAccountsAttachment(account.fileName!)
-                  : l10n.onboardingAccountsManual,
+              l10n.fromAccountType(account.type),
               style: TextStyle(
                 color: AppColors.pureWhite.withValues(alpha: 0.7),
               ),
@@ -159,10 +178,9 @@ class AccountsStep extends ConsumerWidget {
   }
 
   void _showAddAccount(BuildContext context, OnboardingNotifier notifier) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AccountFormDialog(),
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AccountFormScreen()),
     );
   }
 }

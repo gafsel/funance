@@ -158,7 +158,9 @@ class _MembersStepState extends ConsumerState<MembersStep> {
 
                   await loading(notifier.nextStep());
 
-                  navigator.pop();
+                  if (navigator.canPop()) {
+                    navigator.pop();
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.limeGreen,

@@ -21,6 +21,10 @@ Future<T> showLoadingModal<T>(
   bool canPop = false,
   bool barrierDismissible = false,
 }) async {
+  // Capturamos o Navigator antes de começar qualquer operação assíncrona
+  // para garantir que ainda temos acesso a ele mesmo se o contexto mudar.
+  final NavigatorState navigator = Navigator.of(context);
+
   _activeFutures.add(future);
 
   if (!_isDialogOpen) {
@@ -31,6 +35,7 @@ Future<T> showLoadingModal<T>(
     showDialog(
       context: context,
       barrierDismissible: barrierDismissible,
+      fullscreenDialog: child != null,
       builder: (dialogContext) {
         return PopScope(
           canPop: canPop,
@@ -40,11 +45,12 @@ Future<T> showLoadingModal<T>(
               _activeFutures.clear();
             }
           },
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: child ??
-                Center(
+          child:
+              child ??
+              Dialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: Center(
                   child: Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
@@ -64,7 +70,7 @@ Future<T> showLoadingModal<T>(
                     ),
                   ),
                 ),
-          ),
+              ),
         );
       },
     ).then((_) {
@@ -81,8 +87,8 @@ Future<T> showLoadingModal<T>(
     // Se não houver mais futures ativos e o diálogo ainda estiver aberto, fecha-o.
     if (_activeFutures.isEmpty && _isDialogOpen) {
       _isDialogOpen = false;
-      if (Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
+      if (navigator.canPop()) {
+        navigator.pop();
       }
     }
   }

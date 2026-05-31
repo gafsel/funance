@@ -15,6 +15,12 @@ extension BuildContextExtension on BuildContext {
       lengthMinMessage: l10n.validationLenghtMinMessage,
       notEmptyMessage: l10n.validationNotEmptyMessage,
       notNullMessage: l10n.validationNotNullMessage,
+      securePasswordAtLeast1Lowercase: l10n.securePasswordAtLeast1Lowercase,
+      securePasswordAtLeast8Characters: l10n.securePasswordAtLeast8Characters,
+      securePasswordAtMost50Characters: l10n.securePasswordAtMost50Characters,
+      securePasswordAtLeast1Number: l10n.securePasswordAtLeast1Number,
+      securePasswordAtLeast1Uppercase: l10n.securePasswordAtLeast1Uppercase,
+      securePasswordDontUseSpaces: l10n.securePasswordDontUseSpaces,
     );
   }
 }

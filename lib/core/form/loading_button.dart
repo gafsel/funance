@@ -52,6 +52,27 @@ class LoadingButton extends StatefulWidget {
     );
   }
 
+  factory LoadingButton.outlineIcon({
+    required Widget icon,
+    required Widget label,
+    LoadingCallback? onPressed,
+    ButtonStyle? style,
+  }) {
+    return LoadingButton._(
+      (context, child, onPressed) {
+        return OutlinedButton.icon(
+          icon: icon,
+          onPressed: onPressed,
+          style: style,
+          label: child,
+        );
+      },
+      style: style,
+      onPressed: onPressed,
+      child: label,
+    );
+  }
+
   factory LoadingButton.icon(
     Widget icon, {
     LoadingCallback? onPressed,

@@ -44,7 +44,7 @@ class AppColors {
   static const Color error = Color(0xFFBA1A1A);
   static const Color softGrey = Color(0xFFEEEEEE);
   // --- 4. Seleção de Cores para Categorias ---
-  static const List<Color> categoryColors = [
+  static const List<Color> selectionColors = [
     deepTurquoise,
     vibrantTeal,
     successGold,
