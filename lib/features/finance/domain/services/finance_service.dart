@@ -45,6 +45,12 @@ class FinanceService {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    String? description,
+    double? minAmount,
+    double? maxAmount,
+    InstallmentStatus? status,
     dynamic lastOrderId,
   }) async {
     return repository.queryInstallments(
@@ -53,6 +59,12 @@ class FinanceService {
       accountId: accountId,
       startDate: startDate,
       endDate: endDate,
+      categoryId: categoryId,
+      type: type,
+      description: description,
+      minAmount: minAmount,
+      maxAmount: maxAmount,
+      status: status,
       chunkRef: lastOrderId,
     );
   }
@@ -74,5 +86,9 @@ class FinanceService {
       startMonth: startMonth,
       endMonth: endMonth,
     );
+  }
+
+  Future<dynamic> getInstallment(String installmentId) async {
+    return await repository.getInstallment(workspaceId, installmentId);
   }
 }

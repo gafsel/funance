@@ -9,10 +9,16 @@ abstract class IFinanceRepository {
   Future<QueryChunk<InstallmentModel>> queryInstallments(
     String workspaceId, {
     int? limit,
-    dynamic chunkRef,
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    String? description,
+    double? minAmount,
+    double? maxAmount,
+    InstallmentStatus? status,
+    dynamic chunkRef,
   });
 
   Future<OrderModel?> getOrder(String workspaceId, String orderId);

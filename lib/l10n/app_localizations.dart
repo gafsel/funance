@@ -794,6 +794,72 @@ abstract class AppLocalizations {
   /// **'Todas as Contas'**
   String get historyFilterAllAccounts;
 
+  /// No description provided for @all.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todos'**
+  String get all;
+
+  /// No description provided for @historyFilterTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Filtros'**
+  String get historyFilterTitle;
+
+  /// No description provided for @historyFilterDescriptionLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Descrição'**
+  String get historyFilterDescriptionLabel;
+
+  /// No description provided for @historyFilterTypeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de Transação'**
+  String get historyFilterTypeLabel;
+
+  /// No description provided for @historyFilterCategoryLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria'**
+  String get historyFilterCategoryLabel;
+
+  /// No description provided for @historyFilterStatusLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Status'**
+  String get historyFilterStatusLabel;
+
+  /// No description provided for @historyFilterAmountRangeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faixa de Valor'**
+  String get historyFilterAmountRangeLabel;
+
+  /// No description provided for @historyFilterMinAmountLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Mínimo'**
+  String get historyFilterMinAmountLabel;
+
+  /// No description provided for @historyFilterMaxAmountLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Máximo'**
+  String get historyFilterMaxAmountLabel;
+
+  /// No description provided for @historyFilterApply.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicar Filtros'**
+  String get historyFilterApply;
+
+  /// No description provided for @historyFilterClear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limpar'**
+  String get historyFilterClear;
+
   /// No description provided for @homeSettings.
   ///
   /// In pt, this message translates to:
@@ -1250,6 +1316,66 @@ abstract class AppLocalizations {
   /// **'Transação salva com sucesso!'**
   String get transactionSaveSuccess;
 
+  /// No description provided for @transactionCascadeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicar alterações'**
+  String get transactionCascadeTitle;
+
+  /// No description provided for @transactionCascadeDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deseja aplicar estas alterações apenas a esta parcela ou replicar para as demais?'**
+  String get transactionCascadeDescription;
+
+  /// No description provided for @transactionCascadeOnlyThis.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apenas esta'**
+  String get transactionCascadeOnlyThis;
+
+  /// No description provided for @transactionCascadeThisAndNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta e próximas'**
+  String get transactionCascadeThisAndNext;
+
+  /// No description provided for @transactionCascadeAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todas'**
+  String get transactionCascadeAll;
+
+  /// No description provided for @transactionDeleteCascadeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir parcelas'**
+  String get transactionDeleteCascadeTitle;
+
+  /// No description provided for @transactionDeleteCascadeDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Deseja excluir apenas esta parcela ou as demais também?'**
+  String get transactionDeleteCascadeDescription;
+
+  /// No description provided for @transactionDeleteCascadeOnlyThis.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apenas esta'**
+  String get transactionDeleteCascadeOnlyThis;
+
+  /// No description provided for @transactionDeleteCascadeThisAndNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta e próximas'**
+  String get transactionDeleteCascadeThisAndNext;
+
+  /// No description provided for @transactionDeleteCascadeAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Todas'**
+  String get transactionDeleteCascadeAll;
+
   /// No description provided for @noAccountsFound.
   ///
   /// In pt, this message translates to:
@@ -1681,6 +1807,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'dd/MM/yyyy'**
   String get dateInputPattern;
+
+  /// No description provided for @installmentCountDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'{number} de {count}'**
+  String installmentCountDescription(Object count, Object number);
+
+  /// No description provided for @statusPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendente'**
+  String get statusPending;
+
+  /// No description provided for @statusPaid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pago'**
+  String get statusPaid;
+
+  /// No description provided for @statusSettled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliado'**
+  String get statusSettled;
+
+  /// No description provided for @date.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data'**
+  String get date;
 }
 
 class _AppLocalizationsDelegate

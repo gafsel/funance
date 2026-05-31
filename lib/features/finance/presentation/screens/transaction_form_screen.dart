@@ -97,6 +97,12 @@ class TransactionFormScreen extends StatelessWidget {
       body: ResponsiveForm<TransactionFormState, void, TransactionFormNotifier>(
         provider,
         submitLabel: l10n.saveButton,
+        extraActions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancelButton),
+          ),
+        ],
         onSubmit: (snapshot, loading) async {
           if (!snapshot.validate()) return;
 
@@ -119,25 +125,23 @@ class TransactionFormScreen extends StatelessWidget {
               final selectedCascade = await showDialog<ReplicationCascade>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text("Aplicar alterações"),
-                  content: const Text(
-                    "Deseja aplicar estas alterações apenas a esta parcela ou replicar para as demais?",
-                  ),
+                  title: Text(l10n.transactionCascadeTitle),
+                  content: Text(l10n.transactionCascadeDescription),
                   actions: [
                     TextButton(
                       onPressed: () =>
                           Navigator.pop(context, ReplicationCascade.none),
-                      child: const Text("Apenas esta"),
+                      child: Text(l10n.transactionCascadeOnlyThis),
                     ),
                     TextButton(
                       onPressed: () =>
                           Navigator.pop(context, ReplicationCascade.future),
-                      child: const Text("Esta e próximas"),
+                      child: Text(l10n.transactionCascadeThisAndNext),
                     ),
                     TextButton(
                       onPressed: () =>
                           Navigator.pop(context, ReplicationCascade.all),
-                      child: const Text("Todas"),
+                      child: Text(l10n.transactionCascadeAll),
                     ),
                   ],
                 ),
@@ -151,7 +155,7 @@ class TransactionFormScreen extends StatelessWidget {
           notifier.updateReplicationCascade(cascade);
           await loading(notifier.submit());
 
-          navigator.pop();
+          navigator.pop(true);
         },
         onSuccess: (output) {
           messenger.showSnackBar(

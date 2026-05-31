@@ -19,7 +19,7 @@ class ChipFormField<T> extends FormField<T> {
           builder: (FormFieldState<T> field) {
             final InputDecoration effectiveDecoration = decoration
                 .applyDefaults(Theme.of(field.context).inputDecorationTheme)
-                .copyWith(errorText: field.errorText);
+                .copyWith(errorText: field.errorText, floatingLabelBehavior: FloatingLabelBehavior.always);
 
             return InputDecorator(
               decoration: effectiveDecoration,

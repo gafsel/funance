@@ -15,6 +15,7 @@ class CategoryFormField extends ConsumerWidget {
     this.validator,
     this.decoration,
     this.autoOpen = false,
+    this.emptyMeansAll = false,
   }) : transfer = false;
 
   final CategoryModel? initialValue;
@@ -24,13 +25,15 @@ class CategoryFormField extends ConsumerWidget {
   final FormFieldValidator<CategoryModel?>? validator;
   final bool autoOpen;
   final bool transfer;
+  final bool emptyMeansAll;
 
   const CategoryFormField.transfer({super.key, this.decoration, this.validator})
     : initialValue = null,
       onChanged = _dummyOnChanged,
       categoryType = null,
       transfer = true,
-      autoOpen = false;
+      autoOpen = false,
+      emptyMeansAll = false;
 
   static void _dummyOnChanged(CategoryModel? _) {}
 
@@ -125,6 +128,27 @@ class CategoryFormField extends ConsumerWidget {
                       ),
                     ],
                   )
+                : emptyMeansAll
+                ? Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 12,
+                        backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                        child: const Icon(
+                          Icons.category,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.l10n.all,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: enabled ? null : Colors.black38,
+                        ),
+                      ),
+                    ],
+                  )
                 : null,
           ),
         );
@@ -146,12 +170,14 @@ class CategoryFormField extends ConsumerWidget {
             final categories = ref
                 .watch(CategoryViewProviders.allStream)
                 .when(
-              data: (data) => data
-                  .where((c) => categoryType == null || c.type == categoryType)
-                  .toList(),
-              error: (error, stack) => [],
-              loading: () => [],
-            );
+                  data: (data) => data
+                      .where(
+                        (c) => categoryType == null || c.type == categoryType,
+                      )
+                      .toList(),
+                  error: (error, stack) => [],
+                  loading: () => [],
+                );
 
             return SafeArea(
               child: Column(
@@ -178,7 +204,9 @@ class CategoryFormField extends ConsumerWidget {
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Color(
-                                int.parse(category.color.replaceFirst('#', '0xFF')),
+                                int.parse(
+                                  category.color.replaceFirst('#', '0xFF'),
+                                ),
                               ).withValues(alpha: 0.2),
                               child: Icon(
                                 _getIconData(category.icon),
@@ -208,8 +236,9 @@ class CategoryFormField extends ConsumerWidget {
                             onTap: () {
                               showDialog(
                                 context: context,
-                                builder: (context) =>
-                                    CategoryFormScreen(initialType: categoryType),
+                                builder: (context) => CategoryFormScreen(
+                                  initialType: categoryType,
+                                ),
                               );
                             },
                           );
@@ -233,7 +262,7 @@ class CategoryFormField extends ConsumerWidget {
                 ],
               ),
             );
-          }
+          },
         );
       },
     );

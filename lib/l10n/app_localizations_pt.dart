@@ -402,6 +402,39 @@ class AppLocalizationsPt extends AppLocalizations {
   String get historyFilterAllAccounts => 'Todas as Contas';
 
   @override
+  String get all => 'Todos';
+
+  @override
+  String get historyFilterTitle => 'Filtros';
+
+  @override
+  String get historyFilterDescriptionLabel => 'Descrição';
+
+  @override
+  String get historyFilterTypeLabel => 'Tipo de Transação';
+
+  @override
+  String get historyFilterCategoryLabel => 'Categoria';
+
+  @override
+  String get historyFilterStatusLabel => 'Status';
+
+  @override
+  String get historyFilterAmountRangeLabel => 'Faixa de Valor';
+
+  @override
+  String get historyFilterMinAmountLabel => 'Valor Mínimo';
+
+  @override
+  String get historyFilterMaxAmountLabel => 'Valor Máximo';
+
+  @override
+  String get historyFilterApply => 'Aplicar Filtros';
+
+  @override
+  String get historyFilterClear => 'Limpar';
+
+  @override
   String get homeSettings => 'Configurações';
 
   @override
@@ -639,6 +672,38 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactionSaveSuccess => 'Transação salva com sucesso!';
+
+  @override
+  String get transactionCascadeTitle => 'Aplicar alterações';
+
+  @override
+  String get transactionCascadeDescription =>
+      'Deseja aplicar estas alterações apenas a esta parcela ou replicar para as demais?';
+
+  @override
+  String get transactionCascadeOnlyThis => 'Apenas esta';
+
+  @override
+  String get transactionCascadeThisAndNext => 'Esta e próximas';
+
+  @override
+  String get transactionCascadeAll => 'Todas';
+
+  @override
+  String get transactionDeleteCascadeTitle => 'Excluir parcelas';
+
+  @override
+  String get transactionDeleteCascadeDescription =>
+      'Deseja excluir apenas esta parcela ou as demais também?';
+
+  @override
+  String get transactionDeleteCascadeOnlyThis => 'Apenas esta';
+
+  @override
+  String get transactionDeleteCascadeThisAndNext => 'Esta e próximas';
+
+  @override
+  String get transactionDeleteCascadeAll => 'Todas';
 
   @override
   String get noAccountsFound => 'Nenhuma conta encontrada.';
@@ -892,4 +957,21 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get dateInputPattern => 'dd/MM/yyyy';
+
+  @override
+  String installmentCountDescription(Object count, Object number) {
+    return '$number de $count';
+  }
+
+  @override
+  String get statusPending => 'Pendente';
+
+  @override
+  String get statusPaid => 'Pago';
+
+  @override
+  String get statusSettled => 'Conciliado';
+
+  @override
+  String get date => 'Data';
 }

@@ -16,6 +16,12 @@ class TransactionListNotifier
             accountId: query.accountId,
             startDate: query.startDate,
             endDate: query.endDate,
+            categoryId: query.categoryId,
+            type: query.type,
+            description: query.description,
+            minAmount: query.minAmount,
+            maxAmount: query.maxAmount,
+            status: query.status,
             lastOrderId: chunkRef,
           );
         },
@@ -36,4 +42,5 @@ class TransactionListNotifier
       items: [...state.items.where((item) => item.id != id)],
     );
   }
+
 }

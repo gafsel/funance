@@ -22,10 +22,16 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   Future<QueryChunk<InstallmentModel>> queryInstallments(
     String workspaceId, {
     int? limit,
-    dynamic chunkRef,
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    String? description,
+    double? minAmount,
+    double? maxAmount,
+    InstallmentStatus? status,
+    dynamic chunkRef,
   }) async {
     try {
       Query query = _getWorkspaceDoc(workspaceId).collection('installments');
@@ -34,15 +40,38 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         query = query.where('accountIds', arrayContains: accountId);
       }
 
-      query = query.where("status", whereIn: [
-        InstallmentStatus.pending.name,
-        InstallmentStatus.paid.name,
-        InstallmentStatus.settled.name,
-      ]);
+      if (status != null) {
+        query = query.where("status", isEqualTo: status.name);
+      } else {
+        query = query.where("status", whereIn: [
+          InstallmentStatus.pending.name,
+          InstallmentStatus.paid.name,
+          InstallmentStatus.settled.name,
+        ]);
+      }
+
+      if (categoryId != null && categoryId.isNotEmpty) {
+        query = query.where('category.id', isEqualTo: categoryId);
+      }
+
+      if (type != null) {
+        query = query.where('type', isEqualTo: type.name);
+      }
+
+      if (minAmount != null) {
+        query = query.where('amount', isGreaterThanOrEqualTo: minAmount);
+      }
+
+      if (maxAmount != null) {
+        query = query.where('amount', isLessThanOrEqualTo: maxAmount);
+      }
 
       if (startDate != null || endDate != null) {
         if (startDate != null) {
-          query = query.where("referenceDate", isGreaterThanOrEqualTo: startDate);
+          query = query.where(
+            "referenceDate",
+            isGreaterThanOrEqualTo: startDate,
+          );
         }
 
         if (endDate != null) {
@@ -59,11 +88,22 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         query = query.startAfterDocument(chunkRef);
       }
 
-      final snapshot = await query.get();
-      return QueryChunk(
-        items: snapshot.docs.map((doc) => doc.toInstallmentModel()).toList(),
-        nextChunckRef: snapshot.docs.lastOrNull,
-      );
+      var snapshot = await query.get();
+
+      var items = snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
+
+      if (description != null && description.isNotEmpty) {
+        items =
+            items
+                .where(
+                  (item) => item.description.toLowerCase().contains(
+                    description.toLowerCase(),
+                  ),
+                )
+                .toList();
+      }
+
+      return QueryChunk(items: items, nextChunckRef: snapshot.docs.lastOrNull);
     } catch (e, s) {
       log(
         "Failed to query installments: ${e.toString()}",

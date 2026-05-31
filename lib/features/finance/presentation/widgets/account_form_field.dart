@@ -53,7 +53,6 @@ class AccountFormField extends ConsumerWidget {
     final l10n = context.l10n;
 
     return FormField<String?>(
-      key: ValueKey(initialValue),
       initialValue: initialValue,
       validator: validator,
       builder: (state) {

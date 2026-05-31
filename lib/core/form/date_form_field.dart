@@ -15,7 +15,7 @@ class DateFormField extends StatefulWidget {
   final AutovalidateMode autovalidateMode;
   final bool enabled;
 
-  DateFormField({
+  const DateFormField({
     Key? key,
     this.onSaved,
     this.onChanged,
@@ -32,8 +32,10 @@ class DateFormField extends StatefulWidget {
 
 class _DateFormFieldState extends State<DateFormField> {
   late TextEditingController _controller;
+  DateFormat? _dateFormat;
 
-  DateFormat get dateFormat => DateFormat(context.l10n.dateInputPattern, context.locale);
+  DateFormat get dateFormat =>
+      _dateFormat ?? DateFormat(context.l10n.dateInputPattern, context.locale);
 
   RegExp get dateRegExp =>
       RegExp("^${dateFormat.pattern!.replaceAll(RegExp("[dMy]"), "\\d")}\$");
@@ -53,6 +55,19 @@ class _DateFormFieldState extends State<DateFormField> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final newDateFormat = DateFormat(context.l10n.dateInputPattern, context.locale);
+    if (_dateFormat != newDateFormat) {
+      _dateFormat = newDateFormat;
+      if (widget.initialValue != null) {
+        _controller.text = _dateFormat!.format(widget.initialValue!);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FormField<DateTime>(
       onSaved: widget.onSaved,
@@ -69,15 +84,14 @@ class _DateFormFieldState extends State<DateFormField> {
                 onTap: !widget.enabled
                     ? null
                     : () {
-                        DateTime initialDate =
-                            field.value ?? new DateTime.now();
+                        DateTime initialDate = field.value ?? DateTime.now();
 
                         showDatePicker(
                           context: field.context,
                           initialDate: initialDate,
-                          firstDate: DateTime(1900),
+                          firstDate: DateTime(2000),
                           lastDate: DateTime(initialDate.year + 1),
-                          locale: Locale('pt', 'BR '),
+                          locale: Locale(context.locale),
                         ).then((dateTime) {
                           if (dateTime != null) {
                             field.didChange(dateTime);
@@ -145,5 +159,4 @@ class _DateFormFieldState extends State<DateFormField> {
       selection: TextSelection.fromPosition(TextPosition(offset: offset)),
     );
   }
-
 }

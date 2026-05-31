@@ -185,5 +185,11 @@ sealed class TransactionQuery with _$TransactionQuery {
     String? accountId,
     DateTime? startDate,
     DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    String? description,
+    double? minAmount,
+    double? maxAmount,
+    InstallmentStatus? status,
   }) = _TransactionQuery;
 }

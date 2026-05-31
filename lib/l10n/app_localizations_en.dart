@@ -399,6 +399,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyFilterAllAccounts => 'All Accounts';
 
   @override
+  String get all => 'All';
+
+  @override
+  String get historyFilterTitle => 'Filters';
+
+  @override
+  String get historyFilterDescriptionLabel => 'Description';
+
+  @override
+  String get historyFilterTypeLabel => 'Transaction Type';
+
+  @override
+  String get historyFilterCategoryLabel => 'Category';
+
+  @override
+  String get historyFilterStatusLabel => 'Status';
+
+  @override
+  String get historyFilterAmountRangeLabel => 'Amount Range';
+
+  @override
+  String get historyFilterMinAmountLabel => 'Min Amount';
+
+  @override
+  String get historyFilterMaxAmountLabel => 'Max Amount';
+
+  @override
+  String get historyFilterApply => 'Apply Filters';
+
+  @override
+  String get historyFilterClear => 'Clear';
+
+  @override
   String get homeSettings => 'Settings';
 
   @override
@@ -635,6 +668,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionSaveSuccess => 'Transaction saved successfully!';
+
+  @override
+  String get transactionCascadeTitle => 'Aplicar alterações';
+
+  @override
+  String get transactionCascadeDescription =>
+      'Deseja aplicar estas alterações apenas a esta parcela ou replicar para as demais?';
+
+  @override
+  String get transactionCascadeOnlyThis => 'Apenas esta';
+
+  @override
+  String get transactionCascadeThisAndNext => 'Esta e próximas';
+
+  @override
+  String get transactionCascadeAll => 'Todas';
+
+  @override
+  String get transactionDeleteCascadeTitle => 'Excluir parcelas';
+
+  @override
+  String get transactionDeleteCascadeDescription =>
+      'Deseja excluir apenas esta parcela ou as demais também?';
+
+  @override
+  String get transactionDeleteCascadeOnlyThis => 'Apenas esta';
+
+  @override
+  String get transactionDeleteCascadeThisAndNext => 'Esta e próximas';
+
+  @override
+  String get transactionDeleteCascadeAll => 'Todas';
 
   @override
   String get noAccountsFound => 'No accounts found.';
@@ -886,4 +951,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dateInputPattern => 'MM/dd/yyyy';
+
+  @override
+  String installmentCountDescription(Object count, Object number) {
+    return '$number of $count';
+  }
+
+  @override
+  String get statusPending => 'Pending';
+
+  @override
+  String get statusPaid => 'Paid';
+
+  @override
+  String get statusSettled => 'Settled';
+
+  @override
+  String get date => 'Date';
 }
