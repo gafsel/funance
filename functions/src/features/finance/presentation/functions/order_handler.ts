@@ -22,6 +22,8 @@ export const onOrderWritten = onDocumentWritten(
         } as OrderModel : null;
 
         console.log(`Order ${orderId} escrita no workspace ${workspaceId}. Sincronizando installments.`);
-        await financeService.syncInstallments(workspaceId, orderId, before, after);
+        await container.idempotencyService.runIdempotency(event.id, "syncInstallments", async () => {
+            await financeService.syncInstallments(workspaceId, orderId, before, after);
+        });
     }
 );

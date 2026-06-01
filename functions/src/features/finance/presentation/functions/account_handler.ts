@@ -16,8 +16,10 @@ export const onAccountUpdated = onDocumentUpdated(
 
         // Verifica se a conta foi marcada como excluída (soft delete)
         if (!before.isDeleted && after.isDeleted) {
-            console.log(`Conta ${accountId} marcada como excluída no workspace ${workspaceId}. Removendo transações associadas.`);
-            await financeService.deleteOrdersByAccountId(workspaceId, accountId);
+            await container.idempotencyService.runIdempotency(event.id, "deleteOrdersByAccount", async () => {
+                console.log(`Conta ${accountId} marcada como excluída no workspace ${workspaceId}. Removendo transações associadas.`);
+                await financeService.deleteOrdersByAccountId(workspaceId, accountId);
+            });
         }
     }
 );
@@ -30,6 +32,8 @@ export const onAccountCreated = onDocumentCreated(
 
         const account = event.data?.data() as any;
 
-        await financeService.syncInitialBalance(workspaceId, accountId, account);
+        await container.idempotencyService.runIdempotency(event.id, "syncInitialBalance", async () => {
+            await financeService.syncInitialBalance(workspaceId, accountId, account);
+        });
     }
 );

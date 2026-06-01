@@ -1,6 +1,6 @@
-import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
-import { container } from "../../../../core/container";
-import { InviteModel, InviteStatus } from "../../domain/models/invite.model";
+import {onDocumentCreated, onDocumentUpdated} from "firebase-functions/v2/firestore";
+import {container} from "../../../../core/container";
+import {InviteModel, InviteStatus} from "../../domain/models/invite.model";
 import * as logger from "firebase-functions/logger";
 
 export const onInviteCreated = onDocumentCreated("invites/{inviteId}", async (event) => {
@@ -27,7 +27,8 @@ export const onInviteStatusChanged = onDocumentUpdated("invites/{inviteId}", asy
 
     // Se o status mudou de pending para accepted
     if (previousValue.status === InviteStatus.pending && newValue.status === InviteStatus.accepted) {
-        const inviteService = container.inviteService;
-        await inviteService.handleInviteAccepted(newValue);
+        await container.idempotencyService.runIdempotency(event.id, "handleInviteAccepted", async () => {
+            await container.inviteService.handleInviteAccepted(newValue);
+        });
     }
 });

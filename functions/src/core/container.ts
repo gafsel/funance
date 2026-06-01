@@ -1,4 +1,5 @@
 import { GeminiAIRepositoryImpl, IAIRepository } from "../core/services/ai.service";
+import { IIdempotencyService, IdempotencyServiceImpl } from "../core/services/idempotency.service";
 import { IOnboardingService, OnboardingServiceImpl } from "../features/onboarding/domain/services/onboarding.service";
 import { IWorkspaceRepository } from "../features/workspace/domain/repositories/workspace.repository";
 import { IFinanceRepository } from "../features/finance/domain/repositories/finance.repository";
@@ -35,6 +36,14 @@ class Container {
     private static _summaryService: SummaryService;
     private static _aiRepository: IAIRepository;
     private static _onboardingService: IOnboardingService;
+    private static _idempotencyService: IIdempotencyService;
+
+    static get idempotencyService(): IIdempotencyService {
+        if (!this._idempotencyService) {
+            this._idempotencyService = new IdempotencyServiceImpl();
+        }
+        return this._idempotencyService;
+    }
 
     static get workspaceRepository(): IWorkspaceRepository {
         if (!this._workspaceRepository) {

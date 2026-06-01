@@ -21,5 +21,7 @@ export const onCategoryPlanningWritten = onDocumentWritten(
         } as CategoryPlanningModel : null;
 
         // Atualizar sumários mensais por categoria (Planejado)
-        await container.summaryService.processCategoryPlanningChange(workspaceId, before, after);
+        await container.idempotencyService.runIdempotency(event.id, "processCategoryPlanningChange", async () => {
+            await container.summaryService.processCategoryPlanningChange(workspaceId, before, after);
+        });
     });

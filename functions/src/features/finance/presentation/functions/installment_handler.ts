@@ -24,17 +24,28 @@ export const onInstallmentWritten = onDocumentWritten(
             paidDate: afterData.paidDate?.toDate ? afterData.paidDate.toDate() : (afterData.paidDate ? new Date(afterData.paidDate) : null),
         } as InstallmentModel : null;
 
+        const idempotencyService = container.idempotencyService;
+        const eventId = event.id;
+
         // Atualizar sumários mensais por categoria
-        await container.summaryService.processInstallmentChange(workspaceId, before, after);
+        await idempotencyService.runIdempotency(eventId, "processSummaryChange", async () => {
+            await container.summaryService.processInstallmentChange(workspaceId, before, after);
+        });
 
         // Atualizar metas baseadas no Installment
-        await container.goalService.processInstallmentChange(workspaceId, before, after);
+        await idempotencyService.runIdempotency(eventId, "processGoalChange", async () => {
+            await container.goalService.processInstallmentChange(workspaceId, before, after);
+        });
 
         // Atualiza o balance das accounts relacionadas ao Installment
-        await container.financeService.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
+        await idempotencyService.runIdempotency(eventId, "updateAccountBalance", async () => {
+            await container.financeService.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
+        });
 
         // Processar cascata se necessário
         if (before && after) {
-            await container.financeService.processInstallmentCascade(workspaceId, before, after);
+            await idempotencyService.runIdempotency(eventId, "processInstallmentCascade", async () => {
+                await container.financeService.processInstallmentCascade(workspaceId, before, after);
+            });
         }
     });
