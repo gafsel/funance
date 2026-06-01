@@ -28,22 +28,14 @@ export class FinanceService {
             return;
         }
 
-        // 3. Detectar o que mudou na Order
-        const hasAmountChanged = !before || before.amount !== after.amount;
-        const hasDescriptionChanged = !before || before.description !== after.description;
-        const hasCategoryChanged = !before || before.category?.id !== after.category?.id;
-        const hasAccountsChanged = !before || JSON.stringify(before.accounts) !== JSON.stringify(after.accounts);
-        const hasTypeChanged = !before || before.type !== after.type;
-        const hasDueDayChanged = !before || before.dueDay !== after.dueDay;
-        const hasStartMonthChanged = !before || before.startMonth !== after.startMonth;
-        const hasInstallmentTypeChanged = !before || before.installmentType !== after.installmentType;
-        const hasInstallmentCountChanged = !before || before.installmentCount !== after.installmentCount;
+        // 2.1 Se a order já existia, não fazemos cascateamento de edição para as installments.
+        // A criação da order cria as installments, mas uma alteração na order não deve mexer nas installments.
+        if (before) {
+            console.log(`SyncInstallments: Order ${orderId} atualizada. Pulando cascateamento para installments conforme regra de negócio.`);
+            return;
+        }
 
-        // Se mudou algo estrutural que afete a quantidade ou datas base de todas as parcelas, 
-        // talvez precisemos de uma sincronização mais profunda.
-        const isStructuralChange = !before || hasDueDayChanged || hasStartMonthChanged || hasInstallmentTypeChanged || hasInstallmentCountChanged;
-
-        // 4. Gerar o que deveria existir (usado para criar novas ou mergear mudanças estruturais)
+        // 3. Gerar o que deveria existir
         const expectedInstallments: Omit<InstallmentModel, "id">[] = [];
         let installmentsToGenerate = 0;
 
@@ -120,79 +112,8 @@ export class FinanceService {
             });
         }
 
-        // 5. Merge Inteligente
-        for (let i = 0; i < expectedInstallments.length; i++) {
-            const expected = expectedInstallments[i];
-            if (i < existingInstallments.length) {
-                const existing = existingInstallments[i];
-
-                // Se já está pago, não mexemos (regra de proteção)
-                if (existing.status === InstallmentStatus.paid || existing.status === InstallmentStatus.settled) {
-                    continue;
-                }
-
-                // Se não mudou nada relevante, pula
-                if (!isStructuralChange && !hasAmountChanged && !hasDescriptionChanged && !hasCategoryChanged && !hasAccountsChanged && !hasTypeChanged) {
-                    continue;
-                }
-
-                const installmentUpdate: Partial<InstallmentModel> = {};
-
-                // Apenas o que mudou na Order deve ser replicado
-                if (hasAmountChanged) {
-                    installmentUpdate.amount = after.amount;
-                    installmentUpdate.referenceAmount = after.amount;
-                }
-                if (hasDescriptionChanged) {
-                    installmentUpdate.description = after.description;
-                }
-                if (hasCategoryChanged) {
-                    installmentUpdate.category = after.category;
-                }
-                if (hasAccountsChanged) {
-                    installmentUpdate.accounts = after.accounts;
-                    installmentUpdate.accountIds = Object.keys(after.accounts || {});
-                }
-                if (hasTypeChanged) {
-                    installmentUpdate.type = after.type;
-                }
-
-                // Se houve mudança estrutural, sincronizamos datas e metadados de parcelamento
-                if (isStructuralChange) {
-                    if (existing.dueDate.getTime() !== expected.dueDate.getTime()) {
-                        installmentUpdate.dueDate = expected.dueDate;
-                        installmentUpdate.referenceDate = expected.dueDate;
-                    }
-                    if (existing.installmentType !== expected.installmentType) {
-                        installmentUpdate.installmentType = expected.installmentType;
-                    }
-                    if (existing.installmentNumber !== expected.installmentNumber) {
-                        installmentUpdate.installmentNumber = expected.installmentNumber;
-                    }
-                    if (existing.installmentCount !== expected.installmentCount) {
-                        installmentUpdate.installmentCount = expected.installmentCount;
-                    }
-                }
-
-                if (Object.keys(installmentUpdate).length > 0) {
-                    await this.financeRepository.updateInstallment(workspaceId, existing.id, installmentUpdate);
-                }
-            }
-            else {
-                // Nova parcela (ex: aumentou installmentCount)
-                await this.financeRepository.createInstallments(workspaceId, [expected]);
-            }
-        }
-
-        // Remover excedentes
-        if (existingInstallments.length > expectedInstallments.length) {
-            for (let i = expectedInstallments.length; i < existingInstallments.length; i++) {
-                const existing = existingInstallments[i];
-                if (existing.status !== InstallmentStatus.paid && existing.status !== InstallmentStatus.settled) {
-                    await this.financeRepository.deleteInstallment(workspaceId, existing.id);
-                }
-            }
-        }
+        // 4. Criar as installments
+        await this.financeRepository.createInstallments(workspaceId, expectedInstallments);
     }
 
     async processInstallmentCascade(
@@ -262,6 +183,44 @@ export class FinanceService {
                 await this.financeRepository.updateInstallment(workspaceId, inst.id, installmentUpdate);
             }
         }
+
+        // 3. Cascatear alteração de Installment para Order
+        // O cascateamento deve ser feito na order também, definindo na order o valor mais acurado das installments.
+        // O valor acurado para uma Order que possui parcelas é a soma das parcelas.
+        // Se a parcela atual mudou (after), ela já está refletida em allInstallments se buscarmos novamente ou se mergearmos manualmente.
+        const updatedInstallments = allInstallments.map(i => i.id === after.id ? after : i);
+
+        // Se houver cascade 'all' ou 'next', as outras parcelas também foram atualizadas no loop acima,
+        // mas aqui no JS 'targetInstallments' e 'after' contêm os novos valores para essas parcelas.
+        // Precisamos garantir que updatedInstallments tenha os valores que acabamos de salvar.
+        for (const inst of updatedInstallments) {
+            if (inst.id === after.id) continue;
+            const isTarget = targetInstallments.some(t => t.id === inst.id);
+            if (isTarget) {
+                // Merge manual para o cálculo do total
+                if (hasAmountChanged) inst.amount = after.amount;
+                if (hasDescriptionChanged) inst.description = after.description;
+                if (hasCategoryChanged) inst.category = after.category;
+                if (hasAccountsChanged) {
+                    inst.accounts = after.accounts;
+                    inst.accountIds = after.accountIds;
+                }
+                // ... data delta não afeta o total
+            }
+        }
+
+        const totalAmount = updatedInstallments.reduce((sum, i) => sum + i.amount, 0);
+        const orderUpdate: Partial<OrderModel> = {
+            amount: Math.round(totalAmount * 100) / 100,
+            dueDay: after.dueDate.getDate(),
+            description: after.description,
+            category: after.category,
+            accounts: after.accounts,
+            accountIds: after.accountIds,
+        };
+
+        console.log(`Cascateando alteração de Installment para Order ${after.orderId}. Novo total: ${orderUpdate.amount}`);
+        await this.financeRepository.updateOrder(workspaceId, after.orderId, orderUpdate);
     }
 
     async updateAccountBalanceOnInstallmentChange(
@@ -368,6 +327,7 @@ export class FinanceService {
             accounts: {
                 [accountId]: account.initialBalance >= 0 ? "credit" : "debt"
             },
+            accountIds: [accountId],
             installmentCreationStatus: InstallmentStatus.settled
         };
 
@@ -376,6 +336,10 @@ export class FinanceService {
 
     async deleteOrdersByAccountId(workspaceId: string, accountId: string) {
         await this.financeRepository.deleteOrdersByAccountId(workspaceId, accountId);
+    }
+
+    async createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void> {
+        await this.financeRepository.createOrderHistory(workspaceId, orderId, snapshot);
     }
 
 }

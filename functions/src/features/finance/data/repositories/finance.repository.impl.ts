@@ -76,6 +76,16 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as OrderModel));
     }
 
+    async createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void> {
+        await this.getOrdersCollection(workspaceId)
+            .doc(orderId)
+            .collection("history")
+            .add({
+                snapshot: snapshot,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+    }
+
     async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
         const ordersCollection = this.getOrdersCollection(workspaceId);
 

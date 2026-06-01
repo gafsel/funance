@@ -17,6 +17,9 @@ export interface IFinanceRepository {
   deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void>;
   getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]>;
 
+  // Order History
+  createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void>;
+
   // Installments
   createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void>;
   updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;

@@ -170,9 +170,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>?;
           if (extra != null) {
             if (extra['order'] != null) {
-              return TransactionFormScreen.updateOrder(
-                order: extra['order'] as OrderModel,
-              );
+              // Edição de Order desabilitada. Redireciona para criação se necessário ou ignora.
+              // Por enquanto, vamos retornar a criação como fallback se chegarem aqui por engano.
+              return TransactionFormScreen.creation(type: OrderType.expense);
             }
             if (extra['installment'] != null) {
               return TransactionFormScreen.updateInstallment(

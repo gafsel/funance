@@ -14,9 +14,16 @@ service cloud.firestore {
       allow read, update: if request.auth != null && request.auth.uid in resource.data.members;
       allow create: if request.auth != null && request.auth.uid in request.resource.data.members;
 
-      // Orders: Membros podem ler e escrever
+      // Orders: Membros podem ler e criar (update e delete desabilitados para o client)
       match /orders/{orderId} {
-        allow read, write: if isMember(workspaceId);
+        allow read, create: if isMember(workspaceId);
+        allow update, delete: if false;
+
+        // Histórico de ordens: Apenas leitura pelo cliente
+        match /history/{historyId} {
+          allow read: if isMember(workspaceId);
+          allow write: if false;
+        }
       }
 
       // Installments: Membros podem ler e escrever

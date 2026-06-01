@@ -25,5 +25,12 @@ export const onOrderWritten = onDocumentWritten(
         await container.idempotencyService.runIdempotency(event.id, "syncInstallments", async () => {
             await financeService.syncInstallments(workspaceId, orderId, before, after);
         });
+
+        // 4. Criar um registro de histórico de order que copia o snapshot da order e salva juntamente de uma data/hora sempre que houver uma alteração
+        if (afterData) {
+            await container.idempotencyService.runIdempotency(event.id, "createOrderHistory", async () => {
+                await financeService.createOrderHistory(workspaceId, orderId, afterData);
+            });
+        }
     }
 );
