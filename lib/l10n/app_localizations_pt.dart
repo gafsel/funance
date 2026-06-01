@@ -693,6 +693,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionAmountLabel => 'Valor';
 
   @override
+  String get transactionAmountTotalLabel => 'Valor Total';
+
+  @override
+  String get transactionAmountInstallmentLabel => 'Valor da Parcela';
+
+  @override
+  String get transactionAmountRecurringLabel => 'Valor Recorrente';
+
+  @override
   String get transactionDateLabel => 'Data';
 
   @override
@@ -850,6 +859,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get accountAnalysisProcessing => 'Processando dados...';
+
+  @override
+  String get accountAnalysisFailed => 'Falha no processamento ';
 
   @override
   String get onboardingPlanningAnalyzingTitle => 'Analisando padrões...';

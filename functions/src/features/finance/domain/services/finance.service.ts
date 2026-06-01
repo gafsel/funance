@@ -87,13 +87,26 @@ export class FinanceService {
                 ? after.installmentCreationStatus!
                 : InstallmentStatus.pending;
 
+            let installmentAmount = after.amount;
+            if (after.installmentType === InstallmentType.installment) {
+                const totalAmount = after.amount;
+                const count = after.installmentCount || 1;
+                const baseValue = Math.floor((totalAmount / count) * 100) / 100;
+                const remainder = Math.round((totalAmount - (baseValue * count)) * 100) / 100;
+
+                installmentAmount = baseValue;
+                if (i === (after.installmentCount || 1) - 1) {
+                    installmentAmount = Math.round((baseValue + remainder) * 100) / 100;
+                }
+            }
+
             expectedInstallments.push({
                 orderId: orderId,
-                amount: after.amount,
+                amount: installmentAmount,
                 dueDate: dueDate,
                 description: after.description,
                 referenceDate: dueDate,
-                referenceAmount: after.amount,
+                referenceAmount: installmentAmount,
                 status: status,
                 type: after.type,
                 installmentType: after.installmentType,
@@ -102,7 +115,7 @@ export class FinanceService {
                 accounts: after.accounts,
                 accountIds: Object.keys(after.accounts || {}),
                 category: after.category,
-                paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? after.amount : undefined,
+                paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? installmentAmount : undefined,
                 paidDate: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? new Date(dueDate) : undefined,
             });
         }

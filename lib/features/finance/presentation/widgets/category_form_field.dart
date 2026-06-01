@@ -41,26 +41,27 @@ class CategoryFormField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (autoOpen && initialValue == null && categoryType != null) {
-      final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
-      if (!isModalOpen) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          final selectedCategory = await _showCategoryPicker(
-            context,
-            categoryType!,
-          );
-
-          if (selectedCategory != null) {
-            onChanged?.call(selectedCategory);
-          }
-        });
-      }
-    }
     return FormField<CategoryModel?>(
       key: ValueKey(initialValue),
       initialValue: initialValue,
       validator: validator,
       builder: (state) {
+        if (autoOpen && state.value == null && categoryType != null && !transfer) {
+          final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
+          if (!isModalOpen) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              final selectedCategory = await _showCategoryPicker(
+                context,
+                categoryType!,
+              );
+
+              if (selectedCategory != null) {
+                state.didChange(selectedCategory);
+                onChanged?.call(selectedCategory);
+              }
+            });
+          }
+        }
         final category = state.value;
 
         return InkWell(

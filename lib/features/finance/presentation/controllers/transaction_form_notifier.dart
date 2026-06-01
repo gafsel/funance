@@ -16,6 +16,9 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
 
   void updateAmount(double value) => state = state.copyWith(amount: value);
 
+  void updateAmountType(TransactionAmountType value) =>
+      state = state.copyWith(amountType: value);
+
   void updateInstallmentCount(int value) =>
       state = state.copyWith(installmentCount: value);
 

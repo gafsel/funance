@@ -1340,6 +1340,24 @@ abstract class AppLocalizations {
   /// **'Valor'**
   String get transactionAmountLabel;
 
+  /// No description provided for @transactionAmountTotalLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Total'**
+  String get transactionAmountTotalLabel;
+
+  /// No description provided for @transactionAmountInstallmentLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor da Parcela'**
+  String get transactionAmountInstallmentLabel;
+
+  /// No description provided for @transactionAmountRecurringLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Recorrente'**
+  String get transactionAmountRecurringLabel;
+
   /// No description provided for @transactionDateLabel.
   ///
   /// In pt, this message translates to:
@@ -1609,6 +1627,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Processando dados...'**
   String get accountAnalysisProcessing;
+
+  /// No description provided for @accountAnalysisFailed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falha no processamento '**
+  String get accountAnalysisFailed;
 
   /// No description provided for @onboardingPlanningAnalyzingTitle.
   ///

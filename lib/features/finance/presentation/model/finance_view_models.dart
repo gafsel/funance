@@ -45,6 +45,8 @@ sealed class TransactionCreationArgs with _$TransactionCreationArgs {
 
 enum TransactionFormType { order, installment }
 
+enum TransactionAmountType { total, installment }
+
 @freezed
 sealed class TransactionFormState with _$TransactionFormState {
   const TransactionFormState._();
@@ -55,6 +57,7 @@ sealed class TransactionFormState with _$TransactionFormState {
     required TransactionFormType formType,
     required OrderType type,
     required InstallmentType installmentType,
+    @Default(TransactionAmountType.total) TransactionAmountType amountType,
     @Default("") String description,
     @Default(0.0) double amount,
     int? intallmentNumber,
@@ -129,9 +132,16 @@ sealed class TransactionFormState with _$TransactionFormState {
   }
 
   OrderModel asOrderModel() {
+    double finalAmount = amount;
+    if (installmentType == InstallmentType.installment &&
+        amountType == TransactionAmountType.installment &&
+        installmentCount != null) {
+      finalAmount = amount * installmentCount!;
+    }
+
     return OrderModel(
       id: orderId ?? Uuid().v4(),
-      amount: amount,
+      amount: finalAmount,
       description: description,
       dueDay: dueDate.day,
       startMonth: dueDate.formated("yyyy-MM"),

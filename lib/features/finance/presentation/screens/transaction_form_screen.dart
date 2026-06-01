@@ -3,6 +3,7 @@ import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
@@ -265,7 +266,7 @@ class TransactionFormScreen extends StatelessWidget {
                     ? notifier.updateAccountIdSource
                     : null,
                 validator: isPending ? null : v.all([v.notEmpty()]),
-                autoOpen: state.creation,
+                autoOpen: state.creation && (state.type == OrderType.transfer || state.category != null),
               ),
               if (state.type == OrderType.transfer) ...[
                 AccountFormField(
@@ -299,6 +300,17 @@ class TransactionFormScreen extends StatelessWidget {
     final isPaid = state.status == InstallmentStatus.paid;
     final isSettled = state.status == InstallmentStatus.settled;
 
+    String amountLabel = l10n.transactionAmountLabel;
+    if (state.installmentType == InstallmentType.recurring) {
+      amountLabel = l10n.transactionAmountRecurringLabel;
+    } else if (state.installmentType == InstallmentType.installment) {
+      if (state.amountType == TransactionAmountType.total) {
+        amountLabel = l10n.transactionAmountTotalLabel;
+      } else {
+        amountLabel = l10n.transactionAmountInstallmentLabel;
+      }
+    }
+
     return [
       if (state.creation) _buildStatusField(context, state, notifier),
       TextFormField(
@@ -320,17 +332,6 @@ class TransactionFormScreen extends StatelessWidget {
         decoration: InputDecoration(labelText: l10n.transactionDateLabel),
         enabled: (state.orderId == null) && (!isPaid || state.creation) && !isSettled,
         validator: v.all([v.notNull()]),
-      ),
-      TextFormField(
-        initialValue: state.amount > 0 ? state.amount.toString() : '',
-        decoration: InputDecoration(
-          labelText: l10n.transactionAmountLabel,
-          prefixText: 'R\$ ',
-        ),
-        keyboardType: TextInputType.number,
-        onChanged: (v) => notifier.updateAmount(double.tryParse(v) ?? 0),
-        validator: v.all([v.notNull()]),
-        enabled: (!isPaid || state.creation) && !isSettled,
       ),
       if (state.type != OrderType.transfer) ...[
         ChipFormField<InstallmentType>(
@@ -359,6 +360,37 @@ class TransactionFormScreen extends StatelessWidget {
               : null,
         ),
       ],
+      if (state.installmentType == InstallmentType.installment &&
+          state.creation &&
+          !isSettled)
+        ChipFormField<TransactionAmountType>(
+          initialValue: state.amountType,
+          decoration: InputDecoration(labelText: l10n.transactionAmountLabel),
+          options: [
+            ChipFormFieldOption(
+              value: TransactionAmountType.total,
+              label: l10n.transactionAmountTotalLabel,
+            ),
+            ChipFormFieldOption(
+              value: TransactionAmountType.installment,
+              label: l10n.transactionAmountInstallmentLabel,
+            ),
+          ],
+          onChanged: (v) {
+            if (v != null) {
+              notifier.updateAmountType(v);
+            }
+          },
+        ),
+      MoneyFormField(
+        initialValue: state.amount > 0 ? state.amount : null,
+        decoration: InputDecoration(
+          labelText: amountLabel,
+        ),
+        onChanged: (v) => notifier.updateAmount(v ?? 0.0),
+        validator: v.all([v.notNull()]),
+        enabled: (!isPaid || state.creation) && !isSettled,
+      ),
       if (state.installmentType == InstallmentType.installment)
         TextFormField(
           initialValue: (state.installmentCount ?? 1).toString(),
@@ -385,14 +417,12 @@ class TransactionFormScreen extends StatelessWidget {
           validator: v.all([v.notNull()]),
           enabled: !isSettled,
         ),
-        TextFormField(
-          initialValue: state.paidAmount?.toString(),
+        MoneyFormField(
+          initialValue: state.paidAmount,
           decoration: InputDecoration(
             labelText: l10n.transactionAmountLabel,
-            prefixText: 'R\$ ',
           ),
-          keyboardType: TextInputType.number,
-          onChanged: (v) => notifier.updatePaidAmount(double.tryParse(v) ?? 0),
+          onChanged: (v) => notifier.updatePaidAmount(v ?? 0.0),
           validator: v.all([v.notNull()]),
           enabled: !isSettled,
         ),

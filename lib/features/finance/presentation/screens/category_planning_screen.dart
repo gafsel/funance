@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -121,19 +122,15 @@ class CategoryPlanningScreen extends ConsumerWidget {
           ),
           const SizedBox(width: 16),
           SizedBox(
-            width: 100,
-            child: TextFormField(
-              initialValue: item.amount > 0 ? item.amount.toStringAsFixed(2) : '',
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              textAlign: TextAlign.end,
+            width: 120,
+            child: MoneyFormField(
+              initialValue: item.amount > 0 ? item.amount : null,
               decoration: const InputDecoration(
                 hintText: '0.00',
-                prefixText: 'R\$',
                 border: InputBorder.none,
               ),
               onChanged: (value) {
-                final amount = double.tryParse(value) ?? 0.0;
-                notifier.updateAmount(item.category.id, amount);
+                notifier.updateAmount(item.category.id, value ?? 0.0);
               },
             ),
           ),

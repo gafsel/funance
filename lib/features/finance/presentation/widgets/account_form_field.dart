@@ -28,34 +28,36 @@ class AccountFormField extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (enabled && autoOpen && initialValue == null) {
-      final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
-      if (!isModalOpen) {
-        WidgetsBinding.instance.addPostFrameCallback((_) async {
-          final l10n = context.l10n;
-          final account = await showModalBottomSheet<AccountModel?>(
-            context: context,
-            isScrollControlled: true,
-            useSafeArea: true,
-            builder: (context) => AccountSelectionScreen(
-              title: decoration?.labelText ?? l10n.transactionAccountLabel,
-              showClearOption: true,
-              onAccountSelected: (acc) => Navigator.pop(context, acc),
-            ),
-          );
-
-          if (account != null) {
-            onChanged?.call(account.id);
-          }
-        });
-      }
-    }
     final l10n = context.l10n;
 
     return FormField<String?>(
       initialValue: initialValue,
       validator: validator,
       builder: (state) {
+        if (enabled && autoOpen && state.value == null) {
+          final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
+          if (!isModalOpen) {
+            WidgetsBinding.instance.addPostFrameCallback((_) async {
+              final l10n = context.l10n;
+              final account = await showModalBottomSheet<AccountModel?>(
+                context: context,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (context) => AccountSelectionScreen(
+                  title: decoration?.labelText ?? l10n.transactionAccountLabel,
+                  showClearOption: true,
+                  onAccountSelected: (acc) => Navigator.pop(context, acc),
+                ),
+              );
+
+              if (account != null) {
+                state.didChange(account.id);
+                onChanged?.call(account.id);
+              }
+            });
+          }
+        }
+
         final accountId = state.value;
         final accountAsync = accountId != null
             ? ref.watch(AccountViewProviders.byId(accountId))

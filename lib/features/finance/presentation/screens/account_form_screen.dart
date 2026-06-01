@@ -15,6 +15,7 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/file_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -408,15 +409,13 @@ class AccountFormScreen extends ConsumerWidget {
           }
         },
       ),
-      TextFormField(
-        initialValue: state.initialBalance.toString(),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      MoneyFormField(
+        initialValue: state.initialBalance,
         decoration: InputDecoration(
           labelText: l10n.initialBalanceLabel,
           labelStyle: labelStyle,
         ),
-        onChanged: (v) =>
-            notifier.updateInitialBalance(double.tryParse(v) ?? 0.0),
+        onChanged: (v) => notifier.updateInitialBalance(v ?? 0.0),
       ),
       DateFormField(
         initialValue: state.initialBalanceDate,
@@ -429,14 +428,13 @@ class AccountFormScreen extends ConsumerWidget {
             notifier.updateInitialBalanceDate(date ?? DateTime.now()),
       ),
       if (state.type == AccountType.creditCard) ...[
-        TextFormField(
-          initialValue: state.limit?.toString() ?? '',
+        MoneyFormField(
+          initialValue: state.limit,
           decoration: InputDecoration(
             labelText: l10n.accountLimitLabel,
             labelStyle: labelStyle,
           ),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          onChanged: (v) => notifier.updateLimit(double.tryParse(v) ?? 0.0),
+          onChanged: (v) => notifier.updateLimit(v ?? 0.0),
         ),
         Row(
           children: [
@@ -474,6 +472,7 @@ class AccountFormScreen extends ConsumerWidget {
           decoration: InputDecoration(
             labelText: l10n.accountInterestRateLabel,
             labelStyle: labelStyle,
+            suffixText: '%',
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           onChanged: (v) =>

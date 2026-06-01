@@ -32,7 +32,7 @@ class MoneyFormField extends StatelessWidget {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       enabled: enabled,
       decoration: (decoration ?? const InputDecoration()).copyWith(
-        suffixText: symbol,
+        prefixText: symbol,
       ),
       inputFormatters: [
         FilteringTextInputFormatter.digitsOnly,
@@ -42,7 +42,6 @@ class MoneyFormField extends StatelessWidget {
           ? (value) => validator!(_parseValue(value))
           : null,
       onChanged: (value) => onChanged?.call(_parseValue(value)),
-      textAlign: TextAlign.end,
     );
   }
 

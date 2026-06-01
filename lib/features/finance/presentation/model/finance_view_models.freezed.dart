@@ -1090,7 +1090,7 @@ $CategoryModelCopyWith<$Res>? get category {
 /// @nodoc
 mixin _$TransactionFormState {
 
- String? get installmentId; String? get orderId; TransactionFormType get formType; OrderType get type; InstallmentType get installmentType; String get description; double get amount; int? get intallmentNumber; int? get installmentCount; DateTime get dueDate; InstallmentStatus get status; DateTime? get paidDate; double? get paidAmount; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget; ReplicationCascade? get replicateCascade;
+ String? get installmentId; String? get orderId; TransactionFormType get formType; OrderType get type; InstallmentType get installmentType; TransactionAmountType get amountType; String get description; double get amount; int? get intallmentNumber; int? get installmentCount; DateTime get dueDate; InstallmentStatus get status; DateTime? get paidDate; double? get paidAmount; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget; ReplicationCascade? get replicateCascade;
 /// Create a copy of TransactionFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1101,16 +1101,16 @@ $TransactionFormStateCopyWith<TransactionFormState> get copyWith => _$Transactio
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionFormState&&(identical(other.installmentId, installmentId) || other.installmentId == installmentId)&&(identical(other.orderId, orderId) || other.orderId == orderId)&&(identical(other.formType, formType) || other.formType == formType)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.description, description) || other.description == description)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.intallmentNumber, intallmentNumber) || other.intallmentNumber == intallmentNumber)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.status, status) || other.status == status)&&(identical(other.paidDate, paidDate) || other.paidDate == paidDate)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.replicateCascade, replicateCascade) || other.replicateCascade == replicateCascade));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionFormState&&(identical(other.installmentId, installmentId) || other.installmentId == installmentId)&&(identical(other.orderId, orderId) || other.orderId == orderId)&&(identical(other.formType, formType) || other.formType == formType)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.amountType, amountType) || other.amountType == amountType)&&(identical(other.description, description) || other.description == description)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.intallmentNumber, intallmentNumber) || other.intallmentNumber == intallmentNumber)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.status, status) || other.status == status)&&(identical(other.paidDate, paidDate) || other.paidDate == paidDate)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.replicateCascade, replicateCascade) || other.replicateCascade == replicateCascade));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,installmentId,orderId,formType,type,installmentType,description,amount,intallmentNumber,installmentCount,dueDate,status,paidDate,paidAmount,category,accountIdSource,accountIdTarget,replicateCascade);
+int get hashCode => Object.hash(runtimeType,installmentId,orderId,formType,type,installmentType,amountType,description,amount,intallmentNumber,installmentCount,dueDate,status,paidDate,paidAmount,category,accountIdSource,accountIdTarget,replicateCascade);
 
 @override
 String toString() {
-  return 'TransactionFormState(installmentId: $installmentId, orderId: $orderId, formType: $formType, type: $type, installmentType: $installmentType, description: $description, amount: $amount, intallmentNumber: $intallmentNumber, installmentCount: $installmentCount, dueDate: $dueDate, status: $status, paidDate: $paidDate, paidAmount: $paidAmount, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, replicateCascade: $replicateCascade)';
+  return 'TransactionFormState(installmentId: $installmentId, orderId: $orderId, formType: $formType, type: $type, installmentType: $installmentType, amountType: $amountType, description: $description, amount: $amount, intallmentNumber: $intallmentNumber, installmentCount: $installmentCount, dueDate: $dueDate, status: $status, paidDate: $paidDate, paidAmount: $paidAmount, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, replicateCascade: $replicateCascade)';
 }
 
 
@@ -1121,7 +1121,7 @@ abstract mixin class $TransactionFormStateCopyWith<$Res>  {
   factory $TransactionFormStateCopyWith(TransactionFormState value, $Res Function(TransactionFormState) _then) = _$TransactionFormStateCopyWithImpl;
 @useResult
 $Res call({
- String? installmentId, String? orderId, TransactionFormType formType, OrderType type, InstallmentType installmentType, String description, double amount, int? intallmentNumber, int? installmentCount, DateTime dueDate, InstallmentStatus status, DateTime? paidDate, double? paidAmount, CategoryModel? category, String? accountIdSource, String? accountIdTarget, ReplicationCascade? replicateCascade
+ String? installmentId, String? orderId, TransactionFormType formType, OrderType type, InstallmentType installmentType, TransactionAmountType amountType, String description, double amount, int? intallmentNumber, int? installmentCount, DateTime dueDate, InstallmentStatus status, DateTime? paidDate, double? paidAmount, CategoryModel? category, String? accountIdSource, String? accountIdTarget, ReplicationCascade? replicateCascade
 });
 
 
@@ -1138,14 +1138,15 @@ class _$TransactionFormStateCopyWithImpl<$Res>
 
 /// Create a copy of TransactionFormState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? installmentId = freezed,Object? orderId = freezed,Object? formType = null,Object? type = null,Object? installmentType = null,Object? description = null,Object? amount = null,Object? intallmentNumber = freezed,Object? installmentCount = freezed,Object? dueDate = null,Object? status = null,Object? paidDate = freezed,Object? paidAmount = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? replicateCascade = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? installmentId = freezed,Object? orderId = freezed,Object? formType = null,Object? type = null,Object? installmentType = null,Object? amountType = null,Object? description = null,Object? amount = null,Object? intallmentNumber = freezed,Object? installmentCount = freezed,Object? dueDate = null,Object? status = null,Object? paidDate = freezed,Object? paidAmount = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? replicateCascade = freezed,}) {
   return _then(_self.copyWith(
 installmentId: freezed == installmentId ? _self.installmentId : installmentId // ignore: cast_nullable_to_non_nullable
 as String?,orderId: freezed == orderId ? _self.orderId : orderId // ignore: cast_nullable_to_non_nullable
 as String?,formType: null == formType ? _self.formType : formType // ignore: cast_nullable_to_non_nullable
 as TransactionFormType,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,installmentType: null == installmentType ? _self.installmentType : installmentType // ignore: cast_nullable_to_non_nullable
-as InstallmentType,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as InstallmentType,amountType: null == amountType ? _self.amountType : amountType // ignore: cast_nullable_to_non_nullable
+as TransactionAmountType,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
 as double,intallmentNumber: freezed == intallmentNumber ? _self.intallmentNumber : intallmentNumber // ignore: cast_nullable_to_non_nullable
 as int?,installmentCount: freezed == installmentCount ? _self.installmentCount : installmentCount // ignore: cast_nullable_to_non_nullable
@@ -1251,10 +1252,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? installmentId,  String? orderId,  TransactionFormType formType,  OrderType type,  InstallmentType installmentType,  String description,  double amount,  int? intallmentNumber,  int? installmentCount,  DateTime dueDate,  InstallmentStatus status,  DateTime? paidDate,  double? paidAmount,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  ReplicationCascade? replicateCascade)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? installmentId,  String? orderId,  TransactionFormType formType,  OrderType type,  InstallmentType installmentType,  TransactionAmountType amountType,  String description,  double amount,  int? intallmentNumber,  int? installmentCount,  DateTime dueDate,  InstallmentStatus status,  DateTime? paidDate,  double? paidAmount,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  ReplicationCascade? replicateCascade)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionFormState() when $default != null:
-return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_that.installmentType,_that.description,_that.amount,_that.intallmentNumber,_that.installmentCount,_that.dueDate,_that.status,_that.paidDate,_that.paidAmount,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.replicateCascade);case _:
+return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_that.installmentType,_that.amountType,_that.description,_that.amount,_that.intallmentNumber,_that.installmentCount,_that.dueDate,_that.status,_that.paidDate,_that.paidAmount,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.replicateCascade);case _:
   return orElse();
 
 }
@@ -1272,10 +1273,10 @@ return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? installmentId,  String? orderId,  TransactionFormType formType,  OrderType type,  InstallmentType installmentType,  String description,  double amount,  int? intallmentNumber,  int? installmentCount,  DateTime dueDate,  InstallmentStatus status,  DateTime? paidDate,  double? paidAmount,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  ReplicationCascade? replicateCascade)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? installmentId,  String? orderId,  TransactionFormType formType,  OrderType type,  InstallmentType installmentType,  TransactionAmountType amountType,  String description,  double amount,  int? intallmentNumber,  int? installmentCount,  DateTime dueDate,  InstallmentStatus status,  DateTime? paidDate,  double? paidAmount,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  ReplicationCascade? replicateCascade)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionFormState():
-return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_that.installmentType,_that.description,_that.amount,_that.intallmentNumber,_that.installmentCount,_that.dueDate,_that.status,_that.paidDate,_that.paidAmount,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.replicateCascade);}
+return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_that.installmentType,_that.amountType,_that.description,_that.amount,_that.intallmentNumber,_that.installmentCount,_that.dueDate,_that.status,_that.paidDate,_that.paidAmount,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.replicateCascade);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1289,10 +1290,10 @@ return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? installmentId,  String? orderId,  TransactionFormType formType,  OrderType type,  InstallmentType installmentType,  String description,  double amount,  int? intallmentNumber,  int? installmentCount,  DateTime dueDate,  InstallmentStatus status,  DateTime? paidDate,  double? paidAmount,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  ReplicationCascade? replicateCascade)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? installmentId,  String? orderId,  TransactionFormType formType,  OrderType type,  InstallmentType installmentType,  TransactionAmountType amountType,  String description,  double amount,  int? intallmentNumber,  int? installmentCount,  DateTime dueDate,  InstallmentStatus status,  DateTime? paidDate,  double? paidAmount,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  ReplicationCascade? replicateCascade)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionFormState() when $default != null:
-return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_that.installmentType,_that.description,_that.amount,_that.intallmentNumber,_that.installmentCount,_that.dueDate,_that.status,_that.paidDate,_that.paidAmount,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.replicateCascade);case _:
+return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_that.installmentType,_that.amountType,_that.description,_that.amount,_that.intallmentNumber,_that.installmentCount,_that.dueDate,_that.status,_that.paidDate,_that.paidAmount,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.replicateCascade);case _:
   return null;
 
 }
@@ -1304,7 +1305,7 @@ return $default(_that.installmentId,_that.orderId,_that.formType,_that.type,_tha
 
 
 class _TransactionFormState extends TransactionFormState {
-  const _TransactionFormState({this.installmentId, this.orderId, required this.formType, required this.type, required this.installmentType, this.description = "", this.amount = 0.0, this.intallmentNumber, this.installmentCount, required this.dueDate, this.status = InstallmentStatus.pending, this.paidDate, this.paidAmount, this.category, this.accountIdSource, this.accountIdTarget, this.replicateCascade}): super._();
+  const _TransactionFormState({this.installmentId, this.orderId, required this.formType, required this.type, required this.installmentType, this.amountType = TransactionAmountType.total, this.description = "", this.amount = 0.0, this.intallmentNumber, this.installmentCount, required this.dueDate, this.status = InstallmentStatus.pending, this.paidDate, this.paidAmount, this.category, this.accountIdSource, this.accountIdTarget, this.replicateCascade}): super._();
   
 
 @override final  String? installmentId;
@@ -1312,6 +1313,7 @@ class _TransactionFormState extends TransactionFormState {
 @override final  TransactionFormType formType;
 @override final  OrderType type;
 @override final  InstallmentType installmentType;
+@override@JsonKey() final  TransactionAmountType amountType;
 @override@JsonKey() final  String description;
 @override@JsonKey() final  double amount;
 @override final  int? intallmentNumber;
@@ -1335,16 +1337,16 @@ _$TransactionFormStateCopyWith<_TransactionFormState> get copyWith => __$Transac
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionFormState&&(identical(other.installmentId, installmentId) || other.installmentId == installmentId)&&(identical(other.orderId, orderId) || other.orderId == orderId)&&(identical(other.formType, formType) || other.formType == formType)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.description, description) || other.description == description)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.intallmentNumber, intallmentNumber) || other.intallmentNumber == intallmentNumber)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.status, status) || other.status == status)&&(identical(other.paidDate, paidDate) || other.paidDate == paidDate)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.replicateCascade, replicateCascade) || other.replicateCascade == replicateCascade));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionFormState&&(identical(other.installmentId, installmentId) || other.installmentId == installmentId)&&(identical(other.orderId, orderId) || other.orderId == orderId)&&(identical(other.formType, formType) || other.formType == formType)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.amountType, amountType) || other.amountType == amountType)&&(identical(other.description, description) || other.description == description)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.intallmentNumber, intallmentNumber) || other.intallmentNumber == intallmentNumber)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.dueDate, dueDate) || other.dueDate == dueDate)&&(identical(other.status, status) || other.status == status)&&(identical(other.paidDate, paidDate) || other.paidDate == paidDate)&&(identical(other.paidAmount, paidAmount) || other.paidAmount == paidAmount)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.replicateCascade, replicateCascade) || other.replicateCascade == replicateCascade));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,installmentId,orderId,formType,type,installmentType,description,amount,intallmentNumber,installmentCount,dueDate,status,paidDate,paidAmount,category,accountIdSource,accountIdTarget,replicateCascade);
+int get hashCode => Object.hash(runtimeType,installmentId,orderId,formType,type,installmentType,amountType,description,amount,intallmentNumber,installmentCount,dueDate,status,paidDate,paidAmount,category,accountIdSource,accountIdTarget,replicateCascade);
 
 @override
 String toString() {
-  return 'TransactionFormState(installmentId: $installmentId, orderId: $orderId, formType: $formType, type: $type, installmentType: $installmentType, description: $description, amount: $amount, intallmentNumber: $intallmentNumber, installmentCount: $installmentCount, dueDate: $dueDate, status: $status, paidDate: $paidDate, paidAmount: $paidAmount, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, replicateCascade: $replicateCascade)';
+  return 'TransactionFormState(installmentId: $installmentId, orderId: $orderId, formType: $formType, type: $type, installmentType: $installmentType, amountType: $amountType, description: $description, amount: $amount, intallmentNumber: $intallmentNumber, installmentCount: $installmentCount, dueDate: $dueDate, status: $status, paidDate: $paidDate, paidAmount: $paidAmount, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, replicateCascade: $replicateCascade)';
 }
 
 
@@ -1355,7 +1357,7 @@ abstract mixin class _$TransactionFormStateCopyWith<$Res> implements $Transactio
   factory _$TransactionFormStateCopyWith(_TransactionFormState value, $Res Function(_TransactionFormState) _then) = __$TransactionFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- String? installmentId, String? orderId, TransactionFormType formType, OrderType type, InstallmentType installmentType, String description, double amount, int? intallmentNumber, int? installmentCount, DateTime dueDate, InstallmentStatus status, DateTime? paidDate, double? paidAmount, CategoryModel? category, String? accountIdSource, String? accountIdTarget, ReplicationCascade? replicateCascade
+ String? installmentId, String? orderId, TransactionFormType formType, OrderType type, InstallmentType installmentType, TransactionAmountType amountType, String description, double amount, int? intallmentNumber, int? installmentCount, DateTime dueDate, InstallmentStatus status, DateTime? paidDate, double? paidAmount, CategoryModel? category, String? accountIdSource, String? accountIdTarget, ReplicationCascade? replicateCascade
 });
 
 
@@ -1372,14 +1374,15 @@ class __$TransactionFormStateCopyWithImpl<$Res>
 
 /// Create a copy of TransactionFormState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? installmentId = freezed,Object? orderId = freezed,Object? formType = null,Object? type = null,Object? installmentType = null,Object? description = null,Object? amount = null,Object? intallmentNumber = freezed,Object? installmentCount = freezed,Object? dueDate = null,Object? status = null,Object? paidDate = freezed,Object? paidAmount = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? replicateCascade = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? installmentId = freezed,Object? orderId = freezed,Object? formType = null,Object? type = null,Object? installmentType = null,Object? amountType = null,Object? description = null,Object? amount = null,Object? intallmentNumber = freezed,Object? installmentCount = freezed,Object? dueDate = null,Object? status = null,Object? paidDate = freezed,Object? paidAmount = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? replicateCascade = freezed,}) {
   return _then(_TransactionFormState(
 installmentId: freezed == installmentId ? _self.installmentId : installmentId // ignore: cast_nullable_to_non_nullable
 as String?,orderId: freezed == orderId ? _self.orderId : orderId // ignore: cast_nullable_to_non_nullable
 as String?,formType: null == formType ? _self.formType : formType // ignore: cast_nullable_to_non_nullable
 as TransactionFormType,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,installmentType: null == installmentType ? _self.installmentType : installmentType // ignore: cast_nullable_to_non_nullable
-as InstallmentType,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as InstallmentType,amountType: null == amountType ? _self.amountType : amountType // ignore: cast_nullable_to_non_nullable
+as TransactionAmountType,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
 as double,intallmentNumber: freezed == intallmentNumber ? _self.intallmentNumber : intallmentNumber // ignore: cast_nullable_to_non_nullable
 as int?,installmentCount: freezed == installmentCount ? _self.installmentCount : installmentCount // ignore: cast_nullable_to_non_nullable
