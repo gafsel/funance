@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:funances/features/home/presentation/widgets/history_period_filter.dart';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 
@@ -7,9 +11,14 @@ class TransactionListNotifier
     extends InfiniteListNotifier<TransactionQuery, InstallmentModel> {
   final FinanceService financeiroService;
 
+  Timer? _debounceTimer;
+
   TransactionListNotifier({required this.financeiroService})
     : super(
-        initialQuery: TransactionQuery(endDate: DateTime.now()),
+        initialQuery: TransactionQuery(
+          startDate: HistoryPeriodType.month.getRange().$1,
+          endDate: HistoryPeriodType.month.getRange().$2,
+        ),
         executor: (query, {chunkRef}) async {
           return await financeiroService.queryInstallments(
             limit: 10,
@@ -27,6 +36,49 @@ class TransactionListNotifier
         },
       ) {
     load();
+  }
+
+  @override
+  void reset({TransactionQuery? query}) {
+    if (query?.description != state.query.description) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        super.reset(query: query);
+      });
+      state = state.copyWith(query: query ?? state.query);
+    } else {
+      super.reset(query: query);
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  TransactionTotals get totals {
+    double plannedIncomes = 0;
+    double realizedIncomes = 0;
+    double plannedExpenses = 0;
+    double realizedExpenses = 0;
+
+    for (final item in state.items) {
+      if (item.type == OrderType.income) {
+        plannedIncomes += item.amount;
+        realizedIncomes += item.paidAmount ?? 0.0;
+      } else if (item.type == OrderType.expense) {
+        plannedExpenses += item.amount;
+        realizedExpenses += item.paidAmount ?? 0.0;
+      }
+    }
+
+    return TransactionTotals(
+      plannedIncomes: plannedIncomes,
+      realizedIncomes: realizedIncomes,
+      plannedExpenses: plannedExpenses,
+      realizedExpenses: realizedExpenses,
+    );
   }
 
   Future<void> delete(

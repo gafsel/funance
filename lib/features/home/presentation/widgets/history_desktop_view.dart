@@ -5,12 +5,15 @@ import 'package:funances/core/list/infinite_list_view.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/home/presentation/widgets/history_period_summary.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +21,7 @@ import 'package:intl/intl.dart';
 
 class HistoryDesktopView extends ConsumerWidget {
   final TransactionListNotifier historyNotifier;
+
   const HistoryDesktopView({super.key, required this.historyNotifier});
 
   @override
@@ -35,19 +39,19 @@ class HistoryDesktopView extends ConsumerWidget {
         Expanded(
           child: InfiniteListView.separator(
             FinanceViewProviders.history,
-            padding: const EdgeInsets.only(
-              left: 16,
-              right: 16,
-              bottom: 16,
-              top: 0,
-            ) + EdgeInsets.only(bottom: mq.padding.bottom),
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 0) +
+                EdgeInsets.only(bottom: mq.padding.bottom),
+            footerBuilder: (context) => HistoryPeriodSummary(),
             separatorBuilder: (context, before, after) {
-              final bool isSameGroup = before != null &&
+              final bool isSameGroup =
+                  before != null &&
                   after != null &&
                   before.referenceDate.year == after.referenceDate.year &&
                   before.referenceDate.month == after.referenceDate.month;
 
-              final showHeader = after != null && (before == null || !isSameGroup);
+              final showHeader =
+                  after != null && (before == null || !isSameGroup);
 
               if (showHeader) {
                 return _buildDateHeader(context, after.referenceDate, l10n);
@@ -92,16 +96,18 @@ class HistoryDesktopView extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+      color: Theme.of(
+        context,
+      ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
       width: double.infinity,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Text(
           dateText,
           style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.primary,
-              ),
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       ),
     );
@@ -126,10 +132,22 @@ class HistoryDesktopView extends ConsumerWidget {
           const SizedBox(width: 12),
           SizedBox(width: 44, child: Text('', style: textStyle)),
           const SizedBox(width: 12),
-          Expanded(flex: 3, child: Text(l10n.historyFilterDescriptionLabel, style: textStyle)),
-          Expanded(flex: 1, child: Text(l10n.transactionInstallmentsLabel, style: textStyle)),
-          Expanded(flex: 2, child: Text(l10n.historyAccountLabel, style: textStyle)),
-          Expanded(flex: 1, child: Text(l10n.historyFilterStatusLabel, style: textStyle)),
+          Expanded(
+            flex: 3,
+            child: Text(l10n.historyFilterDescriptionLabel, style: textStyle),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(l10n.transactionInstallmentsLabel, style: textStyle),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(l10n.historyAccountLabel, style: textStyle),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(l10n.historyFilterStatusLabel, style: textStyle),
+          ),
           SizedBox(
             width: 120,
             child: Text(
@@ -177,17 +195,17 @@ class HistoryDesktopView extends ConsumerWidget {
         String accountName;
         final source = installment.accountIdSource != null
             ? ref
-                .read(AccountViewProviders.byId(installment.accountIdSource!))
-                .whenOrNull(data: (data) => data)
+                  .read(AccountViewProviders.byId(installment.accountIdSource!))
+                  .whenOrNull(data: (data) => data)
             : null;
 
         if (isTransfer) {
           final target = installment.accountIdTarget != null
               ? ref
-                  .read(
-                    AccountViewProviders.byId(installment.accountIdTarget!),
-                  )
-                  .whenOrNull(data: (data) => data)
+                    .read(
+                      AccountViewProviders.byId(installment.accountIdTarget!),
+                    )
+                    .whenOrNull(data: (data) => data)
               : null;
 
           accountName = "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
@@ -241,17 +259,21 @@ class HistoryDesktopView extends ConsumerWidget {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isTransfer
-                              ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
-                              : _parseColor(
-                                  category?.color ?? '#14404C',
-                                ).withValues(alpha: 0.1),
+                              ? Theme.of(context).colorScheme.primaryContainer
+                                    .withValues(alpha: 0.3)
+                              : (category?.color.asColor() ??
+                                        AppColors.deepTurquoise)
+                                    .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Icon(
-                          isTransfer ? Icons.swap_horiz : _getIconData(category?.icon ?? 'category'),
+                          isTransfer
+                              ? Icons.swap_horiz
+                              : category?.icon.asIcon() ?? Icons.category,
                           color: isTransfer
                               ? Theme.of(context).colorScheme.primary
-                              : _parseColor(category?.color ?? '#14404C'),
+                              : category?.color.asColor() ??
+                                    AppColors.deepTurquoise,
                           size: 18,
                         ),
                       ),
@@ -281,7 +303,8 @@ class HistoryDesktopView extends ConsumerWidget {
                 // Parcelas
                 Expanded(
                   flex: 1,
-                  child: installment.installmentType == InstallmentType.installment
+                  child:
+                      installment.installmentType == InstallmentType.installment
                       ? Text(
                           l10n.installmentCountDescription(
                             installment.installmentCount ?? 1,
@@ -307,16 +330,16 @@ class HistoryDesktopView extends ConsumerWidget {
                           color: installment.status == InstallmentStatus.settled
                               ? AppColors.deepPurple
                               : installment.status == InstallmentStatus.paid
-                                  ? AppColors.limeGreen
-                                  : AppColors.antiqueGold,
+                              ? AppColors.limeGreen
+                              : AppColors.antiqueGold,
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           installment.status == InstallmentStatus.settled
                               ? Icons.done_all
                               : installment.status == InstallmentStatus.paid
-                                  ? Icons.check
-                                  : Icons.schedule,
+                              ? Icons.check
+                              : Icons.schedule,
                           size: 12,
                           color: Colors.white,
                         ),
@@ -326,14 +349,14 @@ class HistoryDesktopView extends ConsumerWidget {
                         installment.status == InstallmentStatus.settled
                             ? l10n.statusSettled
                             : installment.status == InstallmentStatus.paid
-                                ? l10n.statusPaid
-                                : l10n.statusPending,
+                            ? l10n.statusPaid
+                            : l10n.statusPending,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: installment.status == InstallmentStatus.settled
                               ? AppColors.deepPurple
                               : installment.status == InstallmentStatus.paid
-                                  ? AppColors.limeGreen
-                                  : AppColors.antiqueGold,
+                              ? AppColors.limeGreen
+                              : AppColors.antiqueGold,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -378,7 +401,8 @@ class HistoryDesktopView extends ConsumerWidget {
                           // Precisamos de um pequeno delay para o menu fechar antes do dialog abrir
                           Future.delayed(
                             const Duration(milliseconds: 0),
-                            () => _confirmDelete(context, notifier, installment),
+                            () =>
+                                _confirmDelete(context, notifier, installment),
                           );
                         },
                         child: Row(
@@ -437,15 +461,18 @@ class HistoryDesktopView extends ConsumerWidget {
                     content: Text(l10n.transactionDeleteCascadeDescription),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context, ReplicationCascade.none),
+                        onPressed: () =>
+                            Navigator.pop(context, ReplicationCascade.none),
                         child: Text(l10n.transactionDeleteCascadeOnlyThis),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pop(context, ReplicationCascade.future),
+                        onPressed: () =>
+                            Navigator.pop(context, ReplicationCascade.future),
                         child: Text(l10n.transactionDeleteCascadeThisAndNext),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pop(context, ReplicationCascade.all),
+                        onPressed: () =>
+                            Navigator.pop(context, ReplicationCascade.all),
                         child: Text(l10n.transactionDeleteCascadeAll),
                       ),
                     ],
@@ -471,48 +498,4 @@ class HistoryDesktopView extends ConsumerWidget {
       ),
     );
   }
-
-  Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return AppColors.deepTurquoise;
-    }
-  }
-
-  IconData _getIconData(String iconName) {
-    return _availableIcons[iconName] ?? Icons.category;
-  }
-
-  static const Map<String, IconData> _availableIcons = {
-    'shopping_cart': Icons.shopping_cart,
-    'restaurant': Icons.restaurant,
-    'home': Icons.home,
-    'commute': Icons.commute,
-    'category': Icons.category,
-    'work': Icons.work,
-    'school': Icons.school,
-    'medical_services': Icons.medical_services,
-    'directions_car': Icons.directions_car,
-    'flight': Icons.flight,
-    'fitness_center': Icons.fitness_center,
-    'movie': Icons.movie,
-    'shopping_bag': Icons.shopping_bag,
-    'payments': Icons.payments,
-    'savings': Icons.savings,
-    'account_balance': Icons.account_balance,
-    'credit_card': Icons.credit_card,
-    'bolt': Icons.bolt,
-    'water_drop': Icons.water_drop,
-    'wifi': Icons.wifi,
-    'phone': Icons.phone,
-    'pets': Icons.pets,
-    'cleaning_services': Icons.cleaning_services,
-    'build': Icons.build,
-    'subscriptions': Icons.subscriptions,
-    'local_bar': Icons.local_bar,
-    'local_cafe': Icons.local_cafe,
-    'fastfood': Icons.fastfood,
-    'celebration': Icons.celebration,
-  };
 }

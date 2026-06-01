@@ -4,10 +4,11 @@ import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
-import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
 import 'package:funances/features/home/presentation/controller/history_filter_notifier.dart';
 import 'package:funances/features/home/presentation/model/history_filter_view_models.dart';
@@ -113,6 +114,22 @@ class HistoryFilterBottomSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
 
+                  // Conta
+                  AccountFormField(
+                    initialValue: state.accountId,
+                    decoration: InputDecoration(
+                      labelText: l10n.accountNameLabel,
+                      labelStyle: const TextStyle(color: AppColors.pureWhite),
+                      prefixIcon: const Icon(
+                        Icons.account_balance_wallet,
+                        color: AppColors.pureWhite,
+                      ),
+                    ),
+                    onChanged: (acc) {
+                      notifier.updateAccountId(acc);
+                    },
+                  ),
+
                   // Descrição
                   TextFormField(
                     initialValue: state.description,
@@ -189,39 +206,27 @@ class HistoryFilterBottomSheet extends StatelessWidget {
                   ),
 
                   // Faixa de Valor - Min
-                  TextFormField(
-                    initialValue: state.minAmount?.toString() ?? '',
+                  MoneyFormField(
+                    initialValue: state.minAmount,
                     decoration: InputDecoration(
                       labelText: l10n.historyFilterMinAmountLabel,
                       labelStyle: const TextStyle(
                         color: AppColors.pureWhite,
                       ),
                     ),
-                    style: const TextStyle(color: AppColors.pureWhite),
-                    keyboardType: TextInputType.number,
-                    onChanged:
-                        (val) =>
-                            notifier.updateMinAmount(
-                              double.tryParse(val),
-                            ),
+                    onChanged: notifier.updateMinAmount,
                   ),
 
                   // Faixa de Valor - Max
-                  TextFormField(
-                    initialValue: state.maxAmount?.toString() ?? '',
+                  MoneyFormField(
+                    initialValue: state.maxAmount,
                     decoration: InputDecoration(
                       labelText: l10n.historyFilterMaxAmountLabel,
                       labelStyle: const TextStyle(
                         color: AppColors.pureWhite,
                       ),
                     ),
-                    style: const TextStyle(color: AppColors.pureWhite),
-                    keyboardType: TextInputType.number,
-                    onChanged:
-                        (val) =>
-                            notifier.updateMaxAmount(
-                              double.tryParse(val),
-                            ),
+                    onChanged: notifier.updateMaxAmount,
                   ),
                 ];
               },

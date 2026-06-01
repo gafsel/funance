@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
@@ -40,8 +42,7 @@ sealed class PeriodSummaryModel with _$PeriodSummaryModel {
   factory PeriodSummaryModel.fromJson(Map<String, dynamic> json) =>
       _$PeriodSummaryModelFromJson(json);
 
-  double get plannedAmount =>
-      generalPlannedAmount > 0 ? generalPlannedAmount : specificPlannedAmount;
+  double get plannedAmount => max(generalPlannedAmount, specificPlannedAmount);
 
   double get progress => plannedAmount > 0 ? actualAmount / plannedAmount : 0.0;
 }

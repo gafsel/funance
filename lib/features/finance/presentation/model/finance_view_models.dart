@@ -190,6 +190,21 @@ sealed class TransactionFormState with _$TransactionFormState {
 }
 
 @freezed
+sealed class TransactionTotals with _$TransactionTotals {
+  const factory TransactionTotals({
+    @Default(0.0) double plannedIncomes,
+    @Default(0.0) double realizedIncomes,
+    @Default(0.0) double plannedExpenses,
+    @Default(0.0) double realizedExpenses,
+  }) = _TransactionTotals;
+
+  const TransactionTotals._();
+
+  double get plannedBalance => plannedIncomes - plannedExpenses;
+  double get realizedBalance => realizedIncomes - realizedExpenses;
+}
+
+@freezed
 sealed class TransactionQuery with _$TransactionQuery {
   factory TransactionQuery({
     String? accountId,

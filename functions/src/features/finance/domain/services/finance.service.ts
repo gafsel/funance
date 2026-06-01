@@ -22,7 +22,7 @@ export class FinanceService {
         const existingInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, orderId);
 
         // 2. Se a order foi excluída ou está cancelada, deletamos tudo
-        if (!after || after.status === OrderStatus.cancelled) {
+        if (!after) {
             for (const inst of existingInstallments) {
                 await this.financeRepository.deleteInstallment(workspaceId, inst.id);
             }

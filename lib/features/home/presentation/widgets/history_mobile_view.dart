@@ -3,15 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/list/infinite_list_view.dart';
-import 'package:funances/core/model/core_models.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/home/presentation/widgets/history_period_summary.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -19,6 +20,7 @@ import 'package:intl/intl.dart';
 
 class HistoryMobileView extends ConsumerWidget {
   final TransactionListNotifier historyNotifier;
+
   const HistoryMobileView({super.key, required this.historyNotifier});
 
   @override
@@ -28,14 +30,13 @@ class HistoryMobileView extends ConsumerWidget {
 
     return InfiniteListView.separator(
       FinanceViewProviders.history,
-      padding: const EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: 16,
-        top: 0,
-      ) + EdgeInsets.only(bottom: mq.padding.bottom),
+      padding:
+          const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 0) +
+          EdgeInsets.only(bottom: mq.padding.bottom),
+      footerBuilder: (context) => HistoryPeriodSummary(),
       separatorBuilder: (context, before, after) {
-        final bool isSameGroup = before != null &&
+        final bool isSameGroup =
+            before != null &&
             after != null &&
             _isSameDay(before.referenceDate, after.referenceDate);
 
@@ -97,9 +98,9 @@ class HistoryMobileView extends ConsumerWidget {
       child: Text(
         dateText,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
       ),
     );
   }
@@ -137,17 +138,17 @@ class HistoryMobileView extends ConsumerWidget {
         String accountName;
         final source = installment.accountIdSource != null
             ? ref
-                .read(AccountViewProviders.byId(installment.accountIdSource!))
-                .whenOrNull(data: (data) => data)
+                  .read(AccountViewProviders.byId(installment.accountIdSource!))
+                  .whenOrNull(data: (data) => data)
             : null;
 
         if (isTransfer) {
           final target = installment.accountIdTarget != null
               ? ref
-                  .read(
-                    AccountViewProviders.byId(installment.accountIdTarget!),
-                  )
-                  .whenOrNull(data: (data) => data)
+                    .read(
+                      AccountViewProviders.byId(installment.accountIdTarget!),
+                    )
+                    .whenOrNull(data: (data) => data)
               : null;
 
           accountName = "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
@@ -163,11 +164,15 @@ class HistoryMobileView extends ConsumerWidget {
               motion: const DrawerMotion(),
               children: [
                 SlidableAction(
-                  onPressed: (context) {
-                    context.push(
+                  onPressed: (context) async {
+                    final updated = await context.push<bool>(
                       '/transactions/form',
                       extra: {'installment': installment},
                     );
+
+                    if (updated ?? false) {
+                      notifier.reset();
+                    }
                   },
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -175,7 +180,8 @@ class HistoryMobileView extends ConsumerWidget {
                   label: l10n.historyEdit,
                 ),
                 SlidableAction(
-                  onPressed: (context) => _confirmDelete(context, notifier, installment),
+                  onPressed: (context) =>
+                      _confirmDelete(context, notifier, installment),
                   backgroundColor: Theme.of(context).colorScheme.error,
                   foregroundColor: Theme.of(context).colorScheme.onError,
                   icon: Icons.delete,
@@ -197,17 +203,21 @@ class HistoryMobileView extends ConsumerWidget {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: isTransfer
-                                ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.3)
-                                : _parseColor(
-                                    category?.color ?? '#14404C',
-                                  ).withValues(alpha: 0.1),
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                      .withValues(alpha: 0.3)
+                                : (category?.color.asColor() ??
+                                          AppColors.deepTurquoise)
+                                      .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            isTransfer ? Icons.swap_horiz : _getIconData(category?.icon ?? 'category'),
+                            isTransfer
+                                ? Icons.swap_horiz
+                                : category?.icon.asIcon() ?? Icons.category,
                             color: isTransfer
                                 ? Theme.of(context).colorScheme.primary
-                                : _parseColor(category?.color ?? '#14404C'),
+                                : category?.color.asColor() ??
+                                      AppColors.deepTurquoise,
                             size: 20,
                           ),
                         ),
@@ -217,19 +227,21 @@ class HistoryMobileView extends ConsumerWidget {
                           child: Container(
                             padding: const EdgeInsets.all(2),
                             decoration: BoxDecoration(
-                              color: installment.status == InstallmentStatus.settled
+                              color:
+                                  installment.status ==
+                                      InstallmentStatus.settled
                                   ? AppColors.deepPurple
                                   : installment.status == InstallmentStatus.paid
-                                      ? AppColors.limeGreen
-                                      : AppColors.antiqueGold,
+                                  ? AppColors.limeGreen
+                                  : AppColors.antiqueGold,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               installment.status == InstallmentStatus.settled
                                   ? Icons.done_all
                                   : installment.status == InstallmentStatus.paid
-                                      ? Icons.check
-                                      : Icons.schedule,
+                                  ? Icons.check
+                                  : Icons.schedule,
                               size: 10,
                               color: Colors.white,
                             ),
@@ -264,13 +276,15 @@ class HistoryMobileView extends ConsumerWidget {
                                 accountName,
                                 style: theme.textTheme.bodySmall,
                               ),
-                              if (installment.installmentType == InstallmentType.installment)
+                              if (installment.installmentType ==
+                                  InstallmentType.installment)
                                 Icon(
                                   Icons.circle,
                                   size: 5,
                                   color: Colors.grey.shade400,
                                 ),
-                              if (installment.installmentType == InstallmentType.installment)
+                              if (installment.installmentType ==
+                                  InstallmentType.installment)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
@@ -345,15 +359,18 @@ class HistoryMobileView extends ConsumerWidget {
                     content: Text(l10n.transactionDeleteCascadeDescription),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context, ReplicationCascade.none),
+                        onPressed: () =>
+                            Navigator.pop(context, ReplicationCascade.none),
                         child: Text(l10n.transactionDeleteCascadeOnlyThis),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pop(context, ReplicationCascade.future),
+                        onPressed: () =>
+                            Navigator.pop(context, ReplicationCascade.future),
                         child: Text(l10n.transactionDeleteCascadeThisAndNext),
                       ),
                       TextButton(
-                        onPressed: () => Navigator.pop(context, ReplicationCascade.all),
+                        onPressed: () =>
+                            Navigator.pop(context, ReplicationCascade.all),
                         child: Text(l10n.transactionDeleteCascadeAll),
                       ),
                     ],
@@ -379,48 +396,4 @@ class HistoryMobileView extends ConsumerWidget {
       ),
     );
   }
-
-  Color _parseColor(String hex) {
-    try {
-      return Color(int.parse(hex.replaceFirst('#', '0xFF')));
-    } catch (e) {
-      return AppColors.deepTurquoise;
-    }
-  }
-
-  IconData _getIconData(String iconName) {
-    return _availableIcons[iconName] ?? Icons.category;
-  }
-
-  static const Map<String, IconData> _availableIcons = {
-    'shopping_cart': Icons.shopping_cart,
-    'restaurant': Icons.restaurant,
-    'home': Icons.home,
-    'commute': Icons.commute,
-    'category': Icons.category,
-    'work': Icons.work,
-    'school': Icons.school,
-    'medical_services': Icons.medical_services,
-    'directions_car': Icons.directions_car,
-    'flight': Icons.flight,
-    'fitness_center': Icons.fitness_center,
-    'movie': Icons.movie,
-    'shopping_bag': Icons.shopping_bag,
-    'payments': Icons.payments,
-    'savings': Icons.savings,
-    'account_balance': Icons.account_balance,
-    'credit_card': Icons.credit_card,
-    'bolt': Icons.bolt,
-    'water_drop': Icons.water_drop,
-    'wifi': Icons.wifi,
-    'phone': Icons.phone,
-    'pets': Icons.pets,
-    'cleaning_services': Icons.cleaning_services,
-    'build': Icons.build,
-    'subscriptions': Icons.subscriptions,
-    'local_bar': Icons.local_bar,
-    'local_cafe': Icons.local_cafe,
-    'fastfood': Icons.fastfood,
-    'celebration': Icons.celebration,
-  };
 }

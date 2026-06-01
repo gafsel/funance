@@ -388,5 +388,18 @@
   "statusPaid": "Pago",
   "statusSettled": "Conciliado",
   "date": "Data",
-  "historyAccountLabel": "Conta"
+  "historyAccountLabel": "Conta",
+  "periodSummary": "Resumo do Período",
+  "totalIncomes": "Total de Receitas",
+  "totalExpenses": "Total de Despesas",
+  "periodBalance": "Saldo do Período",
+  "plannedLabel": "Planejado",
+  "realizedLabel": "Realizado",
+  "periodFilterDay": "Dia",
+  "periodFilterMonth": "Mês",
+  "periodFilterQuarter": "Trimestre",
+  "periodFilterSemester": "Semestre",
+  "periodFilterYear": "Ano",
+  "periodFilterCustom": "Customizado",
+  "periodFilterTitle": "Selecionar Período"
 }

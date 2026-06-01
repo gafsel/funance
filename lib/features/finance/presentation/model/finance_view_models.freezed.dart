@@ -1414,6 +1414,266 @@ $CategoryModelCopyWith<$Res>? get category {
 }
 
 /// @nodoc
+mixin _$TransactionTotals {
+
+ double get plannedIncomes; double get realizedIncomes; double get plannedExpenses; double get realizedExpenses;
+/// Create a copy of TransactionTotals
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TransactionTotalsCopyWith<TransactionTotals> get copyWith => _$TransactionTotalsCopyWithImpl<TransactionTotals>(this as TransactionTotals, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses);
+
+@override
+String toString() {
+  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TransactionTotalsCopyWith<$Res>  {
+  factory $TransactionTotalsCopyWith(TransactionTotals value, $Res Function(TransactionTotals) _then) = _$TransactionTotalsCopyWithImpl;
+@useResult
+$Res call({
+ double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses
+});
+
+
+
+
+}
+/// @nodoc
+class _$TransactionTotalsCopyWithImpl<$Res>
+    implements $TransactionTotalsCopyWith<$Res> {
+  _$TransactionTotalsCopyWithImpl(this._self, this._then);
+
+  final TransactionTotals _self;
+  final $Res Function(TransactionTotals) _then;
+
+/// Create a copy of TransactionTotals
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,}) {
+  return _then(_self.copyWith(
+plannedIncomes: null == plannedIncomes ? _self.plannedIncomes : plannedIncomes // ignore: cast_nullable_to_non_nullable
+as double,realizedIncomes: null == realizedIncomes ? _self.realizedIncomes : realizedIncomes // ignore: cast_nullable_to_non_nullable
+as double,plannedExpenses: null == plannedExpenses ? _self.plannedExpenses : plannedExpenses // ignore: cast_nullable_to_non_nullable
+as double,realizedExpenses: null == realizedExpenses ? _self.realizedExpenses : realizedExpenses // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [TransactionTotals].
+extension TransactionTotalsPatterns on TransactionTotals {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TransactionTotals value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TransactionTotals() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TransactionTotals value)  $default,){
+final _that = this;
+switch (_that) {
+case _TransactionTotals():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TransactionTotals value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TransactionTotals() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TransactionTotals() when $default != null:
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses)  $default,) {final _that = this;
+switch (_that) {
+case _TransactionTotals():
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses)?  $default,) {final _that = this;
+switch (_that) {
+case _TransactionTotals() when $default != null:
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _TransactionTotals extends TransactionTotals {
+  const _TransactionTotals({this.plannedIncomes = 0.0, this.realizedIncomes = 0.0, this.plannedExpenses = 0.0, this.realizedExpenses = 0.0}): super._();
+  
+
+@override@JsonKey() final  double plannedIncomes;
+@override@JsonKey() final  double realizedIncomes;
+@override@JsonKey() final  double plannedExpenses;
+@override@JsonKey() final  double realizedExpenses;
+
+/// Create a copy of TransactionTotals
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TransactionTotalsCopyWith<_TransactionTotals> get copyWith => __$TransactionTotalsCopyWithImpl<_TransactionTotals>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses);
+
+@override
+String toString() {
+  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TransactionTotalsCopyWith<$Res> implements $TransactionTotalsCopyWith<$Res> {
+  factory _$TransactionTotalsCopyWith(_TransactionTotals value, $Res Function(_TransactionTotals) _then) = __$TransactionTotalsCopyWithImpl;
+@override @useResult
+$Res call({
+ double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses
+});
+
+
+
+
+}
+/// @nodoc
+class __$TransactionTotalsCopyWithImpl<$Res>
+    implements _$TransactionTotalsCopyWith<$Res> {
+  __$TransactionTotalsCopyWithImpl(this._self, this._then);
+
+  final _TransactionTotals _self;
+  final $Res Function(_TransactionTotals) _then;
+
+/// Create a copy of TransactionTotals
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,}) {
+  return _then(_TransactionTotals(
+plannedIncomes: null == plannedIncomes ? _self.plannedIncomes : plannedIncomes // ignore: cast_nullable_to_non_nullable
+as double,realizedIncomes: null == realizedIncomes ? _self.realizedIncomes : realizedIncomes // ignore: cast_nullable_to_non_nullable
+as double,plannedExpenses: null == plannedExpenses ? _self.plannedExpenses : plannedExpenses // ignore: cast_nullable_to_non_nullable
+as double,realizedExpenses: null == realizedExpenses ? _self.realizedExpenses : realizedExpenses // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$TransactionQuery {
 
  String? get accountId; DateTime? get startDate; DateTime? get endDate; String? get categoryId; OrderType? get type; String? get description; double? get minAmount; double? get maxAmount; InstallmentStatus? get status;

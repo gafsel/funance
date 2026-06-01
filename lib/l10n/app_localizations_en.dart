@@ -1056,4 +1056,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get historyAccountLabel => 'Account';
+
+  @override
+  String get periodSummary => 'Period Summary';
+
+  @override
+  String get totalIncomes => 'Total Incomes';
+
+  @override
+  String get totalExpenses => 'Total Expenses';
+
+  @override
+  String get periodBalance => 'Period Balance';
+
+  @override
+  String get plannedLabel => 'Planned';
+
+  @override
+  String get realizedLabel => 'Realized';
+
+  @override
+  String get periodFilterDay => 'Dia';
+
+  @override
+  String get periodFilterMonth => 'Month';
+
+  @override
+  String get periodFilterQuarter => 'Quarter';
+
+  @override
+  String get periodFilterSemester => 'Semester';
+
+  @override
+  String get periodFilterYear => 'Year';
+
+  @override
+  String get periodFilterCustom => 'Custom';
+
+  @override
+  String get periodFilterTitle => 'Select Period';
 }

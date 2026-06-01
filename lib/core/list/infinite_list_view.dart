@@ -16,6 +16,7 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
     this.emptyStateBuilder,
     this.separatorBuilder,
     this.padding,
+    this.footerBuilder,
   });
 
   final StateNotifierProvider<
@@ -27,6 +28,7 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
   final ItemBuilder<T> itemBuilder;
   final SeparatorBuilder<T>? separatorBuilder;
   final WidgetBuilder? emptyStateBuilder;
+  final WidgetBuilder? footerBuilder;
 
   factory InfiniteListView.builder(
     StateNotifierProvider<InfiniteListNotifier<Q, T>, InfiniteListState<Q, T>>
@@ -34,12 +36,14 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
     EdgeInsets? padding,
     required ItemBuilder<T> itemBuilder,
     WidgetBuilder? emptyStateBuilder,
+    WidgetBuilder? footerBuilder,
   }) {
     return InfiniteListView._(
       provider,
       itemBuilder: itemBuilder,
       padding: padding,
       emptyStateBuilder: emptyStateBuilder,
+      footerBuilder: footerBuilder,
     );
   }
 
@@ -50,6 +54,7 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
     required ItemBuilder<T> itemBuilder,
     WidgetBuilder? emptyStateBuilder,
     required SeparatorBuilder<T> separatorBuilder,
+    WidgetBuilder? footerBuilder,
   }) {
     return InfiniteListView._(
       provider,
@@ -57,6 +62,7 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
       padding: padding,
       emptyStateBuilder: emptyStateBuilder,
       separatorBuilder: separatorBuilder,
+      footerBuilder: footerBuilder,
     );
   }
 
@@ -66,11 +72,19 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
     final notifier = ref.watch(provider.notifier);
     final state = ref.watch(provider);
 
-    final showLoader = state.status == InfiniteListStatus.loading ||
+    final showLoader =
+        state.status == InfiniteListStatus.loading ||
         state.status == InfiniteListStatus.error ||
         state.hasNextChunk;
 
-    final itemCount = (state.items.length * 2) + (showLoader ? 1 : 0);
+    final showFooter =
+        footerBuilder != null &&
+        !state.hasNextChunk &&
+        state.status != InfiniteListStatus.loading &&
+        state.items.isNotEmpty;
+
+    final itemCount =
+        (state.items.length * 2) + (showLoader ? 1 : 0) + (showFooter ? 1 : 0);
 
     return ListView.builder(
       padding: padding,
@@ -104,12 +118,19 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
           }
         }
 
+        // Se for o último item e precisamos mostrar o footer
+        if (index == itemCount - 1 && showFooter) {
+          return footerBuilder!(context);
+        }
+
         final isSeparator = index % 2 == 0;
         final itemIndex = index ~/ 2;
 
         if (isSeparator) {
           final before = itemIndex > 0 ? state.items[itemIndex - 1] : null;
-          final after = itemIndex < state.items.length ? state.items[itemIndex] : null;
+          final after = itemIndex < state.items.length
+              ? state.items[itemIndex]
+              : null;
 
           return separatorBuilder?.call(context, before, after) ??
               const SizedBox.shrink();

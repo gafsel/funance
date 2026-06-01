@@ -1999,6 +1999,84 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Conta'**
   String get historyAccountLabel;
+
+  /// No description provided for @periodSummary.
+  ///
+  /// In pt, this message translates to:
+  /// **'Resumo do Período'**
+  String get periodSummary;
+
+  /// No description provided for @totalIncomes.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total de Receitas'**
+  String get totalIncomes;
+
+  /// No description provided for @totalExpenses.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total de Despesas'**
+  String get totalExpenses;
+
+  /// No description provided for @periodBalance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo do Período'**
+  String get periodBalance;
+
+  /// No description provided for @plannedLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejado'**
+  String get plannedLabel;
+
+  /// No description provided for @realizedLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Realizado'**
+  String get realizedLabel;
+
+  /// No description provided for @periodFilterDay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dia'**
+  String get periodFilterDay;
+
+  /// No description provided for @periodFilterMonth.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mês'**
+  String get periodFilterMonth;
+
+  /// No description provided for @periodFilterQuarter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Trimestre'**
+  String get periodFilterQuarter;
+
+  /// No description provided for @periodFilterSemester.
+  ///
+  /// In pt, this message translates to:
+  /// **'Semestre'**
+  String get periodFilterSemester;
+
+  /// No description provided for @periodFilterYear.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ano'**
+  String get periodFilterYear;
+
+  /// No description provided for @periodFilterCustom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Customizado'**
+  String get periodFilterCustom;
+
+  /// No description provided for @periodFilterTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecionar Período'**
+  String get periodFilterTitle;
 }
 
 class _AppLocalizationsDelegate

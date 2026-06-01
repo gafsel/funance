@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -91,12 +93,12 @@ class CategoryPlanningScreen extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Color(int.parse(item.category.color.replaceAll('#', '0xFF'))).withOpacity(0.2),
+              color: item.category.color.asColor().withOpacity(0.2),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              _getIconData(item.category.icon),
-              color: Color(int.parse(item.category.color.replaceAll('#', '0xFF'))),
+              item.category.icon.asIcon(),
+              color: item.category.color.asColor(),
             ),
           ),
           const SizedBox(width: 16),
@@ -121,8 +123,8 @@ class CategoryPlanningScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: 16),
-          SizedBox(
-            width: 120,
+          ConstrainedBox(
+            constraints: BoxConstraints(minWidth: 80, maxWidth: 200),
             child: MoneyFormField(
               initialValue: item.amount > 0 ? item.amount : null,
               decoration: const InputDecoration(
@@ -146,8 +148,4 @@ class CategoryPlanningScreen extends ConsumerWidget {
     );
   }
 
-  IconData _getIconData(String name) {
-    // Simplificação para este exemplo. No app real haveria um mapeamento.
-    return Icons.category;
-  }
 }

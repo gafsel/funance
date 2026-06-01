@@ -330,7 +330,7 @@ class TransactionFormScreen extends StatelessWidget {
           }
         },
         decoration: InputDecoration(labelText: l10n.transactionDateLabel),
-        enabled: (state.orderId == null) && (!isPaid || state.creation) && !isSettled,
+        enabled: (!isPaid || state.creation) && !isSettled,
         validator: v.all([v.notNull()]),
       ),
       if (state.type != OrderType.transfer) ...[

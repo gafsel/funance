@@ -62,6 +62,21 @@ class CategoryViewProviders {
     return service.getCategories();
   });
 
+  static final byId = StreamProvider.family<CategoryModel?, String>((
+    ref,
+    categoryId,
+  ) {
+    final categories = ref.watch(allStream);
+
+    return categories.when(
+      data: (data) => Stream.value(
+        data.where((category) => category.id == categoryId).firstOrNull,
+      ),
+      error: (error, stack) => Stream.error(error, stack),
+      loading: () => Stream.empty(),
+    );
+  });
+
   static final form = StateNotifierProvider.autoDispose
       .family<CategoryFormNotifier, CategoryFormState, CategoryModel?>((
         ref,

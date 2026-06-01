@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$HistoryFilterState {
 
- String? get description; CategoryModel? get category; OrderType? get type; InstallmentStatus? get status; double? get minAmount; double? get maxAmount;
+ String? get accountId; String? get description; CategoryModel? get category; OrderType? get type; InstallmentStatus? get status; double? get minAmount; double? get maxAmount; DateTime? get startDate; DateTime? get endDate;
 /// Create a copy of HistoryFilterState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $HistoryFilterStateCopyWith<HistoryFilterState> get copyWith => _$HistoryFilterS
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HistoryFilterState&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HistoryFilterState&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,description,category,type,status,minAmount,maxAmount);
+int get hashCode => Object.hash(runtimeType,accountId,description,category,type,status,minAmount,maxAmount,startDate,endDate);
 
 @override
 String toString() {
-  return 'HistoryFilterState(description: $description, category: $category, type: $type, status: $status, minAmount: $minAmount, maxAmount: $maxAmount)';
+  return 'HistoryFilterState(accountId: $accountId, description: $description, category: $category, type: $type, status: $status, minAmount: $minAmount, maxAmount: $maxAmount, startDate: $startDate, endDate: $endDate)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $HistoryFilterStateCopyWith<$Res>  {
   factory $HistoryFilterStateCopyWith(HistoryFilterState value, $Res Function(HistoryFilterState) _then) = _$HistoryFilterStateCopyWithImpl;
 @useResult
 $Res call({
- String? description, CategoryModel? category, OrderType? type, InstallmentStatus? status, double? minAmount, double? maxAmount
+ String? accountId, String? description, CategoryModel? category, OrderType? type, InstallmentStatus? status, double? minAmount, double? maxAmount, DateTime? startDate, DateTime? endDate
 });
 
 
@@ -62,15 +62,18 @@ class _$HistoryFilterStateCopyWithImpl<$Res>
 
 /// Create a copy of HistoryFilterState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? description = freezed,Object? category = freezed,Object? type = freezed,Object? status = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? accountId = freezed,Object? description = freezed,Object? category = freezed,Object? type = freezed,Object? status = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? startDate = freezed,Object? endDate = freezed,}) {
   return _then(_self.copyWith(
-description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as InstallmentStatus?,minAmount: freezed == minAmount ? _self.minAmount : minAmount // ignore: cast_nullable_to_non_nullable
 as double?,maxAmount: freezed == maxAmount ? _self.maxAmount : maxAmount // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 /// Create a copy of HistoryFilterState
@@ -164,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? description,  CategoryModel? category,  OrderType? type,  InstallmentStatus? status,  double? minAmount,  double? maxAmount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? accountId,  String? description,  CategoryModel? category,  OrderType? type,  InstallmentStatus? status,  double? minAmount,  double? maxAmount,  DateTime? startDate,  DateTime? endDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HistoryFilterState() when $default != null:
-return $default(_that.description,_that.category,_that.type,_that.status,_that.minAmount,_that.maxAmount);case _:
+return $default(_that.accountId,_that.description,_that.category,_that.type,_that.status,_that.minAmount,_that.maxAmount,_that.startDate,_that.endDate);case _:
   return orElse();
 
 }
@@ -185,10 +188,10 @@ return $default(_that.description,_that.category,_that.type,_that.status,_that.m
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? description,  CategoryModel? category,  OrderType? type,  InstallmentStatus? status,  double? minAmount,  double? maxAmount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? accountId,  String? description,  CategoryModel? category,  OrderType? type,  InstallmentStatus? status,  double? minAmount,  double? maxAmount,  DateTime? startDate,  DateTime? endDate)  $default,) {final _that = this;
 switch (_that) {
 case _HistoryFilterState():
-return $default(_that.description,_that.category,_that.type,_that.status,_that.minAmount,_that.maxAmount);}
+return $default(_that.accountId,_that.description,_that.category,_that.type,_that.status,_that.minAmount,_that.maxAmount,_that.startDate,_that.endDate);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -202,10 +205,10 @@ return $default(_that.description,_that.category,_that.type,_that.status,_that.m
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? description,  CategoryModel? category,  OrderType? type,  InstallmentStatus? status,  double? minAmount,  double? maxAmount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? accountId,  String? description,  CategoryModel? category,  OrderType? type,  InstallmentStatus? status,  double? minAmount,  double? maxAmount,  DateTime? startDate,  DateTime? endDate)?  $default,) {final _that = this;
 switch (_that) {
 case _HistoryFilterState() when $default != null:
-return $default(_that.description,_that.category,_that.type,_that.status,_that.minAmount,_that.maxAmount);case _:
+return $default(_that.accountId,_that.description,_that.category,_that.type,_that.status,_that.minAmount,_that.maxAmount,_that.startDate,_that.endDate);case _:
   return null;
 
 }
@@ -217,15 +220,18 @@ return $default(_that.description,_that.category,_that.type,_that.status,_that.m
 
 
 class _HistoryFilterState extends HistoryFilterState {
-  const _HistoryFilterState({this.description, this.category, this.type, this.status, this.minAmount, this.maxAmount}): super._();
+  const _HistoryFilterState({this.accountId, this.description, this.category, this.type, this.status, this.minAmount, this.maxAmount, this.startDate, this.endDate}): super._();
   
 
+@override final  String? accountId;
 @override final  String? description;
 @override final  CategoryModel? category;
 @override final  OrderType? type;
 @override final  InstallmentStatus? status;
 @override final  double? minAmount;
 @override final  double? maxAmount;
+@override final  DateTime? startDate;
+@override final  DateTime? endDate;
 
 /// Create a copy of HistoryFilterState
 /// with the given fields replaced by the non-null parameter values.
@@ -237,16 +243,16 @@ _$HistoryFilterStateCopyWith<_HistoryFilterState> get copyWith => __$HistoryFilt
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HistoryFilterState&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HistoryFilterState&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.description, description) || other.description == description)&&(identical(other.category, category) || other.category == category)&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,description,category,type,status,minAmount,maxAmount);
+int get hashCode => Object.hash(runtimeType,accountId,description,category,type,status,minAmount,maxAmount,startDate,endDate);
 
 @override
 String toString() {
-  return 'HistoryFilterState(description: $description, category: $category, type: $type, status: $status, minAmount: $minAmount, maxAmount: $maxAmount)';
+  return 'HistoryFilterState(accountId: $accountId, description: $description, category: $category, type: $type, status: $status, minAmount: $minAmount, maxAmount: $maxAmount, startDate: $startDate, endDate: $endDate)';
 }
 
 
@@ -257,7 +263,7 @@ abstract mixin class _$HistoryFilterStateCopyWith<$Res> implements $HistoryFilte
   factory _$HistoryFilterStateCopyWith(_HistoryFilterState value, $Res Function(_HistoryFilterState) _then) = __$HistoryFilterStateCopyWithImpl;
 @override @useResult
 $Res call({
- String? description, CategoryModel? category, OrderType? type, InstallmentStatus? status, double? minAmount, double? maxAmount
+ String? accountId, String? description, CategoryModel? category, OrderType? type, InstallmentStatus? status, double? minAmount, double? maxAmount, DateTime? startDate, DateTime? endDate
 });
 
 
@@ -274,15 +280,18 @@ class __$HistoryFilterStateCopyWithImpl<$Res>
 
 /// Create a copy of HistoryFilterState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? description = freezed,Object? category = freezed,Object? type = freezed,Object? status = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? accountId = freezed,Object? description = freezed,Object? category = freezed,Object? type = freezed,Object? status = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? startDate = freezed,Object? endDate = freezed,}) {
   return _then(_HistoryFilterState(
-description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,type: freezed == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as InstallmentStatus?,minAmount: freezed == minAmount ? _self.minAmount : minAmount // ignore: cast_nullable_to_non_nullable
 as double?,maxAmount: freezed == maxAmount ? _self.maxAmount : maxAmount // ignore: cast_nullable_to_non_nullable
-as double?,
+as double?,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,endDate: freezed == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

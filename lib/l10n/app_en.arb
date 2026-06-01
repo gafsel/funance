@@ -379,5 +379,18 @@
   "statusPaid": "Paid",
   "statusSettled": "Settled",
   "date": "Date",
-  "historyAccountLabel": "Account"
+  "historyAccountLabel": "Account",
+  "periodSummary": "Period Summary",
+  "totalIncomes": "Total Incomes",
+  "totalExpenses": "Total Expenses",
+  "periodBalance": "Period Balance",
+  "plannedLabel": "Planned",
+  "realizedLabel": "Realized",
+  "periodFilterDay": "Dia",
+  "periodFilterMonth": "Month",
+  "periodFilterQuarter": "Quarter",
+  "periodFilterSemester": "Semester",
+  "periodFilterYear": "Year",
+  "periodFilterCustom": "Custom",
+  "periodFilterTitle": "Select Period"
 }
