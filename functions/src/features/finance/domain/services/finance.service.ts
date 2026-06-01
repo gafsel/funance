@@ -9,9 +9,9 @@ import {
     OrderType,
     ReplicationCascade
 } from "../models/finance.models";
-import {IFinanceRepository} from "../repositories/finance.repository";
-import {CategoryType} from "../../../workspace/domain/models/category.model";
-import {DEFAULT_FINANCE_CONFIG} from "../../../../core/config/finance.config";
+import { IFinanceRepository } from "../repositories/finance.repository";
+import { CategoryType } from "../../../workspace/domain/models/category.model";
+import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
@@ -410,7 +410,8 @@ export class FinanceService {
         const expectedInstallments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[] = [];
 
         // Gera enquanto a próxima data for menor ou igual ao threshold
-        while (true) {
+        let finished = false;
+        while (!finished) {
             // Avança para o próximo mês
             currentMonth++;
             if (currentMonth > 11) {
@@ -419,7 +420,10 @@ export class FinanceService {
             }
 
             const nextMonthFirstDay = new Date(currentYear, currentMonth, 1, 12);
-            if (nextMonthFirstDay > thresholdDate) {
+
+            finished = (nextMonthFirstDay > thresholdDate)
+
+            if (finished) {
                 break;
             }
 

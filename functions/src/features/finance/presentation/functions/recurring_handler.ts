@@ -10,7 +10,8 @@ export const generateRecurringInstallments = onSchedule(
         try {
             await financeService.generateRecurringInstallments();
             console.log("Geração de parcelas recorrentes finalizada com sucesso.");
-        } catch (error) {
+        }
+        catch (error) {
             console.error("Erro ao gerar parcelas recorrentes:", error);
         }
     }
