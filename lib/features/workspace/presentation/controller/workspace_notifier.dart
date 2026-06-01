@@ -20,7 +20,10 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
     state = WorkspaceState();
   }
 
-  Future<void> loadWorkspaces(String userUid) async {
+  Future<void> loadWorkspaces(
+    String userUid, [
+    String? workspaceIdToSelect,
+  ]) async {
     state = state.copyWith(isLoading: true);
 
     try {
@@ -30,9 +33,15 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
       state = state.copyWith(
         availableWorkspaces: workspaces,
         currentWorkspace:
-            workspaces.isNotEmpty && state.currentWorkspace == null
-            ? workspaces.first
-            : state.currentWorkspace,
+            workspaces
+                .where(
+                  (w) =>
+                      w.id ==
+                      (workspaceIdToSelect ?? state.currentWorkspace?.id),
+                )
+                .firstOrNull ??
+            state.currentWorkspace ??
+            workspaces.first,
         isLoading: false,
         initialLoadDone: true,
       );

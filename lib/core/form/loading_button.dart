@@ -193,9 +193,11 @@ class _LoadingButtonState extends State<LoadingButton> {
       );
       rethrow;
     } finally {
-      setState(() {
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+        });
+      }
     }
   }
 }

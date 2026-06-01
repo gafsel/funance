@@ -35,19 +35,28 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     if (state.currentStep != OnboardingSteps.done) {
       var nextStep = OnboardingSteps.values[state.currentStep.index + 1];
 
-      if (nextStep == OnboardingSteps.planning) {
-        final accounts = await accountRepository
-            .getAccounts(state.workspace.id)
-            .first;
-        if (accounts.isNotEmpty) {
-          await _analyzePlanning();
-        } else {
-          nextStep = OnboardingSteps.invites;
-        }
-      } else if (nextStep == OnboardingSteps.done) {
-        await _finalize();
-      } else if (nextStep == OnboardingSteps.name) {
-        await _createWorkspace();
+      switch (nextStep) {
+        case OnboardingSteps.planning:
+          final accounts = await accountRepository
+              .getAccounts(state.workspace.id)
+              .first;
+          if (accounts.isNotEmpty) {
+            await _analyzePlanning();
+          } else {
+            nextStep = OnboardingSteps.invites;
+          }
+          break;
+        case OnboardingSteps.invites:
+          await _savePlanning();
+          break;
+        case OnboardingSteps.name:
+          await _createWorkspace();
+          break;
+        case OnboardingSteps.done:
+          await _sendInvites();
+          break;
+        default:
+          break;
       }
 
       if (state.workspace.id.isNotEmpty) {
@@ -56,12 +65,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         );
       }
 
-      state = state.copyWith(currentStep: nextStep);
-
-      if (state.currentStep == OnboardingSteps.done) {
-        await workspaceNotifier.loadWorkspaces(onboardingService.user.id);
-
-        workspaceNotifier.setCurrentWorkspace(state.workspace);
+      if (nextStep == OnboardingSteps.done) {
+        await workspaceNotifier.loadWorkspaces(
+          onboardingService.user.id,
+          state.workspace.id,
+        );
+      } else {
+        state = state.copyWith(currentStep: nextStep);
       }
     }
   }
@@ -130,7 +140,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     );
   }
 
-  Future<void> _finalize() async {
+  Future<void> _sendInvites() async {
+    await onboardingService.sendInvitations(
+      workspace: state.workspace,
+      inviteEmails: state.inviteEmails,
+    );
+  }
+
+  Future<void> _savePlanning() async {
     onboardingService.savePlanning(
       state.workspace,
       state.planningSuggestions ?? PlanningSuggestions(),
@@ -144,8 +161,9 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
     state = state.copyWith(workspace: workspace);
 
-    await workspaceNotifier.loadWorkspaces(onboardingService.user.id);
-
-    workspaceNotifier.setCurrentWorkspace(workspace);
+    await workspaceNotifier.loadWorkspaces(
+      onboardingService.user.id,
+      state.workspace.id,
+    );
   }
 }
