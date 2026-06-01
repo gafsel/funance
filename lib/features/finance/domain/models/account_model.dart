@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/core/utils/date_time_converter.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 
@@ -28,7 +29,7 @@ sealed class AccountModel with _$AccountModel {
     required String color,
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
-    required DateTime initialBalanceDate,
+    @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
   }) = CheckingAccount;
 
   const factory AccountModel.investment({
@@ -38,7 +39,7 @@ sealed class AccountModel with _$AccountModel {
     required String color,
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
-    required DateTime initialBalanceDate,
+    @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
     required double interestRate,
   }) = InvestmentAccount;
 
@@ -49,7 +50,7 @@ sealed class AccountModel with _$AccountModel {
     required String color,
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
-    required DateTime initialBalanceDate,
+    @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
     required double limit,
     required int dueDay,
     required int closingDay,
@@ -62,7 +63,7 @@ sealed class AccountModel with _$AccountModel {
     required String color,
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
-    required DateTime initialBalanceDate,
+    @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
     required double interestRate,
   }) = DebtAccount;
 

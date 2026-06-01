@@ -80,7 +80,7 @@ export class FinanceService {
 
             const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
             const day = Math.min(after.dueDay, lastDayOfMonth);
-            const dueDate = new Date(year, month, day);
+            const dueDate = new Date(year, month, day, 12);
 
             const isFirst = i === 0;
             const status = (shouldAllBePaid || (isFirst && (after.installmentCreationStatus === InstallmentStatus.paid || after.installmentCreationStatus === InstallmentStatus.settled)))
@@ -103,7 +103,7 @@ export class FinanceService {
                 accountIds: Object.keys(after.accounts || {}),
                 category: after.category,
                 paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? after.amount : undefined,
-                paidDate: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? dueDate : undefined,
+                paidDate: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? new Date(dueDate) : undefined,
             });
         }
 

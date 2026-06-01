@@ -10,9 +10,9 @@ extension InstallmentFirestoreX on DocumentSnapshot {
       ...data,
       'id': id,
       if (data['dueDate'] is Timestamp)
-        'dueDate': (data['dueDate'] as Timestamp).toDate().toIso8601String(),
+        'dueDate': (data['dueDate'] as Timestamp).toDate().toLocal().toIso8601String(),
       if (data['paidDate'] is Timestamp)
-        'paidDate': (data['paidDate'] as Timestamp).toDate().toIso8601String(),
+        'paidDate': (data['paidDate'] as Timestamp).toDate().toLocal().toIso8601String(),
     });
   }
 }

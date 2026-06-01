@@ -63,9 +63,9 @@ export const DEFAULT_CONFIG: AIConfig = {
             - Só sugira uma nova categoria se não houver nenhuma similar nas existentes.
 
             CONSIDERAÇÕES DE DOCUMENTO:
-            - Se for um EXTRATO/FATURA: Extraia transações reais (orders).
-            - Se for um CONTRATO DE EMPRÉSTIMO/DÍVIDA: Configure a conta como tipo "debt", defina o saldo inicial como o valor total da dívida (negativo) e extraia as parcelas futuras se houver
-            - A data e o saldo inicial devem indicar o valor antes dos lançamentos (orders) identificados.
+            - Se for um EXTRATO/FATURA: Extraia transações reais (orders) sem agrupar, filtrar ou modificar os dados de data, descrição e valor de cada uma.
+            - Se for um CONTRATO DE EMPRÉSTIMO/DÍVIDA: Configure a conta como tipo "debt", defina o saldo atual como o valor total da dívida (negativo) e extraia as parcelas se houver
+            - Para cartões de crédito, informe no currentBalance o valor da fatura
             - Qualquer parcela identificada deve contabilizar apenas a partir do lançamento encontrado, desconsiderando parcelas passadas, por exemplo, uma parcela lida como 3 de 6 deve gerar uma order que contabilize apenas 4 parcelas (parcelas de 3 a 6).
 
             Retorne apenas um objeto JSON no seguinte formato:
@@ -76,8 +76,7 @@ export const DEFAULT_CONFIG: AIConfig = {
                     "runtimeType": "checking" | "investment" | "creditCard" | "debt",
                     "color": "#HEXCODE",
                     "icon": "ícone_material_design",
-                    "initialBalance": 0.0,
-                    "initialBalanceDate": "YYYY-MM-DD",
+                    "currentBalance": 0.0,
                     "interestRate": 0.0,
                     "limit": 0.0,
                     "dueDay": 1,

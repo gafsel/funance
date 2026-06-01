@@ -1,6 +1,7 @@
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/core/utils/date_time_converter.dart';
 
 part 'installment_model.freezed.dart';
 
@@ -35,9 +36,9 @@ sealed class InstallmentModel with _$InstallmentModel {
     required String orderId,
     required double amount,
     required String description,
-    required DateTime dueDate,
+    @DateTimeTwelvePmConverter() required DateTime dueDate,
     double? paidAmount,
-    DateTime? paidDate,
+    @DateTimeTwelvePmNullableConverter() DateTime? paidDate,
     int? installmentNumber,
     int? installmentCount,
     required InstallmentStatus status,
@@ -51,6 +52,7 @@ sealed class InstallmentModel with _$InstallmentModel {
   @JsonKey(includeToJson: true)
   List<String> get accountIds => accounts.keys.toList();
 
+  @DateTimeTwelvePmNullableConverter()
   @JsonKey(includeToJson: true)
   DateTime get referenceDate => paidDate ?? dueDate;
 

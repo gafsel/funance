@@ -212,11 +212,18 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = entry.toJson();
       data.remove('id');
-      data['dueDate'] = Timestamp.fromDate(entry.dueDate);
+      
+      final normalizedDueDate = DateTime(entry.dueDate.year, entry.dueDate.month, entry.dueDate.day, 12);
+      data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
+      
       if (entry.paidDate != null) {
-        data['paidDate'] = Timestamp.fromDate(entry.paidDate!);
+        final normalizedPaidDate = DateTime(entry.paidDate!.year, entry.paidDate!.month, entry.paidDate!.day, 12);
+        data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
       }
-      data['referenceDate'] = Timestamp.fromDate(entry.referenceDate);
+      
+      final normalizedReferenceDate = DateTime(entry.referenceDate.year, entry.referenceDate.month, entry.referenceDate.day, 12);
+      data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
+      
       data['referenceAmount'] = entry.referenceAmount;
       await _getWorkspaceDoc(workspaceId).collection('installments').add(data);
     } catch (e, s) {
@@ -236,11 +243,18 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = entry.toJson();
       data.remove('id');
-      data['dueDate'] = Timestamp.fromDate(entry.dueDate);
+      
+      final normalizedDueDate = DateTime(entry.dueDate.year, entry.dueDate.month, entry.dueDate.day, 12);
+      data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
+      
       if (entry.paidDate != null) {
-        data['paidDate'] = Timestamp.fromDate(entry.paidDate!);
+        final normalizedPaidDate = DateTime(entry.paidDate!.year, entry.paidDate!.month, entry.paidDate!.day, 12);
+        data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
       }
-      data['referenceDate'] = Timestamp.fromDate(entry.referenceDate);
+      
+      final normalizedReferenceDate = DateTime(entry.referenceDate.year, entry.referenceDate.month, entry.referenceDate.day, 12);
+      data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
+      
       data['referenceAmount'] = entry.referenceAmount;
       await _getWorkspaceDoc(
         workspaceId,

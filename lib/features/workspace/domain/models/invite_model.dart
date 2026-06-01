@@ -1,6 +1,7 @@
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/core/utils/date_time_converter.dart';
 
 part 'invite_model.freezed.dart';
 part 'invite_model.g.dart';
@@ -23,7 +24,7 @@ sealed class InviteModel with _$InviteModel {
     required String senderName,
     required String receiverEmail,
     required InviteStatus status,
-    required DateTime createdAt,
+    @DateTimeTwelvePmConverter() required DateTime createdAt,
   }) = _InviteModel;
 
   factory InviteModel.fromJson(Map<String, dynamic> json) => _$InviteModelFromJson(json);
@@ -36,7 +37,7 @@ sealed class InviteModel with _$InviteModel {
       'status': 'pending',
       ...data,
       'id': doc.id,
-      'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toIso8601String() ?? DateTime.now().toIso8601String(),
+      'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toLocal().toIso8601String() ?? DateTime.now().toIso8601String(),
     });
   }
 }

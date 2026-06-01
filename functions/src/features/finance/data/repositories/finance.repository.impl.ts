@@ -161,11 +161,17 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const doc = await this.getInstallmentsCollection(workspaceId).doc(installmentId).get();
         if (!doc.exists) return null;
         const data = doc.data() as any;
+        const dueDate = data.dueDate.toDate();
+        dueDate.setHours(12, 0, 0, 0);
+
+        const paidDate = data.paidDate?.toDate();
+        if (paidDate) paidDate.setHours(12, 0, 0, 0);
+
         return {
             id: doc.id,
             ...data,
-            dueDate: data.dueDate.toDate(),
-            paidDate: data.paidDate?.toDate(),
+            dueDate: dueDate,
+            paidDate: paidDate,
         } as InstallmentModel;
     }
 
@@ -176,11 +182,17 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         return snapshot.docs.map((doc) => {
             const data = doc.data();
+            const dueDate = data.dueDate.toDate();
+            dueDate.setHours(12, 0, 0, 0);
+
+            const paidDate = data.paidDate?.toDate();
+            if (paidDate) paidDate.setHours(12, 0, 0, 0);
+
             return {
                 id: doc.id,
                 ...data,
-                dueDate: data.dueDate.toDate(),
-                paidDate: data.paidDate?.toDate(),
+                dueDate: dueDate,
+                paidDate: paidDate,
             } as InstallmentModel;
         });
     }
@@ -208,11 +220,17 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         return snapshot.docs.map((doc) => {
             const data = doc.data();
+            const dueDate = data.dueDate.toDate();
+            dueDate.setHours(12, 0, 0, 0);
+
+            const paidDate = data.paidDate?.toDate();
+            if (paidDate) paidDate.setHours(12, 0, 0, 0);
+
             return {
                 id: doc.id,
                 ...data,
-                dueDate: data.dueDate.toDate(),
-                paidDate: data.paidDate?.toDate(),
+                dueDate: dueDate,
+                paidDate: paidDate,
             } as InstallmentModel;
         });
     }
@@ -318,6 +336,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.firestore.runTransaction(async (transaction) => {
             const doc = await transaction.get(docRef);
 
+            // Impactar saldos futuros dentro da mesma transação para garantir atomicidade
+            // IMPORTANTE: Usar transaction.get() para garantir que a leitura seja parte da transação
+            const futureBalancesQuery = balancesColl.where(admin.firestore.FieldPath.documentId(), ">", dateId);
+            const futureBalances = await transaction.get(futureBalancesQuery);
+
             if (!doc.exists) {
                 // Se não existe saldo no dia, precisamos buscar o último saldo anterior para compor o inicial
                 // Passamos a transaction para garantir leitura consistente
@@ -335,11 +358,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
             }
-
-            // Impactar saldos futuros dentro da mesma transação para garantir atomicidade
-            // IMPORTANTE: Usar transaction.get() para garantir que a leitura seja parte da transação
-            const futureBalancesQuery = balancesColl.where(admin.firestore.FieldPath.documentId(), ">", dateId);
-            const futureBalances = await transaction.get(futureBalancesQuery);
 
             if (!futureBalances.empty) {
                 futureBalances.docs.forEach((d) => {

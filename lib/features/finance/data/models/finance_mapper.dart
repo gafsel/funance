@@ -30,7 +30,11 @@ class FinanceMapper {
     return CategoryType.expense;
   }
 
-  static AccountModel toAccount(dynamic json) {
+  static AccountModel toAccount(
+    dynamic json,
+    DateTime initialBalanceDate,
+    double deltaAmount,
+  ) {
     if (json == null || json is! Map) {
       return AccountModel.checking(
         id: '',
@@ -46,8 +50,8 @@ class FinanceMapper {
     final icon = json['icon']?.toString() ?? 'account_balance';
     final color = json['color']?.toString() ?? '#4A8C9C';
     final isDeleted = json['isDeleted'] == true;
-    final initialBalance = _toDouble(json['initialBalance']);
-    final initialBalanceDate = _toDateTime(json['initialBalanceDate']);
+    final currentBalance = _toDouble(json['currentBalance']);
+    final initialBalance = currentBalance - deltaAmount;
     final runtimeType = json['runtimeType']?.toString() ?? 'checking';
 
     switch (runtimeType) {
@@ -139,14 +143,34 @@ class FinanceMapper {
   static AccountDocumentAnalysisResult toAnalysisResult(dynamic json) {
     if (json == null || json is! Map) {
       return AccountDocumentAnalysisResult(
-        account: toAccount(null),
+        account: toAccount(null, DateTime.now(), 0),
         orders: [],
       );
     }
 
+    final orders = (json['orders'] as List? ?? [])
+        .map((e) => toOrder(e))
+        .toList();
+
+    final initialBalanceDate = orders.isEmpty
+        ? DateTime.now()
+        : orders
+              .map((order) => order.firstDueDate)
+              .reduce((d1, d2) => d1.isBefore(d2) ? d1 : d2)
+              .subtract(Duration(days: 1));
+    final deltaAmount = orders.isEmpty
+        ? 0.0
+        : orders
+              .map(
+                (order) => order.type == OrderType.expense
+                    ? -order.amount
+                    : order.amount,
+              )
+              .reduce((a1, a2) => a1 + a2);
+
     return AccountDocumentAnalysisResult(
-      account: toAccount(json['account']),
-      orders: (json['orders'] as List? ?? []).map((e) => toOrder(e)).toList(),
+      account: toAccount(json['account'], initialBalanceDate, deltaAmount),
+      orders: orders,
     );
   }
 
