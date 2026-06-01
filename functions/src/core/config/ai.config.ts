@@ -118,11 +118,6 @@ export const DEFAULT_CONFIG: AIConfig = {
 
                 Retorne apenas um objeto JSON no formato:
                 {
-                    "account": {
-                        "name": "{{accountName}}",
-                        "runtimeType": "{{runtimeType}}",
-                        "currentBalance": {{currentBalance}}
-                    },
                     "orders": [
                         {
                             "description": "Descrição original",

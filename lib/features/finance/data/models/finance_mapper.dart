@@ -1,5 +1,6 @@
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
@@ -137,6 +138,7 @@ class FinanceMapper {
       status: _toOrderStatus(json['status']),
       type: _toOrderType(json['type']),
       category: json['category'] != null ? toCategory(json['category']) : null,
+      installmentCreationStatus: InstallmentStatus.settled,
     );
   }
 

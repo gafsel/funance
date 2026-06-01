@@ -76,10 +76,12 @@ export class SummaryService {
         }
 
         // 2. Processar Valor Realizado (Fluxo de Caixa) no paidDate
-        if (before && before.status === InstallmentStatus.paid && before.paidDate && (before.paidAmount ?? before.amount)) {
+        const isPaidStatus = (s: InstallmentStatus) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
+
+        if (before && isPaidStatus(before.status) && before.paidDate && (before.paidAmount ?? before.amount)) {
             await this.updateSummaryRealizado(workspaceId, before, -1);
         }
-        if (after && after.status === InstallmentStatus.paid && after.paidDate && (after.paidAmount ?? after.amount)) {
+        if (after && isPaidStatus(after.status) && after.paidDate && (after.paidAmount ?? after.amount)) {
             await this.updateSummaryRealizado(workspaceId, after, 1);
         }
     }

@@ -14,6 +14,8 @@ export class GoalServiceImpl implements IGoalService {
 
         if (accountIds.size === 0) return;
 
+        const isPaidStatus = (s: InstallmentStatus) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
+
         for (const accountId of accountIds) {
             // Buscar metas ativas associadas a esta conta
             const activeGoals = await this.goalRepository.getActiveGoalsByAccount(workspaceId, accountId);
@@ -22,12 +24,12 @@ export class GoalServiceImpl implements IGoalService {
             for (const goal of activeGoals) {
                 let amountChange = 0;
 
-                if (before && before.status === InstallmentStatus.paid && before.paidDate) {
+                if (before && isPaidStatus(before.status) && before.paidDate) {
                     if (before.paidDate >= goal.startDate && before.accounts && before.accounts[accountId]) {
                         amountChange -= this.calculateContribution(goal.type, before, accountId);
                     }
                 }
-                if (after && after.status === InstallmentStatus.paid && after.paidDate) {
+                if (after && isPaidStatus(after.status) && after.paidDate) {
                     if (after.paidDate >= goal.startDate && after.accounts && after.accounts[accountId]) {
                         amountChange += this.calculateContribution(goal.type, after, accountId);
                     }

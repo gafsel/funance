@@ -114,16 +114,18 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             // Usar IA apenas para classificação das transações identificadas
             const prompt = config.prompts.documentOfx
                 .replace("{{existingCategories}}", existingCategories.join(" | "))
-                .replace("{{transactions}}", JSON.stringify(transactions))
-                .replace("{{accountName}}", accountInfo.name || fileName.split(".")[0])
-                .replace("{{runtimeType}}", accountInfo.runtimeType || "checking")
-                .replace("{{currentBalance}}", (accountInfo.currentBalance || 0.0).toString());
+                .replace("{{transactions}}", JSON.stringify(transactions));
 
             const aiResult = await model.generateContent(prompt);
             const response = await aiResult.response;
             const text = response.text();
             const jsonMatch = text.match(/\{[\s\S]*\}/);
             resultData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+
+            resultData = {
+                account: accountInfo,
+                orders: resultData.orders,
+            };
 
             // Log no Firestore para OFX
             await admin.firestore().collection("ai_logs").add({
@@ -136,7 +138,8 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-        } else {
+        }
+        else {
             const prompt = config.prompts.document
                 .replace("{{fileName}}", fileName)
                 .replace("{{existingCategories}}", existingCategories.join(" | "));
@@ -216,7 +219,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
     private extractOfxData(parsedOfx: any): { account: any, transactions: any[] } {
         const transactions: any[] = [];
-        let account: any = {};
+        const account: any = {};
         try {
             const ofxData = parsedOfx.OFX;
             
@@ -226,7 +229,8 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
             if (ofxData.BANKMSGSRSV1) {
                 stmtTrnRs = ofxData.BANKMSGSRSV1.STMTTRNRS;
-            } else if (ofxData.CREDITCARDMSGSRSV1) {
+            }
+            else if (ofxData.CREDITCARDMSGSRSV1) {
                 stmtTrnRs = ofxData.CREDITCARDMSGSRSV1.CCSTMTTRNRS;
                 isCreditCard = true;
             }
@@ -267,8 +271,11 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                     });
                 }
             }
-        } catch (e) {
+        }
+        catch (e) {
             console.error("Erro ao extrair dados OFX:", e);
+
+            throw new Error("Falha ao extrair dados OFX");
         }
         return { account, transactions };
     }

@@ -55,7 +55,7 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
       state = state.copyWith(replicateCascade: value);
 
   void updateStatus(InstallmentStatus value) {
-    if (value == InstallmentStatus.paid) {
+    if (value == InstallmentStatus.paid || value == InstallmentStatus.settled) {
       state = state.copyWith(
         status: value,
         paidAmount: state.amount,

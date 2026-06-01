@@ -260,8 +260,10 @@ export class FinanceService {
         // mas o gatilho da function de trigger (se existir) chamaria este método para cada uma.
         // Se estivermos chamando manualmente no updateInstallment do service, precisamos tomar cuidado.
 
-        const isBeforePaid = before?.status === InstallmentStatus.paid || before?.status === InstallmentStatus.settled;
-        const isAfterPaid = after?.status === InstallmentStatus.paid || after?.status === InstallmentStatus.settled;
+        const isPaidStatus = (s: InstallmentStatus | undefined) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
+
+        const isBeforePaid = isPaidStatus(before?.status);
+        const isAfterPaid = isPaidStatus(after?.status);
 
         // Caso 1: Estorno (Era pago e deixou de ser, ou foi deletado)
         if (isBeforePaid && (!after || !isAfterPaid)) {
