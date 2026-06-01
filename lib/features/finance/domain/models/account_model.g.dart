@@ -14,7 +14,9 @@ CheckingAccount _$CheckingAccountFromJson(Map<String, dynamic> json) =>
       color: json['color'] as String,
       isDeleted: json['isDeleted'] as bool? ?? false,
       initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
-      initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+      initialBalanceDate: const DateTimeTwelvePmConverter().fromJson(
+        json['initialBalanceDate'] as String,
+      ),
       $type: json['runtimeType'] as String?,
     );
 
@@ -26,7 +28,9 @@ Map<String, dynamic> _$CheckingAccountToJson(CheckingAccount instance) =>
       'color': instance.color,
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
-      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'initialBalanceDate': const DateTimeTwelvePmConverter().toJson(
+        instance.initialBalanceDate,
+      ),
       'runtimeType': instance.$type,
     };
 
@@ -38,7 +42,9 @@ InvestmentAccount _$InvestmentAccountFromJson(Map<String, dynamic> json) =>
       color: json['color'] as String,
       isDeleted: json['isDeleted'] as bool? ?? false,
       initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
-      initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+      initialBalanceDate: const DateTimeTwelvePmConverter().fromJson(
+        json['initialBalanceDate'] as String,
+      ),
       interestRate: (json['interestRate'] as num).toDouble(),
       $type: json['runtimeType'] as String?,
     );
@@ -51,7 +57,9 @@ Map<String, dynamic> _$InvestmentAccountToJson(InvestmentAccount instance) =>
       'color': instance.color,
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
-      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'initialBalanceDate': const DateTimeTwelvePmConverter().toJson(
+        instance.initialBalanceDate,
+      ),
       'interestRate': instance.interestRate,
       'runtimeType': instance.$type,
     };
@@ -64,7 +72,9 @@ CreditCardAccount _$CreditCardAccountFromJson(Map<String, dynamic> json) =>
       color: json['color'] as String,
       isDeleted: json['isDeleted'] as bool? ?? false,
       initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
-      initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+      initialBalanceDate: const DateTimeTwelvePmConverter().fromJson(
+        json['initialBalanceDate'] as String,
+      ),
       limit: (json['limit'] as num).toDouble(),
       dueDay: (json['dueDay'] as num).toInt(),
       closingDay: (json['closingDay'] as num).toInt(),
@@ -79,7 +89,9 @@ Map<String, dynamic> _$CreditCardAccountToJson(CreditCardAccount instance) =>
       'color': instance.color,
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
-      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'initialBalanceDate': const DateTimeTwelvePmConverter().toJson(
+        instance.initialBalanceDate,
+      ),
       'limit': instance.limit,
       'dueDay': instance.dueDay,
       'closingDay': instance.closingDay,
@@ -93,7 +105,9 @@ DebtAccount _$DebtAccountFromJson(Map<String, dynamic> json) => DebtAccount(
   color: json['color'] as String,
   isDeleted: json['isDeleted'] as bool? ?? false,
   initialBalance: (json['initialBalance'] as num?)?.toDouble() ?? 0.0,
-  initialBalanceDate: DateTime.parse(json['initialBalanceDate'] as String),
+  initialBalanceDate: const DateTimeTwelvePmConverter().fromJson(
+    json['initialBalanceDate'] as String,
+  ),
   interestRate: (json['interestRate'] as num).toDouble(),
   $type: json['runtimeType'] as String?,
 );
@@ -106,7 +120,9 @@ Map<String, dynamic> _$DebtAccountToJson(DebtAccount instance) =>
       'color': instance.color,
       'isDeleted': instance.isDeleted,
       'initialBalance': instance.initialBalance,
-      'initialBalanceDate': instance.initialBalanceDate.toIso8601String(),
+      'initialBalanceDate': const DateTimeTwelvePmConverter().toJson(
+        instance.initialBalanceDate,
+      ),
       'interestRate': instance.interestRate,
       'runtimeType': instance.$type,
     };

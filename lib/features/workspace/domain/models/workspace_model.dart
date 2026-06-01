@@ -12,7 +12,7 @@ enum WorkspaceType {
   business,
 }
 
-enum OnboardingSteps { type, name, accounts, planning, invites, done }
+enum OnboardingSteps { type, name, accounts, planning, invites, success, done }
 
 @freezed
 sealed class WorkspaceModel with _$WorkspaceModel {

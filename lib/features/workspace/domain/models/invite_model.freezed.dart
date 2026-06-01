@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$InviteModel {
 
- String get id;@JsonKey(name: 'workspace') WorkspaceModel get workspace; String get senderId; String get senderName; String get receiverEmail; InviteStatus get status; DateTime get createdAt;
+ String get id;@JsonKey(name: 'workspace') WorkspaceModel get workspace; String get senderId; String get senderName; String get receiverEmail; InviteStatus get status;@DateTimeTwelvePmConverter() DateTime get createdAt;
 /// Create a copy of InviteModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $InviteModelCopyWith<$Res>  {
   factory $InviteModelCopyWith(InviteModel value, $Res Function(InviteModel) _then) = _$InviteModelCopyWithImpl;
 @useResult
 $Res call({
- String id,@JsonKey(name: 'workspace') WorkspaceModel workspace, String senderId, String senderName, String receiverEmail, InviteStatus status, DateTime createdAt
+ String id,@JsonKey(name: 'workspace') WorkspaceModel workspace, String senderId, String senderName, String receiverEmail, InviteStatus status,@DateTimeTwelvePmConverter() DateTime createdAt
 });
 
 
@@ -165,7 +165,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workspace')  WorkspaceModel workspace,  String senderId,  String senderName,  String receiverEmail,  InviteStatus status,  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workspace')  WorkspaceModel workspace,  String senderId,  String senderName,  String receiverEmail,  InviteStatus status, @DateTimeTwelvePmConverter()  DateTime createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InviteModel() when $default != null:
 return $default(_that.id,_that.workspace,_that.senderId,_that.senderName,_that.receiverEmail,_that.status,_that.createdAt);case _:
@@ -186,7 +186,7 @@ return $default(_that.id,_that.workspace,_that.senderId,_that.senderName,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workspace')  WorkspaceModel workspace,  String senderId,  String senderName,  String receiverEmail,  InviteStatus status,  DateTime createdAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(name: 'workspace')  WorkspaceModel workspace,  String senderId,  String senderName,  String receiverEmail,  InviteStatus status, @DateTimeTwelvePmConverter()  DateTime createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _InviteModel():
 return $default(_that.id,_that.workspace,_that.senderId,_that.senderName,_that.receiverEmail,_that.status,_that.createdAt);}
@@ -203,7 +203,7 @@ return $default(_that.id,_that.workspace,_that.senderId,_that.senderName,_that.r
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workspace')  WorkspaceModel workspace,  String senderId,  String senderName,  String receiverEmail,  InviteStatus status,  DateTime createdAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(name: 'workspace')  WorkspaceModel workspace,  String senderId,  String senderName,  String receiverEmail,  InviteStatus status, @DateTimeTwelvePmConverter()  DateTime createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _InviteModel() when $default != null:
 return $default(_that.id,_that.workspace,_that.senderId,_that.senderName,_that.receiverEmail,_that.status,_that.createdAt);case _:
@@ -218,7 +218,7 @@ return $default(_that.id,_that.workspace,_that.senderId,_that.senderName,_that.r
 
 @JsonSerializable(explicitToJson: true)
 class _InviteModel extends InviteModel {
-  const _InviteModel({required this.id, @JsonKey(name: 'workspace') required this.workspace, required this.senderId, required this.senderName, required this.receiverEmail, required this.status, required this.createdAt}): super._();
+  const _InviteModel({required this.id, @JsonKey(name: 'workspace') required this.workspace, required this.senderId, required this.senderName, required this.receiverEmail, required this.status, @DateTimeTwelvePmConverter() required this.createdAt}): super._();
   factory _InviteModel.fromJson(Map<String, dynamic> json) => _$InviteModelFromJson(json);
 
 @override final  String id;
@@ -227,7 +227,7 @@ class _InviteModel extends InviteModel {
 @override final  String senderName;
 @override final  String receiverEmail;
 @override final  InviteStatus status;
-@override final  DateTime createdAt;
+@override@DateTimeTwelvePmConverter() final  DateTime createdAt;
 
 /// Create a copy of InviteModel
 /// with the given fields replaced by the non-null parameter values.
@@ -262,7 +262,7 @@ abstract mixin class _$InviteModelCopyWith<$Res> implements $InviteModelCopyWith
   factory _$InviteModelCopyWith(_InviteModel value, $Res Function(_InviteModel) _then) = __$InviteModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id,@JsonKey(name: 'workspace') WorkspaceModel workspace, String senderId, String senderName, String receiverEmail, InviteStatus status, DateTime createdAt
+ String id,@JsonKey(name: 'workspace') WorkspaceModel workspace, String senderId, String senderName, String receiverEmail, InviteStatus status,@DateTimeTwelvePmConverter() DateTime createdAt
 });
 
 

@@ -104,6 +104,7 @@ class TransactionFormScreen extends StatelessWidget {
           ),
         ],
         onSubmit: (snapshot, loading) async {
+          if (snapshot.model.status == InstallmentStatus.settled) return;
           if (!snapshot.validate()) return;
 
           final state = snapshot.model;
@@ -164,11 +165,28 @@ class TransactionFormScreen extends StatelessWidget {
 
           navigator.pop();
         },
+        bannerBuilder: (context, snapshot) {
+          final state = snapshot.model;
+          final notifier = snapshot.notifier;
+          if (state.status == InstallmentStatus.settled) {
+            return MaterialBanner(
+              content: Text(l10n.transactionSettledAlert),
+              actions: [
+                TextButton(
+                  onPressed: notifier.unsettle,
+                  child: Text(l10n.transactionUnsettleAction),
+                ),
+              ],
+            );
+          }
+          return null;
+        },
         fieldsBuilder: (context, snapshot) {
           final state = snapshot.model;
           final notifier = snapshot.notifier;
           final v = context.validations;
           final isPending = state.status == InstallmentStatus.pending;
+          final isSettled = state.status == InstallmentStatus.settled;
 
           final showAccounts =
               !state.creation ||
@@ -202,7 +220,7 @@ class TransactionFormScreen extends StatelessWidget {
                   label: l10n.transactionTypeTransfer,
                 ),
               ],
-              onChanged: state.creation
+              onChanged: state.creation && !isSettled
                   ? (v) {
                       if (v != null) {
                         notifier.updateOrderType(v);
@@ -225,9 +243,9 @@ class TransactionFormScreen extends StatelessWidget {
                   labelText: l10n.transactionCategoriesSection,
                 ),
                 onChanged:
-                    state.creation ||
+                    (state.creation ||
                         (state.installmentId != null &&
-                            state.status == InstallmentStatus.pending)
+                            state.status == InstallmentStatus.pending)) && !isSettled
                     ? notifier.updateCategory
                     : null,
                 validator: v.all([v.notNull()]),
@@ -243,7 +261,7 @@ class TransactionFormScreen extends StatelessWidget {
                       : l10n.transactionAccountLabel,
                 ),
                 onChanged:
-                    state.status != InstallmentStatus.paid || state.creation
+                    (state.status != InstallmentStatus.paid || state.creation) && !isSettled
                     ? notifier.updateAccountIdSource
                     : null,
                 validator: isPending ? null : v.all([v.notEmpty()]),
@@ -256,7 +274,7 @@ class TransactionFormScreen extends StatelessWidget {
                     labelText: l10n.transactionToAccountLabel,
                   ),
                   onChanged:
-                      state.status != InstallmentStatus.paid || state.creation
+                      (state.status != InstallmentStatus.paid || state.creation) && !isSettled
                       ? notifier.updateAccountIdTarget
                       : null,
                   validator: isPending ? null : v.all([v.notEmpty()]),
@@ -279,9 +297,10 @@ class TransactionFormScreen extends StatelessWidget {
     final l10n = context.l10n;
     final v = context.validations;
     final isPaid = state.status == InstallmentStatus.paid;
+    final isSettled = state.status == InstallmentStatus.settled;
 
     return [
-      if (state.creation) _buildStatusField(state, notifier),
+      if (state.creation) _buildStatusField(context, state, notifier),
       TextFormField(
         initialValue: state.description,
         decoration: InputDecoration(
@@ -289,7 +308,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         onChanged: notifier.updateDescription,
         validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
-        enabled: !isPaid || state.creation,
+        enabled: (!isPaid || state.creation) && !isSettled,
       ),
       DateFormField(
         initialValue: state.dueDate,
@@ -299,7 +318,7 @@ class TransactionFormScreen extends StatelessWidget {
           }
         },
         decoration: InputDecoration(labelText: l10n.transactionDateLabel),
-        enabled: (state.orderId == null) && (!isPaid || state.creation),
+        enabled: (state.orderId == null) && (!isPaid || state.creation) && !isSettled,
         validator: v.all([v.notNull()]),
       ),
       TextFormField(
@@ -311,7 +330,7 @@ class TransactionFormScreen extends StatelessWidget {
         keyboardType: TextInputType.number,
         onChanged: (v) => notifier.updateAmount(double.tryParse(v) ?? 0),
         validator: v.all([v.notNull()]),
-        enabled: !isPaid || state.creation,
+        enabled: (!isPaid || state.creation) && !isSettled,
       ),
       if (state.type != OrderType.transfer) ...[
         ChipFormField<InstallmentType>(
@@ -331,7 +350,7 @@ class TransactionFormScreen extends StatelessWidget {
               label: l10n.transactionTypeRecurrent,
             ),
           ],
-          onChanged: state.creation
+          onChanged: state.creation && !isSettled
               ? (v) {
                   if (v != null) {
                     notifier.updateInstallmentType(v);
@@ -350,9 +369,10 @@ class TransactionFormScreen extends StatelessWidget {
             labelText: l10n.transactionInstallmentsLabel,
           ),
           validator: v.all([v.notEmpty()]),
+          enabled: !isSettled,
         ),
       if (state.formType == TransactionFormType.installment)
-        _buildStatusField(state, notifier),
+        _buildStatusField(context, state, notifier),
       if (state.formType == TransactionFormType.installment && isPaid) ...[
         DateFormField(
           initialValue: state.paidDate,
@@ -361,58 +381,73 @@ class TransactionFormScreen extends StatelessWidget {
               notifier.updatePaidDate(date);
             }
           },
-          decoration: const InputDecoration(labelText: "Data de Pagamento"),
+          decoration: InputDecoration(labelText: l10n.transactionDateLabel),
           validator: v.all([v.notNull()]),
+          enabled: !isSettled,
         ),
         TextFormField(
           initialValue: state.paidAmount?.toString(),
-          decoration: const InputDecoration(
-            labelText: "Valor Pago",
+          decoration: InputDecoration(
+            labelText: l10n.transactionAmountLabel,
             prefixText: 'R\$ ',
           ),
           keyboardType: TextInputType.number,
           onChanged: (v) => notifier.updatePaidAmount(double.tryParse(v) ?? 0),
           validator: v.all([v.notNull()]),
+          enabled: !isSettled,
         ),
       ],
     ];
   }
 
   ChipFormField<InstallmentStatus> _buildStatusField(
+    BuildContext context,
     TransactionFormState state,
     TransactionFormNotifier notifier,
   ) {
+    final l10n = context.l10n;
+    final isSettled = state.status == InstallmentStatus.settled;
+
     return ChipFormField<InstallmentStatus>(
       initialValue: state.status,
       decoration: InputDecoration(
-        labelText: state.creation ? "Tipo de Cadastro" : "Status",
+        labelText: state.creation
+            ? l10n.transactionStatusTypeLabel
+            : l10n.transactionStatusLabel,
       ),
       options: state.creation
           ? [
-              const ChipFormFieldOption(
+              ChipFormFieldOption(
                 value: InstallmentStatus.pending,
-                label: "Planejamento",
+                label: l10n.transactionStatusPlanning,
               ),
-              const ChipFormFieldOption(
+              ChipFormFieldOption(
                 value: InstallmentStatus.paid,
-                label: "Realizado",
+                label: l10n.transactionStatusRealized,
               ),
             ]
           : [
-              const ChipFormFieldOption(
+              ChipFormFieldOption(
                 value: InstallmentStatus.pending,
-                label: "Pendente",
+                label: l10n.transactionStatusPending,
               ),
-              const ChipFormFieldOption(
+              ChipFormFieldOption(
                 value: InstallmentStatus.paid,
-                label: "Pago",
+                label: l10n.transactionStatusPaid,
               ),
+              if (isSettled)
+                ChipFormFieldOption(
+                  value: InstallmentStatus.settled,
+                  label: l10n.transactionStatusSettled,
+                ),
             ],
-      onChanged: (v) {
-        if (v != null) {
-          notifier.updateStatus(v);
-        }
-      },
+      onChanged: !isSettled
+          ? (v) {
+              if (v != null) {
+                notifier.updateStatus(v);
+              }
+            }
+          : null,
     );
   }
 }

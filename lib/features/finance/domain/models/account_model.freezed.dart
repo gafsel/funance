@@ -46,7 +46,7 @@ AccountModel _$AccountModelFromJson(
 /// @nodoc
 mixin _$AccountModel {
 
- String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance; DateTime get initialBalanceDate;
+ String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance;@DateTimeTwelvePmConverter() DateTime get initialBalanceDate;
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -79,7 +79,7 @@ abstract mixin class $AccountModelCopyWith<$Res>  {
   factory $AccountModelCopyWith(AccountModel value, $Res Function(AccountModel) _then) = _$AccountModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate
 });
 
 
@@ -196,7 +196,7 @@ return debt(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  debt,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  debt,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount() when investment != null:
@@ -220,7 +220,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)  debt,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount():
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount():
@@ -240,7 +240,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance,  DateTime initialBalanceDate,  double interestRate)?  debt,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount() when investment != null:
@@ -258,7 +258,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 @JsonSerializable()
 
 class CheckingAccount extends AccountModel {
-  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, final  String? $type}): $type = $type ?? 'checking',super._();
+  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, final  String? $type}): $type = $type ?? 'checking',super._();
   factory CheckingAccount.fromJson(Map<String, dynamic> json) => _$CheckingAccountFromJson(json);
 
 @override final  String id;
@@ -267,7 +267,7 @@ class CheckingAccount extends AccountModel {
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
-@override final  DateTime initialBalanceDate;
+@override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -306,7 +306,7 @@ abstract mixin class $CheckingAccountCopyWith<$Res> implements $AccountModelCopy
   factory $CheckingAccountCopyWith(CheckingAccount value, $Res Function(CheckingAccount) _then) = _$CheckingAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate
 });
 
 
@@ -343,7 +343,7 @@ as DateTime,
 @JsonSerializable()
 
 class InvestmentAccount extends AccountModel {
-  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
+  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
   factory InvestmentAccount.fromJson(Map<String, dynamic> json) => _$InvestmentAccountFromJson(json);
 
 @override final  String id;
@@ -352,7 +352,7 @@ class InvestmentAccount extends AccountModel {
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
-@override final  DateTime initialBalanceDate;
+@override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
  final  double interestRate;
 
 @JsonKey(name: 'runtimeType')
@@ -392,7 +392,7 @@ abstract mixin class $InvestmentAccountCopyWith<$Res> implements $AccountModelCo
   factory $InvestmentAccountCopyWith(InvestmentAccount value, $Res Function(InvestmentAccount) _then) = _$InvestmentAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, double interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double interestRate
 });
 
 
@@ -430,7 +430,7 @@ as double,
 @JsonSerializable()
 
 class CreditCardAccount extends AccountModel {
-  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
+  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
   factory CreditCardAccount.fromJson(Map<String, dynamic> json) => _$CreditCardAccountFromJson(json);
 
 @override final  String id;
@@ -439,7 +439,7 @@ class CreditCardAccount extends AccountModel {
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
-@override final  DateTime initialBalanceDate;
+@override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
  final  double limit;
  final  int dueDay;
  final  int closingDay;
@@ -481,7 +481,7 @@ abstract mixin class $CreditCardAccountCopyWith<$Res> implements $AccountModelCo
   factory $CreditCardAccountCopyWith(CreditCardAccount value, $Res Function(CreditCardAccount) _then) = _$CreditCardAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, double limit, int dueDay, int closingDay
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double limit, int dueDay, int closingDay
 });
 
 
@@ -521,7 +521,7 @@ as int,
 @JsonSerializable()
 
 class DebtAccount extends AccountModel {
-  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
+  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
   factory DebtAccount.fromJson(Map<String, dynamic> json) => _$DebtAccountFromJson(json);
 
 @override final  String id;
@@ -530,7 +530,7 @@ class DebtAccount extends AccountModel {
 @override final  String color;
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
-@override final  DateTime initialBalanceDate;
+@override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
  final  double interestRate;
 
 @JsonKey(name: 'runtimeType')
@@ -570,7 +570,7 @@ abstract mixin class $DebtAccountCopyWith<$Res> implements $AccountModelCopyWith
   factory $DebtAccountCopyWith(DebtAccount value, $Res Function(DebtAccount) _then) = _$DebtAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance, DateTime initialBalanceDate, double interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double interestRate
 });
 
 

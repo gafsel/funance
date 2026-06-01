@@ -23,8 +23,9 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
   Future<void> loadWorkspaces(
     String userUid, [
     String? workspaceIdToSelect,
+    bool background = false
   ]) async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: !background);
 
     try {
       _logger.d("Carregando workspaces para o usuário: $userUid");

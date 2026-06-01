@@ -52,8 +52,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         case OnboardingSteps.name:
           await _createWorkspace();
           break;
-        case OnboardingSteps.done:
+        case OnboardingSteps.success:
           await _sendInvites();
+          break;
+        case OnboardingSteps.done:
           break;
         default:
           break;
@@ -164,6 +166,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     await workspaceNotifier.loadWorkspaces(
       onboardingService.user.id,
       state.workspace.id,
+      true
     );
   }
 }

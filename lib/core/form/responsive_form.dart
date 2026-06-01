@@ -30,12 +30,19 @@ class FullWidthItem extends StatelessWidget {
 }
 
 
+typedef BannerBuilder<I, O, N extends FormNotifier<I, O>> =
+    MaterialBanner? Function(
+      BuildContext context,
+      FormBuilderSnapshot<I, O, N> snapshot,
+    );
+
 class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     extends StatelessWidget {
   const ResponsiveForm(
     this.provider, {
     super.key,
     required this.fieldsBuilder,
+    this.bannerBuilder,
     this.submitLabel,
     this.extraActions = const [],
     this.onSuccess,
@@ -44,6 +51,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
 
   final AutoDisposeStateNotifierProvider<N, I> provider;
   final FieldsBuilder<I, O, N> fieldsBuilder;
+  final BannerBuilder<I, O, N>? bannerBuilder;
   final String? submitLabel;
   final List<Widget> extraActions;
   final ValueChanged<O?>? onSuccess;
@@ -58,8 +66,13 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
       child: ManualForm<I, O, N>(
         provider,
         formBuilder: (context, snapshot) {
+          final banner = bannerBuilder?.call(context, snapshot);
           return Column(
             children: [
+              if (banner != null) ...[
+                banner,
+                const SizedBox(height: 16),
+              ],
               _ResponsiveGrid(
                 spacing: 16,
                 children: fieldsBuilder(context, snapshot),

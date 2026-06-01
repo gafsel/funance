@@ -61,9 +61,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Convites pendentes
-      if (inviteState.pendingInvites.isNotEmpty &&
-          state.matchedLocation != '/invites') {
-        return '/invites';
+      if (inviteState.pendingInvites.isNotEmpty) {
+        if (state.matchedLocation != '/invites') {
+          return '/invites';
+        }
+
+        return null;
       }
 
       // Onboarding

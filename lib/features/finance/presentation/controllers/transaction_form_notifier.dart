@@ -68,6 +68,10 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
     }
   }
 
+  void unsettle() {
+    state = state.copyWith(status: InstallmentStatus.paid);
+  }
+
   Future<bool> submit() async {
     if (state.formType == TransactionFormType.order) {
       final order = state.asOrderModel();

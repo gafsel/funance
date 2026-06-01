@@ -194,6 +194,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingMembersEmpty => 'No email added';
 
   @override
+  String get onboardingSuccessTitle => 'All set!';
+
+  @override
+  String get onboardingSuccessDesc =>
+      'Your workspace has been successfully configured. Now you can start organizing your financial life.';
+
+  @override
+  String get onboardingSuccessCTA => 'GO TO MAIN SCREEN';
+
+  @override
+  String get onboardingStepConceptsTitle => 'Understand the Concepts';
+
+  @override
+  String get onboardingStepConceptsDesc =>
+      'To get the most out of Funances, let\'s understand how we organize information.';
+
+  @override
+  String get onboardingConceptLimitsTitle => 'Limits and Expectations';
+
+  @override
+  String get onboardingConceptLimitsDesc =>
+      'Define how much you expect to earn and the maximum you want to spend per category. This is your financial ceiling.';
+
+  @override
+  String get onboardingConceptPlanningTitle => 'Planning';
+
+  @override
+  String get onboardingConceptPlanningDesc =>
+      'Works as a scheduled transaction: counts towards the category ceiling but doesn\'t affect the account balance until cleared. Ideal for recurring or installment payments.';
+
+  @override
+  String get onboardingConceptFeaturesTitle => 'Features and Where to Find';
+
+  @override
+  String get onboardingConceptFeaturesDesc =>
+      'Explore the Dashboard for an overview, Statements for reconciliation, and Goals to track your dreams.';
+
+  @override
+  String get onboardingConceptTransactionsTitle => 'Transactions';
+
+  @override
+  String get onboardingConceptTransactionsDesc =>
+      'The day-to-day! Record your actual income and expenses to track your progress against the plan.';
+
+  @override
   String goalRemainingMonthly(String amount) {
     return '$amount/mo';
   }
@@ -650,6 +695,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionInstallmentsLabel => 'Installments';
+
+  @override
+  String get transactionStatusSettled => 'Settled';
+
+  @override
+  String get transactionStatusPaid => 'Paid';
+
+  @override
+  String get transactionStatusPending => 'Pending';
+
+  @override
+  String get transactionStatusPlanning => 'Planning';
+
+  @override
+  String get transactionStatusRealized => 'Realized';
+
+  @override
+  String get transactionStatusLabel => 'Status';
+
+  @override
+  String get transactionStatusTypeLabel => 'Registration Type';
+
+  @override
+  String get transactionSettledAlert =>
+      'This transaction cannot be modified because it has already been settled.';
+
+  @override
+  String get transactionUnsettleAction => 'Undo reconciliation';
 
   @override
   String get transactionTypeExpense => 'Expense';

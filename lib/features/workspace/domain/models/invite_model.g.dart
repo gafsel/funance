@@ -13,7 +13,9 @@ _InviteModel _$InviteModelFromJson(Map<String, dynamic> json) => _InviteModel(
   senderName: json['senderName'] as String,
   receiverEmail: json['receiverEmail'] as String,
   status: $enumDecode(_$InviteStatusEnumMap, json['status']),
-  createdAt: DateTime.parse(json['createdAt'] as String),
+  createdAt: const DateTimeTwelvePmConverter().fromJson(
+    json['createdAt'] as String,
+  ),
 );
 
 Map<String, dynamic> _$InviteModelToJson(_InviteModel instance) =>
@@ -24,7 +26,7 @@ Map<String, dynamic> _$InviteModelToJson(_InviteModel instance) =>
       'senderName': instance.senderName,
       'receiverEmail': instance.receiverEmail,
       'status': _$InviteStatusEnumMap[instance.status]!,
-      'createdAt': instance.createdAt.toIso8601String(),
+      'createdAt': const DateTimeTwelvePmConverter().toJson(instance.createdAt),
     };
 
 const _$InviteStatusEnumMap = {

@@ -9,6 +9,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../widgets/accounts_step.dart';
 import '../widgets/goals_analysis_step.dart';
 import '../widgets/members_step.dart';
+import '../widgets/success_step.dart';
 import '../widgets/welcome_step.dart';
 import '../widgets/workspace_info_step.dart';
 
@@ -59,6 +60,8 @@ class OnboardingScreen extends ConsumerWidget {
         return const GoalsAnalysisStep();
       case OnboardingSteps.invites:
         return const MembersStep();
+      case OnboardingSteps.success:
+        return const SuccessStep();
       default:
         return const WelcomeStep();
     }

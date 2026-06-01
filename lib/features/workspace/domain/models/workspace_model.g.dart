@@ -45,5 +45,6 @@ const _$OnboardingStepsEnumMap = {
   OnboardingSteps.accounts: 'accounts',
   OnboardingSteps.planning: 'planning',
   OnboardingSteps.invites: 'invites',
+  OnboardingSteps.success: 'success',
   OnboardingSteps.done: 'done',
 };

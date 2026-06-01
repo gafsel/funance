@@ -440,6 +440,84 @@ abstract class AppLocalizations {
   /// **'Nenhum e-mail adicionado'**
   String get onboardingMembersEmpty;
 
+  /// No description provided for @onboardingSuccessTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tudo pronto!'**
+  String get onboardingSuccessTitle;
+
+  /// No description provided for @onboardingSuccessDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu workspace foi configurado com sucesso. Agora você já pode começar a organizar sua vida financeira.'**
+  String get onboardingSuccessDesc;
+
+  /// No description provided for @onboardingSuccessCTA.
+  ///
+  /// In pt, this message translates to:
+  /// **'IR PARA A TELA PRINCIPAL'**
+  String get onboardingSuccessCTA;
+
+  /// No description provided for @onboardingStepConceptsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entenda os Conceitos'**
+  String get onboardingStepConceptsTitle;
+
+  /// No description provided for @onboardingStepConceptsDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para tirar o máximo proveito do Funances, vamos entender como organizamos as informações.'**
+  String get onboardingStepConceptsDesc;
+
+  /// No description provided for @onboardingConceptLimitsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limites e Expectativas'**
+  String get onboardingConceptLimitsTitle;
+
+  /// No description provided for @onboardingConceptLimitsDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Defina quanto você espera ganhar e o limite máximo que deseja gastar por categoria. É o seu teto financeiro.'**
+  String get onboardingConceptLimitsDesc;
+
+  /// No description provided for @onboardingConceptPlanningTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejamentos'**
+  String get onboardingConceptPlanningTitle;
+
+  /// No description provided for @onboardingConceptPlanningDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Funciona como um lançamento agendado: contabiliza no teto da categoria mas não interfere no saldo da conta até ser efetivado. Ideal para pagamentos recorrentes ou parcelados.'**
+  String get onboardingConceptPlanningDesc;
+
+  /// No description provided for @onboardingConceptFeaturesTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Funcionalidades e Onde Encontrar'**
+  String get onboardingConceptFeaturesTitle;
+
+  /// No description provided for @onboardingConceptFeaturesDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Explore o Dashboard para visão geral, Extratos para conciliação e Metas para acompanhar seus sonhos.'**
+  String get onboardingConceptFeaturesDesc;
+
+  /// No description provided for @onboardingConceptTransactionsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançamentos'**
+  String get onboardingConceptTransactionsTitle;
+
+  /// No description provided for @onboardingConceptTransactionsDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'O dia a dia! Registre suas entradas e saídas reais para acompanhar seu progresso em relação ao plano.'**
+  String get onboardingConceptTransactionsDesc;
+
   /// No description provided for @goalRemainingMonthly.
   ///
   /// In pt, this message translates to:
@@ -1279,6 +1357,60 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Parcelas'**
   String get transactionInstallmentsLabel;
+
+  /// No description provided for @transactionStatusSettled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consolidado'**
+  String get transactionStatusSettled;
+
+  /// No description provided for @transactionStatusPaid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pago'**
+  String get transactionStatusPaid;
+
+  /// No description provided for @transactionStatusPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendente'**
+  String get transactionStatusPending;
+
+  /// No description provided for @transactionStatusPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejamento'**
+  String get transactionStatusPlanning;
+
+  /// No description provided for @transactionStatusRealized.
+  ///
+  /// In pt, this message translates to:
+  /// **'Realizado'**
+  String get transactionStatusRealized;
+
+  /// No description provided for @transactionStatusLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Status'**
+  String get transactionStatusLabel;
+
+  /// No description provided for @transactionStatusTypeLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tipo de Cadastro'**
+  String get transactionStatusTypeLabel;
+
+  /// No description provided for @transactionSettledAlert.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este lançamento não pode ser modificado pois já foi consolidado.'**
+  String get transactionSettledAlert;
+
+  /// No description provided for @transactionUnsettleAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desfazer conciliação'**
+  String get transactionUnsettleAction;
 
   /// No description provided for @transactionTypeExpense.
   ///

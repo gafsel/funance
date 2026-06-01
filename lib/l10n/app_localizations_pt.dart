@@ -195,6 +195,52 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingMembersEmpty => 'Nenhum e-mail adicionado';
 
   @override
+  String get onboardingSuccessTitle => 'Tudo pronto!';
+
+  @override
+  String get onboardingSuccessDesc =>
+      'Seu workspace foi configurado com sucesso. Agora você já pode começar a organizar sua vida financeira.';
+
+  @override
+  String get onboardingSuccessCTA => 'IR PARA A TELA PRINCIPAL';
+
+  @override
+  String get onboardingStepConceptsTitle => 'Entenda os Conceitos';
+
+  @override
+  String get onboardingStepConceptsDesc =>
+      'Para tirar o máximo proveito do Funances, vamos entender como organizamos as informações.';
+
+  @override
+  String get onboardingConceptLimitsTitle => 'Limites e Expectativas';
+
+  @override
+  String get onboardingConceptLimitsDesc =>
+      'Defina quanto você espera ganhar e o limite máximo que deseja gastar por categoria. É o seu teto financeiro.';
+
+  @override
+  String get onboardingConceptPlanningTitle => 'Planejamentos';
+
+  @override
+  String get onboardingConceptPlanningDesc =>
+      'Funciona como um lançamento agendado: contabiliza no teto da categoria mas não interfere no saldo da conta até ser efetivado. Ideal para pagamentos recorrentes ou parcelados.';
+
+  @override
+  String get onboardingConceptFeaturesTitle =>
+      'Funcionalidades e Onde Encontrar';
+
+  @override
+  String get onboardingConceptFeaturesDesc =>
+      'Explore o Dashboard para visão geral, Extratos para conciliação e Metas para acompanhar seus sonhos.';
+
+  @override
+  String get onboardingConceptTransactionsTitle => 'Lançamentos';
+
+  @override
+  String get onboardingConceptTransactionsDesc =>
+      'O dia a dia! Registre suas entradas e saídas reais para acompanhar seu progresso em relação ao plano.';
+
+  @override
   String goalRemainingMonthly(String amount) {
     return '$amount/mês';
   }
@@ -654,6 +700,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactionInstallmentsLabel => 'Parcelas';
+
+  @override
+  String get transactionStatusSettled => 'Consolidado';
+
+  @override
+  String get transactionStatusPaid => 'Pago';
+
+  @override
+  String get transactionStatusPending => 'Pendente';
+
+  @override
+  String get transactionStatusPlanning => 'Planejamento';
+
+  @override
+  String get transactionStatusRealized => 'Realizado';
+
+  @override
+  String get transactionStatusLabel => 'Status';
+
+  @override
+  String get transactionStatusTypeLabel => 'Tipo de Cadastro';
+
+  @override
+  String get transactionSettledAlert =>
+      'Este lançamento não pode ser modificado pois já foi consolidado.';
+
+  @override
+  String get transactionUnsettleAction => 'Desfazer conciliação';
 
   @override
   String get transactionTypeExpense => 'Despesa';

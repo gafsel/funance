@@ -12,11 +12,13 @@ _InstallmentModel _$InstallmentModelFromJson(Map<String, dynamic> json) =>
       orderId: json['orderId'] as String,
       amount: (json['amount'] as num).toDouble(),
       description: json['description'] as String,
-      dueDate: DateTime.parse(json['dueDate'] as String),
+      dueDate: const DateTimeTwelvePmConverter().fromJson(
+        json['dueDate'] as String,
+      ),
       paidAmount: (json['paidAmount'] as num?)?.toDouble(),
-      paidDate: json['paidDate'] == null
-          ? null
-          : DateTime.parse(json['paidDate'] as String),
+      paidDate: const DateTimeTwelvePmNullableConverter().fromJson(
+        json['paidDate'] as String?,
+      ),
       installmentNumber: (json['installmentNumber'] as num?)?.toInt(),
       installmentCount: (json['installmentCount'] as num?)?.toInt(),
       status: $enumDecode(_$InstallmentStatusEnumMap, json['status']),
@@ -48,9 +50,11 @@ Map<String, dynamic> _$InstallmentModelToJson(_InstallmentModel instance) =>
       'orderId': instance.orderId,
       'amount': instance.amount,
       'description': instance.description,
-      'dueDate': instance.dueDate.toIso8601String(),
+      'dueDate': const DateTimeTwelvePmConverter().toJson(instance.dueDate),
       'paidAmount': instance.paidAmount,
-      'paidDate': instance.paidDate?.toIso8601String(),
+      'paidDate': const DateTimeTwelvePmNullableConverter().toJson(
+        instance.paidDate,
+      ),
       'installmentNumber': instance.installmentNumber,
       'installmentCount': instance.installmentCount,
       'status': _$InstallmentStatusEnumMap[instance.status]!,

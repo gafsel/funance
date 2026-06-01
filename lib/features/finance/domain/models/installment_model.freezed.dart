@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$InstallmentModel {
 
- String get id; String get orderId; double get amount; String get description; DateTime get dueDate; double? get paidAmount; DateTime? get paidDate; int? get installmentNumber; int? get installmentCount; InstallmentStatus get status; OrderType get type; InstallmentType get installmentType; Map<String, AccountImpact> get accounts; CategoryModel? get category; ReplicationCascade? get replicationCascade;
+ String get id; String get orderId; double get amount; String get description;@DateTimeTwelvePmConverter() DateTime get dueDate; double? get paidAmount;@DateTimeTwelvePmNullableConverter() DateTime? get paidDate; int? get installmentNumber; int? get installmentCount; InstallmentStatus get status; OrderType get type; InstallmentType get installmentType; Map<String, AccountImpact> get accounts; CategoryModel? get category; ReplicationCascade? get replicationCascade;
 /// Create a copy of InstallmentModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $InstallmentModelCopyWith<$Res>  {
   factory $InstallmentModelCopyWith(InstallmentModel value, $Res Function(InstallmentModel) _then) = _$InstallmentModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String orderId, double amount, String description, DateTime dueDate, double? paidAmount, DateTime? paidDate, int? installmentNumber, int? installmentCount, InstallmentStatus status, OrderType type, InstallmentType installmentType, Map<String, AccountImpact> accounts, CategoryModel? category, ReplicationCascade? replicationCascade
+ String id, String orderId, double amount, String description,@DateTimeTwelvePmConverter() DateTime dueDate, double? paidAmount,@DateTimeTwelvePmNullableConverter() DateTime? paidDate, int? installmentNumber, int? installmentCount, InstallmentStatus status, OrderType type, InstallmentType installmentType, Map<String, AccountImpact> accounts, CategoryModel? category, ReplicationCascade? replicationCascade
 });
 
 
@@ -176,7 +176,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String orderId,  double amount,  String description,  DateTime dueDate,  double? paidAmount,  DateTime? paidDate,  int? installmentNumber,  int? installmentCount,  InstallmentStatus status,  OrderType type,  InstallmentType installmentType,  Map<String, AccountImpact> accounts,  CategoryModel? category,  ReplicationCascade? replicationCascade)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String orderId,  double amount,  String description, @DateTimeTwelvePmConverter()  DateTime dueDate,  double? paidAmount, @DateTimeTwelvePmNullableConverter()  DateTime? paidDate,  int? installmentNumber,  int? installmentCount,  InstallmentStatus status,  OrderType type,  InstallmentType installmentType,  Map<String, AccountImpact> accounts,  CategoryModel? category,  ReplicationCascade? replicationCascade)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _InstallmentModel() when $default != null:
 return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueDate,_that.paidAmount,_that.paidDate,_that.installmentNumber,_that.installmentCount,_that.status,_that.type,_that.installmentType,_that.accounts,_that.category,_that.replicationCascade);case _:
@@ -197,7 +197,7 @@ return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueD
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String orderId,  double amount,  String description,  DateTime dueDate,  double? paidAmount,  DateTime? paidDate,  int? installmentNumber,  int? installmentCount,  InstallmentStatus status,  OrderType type,  InstallmentType installmentType,  Map<String, AccountImpact> accounts,  CategoryModel? category,  ReplicationCascade? replicationCascade)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String orderId,  double amount,  String description, @DateTimeTwelvePmConverter()  DateTime dueDate,  double? paidAmount, @DateTimeTwelvePmNullableConverter()  DateTime? paidDate,  int? installmentNumber,  int? installmentCount,  InstallmentStatus status,  OrderType type,  InstallmentType installmentType,  Map<String, AccountImpact> accounts,  CategoryModel? category,  ReplicationCascade? replicationCascade)  $default,) {final _that = this;
 switch (_that) {
 case _InstallmentModel():
 return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueDate,_that.paidAmount,_that.paidDate,_that.installmentNumber,_that.installmentCount,_that.status,_that.type,_that.installmentType,_that.accounts,_that.category,_that.replicationCascade);}
@@ -214,7 +214,7 @@ return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueD
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String orderId,  double amount,  String description,  DateTime dueDate,  double? paidAmount,  DateTime? paidDate,  int? installmentNumber,  int? installmentCount,  InstallmentStatus status,  OrderType type,  InstallmentType installmentType,  Map<String, AccountImpact> accounts,  CategoryModel? category,  ReplicationCascade? replicationCascade)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String orderId,  double amount,  String description, @DateTimeTwelvePmConverter()  DateTime dueDate,  double? paidAmount, @DateTimeTwelvePmNullableConverter()  DateTime? paidDate,  int? installmentNumber,  int? installmentCount,  InstallmentStatus status,  OrderType type,  InstallmentType installmentType,  Map<String, AccountImpact> accounts,  CategoryModel? category,  ReplicationCascade? replicationCascade)?  $default,) {final _that = this;
 switch (_that) {
 case _InstallmentModel() when $default != null:
 return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueDate,_that.paidAmount,_that.paidDate,_that.installmentNumber,_that.installmentCount,_that.status,_that.type,_that.installmentType,_that.accounts,_that.category,_that.replicationCascade);case _:
@@ -229,16 +229,16 @@ return $default(_that.id,_that.orderId,_that.amount,_that.description,_that.dueD
 
 @JsonSerializable(explicitToJson: true)
 class _InstallmentModel extends InstallmentModel {
-  const _InstallmentModel({required this.id, required this.orderId, required this.amount, required this.description, required this.dueDate, this.paidAmount, this.paidDate, this.installmentNumber, this.installmentCount, required this.status, required this.type, required this.installmentType, final  Map<String, AccountImpact> accounts = const {}, this.category, this.replicationCascade}): _accounts = accounts,super._();
+  const _InstallmentModel({required this.id, required this.orderId, required this.amount, required this.description, @DateTimeTwelvePmConverter() required this.dueDate, this.paidAmount, @DateTimeTwelvePmNullableConverter() this.paidDate, this.installmentNumber, this.installmentCount, required this.status, required this.type, required this.installmentType, final  Map<String, AccountImpact> accounts = const {}, this.category, this.replicationCascade}): _accounts = accounts,super._();
   factory _InstallmentModel.fromJson(Map<String, dynamic> json) => _$InstallmentModelFromJson(json);
 
 @override final  String id;
 @override final  String orderId;
 @override final  double amount;
 @override final  String description;
-@override final  DateTime dueDate;
+@override@DateTimeTwelvePmConverter() final  DateTime dueDate;
 @override final  double? paidAmount;
-@override final  DateTime? paidDate;
+@override@DateTimeTwelvePmNullableConverter() final  DateTime? paidDate;
 @override final  int? installmentNumber;
 @override final  int? installmentCount;
 @override final  InstallmentStatus status;
@@ -287,7 +287,7 @@ abstract mixin class _$InstallmentModelCopyWith<$Res> implements $InstallmentMod
   factory _$InstallmentModelCopyWith(_InstallmentModel value, $Res Function(_InstallmentModel) _then) = __$InstallmentModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String orderId, double amount, String description, DateTime dueDate, double? paidAmount, DateTime? paidDate, int? installmentNumber, int? installmentCount, InstallmentStatus status, OrderType type, InstallmentType installmentType, Map<String, AccountImpact> accounts, CategoryModel? category, ReplicationCascade? replicationCascade
+ String id, String orderId, double amount, String description,@DateTimeTwelvePmConverter() DateTime dueDate, double? paidAmount,@DateTimeTwelvePmNullableConverter() DateTime? paidDate, int? installmentNumber, int? installmentCount, InstallmentStatus status, OrderType type, InstallmentType installmentType, Map<String, AccountImpact> accounts, CategoryModel? category, ReplicationCascade? replicationCascade
 });
 
 

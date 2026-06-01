@@ -155,11 +155,7 @@ class _MembersStepState extends ConsumerState<MembersStep> {
               const SizedBox(height: 32),
               LoadingButton.elevated(
                 onPressed: (loading) async {
-                  final router = GoRouter.of(context);
-
                   await loading(notifier.nextStep());
-
-                  router.pushReplacement("/splash");
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.limeGreen,

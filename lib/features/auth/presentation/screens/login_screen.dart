@@ -262,7 +262,7 @@ class LoginScreen extends ConsumerWidget {
                                       LoadingButton.outlineIcon(
                                         onPressed: (loading) => loading(notifier.signInWithGoogle()),
                                         icon: Image.asset(
-                                          'assets/logo/logo.png',
+                                          'assets/logo/google.png',
                                           height: 20,
                                         ),
                                         label: Text(l10n.googleLoginButton),
