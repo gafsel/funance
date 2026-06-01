@@ -142,7 +142,17 @@ class AccountFormScreen extends ConsumerWidget {
                                             fontSize: 10,
                                           ),
                                         )
-                                      : null,
+                                      : state.processingStatus ==
+                                              AccountProcessingStatus.failed
+                                          ? Text(
+                                              state.errorMessage ??
+                                                  l10n.errorUnknown,
+                                              style: TextStyle(
+                                                color: theme.colorScheme.error,
+                                                fontSize: 10,
+                                              ),
+                                            )
+                                          : null,
                                   trailing: IconButton(
                                     icon: const Icon(Icons.close, color: Colors.red),
                                     onPressed: () => notifier.updateFile(null, null),

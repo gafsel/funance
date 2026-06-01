@@ -50,6 +50,7 @@ sealed class AccountFormState with _$AccountFormState {
     File? selectedFile,
     @Default(AccountProcessingStatus.none)
     AccountProcessingStatus processingStatus,
+    String? errorMessage,
     @Default(AccountRegistrationMethod.document)
     AccountRegistrationMethod registrationMethod,
     @Default([]) List<OrderModel> detectedOrders,

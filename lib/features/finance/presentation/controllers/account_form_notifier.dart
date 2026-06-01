@@ -92,6 +92,9 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
 
         state = state.copyWith(
           processingStatus: AccountProcessingStatus.failed,
+          errorMessage: e.toString().contains('BusinessException')
+            ? e.toString().split(':').last.trim()
+            : e.toString(),
         );
       }
     }

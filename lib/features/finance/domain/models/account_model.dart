@@ -1,10 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/core/utils/date_time_converter.dart';
-import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 
 part 'account_model.freezed.dart';
-
 part 'account_model.g.dart';
 
 enum AccountType {

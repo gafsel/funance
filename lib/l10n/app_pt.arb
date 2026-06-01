@@ -324,6 +324,7 @@
   "accountAnalyzing": "Analisando documento...",
   "accountAnalysisDescription": "Nossa IA está analisando seu documento para preparar os dados da sua conta e identificar transações automaticamente.",
   "accountAnalysisProcessing": "Processando dados...",
+  "accountAnalysisFailed": "Falha no processamento ",
   "onboardingPlanningAnalyzingTitle": "Analisando padrões...",
   "onboardingPlanningAnalyzingDesc": "Nossa IA está analisando seus padrões de gastos para sugerir metas e planejamentos ideais para você.",
   "accountViewTransactions": "Ver Transações",

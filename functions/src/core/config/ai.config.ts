@@ -3,9 +3,10 @@ export interface AIConfig {
     goals: string;
     document: string;
   };
-  prompts: {
+    prompts: {
     goals: string;
     document: string;
+    documentOfx: string;
   };
 }
 
@@ -65,15 +66,19 @@ export const DEFAULT_CONFIG: AIConfig = {
             CONSIDERAÇÕES DE DOCUMENTO:
             - Se for um EXTRATO/FATURA: Extraia transações reais (orders) sem agrupar, filtrar ou modificar os dados de data, descrição e valor de cada uma.
             - Se for um CONTRATO DE EMPRÉSTIMO/DÍVIDA: Configure a conta como tipo "debt", defina o saldo atual como o valor total da dívida (negativo) e extraia as parcelas se houver
-            - Para cartões de crédito, informe no currentBalance o valor da fatura
+            - Para cartões de crédito, informe no currentBalance o valor da fatura como POSITIVO.
             - Qualquer parcela identificada deve contabilizar apenas a partir do lançamento encontrado, desconsiderando parcelas passadas, por exemplo, uma parcela lida como 3 de 6 deve gerar uma order que contabilize apenas 4 parcelas (parcelas de 3 a 6).
+
+            VALIDAÇÃO:
+            - Se o documento NÃO for um documento financeiro esperado (extrato, fatura, contrato, etc), retorne OBRIGATORIAMENTE um JSON com o campo "error" descrevendo o motivo:
+            {"error": "O documento enviado não parece ser um extrato bancário, fatura ou contrato financeiro válido."}
 
             Retorne apenas um objeto JSON no seguinte formato:
             {
                 "account": {
                     "id": "temp-id",
                     "name": "Nome sugerido para a conta",
-                    "runtimeType": "checking" | "investment" | "creditCard" | "debt",
+                    "runtimeType": "checking" | "investment" | "credit_card" | "debt",
                     "color": "#HEXCODE",
                     "icon": "ícone_material_design",
                     "currentBalance": 0.0,
@@ -100,5 +105,39 @@ export const DEFAULT_CONFIG: AIConfig = {
                 ]
             }
         `,
+        documentOfx: `
+                Você é um assistente financeiro. 
+                Classifique as seguintes transações financeiras extraídas de um arquivo OFX em categorias adequadas.
+                
+                REGRAS DE CATEGORIZAÇÃO:
+                - Utilize OBRIGATORIAMENTE as categorias existentes se houver similaridade: {{existingCategories}}.
+                - Só sugira uma nova categoria se não houver nenhuma similar nas existentes.
+
+                Transações:
+                {{transactions}}
+
+                Retorne apenas um objeto JSON no formato:
+                {
+                    "account": {
+                        "name": "{{accountName}}",
+                        "runtimeType": "{{runtimeType}}",
+                        "currentBalance": {{currentBalance}}
+                    },
+                    "orders": [
+                        {
+                            "description": "Descrição original",
+                            "amount": 100.0,
+                            "dueDate": "YYYY-MM-DD",
+                            "type": "expense" | "income",
+                            "category": {
+                                "name": "Categoria",
+                                "icon": "ícone_material_design",
+                                "color": "#HEXCODE",
+                                "type": "income" | "expense"
+                            }
+                        }
+                    ]
+                }
+            `,
     },
 };
