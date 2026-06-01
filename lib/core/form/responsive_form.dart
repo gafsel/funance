@@ -63,48 +63,50 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      child: ManualForm<I, O, N>(
-        provider,
-        formBuilder: (context, snapshot) {
-          final banner = bannerBuilder?.call(context, snapshot);
-          return Column(
-            children: [
-              if (banner != null) ...[
-                banner,
-                const SizedBox(height: 16),
-              ],
-              _ResponsiveGrid(
-                spacing: 16,
-                children: fieldsBuilder(context, snapshot),
-              ),
-              Divider(height: 32),
-              Row(
-                spacing: 16,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ...extraActions,
-                  LoadingButton.elevated(
-                    child: Text(submitLabel ?? l10n.saveButton),
-                    onPressed: (loading) async {
-                      if (onSubmit != null) {
-                        await onSubmit!(snapshot, loading);
-                        return;
-                      }
-
-                      if (snapshot.validate()) {
-                        final output = await loading(
-                          snapshot.notifier.submit(),
-                        );
-
-                        onSuccess?.call(output);
-                      }
-                    },
-                  ),
+      child: SafeArea(
+        child: ManualForm<I, O, N>(
+          provider,
+          formBuilder: (context, snapshot) {
+            final banner = bannerBuilder?.call(context, snapshot);
+            return Column(
+              children: [
+                if (banner != null) ...[
+                  banner,
+                  const SizedBox(height: 16),
                 ],
-              ),
-            ],
-          );
-        },
+                _ResponsiveGrid(
+                  spacing: 16,
+                  children: fieldsBuilder(context, snapshot),
+                ),
+                Divider(height: 32),
+                Row(
+                  spacing: 16,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ...extraActions,
+                    LoadingButton.elevated(
+                      child: Text(submitLabel ?? l10n.saveButton),
+                      onPressed: (loading) async {
+                        if (onSubmit != null) {
+                          await onSubmit!(snapshot, loading);
+                          return;
+                        }
+
+                        if (snapshot.validate()) {
+                          final output = await loading(
+                            snapshot.notifier.submit(),
+                          );
+
+                          onSuccess?.call(output);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

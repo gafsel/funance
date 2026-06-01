@@ -30,65 +30,72 @@ class OverviewTab extends ConsumerWidget {
         top: 16.0,
         bottom: 120.0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Saldos e Faturas
-          Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.homeAccountsAndCards,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Saldos e Faturas
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.homeAccountsAndCards,
+                      style: theme.textTheme.titleLarge,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline),
+                      onPressed: () {
+                        context.push('/workspace/accounts');
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                AccountsView(),
+              ],
+            ),
+            const SizedBox(height: 32),
+            // Onde está o dinheiro?
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.homeWhereIsMoney,
                     style: theme.textTheme.titleLarge,
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    onPressed: () {
-                      context.push('/workspace/accounts');
-                    },
-                  ),
-                ],
+                ),
+                _PeriodSelection(),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // View Type Selector
+            _SummaryTypeSelection(),
+            const SizedBox(height: 24),
+            Text(
+              l10n.expenses,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.deepTurquoise,
               ),
-              const SizedBox(height: 16),
-              AccountsView(),
-            ],
-          ),
-          const SizedBox(height: 32),
-          // Onde está o dinheiro?
-          Row(
-            children: [
-              Expanded(child: Text(l10n.homeWhereIsMoney, style: theme.textTheme.titleLarge)),
-              _PeriodSelection(),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // View Type Selector
-          _SummaryTypeSelection(),
-          const SizedBox(height: 24),
-          Text(
-            l10n.expenses,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.deepTurquoise,
             ),
-          ),
-          const SizedBox(height: 16),
-          const CategorySummaryView(categoryType: CategoryType.expense),
-          const SizedBox(height: 32),
-          Text(
-            l10n.incomes,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.deepTurquoise,
+            const SizedBox(height: 16),
+            const CategorySummaryView(categoryType: CategoryType.expense),
+            const SizedBox(height: 32),
+            Text(
+              l10n.incomes,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.deepTurquoise,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          const CategorySummaryView(categoryType: CategoryType.income),
-          const SizedBox(height: 32),
-          const BalanceSummaryView(),
-        ],
+            const SizedBox(height: 16),
+            const CategorySummaryView(categoryType: CategoryType.income),
+            const SizedBox(height: 32),
+            const BalanceSummaryView(),
+          ],
+        ),
       ),
     );
   }
@@ -97,10 +104,7 @@ class OverviewTab extends ConsumerWidget {
 class CategorySummaryView extends ConsumerWidget {
   final CategoryType categoryType;
 
-  const CategorySummaryView({
-    super.key,
-    required this.categoryType,
-  });
+  const CategorySummaryView({super.key, required this.categoryType});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -250,7 +254,7 @@ class CategorySummaryView extends ConsumerWidget {
               progress: progress,
               secondaryProgress: summary.plannedAmount > 0
                   ? (summary.specificPlannedAmount / summary.plannedAmount)
-                      .clamp(0, 1)
+                        .clamp(0, 1)
                   : null,
             );
           }).toList(),
@@ -352,8 +356,9 @@ class BalanceSummaryView extends ConsumerWidget {
     final viewType = ref.watch(HomeViewProviders.viewType);
     final locale = context.locale;
 
-    final amount =
-        viewType == SummaryViewType.planning ? state.totalPlanned : state.totalActual;
+    final amount = viewType == SummaryViewType.planning
+        ? state.totalPlanned
+        : state.totalActual;
 
     return Container(
       padding: const EdgeInsets.all(16),

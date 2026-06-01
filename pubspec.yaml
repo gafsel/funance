@@ -66,6 +66,15 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   freezed: ^3.2.5
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path_android: "assets/icon/android.png"
+  image_path_ios: "assets/icon/ios.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icon/android.png"
+  remove_alpha_ios: true
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

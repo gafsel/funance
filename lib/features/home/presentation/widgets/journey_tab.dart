@@ -25,84 +25,86 @@ class JourneyTab extends ConsumerWidget {
         top: 16.0,
         bottom: 120.0,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Placar do Mês (Simplificado para o exemplo)
-          _buildMonthlyScore(context, l10n, theme),
-          const SizedBox(height: 24),
-          // Listagem de Metas
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                l10n.onboardingGoalsTitle,
-                style: theme.textTheme.titleLarge,
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.add_circle,
-                  color: AppColors.deepTurquoise,
+      child: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Placar do Mês (Simplificado para o exemplo)
+            _buildMonthlyScore(context, l10n, theme),
+            const SizedBox(height: 24),
+            // Listagem de Metas
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.onboardingGoalsTitle,
+                  style: theme.textTheme.titleLarge,
                 ),
-                onPressed: () => _showAddGoalDialog(context),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          goalsAsync.when(
-            data: (goals) {
-              if (goals.isEmpty) {
-                return _buildEmptyGoals(context, l10n, theme);
-              }
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  int crossAxisCount = 1;
-                  if (constraints.maxWidth > 1200) {
-                    crossAxisCount = 4;
-                  } else if (constraints.maxWidth > 900) {
-                    crossAxisCount = 3;
-                  } else if (constraints.maxWidth > 600) {
-                    crossAxisCount = 2;
-                  }
+                IconButton(
+                  icon: const Icon(
+                    Icons.add_circle,
+                    color: AppColors.deepTurquoise,
+                  ),
+                  onPressed: () => _showAddGoalDialog(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            goalsAsync.when(
+              data: (goals) {
+                if (goals.isEmpty) {
+                  return _buildEmptyGoals(context, l10n, theme);
+                }
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    int crossAxisCount = 1;
+                    if (constraints.maxWidth > 1200) {
+                      crossAxisCount = 4;
+                    } else if (constraints.maxWidth > 900) {
+                      crossAxisCount = 3;
+                    } else if (constraints.maxWidth > 600) {
+                      crossAxisCount = 2;
+                    }
 
-                  if (crossAxisCount > 1) {
-                    final spacing = 16.0;
-                    final width =
-                        (constraints.maxWidth -
-                            (spacing * (crossAxisCount - 1))) /
-                        crossAxisCount;
-                    return Align(
-                      alignment: Alignment.topLeft,
-                      child: Wrap(
-                        spacing: spacing,
-                        runSpacing: spacing,
-                        children: goals.map((goal) {
-                          return SizedBox(
-                            width: width.clamp(0.0, 400.0),
-                            child: _buildGoalCard(context, ref, goal),
-                          );
-                        }).toList(),
-                      ),
+                    if (crossAxisCount > 1) {
+                      final spacing = 16.0;
+                      final width =
+                          (constraints.maxWidth -
+                              (spacing * (crossAxisCount - 1))) /
+                          crossAxisCount;
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: goals.map((goal) {
+                            return SizedBox(
+                              width: width.clamp(0.0, 400.0),
+                              child: _buildGoalCard(context, ref, goal),
+                            );
+                          }).toList(),
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      children: goals
+                          .map(
+                            (goal) => Padding(
+                              padding: const EdgeInsets.only(bottom: 16),
+                              child: _buildGoalCard(context, ref, goal),
+                            ),
+                          )
+                          .toList(),
                     );
-                  }
-
-                  return Column(
-                    children: goals
-                        .map(
-                          (goal) => Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _buildGoalCard(context, ref, goal),
-                          ),
-                        )
-                        .toList(),
-                  );
-                },
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Center(child: Text(e.toString())),
-          ),
-        ],
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, st) => Center(child: Text(e.toString())),
+            ),
+          ],
+        ),
       ),
     );
   }

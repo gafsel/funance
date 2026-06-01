@@ -23,6 +23,7 @@ class HistoryDesktopView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final mq = MediaQuery.of(context);
 
     return Column(
       children: [
@@ -37,9 +38,9 @@ class HistoryDesktopView extends ConsumerWidget {
             padding: const EdgeInsets.only(
               left: 16,
               right: 16,
-              bottom: 120,
+              bottom: 16,
               top: 0,
-            ),
+            ) + EdgeInsets.only(bottom: mq.padding.bottom),
             separatorBuilder: (context, before, after) {
               final bool isSameGroup = before != null &&
                   after != null &&
