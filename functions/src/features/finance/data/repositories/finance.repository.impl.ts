@@ -50,9 +50,13 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const doc = await this.getOrdersCollection(workspaceId).doc(orderId).get();
         if (!doc.exists) return null;
         const data = doc.data()!;
+        const lastGeneratedDueDate = data.lastGeneratedDueDate?.toDate();
+        if (lastGeneratedDueDate) lastGeneratedDueDate.setHours(12, 0, 0, 0);
+
         return {
             id: doc.id,
             ...data,
+            lastGeneratedDueDate: lastGeneratedDueDate,
         } as OrderModel;
     }
 
@@ -73,7 +77,17 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         }
 
         const snapshot = await query.get();
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as OrderModel));
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            const lastGeneratedDueDate = data.lastGeneratedDueDate?.toDate();
+            if (lastGeneratedDueDate) lastGeneratedDueDate.setHours(12, 0, 0, 0);
+
+            return {
+                id: doc.id,
+                ...data,
+                lastGeneratedDueDate: lastGeneratedDueDate,
+            } as OrderModel;
+        });
     }
 
     async createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void> {
@@ -242,6 +256,81 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 dueDate: dueDate,
                 paidDate: paidDate,
             } as InstallmentModel;
+        });
+    }
+
+    async getOrdersByRecurringNextGeneration(workspaceId: string, dateThreshold: Date): Promise<OrderModel[]> {
+        const snapshot = await this.getOrdersCollection(workspaceId)
+            .where("installmentType", "==", "recurring")
+            .where("status", "==", "active")
+            .where("lastGeneratedDueDate", "<", dateThreshold)
+            .get();
+
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            const lastGeneratedDueDate = data.lastGeneratedDueDate?.toDate();
+            if (lastGeneratedDueDate) lastGeneratedDueDate.setHours(12, 0, 0, 0);
+
+            return {
+                id: doc.id,
+                ...data,
+                lastGeneratedDueDate: lastGeneratedDueDate,
+            } as OrderModel;
+        });
+    }
+
+    async getOrdersByRecurringNextGenerationGroup(dateThreshold: Date, limit: number): Promise<(OrderModel & { workspaceId: string })[]> {
+        const snapshot = await this.firestore.collectionGroup("orders")
+            .where("installmentType", "==", "recurring")
+            .where("status", "==", "active")
+            .where("lastGeneratedDueDate", "<", dateThreshold)
+            .limit(limit)
+            .get();
+
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            const workspaceId = doc.ref.parent.parent!.id;
+            const lastGeneratedDueDate = data.lastGeneratedDueDate?.toDate();
+            if (lastGeneratedDueDate) lastGeneratedDueDate.setHours(12, 0, 0, 0);
+
+            return {
+                id: doc.id,
+                workspaceId: workspaceId,
+                ...data,
+                lastGeneratedDueDate: lastGeneratedDueDate,
+            } as OrderModel & { workspaceId: string };
+        });
+    }
+
+    async processRecurringInstallmentsChunk(
+        chunk: (OrderModel & { workspaceId: string })[],
+        installmentFactory: (order: OrderModel) => Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]
+    ): Promise<void> {
+        await this.firestore.runTransaction(async (transaction) => {
+            for (const order of chunk) {
+                const installments = installmentFactory(order);
+                if (installments.length === 0) continue;
+
+                const workspaceId = order.workspaceId;
+                const installmentsCollection = this.getInstallmentsCollection(workspaceId);
+
+                // Criar parcelas
+                installments.forEach((installment) => {
+                    const docRef = installmentsCollection.doc();
+                    transaction.set(docRef, {
+                        ...installment,
+                        referenceDate: installment.dueDate,
+                        referenceAmount: installment.amount,
+                    });
+                });
+
+                // Atualizar order
+                const lastGeneratedDueDate = installments[installments.length - 1].dueDate;
+                const orderRef = this.getOrdersCollection(workspaceId).doc(order.id);
+                transaction.update(orderRef, {
+                    lastGeneratedDueDate: lastGeneratedDueDate,
+                });
+            }
         });
     }
 

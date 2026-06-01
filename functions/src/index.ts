@@ -14,6 +14,7 @@ admin.firestore().settings({ ignoreUndefinedProperties: true });
 
 export * from "./core/container";
 export * from "./features/finance/presentation/functions/order_handler";
+export * from "./features/finance/presentation/functions/recurring_handler";
 export * from "./features/finance/presentation/functions/account_handler";
 export * from "./features/finance/presentation/functions/installment_handler";
 export * from "./features/finance/presentation/functions/category_planning_handler";

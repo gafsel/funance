@@ -30,6 +30,7 @@ export interface OrderModel {
   status: OrderStatus;
   type: OrderType;
   installmentCreationStatus?: InstallmentStatus;
+  lastGeneratedDueDate?: Date;
   accounts?: Record<string, "debt" | "credit">;
   accountIds: string[];
   category?: CategoryModel;

@@ -36,7 +36,7 @@ export class SummaryService {
         const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
 
         for (let i = 0; i < totalMonths; i++) {
-            const date = new Date(startYear, startMonth - 1 + i, 1);
+            const date = new Date(startYear, startMonth - 1 + i, 1, 12);
             const year = date.getFullYear();
             const month = date.getMonth() + 1;
 

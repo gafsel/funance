@@ -11,6 +11,7 @@ import {
 } from "../models/finance.models";
 import {IFinanceRepository} from "../repositories/finance.repository";
 import {CategoryType} from "../../../workspace/domain/models/category.model";
+import {DEFAULT_FINANCE_CONFIG} from "../../../../core/config/finance.config";
 
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
@@ -46,8 +47,8 @@ export class FinanceService {
             installmentsToGenerate = after.installmentCount || 1;
         }
         else if (after.installmentType === InstallmentType.recurring) {
-            // Inicialmente gera 12 parcelas
-            installmentsToGenerate = 12;
+            // Inicialmente gera conforme configurado
+            installmentsToGenerate = DEFAULT_FINANCE_CONFIG.recurrence.predictabilityMonths;
         }
 
         const [startYear, startMonth] = after.startMonth.split("-").map(Number);
@@ -65,8 +66,10 @@ export class FinanceService {
             }
         }
 
+        let lastDueDate: Date | undefined;
+
         for (let i = 0; i < installmentsToGenerate; i++) {
-            const date = new Date(startYear, startMonth - 1 + i, 1);
+            const date = new Date(startYear, startMonth - 1 + i, 1, 12);
             const year = date.getFullYear();
             const month = date.getMonth(); // 0-indexed
 
@@ -92,6 +95,9 @@ export class FinanceService {
                 }
             }
 
+            const paidDate = (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? new Date(dueDate) : undefined;
+            if (paidDate) paidDate.setHours(12, 0, 0, 0);
+
             expectedInstallments.push({
                 orderId: orderId,
                 amount: installmentAmount,
@@ -108,12 +114,21 @@ export class FinanceService {
                 accountIds: Object.keys(after.accounts || {}),
                 category: after.category,
                 paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? installmentAmount : undefined,
-                paidDate: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? new Date(dueDate) : undefined,
+                paidDate: paidDate,
             });
+
+            lastDueDate = dueDate;
         }
 
         // 4. Criar as installments
         await this.financeRepository.createInstallments(workspaceId, expectedInstallments);
+
+        // 5. Atualizar a data da última parcela gerada na Order
+        if (lastDueDate && after.installmentType === InstallmentType.recurring) {
+            await this.financeRepository.updateOrder(workspaceId, orderId, {
+                lastGeneratedDueDate: lastDueDate,
+            });
+        }
     }
 
     async processInstallmentCascade(
@@ -310,6 +325,7 @@ export class FinanceService {
         }
 
         const date = (account.initialBalanceDate as any)?.toDate?.() || new Date(account.initialBalanceDate) || new Date();
+        date.setHours(12, 0, 0, 0);
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
         const startMonth = `${year}-${month.toString().padStart(2, "0")}`;
@@ -349,5 +365,84 @@ export class FinanceService {
     async createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void> {
         await this.financeRepository.createOrderHistory(workspaceId, orderId, snapshot);
     }
+
+    async generateRecurringInstallments(): Promise<void> {
+        const predictabilityMonths = DEFAULT_FINANCE_CONFIG.recurrence.predictabilityMonths;
+        const GLOBAL_LIMIT = 500;
+        const CHUNK_SIZE = 50;
+
+        // Limite de data: hoje + previsibilidade
+        const now = new Date();
+        now.setHours(12, 0, 0, 0);
+        const thresholdDate = new Date(now.getFullYear(), now.getMonth() + predictabilityMonths, 1, 12);
+
+        console.log(`Buscando até ${GLOBAL_LIMIT} ordens recorrentes para processar em chunks de ${CHUNK_SIZE}...`);
+        const ordersToProcess = await this.financeRepository.getOrdersByRecurringNextGenerationGroup(thresholdDate, GLOBAL_LIMIT);
+
+        if (ordersToProcess.length === 0) {
+            console.log("Nenhuma ordem recorrente pendente de geração.");
+            return;
+        }
+
+        console.log(`Processando ${ordersToProcess.length} ordens...`);
+
+        // Processa em chunks para usar transações
+        for (let i = 0; i < ordersToProcess.length; i += CHUNK_SIZE) {
+            const chunk = ordersToProcess.slice(i, i + CHUNK_SIZE);
+            console.log(`Processando chunk de ${chunk.length} ordens (índice ${i} a ${i + chunk.length - 1})...`);
+
+            await this.financeRepository.processRecurringInstallmentsChunk(chunk, (order) => {
+                return this.createInstallmentsForOrder(order, thresholdDate);
+            });
+        }
+    }
+
+    private createInstallmentsForOrder(
+        order: OrderModel,
+        thresholdDate: Date
+    ): Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[] {
+        const lastGenerated = order.lastGeneratedDueDate || new Date(); // Fallback de segurança
+        lastGenerated.setHours(12, 0, 0, 0);
+
+        let currentYear = lastGenerated.getFullYear();
+        let currentMonth = lastGenerated.getMonth(); // 0-indexed
+
+        const expectedInstallments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[] = [];
+
+        // Gera enquanto a próxima data for menor ou igual ao threshold
+        while (true) {
+            // Avança para o próximo mês
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+
+            const nextMonthFirstDay = new Date(currentYear, currentMonth, 1, 12);
+            if (nextMonthFirstDay > thresholdDate) {
+                break;
+            }
+
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const day = Math.min(order.dueDay, lastDayOfMonth);
+            const dueDate = new Date(currentYear, currentMonth, day, 12);
+
+            expectedInstallments.push({
+                orderId: order.id,
+                amount: order.amount,
+                dueDate: dueDate,
+                description: order.description,
+                status: InstallmentStatus.pending,
+                type: order.type,
+                installmentType: order.installmentType,
+                accounts: order.accounts,
+                accountIds: order.accountIds,
+                category: order.category,
+            });
+        }
+
+        return expectedInstallments;
+    }
+
 
 }

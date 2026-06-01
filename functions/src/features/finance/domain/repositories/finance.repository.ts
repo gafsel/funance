@@ -28,6 +28,11 @@ export interface IFinanceRepository {
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;
   deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void>;
   getInstallments(workspaceId: string, filters: { accountId?: string }): Promise<InstallmentModel[]>;
+  getOrdersByRecurringNextGenerationGroup(dateThreshold: Date, limit: number): Promise<(OrderModel & { workspaceId: string })[]>;
+  processRecurringInstallmentsChunk(
+    chunk: (OrderModel & { workspaceId: string })[],
+    installmentFactory: (order: OrderModel) => Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]
+  ): Promise<void>;
 
   // Category Planning
   getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null>;
