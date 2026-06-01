@@ -1,6 +1,6 @@
-import {onDocumentCreated, onDocumentUpdated} from "firebase-functions/v2/firestore";
-import {container} from "../../../../core/container";
-import {InviteModel, InviteStatus} from "../../domain/models/invite.model";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
+import { container } from "../../../../core/container";
+import { InviteModel, InviteStatus } from "../../domain/models/invite.model";
 import * as logger from "firebase-functions/logger";
 
 export const onInviteCreated = onDocumentCreated("invites/{inviteId}", async (event) => {
