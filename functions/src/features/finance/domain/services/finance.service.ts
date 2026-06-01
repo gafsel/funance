@@ -9,8 +9,8 @@ import {
     OrderType,
     ReplicationCascade
 } from "../models/finance.models";
-import { IFinanceRepository } from "../repositories/finance.repository";
-import { CategoryType } from "../../../workspace/domain/models/category.model";
+import {IFinanceRepository} from "../repositories/finance.repository";
+import {CategoryType} from "../../../workspace/domain/models/category.model";
 
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
@@ -144,6 +144,7 @@ export class FinanceService {
         const hasCategoryChanged = after.category?.id !== before.category?.id;
         const hasAccountsChanged = JSON.stringify(after.accounts) !== JSON.stringify(before.accounts);
         const hasTypeChanged = after.type !== before.type;
+        const wasRemoved = before.status !== InstallmentStatus.removed && after.status === InstallmentStatus.removed;
 
         for (const inst of targetInstallments) {
             const installmentUpdate: Partial<InstallmentModel> = {};
@@ -163,6 +164,7 @@ export class FinanceService {
                 installmentUpdate.accountIds = after.accountIds;
             }
             if (hasTypeChanged) installmentUpdate.type = after.type;
+            if (wasRemoved) installmentUpdate.status = InstallmentStatus.removed;
 
             // 1. Aplicamos o delta na data se houver
             if (dateDeltaMs !== 0) {
@@ -205,6 +207,7 @@ export class FinanceService {
                     inst.accounts = after.accounts;
                     inst.accountIds = after.accountIds;
                 }
+                if (wasRemoved) inst.status = after.status;
                 // ... data delta não afeta o total
             }
         }
@@ -218,6 +221,11 @@ export class FinanceService {
             accounts: after.accounts,
             accountIds: after.accountIds,
         };
+
+        // Se a installment foi alterada para removed, inativar a order
+        if (wasRemoved) {
+            orderUpdate.status = OrderStatus.cancelled;
+        }
 
         console.log(`Cascateando alteração de Installment para Order ${after.orderId}. Novo total: ${orderUpdate.amount}`);
         await this.financeRepository.updateOrder(workspaceId, after.orderId, orderUpdate);
