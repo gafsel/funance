@@ -62,4 +62,17 @@ abstract class IFinanceRepository {
     String? startMonth,
     String? endMonth,
   });
+
+  Stream<List<InstallmentModel>> watchInstallments(
+    String workspaceId, {
+    int? limit,
+    String? accountId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    InstallmentStatus? status,
+  });
+
+  Stream<double> watchWeeklyXp(String workspaceId, int year, int week);
 }

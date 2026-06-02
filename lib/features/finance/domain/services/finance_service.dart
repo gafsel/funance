@@ -91,4 +91,29 @@ class FinanceService {
   Future<dynamic> getInstallment(String installmentId) async {
     return await repository.getInstallment(workspaceId, installmentId);
   }
+
+  Stream<List<InstallmentModel>> watchInstallments({
+    int? limit,
+    String? accountId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    InstallmentStatus? status,
+  }) {
+    return repository.watchInstallments(
+      workspaceId,
+      limit: limit,
+      accountId: accountId,
+      startDate: startDate,
+      endDate: endDate,
+      categoryId: categoryId,
+      type: type,
+      status: status,
+    );
+  }
+
+  Stream<double> watchWeeklyXp(int year, int week) {
+    return repository.watchWeeklyXp(workspaceId, year, week);
+  }
 }

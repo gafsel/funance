@@ -36,4 +36,17 @@ class PeriodSummaryRepositoryImpl implements IPeriodSummaryRepository {
           (snap) => snap.docs.map((doc) => doc.toPeriodSummaryModel()).toList(),
         );
   }
+
+  @override
+  Stream<List<PeriodSummaryModel>> watchWeek(
+      String workspaceId, int year, int week) {
+    return collection(workspaceId)
+        .where("year", isEqualTo: year)
+        .where("week", isEqualTo: week)
+        .orderBy("category.name")
+        .snapshots()
+        .map(
+          (snap) => snap.docs.map((doc) => doc.toPeriodSummaryModel()).toList(),
+        );
+  }
 }

@@ -30,13 +30,25 @@ sealed class PeriodSummaryModel with _$PeriodSummaryModel {
     required DateTime lastUpdate,
   }) = _PeriodSummaryModelMonth;
 
+  const factory PeriodSummaryModel.week({
+    required int year,
+    required int week,
+    required CategoryModel category,
+    @Default(0) double generalPlannedAmount,
+    required double specificPlannedAmount,
+    @Default(0) double actualAmount,
+    required DateTime lastUpdate,
+  }) = _PeriodSummaryModelWeek;
+
   const PeriodSummaryModel._();
 
   @JsonKey(includeToJson: true)
   String get id => map(
     year: (data) => "${data.year}-${data.category.id}",
     month: (data) =>
-        "$data.year-${data.month.toString().padLeft(2, "0")}-${data.category.id}",
+        "${data.year}-${data.month.toString().padLeft(2, "0")}-${data.category.id}",
+    week: (data) =>
+        "${data.year}-W${data.week.toString().padLeft(2, "0")}-${data.category.id}",
   );
 
   factory PeriodSummaryModel.fromJson(Map<String, dynamic> json) =>

@@ -3,7 +3,8 @@ import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 
 final missionProvider = StreamProvider.autoDispose<MissionModel>((ref) {
-  return ref.watch(MissionViewProviders.mission.future).asStream();
+  final service = ref.watch(MissionDomainProviders.service);
+  return service.watchMissions();
 });
 
 // Nota: O missionProvider anterior era um StreamProvider que continha toda a lógica.

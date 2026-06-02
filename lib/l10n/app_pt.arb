@@ -167,6 +167,10 @@
   "homeRemainingAmount": "Faltam {amount} ({percent}% concluído)",
   "homeAccountsAndCards": "Saldos e Faturas",
   "weeklyMissions": "Missões da Semana",
+  "weeklyMissionsSuccess": "Semana de Sucesso!",
+  "weeklyMissionsNone": "Nenhuma missão para esta semana",
+  "weeklyMissionsSuccessDesc": "Você cumpriu todas as suas metas. Parabéns!",
+  "weeklyMissionsNoneDesc": "Configure planejamentos ou adicione transações para começar.",
   "pendingMissions": "Pendentes",
   "completedMissions": "Concluídas",
   "overdueMissions": "Atrasadas",
@@ -175,6 +179,36 @@
   "@xpValue": {
     "placeholders": {
       "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "xpProgress": "{current} / {total} XP",
+  "@xpProgress": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "percentage": "{value}%",
+  "@percentage": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "dateRange": "{start} - {end}",
+  "@dateRange": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
         "type": "String"
       }
     }

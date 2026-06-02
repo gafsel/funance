@@ -42,6 +42,7 @@ class AppColors {
 
   // Cores de apoio legadas (podem ser substituídas pelo deepPurple se necessário)
   static const Color error = Color(0xFFBA1A1A);
+  static const Color success = Color(0xFF4CAF50);
   static const Color softGrey = Color(0xFFEEEEEE);
   // --- 4. Seleção de Cores para Categorias ---
   static const List<Color> selectionColors = [

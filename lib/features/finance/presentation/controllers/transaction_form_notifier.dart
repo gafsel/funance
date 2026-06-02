@@ -67,7 +67,7 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
             : state.dueDate,
       );
     } else {
-      state = state.copyWith(status: value);
+      state = state.copyWith(status: value, paidDate: null, paidAmount: null);
     }
   }
 

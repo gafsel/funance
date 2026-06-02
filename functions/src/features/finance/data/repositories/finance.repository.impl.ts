@@ -381,21 +381,34 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             generalPlannedDelta?: number,
             specificPlannedDelta?: number,
             actualDelta?: number
-        }
+        },
+        week?: number
     ): Promise<void> {
-        const monthStr = month !== undefined ? `-${String(month).padStart(2, "0")}` : "";
-        const summaryId = `${year}${monthStr}-${category.id}`;
+        let summaryId = "";
+        let runtimeType = "";
+
+        if (week !== undefined) {
+            summaryId = `${year}-W${String(week).padStart(2, "0")}-${category.id}`;
+            runtimeType = "week";
+        }
+        else {
+            const monthStr = month !== undefined ? `-${String(month).padStart(2, "0")}` : "";
+            summaryId = `${year}${monthStr}-${category.id}`;
+            runtimeType = month !== undefined ? "month" : "year";
+        }
+
         const docRef = this.getPeriodSummariesCollection(workspaceId).doc(summaryId);
 
         await docRef.set({
             year,
             month: month ?? null,
+            week: week ?? null,
             category,
             generalPlannedAmount: admin.firestore.FieldValue.increment(data.generalPlannedDelta ?? 0),
             specificPlannedAmount: admin.firestore.FieldValue.increment(data.specificPlannedDelta ?? 0),
             actualAmount: admin.firestore.FieldValue.increment(data.actualDelta ?? 0),
             lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-            runtimeType: month !== undefined ? "month" : "year",
+            runtimeType: runtimeType,
         }, { merge: true });
     }
 

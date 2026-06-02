@@ -66,6 +66,7 @@ export interface InstallmentModel {
   accountIds: string[];
   category?: CategoryModel;
   replicationCascade?: ReplicationCascade;
+  xp?: number;
   referenceDate: Date;
   referenceAmount: number;
 }
@@ -79,9 +80,10 @@ export interface CategoryPlanningModel {
 }
 
 export interface PeriodSummaryModel {
-  id: string; // YYYY-MM-categoryId ou YYYY-categoryId
+  id: string; // YYYY-MM-categoryId ou YYYY-categoryId ou YYYY-Www-categoryId
   year: number;
   month?: number;
+  week?: number;
   category: CategoryModel;
   generalPlannedAmount: number; // Da CategoryPlanning
   specificPlannedAmount: number; // Das Installments projetadas

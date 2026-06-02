@@ -57,7 +57,53 @@ export class SummaryService {
                 planning.category,
                 { generalPlannedDelta: planning.amount * multiplier }
             );
+
+            // Meta Semanal (Week)
+            // Para simplicidade, vamos iterar sobre as semanas que iniciam dentro deste mês
+            const firstDayOfMonth = new Date(year, month - 1, 1);
+            const lastDayOfMonth = new Date(year, month, 0);
+            
+            // Ajuste para pegar as semanas de domingo a sábado
+            const currentDay = new Date(firstDayOfMonth);
+            while (currentDay <= lastDayOfMonth) {
+                if (currentDay.getDay() === 0 || currentDay.getDate() === 1) {
+                    const week = this.getWeekNumber(currentDay);
+                    const weekYear = this.getWeekYear(currentDay);
+                    
+                    // Calculamos a proporção do planejamento para a semana (aproximadamente planning / 4.33 ou planning / dias no mes * 7)
+                    const daysInMonth = lastDayOfMonth.getDate();
+                    const weeklyProportion = (planning.amount / daysInMonth) * 7;
+
+                    await this.financeRepository.updatePeriodSummary(
+                        workspaceId,
+                        weekYear,
+                        undefined,
+                        planning.category,
+                        { generalPlannedDelta: weeklyProportion * multiplier },
+                        week
+                    );
+                }
+                currentDay.setDate(currentDay.getDate() + 1);
+            }
         }
+    }
+
+    private getWeekNumber(d: Date): number {
+        const date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        // Ajusta para o domingo mais próximo (início da semana)
+        date.setDate(date.getDate() - date.getDay());
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const days = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
+        return Math.floor(days / 7) + 1;
+    }
+
+    private getWeekYear(d: Date): number {
+        const date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        // Ajusta para o domingo mais próximo
+        date.setDate(date.getDate() - date.getDay());
+        return date.getFullYear();
     }
 
     async processInstallmentChange(
@@ -102,6 +148,13 @@ export class SummaryService {
         await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, inst.category, {
             specificPlannedDelta: amount,
         });
+
+        // Week
+        const week = this.getWeekNumber(inst.dueDate);
+        const weekYear = this.getWeekYear(inst.dueDate);
+        await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, inst.category, {
+            specificPlannedDelta: amount,
+        }, week);
     }
 
     private async updateSummaryRealizado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
@@ -120,5 +173,12 @@ export class SummaryService {
         await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, inst.category, {
             actualDelta: amount,
         });
+
+        // Week
+        const week = this.getWeekNumber(inst.paidDate);
+        const weekYear = this.getWeekYear(inst.paidDate);
+        await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, inst.category, {
+            actualDelta: amount,
+        }, week);
     }
 }

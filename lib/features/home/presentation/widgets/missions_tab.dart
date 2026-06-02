@@ -1,3 +1,4 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
@@ -6,61 +7,171 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
-import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/controller/mission_controller.dart';
 import 'package:funances/features/home/presentation/widgets/accounts_view.dart';
-import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-class MissionsTab extends ConsumerWidget {
+class MissionsTab extends ConsumerStatefulWidget {
   const MissionsTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MissionsTab> createState() => _MissionsTabState();
+}
+
+class _MissionsTabState extends ConsumerState<MissionsTab> {
+  late ConfettiController _confettiController;
+  double? _lastXp;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final missionAsync = ref.watch(missionProvider);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            left: 16.0,
-            right: 16.0,
-            top: 16.0,
-            bottom: 120.0,
-          ),
-          child: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.weeklyMissions,
-                  style: Theme.of(context).textTheme.titleLarge,
+    missionAsync.whenData((mission) {
+      if (_lastXp != null && mission.currentXp > _lastXp!) {
+        // Se o XP aumentou, solta confete
+        _confettiController.play();
+      }
+      _lastXp = mission.currentXp;
+    });
+
+    return Stack(
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(
+                left: 16.0,
+                right: 16.0,
+                top: 16.0,
+                bottom: 120.0,
+              ),
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.weeklyMissions,
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    missionAsync.when(
+                      data: (mission) {
+                        if (mission.planningMissions.isEmpty &&
+                            mission.pendingInstallments.isEmpty &&
+                            mission.overdueInstallments.isEmpty) {
+                          return _buildEmptyState(context);
+                        }
+
+                        // Se cumpriu tudo (e havia algo a cumprir)
+                        final allCompleted =
+                            mission.planningMissions.every(
+                              (m) => m.progress >= 1 && m.isAdherent,
+                            ) &&
+                            mission.pendingInstallments.isEmpty &&
+                            mission.overdueInstallments.isEmpty;
+
+                        if (allCompleted &&
+                            mission.planningMissions.isNotEmpty) {
+                          return Column(
+                            children: [
+                              _buildEmptyState(context, isSuccess: true),
+                              const SizedBox(height: 24),
+                              _buildMissionContent(context, mission),
+                            ],
+                          );
+                        }
+
+                        return _buildMissionContent(context, mission);
+                      },
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (e, st) => Center(child: Text(e.toString())),
+                    ),
+                    const SizedBox(height: 32),
+                    const AccountsView(),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                missionAsync.when(
-                  data: (mission) => _buildMissionContent(context, ref, mission),
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => Center(child: Text(e.toString())),
-                ),
-                const SizedBox(height: 32),
-                const AccountsView(),
-              ],
+              ),
             ),
           ),
         ),
+        Align(
+          alignment: Alignment.topCenter,
+          child: ConfettiWidget(
+            confettiController: _confettiController,
+            blastDirectionality: BlastDirectionality.explosive,
+            shouldLoop: false,
+            colors: const [
+              Colors.green,
+              Colors.blue,
+              Colors.pink,
+              Colors.orange,
+              Colors.purple,
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context, {bool isSuccess = false}) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.emoji_events,
+            size: 100,
+            color: isSuccess ? Colors.amber : theme.colorScheme.outlineVariant,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isSuccess ? l10n.weeklyMissionsSuccess : l10n.weeklyMissionsNone,
+            style: theme.textTheme.headlineSmall,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isSuccess
+                ? l10n.weeklyMissionsSuccessDesc
+                : l10n.weeklyMissionsNoneDesc,
+            style: theme.textTheme.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildMissionContent(BuildContext context, WidgetRef ref, MissionModel mission) {
+  Widget _buildMissionContent(BuildContext context, MissionModel mission) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final dateFormat = DateFormat('dd/MM');
-    final periodString = "${dateFormat.format(mission.startDate)} - ${dateFormat.format(mission.endDate)}";
+    final periodString = l10n.dateRange(
+      dateFormat.format(mission.startDate),
+      dateFormat.format(mission.endDate),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -77,8 +188,8 @@ class MissionsTab extends ConsumerWidget {
         _buildOverallProgress(context, mission),
         const SizedBox(height: 24),
 
-        // 1. Installments Primeiro (conforme solicitado: "mostra os installments primeiro")
-        // Missões Atrasadas
+        // 1. Installments Primeiro
+        // Atrasados
         if (mission.overdueInstallments.isNotEmpty) ...[
           Text(
             l10n.overdueMissions,
@@ -88,7 +199,9 @@ class MissionsTab extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          ...mission.overdueInstallments.map((inst) => _buildInstallmentItem(context, inst)),
+          ...mission.overdueInstallments.map(
+            (inst) => _buildInstallmentItem(context, inst),
+          ),
           const SizedBox(height: 24),
         ],
 
@@ -96,22 +209,31 @@ class MissionsTab extends ConsumerWidget {
         if (mission.pendingInstallments.isNotEmpty) ...[
           Text(
             l10n.pendingMissions,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 12),
-          ...mission.pendingInstallments.map((inst) => _buildInstallmentItem(context, inst)),
+          ...mission.pendingInstallments.map(
+            (inst) => _buildInstallmentItem(context, inst),
+          ),
           const SizedBox(height: 24),
         ],
 
         // Metas da Semana (Plannings)
-        Text(
-          l10n.weeklyGoal,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        ...mission.planningMissions.map((p) => _buildPlanningMission(context, p)),
-
-        const SizedBox(height: 24),
+        if (mission.planningMissions.isNotEmpty) ...[
+          Text(
+            l10n.weeklyGoal,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...mission.planningMissions.map(
+            (p) => _buildPlanningMission(context, p),
+          ),
+          const SizedBox(height: 24),
+        ],
 
         // Realizados (Expansível)
         if (mission.completedInstallments.isNotEmpty)
@@ -124,7 +246,10 @@ class MissionsTab extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = context.l10n;
 
-    final totalCompletedXp = mission.completedInstallments.fold(0.0, (sum, inst) => sum + inst.xpValue);
+    final totalCompletedXp = mission.completedInstallments.fold(
+      0.0,
+      (sum, m) => sum + (m.installment.xp ?? m.earnedXp),
+    );
 
     return Theme(
       data: theme.copyWith(dividerColor: Colors.transparent),
@@ -132,16 +257,22 @@ class MissionsTab extends ConsumerWidget {
         tilePadding: EdgeInsets.zero,
         title: Text(
           l10n.completedMissions,
-          style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
         ),
         subtitle: Text(
           l10n.completedMissionsSummary(
             mission.completedInstallments.length,
             totalCompletedXp.toInt().toString(),
           ),
-          style: theme.textTheme.labelSmall?.copyWith(color: AppColors.deepTurquoise),
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: AppColors.deepTurquoise,
+          ),
         ),
-        children: mission.completedInstallments.map((inst) => _buildInstallmentItem(context, inst)).toList(),
+        children: mission.completedInstallments
+            .map((inst) => _buildInstallmentItem(context, inst))
+            .toList(),
       ),
     );
   }
@@ -163,14 +294,17 @@ class MissionsTab extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "${(progress * 100).toInt()}%",
+                l10n.percentage((progress * 100).toInt().toString()),
                 style: theme.textTheme.titleLarge?.copyWith(
                   color: AppColors.deepTurquoise,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               Text(
-                "${mission.currentXp.toInt()} / ${mission.totalXp.toInt()} XP",
+                l10n.xpProgress(
+                  mission.currentXp.toInt().toString(),
+                  mission.totalXp.toInt().toString(),
+                ),
                 style: theme.textTheme.bodyMedium,
               ),
             ],
@@ -205,24 +339,45 @@ class MissionsTab extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(mission.summary.category.icon.asIcon(), size: 16, color: mission.summary.category.color.asColor()),
+              Icon(
+                mission.summary.category.icon.asIcon(),
+                size: 16,
+                color: mission.summary.category.color.asColor(),
+              ),
               const SizedBox(width: 8),
-              Text(mission.summary.category.name, style: theme.textTheme.bodyMedium),
+              Text(
+                mission.summary.category.name,
+                style: theme.textTheme.bodyMedium,
+              ),
               const Spacer(),
               Text(
                 l10n.xpValue(displayXp.toInt().toString()),
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: displayXp < 0 ? theme.colorScheme.error : AppColors.deepTurquoise,
+                  color: displayXp < 0
+                      ? AppColors.error
+                      : AppColors.success,
                   fontWeight: displayXp < 0 ? FontWeight.bold : null,
                 ),
               ),
               const SizedBox(width: 8),
               if (isLoss)
-                Icon(Icons.sentiment_very_dissatisfied, size: 24, color: theme.colorScheme.error)
+                Icon(
+                  Icons.sentiment_very_dissatisfied,
+                  size: 24,
+                  color: AppColors.error,
+                )
               else if (isGaining && mission.progress >= 0.8)
-                const Icon(Icons.sentiment_very_satisfied, size: 24, color: AppColors.deepTurquoise)
+                const Icon(
+                  Icons.sentiment_very_satisfied,
+                  size: 24,
+                  color: AppColors.success,
+                )
               else
-                Icon(Icons.sentiment_neutral, size: 24, color: theme.colorScheme.outline),
+                Icon(
+                  Icons.sentiment_neutral,
+                  size: 24,
+                  color: theme.colorScheme.outline,
+                ),
             ],
           ),
           const SizedBox(height: 4),
@@ -230,8 +385,14 @@ class MissionsTab extends ConsumerWidget {
             value: mission.progress > 1 ? 1 : mission.progress,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
-            backgroundColor: mission.summary.category.color.asColor().withValues(alpha: 0.1),
-            valueColor: AlwaysStoppedAnimation(isLoss ? theme.colorScheme.error : mission.summary.category.color.asColor()),
+            backgroundColor: mission.summary.category.color
+                .asColor()
+                .withValues(alpha: 0.1),
+            valueColor: AlwaysStoppedAnimation(
+              isLoss
+                  ? theme.colorScheme.error
+                  : mission.summary.category.color.asColor(),
+            ),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -246,7 +407,11 @@ class MissionsTab extends ConsumerWidget {
                 ),
               ),
               if (isOverLimit)
-                Icon(Icons.warning_amber_rounded, size: 12, color: theme.colorScheme.error),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 12,
+                  color: AppColors.error,
+                ),
             ],
           ),
         ],
@@ -254,24 +419,34 @@ class MissionsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildInstallmentItem(BuildContext context, InstallmentMission mission) {
+  Widget _buildInstallmentItem(
+    BuildContext context,
+    InstallmentMission mission,
+  ) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final inst = mission.installment;
 
-    final isCompleted = inst.status == InstallmentStatus.settled || inst.status == InstallmentStatus.paid;
-    final displayXp = isCompleted ? mission.earnedXp : mission.xpValue;
+    final isCompleted =
+        inst.status == InstallmentStatus.settled ||
+        inst.status == InstallmentStatus.paid;
+    final displayXp = isCompleted
+        ? (inst.xp ?? mission.earnedXp)
+        : mission.xpValue;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
-        onTap: () => context.push('/transactions/form', extra: {'installment': inst}),
+        onTap: () =>
+            context.push('/transactions/form', extra: {'installment': inst}),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: inst.category?.color.asColor().withValues(alpha: 0.1) ?? Colors.grey.withValues(alpha: 0.1),
+                color:
+                    inst.category?.color.asColor().withValues(alpha: 0.1) ??
+                    Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -287,7 +462,9 @@ class MissionsTab extends ConsumerWidget {
                 children: [
                   Text(inst.description, style: theme.textTheme.bodyMedium),
                   Text(
-                    DateFormat.E(context.locale.toString()).format(inst.referenceDate),
+                    DateFormat.E(
+                      context.locale.toString(),
+                    ).format(inst.referenceDate),
                     style: theme.textTheme.labelSmall,
                   ),
                 ],
@@ -297,8 +474,10 @@ class MissionsTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  inst.amount.asCurrency(locale: context.locale),
-                  style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                  inst.referenceAmount.asCurrency(locale: context.locale),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -306,10 +485,14 @@ class MissionsTab extends ConsumerWidget {
                     Text(
                       l10n.xpValue(displayXp.toInt().toString()),
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: displayXp < mission.xpValue && isCompleted
-                            ? theme.colorScheme.error
-                            : AppColors.deepTurquoise,
-                        fontWeight: displayXp != mission.xpValue && isCompleted ? FontWeight.bold : null,
+                        color: isCompleted
+                            ? displayXp < mission.xpValue
+                                  ? AppColors.error
+                                  : AppColors.success
+                            : theme.colorScheme.outline,
+                        fontWeight: displayXp != mission.xpValue && isCompleted
+                            ? FontWeight.bold
+                            : null,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -319,10 +502,16 @@ class MissionsTab extends ConsumerWidget {
                             ? Icons.sentiment_very_satisfied
                             : Icons.sentiment_very_dissatisfied,
                         size: 24,
-                        color: displayXp >= mission.xpValue ? AppColors.deepTurquoise : theme.colorScheme.error,
+                        color: displayXp >= mission.xpValue
+                            ? AppColors.success
+                            : AppColors.error,
                       )
                     else
-                      Icon(Icons.sentiment_neutral, size: 24, color: theme.colorScheme.outline),
+                      Icon(
+                        Icons.sentiment_neutral,
+                        size: 24,
+                        color: theme.colorScheme.outline,
+                      ),
                   ],
                 ),
               ],

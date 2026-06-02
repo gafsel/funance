@@ -4,4 +4,6 @@ abstract class IPeriodSummaryRepository {
   Stream<List<PeriodSummaryModel>> watchYear(String workspaceId, int year);
 
   Stream<List<PeriodSummaryModel>> watchMonth(String workspaceId, int year, int month);
+
+  Stream<List<PeriodSummaryModel>> watchWeek(String workspaceId, int year, int week);
 }

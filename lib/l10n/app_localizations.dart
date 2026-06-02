@@ -794,6 +794,30 @@ abstract class AppLocalizations {
   /// **'Missões da Semana'**
   String get weeklyMissions;
 
+  /// No description provided for @weeklyMissionsSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Semana de Sucesso!'**
+  String get weeklyMissionsSuccess;
+
+  /// No description provided for @weeklyMissionsNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma missão para esta semana'**
+  String get weeklyMissionsNone;
+
+  /// No description provided for @weeklyMissionsSuccessDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você cumpriu todas as suas metas. Parabéns!'**
+  String get weeklyMissionsSuccessDesc;
+
+  /// No description provided for @weeklyMissionsNoneDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Configure planejamentos ou adicione transações para começar.'**
+  String get weeklyMissionsNoneDesc;
+
   /// No description provided for @pendingMissions.
   ///
   /// In pt, this message translates to:
@@ -823,6 +847,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{xp} XP'**
   String xpValue(String xp);
+
+  /// No description provided for @xpProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'{current} / {total} XP'**
+  String xpProgress(String current, String total);
+
+  /// No description provided for @percentage.
+  ///
+  /// In pt, this message translates to:
+  /// **'{value}%'**
+  String percentage(String value);
+
+  /// No description provided for @dateRange.
+  ///
+  /// In pt, this message translates to:
+  /// **'{start} - {end}'**
+  String dateRange(String start, String end);
 
   /// No description provided for @remainingWeeklyPlanning.
   ///

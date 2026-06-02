@@ -57,6 +57,8 @@ dependencies:
   firebase_storage: ^12.4.10
   freezed_annotation: ^3.1.0
   smooth_page_indicator: ^2.0.1
+  rxdart: ^0.28.0
+  confetti: ^0.8.0
 
 dev_dependencies:
   flutter_test:

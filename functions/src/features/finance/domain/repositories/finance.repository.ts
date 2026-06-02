@@ -44,16 +44,17 @@ export interface IFinanceRepository {
 
   // Period Summaries
   updatePeriodSummary(
-    workspaceId: string,
-    year: number,
-    month: number | undefined,
-    category: CategoryModel,
-    data: {
-      generalPlannedDelta?: number,
-      specificPlannedDelta?: number,
-      actualDelta?: number
-    }
-  ): Promise<void>;
+        workspaceId: string,
+        year: number,
+        month: number | undefined,
+        category: CategoryModel,
+        data: {
+            generalPlannedDelta?: number,
+            specificPlannedDelta?: number,
+            actualDelta?: number
+        },
+        week?: number
+    ): Promise<void>;
   updateSummaryCategoryInfo(workspaceId: string, category: CategoryModel): Promise<void>;
 
   // Accounts

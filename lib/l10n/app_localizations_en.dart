@@ -403,6 +403,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get weeklyMissions => 'Missões da Semana';
 
   @override
+  String get weeklyMissionsSuccess => 'Semana de Sucesso!';
+
+  @override
+  String get weeklyMissionsNone => 'Nenhuma missão para esta semana';
+
+  @override
+  String get weeklyMissionsSuccessDesc =>
+      'Você cumpriu todas as suas metas. Parabéns!';
+
+  @override
+  String get weeklyMissionsNoneDesc =>
+      'Configure planejamentos ou adicione transações para começar.';
+
+  @override
   String get pendingMissions => 'Pendentes';
 
   @override
@@ -417,6 +431,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String xpValue(String xp) {
     return '$xp XP';
+  }
+
+  @override
+  String xpProgress(String current, String total) {
+    return '$current / $total XP';
+  }
+
+  @override
+  String percentage(String value) {
+    return '$value%';
+  }
+
+  @override
+  String dateRange(String start, String end) {
+    return '$start - $end';
   }
 
   @override

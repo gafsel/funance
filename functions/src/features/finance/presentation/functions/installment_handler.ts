@@ -42,6 +42,11 @@ export const onInstallmentWritten = onDocumentWritten(
             await container.financeService.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
         });
 
+        // Atualiza o XP das missões semanais
+        await idempotencyService.runIdempotency(eventId, "updateXp", async () => {
+            await container.financeService.updateXpOnInstallmentChange(workspaceId, before, after);
+        });
+
         // Processar cascata se necessário
         if (before && after) {
             await idempotencyService.runIdempotency(eventId, "processInstallmentCascade", async () => {

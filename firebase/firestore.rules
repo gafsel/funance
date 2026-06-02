@@ -51,6 +51,11 @@ service cloud.firestore {
         allow read: if isMember(workspaceId);
       }
 
+      // Weekly XP: Membros podem apenas ler
+      match /weekly_xp/{weeklyXpId} {
+        allow read: if isMember(workspaceId);
+      }
+
       // Accounts: Membros podem ler e escrever
       match /accounts/{accountId} {
         allow read, write: if isMember(workspaceId);

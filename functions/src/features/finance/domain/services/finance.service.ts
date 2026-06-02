@@ -1,3 +1,4 @@
+import * as admin from "firebase-admin";
 import {
     AccountModel,
     AccountType,
@@ -82,6 +83,8 @@ export class FinanceService {
                 ? after.installmentCreationStatus!
                 : InstallmentStatus.pending;
 
+            const isPaid = status === InstallmentStatus.paid || status === InstallmentStatus.settled;
+
             let installmentAmount = after.amount;
             if (after.installmentType === InstallmentType.installment) {
                 const totalAmount = after.amount;
@@ -95,16 +98,20 @@ export class FinanceService {
                 }
             }
 
-            const paidDate = (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? new Date(dueDate) : undefined;
+            const paidDate = isPaid ? new Date(dueDate) : undefined;
             if (paidDate) paidDate.setHours(12, 0, 0, 0);
+
+            // Regra: Se a parcela já nasce paga/liquidada, o amount planejado deve ser zero
+            // para que o sistema compute isso como uma cobrança não planejada.
+            const plannedAmount = isPaid ? 0 : installmentAmount;
 
             expectedInstallments.push({
                 orderId: orderId,
-                amount: installmentAmount,
+                amount: plannedAmount,
                 dueDate: dueDate,
                 description: after.description,
                 referenceDate: dueDate,
-                referenceAmount: installmentAmount,
+                referenceAmount: isPaid ? installmentAmount : plannedAmount,
                 status: status,
                 type: after.type,
                 installmentType: after.installmentType,
@@ -113,7 +120,7 @@ export class FinanceService {
                 accounts: after.accounts,
                 accountIds: Object.keys(after.accounts || {}),
                 category: after.category,
-                paidAmount: (status === InstallmentStatus.paid || status === InstallmentStatus.settled) ? installmentAmount : undefined,
+                paidAmount: isPaid ? installmentAmount : undefined,
                 paidDate: paidDate,
             });
 
@@ -251,10 +258,6 @@ export class FinanceService {
         before: InstallmentModel | null,
         after: InstallmentModel | null
     ): Promise<void> {
-        // Se houver cascade, a lógica de saldo será tratada individualmente para cada installment alterada
-        // mas o gatilho da function de trigger (se existir) chamaria este método para cada uma.
-        // Se estivermos chamando manualmente no updateInstallment do service, precisamos tomar cuidado.
-
         const isPaidStatus = (s: InstallmentStatus | undefined) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
 
         const isBeforePaid = isPaidStatus(before?.status);
@@ -280,6 +283,102 @@ export class FinanceService {
                 await this.applyInstallmentBalance(workspaceId, after, false);
             }
         }
+    }
+
+    async updateXpOnInstallmentChange(
+        workspaceId: string,
+        before: InstallmentModel | null,
+        after: InstallmentModel | null
+    ): Promise<void> {
+        const isPaidStatus = (s: InstallmentStatus | undefined) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
+
+        const isBeforePaid = isPaidStatus(before?.status);
+        const isAfterPaid = isPaidStatus(after?.status);
+
+        // Caso 1: Estorno (Era pago e deixou de ser, ou foi deletado)
+        if (isBeforePaid && (!after || !isAfterPaid)) {
+            const oldXp = before!.xp || this.calculateXp(before!);
+            await this.updateWeeklyTotalXp(workspaceId, before!.paidDate || before!.dueDate, -oldXp);
+        }
+        // Caso 2: Novo pagamento (Não era pago e passou a ser)
+        else if (!isBeforePaid && after && isAfterPaid) {
+            const xp = this.calculateXp(after);
+            await this.financeRepository.updateInstallment(workspaceId, after.id, { xp });
+            await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, xp);
+        }
+        // Caso 3: Alteração em pagamento existente (Era pago e continua pago)
+        else if (isBeforePaid && isAfterPaid && before && after) {
+            const hasChangedAmount = before.paidAmount !== after.paidAmount;
+            const hasChangedDate = before.paidDate?.getTime() !== after.paidDate?.getTime();
+
+            if (hasChangedAmount || hasChangedDate) {
+                const oldXp = before.xp || this.calculateXp(before);
+                const newXp = this.calculateXp(after);
+                
+                if (oldXp !== newXp || hasChangedDate) {
+                    await this.financeRepository.updateInstallment(workspaceId, after.id, { xp: newXp });
+                    
+                    // Estorna o XP antigo da data antiga e aplica o novo na nova data
+                    await this.updateWeeklyTotalXp(workspaceId, before.paidDate || before.dueDate, -oldXp);
+                    await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, newXp);
+                }
+            }
+        }
+    }
+
+    private calculateXp(inst: InstallmentModel): number {
+        const baseXP = 15;
+        const predictedAmount = inst.amount;
+        const actualAmount = inst.paidAmount ?? inst.amount;
+
+        if (predictedAmount === 0) return 0;
+
+        const diff = actualAmount - predictedAmount;
+        const isExpense = inst.type === OrderType.expense;
+
+        // Se o valor for diferente, há uma inflação ou deflação de 10% dos XP (1.5 XP)
+        if (Math.abs(diff) > 0.01) {
+            // Para despesa: se gastou MAIS (diff > 0), pune (-10%). Se gastou MENOS (diff < 0), premia (+10%).
+            // Para ganho: se ganhou MAIS (diff > 0), premia (+10%). Se ganhou MENOS (diff < 0), pune (-10%).
+            const shouldReward = isExpense ? diff < 0 : diff > 0;
+            return baseXP + (shouldReward ? 1.5 : -1.5);
+        }
+
+        return baseXP;
+    }
+
+    private async updateWeeklyTotalXp(workspaceId: string, date: Date, deltaXp: number): Promise<void> {
+        if (deltaXp === 0) return;
+        
+        const week = this.getWeekNumber(date);
+        const year = this.getWeekYear(date);
+        const weeklyXpId = `${year}-W${String(week).padStart(2, "0")}`;
+        
+        const docRef = admin.firestore().collection(`workspaces/${workspaceId}/weekly_xp`).doc(weeklyXpId);
+        await docRef.set({
+            year,
+            week,
+            xp: admin.firestore.FieldValue.increment(deltaXp),
+            lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+    }
+
+    private getWeekNumber(d: Date): number {
+        const date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        // Ajusta para o domingo mais próximo (início da semana)
+        date.setDate(date.getDate() - date.getDay());
+        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+        const days = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
+        return Math.floor(days / 7) + 1;
+    }
+
+    private getWeekYear(d: Date): number {
+        const date = new Date(d.getTime());
+        date.setHours(0, 0, 0, 0);
+        // Ajusta para o domingo mais próximo
+        date.setDate(date.getDate() - date.getDay());
+        return date.getFullYear();
     }
 
 

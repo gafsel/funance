@@ -47,6 +47,7 @@ sealed class InstallmentModel with _$InstallmentModel {
     @Default({}) Map<String, AccountImpact> accounts,
     CategoryModel? category,
     ReplicationCascade? replicationCascade,
+    double? xp,
   }) = _InstallmentModel;
 
   @JsonKey(includeToJson: true)

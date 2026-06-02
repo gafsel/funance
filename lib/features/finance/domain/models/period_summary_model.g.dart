@@ -57,3 +57,30 @@ Map<String, dynamic> _$PeriodSummaryModelMonthToJson(
   'lastUpdate': instance.lastUpdate.toIso8601String(),
   'runtimeType': instance.$type,
 };
+
+_PeriodSummaryModelWeek _$PeriodSummaryModelWeekFromJson(
+  Map<String, dynamic> json,
+) => _PeriodSummaryModelWeek(
+  year: (json['year'] as num).toInt(),
+  week: (json['week'] as num).toInt(),
+  category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
+  generalPlannedAmount: (json['generalPlannedAmount'] as num?)?.toDouble() ?? 0,
+  specificPlannedAmount: (json['specificPlannedAmount'] as num).toDouble(),
+  actualAmount: (json['actualAmount'] as num?)?.toDouble() ?? 0,
+  lastUpdate: DateTime.parse(json['lastUpdate'] as String),
+  $type: json['runtimeType'] as String?,
+);
+
+Map<String, dynamic> _$PeriodSummaryModelWeekToJson(
+  _PeriodSummaryModelWeek instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'year': instance.year,
+  'week': instance.week,
+  'category': instance.category,
+  'generalPlannedAmount': instance.generalPlannedAmount,
+  'specificPlannedAmount': instance.specificPlannedAmount,
+  'actualAmount': instance.actualAmount,
+  'lastUpdate': instance.lastUpdate.toIso8601String(),
+  'runtimeType': instance.$type,
+};

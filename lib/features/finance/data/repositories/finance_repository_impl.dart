@@ -366,4 +366,76 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       );
     }
   }
+
+  @override
+  Stream<List<InstallmentModel>> watchInstallments(
+    String workspaceId, {
+    int? limit,
+    String? accountId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? categoryId,
+    OrderType? type,
+    InstallmentStatus? status,
+  }) {
+    Query query = _getWorkspaceDoc(workspaceId).collection('installments');
+
+    if (accountId != null && accountId.isNotEmpty) {
+      query = query.where('accountIds', arrayContains: accountId);
+    }
+
+    if (status != null) {
+      query = query.where("status", isEqualTo: status.name);
+    } else {
+      query = query.where("status", whereIn: [
+        InstallmentStatus.pending.name,
+        InstallmentStatus.paid.name,
+        InstallmentStatus.settled.name,
+      ]);
+    }
+
+    if (categoryId != null && categoryId.isNotEmpty) {
+      query = query.where('category.id', isEqualTo: categoryId);
+    }
+
+    if (type != null) {
+      query = query.where('type', isEqualTo: type.name);
+    }
+
+    if (startDate != null || endDate != null) {
+      if (startDate != null) {
+        query = query.where(
+          "referenceDate",
+          isGreaterThanOrEqualTo: startDate,
+        );
+      }
+
+      if (endDate != null) {
+        query = query.where("referenceDate", isLessThanOrEqualTo: endDate);
+      }
+    }
+    query = query.orderBy("referenceDate", descending: true);
+
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
+    });
+  }
+
+  @override
+  Stream<double> watchWeeklyXp(String workspaceId, int year, int week) {
+    final weeklyXpId = "$year-W${week.toString().padLeft(2, "0")}";
+    return _getWorkspaceDoc(workspaceId)
+        .collection('weekly_xp')
+        .doc(weeklyXpId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists) return 0.0;
+      final data = doc.data() as Map<String, dynamic>;
+      return (data['xp'] as num).toDouble();
+    });
+  }
 }

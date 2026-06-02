@@ -23,6 +23,10 @@ PeriodSummaryModel _$PeriodSummaryModelFromJson(
           return _PeriodSummaryModelMonth.fromJson(
             json
           );
+                case 'week':
+          return _PeriodSummaryModelWeek.fromJson(
+            json
+          );
         
           default:
             throw CheckedFromJsonException(
@@ -128,12 +132,13 @@ extension PeriodSummaryModelPatterns on PeriodSummaryModel {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _PeriodSummaryModelYear value)?  year,TResult Function( _PeriodSummaryModelMonth value)?  month,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _PeriodSummaryModelYear value)?  year,TResult Function( _PeriodSummaryModelMonth value)?  month,TResult Function( _PeriodSummaryModelWeek value)?  week,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _PeriodSummaryModelYear() when year != null:
 return year(_that);case _PeriodSummaryModelMonth() when month != null:
-return month(_that);case _:
+return month(_that);case _PeriodSummaryModelWeek() when week != null:
+return week(_that);case _:
   return orElse();
 
 }
@@ -151,12 +156,13 @@ return month(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _PeriodSummaryModelYear value)  year,required TResult Function( _PeriodSummaryModelMonth value)  month,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _PeriodSummaryModelYear value)  year,required TResult Function( _PeriodSummaryModelMonth value)  month,required TResult Function( _PeriodSummaryModelWeek value)  week,}){
 final _that = this;
 switch (_that) {
 case _PeriodSummaryModelYear():
 return year(_that);case _PeriodSummaryModelMonth():
-return month(_that);}
+return month(_that);case _PeriodSummaryModelWeek():
+return week(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -170,12 +176,13 @@ return month(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _PeriodSummaryModelYear value)?  year,TResult? Function( _PeriodSummaryModelMonth value)?  month,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _PeriodSummaryModelYear value)?  year,TResult? Function( _PeriodSummaryModelMonth value)?  month,TResult? Function( _PeriodSummaryModelWeek value)?  week,}){
 final _that = this;
 switch (_that) {
 case _PeriodSummaryModelYear() when year != null:
 return year(_that);case _PeriodSummaryModelMonth() when month != null:
-return month(_that);case _:
+return month(_that);case _PeriodSummaryModelWeek() when week != null:
+return week(_that);case _:
   return null;
 
 }
@@ -192,11 +199,12 @@ return month(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int year,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  year,TResult Function( int year,  int month,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  month,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( int year,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  year,TResult Function( int year,  int month,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  month,TResult Function( int year,  int week,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  week,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PeriodSummaryModelYear() when year != null:
 return year(_that.year,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _PeriodSummaryModelMonth() when month != null:
-return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _:
+return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _PeriodSummaryModelWeek() when week != null:
+return week(_that.year,_that.week,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _:
   return orElse();
 
 }
@@ -214,11 +222,12 @@ return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int year,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)  year,required TResult Function( int year,  int month,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)  month,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( int year,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)  year,required TResult Function( int year,  int month,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)  month,required TResult Function( int year,  int week,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)  week,}) {final _that = this;
 switch (_that) {
 case _PeriodSummaryModelYear():
 return year(_that.year,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _PeriodSummaryModelMonth():
-return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);}
+return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _PeriodSummaryModelWeek():
+return week(_that.year,_that.week,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -232,11 +241,12 @@ return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int year,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  year,TResult? Function( int year,  int month,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  month,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( int year,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  year,TResult? Function( int year,  int month,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  month,TResult? Function( int year,  int week,  CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount,  DateTime lastUpdate)?  week,}) {final _that = this;
 switch (_that) {
 case _PeriodSummaryModelYear() when year != null:
 return year(_that.year,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _PeriodSummaryModelMonth() when month != null:
-return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _:
+return month(_that.year,_that.month,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _PeriodSummaryModelWeek() when week != null:
+return week(_that.year,_that.week,_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount,_that.lastUpdate);case _:
   return null;
 
 }
@@ -413,6 +423,100 @@ class __$PeriodSummaryModelMonthCopyWithImpl<$Res>
   return _then(_PeriodSummaryModelMonth(
 year: null == year ? _self.year : year // ignore: cast_nullable_to_non_nullable
 as int,month: null == month ? _self.month : month // ignore: cast_nullable_to_non_nullable
+as int,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,generalPlannedAmount: null == generalPlannedAmount ? _self.generalPlannedAmount : generalPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,specificPlannedAmount: null == specificPlannedAmount ? _self.specificPlannedAmount : specificPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,actualAmount: null == actualAmount ? _self.actualAmount : actualAmount // ignore: cast_nullable_to_non_nullable
+as double,lastUpdate: null == lastUpdate ? _self.lastUpdate : lastUpdate // ignore: cast_nullable_to_non_nullable
+as DateTime,
+  ));
+}
+
+/// Create a copy of PeriodSummaryModel
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PeriodSummaryModelWeek extends PeriodSummaryModel {
+  const _PeriodSummaryModelWeek({required this.year, required this.week, required this.category, this.generalPlannedAmount = 0, required this.specificPlannedAmount, this.actualAmount = 0, required this.lastUpdate, final  String? $type}): $type = $type ?? 'week',super._();
+  factory _PeriodSummaryModelWeek.fromJson(Map<String, dynamic> json) => _$PeriodSummaryModelWeekFromJson(json);
+
+@override final  int year;
+ final  int week;
+@override final  CategoryModel category;
+@override@JsonKey() final  double generalPlannedAmount;
+@override final  double specificPlannedAmount;
+@override@JsonKey() final  double actualAmount;
+@override final  DateTime lastUpdate;
+
+@JsonKey(name: 'runtimeType')
+final String $type;
+
+
+/// Create a copy of PeriodSummaryModel
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PeriodSummaryModelWeekCopyWith<_PeriodSummaryModelWeek> get copyWith => __$PeriodSummaryModelWeekCopyWithImpl<_PeriodSummaryModelWeek>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PeriodSummaryModelWeekToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PeriodSummaryModelWeek&&(identical(other.year, year) || other.year == year)&&(identical(other.week, week) || other.week == week)&&(identical(other.category, category) || other.category == category)&&(identical(other.generalPlannedAmount, generalPlannedAmount) || other.generalPlannedAmount == generalPlannedAmount)&&(identical(other.specificPlannedAmount, specificPlannedAmount) || other.specificPlannedAmount == specificPlannedAmount)&&(identical(other.actualAmount, actualAmount) || other.actualAmount == actualAmount)&&(identical(other.lastUpdate, lastUpdate) || other.lastUpdate == lastUpdate));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,year,week,category,generalPlannedAmount,specificPlannedAmount,actualAmount,lastUpdate);
+
+@override
+String toString() {
+  return 'PeriodSummaryModel.week(year: $year, week: $week, category: $category, generalPlannedAmount: $generalPlannedAmount, specificPlannedAmount: $specificPlannedAmount, actualAmount: $actualAmount, lastUpdate: $lastUpdate)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PeriodSummaryModelWeekCopyWith<$Res> implements $PeriodSummaryModelCopyWith<$Res> {
+  factory _$PeriodSummaryModelWeekCopyWith(_PeriodSummaryModelWeek value, $Res Function(_PeriodSummaryModelWeek) _then) = __$PeriodSummaryModelWeekCopyWithImpl;
+@override @useResult
+$Res call({
+ int year, int week, CategoryModel category, double generalPlannedAmount, double specificPlannedAmount, double actualAmount, DateTime lastUpdate
+});
+
+
+@override $CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class __$PeriodSummaryModelWeekCopyWithImpl<$Res>
+    implements _$PeriodSummaryModelWeekCopyWith<$Res> {
+  __$PeriodSummaryModelWeekCopyWithImpl(this._self, this._then);
+
+  final _PeriodSummaryModelWeek _self;
+  final $Res Function(_PeriodSummaryModelWeek) _then;
+
+/// Create a copy of PeriodSummaryModel
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? year = null,Object? week = null,Object? category = null,Object? generalPlannedAmount = null,Object? specificPlannedAmount = null,Object? actualAmount = null,Object? lastUpdate = null,}) {
+  return _then(_PeriodSummaryModelWeek(
+year: null == year ? _self.year : year // ignore: cast_nullable_to_non_nullable
+as int,week: null == week ? _self.week : week // ignore: cast_nullable_to_non_nullable
 as int,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel,generalPlannedAmount: null == generalPlannedAmount ? _self.generalPlannedAmount : generalPlannedAmount // ignore: cast_nullable_to_non_nullable
 as double,specificPlannedAmount: null == specificPlannedAmount ? _self.specificPlannedAmount : specificPlannedAmount // ignore: cast_nullable_to_non_nullable
