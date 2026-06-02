@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
+import 'package:funances/features/home/presentation/widgets/period_selection.dart';
+import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
+import 'package:funances/features/finance/domain/models/period_summary_model.dart';
+import 'package:funances/features/home/presentation/model/overview_view_model.dart';
+import 'package:funances/features/home/presentation/provider.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/num_extensions.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/utils/enum_messages.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
 
 class JourneyTab extends ConsumerWidget {
   const JourneyTab({super.key});
@@ -103,6 +116,44 @@ class JourneyTab extends ConsumerWidget {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, st) => Center(child: Text(e.toString())),
             ),
+            const SizedBox(height: 32),
+            // Onde está o dinheiro? (Movido da OverviewTab)
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    l10n.homeWhereIsMoney,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                ),
+                PeriodSelection(),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // View Type Selector
+            SummaryTypeSelection(),
+            const SizedBox(height: 24),
+            Text(
+              l10n.expenses,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.deepTurquoise,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const CategorySummaryView(categoryType: CategoryType.expense),
+            const SizedBox(height: 32),
+            Text(
+              l10n.incomes,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.deepTurquoise,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const CategorySummaryView(categoryType: CategoryType.income),
+            const SizedBox(height: 32),
+            const BalanceSummaryView(),
           ],
         ),
       ),

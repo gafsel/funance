@@ -166,6 +166,27 @@
   "homePointsEarned": "+{points} Pontos",
   "homeRemainingAmount": "Faltam {amount} ({percent}% concluído)",
   "homeAccountsAndCards": "Saldos e Faturas",
+  "weeklyMissions": "Missões da Semana",
+  "pendingMissions": "Pendentes",
+  "completedMissions": "Concluídas",
+  "overdueMissions": "Atrasadas",
+  "weeklyGoal": "Meta da Semana",
+  "xpValue": "{xp} XP",
+  "@xpValue": {
+    "placeholders": {
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "remainingWeeklyPlanning": "Disponível na semana",
+  "spentOfWeeklyPlanning": "{spent} de {limit}",
+  "@spentOfWeeklyPlanning": {
+    "placeholders": {
+      "spent": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
   "homeWhereIsMoney": "Onde está o dinheiro?",
   "homeTotalSpent": "Total Gasto",
   "homeTotalBalance": "Saldo Total",
@@ -401,5 +422,6 @@
   "periodFilterSemester": "Semestre",
   "periodFilterYear": "Ano",
   "periodFilterCustom": "Customizado",
-  "periodFilterTitle": "Selecionar Período"
+  "periodFilterTitle": "Selecionar Período",
+  "completedMissionsSummary": "{count} {count, plural, =1{item} other{itens}} • {xp} XP"
 }

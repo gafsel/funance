@@ -1,5 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/features/home/presentation/widgets/period_selection.dart';
+import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
@@ -66,12 +68,12 @@ class OverviewTab extends ConsumerWidget {
                     style: theme.textTheme.titleLarge,
                   ),
                 ),
-                _PeriodSelection(),
+                PeriodSelection(),
               ],
             ),
             const SizedBox(height: 16),
             // View Type Selector
-            _SummaryTypeSelection(),
+            SummaryTypeSelection(),
             const SizedBox(height: 24),
             Text(
               l10n.expenses,
@@ -388,80 +390,6 @@ class BalanceSummaryView extends ConsumerWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _PeriodSelection extends ConsumerWidget {
-  const _PeriodSelection({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final overviewDate = ref.watch(HomeViewProviders.period);
-    final theme = Theme.of(context);
-    final locale = context.locale;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: () {
-            ref.read(HomeViewProviders.period.notifier).state = DateTime(
-              overviewDate.year,
-              overviewDate.month - 1,
-            );
-          },
-        ),
-        Text(
-          '${overviewDate.formated("MMMM", locale)} ${overviewDate.year}',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: () {
-            ref.read(HomeViewProviders.period.notifier).state = DateTime(
-              overviewDate.year,
-              overviewDate.month + 1,
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _SummaryTypeSelection extends ConsumerWidget {
-  const _SummaryTypeSelection({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final viewType = ref.watch(HomeViewProviders.viewType);
-
-    return Row(
-      children: SummaryViewType.values.map((type) {
-        final isSelected = viewType == type;
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(
-            label: Text(l10n.fromSummaryViewType(type)),
-            selected: isSelected,
-            onSelected: (selected) {
-              if (selected) {
-                ref.read(HomeViewProviders.viewType.notifier).state = type;
-              }
-            },
-            selectedColor: AppColors.vibrantTeal.withValues(alpha: 0.2),
-            labelStyle: TextStyle(
-              color: isSelected ? AppColors.deepTurquoise : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        );
-      }).toList(),
     );
   }
 }

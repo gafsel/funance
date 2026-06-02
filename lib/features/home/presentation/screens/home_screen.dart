@@ -6,7 +6,7 @@ import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
-import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
+import 'package:funances/features/home/presentation/widgets/missions_tab.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -75,7 +75,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 controller: _tabController,
                 physics: isLargeScreen ? const NeverScrollableScrollPhysics() : null,
                 children: const [
-                  OverviewTab(),
+                  MissionsTab(),
                   JourneyTab(),
                   HistoryTab(),
                   WorkspaceSettingsScreen(),

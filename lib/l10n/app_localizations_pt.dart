@@ -403,6 +403,34 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeAccountsAndCards => 'Saldos e Faturas';
 
   @override
+  String get weeklyMissions => 'Missões da Semana';
+
+  @override
+  String get pendingMissions => 'Pendentes';
+
+  @override
+  String get completedMissions => 'Concluídas';
+
+  @override
+  String get overdueMissions => 'Atrasadas';
+
+  @override
+  String get weeklyGoal => 'Meta da Semana';
+
+  @override
+  String xpValue(String xp) {
+    return '$xp XP';
+  }
+
+  @override
+  String get remainingWeeklyPlanning => 'Disponível na semana';
+
+  @override
+  String spentOfWeeklyPlanning(String spent, String limit) {
+    return '$spent de $limit';
+  }
+
+  @override
   String get homeWhereIsMoney => 'Onde está o dinheiro?';
 
   @override
@@ -1102,4 +1130,15 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get periodFilterTitle => 'Selecionar Período';
+
+  @override
+  String completedMissionsSummary(num count, Object xp) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'itens',
+      one: 'item',
+    );
+    return '$count $_temp0 • $xp XP';
+  }
 }

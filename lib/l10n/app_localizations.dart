@@ -788,6 +788,54 @@ abstract class AppLocalizations {
   /// **'Saldos e Faturas'**
   String get homeAccountsAndCards;
 
+  /// No description provided for @weeklyMissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões da Semana'**
+  String get weeklyMissions;
+
+  /// No description provided for @pendingMissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendentes'**
+  String get pendingMissions;
+
+  /// No description provided for @completedMissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluídas'**
+  String get completedMissions;
+
+  /// No description provided for @overdueMissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atrasadas'**
+  String get overdueMissions;
+
+  /// No description provided for @weeklyGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta da Semana'**
+  String get weeklyGoal;
+
+  /// No description provided for @xpValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'{xp} XP'**
+  String xpValue(String xp);
+
+  /// No description provided for @remainingWeeklyPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível na semana'**
+  String get remainingWeeklyPlanning;
+
+  /// No description provided for @spentOfWeeklyPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'{spent} de {limit}'**
+  String spentOfWeeklyPlanning(String spent, String limit);
+
   /// No description provided for @homeWhereIsMoney.
   ///
   /// In pt, this message translates to:
@@ -2077,6 +2125,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Selecionar Período'**
   String get periodFilterTitle;
+
+  /// No description provided for @completedMissionsSummary.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} {count, plural, =1{item} other{itens}} • {xp} XP'**
+  String completedMissionsSummary(num count, Object xp);
 }
 
 class _AppLocalizationsDelegate
