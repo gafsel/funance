@@ -1,10 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
+import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
+import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../finance/domain/models/account_model.dart';
 import '../../../goal/domain/models/goal_model.dart';
@@ -15,11 +19,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final OnboardingService onboardingService;
   final IAccountRepository accountRepository;
   final WorkspaceNotifier workspaceNotifier;
+  final CategoryService categoryService;
 
   OnboardingNotifier({
     required this.onboardingService,
     required this.accountRepository,
     required this.workspaceNotifier,
+    required this.categoryService,
   }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
 
   void load(WorkspaceModel workspace) {
@@ -150,10 +156,53 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   }
 
   Future<void> _savePlanning() async {
+    // 1. Garantir que as categorias existam
+    final categories = [...await categoryService.getCategories().first];
+
+    // 2. Processar Orders
+    final processedPeriodSummaries = <CategoryPlanningModel>[];
+    for (final planning in state.planningSuggestions?.plannings ?? []) {
+      if (planning.category != null) {
+        final category = await _findOrCreateCategory(
+          categories,
+          planning.category!,
+        );
+
+        processedPeriodSummaries.add(planning.copyWith(category: category));
+      }
+    }
+
     onboardingService.savePlanning(
       state.workspace,
-      state.planningSuggestions ?? PlanningSuggestions(),
+      (state.planningSuggestions ?? PlanningSuggestions()).copyWith(
+        plannings: processedPeriodSummaries,
+      ),
     );
+  }
+
+  Future<CategoryModel> _findOrCreateCategory(
+    List<CategoryModel> categories,
+    CategoryModel category,
+  ) async {
+    CategoryModel? found = categories
+        .where(
+          (c) =>
+              c.type == category.type &&
+              c.name.toLowerCase() == category.name.toLowerCase(),
+        )
+        .firstOrNull;
+
+    if (found == null) {
+      final newCategory = await categoryService.create(
+        category.copyWith(id: const Uuid().v4()),
+      );
+
+      categories.add(newCategory);
+
+      return newCategory;
+    }
+
+    return found;
   }
 
   Future<void> _createWorkspace() async {
@@ -166,7 +215,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     await workspaceNotifier.loadWorkspaces(
       onboardingService.user.id,
       state.workspace.id,
-      true
+      true,
     );
   }
 }

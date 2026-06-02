@@ -8,36 +8,55 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   CollectionReference _getCollection(String workspaceId) {
-    return _firestore.collection('workspaces').doc(workspaceId).collection('categories');
+    return _firestore
+        .collection('workspaces')
+        .doc(workspaceId)
+        .collection('categories');
   }
 
   @override
   Stream<List<CategoryModel>> getCategories(String workspaceId) {
     return _getCollection(workspaceId).snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) => doc.toCategoryModel()).toList();
+      return snapshot.docs.map((doc) => doc.toCategoryModel()).toList()..sort(
+        (c1, c2) => c1.name.toLowerCase().compareTo(c2.name.toLowerCase()),
+      );
     });
   }
 
   @override
-  Future<CategoryModel> createCategory(String workspaceId, CategoryModel category) async {
+  Future<CategoryModel> createCategory(
+    String workspaceId,
+    CategoryModel category,
+  ) async {
     try {
       final data = category.toJson();
       data.remove('id');
       final doc = await _getCollection(workspaceId).add(data);
       return category.copyWith(id: doc.id);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
   @override
-  Future<void> updateCategory(String workspaceId, CategoryModel category) async {
+  Future<void> updateCategory(
+    String workspaceId,
+    CategoryModel category,
+  ) async {
     try {
       final data = category.toJson();
       data.remove('id');
       await _getCollection(workspaceId).doc(category.id).update(data);
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 
@@ -46,7 +65,11 @@ class CategoryRepositoryImpl implements ICategoryRepository {
     try {
       await _getCollection(workspaceId).doc(categoryId).delete();
     } catch (e, s) {
-      throw BusinessException(ErrorCode.unknown, originalError: e, stackTrace: s);
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
     }
   }
 }

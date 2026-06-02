@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
@@ -109,15 +111,11 @@ class CategoryFormField extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: Color(
-                          int.parse(category.color.replaceFirst('#', '0xFF')),
-                        ).withValues(alpha: 0.2),
+                        backgroundColor: category.color.asColor().withValues(alpha: 0.2),
                         child: Icon(
-                          _getIconData(category.icon),
+                          category.icon.asIcon(),
                           size: 16,
-                          color: Color(
-                            int.parse(category.color.replaceFirst('#', '0xFF')),
-                          ),
+                          color: category.color.asColor(),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -201,21 +199,13 @@ class CategoryFormField extends ConsumerWidget {
                       // +1 for Add, +1 for Clear, +2 for Dividers
                       itemBuilder: (context, index) {
                         if (index < categories.length) {
-                          final category = categories[index];
+                          CategoryModel category = categories[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: Color(
-                                int.parse(
-                                  category.color.replaceFirst('#', '0xFF'),
-                                ),
-                              ).withValues(alpha: 0.2),
+                              backgroundColor: category.color.asColor().withValues(alpha: 0.2),
                               child: Icon(
-                                _getIconData(category.icon),
-                                color: Color(
-                                  int.parse(
-                                    category.color.replaceFirst('#', '0xFF'),
-                                  ),
-                                ),
+                                category.icon.asIcon(),
+                                color: category.color.asColor(),
                               ),
                             ),
                             title: Text(category.name),
@@ -269,42 +259,4 @@ class CategoryFormField extends ConsumerWidget {
     );
   }
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'shopping_cart':
-        return Icons.shopping_cart;
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'home':
-        return Icons.home;
-      case 'flash_on':
-        return Icons.flash_on;
-      case 'water_drop':
-        return Icons.water_drop;
-      case 'wifi':
-        return Icons.wifi;
-      case 'school':
-        return Icons.school;
-      case 'health_and_safety':
-        return Icons.health_and_safety;
-      case 'fitness_center':
-        return Icons.fitness_center;
-      case 'theater_comedy':
-        return Icons.theater_comedy;
-      case 'flight':
-        return Icons.flight;
-      case 'category':
-        return Icons.category;
-      case 'work':
-        return Icons.work;
-      case 'payments':
-        return Icons.payments;
-      case 'savings':
-        return Icons.savings;
-      default:
-        return Icons.category;
-    }
-  }
 }

@@ -4,6 +4,7 @@ import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
@@ -79,60 +80,50 @@ class GoalFormScreen extends ConsumerWidget {
                 validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
               ),
               if (state.type == GoalType.saveMoney) ...[
-                TextFormField(
+                MoneyFormField(
                   initialValue: state.targetAmount > 0
-                      ? state.targetAmount.toString()
-                      : '',
+                      ? state.targetAmount
+                      : null,
                   decoration: InputDecoration(
                     labelText: l10n.goalTargetAmountLabel,
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      notifier.updateTargetAmount(double.tryParse(v) ?? 0),
-                  validator: v.all([v.notEmpty()]),
+                  onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
+                  validator: v.all([v.notNull()]),
                 ),
-                TextFormField(
+                MoneyFormField(
                   initialValue: state.currentAmount > 0
-                      ? state.currentAmount.toString()
-                      : '0.0',
+                      ? state.currentAmount
+                      : null,
                   decoration: InputDecoration(
                     labelText: l10n.goalCurrentAmountLabel,
                   ),
-                  keyboardType: TextInputType.number,
                   enabled: state.accountId == null,
-                  onChanged: (v) =>
-                      notifier.updateCurrentAmount(double.tryParse(v) ?? 0),
-                  validator: v.all([v.notEmpty()]),
+                  onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
+                  validator: v.all([v.notNull()]),
                 ),
               ] else if (state.type == GoalType.payDebt) ...[
-                TextFormField(
+                MoneyFormField(
                   initialValue: state.targetAmount > 0
-                      ? state.targetAmount.toString()
-                      : '',
+                      ? state.targetAmount
+                      : null,
                   decoration: InputDecoration(
                     labelText: 'Valor Total da Dívida',
                     hintText: 'Quanto você deve no total?',
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      notifier.updateTargetAmount(double.tryParse(v) ?? 0),
-                  validator: v.all([v.notEmpty()]),
+                  onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
+                  validator: v.all([v.notNull()]),
                 ),
-                TextFormField(
+                MoneyFormField(
                   initialValue: state.currentAmount > 0
-                      ? state.currentAmount.toString()
-                      : '0.0',
+                      ? state.currentAmount
+                      : null,
                   decoration: InputDecoration(
                     labelText: 'Valor Já Pago',
                     hintText: 'Quanto você já amortizou?',
                   ),
-                  keyboardType: TextInputType.number,
                   enabled: state.accountId == null,
-                  onChanged: (v) =>
-                      notifier.updateCurrentAmount(double.tryParse(v) ?? 0),
-                  validator: (v) => v == null || double.tryParse(v) == null
-                      ? l10n.errorUnknown
-                      : null,
+                  onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
+                  validator: v.all([v.notNull()]),
                 ),
                 AccountFormField(
                   initialValue: state.accountId,
@@ -144,30 +135,26 @@ class GoalFormScreen extends ConsumerWidget {
                 ),
               ] else ...[
                 // Para redução de gastos
-                TextFormField(
+                MoneyFormField(
                   initialValue: state.targetAmount > 0
-                      ? state.targetAmount.toString()
-                      : '',
+                      ? state.targetAmount
+                      : null,
                   decoration: InputDecoration(
                     labelText: l10n.goalTargetAmountLabel,
                     hintText: 'Ex: 500.00 (Limite de gasto)',
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      notifier.updateTargetAmount(double.tryParse(v) ?? 0),
-                  validator: v.all([v.notEmpty()]),
+                  onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
+                  validator: v.all([v.notNull()]),
                 ),
-                TextFormField(
+                MoneyFormField(
                   initialValue: state.averageSpending > 0
-                      ? state.averageSpending.toString()
-                      : '',
+                      ? state.averageSpending
+                      : null,
                   decoration: InputDecoration(
                     labelText: l10n.goalAverageSpendingLabel,
                   ),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) =>
-                      notifier.updateAverageSpending(double.tryParse(v) ?? 0),
-                  validator: v.all([v.notEmpty()]),
+                  onChanged: (v) => notifier.updateAverageSpending(v ?? 0),
+                  validator: v.all([v.notNull()]),
                 ),
               ],
               if (state.type == GoalType.reduceExpense)

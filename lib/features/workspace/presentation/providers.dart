@@ -11,13 +11,13 @@ import '../data/repositories/category_repository_impl.dart';
 import '../domain/models/category_model.dart';
 import '../domain/repositories/category_repository.dart';
 
-class WorkspaceDomainProviders {
+sealed class WorkspaceDomainProviders {
   static final repository = Provider((ref) {
     return WorkspaceRepositoryImpl();
   });
 }
 
-class WorkspaceViewProviders {
+sealed class WorkspaceViewProviders {
   static final workspace =
       StateNotifierProvider<WorkspaceNotifier, WorkspaceState>((ref) {
         final repository = ref.read(WorkspaceDomainProviders.repository);
@@ -42,7 +42,7 @@ class WorkspaceViewProviders {
       });
 }
 
-class CategoryDomainProviders {
+sealed class CategoryDomainProviders {
   static final repository = Provider<ICategoryRepository>((ref) {
     return CategoryRepositoryImpl();
   });
@@ -56,7 +56,7 @@ class CategoryDomainProviders {
   );
 }
 
-class CategoryViewProviders {
+sealed class CategoryViewProviders {
   static final allStream = StreamProvider<List<CategoryModel>>((ref) {
     final service = ref.watch(CategoryDomainProviders.service);
     return service.getCategories();

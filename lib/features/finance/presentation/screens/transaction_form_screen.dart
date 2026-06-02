@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
+import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/responsive_form.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -11,6 +14,7 @@ import 'package:funances/features/finance/presentation/model/finance_view_models
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
+import 'package:funances/features/finance/presentation/widgets/replication_cascade_dialog.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 class TransactionFormScreen extends StatelessWidget {
@@ -98,7 +102,28 @@ class TransactionFormScreen extends StatelessWidget {
       body: ResponsiveForm<TransactionFormState, void, TransactionFormNotifier>(
         provider,
         submitLabel: l10n.saveButton,
+        submitEnabled: (state) => state.status != InstallmentStatus.settled,
         extraActions: [
+          if (updateInstallment)
+            OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(color: AppColors.error),
+                ),
+              ),
+              onPressed:
+                  (installment?.status == InstallmentStatus.settled ||
+                      installment?.status == InstallmentStatus.removed)
+                  ? null
+                  : () => _confirmDelete(context, provider),
+              child: Row(
+                spacing: 8,
+                children: [Icon(Icons.delete_outline), Text(l10n.deleteButton)],
+              ),
+            ),
+          Spacer(),
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(l10n.cancelButton),
@@ -124,29 +149,8 @@ class TransactionFormScreen extends StatelessWidget {
                 state.accountIdTarget != original.accountIdTarget;
 
             if (changedFieldsOtherThanStatusOrPayment) {
-              final selectedCascade = await showDialog<ReplicationCascade>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(l10n.transactionCascadeTitle),
-                  content: Text(l10n.transactionCascadeDescription),
-                  actions: [
-                    TextButton(
-                      onPressed: () =>
-                          Navigator.pop(context, ReplicationCascade.none),
-                      child: Text(l10n.transactionCascadeOnlyThis),
-                    ),
-                    TextButton(
-                      onPressed: () =>
-                          Navigator.pop(context, ReplicationCascade.future),
-                      child: Text(l10n.transactionCascadeThisAndNext),
-                    ),
-                    TextButton(
-                      onPressed: () =>
-                          Navigator.pop(context, ReplicationCascade.all),
-                      child: Text(l10n.transactionCascadeAll),
-                    ),
-                  ],
-                ),
+              final selectedCascade = await ReplicationCascadeDialog.showUpdate(
+                context,
               );
 
               if (selectedCascade == null) return;
@@ -171,6 +175,7 @@ class TransactionFormScreen extends StatelessWidget {
           final notifier = snapshot.notifier;
           if (state.status == InstallmentStatus.settled) {
             return MaterialBanner(
+              backgroundColor: AppColors.successGold,
               content: Text(l10n.transactionSettledAlert),
               actions: [
                 TextButton(
@@ -245,8 +250,9 @@ class TransactionFormScreen extends StatelessWidget {
                 ),
                 onChanged:
                     (state.creation ||
-                        (state.installmentId != null &&
-                            state.status == InstallmentStatus.pending)) && !isSettled
+                            (state.installmentId != null &&
+                                state.status == InstallmentStatus.pending)) &&
+                        !isSettled
                     ? notifier.updateCategory
                     : null,
                 validator: v.all([v.notNull()]),
@@ -262,11 +268,16 @@ class TransactionFormScreen extends StatelessWidget {
                       : l10n.transactionAccountLabel,
                 ),
                 onChanged:
-                    (state.status != InstallmentStatus.paid || state.creation) && !isSettled
+                    (state.status != InstallmentStatus.paid ||
+                            state.creation) &&
+                        !isSettled
                     ? notifier.updateAccountIdSource
                     : null,
                 validator: isPending ? null : v.all([v.notEmpty()]),
-                autoOpen: state.creation && (state.type == OrderType.transfer || state.category != null),
+                autoOpen:
+                    state.creation &&
+                    (state.type == OrderType.transfer ||
+                        state.category != null),
               ),
               if (state.type == OrderType.transfer) ...[
                 AccountFormField(
@@ -275,7 +286,9 @@ class TransactionFormScreen extends StatelessWidget {
                     labelText: l10n.transactionToAccountLabel,
                   ),
                   onChanged:
-                      (state.status != InstallmentStatus.paid || state.creation) && !isSettled
+                      (state.status != InstallmentStatus.paid ||
+                              state.creation) &&
+                          !isSettled
                       ? notifier.updateAccountIdTarget
                       : null,
                   validator: isPending ? null : v.all([v.notEmpty()]),
@@ -384,9 +397,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
       MoneyFormField(
         initialValue: state.amount > 0 ? state.amount : null,
-        decoration: InputDecoration(
-          labelText: amountLabel,
-        ),
+        decoration: InputDecoration(labelText: amountLabel),
         onChanged: (v) => notifier.updateAmount(v ?? 0.0),
         validator: v.all([v.notNull()]),
         enabled: (!isPaid || state.creation) && !isSettled,
@@ -419,9 +430,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         MoneyFormField(
           initialValue: state.paidAmount,
-          decoration: InputDecoration(
-            labelText: l10n.transactionAmountLabel,
-          ),
+          decoration: InputDecoration(labelText: l10n.transactionAmountLabel),
           onChanged: (v) => notifier.updatePaidAmount(v ?? 0.0),
           validator: v.all([v.notNull()]),
           enabled: !isSettled,
@@ -478,6 +487,64 @@ class TransactionFormScreen extends StatelessWidget {
               }
             }
           : null,
+    );
+  }
+
+  void _confirmDelete(
+    BuildContext context,
+    AutoDisposeStateNotifierProvider<
+      TransactionFormNotifier,
+      TransactionFormState
+    >
+    provider,
+  ) {
+    final l10n = context.l10n;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.historyDeleteTitle),
+        content: Text(l10n.historyDeleteConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancelButton),
+          ),
+          Consumer(
+            builder: (context, ref, _) {
+              final notifier = ref.read(provider.notifier);
+              final state = ref.watch(provider.select((s) => s));
+
+              return LoadingButton.text(
+                onPressed: (loading) async {
+                  final navigator = Navigator.of(context);
+                  ReplicationCascade cascade = ReplicationCascade.none;
+
+                  if (state.installmentType != InstallmentType.single) {
+                    final selectedCascade =
+                        await ReplicationCascadeDialog.showDeletion(context);
+
+                    if (selectedCascade == null) return;
+                    cascade = selectedCascade;
+                  }
+
+                  notifier.updateReplicationCascade(cascade);
+                  await loading(notifier.delete());
+
+                  navigator.pop(); // Fecha dialog de confirmação
+                  if (context.mounted) {
+                    Navigator.of(context).pop(true); // Fecha tela de form
+                  }
+                },
+                child: Text(
+                  l10n.deleteButton,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -6,11 +6,15 @@ import 'package:funances/l10n/app_localizations.dart';
 class AnalysisLoadingView extends StatefulWidget {
   final String? title;
   final String? description;
+  final Duration firstPhaseDuration;
+  final Duration totalDuration;
 
   const AnalysisLoadingView({
     super.key,
     this.title,
     this.description,
+    this.firstPhaseDuration = const Duration(minutes: 1),
+    this.totalDuration = const Duration(minutes: 5),
   });
 
   @override
@@ -22,7 +26,7 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
   late AnimationController _rotationController;
   late AnimationController _progressController;
   double _currentProgress = 0.0;
-  Timer? _recursiveTimer;
+  Timer? _secondPhaseTimer;
 
   @override
   void initState() {
@@ -34,27 +38,46 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
 
     _progressController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 30),
+      duration: widget.firstPhaseDuration,
     );
 
     _progressController.addListener(() {
       setState(() {
-        _currentProgress = _progressController.value * 0.95;
+        _currentProgress = _progressController.value * 0.90;
       });
     });
 
     _progressController.forward().then((_) {
-      _startRecursiveProgress();
+      _startSecondPhase();
     });
   }
 
-  void _startRecursiveProgress() {
-    _recursiveTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+  void _startSecondPhase() {
+    final remainingDuration = widget.totalDuration - widget.firstPhaseDuration;
+    if (remainingDuration.isNegative || remainingDuration == Duration.zero) {
+      setState(() {
+        _currentProgress = 1.0;
+      });
+      return;
+    }
+
+    const interval = Duration(milliseconds: 100);
+    final totalSteps = remainingDuration.inMilliseconds / interval.inMilliseconds;
+    int currentStep = 0;
+
+    _secondPhaseTimer = Timer.periodic(interval, (timer) {
       if (mounted) {
+        currentStep++;
         setState(() {
-          final remaining = 1.0 - _currentProgress;
-          _currentProgress += remaining * 0.5;
+          final ratio = currentStep / totalSteps;
+          _currentProgress = 0.90 + (0.10 * ratio);
         });
+
+        if (currentStep >= totalSteps) {
+          timer.cancel();
+        }
+      } else {
+        timer.cancel();
       }
     });
   }
@@ -63,7 +86,7 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
   void dispose() {
     _rotationController.dispose();
     _progressController.dispose();
-    _recursiveTimer?.cancel();
+    _secondPhaseTimer?.cancel();
     super.dispose();
   }
 

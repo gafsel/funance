@@ -13,7 +13,10 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
     required String workspaceId,
   }) async {
     try {
-      final callable = _functions.httpsCallable('analysePlanning');
+      final callable = _functions.httpsCallable(
+        'analysePlanning',
+        options: HttpsCallableOptions(timeout: const Duration(minutes: 5)),
+      );
 
       final result = await callable.call({'workspaceId': workspaceId});
 

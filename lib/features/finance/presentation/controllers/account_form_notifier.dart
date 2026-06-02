@@ -126,7 +126,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
 
         processedOrders.add(
           order.copyWith(
-            installmentCreationStatus: InstallmentStatus.paid,
+            installmentCreationStatus: InstallmentStatus.settled,
             category: category,
             accounts: {
               account.id: order.type == OrderType.expense

@@ -158,242 +158,147 @@ class HistoryMobileView extends ConsumerWidget {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 8.0),
-          child: Slidable(
-            key: ValueKey(installment.id),
-            endActionPane: ActionPane(
-              motion: const DrawerMotion(),
-              children: [
-                SlidableAction(
-                  onPressed: (context) async {
-                    final updated = await context.push<bool>(
-                      '/transactions/form',
-                      extra: {'installment': installment},
-                    );
+          child: InkWell(
+            onTap: () async {
+              final updated = await context.push<bool>(
+                '/transactions/form',
+                extra: {'installment': installment},
+              );
 
-                    if (updated ?? false) {
-                      notifier.reset();
-                    }
-                  },
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  icon: Icons.edit,
-                  label: l10n.historyEdit,
-                ),
-                SlidableAction(
-                  onPressed: (context) =>
-                      _confirmDelete(context, notifier, installment),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  foregroundColor: Theme.of(context).colorScheme.onError,
-                  icon: Icons.delete,
-                  label: l10n.historyDelete,
-                ),
-              ],
-            ),
-            child: InkWell(
-              onTap: () {},
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  spacing: 12,
-                  children: [
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
+              if (updated ?? false) {
+                notifier.reset();
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                spacing: 12,
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isTransfer
+                              ? Theme.of(context).colorScheme.primaryContainer
+                                    .withValues(alpha: 0.3)
+                              : (category?.color.asColor() ??
+                                        AppColors.deepTurquoise)
+                                    .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          isTransfer
+                              ? Icons.swap_horiz
+                              : category?.icon.asIcon() ?? Icons.category,
+                          color: isTransfer
+                              ? Theme.of(context).colorScheme.primary
+                              : category?.color.asColor() ??
+                                    AppColors.deepTurquoise,
+                          size: 20,
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -5,
+                        right: -5,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
-                            color: isTransfer
-                                ? Theme.of(context).colorScheme.primaryContainer
-                                      .withValues(alpha: 0.3)
-                                : (category?.color.asColor() ??
-                                          AppColors.deepTurquoise)
-                                      .withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
+                            color:
+                                installment.status == InstallmentStatus.settled
+                                ? AppColors.deepPurple
+                                : installment.status == InstallmentStatus.paid
+                                ? AppColors.limeGreen
+                                : AppColors.antiqueGold,
+                            shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            isTransfer
-                                ? Icons.swap_horiz
-                                : category?.icon.asIcon() ?? Icons.category,
-                            color: isTransfer
-                                ? Theme.of(context).colorScheme.primary
-                                : category?.color.asColor() ??
-                                      AppColors.deepTurquoise,
-                            size: 20,
+                            installment.status == InstallmentStatus.settled
+                                ? Icons.done_all
+                                : installment.status == InstallmentStatus.paid
+                                ? Icons.check
+                                : Icons.schedule,
+                            size: 10,
+                            color: Colors.white,
                           ),
                         ),
-                        Positioned(
-                          bottom: -5,
-                          right: -5,
-                          child: Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              color:
-                                  installment.status ==
-                                      InstallmentStatus.settled
-                                  ? AppColors.deepPurple
-                                  : installment.status == InstallmentStatus.paid
-                                  ? AppColors.limeGreen
-                                  : AppColors.antiqueGold,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              installment.status == InstallmentStatus.settled
-                                  ? Icons.done_all
-                                  : installment.status == InstallmentStatus.paid
-                                  ? Icons.check
-                                  : Icons.schedule,
-                              size: 10,
-                              color: Colors.white,
-                            ),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          installment.description,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            installment.description,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                        Wrap(
+                          spacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              '${isTransfer ? l10n.transactionActionTransfer : (category?.name ?? installment.category)}',
+                              style: theme.textTheme.bodySmall,
                             ),
-                          ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            spacing: 8,
-                            children: [
-                              Text(
-                                '${isTransfer ? l10n.transactionActionTransfer : (category?.name ?? installment.category)}',
-                                style: theme.textTheme.bodySmall,
-                              ),
+                            Icon(
+                              Icons.circle,
+                              size: 5,
+                              color: Colors.grey.shade400,
+                            ),
+                            Text(accountName, style: theme.textTheme.bodySmall),
+                            if (installment.installmentType ==
+                                InstallmentType.installment)
                               Icon(
                                 Icons.circle,
                                 size: 5,
                                 color: Colors.grey.shade400,
                               ),
-                              Text(
-                                accountName,
-                                style: theme.textTheme.bodySmall,
+                            if (installment.installmentType ==
+                                InstallmentType.installment)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 1,
+                                ),
+                                decoration: const ShapeDecoration(
+                                  shape: StadiumBorder(),
+                                  color: AppColors.softGrey,
+                                ),
+                                child: Text(
+                                  l10n.installmentCountDescription(
+                                    installment.installmentCount ?? 1,
+                                    installment.installmentNumber ?? 1,
+                                  ),
+                                  style: theme.textTheme.bodySmall,
+                                ),
                               ),
-                              if (installment.installmentType ==
-                                  InstallmentType.installment)
-                                Icon(
-                                  Icons.circle,
-                                  size: 5,
-                                  color: Colors.grey.shade400,
-                                ),
-                              if (installment.installmentType ==
-                                  InstallmentType.installment)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 1,
-                                  ),
-                                  decoration: const ShapeDecoration(
-                                    shape: StadiumBorder(),
-                                    color: AppColors.softGrey,
-                                  ),
-                                  child: Text(
-                                    l10n.installmentCountDescription(
-                                      installment.installmentCount ?? 1,
-                                      installment.installmentNumber ?? 1,
-                                    ),
-                                    style: theme.textTheme.bodySmall,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${installment.referenceAmount.asCurrency(locale: locale)}',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: amountColor,
-                          ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${installment.referenceAmount.asCurrency(locale: locale)}',
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: amountColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
         );
       },
-    );
-  }
-
-  void _confirmDelete(
-    BuildContext context,
-    TransactionListNotifier notifier,
-    InstallmentModel installment,
-  ) {
-    final l10n = context.l10n;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.historyDeleteTitle),
-        content: Text(l10n.historyDeleteConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancelButton),
-          ),
-          LoadingButton.text(
-            onPressed: (loading) async {
-              final navigator = Navigator.of(context);
-              ReplicationCascade cascade = ReplicationCascade.none;
-
-              if (installment.installmentType != InstallmentType.single) {
-                final selectedCascade = await showDialog<ReplicationCascade>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(l10n.transactionDeleteCascadeTitle),
-                    content: Text(l10n.transactionDeleteCascadeDescription),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, ReplicationCascade.none),
-                        child: Text(l10n.transactionDeleteCascadeOnlyThis),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, ReplicationCascade.future),
-                        child: Text(l10n.transactionDeleteCascadeThisAndNext),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, ReplicationCascade.all),
-                        child: Text(l10n.transactionDeleteCascadeAll),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (selectedCascade == null) return;
-                cascade = selectedCascade;
-              }
-
-              await loading(
-                notifier.delete(installment.id, replicationCascade: cascade),
-              );
-
-              navigator.pop();
-            },
-            child: Text(
-              l10n.deleteButton,
-              style: const TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -72,6 +72,8 @@ class AccountsStep extends ConsumerWidget {
                 child: AnalysisLoadingView(
                   title: l10n.onboardingPlanningAnalyzingTitle,
                   description: l10n.onboardingPlanningAnalyzingDesc,
+                  firstPhaseDuration: const Duration(seconds: 20),
+                  totalDuration: const Duration(minutes: 1, seconds: 20),
                 ),
               );
             },

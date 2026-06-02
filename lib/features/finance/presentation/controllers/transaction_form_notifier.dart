@@ -75,6 +75,15 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
     state = state.copyWith(status: InstallmentStatus.paid);
   }
 
+  Future<void> delete() async {
+    if (state.installmentId == null) return;
+
+    await financeService.cancelInstallment(
+      state.installmentId!,
+      replicationCascade: state.replicateCascade ?? ReplicationCascade.none,
+    );
+  }
+
   Future<bool> submit() async {
     if (state.formType == TransactionFormType.order) {
       final order = state.asOrderModel();

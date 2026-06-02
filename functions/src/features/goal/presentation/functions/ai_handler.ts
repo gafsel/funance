@@ -1,7 +1,7 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { container } from "../../../../core/container";
 
-export const analysePlanning = onCall(async (request) => {
+export const analysePlanning = onCall({ timeoutSeconds: 300 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
@@ -22,7 +22,7 @@ export const analysePlanning = onCall(async (request) => {
     }
 });
 
-export const analyzeAccountDocument = onCall(async (request) => {
+export const analyzeAccountDocument = onCall({ timeoutSeconds: 300 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }

@@ -148,7 +148,10 @@ class AccountRepositoryImpl implements IAccountRepository {
 
       await _storage.ref().child(storagePath).putFile(file);
 
-      final callable = _functions.httpsCallable('analyzeAccountDocument');
+      final callable = _functions.httpsCallable(
+        'analyzeAccountDocument',
+        options: HttpsCallableOptions(timeout: const Duration(minutes: 5)),
+      );
 
       final result = await callable.call({
         'workspaceId': workspaceId,

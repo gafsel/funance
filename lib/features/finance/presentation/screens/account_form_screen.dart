@@ -94,14 +94,23 @@ class AccountFormScreen extends ConsumerWidget {
                             final file = detail.files.first;
                             final extension = file.name.split('.').last.toLowerCase();
                             if (extension == 'pdf' || extension == 'ofx') {
-                              showLoadingModal(
-                                context,
-                                notifier.updateFile(
-                                  kIsWeb ? null : File(file.path),
-                                  file.name,
-                                ),
-                                child: const AnalysisLoadingView(),
-                              );
+                                showLoadingModal(
+                                  context,
+                                  notifier.updateFile(
+                                    kIsWeb ? null : File(file.path),
+                                    file.name,
+                                  ),
+                                  child: AnalysisLoadingView(
+                                    firstPhaseDuration:
+                                        extension == 'ofx'
+                                            ? const Duration(seconds: 20)
+                                            : const Duration(minutes: 1),
+                                    totalDuration:
+                                        extension == 'ofx'
+                                            ? const Duration(seconds: 45)
+                                            : const Duration(minutes: 5),
+                                  ),
+                                );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
@@ -181,16 +190,30 @@ class AccountFormScreen extends ConsumerWidget {
                                         );
 
                                     if (result != null) {
-                                      showLoadingModal(
-                                        context,
-                                        notifier.updateFile(
-                                          kIsWeb
-                                              ? null
-                                              : File(result.files.single.path!),
-                                          result.files.single.name,
-                                        ),
-                                        child: const AnalysisLoadingView(),
-                                      );
+                                        final extension =
+                                            result.files.single.name
+                                                .split('.')
+                                                .last
+                                                .toLowerCase();
+                                        showLoadingModal(
+                                          context,
+                                          notifier.updateFile(
+                                            kIsWeb
+                                                ? null
+                                                : File(result.files.single.path!),
+                                            result.files.single.name,
+                                          ),
+                                          child: AnalysisLoadingView(
+                                            firstPhaseDuration:
+                                                extension == 'ofx'
+                                                    ? const Duration(seconds: 20)
+                                                    : const Duration(minutes: 1),
+                                            totalDuration:
+                                                extension == 'ofx'
+                                                    ? const Duration(seconds: 45)
+                                                    : const Duration(minutes: 5),
+                                          ),
+                                        );
                                     }
                                   },
                                   icon: const Icon(Icons.upload_file),

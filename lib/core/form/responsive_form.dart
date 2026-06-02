@@ -29,7 +29,6 @@ class FullWidthItem extends StatelessWidget {
   }
 }
 
-
 typedef BannerBuilder<I, O, N extends FormNotifier<I, O>> =
     MaterialBanner? Function(
       BuildContext context,
@@ -47,6 +46,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     this.extraActions = const [],
     this.onSuccess,
     this.onSubmit,
+    this.submitEnabled,
   });
 
   final AutoDisposeStateNotifierProvider<N, I> provider;
@@ -56,6 +56,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   final List<Widget> extraActions;
   final ValueChanged<O?>? onSuccess;
   final OnPressed<I, O, N>? onSubmit;
+  final bool Function(I state)? submitEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -70,10 +71,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
             final banner = bannerBuilder?.call(context, snapshot);
             return Column(
               children: [
-                if (banner != null) ...[
-                  banner,
-                  const SizedBox(height: 16),
-                ],
+                if (banner != null) ...[banner, const SizedBox(height: 16)],
                 _ResponsiveGrid(
                   spacing: 16,
                   children: fieldsBuilder(context, snapshot),
@@ -85,21 +83,23 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                   children: [
                     ...extraActions,
                     LoadingButton.elevated(
+                      onPressed: (submitEnabled?.call(snapshot.model) ?? true)
+                          ? (loading) async {
+                              if (onSubmit != null) {
+                                await onSubmit!(snapshot, loading);
+                                return;
+                              }
+
+                              if (snapshot.validate()) {
+                                final output = await loading(
+                                  snapshot.notifier.submit(),
+                                );
+
+                                onSuccess?.call(output);
+                              }
+                            }
+                          : null,
                       child: Text(submitLabel ?? l10n.saveButton),
-                      onPressed: (loading) async {
-                        if (onSubmit != null) {
-                          await onSubmit!(snapshot, loading);
-                          return;
-                        }
-
-                        if (snapshot.validate()) {
-                          final output = await loading(
-                            snapshot.notifier.submit(),
-                          );
-
-                          onSuccess?.call(output);
-                        }
-                      },
                     ),
                   ],
                 ),
@@ -138,7 +138,12 @@ class _ResponsiveGrid extends StatelessWidget {
             spacing: spacing,
             runSpacing: spacing,
             children: children
-                .map((child) => SizedBox(width: child is FullWidthItem ? maxWidth : itemWidth, child: child))
+                .map(
+                  (child) => SizedBox(
+                    width: child is FullWidthItem ? maxWidth : itemWidth,
+                    child: child,
+                  ),
+                )
                 .toList(),
           );
         }

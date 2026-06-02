@@ -156,7 +156,6 @@ class HistoryDesktopView extends ConsumerWidget {
               textAlign: TextAlign.end,
             ),
           ),
-          const SizedBox(width: 40),
         ],
       ),
     );
@@ -375,127 +374,11 @@ class HistoryDesktopView extends ConsumerWidget {
                     textAlign: TextAlign.end,
                   ),
                 ),
-                // Ações
-                SizedBox(
-                  width: 40,
-                  child: PopupMenuButton(
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        onTap: () {
-                          context.push(
-                            '/transactions/form',
-                            extra: {'installment': installment},
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            const Icon(Icons.edit, size: 20),
-                            const SizedBox(width: 8),
-                            Text(l10n.historyEdit),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem(
-                        onTap: () {
-                          // Precisamos de um pequeno delay para o menu fechar antes do dialog abrir
-                          Future.delayed(
-                            const Duration(milliseconds: 0),
-                            () =>
-                                _confirmDelete(context, notifier, installment),
-                          );
-                        },
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.delete,
-                              size: 20,
-                              color: Colors.red,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              l10n.historyDelete,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  void _confirmDelete(
-    BuildContext context,
-    TransactionListNotifier notifier,
-    InstallmentModel installment,
-  ) {
-    final l10n = context.l10n;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.historyDeleteTitle),
-        content: Text(l10n.historyDeleteConfirm),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancelButton),
-          ),
-          LoadingButton.text(
-            onPressed: (loading) async {
-              final navigator = Navigator.of(context);
-              ReplicationCascade cascade = ReplicationCascade.none;
-
-              if (installment.installmentType != InstallmentType.single) {
-                final selectedCascade = await showDialog<ReplicationCascade>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: Text(l10n.transactionDeleteCascadeTitle),
-                    content: Text(l10n.transactionDeleteCascadeDescription),
-                    actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, ReplicationCascade.none),
-                        child: Text(l10n.transactionDeleteCascadeOnlyThis),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, ReplicationCascade.future),
-                        child: Text(l10n.transactionDeleteCascadeThisAndNext),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.pop(context, ReplicationCascade.all),
-                        child: Text(l10n.transactionDeleteCascadeAll),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (selectedCascade == null) return;
-                cascade = selectedCascade;
-              }
-
-              await loading(
-                notifier.delete(installment.id, replicationCascade: cascade),
-              );
-
-              navigator.pop();
-            },
-            child: Text(
-              l10n.deleteButton,
-              style: const TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
