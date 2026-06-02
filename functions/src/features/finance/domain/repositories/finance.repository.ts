@@ -1,4 +1,3 @@
-import * as admin from "firebase-admin";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
     OrderModel,
@@ -6,6 +5,7 @@ import {
     CategoryPlanningModel,
     AccountModel,
     AccountBalanceModel,
+    PeriodSummaryUpdateModel,
 } from "../models/finance.models";
 
 export interface IFinanceRepository {
@@ -41,6 +41,12 @@ export interface IFinanceRepository {
   deleteCategoryPlanning(workspaceId: string, id: string): Promise<void>;
   deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void>;
   getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
+  getCategoryPlanningsByLastSummaryMonthGroup(nowStr: string, limit: number): Promise<(CategoryPlanningModel & { workspaceId: string, ref: any })[]>;
+  processCategoryPlanningSummariesChunk(
+    chunk: (CategoryPlanningModel & { workspaceId: string, ref: any })[],
+    nowStr: string,
+    summaryFactory: (workspaceId: string, planning: CategoryPlanningModel) => PeriodSummaryUpdateModel[]
+  ): Promise<void>;
 
   // Period Summaries
   updatePeriodSummary(
@@ -55,7 +61,6 @@ export interface IFinanceRepository {
         },
         week?: number
     ): Promise<void>;
-  updateSummaryCategoryInfo(workspaceId: string, category: CategoryModel): Promise<void>;
 
   // Accounts
   getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null>;
@@ -70,10 +75,12 @@ export interface IFinanceRepository {
   getLastBalanceBefore(
     workspaceId: string,
     accountId: string,
-    date: Date,
-    transaction?: admin.firestore.Transaction
+    date: Date
   ): Promise<AccountBalanceModel | null>;
 
   // Generic Query
   getAllWorkspaces(): Promise<string[]>;
+
+  updateOrderCategory(workspaceId: string, category: CategoryModel): any;
+  updateInstallmentCategory(workspaceId: string, category: CategoryModel): any;
 }

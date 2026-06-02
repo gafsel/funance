@@ -12,9 +12,287 @@ part of 'overview_view_model.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$OverviewCategorySummary {
+
+ CategoryModel get category; double get generalPlannedAmount; double get specificPlannedAmount; double get actualAmount;
+/// Create a copy of OverviewCategorySummary
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OverviewCategorySummaryCopyWith<OverviewCategorySummary> get copyWith => _$OverviewCategorySummaryCopyWithImpl<OverviewCategorySummary>(this as OverviewCategorySummary, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OverviewCategorySummary&&(identical(other.category, category) || other.category == category)&&(identical(other.generalPlannedAmount, generalPlannedAmount) || other.generalPlannedAmount == generalPlannedAmount)&&(identical(other.specificPlannedAmount, specificPlannedAmount) || other.specificPlannedAmount == specificPlannedAmount)&&(identical(other.actualAmount, actualAmount) || other.actualAmount == actualAmount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,category,generalPlannedAmount,specificPlannedAmount,actualAmount);
+
+@override
+String toString() {
+  return 'OverviewCategorySummary(category: $category, generalPlannedAmount: $generalPlannedAmount, specificPlannedAmount: $specificPlannedAmount, actualAmount: $actualAmount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OverviewCategorySummaryCopyWith<$Res>  {
+  factory $OverviewCategorySummaryCopyWith(OverviewCategorySummary value, $Res Function(OverviewCategorySummary) _then) = _$OverviewCategorySummaryCopyWithImpl;
+@useResult
+$Res call({
+ CategoryModel category, double generalPlannedAmount, double specificPlannedAmount, double actualAmount
+});
+
+
+$CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class _$OverviewCategorySummaryCopyWithImpl<$Res>
+    implements $OverviewCategorySummaryCopyWith<$Res> {
+  _$OverviewCategorySummaryCopyWithImpl(this._self, this._then);
+
+  final OverviewCategorySummary _self;
+  final $Res Function(OverviewCategorySummary) _then;
+
+/// Create a copy of OverviewCategorySummary
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? category = null,Object? generalPlannedAmount = null,Object? specificPlannedAmount = null,Object? actualAmount = null,}) {
+  return _then(_self.copyWith(
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,generalPlannedAmount: null == generalPlannedAmount ? _self.generalPlannedAmount : generalPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,specificPlannedAmount: null == specificPlannedAmount ? _self.specificPlannedAmount : specificPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,actualAmount: null == actualAmount ? _self.actualAmount : actualAmount // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+/// Create a copy of OverviewCategorySummary
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [OverviewCategorySummary].
+extension OverviewCategorySummaryPatterns on OverviewCategorySummary {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OverviewCategorySummary value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OverviewCategorySummary() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OverviewCategorySummary value)  $default,){
+final _that = this;
+switch (_that) {
+case _OverviewCategorySummary():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OverviewCategorySummary value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OverviewCategorySummary() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OverviewCategorySummary() when $default != null:
+return $default(_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount)  $default,) {final _that = this;
+switch (_that) {
+case _OverviewCategorySummary():
+return $default(_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryModel category,  double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount)?  $default,) {final _that = this;
+switch (_that) {
+case _OverviewCategorySummary() when $default != null:
+return $default(_that.category,_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _OverviewCategorySummary extends OverviewCategorySummary {
+   _OverviewCategorySummary({required this.category, required this.generalPlannedAmount, required this.specificPlannedAmount, required this.actualAmount}): super._();
+  
+
+@override final  CategoryModel category;
+@override final  double generalPlannedAmount;
+@override final  double specificPlannedAmount;
+@override final  double actualAmount;
+
+/// Create a copy of OverviewCategorySummary
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OverviewCategorySummaryCopyWith<_OverviewCategorySummary> get copyWith => __$OverviewCategorySummaryCopyWithImpl<_OverviewCategorySummary>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OverviewCategorySummary&&(identical(other.category, category) || other.category == category)&&(identical(other.generalPlannedAmount, generalPlannedAmount) || other.generalPlannedAmount == generalPlannedAmount)&&(identical(other.specificPlannedAmount, specificPlannedAmount) || other.specificPlannedAmount == specificPlannedAmount)&&(identical(other.actualAmount, actualAmount) || other.actualAmount == actualAmount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,category,generalPlannedAmount,specificPlannedAmount,actualAmount);
+
+@override
+String toString() {
+  return 'OverviewCategorySummary(category: $category, generalPlannedAmount: $generalPlannedAmount, specificPlannedAmount: $specificPlannedAmount, actualAmount: $actualAmount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OverviewCategorySummaryCopyWith<$Res> implements $OverviewCategorySummaryCopyWith<$Res> {
+  factory _$OverviewCategorySummaryCopyWith(_OverviewCategorySummary value, $Res Function(_OverviewCategorySummary) _then) = __$OverviewCategorySummaryCopyWithImpl;
+@override @useResult
+$Res call({
+ CategoryModel category, double generalPlannedAmount, double specificPlannedAmount, double actualAmount
+});
+
+
+@override $CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class __$OverviewCategorySummaryCopyWithImpl<$Res>
+    implements _$OverviewCategorySummaryCopyWith<$Res> {
+  __$OverviewCategorySummaryCopyWithImpl(this._self, this._then);
+
+  final _OverviewCategorySummary _self;
+  final $Res Function(_OverviewCategorySummary) _then;
+
+/// Create a copy of OverviewCategorySummary
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? category = null,Object? generalPlannedAmount = null,Object? specificPlannedAmount = null,Object? actualAmount = null,}) {
+  return _then(_OverviewCategorySummary(
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,generalPlannedAmount: null == generalPlannedAmount ? _self.generalPlannedAmount : generalPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,specificPlannedAmount: null == specificPlannedAmount ? _self.specificPlannedAmount : specificPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,actualAmount: null == actualAmount ? _self.actualAmount : actualAmount // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+/// Create a copy of OverviewCategorySummary
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
+/// @nodoc
 mixin _$SummaryState {
 
- List<PeriodSummaryModel> get summary; double get specificPlannedAmountOthers; double get generalPlannedAmountOthers; double get actualAmountOthers; double get totalAmount;
+ List<OverviewCategorySummary> get summary; double get specificPlannedAmountOthers; double get generalPlannedAmountOthers; double get actualAmountOthers; double get totalAmount;
 /// Create a copy of SummaryState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +323,7 @@ abstract mixin class $SummaryStateCopyWith<$Res>  {
   factory $SummaryStateCopyWith(SummaryState value, $Res Function(SummaryState) _then) = _$SummaryStateCopyWithImpl;
 @useResult
 $Res call({
- List<PeriodSummaryModel> summary, double specificPlannedAmountOthers, double generalPlannedAmountOthers, double actualAmountOthers, double totalAmount
+ List<OverviewCategorySummary> summary, double specificPlannedAmountOthers, double generalPlannedAmountOthers, double actualAmountOthers, double totalAmount
 });
 
 
@@ -65,7 +343,7 @@ class _$SummaryStateCopyWithImpl<$Res>
 @pragma('vm:prefer-inline') @override $Res call({Object? summary = null,Object? specificPlannedAmountOthers = null,Object? generalPlannedAmountOthers = null,Object? actualAmountOthers = null,Object? totalAmount = null,}) {
   return _then(_self.copyWith(
 summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
-as List<PeriodSummaryModel>,specificPlannedAmountOthers: null == specificPlannedAmountOthers ? _self.specificPlannedAmountOthers : specificPlannedAmountOthers // ignore: cast_nullable_to_non_nullable
+as List<OverviewCategorySummary>,specificPlannedAmountOthers: null == specificPlannedAmountOthers ? _self.specificPlannedAmountOthers : specificPlannedAmountOthers // ignore: cast_nullable_to_non_nullable
 as double,generalPlannedAmountOthers: null == generalPlannedAmountOthers ? _self.generalPlannedAmountOthers : generalPlannedAmountOthers // ignore: cast_nullable_to_non_nullable
 as double,actualAmountOthers: null == actualAmountOthers ? _self.actualAmountOthers : actualAmountOthers // ignore: cast_nullable_to_non_nullable
 as double,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable
@@ -151,7 +429,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<PeriodSummaryModel> summary,  double specificPlannedAmountOthers,  double generalPlannedAmountOthers,  double actualAmountOthers,  double totalAmount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<OverviewCategorySummary> summary,  double specificPlannedAmountOthers,  double generalPlannedAmountOthers,  double actualAmountOthers,  double totalAmount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SummaryState() when $default != null:
 return $default(_that.summary,_that.specificPlannedAmountOthers,_that.generalPlannedAmountOthers,_that.actualAmountOthers,_that.totalAmount);case _:
@@ -172,7 +450,7 @@ return $default(_that.summary,_that.specificPlannedAmountOthers,_that.generalPla
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<PeriodSummaryModel> summary,  double specificPlannedAmountOthers,  double generalPlannedAmountOthers,  double actualAmountOthers,  double totalAmount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<OverviewCategorySummary> summary,  double specificPlannedAmountOthers,  double generalPlannedAmountOthers,  double actualAmountOthers,  double totalAmount)  $default,) {final _that = this;
 switch (_that) {
 case _SummaryState():
 return $default(_that.summary,_that.specificPlannedAmountOthers,_that.generalPlannedAmountOthers,_that.actualAmountOthers,_that.totalAmount);}
@@ -189,7 +467,7 @@ return $default(_that.summary,_that.specificPlannedAmountOthers,_that.generalPla
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<PeriodSummaryModel> summary,  double specificPlannedAmountOthers,  double generalPlannedAmountOthers,  double actualAmountOthers,  double totalAmount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<OverviewCategorySummary> summary,  double specificPlannedAmountOthers,  double generalPlannedAmountOthers,  double actualAmountOthers,  double totalAmount)?  $default,) {final _that = this;
 switch (_that) {
 case _SummaryState() when $default != null:
 return $default(_that.summary,_that.specificPlannedAmountOthers,_that.generalPlannedAmountOthers,_that.actualAmountOthers,_that.totalAmount);case _:
@@ -204,11 +482,11 @@ return $default(_that.summary,_that.specificPlannedAmountOthers,_that.generalPla
 
 
 class _SummaryState implements SummaryState {
-   _SummaryState({required final  List<PeriodSummaryModel> summary, required this.specificPlannedAmountOthers, required this.generalPlannedAmountOthers, required this.actualAmountOthers, required this.totalAmount}): _summary = summary;
+   _SummaryState({required final  List<OverviewCategorySummary> summary, required this.specificPlannedAmountOthers, required this.generalPlannedAmountOthers, required this.actualAmountOthers, required this.totalAmount}): _summary = summary;
   
 
- final  List<PeriodSummaryModel> _summary;
-@override List<PeriodSummaryModel> get summary {
+ final  List<OverviewCategorySummary> _summary;
+@override List<OverviewCategorySummary> get summary {
   if (_summary is EqualUnmodifiableListView) return _summary;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableListView(_summary);
@@ -249,7 +527,7 @@ abstract mixin class _$SummaryStateCopyWith<$Res> implements $SummaryStateCopyWi
   factory _$SummaryStateCopyWith(_SummaryState value, $Res Function(_SummaryState) _then) = __$SummaryStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<PeriodSummaryModel> summary, double specificPlannedAmountOthers, double generalPlannedAmountOthers, double actualAmountOthers, double totalAmount
+ List<OverviewCategorySummary> summary, double specificPlannedAmountOthers, double generalPlannedAmountOthers, double actualAmountOthers, double totalAmount
 });
 
 
@@ -269,7 +547,7 @@ class __$SummaryStateCopyWithImpl<$Res>
 @override @pragma('vm:prefer-inline') $Res call({Object? summary = null,Object? specificPlannedAmountOthers = null,Object? generalPlannedAmountOthers = null,Object? actualAmountOthers = null,Object? totalAmount = null,}) {
   return _then(_SummaryState(
 summary: null == summary ? _self._summary : summary // ignore: cast_nullable_to_non_nullable
-as List<PeriodSummaryModel>,specificPlannedAmountOthers: null == specificPlannedAmountOthers ? _self.specificPlannedAmountOthers : specificPlannedAmountOthers // ignore: cast_nullable_to_non_nullable
+as List<OverviewCategorySummary>,specificPlannedAmountOthers: null == specificPlannedAmountOthers ? _self.specificPlannedAmountOthers : specificPlannedAmountOthers // ignore: cast_nullable_to_non_nullable
 as double,generalPlannedAmountOthers: null == generalPlannedAmountOthers ? _self.generalPlannedAmountOthers : generalPlannedAmountOthers // ignore: cast_nullable_to_non_nullable
 as double,actualAmountOthers: null == actualAmountOthers ? _self.actualAmountOthers : actualAmountOthers // ignore: cast_nullable_to_non_nullable
 as double,totalAmount: null == totalAmount ? _self.totalAmount : totalAmount // ignore: cast_nullable_to_non_nullable

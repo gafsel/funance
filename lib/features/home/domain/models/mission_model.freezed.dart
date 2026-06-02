@@ -588,7 +588,7 @@ $InstallmentModelCopyWith<$Res> get installment {
 /// @nodoc
 mixin _$PlanningMission {
 
- PeriodSummaryModel get summary; double get weeklyPlannedAmount; double get weeklyActualAmount; double get xpValue; double get progress; bool get isAdherent; double get earnedXp;
+ CategoryModel get category; PeriodSummaryCategoryModel get summary; double get weeklyPlannedAmount; double get weeklyActualAmount; double get xpValue; double get progress; bool get isAdherent; double get earnedXp;
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -599,16 +599,16 @@ $PlanningMissionCopyWith<PlanningMission> get copyWith => _$PlanningMissionCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanningMission&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanningMission&&(identical(other.category, category) || other.category == category)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp);
+int get hashCode => Object.hash(runtimeType,category,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp);
 
 @override
 String toString() {
-  return 'PlanningMission(summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp)';
+  return 'PlanningMission(category: $category, summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp)';
 }
 
 
@@ -619,11 +619,11 @@ abstract mixin class $PlanningMissionCopyWith<$Res>  {
   factory $PlanningMissionCopyWith(PlanningMission value, $Res Function(PlanningMission) _then) = _$PlanningMissionCopyWithImpl;
 @useResult
 $Res call({
- PeriodSummaryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp
+ CategoryModel category, PeriodSummaryCategoryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp
 });
 
 
-$PeriodSummaryModelCopyWith<$Res> get summary;
+$CategoryModelCopyWith<$Res> get category;$PeriodSummaryCategoryModelCopyWith<$Res> get summary;
 
 }
 /// @nodoc
@@ -636,10 +636,11 @@ class _$PlanningMissionCopyWithImpl<$Res>
 
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? category = null,Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,}) {
   return _then(_self.copyWith(
-summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
-as PeriodSummaryModel,weeklyPlannedAmount: null == weeklyPlannedAmount ? _self.weeklyPlannedAmount : weeklyPlannedAmount // ignore: cast_nullable_to_non_nullable
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as PeriodSummaryCategoryModel,weeklyPlannedAmount: null == weeklyPlannedAmount ? _self.weeklyPlannedAmount : weeklyPlannedAmount // ignore: cast_nullable_to_non_nullable
 as double,weeklyActualAmount: null == weeklyActualAmount ? _self.weeklyActualAmount : weeklyActualAmount // ignore: cast_nullable_to_non_nullable
 as double,xpValue: null == xpValue ? _self.xpValue : xpValue // ignore: cast_nullable_to_non_nullable
 as double,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
@@ -652,9 +653,18 @@ as double,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$PeriodSummaryModelCopyWith<$Res> get summary {
+$CategoryModelCopyWith<$Res> get category {
   
-  return $PeriodSummaryModelCopyWith<$Res>(_self.summary, (value) {
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}/// Create a copy of PlanningMission
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PeriodSummaryCategoryModelCopyWith<$Res> get summary {
+  
+  return $PeriodSummaryCategoryModelCopyWith<$Res>(_self.summary, (value) {
     return _then(_self.copyWith(summary: value));
   });
 }
@@ -736,10 +746,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( PeriodSummaryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlanningMission() when $default != null:
-return $default(_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);case _:
+return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);case _:
   return orElse();
 
 }
@@ -757,10 +767,10 @@ return $default(_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( PeriodSummaryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)  $default,) {final _that = this;
 switch (_that) {
 case _PlanningMission():
-return $default(_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);}
+return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -774,10 +784,10 @@ return $default(_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( PeriodSummaryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)?  $default,) {final _that = this;
 switch (_that) {
 case _PlanningMission() when $default != null:
-return $default(_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);case _:
+return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);case _:
   return null;
 
 }
@@ -789,10 +799,11 @@ return $default(_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount
 
 
 class _PlanningMission implements PlanningMission {
-  const _PlanningMission({required this.summary, required this.weeklyPlannedAmount, required this.weeklyActualAmount, required this.xpValue, required this.progress, required this.isAdherent, required this.earnedXp});
+  const _PlanningMission({required this.category, required this.summary, required this.weeklyPlannedAmount, required this.weeklyActualAmount, required this.xpValue, required this.progress, required this.isAdherent, required this.earnedXp});
   
 
-@override final  PeriodSummaryModel summary;
+@override final  CategoryModel category;
+@override final  PeriodSummaryCategoryModel summary;
 @override final  double weeklyPlannedAmount;
 @override final  double weeklyActualAmount;
 @override final  double xpValue;
@@ -810,16 +821,16 @@ _$PlanningMissionCopyWith<_PlanningMission> get copyWith => __$PlanningMissionCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanningMission&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanningMission&&(identical(other.category, category) || other.category == category)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp);
+int get hashCode => Object.hash(runtimeType,category,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp);
 
 @override
 String toString() {
-  return 'PlanningMission(summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp)';
+  return 'PlanningMission(category: $category, summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp)';
 }
 
 
@@ -830,11 +841,11 @@ abstract mixin class _$PlanningMissionCopyWith<$Res> implements $PlanningMission
   factory _$PlanningMissionCopyWith(_PlanningMission value, $Res Function(_PlanningMission) _then) = __$PlanningMissionCopyWithImpl;
 @override @useResult
 $Res call({
- PeriodSummaryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp
+ CategoryModel category, PeriodSummaryCategoryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp
 });
 
 
-@override $PeriodSummaryModelCopyWith<$Res> get summary;
+@override $CategoryModelCopyWith<$Res> get category;@override $PeriodSummaryCategoryModelCopyWith<$Res> get summary;
 
 }
 /// @nodoc
@@ -847,10 +858,11 @@ class __$PlanningMissionCopyWithImpl<$Res>
 
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? category = null,Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,}) {
   return _then(_PlanningMission(
-summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
-as PeriodSummaryModel,weeklyPlannedAmount: null == weeklyPlannedAmount ? _self.weeklyPlannedAmount : weeklyPlannedAmount // ignore: cast_nullable_to_non_nullable
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as PeriodSummaryCategoryModel,weeklyPlannedAmount: null == weeklyPlannedAmount ? _self.weeklyPlannedAmount : weeklyPlannedAmount // ignore: cast_nullable_to_non_nullable
 as double,weeklyActualAmount: null == weeklyActualAmount ? _self.weeklyActualAmount : weeklyActualAmount // ignore: cast_nullable_to_non_nullable
 as double,xpValue: null == xpValue ? _self.xpValue : xpValue // ignore: cast_nullable_to_non_nullable
 as double,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
@@ -864,9 +876,18 @@ as double,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$PeriodSummaryModelCopyWith<$Res> get summary {
+$CategoryModelCopyWith<$Res> get category {
   
-  return $PeriodSummaryModelCopyWith<$Res>(_self.summary, (value) {
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}/// Create a copy of PlanningMission
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$PeriodSummaryCategoryModelCopyWith<$Res> get summary {
+  
+  return $PeriodSummaryCategoryModelCopyWith<$Res>(_self.summary, (value) {
     return _then(_self.copyWith(summary: value));
   });
 }

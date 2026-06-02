@@ -16,3 +16,19 @@ export const generateRecurringInstallments = onSchedule(
         }
     }
 );
+
+export const generateCategoryPlanningSummaries = onSchedule(
+    "0 0 1 * *", // Todo dia 1 do mês à meia-noite
+    async () => {
+        const summaryService = container.summaryService;
+
+        console.log("Iniciando geração de summaries de planejamento...");
+        try {
+            await summaryService.generateCategoryPlanningSummaries();
+            console.log("Geração de summaries de planejamento finalizada com sucesso.");
+        }
+        catch (error) {
+            console.error("Erro ao gerar summaries de planejamento:", error);
+        }
+    }
+);

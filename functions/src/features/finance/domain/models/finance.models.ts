@@ -77,6 +77,7 @@ export interface CategoryPlanningModel {
   amount: number;
   startMonth: string; // YYYY-MM
   endMonth: string; // YYYY-MM
+  lastSummaryMonth?: string; // YYYY-MM
 }
 
 export interface PeriodSummaryModel {
@@ -114,4 +115,14 @@ export interface AccountBalanceModel {
   id: string; // YYYY-MM-DD
   balance: number;
   updatedAt: Date;
+}
+
+export interface PeriodSummaryUpdateModel {
+    year: number;
+    month?: number;
+    week?: number;
+    category: CategoryModel;
+    generalPlannedDelta?: number;
+    specificPlannedDelta?: number;
+    actualDelta?: number;
 }

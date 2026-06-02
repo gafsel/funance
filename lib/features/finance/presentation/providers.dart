@@ -18,6 +18,8 @@ import 'package:funances/features/finance/presentation/controllers/transaction_f
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/features/home/presentation/model/overview_view_model.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
 class PlanningDomainProviders {
@@ -189,16 +191,18 @@ class FinanceViewProviders {
     ),
   );
 
-  static final categoryPlanningForm = StateNotifierProvider.autoDispose.family<
-      CategoryPlanningNotifier,
-      CategoryPlanningState,
-      CategoryPlanningArgs>((ref, args) {
-    return CategoryPlanningNotifier(
-      financeService: ref.watch(FinanceDomainProviders.service),
-      categoryService: ref.watch(CategoryDomainProviders.service),
-      type: args.type,
-    );
-  });
+  static final categoryPlanningForm = StateNotifierProvider.autoDispose
+      .family<
+        CategoryPlanningNotifier,
+        CategoryPlanningState,
+        CategoryPlanningArgs
+      >((ref, args) {
+        return CategoryPlanningNotifier(
+          financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
+          type: args.type,
+        );
+      });
 }
 
 class PeriodSummaryDomainProviders {
@@ -214,18 +218,67 @@ class PeriodSummaryDomainProviders {
   );
 }
 
+List<OverviewCategorySummary> _mapToOverview(
+    PeriodSummaryModel? summary,
+    List<CategoryModel> categories,
+    ) {
+  final List<OverviewCategorySummary> result = [];
+  if (summary == null) return result;
+
+  summary.categories.forEach((categoryId, data) {
+    final category = categories.firstWhere(
+          (c) => c.id == categoryId,
+      orElse: () => CategoryModel(
+        id: categoryId,
+        name: 'Unknown',
+        icon: 'help',
+        color: '0xFF000000',
+      ),
+    );
+
+    result.add(
+      OverviewCategorySummary(
+        category: category,
+        generalPlannedAmount: data.generalPlannedAmount,
+        specificPlannedAmount: data.specificPlannedAmount,
+        actualAmount: data.actualAmount,
+      ),
+    );
+  });
+  return result;
+}
+
 class PeriodSummaryViewProviders {
   static final monthSummary =
-      StreamProvider.family<List<PeriodSummaryModel>, DateTime>((ref, period) {
+      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((ref, period) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
+        final List<CategoryModel> categories = ref
+            .watch(CategoryViewProviders.allStream)
+            .when(
+          data: (data) => data,
+          error: (_, __) => [],
+          loading: () => [],
+        );
 
-        return service.watchMonth(period.year, period.month);
+        return service
+            .watchMonth(period.year, period.month)
+            .map((summary) => _mapToOverview(summary, categories));
       });
 
   static final yearSummary =
-      StreamProvider.family<List<PeriodSummaryModel>, DateTime>((ref, period) {
+      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((ref, period) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
+        final List<CategoryModel> categories = ref
+            .watch(CategoryViewProviders.allStream)
+            .when(
+              data: (data) => data,
+              error: (_, __) => [],
+              loading: () => [],
+            );
 
-        return service.watchYear(period.year);
+        return service
+            .watchYear(period.year)
+            .map((summary) => _mapToOverview(summary, categories));
       });
+
 }

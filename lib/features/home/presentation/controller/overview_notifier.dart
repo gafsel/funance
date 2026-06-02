@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
@@ -11,16 +10,14 @@ class ExpenseSummaryNotifier extends Notifier<SummaryState> {
     // Escutar mudanças no período e tipo de visualização
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
-    
+
     final summaries =
         ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
 
-    // Filtrar categorias pelo tipo fornecido
-    final filteredSummaries = summaries
-        .where((s) => s.category.type == CategoryType.expense)
-        .toList();
-
-    return _buildSummary(filteredSummaries, viewType);
+    return _buildSummary(
+      summaries.where((s) => s.category.type == CategoryType.expense).toList(),
+      viewType,
+    );
   }
 }
 
@@ -30,20 +27,21 @@ class IncomeSummaryNotifier extends Notifier<SummaryState> {
     // Escutar mudanças no período e tipo de visualização
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
-    
+
     final summaries =
         ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
 
-    // Filtrar categorias pelo tipo fornecido
-    final filteredSummaries = summaries
-        .where((s) => s.category.type == CategoryType.income)
-        .toList();
-
-    return _buildSummary(filteredSummaries, viewType);
+    return _buildSummary(
+      summaries.where((s) => s.category.type == CategoryType.income).toList(),
+      viewType,
+    );
   }
 }
 
-SummaryState _buildSummary(List<PeriodSummaryModel> filteredSummaries, SummaryViewType viewType) {
+SummaryState _buildSummary(
+  List<OverviewCategorySummary> filteredSummaries,
+  SummaryViewType viewType,
+) {
   // Ordenar por valor (de maior para menor) baseado no viewType
   final sortedSummaries = [...filteredSummaries];
   sortedSummaries.sort((a, b) {
@@ -60,7 +58,7 @@ SummaryState _buildSummary(List<PeriodSummaryModel> filteredSummaries, SummaryVi
   });
 
   // Limitar a 10 registros e agrupar o resto em "Outros"
-  List<PeriodSummaryModel> displaySummaries = [];
+  List<OverviewCategorySummary> displaySummaries = [];
 
   double specificPlannedAmountOthers = 0;
   double generalPlannedAmountOthers = 0;
@@ -105,7 +103,9 @@ class BalanceSummaryNotifier extends Notifier<BalanceState> {
   @override
   BalanceState build() {
     final period = ref.watch(HomeViewProviders.period);
-    final summaries = ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+    final summaries = ref
+        .watch(PeriodSummaryViewProviders.monthSummary(period))
+        .value ?? [];
 
     double totalPlannedIncomes = 0;
     double totalActualIncomes = 0;

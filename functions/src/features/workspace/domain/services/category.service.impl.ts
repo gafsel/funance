@@ -1,4 +1,3 @@
-import * as admin from "firebase-admin";
 import { ICategoryRepository } from "../repositories/category.repository";
 import { ICategoryService } from "./category.service";
 import { CategoryModel, CategoryType } from "../models/category.model";
@@ -67,29 +66,11 @@ export class CategoryServiceImpl implements ICategoryService {
     }
 
     async handleCategoryUpdate(workspaceId: string, oldCategory: CategoryModel, newCategory: CategoryModel): Promise<void> {
-        // Se mudou algo relevante para a apresentação
-        const hasPresentationChanged =
-            oldCategory.name !== newCategory.name ||
-            oldCategory.icon !== newCategory.icon ||
-            oldCategory.color !== newCategory.color;
+        if (oldCategory.name === newCategory.name && oldCategory.color === newCategory.color && oldCategory.icon === newCategory.icon) return;
 
-        if (hasPresentationChanged) {
-            await this.financeRepository.updateSummaryCategoryInfo(workspaceId, newCategory);
-        }
+        await this.financeRepository.updateOrderCategory(workspaceId, newCategory);
 
-        if (oldCategory.name === newCategory.name) return;
-
-        const db = admin.firestore();
-        const ordersSnapshot = await db.collection("workspaces").doc(workspaceId)
-            .collection("orders").where("category.id", "==", oldCategory.id).get();
-
-        if (ordersSnapshot.empty) return;
-
-        const batch = db.batch();
-        ordersSnapshot.docs.forEach((doc) => {
-            batch.update(doc.ref, { category: newCategory });
-        });
-        await batch.commit();
+        await this.financeRepository.updateInstallmentCategory(workspaceId, newCategory);
     }
 
     async handleCategoryDeletion(workspaceId: string, category: CategoryModel): Promise<void> {

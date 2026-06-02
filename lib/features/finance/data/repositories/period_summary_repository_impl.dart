@@ -11,42 +11,34 @@ class PeriodSummaryRepositoryImpl implements IPeriodSummaryRepository {
   }
 
   @override
-  Stream<List<PeriodSummaryModel>> watchMonth(
+  Stream<PeriodSummaryModel?> watchMonth(
     String workspaceId,
     int year,
     int month,
   ) {
-    return collection(workspaceId)
-        .where("year", isEqualTo: year)
-        .where("month", isEqualTo: month)
-        .orderBy("category.name")
-        .snapshots()
-        .map(
-          (snap) => snap.docs.map((doc) => doc.toPeriodSummaryModel()).toList(),
+    final id = "$year-${month.toString().padLeft(2, '0')}";
+    return collection(workspaceId).doc(id).snapshots().map(
+          (doc) => doc.exists ? doc.toPeriodSummaryModel() : null,
         );
   }
 
   @override
-  Stream<List<PeriodSummaryModel>> watchYear(String workspaceId, int year) {
-    return collection(workspaceId)
-        .where("year", isEqualTo: year)
-        .orderBy("category.name")
-        .snapshots()
-        .map(
-          (snap) => snap.docs.map((doc) => doc.toPeriodSummaryModel()).toList(),
+  Stream<PeriodSummaryModel?> watchYear(String workspaceId, int year) {
+    final id = "$year";
+    return collection(workspaceId).doc(id).snapshots().map(
+          (doc) => doc.exists ? doc.toPeriodSummaryModel() : null,
         );
   }
 
   @override
-  Stream<List<PeriodSummaryModel>> watchWeek(
-      String workspaceId, int year, int week) {
-    return collection(workspaceId)
-        .where("year", isEqualTo: year)
-        .where("week", isEqualTo: week)
-        .orderBy("category.name")
-        .snapshots()
-        .map(
-          (snap) => snap.docs.map((doc) => doc.toPeriodSummaryModel()).toList(),
+  Stream<PeriodSummaryModel?> watchWeek(
+    String workspaceId,
+    int year,
+    int week,
+  ) {
+    final id = "$year-W${week.toString().padLeft(2, '0')}";
+    return collection(workspaceId).doc(id).snapshots().map(
+          (doc) => doc.exists ? doc.toPeriodSummaryModel() : null,
         );
   }
 }

@@ -125,7 +125,7 @@ class CategorySummaryView extends ConsumerWidget {
       if (state.specificPlannedAmountOthers > 0 ||
           state.generalPlannedAmountOthers > 0 ||
           state.actualAmountOthers > 0)
-        PeriodSummaryModel.month(
+        OverviewCategorySummary(
           category: CategoryModel(
             id: 'others',
             name: l10n.categoryOthers,
@@ -133,12 +133,9 @@ class CategorySummaryView extends ConsumerWidget {
             color: '#808080',
             type: categoryType,
           ),
-          year: overviewDate.year,
-          month: overviewDate.month,
           specificPlannedAmount: state.specificPlannedAmountOthers,
           generalPlannedAmount: state.generalPlannedAmountOthers,
           actualAmount: state.actualAmountOthers,
-          lastUpdate: DateTime.now(),
         ),
     ];
 

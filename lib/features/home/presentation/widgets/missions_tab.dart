@@ -7,7 +7,6 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
-import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/controller/mission_controller.dart';
 import 'package:funances/features/home/presentation/widgets/accounts_view.dart';
@@ -104,7 +103,12 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
                       },
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (e, st) => Center(child: Text(e.toString())),
+                      error: (e, st) {
+                        print(e.toString());
+                        print(st.toString());
+
+                        return Center(child: Text(e.toString()));
+                      },
                     ),
                     const SizedBox(height: 32),
                     const AccountsView(),
@@ -340,13 +344,13 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
           Row(
             children: [
               Icon(
-                mission.summary.category.icon.asIcon(),
+                mission.category.icon.asIcon(),
                 size: 16,
-                color: mission.summary.category.color.asColor(),
+                color: mission.category.color.asColor(),
               ),
               const SizedBox(width: 8),
               Text(
-                mission.summary.category.name,
+                mission.category.name,
                 style: theme.textTheme.bodyMedium,
               ),
               const Spacer(),
@@ -385,13 +389,13 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
             value: mission.progress > 1 ? 1 : mission.progress,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
-            backgroundColor: mission.summary.category.color
+            backgroundColor: mission.category.color
                 .asColor()
                 .withValues(alpha: 0.1),
             valueColor: AlwaysStoppedAnimation(
               isLoss
                   ? theme.colorScheme.error
-                  : mission.summary.category.color.asColor(),
+                  : mission.category.color.asColor(),
             ),
           ),
           Row(

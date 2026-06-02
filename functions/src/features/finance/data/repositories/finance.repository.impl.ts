@@ -6,6 +6,7 @@ import {
     CategoryPlanningModel,
     AccountModel,
     AccountBalanceModel,
+    PeriodSummaryUpdateModel,
 } from "../../domain/models/finance.models";
 import { IFinanceRepository } from "../../domain/repositories/finance.repository";
 
@@ -120,8 +121,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         installments.forEach((installment) => {
             const docRef = collection.doc();
             const referenceDate = installment.paidDate || installment.dueDate;
-            const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null 
-                ? installment.paidAmount 
+            const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null
+                ? installment.paidAmount
                 : installment.amount;
 
             batch.set(docRef, {
@@ -138,7 +139,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void> {
         const docRef = this.getInstallmentsCollection(workspaceId).doc(installmentId);
-        
+
         await this.firestore.runTransaction(async (transaction) => {
             const doc = await transaction.get(docRef);
             if (!doc.exists) return;
@@ -372,6 +373,113 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CategoryPlanningModel));
     }
 
+    async getCategoryPlanningsByLastSummaryMonthGroup(nowStr: string, limit: number): Promise<(CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference })[]> {
+        let snapshot = await this.firestore.collectionGroup("category_planning")
+            .where("lastSummaryMonth", "<", nowStr)
+            .limit(limit)
+            .get();
+
+        if (snapshot.empty) {
+            snapshot = await this.firestore.collectionGroup("category_planning")
+                .where("lastSummaryMonth", "==", null)
+                .limit(limit)
+                .get();
+        }
+
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            const workspaceId = doc.ref.parent.parent!.id;
+
+            return {
+                id: doc.id,
+                workspaceId: workspaceId,
+                ref: doc.ref,
+                ...data,
+            } as CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference };
+        });
+    }
+
+    private getPeriodSummaryDocRef(workspaceId: string, year: number, month?: number, week?: number): { docRef: admin.firestore.DocumentReference, runtimeType: string } {
+        let summaryId = "";
+        let runtimeType = "";
+
+        if (week !== undefined) {
+            summaryId = `${year}-W${String(week).padStart(2, "0")}`;
+            runtimeType = "week";
+        }
+        else if (month !== undefined) {
+            summaryId = `${year}-${String(month).padStart(2, "0")}`;
+            runtimeType = "month";
+        }
+        else {
+            summaryId = `${year}`;
+            runtimeType = "year";
+        }
+
+        return {
+            docRef: this.getPeriodSummariesCollection(workspaceId).doc(summaryId),
+            runtimeType
+        };
+    }
+
+    private buildPeriodSummaryUpdateData(
+        year: number,
+        month: number | undefined,
+        week: number | undefined,
+        category: CategoryModel,
+        data: {
+            generalPlannedDelta?: number,
+            specificPlannedDelta?: number,
+            actualDelta?: number
+        },
+        runtimeType: string
+    ): any {
+        return {
+            year,
+            month: month ?? null,
+            week: week ?? null,
+            categories: {
+                [category.id]: {
+                    generalPlannedAmount: admin.firestore.FieldValue.increment(data.generalPlannedDelta ?? 0),
+                    specificPlannedAmount: admin.firestore.FieldValue.increment(data.specificPlannedDelta ?? 0),
+                    actualAmount: admin.firestore.FieldValue.increment(data.actualDelta ?? 0),
+                },
+            },
+            lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+            runtimeType: runtimeType,
+        };
+    }
+
+    async processCategoryPlanningSummariesChunk(
+        chunk: (CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference })[],
+        nowStr: string,
+        summaryFactory: (workspaceId: string, planning: CategoryPlanningModel) => PeriodSummaryUpdateModel[]
+    ): Promise<void> {
+        await this.firestore.runTransaction(async (transaction) => {
+            for (const item of chunk) {
+                const updates = summaryFactory(item.workspaceId, item);
+
+                for (const update of updates) {
+                    const { docRef, runtimeType } = this.getPeriodSummaryDocRef(item.workspaceId, update.year, update.month, update.week);
+                    const updateData = this.buildPeriodSummaryUpdateData(
+                        update.year,
+                        update.month,
+                        update.week,
+                        update.category,
+                        {
+                            generalPlannedDelta: update.generalPlannedDelta,
+                            specificPlannedDelta: update.specificPlannedDelta,
+                            actualDelta: update.actualDelta
+                        },
+                        runtimeType
+                    );
+                    transaction.set(docRef, updateData, { merge: true });
+                }
+                transaction.update(item.ref, { lastSummaryMonth: nowStr });
+            }
+        });
+    }
+
     async updatePeriodSummary(
         workspaceId: string,
         year: number,
@@ -384,49 +492,10 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         },
         week?: number
     ): Promise<void> {
-        let summaryId = "";
-        let runtimeType = "";
+        const { docRef, runtimeType } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
+        const updateData = this.buildPeriodSummaryUpdateData(year, month, week, category, data, runtimeType);
 
-        if (week !== undefined) {
-            summaryId = `${year}-W${String(week).padStart(2, "0")}-${category.id}`;
-            runtimeType = "week";
-        }
-        else {
-            const monthStr = month !== undefined ? `-${String(month).padStart(2, "0")}` : "";
-            summaryId = `${year}${monthStr}-${category.id}`;
-            runtimeType = month !== undefined ? "month" : "year";
-        }
-
-        const docRef = this.getPeriodSummariesCollection(workspaceId).doc(summaryId);
-
-        await docRef.set({
-            year,
-            month: month ?? null,
-            week: week ?? null,
-            category,
-            generalPlannedAmount: admin.firestore.FieldValue.increment(data.generalPlannedDelta ?? 0),
-            specificPlannedAmount: admin.firestore.FieldValue.increment(data.specificPlannedDelta ?? 0),
-            actualAmount: admin.firestore.FieldValue.increment(data.actualDelta ?? 0),
-            lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-            runtimeType: runtimeType,
-        }, { merge: true });
-    }
-
-    async updateSummaryCategoryInfo(workspaceId: string, category: CategoryModel): Promise<void> {
-        const snapshot = await this.getPeriodSummariesCollection(workspaceId)
-            .where("category.id", "==", category.id)
-            .get();
-
-        if (snapshot.empty) return;
-
-        const batch = this.firestore.batch();
-        snapshot.docs.forEach((doc) => {
-            batch.update(doc.ref, {
-                category: category,
-                lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-            });
-        });
-        await batch.commit();
+        await docRef.set(updateData, { merge: true });
     }
 
     async getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null> {
@@ -455,8 +524,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
             if (!doc.exists) {
                 // Se não existe saldo no dia, precisamos buscar o último saldo anterior para compor o inicial
-                // Passamos a transaction para garantir leitura consistente
-                const lastBalanceDoc = await this.getLastBalanceBefore(workspaceId, accountId, date, transaction);
+                // Passamos a transaction internamente se houver uma ativa
+                const lastBalanceDoc = await this.getLastBalanceBefore(workspaceId, accountId, date);
                 const initialBalance = lastBalanceDoc ? lastBalanceDoc.balance : 0;
 
                 transaction.set(docRef, {
@@ -485,8 +554,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getLastBalanceBefore(
         workspaceId: string,
         accountId: string,
-        date: Date,
-        transaction?: admin.firestore.Transaction
+        date: Date
     ): Promise<AccountBalanceModel | null> {
         const dateId = date.toISOString().split("T")[0];
         const query = this.getAccountBalanceCollection(workspaceId, accountId)
@@ -494,7 +562,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .orderBy(admin.firestore.FieldPath.documentId(), "desc")
             .limit(1);
 
-        const snapshot = transaction ? await transaction.get(query) : await query.get();
+        const snapshot = await query.get();
 
         if (snapshot.empty) return null;
         const doc = snapshot.docs[0];
@@ -509,5 +577,33 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getAllWorkspaces(): Promise<string[]> {
         const snapshot = await admin.firestore().collection("workspaces").get();
         return snapshot.docs.map((doc) => doc.id);
+    }
+
+    async updateOrderCategory(workspaceId: string, category: CategoryModel) {
+        const db = admin.firestore();
+        const ordersSnapshot = await db.collection("workspaces").doc(workspaceId)
+            .collection("orders").where("category.id", "==", category.id).get();
+
+        if (ordersSnapshot.empty) return;
+
+        const batch = db.batch();
+        ordersSnapshot.docs.forEach((doc) => {
+            batch.update(doc.ref, { category: category });
+        });
+        await batch.commit();
+    }
+
+    async updateInstallmentCategory(workspaceId: string, category: CategoryModel) {
+        const db = admin.firestore();
+        const ordersSnapshot = await db.collection("workspaces").doc(workspaceId)
+            .collection("installments").where("category.id", "==", category.id).get();
+
+        if (ordersSnapshot.empty) return;
+
+        const batch = db.batch();
+        ordersSnapshot.docs.forEach((doc) => {
+            batch.update(doc.ref, { category: category });
+        });
+        await batch.commit();
     }
 }

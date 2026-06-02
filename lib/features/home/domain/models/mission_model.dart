@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/period_summary_model.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 part 'mission_model.freezed.dart';
 
@@ -35,7 +36,8 @@ sealed class InstallmentMission with _$InstallmentMission {
 @freezed
 sealed class PlanningMission with _$PlanningMission {
   const factory PlanningMission({
-    required PeriodSummaryModel summary,
+    required CategoryModel category,
+    required PeriodSummaryCategoryModel summary,
     required double weeklyPlannedAmount,
     required double weeklyActualAmount,
     required double xpValue,

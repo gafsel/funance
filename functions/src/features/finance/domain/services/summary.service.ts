@@ -1,5 +1,6 @@
-import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel } from "../models/finance.models";
+import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel, PeriodSummaryUpdateModel } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
+import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 
 export class SummaryService {
     constructor(private financeRepository: IFinanceRepository) {}
@@ -11,80 +12,126 @@ export class SummaryService {
     ): Promise<void> {
         if (!before && !after) return;
 
-        // Se for criação
-        if (!before && after) {
-            await this.updatePlanningImpact(workspaceId, after, 1);
+        // Se houver uma mudança no planejamento, garantimos a previsibilidade configurada
+        const predictabilityMonths = DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths;
+        if (before) {
+            await this.updatePlanningImpactForMonth(workspaceId, before, -1, new Date(), predictabilityMonths);
         }
-        // Se for exclusão
-        else if (before && !after) {
-            await this.updatePlanningImpact(workspaceId, before, -1);
-        }
-        // Se for atualização
-        else if (before && after) {
-            // Simplificando: remove o impacto antigo e adiciona o novo
-            // Nota: No frontend, edições que preservam histórico criam novo registro e cortam o antigo via endMonth.
-            // Aqui tratamos a mudança física do documento.
-            await this.updatePlanningImpact(workspaceId, before, -1);
-            await this.updatePlanningImpact(workspaceId, after, 1);
+        if (after) {
+            await this.updatePlanningImpactForMonth(workspaceId, after, 1, new Date(), predictabilityMonths);
         }
     }
 
-    private async updatePlanningImpact(workspaceId: string, planning: CategoryPlanningModel, multiplier: number): Promise<void> {
+    private async updatePlanningImpactForMonth(
+        workspaceId: string, 
+        planning: CategoryPlanningModel, 
+        multiplier: number,
+        baseDate: Date,
+        monthsAhead = 1
+    ): Promise<void> {
+        const impacts = this.calculatePlanningImpacts(planning, multiplier, baseDate, monthsAhead);
+        
+        for (const impact of impacts) {
+            await this.financeRepository.updatePeriodSummary(
+                workspaceId,
+                impact.year,
+                impact.month,
+                impact.category,
+                { generalPlannedDelta: impact.generalPlannedDelta },
+                impact.week
+            );
+        }
+    }
+
+    private calculatePlanningImpacts(
+        planning: CategoryPlanningModel,
+        multiplier: number,
+        baseDate: Date,
+        monthsAhead = 1
+    ): PeriodSummaryUpdateModel[] {
+        const impacts: PeriodSummaryUpdateModel[] = [];
         const [startYear, startMonth] = planning.startMonth.split("-").map(Number);
         const [endYear, endMonth] = planning.endMonth.split("-").map(Number);
+        const startTotalMonths = startYear * 12 + startMonth;
+        const endTotalMonths = endYear * 12 + endMonth;
 
-        const totalMonths = (endYear - startYear) * 12 + (endMonth - startMonth) + 1;
-
-        for (let i = 0; i < totalMonths; i++) {
-            const date = new Date(startYear, startMonth - 1 + i, 1, 12);
+        for (let i = 0; i < monthsAhead; i++) {
+            const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
             const year = date.getFullYear();
             const month = date.getMonth() + 1;
+            const currentTotalMonths = year * 12 + month;
+
+            // Verifica se o mês base está dentro do intervalo do planejamento
+            if (currentTotalMonths < startTotalMonths || currentTotalMonths > endTotalMonths) {
+                continue;
+            }
 
             // Meta Mensal (Month)
-            await this.financeRepository.updatePeriodSummary(
-                workspaceId,
+            impacts.push({
                 year,
                 month,
-                planning.category,
-                { generalPlannedDelta: planning.amount * multiplier }
-            );
+                category: planning.category,
+                generalPlannedDelta: planning.amount * multiplier,
+            });
 
-            // Meta Anual (Year)
-            await this.financeRepository.updatePeriodSummary(
-                workspaceId,
-                year,
-                undefined,
-                planning.category,
-                { generalPlannedDelta: planning.amount * multiplier }
-            );
+            // Se for Janeiro, aproveita e gera o total do ano (Previsibilidade anual)
+            if (month === 1) {
+                impacts.push({
+                    year,
+                    category: planning.category,
+                    generalPlannedDelta: planning.amount * 12 * multiplier,
+                });
+            }
 
             // Meta Semanal (Week)
-            // Para simplicidade, vamos iterar sobre as semanas que iniciam dentro deste mês
-            const firstDayOfMonth = new Date(year, month - 1, 1);
             const lastDayOfMonth = new Date(year, month, 0);
+            const currentDay = new Date(year, month - 1, 1);
             
-            // Ajuste para pegar as semanas de domingo a sábado
-            const currentDay = new Date(firstDayOfMonth);
             while (currentDay <= lastDayOfMonth) {
                 if (currentDay.getDay() === 0 || currentDay.getDate() === 1) {
                     const week = this.getWeekNumber(currentDay);
                     const weekYear = this.getWeekYear(currentDay);
                     
-                    // Calculamos a proporção do planejamento para a semana (aproximadamente planning / 4.33 ou planning / dias no mes * 7)
                     const daysInMonth = lastDayOfMonth.getDate();
                     const weeklyProportion = (planning.amount / daysInMonth) * 7;
 
-                    await this.financeRepository.updatePeriodSummary(
-                        workspaceId,
-                        weekYear,
-                        undefined,
-                        planning.category,
-                        { generalPlannedDelta: weeklyProportion * multiplier },
-                        week
-                    );
+                    impacts.push({
+                        year: weekYear,
+                        week,
+                        category: planning.category,
+                        generalPlannedDelta: weeklyProportion * multiplier,
+                    });
                 }
                 currentDay.setDate(currentDay.getDate() + 1);
             }
+        }
+        return impacts;
+    }
+
+    async generateCategoryPlanningSummaries(): Promise<void> {
+        const now = new Date();
+        const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        const GLOBAL_LIMIT = 500;
+        const CHUNK_SIZE = 50;
+
+        console.log("Buscando planejamentos de categoria para processar...");
+        const planningsToProcess = await this.financeRepository.getCategoryPlanningsByLastSummaryMonthGroup(nowStr, GLOBAL_LIMIT);
+
+        if (planningsToProcess.length === 0) {
+            console.log("Nenhum planejamento de categoria pendente de processamento.");
+            return;
+        }
+
+        console.log(`Processando ${planningsToProcess.length} planejamentos em chunks de ${CHUNK_SIZE}...`);
+
+        for (let i = 0; i < planningsToProcess.length; i += CHUNK_SIZE) {
+            const chunk = planningsToProcess.slice(i, i + CHUNK_SIZE);
+            console.log(`Processando chunk de ${chunk.length} planejamentos...`);
+
+            const predictabilityMonths = DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths;
+            await this.financeRepository.processCategoryPlanningSummariesChunk(chunk, nowStr, (_, planning) => {
+                return this.calculatePlanningImpacts(planning, 1, new Date(), predictabilityMonths);
+            });
         }
     }
 

@@ -7,15 +7,15 @@ class PeriodSummaryService {
 
   PeriodSummaryService({required this.workspaceId, required this.repository});
 
-  Stream<List<PeriodSummaryModel>> watchYear(int year) {
+  Stream<PeriodSummaryModel?> watchYear(int year) {
     return repository.watchYear(workspaceId, year);
   }
 
-  Stream<List<PeriodSummaryModel>> watchMonth(int year, int month) {
+  Stream<PeriodSummaryModel?> watchMonth(int year, int month) {
     return repository.watchMonth(workspaceId, year, month);
   }
 
-  Stream<List<PeriodSummaryModel>> watchWeek(int year, int week) {
+  Stream<PeriodSummaryModel?> watchWeek(int year, int week) {
     return repository.watchWeek(workspaceId, year, week);
   }
 }
