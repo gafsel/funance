@@ -532,6 +532,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get historyFilterMaxAmountLabel => 'Valor Máximo';
 
   @override
+  String get transactionWizardSelectCategory => 'Selecione a Categoria';
+
+  @override
+  String get transactionWizardSelectPending => 'Lançamentos Pendentes';
+
+  @override
+  String get transactionWizardNewTransaction => 'Novo lançamento';
+
+  @override
   String get historyFilterApply => 'Aplicar Filtros';
 
   @override

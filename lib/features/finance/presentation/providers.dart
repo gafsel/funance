@@ -1,3 +1,4 @@
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/finance_repository_impl.dart';
@@ -15,6 +16,7 @@ import 'package:funances/features/finance/domain/services/planning_service.dart'
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -197,6 +199,36 @@ class FinanceViewProviders {
       financeiroService: ref.watch(FinanceDomainProviders.service),
     ),
   );
+
+  static final wizard = StateNotifierProvider.autoDispose
+      .family<TransactionWizardNotifier, TransactionWizardState, TransactionWizardArgs>((
+    ref,
+    args,
+  ) {
+    return TransactionWizardNotifier(
+      TransactionWizardState(
+        type: args.type,
+        skipTransactions: args.skipTransactions,
+      ),
+      financeService: ref.watch(FinanceDomainProviders.service),
+    );
+  });
+
+  static final pendingInstallments = StreamProvider.autoDispose
+      .family<List<InstallmentModel>, ({OrderType type, String? categoryId})>((
+    ref,
+    args,
+  ) {
+    final service = ref.watch(FinanceDomainProviders.service);
+    final today = DateTime.now();
+    return service.watchInstallments(
+      type: args.type,
+      categoryId: args.categoryId,
+      status: InstallmentStatus.pending,
+      startDate: DateTime(today.year, today.month, 1),
+      endDate: DateTime(today.year, today.month + 1, 0),
+    );
+  });
 
   static final categoryPlanningForm = StateNotifierProvider.autoDispose
       .family<

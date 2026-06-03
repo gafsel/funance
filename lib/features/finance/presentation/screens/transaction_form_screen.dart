@@ -56,10 +56,12 @@ class TransactionFormScreen extends StatelessWidget {
 
   factory TransactionFormScreen.updateInstallment({
     required InstallmentModel installment,
+    InstallmentStatus? status,
   }) {
     return TransactionFormScreen._(
       type: installment.type,
       installment: installment,
+      status: status,
     );
   }
 

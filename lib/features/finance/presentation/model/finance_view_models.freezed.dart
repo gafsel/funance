@@ -801,6 +801,583 @@ as bool,
 }
 
 /// @nodoc
+mixin _$TransactionWizardArgs {
+
+ OrderType get type; bool get skipTransactions;
+/// Create a copy of TransactionWizardArgs
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TransactionWizardArgsCopyWith<TransactionWizardArgs> get copyWith => _$TransactionWizardArgsCopyWithImpl<TransactionWizardArgs>(this as TransactionWizardArgs, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionWizardArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,type,skipTransactions);
+
+@override
+String toString() {
+  return 'TransactionWizardArgs(type: $type, skipTransactions: $skipTransactions)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TransactionWizardArgsCopyWith<$Res>  {
+  factory $TransactionWizardArgsCopyWith(TransactionWizardArgs value, $Res Function(TransactionWizardArgs) _then) = _$TransactionWizardArgsCopyWithImpl;
+@useResult
+$Res call({
+ OrderType type, bool skipTransactions
+});
+
+
+
+
+}
+/// @nodoc
+class _$TransactionWizardArgsCopyWithImpl<$Res>
+    implements $TransactionWizardArgsCopyWith<$Res> {
+  _$TransactionWizardArgsCopyWithImpl(this._self, this._then);
+
+  final TransactionWizardArgs _self;
+  final $Res Function(TransactionWizardArgs) _then;
+
+/// Create a copy of TransactionWizardArgs
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? skipTransactions = null,}) {
+  return _then(_self.copyWith(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as OrderType,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [TransactionWizardArgs].
+extension TransactionWizardArgsPatterns on TransactionWizardArgs {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TransactionWizardArgs value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TransactionWizardArgs() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TransactionWizardArgs value)  $default,){
+final _that = this;
+switch (_that) {
+case _TransactionWizardArgs():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TransactionWizardArgs value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TransactionWizardArgs() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TransactionWizardArgs() when $default != null:
+return $default(_that.type,_that.skipTransactions);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions)  $default,) {final _that = this;
+switch (_that) {
+case _TransactionWizardArgs():
+return $default(_that.type,_that.skipTransactions);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  bool skipTransactions)?  $default,) {final _that = this;
+switch (_that) {
+case _TransactionWizardArgs() when $default != null:
+return $default(_that.type,_that.skipTransactions);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _TransactionWizardArgs implements TransactionWizardArgs {
+   _TransactionWizardArgs({required this.type, this.skipTransactions = false});
+  
+
+@override final  OrderType type;
+@override@JsonKey() final  bool skipTransactions;
+
+/// Create a copy of TransactionWizardArgs
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TransactionWizardArgsCopyWith<_TransactionWizardArgs> get copyWith => __$TransactionWizardArgsCopyWithImpl<_TransactionWizardArgs>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionWizardArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,type,skipTransactions);
+
+@override
+String toString() {
+  return 'TransactionWizardArgs(type: $type, skipTransactions: $skipTransactions)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TransactionWizardArgsCopyWith<$Res> implements $TransactionWizardArgsCopyWith<$Res> {
+  factory _$TransactionWizardArgsCopyWith(_TransactionWizardArgs value, $Res Function(_TransactionWizardArgs) _then) = __$TransactionWizardArgsCopyWithImpl;
+@override @useResult
+$Res call({
+ OrderType type, bool skipTransactions
+});
+
+
+
+
+}
+/// @nodoc
+class __$TransactionWizardArgsCopyWithImpl<$Res>
+    implements _$TransactionWizardArgsCopyWith<$Res> {
+  __$TransactionWizardArgsCopyWithImpl(this._self, this._then);
+
+  final _TransactionWizardArgs _self;
+  final $Res Function(_TransactionWizardArgs) _then;
+
+/// Create a copy of TransactionWizardArgs
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? skipTransactions = null,}) {
+  return _then(_TransactionWizardArgs(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as OrderType,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+mixin _$TransactionWizardState {
+
+ OrderType get type; CategoryModel? get selectedCategory; InstallmentModel? get selectedInstallment; TransactionWizardStep get step; bool get skipTransactions;
+/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TransactionWizardStateCopyWith<TransactionWizardState> get copyWith => _$TransactionWizardStateCopyWithImpl<TransactionWizardState>(this as TransactionWizardState, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionWizardState&&(identical(other.type, type) || other.type == type)&&(identical(other.selectedCategory, selectedCategory) || other.selectedCategory == selectedCategory)&&(identical(other.selectedInstallment, selectedInstallment) || other.selectedInstallment == selectedInstallment)&&(identical(other.step, step) || other.step == step)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,type,selectedCategory,selectedInstallment,step,skipTransactions);
+
+@override
+String toString() {
+  return 'TransactionWizardState(type: $type, selectedCategory: $selectedCategory, selectedInstallment: $selectedInstallment, step: $step, skipTransactions: $skipTransactions)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TransactionWizardStateCopyWith<$Res>  {
+  factory $TransactionWizardStateCopyWith(TransactionWizardState value, $Res Function(TransactionWizardState) _then) = _$TransactionWizardStateCopyWithImpl;
+@useResult
+$Res call({
+ OrderType type, CategoryModel? selectedCategory, InstallmentModel? selectedInstallment, TransactionWizardStep step, bool skipTransactions
+});
+
+
+$CategoryModelCopyWith<$Res>? get selectedCategory;$InstallmentModelCopyWith<$Res>? get selectedInstallment;
+
+}
+/// @nodoc
+class _$TransactionWizardStateCopyWithImpl<$Res>
+    implements $TransactionWizardStateCopyWith<$Res> {
+  _$TransactionWizardStateCopyWithImpl(this._self, this._then);
+
+  final TransactionWizardState _self;
+  final $Res Function(TransactionWizardState) _then;
+
+/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? selectedCategory = freezed,Object? selectedInstallment = freezed,Object? step = null,Object? skipTransactions = null,}) {
+  return _then(_self.copyWith(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as OrderType,selectedCategory: freezed == selectedCategory ? _self.selectedCategory : selectedCategory // ignore: cast_nullable_to_non_nullable
+as CategoryModel?,selectedInstallment: freezed == selectedInstallment ? _self.selectedInstallment : selectedInstallment // ignore: cast_nullable_to_non_nullable
+as InstallmentModel?,step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
+as TransactionWizardStep,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res>? get selectedCategory {
+    if (_self.selectedCategory == null) {
+    return null;
+  }
+
+  return $CategoryModelCopyWith<$Res>(_self.selectedCategory!, (value) {
+    return _then(_self.copyWith(selectedCategory: value));
+  });
+}/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$InstallmentModelCopyWith<$Res>? get selectedInstallment {
+    if (_self.selectedInstallment == null) {
+    return null;
+  }
+
+  return $InstallmentModelCopyWith<$Res>(_self.selectedInstallment!, (value) {
+    return _then(_self.copyWith(selectedInstallment: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [TransactionWizardState].
+extension TransactionWizardStatePatterns on TransactionWizardState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TransactionWizardState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TransactionWizardState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TransactionWizardState value)  $default,){
+final _that = this;
+switch (_that) {
+case _TransactionWizardState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TransactionWizardState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TransactionWizardState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TransactionWizardState() when $default != null:
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)  $default,) {final _that = this;
+switch (_that) {
+case _TransactionWizardState():
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)?  $default,) {final _that = this;
+switch (_that) {
+case _TransactionWizardState() when $default != null:
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _TransactionWizardState implements TransactionWizardState {
+  const _TransactionWizardState({required this.type, this.selectedCategory, this.selectedInstallment, this.step = TransactionWizardStep.category, this.skipTransactions = false});
+  
+
+@override final  OrderType type;
+@override final  CategoryModel? selectedCategory;
+@override final  InstallmentModel? selectedInstallment;
+@override@JsonKey() final  TransactionWizardStep step;
+@override@JsonKey() final  bool skipTransactions;
+
+/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TransactionWizardStateCopyWith<_TransactionWizardState> get copyWith => __$TransactionWizardStateCopyWithImpl<_TransactionWizardState>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionWizardState&&(identical(other.type, type) || other.type == type)&&(identical(other.selectedCategory, selectedCategory) || other.selectedCategory == selectedCategory)&&(identical(other.selectedInstallment, selectedInstallment) || other.selectedInstallment == selectedInstallment)&&(identical(other.step, step) || other.step == step)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,type,selectedCategory,selectedInstallment,step,skipTransactions);
+
+@override
+String toString() {
+  return 'TransactionWizardState(type: $type, selectedCategory: $selectedCategory, selectedInstallment: $selectedInstallment, step: $step, skipTransactions: $skipTransactions)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TransactionWizardStateCopyWith<$Res> implements $TransactionWizardStateCopyWith<$Res> {
+  factory _$TransactionWizardStateCopyWith(_TransactionWizardState value, $Res Function(_TransactionWizardState) _then) = __$TransactionWizardStateCopyWithImpl;
+@override @useResult
+$Res call({
+ OrderType type, CategoryModel? selectedCategory, InstallmentModel? selectedInstallment, TransactionWizardStep step, bool skipTransactions
+});
+
+
+@override $CategoryModelCopyWith<$Res>? get selectedCategory;@override $InstallmentModelCopyWith<$Res>? get selectedInstallment;
+
+}
+/// @nodoc
+class __$TransactionWizardStateCopyWithImpl<$Res>
+    implements _$TransactionWizardStateCopyWith<$Res> {
+  __$TransactionWizardStateCopyWithImpl(this._self, this._then);
+
+  final _TransactionWizardState _self;
+  final $Res Function(_TransactionWizardState) _then;
+
+/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? selectedCategory = freezed,Object? selectedInstallment = freezed,Object? step = null,Object? skipTransactions = null,}) {
+  return _then(_TransactionWizardState(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as OrderType,selectedCategory: freezed == selectedCategory ? _self.selectedCategory : selectedCategory // ignore: cast_nullable_to_non_nullable
+as CategoryModel?,selectedInstallment: freezed == selectedInstallment ? _self.selectedInstallment : selectedInstallment // ignore: cast_nullable_to_non_nullable
+as InstallmentModel?,step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
+as TransactionWizardStep,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res>? get selectedCategory {
+    if (_self.selectedCategory == null) {
+    return null;
+  }
+
+  return $CategoryModelCopyWith<$Res>(_self.selectedCategory!, (value) {
+    return _then(_self.copyWith(selectedCategory: value));
+  });
+}/// Create a copy of TransactionWizardState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$InstallmentModelCopyWith<$Res>? get selectedInstallment {
+    if (_self.selectedInstallment == null) {
+    return null;
+  }
+
+  return $InstallmentModelCopyWith<$Res>(_self.selectedInstallment!, (value) {
+    return _then(_self.copyWith(selectedInstallment: value));
+  });
+}
+}
+
+/// @nodoc
 mixin _$TransactionCreationArgs {
 
  OrderType get type; InstallmentStatus? get status; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget;

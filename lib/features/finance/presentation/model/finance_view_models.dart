@@ -32,6 +32,27 @@ sealed class CategoryPlanningState with _$CategoryPlanningState {
   }) = _CategoryPlanningState;
 }
 
+enum TransactionWizardStep { category, transactions, form }
+
+@freezed
+sealed class TransactionWizardArgs with _$TransactionWizardArgs {
+  factory TransactionWizardArgs({
+    required OrderType type,
+    @Default(false) bool skipTransactions,
+  }) = _TransactionWizardArgs;
+}
+
+@freezed
+sealed class TransactionWizardState with _$TransactionWizardState {
+  const factory TransactionWizardState({
+    required OrderType type,
+    CategoryModel? selectedCategory,
+    InstallmentModel? selectedInstallment,
+    @Default(TransactionWizardStep.category) TransactionWizardStep step,
+    @Default(false) bool skipTransactions,
+  }) = _TransactionWizardState;
+}
+
 @freezed
 sealed class TransactionCreationArgs with _$TransactionCreationArgs {
   factory TransactionCreationArgs({
@@ -111,7 +132,25 @@ sealed class TransactionFormState with _$TransactionFormState {
     );
   }
 
-  factory TransactionFormState.updateInstallment(InstallmentModel installment) {
+  factory TransactionFormState.updateInstallment(
+    InstallmentModel installment, {
+    InstallmentStatus? status,
+  }) {
+    final effectiveStatus = status ?? installment.status;
+
+    DateTime? paidDate = installment.paidDate;
+    double? paidAmount = installment.paidAmount;
+
+    if (status == InstallmentStatus.paid || status == InstallmentStatus.settled) {
+      paidAmount = installment.amount;
+      paidDate = installment.dueDate.isAfter(DateTime.now())
+          ? DateTime.now()
+          : installment.dueDate;
+    } else if (status == InstallmentStatus.pending) {
+      paidAmount = null;
+      paidDate = null;
+    }
+
     return TransactionFormState(
       formType: TransactionFormType.installment,
       installmentId: installment.id,
@@ -125,10 +164,10 @@ sealed class TransactionFormState with _$TransactionFormState {
       accountIdTarget: installment.accountIdTarget,
       accountIdSource: installment.accountIdSource,
       amount: installment.amount,
-      status: installment.status,
+      status: effectiveStatus,
       description: installment.description,
-      paidAmount: installment.paidAmount,
-      paidDate: installment.paidDate,
+      paidAmount: paidAmount,
+      paidDate: paidDate,
       replicateCascade: ReplicationCascade.none,
       isInvoice: installment.isInvoice,
     );

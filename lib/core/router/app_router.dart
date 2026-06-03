@@ -11,6 +11,7 @@ import 'package:funances/features/finance/presentation/screens/account_form_scre
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/features/finance/presentation/screens/category_planning_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
+import 'package:funances/features/finance/presentation/screens/transaction_wizard_screen.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
@@ -169,11 +170,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           if (extra != null) {
-            if (extra['order'] != null) {
-              // Edição de Order desabilitada. Redireciona para criação se necessário ou ignora.
-              // Por enquanto, vamos retornar a criação como fallback se chegarem aqui por engano.
-              return TransactionFormScreen.creation(type: OrderType.expense);
-            }
             if (extra['installment'] != null) {
               return TransactionFormScreen.updateInstallment(
                 installment: extra['installment'] as InstallmentModel,
@@ -187,17 +183,37 @@ final routerProvider = Provider<GoRouter>((ref) {
             orElse: () => OrderType.expense,
           );
 
+          final hasCategory = extra?['category'] != null;
+          final hasAccounts =
+              state.uri.queryParameters['accountIdSource'] != null ||
+              state.uri.queryParameters['accountIdTarget'] != null;
+
+          if (hasCategory || hasAccounts) {
+            final statusStr = state.uri.queryParameters['status'];
+            final status = statusStr != null
+                ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
+                : null;
+
+            return TransactionFormScreen.creation(
+              type: type,
+              status: status,
+              category: extra?['category'] as CategoryModel?,
+              accountIdSource: state.uri.queryParameters['accountIdSource'],
+              accountIdTarget: state.uri.queryParameters['accountIdTarget'],
+            );
+          }
+
           final statusStr = state.uri.queryParameters['status'];
           final status = statusStr != null
               ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
               : null;
 
-          return TransactionFormScreen.creation(
+          final skipTransactions = state.uri.queryParameters['skipTransactions'] == 'true';
+
+          return TransactionWizardScreen(
             type: type,
-            status: status,
-            category: extra?['category'] as CategoryModel?,
-            accountIdSource: state.uri.queryParameters['accountIdSource'],
-            accountIdTarget: state.uri.queryParameters['accountIdTarget'],
+            initialStatus: status,
+            skipTransactions: skipTransactions,
           );
         },
       ),

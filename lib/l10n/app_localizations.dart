@@ -1016,6 +1016,24 @@ abstract class AppLocalizations {
   /// **'Valor Máximo'**
   String get historyFilterMaxAmountLabel;
 
+  /// No description provided for @transactionWizardSelectCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione a Categoria'**
+  String get transactionWizardSelectCategory;
+
+  /// No description provided for @transactionWizardSelectPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançamentos Pendentes'**
+  String get transactionWizardSelectPending;
+
+  /// No description provided for @transactionWizardNewTransaction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Novo lançamento'**
+  String get transactionWizardNewTransaction;
+
   /// No description provided for @historyFilterApply.
   ///
   /// In pt, this message translates to:

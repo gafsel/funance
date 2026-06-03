@@ -260,6 +260,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
 
   void _navigateToForm(BuildContext context, OrderType type, InstallmentStatus status) {
     Navigator.pop(context);
-    context.push('/transactions/form?type=${type.name}&status=${status.name}');
+    final skipTransactions = status == InstallmentStatus.pending;
+    context.push('/transactions/form?type=${type.name}&status=${status.name}&skipTransactions=$skipTransactions');
   }
 }

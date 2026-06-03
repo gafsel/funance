@@ -528,6 +528,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyFilterMaxAmountLabel => 'Max Amount';
 
   @override
+  String get transactionWizardSelectCategory => 'Select Category';
+
+  @override
+  String get transactionWizardSelectPending => 'Pending Transactions';
+
+  @override
+  String get transactionWizardNewTransaction => 'New transaction';
+
+  @override
   String get historyFilterApply => 'Apply Filters';
 
   @override

@@ -27,11 +27,19 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
   void updateCategory(CategoryModel? value) =>
       state = state.copyWith(category: value);
 
-  void updateAccountIdTarget(String? value) =>
-      state = state.copyWith(accountIdTarget: value);
+  void updateAccountIdTarget(String? value) => state = state.copyWith(
+    accountIdTarget: value,
+    accountIdSource: value == state.accountIdSource
+        ? null
+        : state.accountIdSource,
+  );
 
-  void updateAccountIdSource(String? value) =>
-      state = state.copyWith(accountIdSource: value);
+  void updateAccountIdSource(String? value) => state = state.copyWith(
+    accountIdSource: value,
+    accountIdTarget: value == state.accountIdTarget
+        ? null
+        : state.accountIdTarget,
+  );
 
   void updateInstallmentType(InstallmentType value) {
     if (state.creation) {
