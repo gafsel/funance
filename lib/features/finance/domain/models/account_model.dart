@@ -10,7 +10,7 @@ enum AccountType {
   checking,
   @JsonValue('investment')
   investment,
-  @JsonValue('credit_card')
+  @JsonValue('creditCard')
   creditCard,
   @JsonValue('debt')
   debt,

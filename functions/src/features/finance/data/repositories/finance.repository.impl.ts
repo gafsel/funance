@@ -7,6 +7,9 @@ import {
     AccountModel,
     AccountBalanceModel,
     PeriodSummaryUpdateModel,
+    OrderStatus,
+    InstallmentType,
+    OrderType,
 } from "../../domain/models/finance.models";
 import { IFinanceRepository } from "../../domain/repositories/finance.repository";
 
@@ -605,5 +608,35 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             batch.update(doc.ref, { category: category });
         });
         await batch.commit();
+    }
+
+    async updateInvoiceWithDelta(
+        workspaceId: string,
+        account: AccountModel,
+        dueDate: Date,
+        delta: number
+    ): Promise<void> {
+        if (delta === 0) return;
+
+        const dueDateStr = dueDate.toISOString().split("T")[0];
+        const orderId = `invoice-${account.id}-${dueDateStr}`;
+
+        const orderRef = this.getOrdersCollection(workspaceId).doc(orderId);
+
+        const orderData = {
+            amount: admin.firestore.FieldValue.increment(delta),
+            dueDay: dueDate.getDate(),
+            description: `Fatura ${account.name}`,
+            startMonth: `${dueDate.getFullYear()}-${(dueDate.getMonth() + 1).toString().padStart(2, "0")}`,
+            endMonth: `${dueDate.getFullYear()}-${(dueDate.getMonth() + 1).toString().padStart(2, "0")}`,
+            installmentType: InstallmentType.single,
+            status: OrderStatus.active,
+            type: OrderType.transfer,
+            accountIds: [account.id],
+            accounts: { [account.id]: "credit" },
+            isInvoice: true,
+        };
+
+        await orderRef.set(orderData, { merge: true });
     }
 }

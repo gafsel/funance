@@ -34,6 +34,7 @@ export interface OrderModel {
   accounts?: Record<string, "debt" | "credit">;
   accountIds: string[];
   category?: CategoryModel;
+  isInvoice?: boolean;
 }
 
 export enum InstallmentStatus {
@@ -69,6 +70,7 @@ export interface InstallmentModel {
   xp?: number;
   referenceDate: Date;
   referenceAmount: number;
+  isInvoice?: boolean;
 }
 
 export interface CategoryPlanningModel {
@@ -95,7 +97,7 @@ export interface PeriodSummaryModel {
 export enum AccountType {
   checking = "checking",
   investment = "investment",
-  credit_card = "credit_card",
+  creditCard = "creditCard",
   debt = "debt",
 }
 
@@ -104,7 +106,7 @@ export interface AccountModel {
   name: string;
   icon: string;
   color: string;
-  type: AccountType;
+  runtimeType: AccountType;
   metadata?: Record<string, any>;
   isDeleted: boolean;
   initialBalance: number;

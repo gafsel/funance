@@ -104,7 +104,7 @@ class TransactionFormScreen extends StatelessWidget {
         submitLabel: l10n.saveButton,
         submitEnabled: (state) => state.status != InstallmentStatus.settled,
         extraActions: [
-          if (updateInstallment)
+          if (updateInstallment && !installment!.isInvoice)
             OutlinedButton(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.error,
@@ -194,17 +194,13 @@ class TransactionFormScreen extends StatelessWidget {
           final isPending = state.status == InstallmentStatus.pending;
           final isSettled = state.status == InstallmentStatus.settled;
 
-          final showAccounts =
-              !state.creation ||
-              state.category != null ||
-              state.type == OrderType.transfer;
+          final showAccounts = true;
           final showBasicFields =
               !state.creation ||
               (state.type == OrderType.transfer
                   ? state.accountIdSource != null &&
                         state.accountIdTarget != null
-                  : (state.category != null &&
-                        (isPending || state.accountIdSource != null)));
+                  : state.accountIdSource != null && state.category != null);
 
           return [
             ChipFormField<OrderType>(
@@ -226,7 +222,7 @@ class TransactionFormScreen extends StatelessWidget {
                   label: l10n.transactionTypeTransfer,
                 ),
               ],
-              onChanged: state.creation && !isSettled
+              onChanged: state.creation && !isSettled && !state.isInvoice
                   ? (v) {
                       if (v != null) {
                         notifier.updateOrderType(v);
@@ -252,11 +248,12 @@ class TransactionFormScreen extends StatelessWidget {
                     (state.creation ||
                             (state.installmentId != null &&
                                 state.status == InstallmentStatus.pending)) &&
-                        !isSettled
+                        !isSettled &&
+                        !state.isInvoice
                     ? notifier.updateCategory
                     : null,
                 validator: v.all([v.notNull()]),
-                autoOpen: state.creation,
+                autoOpen: state.creation && state.type != OrderType.transfer,
               ),
             ],
             if (showAccounts) ...[
@@ -274,10 +271,7 @@ class TransactionFormScreen extends StatelessWidget {
                     ? notifier.updateAccountIdSource
                     : null,
                 validator: isPending ? null : v.all([v.notEmpty()]),
-                autoOpen:
-                    state.creation &&
-                    (state.type == OrderType.transfer ||
-                        state.category != null),
+                autoOpen: state.creation && state.status == InstallmentStatus.paid,
               ),
               if (state.type == OrderType.transfer) ...[
                 AccountFormField(
@@ -288,11 +282,12 @@ class TransactionFormScreen extends StatelessWidget {
                   onChanged:
                       (state.status != InstallmentStatus.paid ||
                               state.creation) &&
-                          !isSettled
+                          !isSettled &&
+                          !state.isInvoice
                       ? notifier.updateAccountIdTarget
                       : null,
-                  validator: isPending ? null : v.all([v.notEmpty()]),
-                  autoOpen: state.creation && state.accountIdSource != null,
+                  validator: v.all([v.notEmpty()]),
+                  autoOpen: state.creation && state.accountIdSource != null && state.type == OrderType.transfer,
                 ),
               ],
             ],
@@ -333,7 +328,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         onChanged: notifier.updateDescription,
         validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
-        enabled: (!isPaid || state.creation) && !isSettled,
+        enabled: (!isPaid || state.creation) && !isSettled && !state.isInvoice,
       ),
       DateFormField(
         initialValue: state.dueDate,
@@ -343,7 +338,7 @@ class TransactionFormScreen extends StatelessWidget {
           }
         },
         decoration: InputDecoration(labelText: l10n.transactionDateLabel),
-        enabled: (!isPaid || state.creation) && !isSettled,
+        enabled: (!isPaid || state.creation) && !isSettled && !state.isInvoice,
         validator: v.all([v.notNull()]),
       ),
       if (state.type != OrderType.transfer) ...[
@@ -364,7 +359,7 @@ class TransactionFormScreen extends StatelessWidget {
               label: l10n.transactionTypeRecurrent,
             ),
           ],
-          onChanged: state.creation && !isSettled
+          onChanged: state.creation && !isSettled && !state.isInvoice
               ? (v) {
                   if (v != null) {
                     notifier.updateInstallmentType(v);
@@ -400,7 +395,7 @@ class TransactionFormScreen extends StatelessWidget {
         decoration: InputDecoration(labelText: amountLabel),
         onChanged: (v) => notifier.updateAmount(v ?? 0.0),
         validator: v.all([v.notNull()]),
-        enabled: (!isPaid || state.creation) && !isSettled,
+        enabled: (!isPaid || state.creation) && !isSettled && !state.isInvoice,
       ),
       if (state.installmentType == InstallmentType.installment)
         TextFormField(
@@ -412,7 +407,7 @@ class TransactionFormScreen extends StatelessWidget {
             labelText: l10n.transactionInstallmentsLabel,
           ),
           validator: v.all([v.notEmpty()]),
-          enabled: !isSettled,
+          enabled: !isSettled && !state.isInvoice,
         ),
       if (state.formType == TransactionFormType.installment)
         _buildStatusField(context, state, notifier),

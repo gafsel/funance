@@ -78,7 +78,7 @@ export const DEFAULT_CONFIG: AIConfig = {
                 "account": {
                     "id": "temp-id",
                     "name": "Nome sugerido para a conta",
-                    "runtimeType": "checking" | "investment" | "credit_card" | "debt",
+                    "runtimeType": "checking" | "investment" | "creditCard" | "debt",
                     "color": "#HEXCODE",
                     "icon": "ícone_material_design",
                     "currentBalance": 0.0,

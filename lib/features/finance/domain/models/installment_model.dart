@@ -48,6 +48,7 @@ sealed class InstallmentModel with _$InstallmentModel {
     CategoryModel? category,
     ReplicationCascade? replicationCascade,
     double? xp,
+    @Default(false) bool isInvoice,
   }) = _InstallmentModel;
 
   @JsonKey(includeToJson: true)

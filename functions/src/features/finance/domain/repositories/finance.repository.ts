@@ -83,4 +83,10 @@ export interface IFinanceRepository {
 
   updateOrderCategory(workspaceId: string, category: CategoryModel): any;
   updateInstallmentCategory(workspaceId: string, category: CategoryModel): any;
+  updateInvoiceWithDelta(
+    workspaceId: string,
+    account: AccountModel,
+    dueDate: Date,
+    delta: number
+  ): Promise<void>;
 }

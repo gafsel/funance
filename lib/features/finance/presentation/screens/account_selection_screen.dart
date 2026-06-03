@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -280,12 +282,10 @@ class AccountSelectionScreen extends ConsumerWidget {
       margin: EdgeInsets.zero,
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: Color(
-            int.parse(account.color.replaceFirst('#', '0xFF')),
-          ).withValues(alpha: 0.2),
+          backgroundColor: account.color.asColor().withValues(alpha: 0.2),
           child: Icon(
-            _getIconData(account.icon),
-            color: Color(int.parse(account.color.replaceFirst('#', '0xFF'))),
+            account.icon.asIcon(),
+            color: account.color.asColor(),
           ),
         ),
         title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -312,20 +312,4 @@ class AccountSelectionScreen extends ConsumerWidget {
     }
   }
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'account_balance':
-        return Icons.account_balance;
-      case 'credit_card':
-        return Icons.credit_card;
-      case 'savings':
-        return Icons.savings;
-      case 'payments':
-        return Icons.payments;
-      case 'wallet':
-        return Icons.account_balance_wallet;
-      default:
-        return Icons.account_balance;
-    }
-  }
 }

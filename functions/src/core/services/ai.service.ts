@@ -246,7 +246,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 const org = ofxData.SIGNONMSGSRSV1?.SONRS?.FI?.ORG || "";
                 
                 account.name = `${org} ${acctId}`.trim();
-                account.runtimeType = isCreditCard ? "credit_card" : (bankAcctFrom.ACCTTYPE === "CHECKING" ? "checking" : "investment");
+                account.runtimeType = isCreditCard ? "creditCard" : (bankAcctFrom.ACCTTYPE === "CHECKING" ? "checking" : "investment");
             }
 
             if (stmtRs.LEDGERBAL) {

@@ -64,6 +64,7 @@ sealed class OrderModel with _$OrderModel {
     InstallmentStatus? installmentCreationStatus,
     Map<String, AccountImpact>? accounts,
     CategoryModel? category,
+    @Default(false) bool isInvoice,
   }) = _OrderModel;
 
   factory OrderModel.fromJson(Map<String, dynamic> json) =>

@@ -40,6 +40,7 @@ _InstallmentModel _$InstallmentModelFromJson(Map<String, dynamic> json) =>
         json['replicationCascade'],
       ),
       xp: (json['xp'] as num?)?.toDouble(),
+      isInvoice: json['isInvoice'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$InstallmentModelToJson(_InstallmentModel instance) =>
@@ -68,6 +69,7 @@ Map<String, dynamic> _$InstallmentModelToJson(_InstallmentModel instance) =>
       'replicationCascade':
           _$ReplicationCascadeEnumMap[instance.replicationCascade],
       'xp': instance.xp,
+      'isInvoice': instance.isInvoice,
     };
 
 const _$InstallmentStatusEnumMap = {

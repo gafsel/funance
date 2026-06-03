@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import * as logger from "firebase-functions/logger";
 import {
     AccountModel,
     AccountType,
@@ -13,6 +14,7 @@ import {
 import { IFinanceRepository } from "../repositories/finance.repository";
 import { CategoryType } from "../../../workspace/domain/models/category.model";
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
+import { InvoiceService } from "./invoice.service";
 
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
@@ -32,7 +34,7 @@ export class FinanceService {
 
         // 2.1 Se a order já existia, não fazemos cascateamento de edição para as installments.
         // A criação da order cria as installments, mas uma alteração na order não deve mexer nas installments.
-        if (before) {
+        if (before && !before.isInvoice) {
             console.log(`SyncInstallments: Order ${orderId} atualizada. Pulando cascateamento para installments conforme regra de negócio.`);
             return;
         }
@@ -61,7 +63,7 @@ export class FinanceService {
             const accountIds = Object.keys(after.accounts || {});
             if (accountIds.length > 0) {
                 const account = await this.financeRepository.getAccountById(workspaceId, accountIds[0]);
-                if (account?.type === AccountType.credit_card) {
+                if (account?.runtimeType === AccountType.creditCard) {
                     shouldAllBePaid = true;
                 }
             }
@@ -122,13 +124,25 @@ export class FinanceService {
                 category: after.category,
                 paidAmount: isPaid ? installmentAmount : undefined,
                 paidDate: paidDate,
+                isInvoice: after.isInvoice,
             });
 
             lastDueDate = dueDate;
         }
 
         // 4. Criar as installments
-        await this.financeRepository.createInstallments(workspaceId, expectedInstallments);
+        if (after.isInvoice && existingInstallments.length > 0) {
+            if (existingInstallments[0].amount !== expectedInstallments[0].amount) {
+                await this.financeRepository.updateInstallment(workspaceId, existingInstallments[0].id, {
+                    amount: expectedInstallments[0].amount,
+                    referenceAmount: expectedInstallments[0].referenceAmount,
+                    status: InstallmentStatus.pending,
+                });
+            }
+        }
+        else {
+            await this.financeRepository.createInstallments(workspaceId, expectedInstallments);
+        }
 
         // 5. Atualizar a data da última parcela gerada na Order
         if (lastDueDate && after.installmentType === InstallmentType.recurring) {
@@ -408,6 +422,115 @@ export class FinanceService {
             }
 
             await this.financeRepository.updateAccountBalance(workspaceId, accountId, installment.paidDate, delta);
+        }
+    }
+
+    async processInvoiceUpdate(
+        workspaceId: string,
+        before: InstallmentModel | null,
+        after: InstallmentModel | null
+    ): Promise<void> {
+        // Excluir faturas com valor zero
+        if (after && after.isInvoice && after.amount === 0) {
+            logger.info(`[processInvoiceUpdate] Excluindo fatura com valor zero: ${after.id}`);
+            await this.financeRepository.deleteInstallment(workspaceId, after.id);
+            if (after.orderId) {
+                await this.financeRepository.deleteOrder(workspaceId, after.orderId);
+            }
+            return;
+        }
+
+        const isPaidStatus = (s: InstallmentStatus | undefined) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
+
+        const isBeforePaid = isPaidStatus(before?.status);
+        const isAfterPaid = isPaidStatus(after?.status);
+
+        const handleInvoice = async (inst: InstallmentModel, isReversal: boolean) => {
+            if (!inst.accounts || !inst.paidAmount || !inst.paidDate) {
+                logger.debug(`[processInvoiceUpdate] Instalação ignorada por falta de dados (accounts, paidAmount ou paidDate): ${inst.id}`);
+                return;
+            }
+
+            // Se for o pagamento de uma fatura, precisamos checar a diferença e impactar a próxima
+            if (inst.isInvoice) {
+                const diff = (inst.paidAmount || 0) - (inst.amount || 0);
+                logger.info(`[processInvoiceUpdate] Processando pagamento de fatura: id=${inst.id}, diff=${diff}, isReversal=${isReversal}`);
+
+                if (diff !== 0) {
+                    // Para faturas (isInvoice), identificamos a conta de crédito (que recebeu o pagamento)
+                    let accountId: string | undefined;
+
+                    if (inst.accounts) {
+                        accountId = Object.entries(inst.accounts).find(([, role]) => role === "credit")?.[0];
+                    }
+
+                    if (accountId) {
+                        const account = await this.financeRepository.getAccountById(workspaceId, accountId);
+                        if (account) {
+                            const nextInvoiceDueDate = InvoiceService.calculateInvoiceDueDate(inst.paidDate, account);
+                            // Se pago a mais (diff > 0), decrementa a próxima (delta negativo)
+                            // Se pago a menos (diff < 0), incrementa a próxima (delta positivo)
+                            let delta = -diff;
+                            if (isReversal) {
+                                delta = -delta;
+                            }
+                            logger.info(`[processInvoiceUpdate] Atualizando próxima fatura: accountId=${accountId}, dueDate=${nextInvoiceDueDate.toISOString()}, delta=${delta}`);
+                            await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, nextInvoiceDueDate, delta);
+                        }
+                        else {
+                            logger.warn(`[processInvoiceUpdate] Conta não encontrada para fatura: ${accountId}`);
+                        }
+                    }
+                    else {
+                        logger.warn(`[processInvoiceUpdate] Não foi possível identificar a conta de crédito na fatura: ${inst.id}`);
+                    }
+                }
+                return;
+            }
+
+            for (const [accountId, role] of Object.entries(inst.accounts)) {
+                let delta = 0;
+                if (role === "credit") {
+                    delta = inst.paidAmount;
+                }
+                else {
+                    delta = -inst.paidAmount;
+                }
+
+                if (isReversal) {
+                    delta = -delta;
+                }
+
+                const account = await this.financeRepository.getAccountById(workspaceId, accountId);
+                if (account?.runtimeType === AccountType.creditCard) {
+                    const invoiceDueDate = InvoiceService.calculateInvoiceDueDate(inst.paidDate, account);
+                    logger.info(`[processInvoiceUpdate] Impactando fatura de cartão: accountId=${accountId}, role=${role}, invoiceDueDate=${invoiceDueDate.toISOString()}, delta=${-delta}, isReversal=${isReversal}`);
+                    await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, invoiceDueDate, -delta);
+                }
+            }
+        };
+
+        // Caso 1: Estorno
+        if (isBeforePaid && (!after || !isAfterPaid)) {
+            logger.info(`[processInvoiceUpdate] Detectado estorno/cancelamento: ${before?.id}`);
+            await handleInvoice(before!, true);
+        }
+        // Caso 2: Novo pagamento
+        else if (!isBeforePaid && after && isAfterPaid) {
+            logger.info(`[processInvoiceUpdate] Detectado novo pagamento: ${after.id}`);
+            await handleInvoice(after, false);
+        }
+        // Caso 3: Alteração em pagamento existente
+        else if (isBeforePaid && isAfterPaid && before && after) {
+            const hasChangedAccount = JSON.stringify(before.accounts) !== JSON.stringify(after.accounts);
+            const hasChangedAmount = before.paidAmount !== after.paidAmount;
+            const hasChangedDate = before.paidDate?.getTime() !== after.paidDate?.getTime();
+
+            if (hasChangedAccount || hasChangedAmount || hasChangedDate) {
+                logger.info(`[processInvoiceUpdate] Detectada alteração em pagamento: ${after.id}, hasChangedAccount=${hasChangedAccount}, hasChangedAmount=${hasChangedAmount}, hasChangedDate=${hasChangedDate}`);
+                await handleInvoice(before, true);
+                await handleInvoice(after, false);
+            }
         }
     }
 

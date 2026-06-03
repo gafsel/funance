@@ -28,7 +28,7 @@ service cloud.firestore {
 
       // Installments: Membros podem ler e escrever
       match /installments/{installmentId} {
-        allow read, write: if isMember(workspaceId);
+        allow read, update: if isMember(workspaceId);
       }
 
       // Goals: Membros podem ler e escrever

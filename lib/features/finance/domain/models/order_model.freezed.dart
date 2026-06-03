@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OrderModel {
 
- String get id; double get amount; String get description; int get dueDay; String get startMonth; int? get installmentCount; InstallmentType get installmentType; OrderStatus get status; OrderType get type; InstallmentStatus? get installmentCreationStatus; Map<String, AccountImpact>? get accounts; CategoryModel? get category;
+ String get id; double get amount; String get description; int get dueDay; String get startMonth; int? get installmentCount; InstallmentType get installmentType; OrderStatus get status; OrderType get type; InstallmentStatus? get installmentCreationStatus; Map<String, AccountImpact>? get accounts; CategoryModel? get category; bool get isInvoice;
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $OrderModelCopyWith<OrderModel> get copyWith => _$OrderModelCopyWithImpl<OrderMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.description, description) || other.description == description)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.startMonth, startMonth) || other.startMonth == startMonth)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.status, status) || other.status == status)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentCreationStatus, installmentCreationStatus) || other.installmentCreationStatus == installmentCreationStatus)&&const DeepCollectionEquality().equals(other.accounts, accounts)&&(identical(other.category, category) || other.category == category));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.description, description) || other.description == description)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.startMonth, startMonth) || other.startMonth == startMonth)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.status, status) || other.status == status)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentCreationStatus, installmentCreationStatus) || other.installmentCreationStatus == installmentCreationStatus)&&const DeepCollectionEquality().equals(other.accounts, accounts)&&(identical(other.category, category) || other.category == category)&&(identical(other.isInvoice, isInvoice) || other.isInvoice == isInvoice));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,amount,description,dueDay,startMonth,installmentCount,installmentType,status,type,installmentCreationStatus,const DeepCollectionEquality().hash(accounts),category);
+int get hashCode => Object.hash(runtimeType,id,amount,description,dueDay,startMonth,installmentCount,installmentType,status,type,installmentCreationStatus,const DeepCollectionEquality().hash(accounts),category,isInvoice);
 
 @override
 String toString() {
-  return 'OrderModel(id: $id, amount: $amount, description: $description, dueDay: $dueDay, startMonth: $startMonth, installmentCount: $installmentCount, installmentType: $installmentType, status: $status, type: $type, installmentCreationStatus: $installmentCreationStatus, accounts: $accounts, category: $category)';
+  return 'OrderModel(id: $id, amount: $amount, description: $description, dueDay: $dueDay, startMonth: $startMonth, installmentCount: $installmentCount, installmentType: $installmentType, status: $status, type: $type, installmentCreationStatus: $installmentCreationStatus, accounts: $accounts, category: $category, isInvoice: $isInvoice)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $OrderModelCopyWith<$Res>  {
   factory $OrderModelCopyWith(OrderModel value, $Res Function(OrderModel) _then) = _$OrderModelCopyWithImpl;
 @useResult
 $Res call({
- String id, double amount, String description, int dueDay, String startMonth, int? installmentCount, InstallmentType installmentType, OrderStatus status, OrderType type, InstallmentStatus? installmentCreationStatus, Map<String, AccountImpact>? accounts, CategoryModel? category
+ String id, double amount, String description, int dueDay, String startMonth, int? installmentCount, InstallmentType installmentType, OrderStatus status, OrderType type, InstallmentStatus? installmentCreationStatus, Map<String, AccountImpact>? accounts, CategoryModel? category, bool isInvoice
 });
 
 
@@ -65,7 +65,7 @@ class _$OrderModelCopyWithImpl<$Res>
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? amount = null,Object? description = null,Object? dueDay = null,Object? startMonth = null,Object? installmentCount = freezed,Object? installmentType = null,Object? status = null,Object? type = null,Object? installmentCreationStatus = freezed,Object? accounts = freezed,Object? category = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? amount = null,Object? description = null,Object? dueDay = null,Object? startMonth = null,Object? installmentCount = freezed,Object? installmentType = null,Object? status = null,Object? type = null,Object? installmentCreationStatus = freezed,Object? accounts = freezed,Object? category = freezed,Object? isInvoice = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
@@ -79,7 +79,8 @@ as OrderStatus,type: null == type ? _self.type : type // ignore: cast_nullable_t
 as OrderType,installmentCreationStatus: freezed == installmentCreationStatus ? _self.installmentCreationStatus : installmentCreationStatus // ignore: cast_nullable_to_non_nullable
 as InstallmentStatus?,accounts: freezed == accounts ? _self.accounts : accounts // ignore: cast_nullable_to_non_nullable
 as Map<String, AccountImpact>?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as CategoryModel?,
+as CategoryModel?,isInvoice: null == isInvoice ? _self.isInvoice : isInvoice // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of OrderModel
@@ -173,10 +174,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category,  bool isInvoice)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OrderModel() when $default != null:
-return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category);case _:
+return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category,_that.isInvoice);case _:
   return orElse();
 
 }
@@ -194,10 +195,10 @@ return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.start
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category,  bool isInvoice)  $default,) {final _that = this;
 switch (_that) {
 case _OrderModel():
-return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category);}
+return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category,_that.isInvoice);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -211,10 +212,10 @@ return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.start
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  double amount,  String description,  int dueDay,  String startMonth,  int? installmentCount,  InstallmentType installmentType,  OrderStatus status,  OrderType type,  InstallmentStatus? installmentCreationStatus,  Map<String, AccountImpact>? accounts,  CategoryModel? category,  bool isInvoice)?  $default,) {final _that = this;
 switch (_that) {
 case _OrderModel() when $default != null:
-return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category);case _:
+return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.startMonth,_that.installmentCount,_that.installmentType,_that.status,_that.type,_that.installmentCreationStatus,_that.accounts,_that.category,_that.isInvoice);case _:
   return null;
 
 }
@@ -226,7 +227,7 @@ return $default(_that.id,_that.amount,_that.description,_that.dueDay,_that.start
 
 @JsonSerializable(explicitToJson: true)
 class _OrderModel extends OrderModel {
-  const _OrderModel({required this.id, required this.amount, required this.description, required this.dueDay, required this.startMonth, this.installmentCount, required this.installmentType, required this.status, required this.type, this.installmentCreationStatus, final  Map<String, AccountImpact>? accounts, this.category}): _accounts = accounts,super._();
+  const _OrderModel({required this.id, required this.amount, required this.description, required this.dueDay, required this.startMonth, this.installmentCount, required this.installmentType, required this.status, required this.type, this.installmentCreationStatus, final  Map<String, AccountImpact>? accounts, this.category, this.isInvoice = false}): _accounts = accounts,super._();
   factory _OrderModel.fromJson(Map<String, dynamic> json) => _$OrderModelFromJson(json);
 
 @override final  String id;
@@ -249,6 +250,7 @@ class _OrderModel extends OrderModel {
 }
 
 @override final  CategoryModel? category;
+@override@JsonKey() final  bool isInvoice;
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +265,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.description, description) || other.description == description)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.startMonth, startMonth) || other.startMonth == startMonth)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.status, status) || other.status == status)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentCreationStatus, installmentCreationStatus) || other.installmentCreationStatus == installmentCreationStatus)&&const DeepCollectionEquality().equals(other._accounts, _accounts)&&(identical(other.category, category) || other.category == category));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OrderModel&&(identical(other.id, id) || other.id == id)&&(identical(other.amount, amount) || other.amount == amount)&&(identical(other.description, description) || other.description == description)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.startMonth, startMonth) || other.startMonth == startMonth)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.status, status) || other.status == status)&&(identical(other.type, type) || other.type == type)&&(identical(other.installmentCreationStatus, installmentCreationStatus) || other.installmentCreationStatus == installmentCreationStatus)&&const DeepCollectionEquality().equals(other._accounts, _accounts)&&(identical(other.category, category) || other.category == category)&&(identical(other.isInvoice, isInvoice) || other.isInvoice == isInvoice));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,amount,description,dueDay,startMonth,installmentCount,installmentType,status,type,installmentCreationStatus,const DeepCollectionEquality().hash(_accounts),category);
+int get hashCode => Object.hash(runtimeType,id,amount,description,dueDay,startMonth,installmentCount,installmentType,status,type,installmentCreationStatus,const DeepCollectionEquality().hash(_accounts),category,isInvoice);
 
 @override
 String toString() {
-  return 'OrderModel(id: $id, amount: $amount, description: $description, dueDay: $dueDay, startMonth: $startMonth, installmentCount: $installmentCount, installmentType: $installmentType, status: $status, type: $type, installmentCreationStatus: $installmentCreationStatus, accounts: $accounts, category: $category)';
+  return 'OrderModel(id: $id, amount: $amount, description: $description, dueDay: $dueDay, startMonth: $startMonth, installmentCount: $installmentCount, installmentType: $installmentType, status: $status, type: $type, installmentCreationStatus: $installmentCreationStatus, accounts: $accounts, category: $category, isInvoice: $isInvoice)';
 }
 
 
@@ -283,7 +285,7 @@ abstract mixin class _$OrderModelCopyWith<$Res> implements $OrderModelCopyWith<$
   factory _$OrderModelCopyWith(_OrderModel value, $Res Function(_OrderModel) _then) = __$OrderModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, double amount, String description, int dueDay, String startMonth, int? installmentCount, InstallmentType installmentType, OrderStatus status, OrderType type, InstallmentStatus? installmentCreationStatus, Map<String, AccountImpact>? accounts, CategoryModel? category
+ String id, double amount, String description, int dueDay, String startMonth, int? installmentCount, InstallmentType installmentType, OrderStatus status, OrderType type, InstallmentStatus? installmentCreationStatus, Map<String, AccountImpact>? accounts, CategoryModel? category, bool isInvoice
 });
 
 
@@ -300,7 +302,7 @@ class __$OrderModelCopyWithImpl<$Res>
 
 /// Create a copy of OrderModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? amount = null,Object? description = null,Object? dueDay = null,Object? startMonth = null,Object? installmentCount = freezed,Object? installmentType = null,Object? status = null,Object? type = null,Object? installmentCreationStatus = freezed,Object? accounts = freezed,Object? category = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? amount = null,Object? description = null,Object? dueDay = null,Object? startMonth = null,Object? installmentCount = freezed,Object? installmentType = null,Object? status = null,Object? type = null,Object? installmentCreationStatus = freezed,Object? accounts = freezed,Object? category = freezed,Object? isInvoice = null,}) {
   return _then(_OrderModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
@@ -314,7 +316,8 @@ as OrderStatus,type: null == type ? _self.type : type // ignore: cast_nullable_t
 as OrderType,installmentCreationStatus: freezed == installmentCreationStatus ? _self.installmentCreationStatus : installmentCreationStatus // ignore: cast_nullable_to_non_nullable
 as InstallmentStatus?,accounts: freezed == accounts ? _self._accounts : accounts // ignore: cast_nullable_to_non_nullable
 as Map<String, AccountImpact>?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as CategoryModel?,
+as CategoryModel?,isInvoice: null == isInvoice ? _self.isInvoice : isInvoice // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

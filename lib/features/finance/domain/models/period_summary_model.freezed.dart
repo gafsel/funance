@@ -117,10 +117,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _PeriodSummaryCategoryModel():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -179,10 +176,7 @@ return $default(_that.generalPlannedAmount,_that.specificPlannedAmount,_that.act
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double generalPlannedAmount,  double specificPlannedAmount,  double actualAmount)  $default,) {final _that = this;
 switch (_that) {
 case _PeriodSummaryCategoryModel():
-return $default(_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.generalPlannedAmount,_that.specificPlannedAmount,_that.actualAmount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///

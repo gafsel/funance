@@ -29,6 +29,7 @@ _OrderModel _$OrderModelFromJson(Map<String, dynamic> json) => _OrderModel(
   category: json['category'] == null
       ? null
       : CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
+  isInvoice: json['isInvoice'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$OrderModelToJson(_OrderModel instance) =>
@@ -48,6 +49,7 @@ Map<String, dynamic> _$OrderModelToJson(_OrderModel instance) =>
         (k, e) => MapEntry(k, _$AccountImpactEnumMap[e]!),
       ),
       'category': instance.category?.toJson(),
+      'isInvoice': instance.isInvoice,
     };
 
 const _$InstallmentTypeEnumMap = {

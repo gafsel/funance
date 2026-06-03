@@ -70,6 +70,7 @@ sealed class TransactionFormState with _$TransactionFormState {
     String? accountIdSource,
     String? accountIdTarget,
     ReplicationCascade? replicateCascade,
+    @Default(false) bool isInvoice,
   }) = _TransactionFormState;
 
   bool get creation => formType == TransactionFormType.order && orderId == null;
@@ -106,6 +107,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       accountIdSource: order.accountIdSource,
       amount: order.amount,
       description: order.description,
+      isInvoice: order.isInvoice,
     );
   }
 
@@ -128,6 +130,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       paidAmount: installment.paidAmount,
       paidDate: installment.paidDate,
       replicateCascade: ReplicationCascade.none,
+      isInvoice: installment.isInvoice,
     );
   }
 
@@ -160,6 +163,7 @@ sealed class TransactionFormState with _$TransactionFormState {
           accountIdTarget!: AccountImpact.credit,
       },
       category: category,
+      isInvoice: isInvoice,
     );
   }
 
@@ -185,6 +189,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       installmentCount: installmentCount,
       installmentNumber: intallmentNumber,
       replicationCascade: replicateCascade,
+      isInvoice: isInvoice,
     );
   }
 }
