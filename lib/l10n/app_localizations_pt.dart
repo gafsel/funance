@@ -846,6 +846,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionDeleteCascadeAll => 'Todas';
 
   @override
+  String get transactionDueDateLabel => 'Vencimento';
+
+  @override
   String get noAccountsFound => 'Nenhuma conta encontrada.';
 
   @override

@@ -74,5 +74,10 @@ abstract class IFinanceRepository {
     InstallmentStatus? status,
   });
 
+  Stream<InstallmentModel?> watchNextInvoice(
+    String workspaceId,
+    String accountId,
+  );
+
   Stream<double> watchWeeklyXp(String workspaceId, int year, int week);
 }

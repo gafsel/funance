@@ -104,7 +104,7 @@ class AccountRepositoryImpl implements IAccountRepository {
     return _getCollection(workspaceId)
         .doc(accountId)
         .collection('balance')
-        .where(FieldPath.documentId, isLessThanOrEqualTo: today)
+        // .where(FieldPath.documentId, isLessThanOrEqualTo: today)
         .orderBy(FieldPath.documentId, descending: true)
         .limit(1)
         .snapshots()

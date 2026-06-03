@@ -1616,6 +1616,12 @@ abstract class AppLocalizations {
   /// **'Todas'**
   String get transactionDeleteCascadeAll;
 
+  /// No description provided for @transactionDueDateLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vencimento'**
+  String get transactionDueDateLabel;
+
   /// No description provided for @noAccountsFound.
   ///
   /// In pt, this message translates to:

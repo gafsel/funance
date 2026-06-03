@@ -365,6 +365,7 @@
   "transactionDeleteCascadeOnlyThis": "Apenas esta",
   "transactionDeleteCascadeThisAndNext": "Esta e próximas",
   "transactionDeleteCascadeAll": "Todas",
+  "transactionDueDateLabel": "Vencimento",
   "noAccountsFound": "Nenhuma conta encontrada.",
   "initialBalanceLabel": "Saldo Inicial",
   "initialBalanceDateLabel": "Data do Saldo Inicial",

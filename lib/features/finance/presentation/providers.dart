@@ -133,6 +133,13 @@ class AccountViewProviders {
         )
         .reduce((v1, v2) => v1 + v2);
   });
+
+  static final nextInvoiceByAccountId =
+      StreamProvider.family<InstallmentModel?, String>((ref, accountId) {
+        return ref
+            .watch(FinanceDomainProviders.service)
+            .watchNextInvoice(accountId);
+      });
 }
 
 class PlanningViewProviders {
@@ -219,15 +226,15 @@ class PeriodSummaryDomainProviders {
 }
 
 List<OverviewCategorySummary> _mapToOverview(
-    PeriodSummaryModel? summary,
-    List<CategoryModel> categories,
-    ) {
+  PeriodSummaryModel? summary,
+  List<CategoryModel> categories,
+) {
   final List<OverviewCategorySummary> result = [];
   if (summary == null) return result;
 
   summary.categories.forEach((categoryId, data) {
     final category = categories.firstWhere(
-          (c) => c.id == categoryId,
+      (c) => c.id == categoryId,
       orElse: () => CategoryModel(
         id: categoryId,
         name: 'Unknown',
@@ -250,15 +257,18 @@ List<OverviewCategorySummary> _mapToOverview(
 
 class PeriodSummaryViewProviders {
   static final monthSummary =
-      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((ref, period) {
+      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((
+        ref,
+        period,
+      ) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
         final List<CategoryModel> categories = ref
             .watch(CategoryViewProviders.allStream)
             .when(
-          data: (data) => data,
-          error: (_, __) => [],
-          loading: () => [],
-        );
+              data: (data) => data,
+              error: (_, __) => [],
+              loading: () => [],
+            );
 
         return service
             .watchMonth(period.year, period.month)
@@ -266,7 +276,10 @@ class PeriodSummaryViewProviders {
       });
 
   static final yearSummary =
-      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((ref, period) {
+      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((
+        ref,
+        period,
+      ) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
         final List<CategoryModel> categories = ref
             .watch(CategoryViewProviders.allStream)
@@ -280,5 +293,4 @@ class PeriodSummaryViewProviders {
             .watchYear(period.year)
             .map((summary) => _mapToOverview(summary, categories));
       });
-
 }

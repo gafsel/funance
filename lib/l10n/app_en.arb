@@ -300,6 +300,7 @@
   "transactionFromAccountLabel": "From Account",
   "transactionToAccountLabel": "To Account",
   "transactionSaveSuccess": "Transaction saved successfully!",
+  "transactionDueDateLabel": "Due Date",
   "noAccountsFound": "No accounts found.",
   "initialBalanceLabel": "Initial Balance",
   "initialBalanceDateLabel": "Initial Balance Date",

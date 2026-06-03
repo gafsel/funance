@@ -841,6 +841,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionDeleteCascadeAll => 'Todas';
 
   @override
+  String get transactionDueDateLabel => 'Due Date';
+
+  @override
   String get noAccountsFound => 'No accounts found.';
 
   @override

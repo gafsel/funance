@@ -43,11 +43,14 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       if (status != null) {
         query = query.where("status", isEqualTo: status.name);
       } else {
-        query = query.where("status", whereIn: [
-          InstallmentStatus.pending.name,
-          InstallmentStatus.paid.name,
-          InstallmentStatus.settled.name,
-        ]);
+        query = query.where(
+          "status",
+          whereIn: [
+            InstallmentStatus.pending.name,
+            InstallmentStatus.paid.name,
+            InstallmentStatus.settled.name,
+          ],
+        );
       }
 
       if (categoryId != null && categoryId.isNotEmpty) {
@@ -93,14 +96,13 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       var items = snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
 
       if (description != null && description.isNotEmpty) {
-        items =
-            items
-                .where(
-                  (item) => item.description.toLowerCase().contains(
-                    description.toLowerCase(),
-                  ),
-                )
-                .toList();
+        items = items
+            .where(
+              (item) => item.description.toLowerCase().contains(
+                description.toLowerCase(),
+              ),
+            )
+            .toList();
       }
 
       return QueryChunk(items: items, nextChunckRef: snapshot.docs.lastOrNull);
@@ -212,18 +214,33 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = entry.toJson();
       data.remove('id');
-      
-      final normalizedDueDate = DateTime(entry.dueDate.year, entry.dueDate.month, entry.dueDate.day, 12);
+
+      final normalizedDueDate = DateTime(
+        entry.dueDate.year,
+        entry.dueDate.month,
+        entry.dueDate.day,
+        12,
+      );
       data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
-      
+
       if (entry.paidDate != null) {
-        final normalizedPaidDate = DateTime(entry.paidDate!.year, entry.paidDate!.month, entry.paidDate!.day, 12);
+        final normalizedPaidDate = DateTime(
+          entry.paidDate!.year,
+          entry.paidDate!.month,
+          entry.paidDate!.day,
+          12,
+        );
         data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
       }
-      
-      final normalizedReferenceDate = DateTime(entry.referenceDate.year, entry.referenceDate.month, entry.referenceDate.day, 12);
+
+      final normalizedReferenceDate = DateTime(
+        entry.referenceDate.year,
+        entry.referenceDate.month,
+        entry.referenceDate.day,
+        12,
+      );
       data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
-      
+
       data['referenceAmount'] = entry.referenceAmount;
       await _getWorkspaceDoc(workspaceId).collection('installments').add(data);
     } catch (e, s) {
@@ -243,18 +260,33 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = entry.toJson();
       data.remove('id');
-      
-      final normalizedDueDate = DateTime(entry.dueDate.year, entry.dueDate.month, entry.dueDate.day, 12);
+
+      final normalizedDueDate = DateTime(
+        entry.dueDate.year,
+        entry.dueDate.month,
+        entry.dueDate.day,
+        12,
+      );
       data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
-      
+
       if (entry.paidDate != null) {
-        final normalizedPaidDate = DateTime(entry.paidDate!.year, entry.paidDate!.month, entry.paidDate!.day, 12);
+        final normalizedPaidDate = DateTime(
+          entry.paidDate!.year,
+          entry.paidDate!.month,
+          entry.paidDate!.day,
+          12,
+        );
         data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
       }
-      
-      final normalizedReferenceDate = DateTime(entry.referenceDate.year, entry.referenceDate.month, entry.referenceDate.day, 12);
+
+      final normalizedReferenceDate = DateTime(
+        entry.referenceDate.year,
+        entry.referenceDate.month,
+        entry.referenceDate.day,
+        12,
+      );
       data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
-      
+
       data['referenceAmount'] = entry.referenceAmount;
       await _getWorkspaceDoc(
         workspaceId,
@@ -357,7 +389,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         return CategoryPlanningModel.fromJson(data);
       }).toList();
     } catch (e, s) {
-      log("Failed to load category plannings ${e.toString()}", error: e, stackTrace: s);
+      log(
+        "Failed to load category plannings ${e.toString()}",
+        error: e,
+        stackTrace: s,
+      );
 
       throw BusinessException(
         ErrorCode.unknown,
@@ -387,11 +423,14 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     if (status != null) {
       query = query.where("status", isEqualTo: status.name);
     } else {
-      query = query.where("status", whereIn: [
-        InstallmentStatus.pending.name,
-        InstallmentStatus.paid.name,
-        InstallmentStatus.settled.name,
-      ]);
+      query = query.where(
+        "status",
+        whereIn: [
+          InstallmentStatus.pending.name,
+          InstallmentStatus.paid.name,
+          InstallmentStatus.settled.name,
+        ],
+      );
     }
 
     if (categoryId != null && categoryId.isNotEmpty) {
@@ -404,10 +443,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
 
     if (startDate != null || endDate != null) {
       if (startDate != null) {
-        query = query.where(
-          "referenceDate",
-          isGreaterThanOrEqualTo: startDate,
-        );
+        query = query.where("referenceDate", isGreaterThanOrEqualTo: startDate);
       }
 
       if (endDate != null) {
@@ -426,13 +462,29 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
+  Stream<InstallmentModel?> watchNextInvoice(
+    String workspaceId,
+    String accountId,
+  ) {
+    Query query = _getWorkspaceDoc(workspaceId)
+        .collection('installments')
+        .where('isInvoice', isEqualTo: true)
+        .where('accountIds', arrayContains: accountId)
+        .where("status", isEqualTo: InstallmentStatus.pending.name)
+        .orderBy("dueDate")
+        .limit(1);
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => doc.toInstallmentModel()).firstOrNull;
+    });
+  }
+
+  @override
   Stream<double> watchWeeklyXp(String workspaceId, int year, int week) {
     final weeklyXpId = "$year-W${week.toString().padLeft(2, "0")}";
-    return _getWorkspaceDoc(workspaceId)
-        .collection('weekly_xp')
-        .doc(weeklyXpId)
-        .snapshots()
-        .map((doc) {
+    return _getWorkspaceDoc(
+      workspaceId,
+    ).collection('weekly_xp').doc(weeklyXpId).snapshots().map((doc) {
       if (!doc.exists) return 0.0;
       final data = doc.data() as Map<String, dynamic>;
       return (data['xp'] as num).toDouble();

@@ -34,8 +34,8 @@ export class InvoiceService {
     }
 
     static calculateInvoiceDueDate(paymentDate: Date, account: AccountModel): Date {
-        const closingDay = account.metadata?.closingDay || 5;
-        const dueDay = account.metadata?.dueDay || 10;
+        const closingDay = account.closingDay || 5;
+        const dueDay = account.dueDay || 10;
 
         // Se a transação for em fim de semana ou feriado, usa o próximo dia útil como referência
         const referenceDate = this.getNextBusinessDay(paymentDate);
