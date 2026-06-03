@@ -1166,4 +1166,16 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$count $_temp0 • $xp XP';
   }
+
+  @override
+  String get registerReceiving => 'Register Receiving';
+
+  @override
+  String get registerPayment => 'Register Payment';
+
+  @override
+  String get transferDone => 'Transfer Done';
+
+  @override
+  String get returnToPending => 'Return to Pending';
 }

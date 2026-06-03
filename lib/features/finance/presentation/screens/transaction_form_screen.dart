@@ -104,25 +104,68 @@ class TransactionFormScreen extends StatelessWidget {
         submitLabel: l10n.saveButton,
         submitEnabled: (state) => state.status != InstallmentStatus.settled,
         extraActions: [
-          if (updateInstallment && !installment!.isInvoice)
-            OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.error,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: BorderSide(color: AppColors.error),
-                ),
-              ),
-              onPressed:
-                  (installment?.status == InstallmentStatus.settled ||
-                      installment?.status == InstallmentStatus.removed)
-                  ? null
-                  : () => _confirmDelete(context, provider),
-              child: Row(
-                spacing: 8,
-                children: [Icon(Icons.delete_outline), Text(l10n.deleteButton)],
-              ),
-            ),
+          Consumer(
+            builder: (context, ref, _) {
+              final state = ref.watch(provider);
+              final notifier = ref.watch(provider.notifier);
+
+              return Row(
+                spacing: 16,
+                children: [
+                  if (!state.creation &&
+                      state.status != InstallmentStatus.settled &&
+                      !state.isInvoice)
+                    IconButton(
+                      onPressed: () {
+                        showMenu(
+                          context: context,
+                          items: [
+                            if (state.status == InstallmentStatus.paid)
+                              PopupMenuItem(
+                                onTap: () => notifier.updateStatus(
+                                  InstallmentStatus.pending,
+                                ),
+                                child: Row(
+                                  spacing: 8,
+                                  children: [
+                                    Icon(Icons.undo),
+                                    Text(l10n.returnToPending),
+                                  ],
+                                ),
+                              ),
+                            PopupMenuItem(
+                              onTap: () => _confirmDelete(context, provider),
+                              child: Row(
+                                spacing: 8,
+                                children: [
+                                  Icon(Icons.delete_outline),
+                                  Text(l10n.deleteButton),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      icon: Icon(Icons.more_vert),
+                    ),
+                  if (!state.creation &&
+                      state.status == InstallmentStatus.pending)
+                    OutlinedButton(
+                      onPressed: () {
+                        notifier.updateStatus(InstallmentStatus.paid);
+                      },
+                      child: Text(
+                        state.type == OrderType.income
+                            ? l10n.registerReceiving
+                            : state.type == OrderType.expense
+                            ? l10n.registerPayment
+                            : l10n.transferDone,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           Spacer(),
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -195,12 +238,6 @@ class TransactionFormScreen extends StatelessWidget {
           final isSettled = state.status == InstallmentStatus.settled;
 
           final showAccounts = true;
-          final showBasicFields =
-              !state.creation ||
-              (state.type == OrderType.transfer
-                  ? state.accountIdSource != null &&
-                        state.accountIdTarget != null
-                  : state.accountIdSource != null && state.category != null);
 
           return [
             ChipFormField<OrderType>(
@@ -271,7 +308,8 @@ class TransactionFormScreen extends StatelessWidget {
                     ? notifier.updateAccountIdSource
                     : null,
                 validator: isPending ? null : v.all([v.notEmpty()]),
-                autoOpen: state.creation && state.status == InstallmentStatus.paid,
+                autoOpen:
+                    state.creation && state.status == InstallmentStatus.paid,
               ),
               if (state.type == OrderType.transfer) ...[
                 AccountFormField(
@@ -287,11 +325,14 @@ class TransactionFormScreen extends StatelessWidget {
                       ? notifier.updateAccountIdTarget
                       : null,
                   validator: v.all([v.notEmpty()]),
-                  autoOpen: state.creation && state.accountIdSource != null && state.type == OrderType.transfer,
+                  autoOpen:
+                      state.creation &&
+                      state.accountIdSource != null &&
+                      state.type == OrderType.transfer,
                 ),
               ],
             ],
-            if (showBasicFields) ..._buildBasicFields(context, state, notifier),
+            ..._buildBasicFields(context, state, notifier),
           ];
         },
       ),
@@ -475,7 +516,7 @@ class TransactionFormScreen extends StatelessWidget {
                   label: l10n.transactionStatusSettled,
                 ),
             ],
-      onChanged: !isSettled
+      onChanged: state.creation
           ? (v) {
               if (v != null) {
                 notifier.updateStatus(v);

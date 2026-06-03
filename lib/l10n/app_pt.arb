@@ -458,5 +458,9 @@
   "periodFilterYear": "Ano",
   "periodFilterCustom": "Customizado",
   "periodFilterTitle": "Selecionar Período",
-  "completedMissionsSummary": "{count} {count, plural, =1{item} other{itens}} • {xp} XP"
+  "completedMissionsSummary": "{count} {count, plural, =1{item} other{itens}} • {xp} XP",
+  "registerReceiving": "Registrar Recebimento",
+  "registerPayment": "Registrar Pagamento",
+  "transferDone": "Transferência feita",
+  "returnToPending": "Retornar para Pendente"
 }

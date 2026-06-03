@@ -393,5 +393,9 @@
   "periodFilterSemester": "Semester",
   "periodFilterYear": "Year",
   "periodFilterCustom": "Custom",
-  "periodFilterTitle": "Select Period"
+  "periodFilterTitle": "Select Period",
+  "registerReceiving": "Register Receiving",
+  "registerPayment": "Register Payment",
+  "transferDone": "Transfer Done",
+  "returnToPending": "Return to Pending"
 }

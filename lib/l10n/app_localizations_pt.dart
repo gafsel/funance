@@ -1173,4 +1173,16 @@ class AppLocalizationsPt extends AppLocalizations {
     );
     return '$count $_temp0 • $xp XP';
   }
+
+  @override
+  String get registerReceiving => 'Registrar Recebimento';
+
+  @override
+  String get registerPayment => 'Registrar Pagamento';
+
+  @override
+  String get transferDone => 'Transferência feita';
+
+  @override
+  String get returnToPending => 'Retornar para Pendente';
 }

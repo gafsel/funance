@@ -2179,6 +2179,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{count} {count, plural, =1{item} other{itens}} • {xp} XP'**
   String completedMissionsSummary(num count, Object xp);
+
+  /// No description provided for @registerReceiving.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registrar Recebimento'**
+  String get registerReceiving;
+
+  /// No description provided for @registerPayment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registrar Pagamento'**
+  String get registerPayment;
+
+  /// No description provided for @transferDone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transferência feita'**
+  String get transferDone;
+
+  /// No description provided for @returnToPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Retornar para Pendente'**
+  String get returnToPending;
 }
 
 class _AppLocalizationsDelegate
