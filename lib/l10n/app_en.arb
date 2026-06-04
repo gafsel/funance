@@ -397,8 +397,14 @@
   "periodFilterYear": "Year",
   "periodFilterCustom": "Custom",
   "periodFilterTitle": "Select Period",
-  "registerReceiving": "Register Receiving",
-  "registerPayment": "Register Payment",
-  "transferDone": "Transfer Done",
-  "returnToPending": "Return to Pending"
+  "registerEffectivation": "Mark as realized",
+  "returnToPending": "Return to Pending",
+  "partyHpLabel": "Party Health",
+  "partyStatusHealthy": "Party Safe",
+  "partyStatusStrained": "Party in Danger",
+  "partyStatusDefeated": "Party Defeated",
+  "partyTeamTitle": "Team",
+  "planned": "Planned",
+  "actual": "Actual",
+  "excess": "Excess"
 }

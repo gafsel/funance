@@ -902,10 +902,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _TransactionWizardArgs():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -964,10 +961,7 @@ return $default(_that.type,_that.skipTransactions);case _:
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionWizardArgs():
-return $default(_that.type,_that.skipTransactions);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.type,_that.skipTransactions);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1189,10 +1183,7 @@ return $default(_that);case _:
 final _that = this;
 switch (_that) {
 case _TransactionWizardState():
-return $default(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -1251,10 +1242,7 @@ return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_tha
 @optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionWizardState():
-return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///

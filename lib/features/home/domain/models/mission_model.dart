@@ -16,6 +16,10 @@ sealed class MissionModel with _$MissionModel {
     required double currentXp,
     required DateTime startDate,
     required DateTime endDate,
+    @Default(PartyStatus.healthy) PartyStatus partyStatus,
+    @Default(1.0) double partyHp,
+    @Default(0.0) double totalPlannedAmount,
+    @Default(0.0) double totalActualAmount,
   }) = _MissionModel;
 
   const MissionModel._();
@@ -44,5 +48,19 @@ sealed class PlanningMission with _$PlanningMission {
     required double progress,
     required bool isAdherent,
     required double earnedXp,
+    @Default(1.0) double hp,
+    @Default(ChallengeStatus.stable) ChallengeStatus status,
   }) = _PlanningMission;
+}
+
+enum ChallengeStatus {
+  stable, // Verde, feliz
+  warning, // Amarelo, preocupado
+  critical, // Vermelho, morto
+}
+
+enum PartyStatus {
+  healthy, // Todos bem
+  strained, // Alguns em perigo
+  defeated, // Muitos mortos
 }

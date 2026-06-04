@@ -457,6 +457,14 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get hpLabel => 'HP';
+
+  @override
+  String overBudgetAmount(String amount) {
+    return 'Excesso: $amount';
+  }
+
+  @override
   String get homeWhereIsMoney => 'Where is the money?';
 
   @override
@@ -1177,14 +1185,32 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get registerReceiving => 'Register Receiving';
-
-  @override
-  String get registerPayment => 'Register Payment';
-
-  @override
-  String get transferDone => 'Transfer Done';
+  String get registerEffectivation => 'Mark as realized';
 
   @override
   String get returnToPending => 'Return to Pending';
+
+  @override
+  String get partyHpLabel => 'Party Health';
+
+  @override
+  String get partyStatusHealthy => 'Party Safe';
+
+  @override
+  String get partyStatusStrained => 'Party in Danger';
+
+  @override
+  String get partyStatusDefeated => 'Party Defeated';
+
+  @override
+  String get partyTeamTitle => 'Team';
+
+  @override
+  String get planned => 'Planned';
+
+  @override
+  String get actual => 'Actual';
+
+  @override
+  String get excess => 'Excess';
 }

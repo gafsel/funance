@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MissionModel {
 
- List<InstallmentMission> get pendingInstallments; List<InstallmentMission> get completedInstallments; List<InstallmentMission> get overdueInstallments; List<PlanningMission> get planningMissions; double get totalXp; double get currentXp; DateTime get startDate; DateTime get endDate;
+ List<InstallmentMission> get pendingInstallments; List<InstallmentMission> get completedInstallments; List<InstallmentMission> get overdueInstallments; List<PlanningMission> get planningMissions; double get totalXp; double get currentXp; DateTime get startDate; DateTime get endDate; PartyStatus get partyStatus; double get partyHp; double get totalPlannedAmount; double get totalActualAmount;
 /// Create a copy of MissionModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $MissionModelCopyWith<MissionModel> get copyWith => _$MissionModelCopyWithImpl<M
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MissionModel&&const DeepCollectionEquality().equals(other.pendingInstallments, pendingInstallments)&&const DeepCollectionEquality().equals(other.completedInstallments, completedInstallments)&&const DeepCollectionEquality().equals(other.overdueInstallments, overdueInstallments)&&const DeepCollectionEquality().equals(other.planningMissions, planningMissions)&&(identical(other.totalXp, totalXp) || other.totalXp == totalXp)&&(identical(other.currentXp, currentXp) || other.currentXp == currentXp)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MissionModel&&const DeepCollectionEquality().equals(other.pendingInstallments, pendingInstallments)&&const DeepCollectionEquality().equals(other.completedInstallments, completedInstallments)&&const DeepCollectionEquality().equals(other.overdueInstallments, overdueInstallments)&&const DeepCollectionEquality().equals(other.planningMissions, planningMissions)&&(identical(other.totalXp, totalXp) || other.totalXp == totalXp)&&(identical(other.currentXp, currentXp) || other.currentXp == currentXp)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.partyStatus, partyStatus) || other.partyStatus == partyStatus)&&(identical(other.partyHp, partyHp) || other.partyHp == partyHp)&&(identical(other.totalPlannedAmount, totalPlannedAmount) || other.totalPlannedAmount == totalPlannedAmount)&&(identical(other.totalActualAmount, totalActualAmount) || other.totalActualAmount == totalActualAmount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(pendingInstallments),const DeepCollectionEquality().hash(completedInstallments),const DeepCollectionEquality().hash(overdueInstallments),const DeepCollectionEquality().hash(planningMissions),totalXp,currentXp,startDate,endDate);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(pendingInstallments),const DeepCollectionEquality().hash(completedInstallments),const DeepCollectionEquality().hash(overdueInstallments),const DeepCollectionEquality().hash(planningMissions),totalXp,currentXp,startDate,endDate,partyStatus,partyHp,totalPlannedAmount,totalActualAmount);
 
 @override
 String toString() {
-  return 'MissionModel(pendingInstallments: $pendingInstallments, completedInstallments: $completedInstallments, overdueInstallments: $overdueInstallments, planningMissions: $planningMissions, totalXp: $totalXp, currentXp: $currentXp, startDate: $startDate, endDate: $endDate)';
+  return 'MissionModel(pendingInstallments: $pendingInstallments, completedInstallments: $completedInstallments, overdueInstallments: $overdueInstallments, planningMissions: $planningMissions, totalXp: $totalXp, currentXp: $currentXp, startDate: $startDate, endDate: $endDate, partyStatus: $partyStatus, partyHp: $partyHp, totalPlannedAmount: $totalPlannedAmount, totalActualAmount: $totalActualAmount)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $MissionModelCopyWith<$Res>  {
   factory $MissionModelCopyWith(MissionModel value, $Res Function(MissionModel) _then) = _$MissionModelCopyWithImpl;
 @useResult
 $Res call({
- List<InstallmentMission> pendingInstallments, List<InstallmentMission> completedInstallments, List<InstallmentMission> overdueInstallments, List<PlanningMission> planningMissions, double totalXp, double currentXp, DateTime startDate, DateTime endDate
+ List<InstallmentMission> pendingInstallments, List<InstallmentMission> completedInstallments, List<InstallmentMission> overdueInstallments, List<PlanningMission> planningMissions, double totalXp, double currentXp, DateTime startDate, DateTime endDate, PartyStatus partyStatus, double partyHp, double totalPlannedAmount, double totalActualAmount
 });
 
 
@@ -62,7 +62,7 @@ class _$MissionModelCopyWithImpl<$Res>
 
 /// Create a copy of MissionModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? pendingInstallments = null,Object? completedInstallments = null,Object? overdueInstallments = null,Object? planningMissions = null,Object? totalXp = null,Object? currentXp = null,Object? startDate = null,Object? endDate = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? pendingInstallments = null,Object? completedInstallments = null,Object? overdueInstallments = null,Object? planningMissions = null,Object? totalXp = null,Object? currentXp = null,Object? startDate = null,Object? endDate = null,Object? partyStatus = null,Object? partyHp = null,Object? totalPlannedAmount = null,Object? totalActualAmount = null,}) {
   return _then(_self.copyWith(
 pendingInstallments: null == pendingInstallments ? _self.pendingInstallments : pendingInstallments // ignore: cast_nullable_to_non_nullable
 as List<InstallmentMission>,completedInstallments: null == completedInstallments ? _self.completedInstallments : completedInstallments // ignore: cast_nullable_to_non_nullable
@@ -72,7 +72,11 @@ as List<PlanningMission>,totalXp: null == totalXp ? _self.totalXp : totalXp // i
 as double,currentXp: null == currentXp ? _self.currentXp : currentXp // ignore: cast_nullable_to_non_nullable
 as double,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as DateTime,endDate: null == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,partyStatus: null == partyStatus ? _self.partyStatus : partyStatus // ignore: cast_nullable_to_non_nullable
+as PartyStatus,partyHp: null == partyHp ? _self.partyHp : partyHp // ignore: cast_nullable_to_non_nullable
+as double,totalPlannedAmount: null == totalPlannedAmount ? _self.totalPlannedAmount : totalPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,totalActualAmount: null == totalActualAmount ? _self.totalActualAmount : totalActualAmount // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -154,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<InstallmentMission> pendingInstallments,  List<InstallmentMission> completedInstallments,  List<InstallmentMission> overdueInstallments,  List<PlanningMission> planningMissions,  double totalXp,  double currentXp,  DateTime startDate,  DateTime endDate)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<InstallmentMission> pendingInstallments,  List<InstallmentMission> completedInstallments,  List<InstallmentMission> overdueInstallments,  List<PlanningMission> planningMissions,  double totalXp,  double currentXp,  DateTime startDate,  DateTime endDate,  PartyStatus partyStatus,  double partyHp,  double totalPlannedAmount,  double totalActualAmount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MissionModel() when $default != null:
-return $default(_that.pendingInstallments,_that.completedInstallments,_that.overdueInstallments,_that.planningMissions,_that.totalXp,_that.currentXp,_that.startDate,_that.endDate);case _:
+return $default(_that.pendingInstallments,_that.completedInstallments,_that.overdueInstallments,_that.planningMissions,_that.totalXp,_that.currentXp,_that.startDate,_that.endDate,_that.partyStatus,_that.partyHp,_that.totalPlannedAmount,_that.totalActualAmount);case _:
   return orElse();
 
 }
@@ -175,10 +179,10 @@ return $default(_that.pendingInstallments,_that.completedInstallments,_that.over
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<InstallmentMission> pendingInstallments,  List<InstallmentMission> completedInstallments,  List<InstallmentMission> overdueInstallments,  List<PlanningMission> planningMissions,  double totalXp,  double currentXp,  DateTime startDate,  DateTime endDate)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<InstallmentMission> pendingInstallments,  List<InstallmentMission> completedInstallments,  List<InstallmentMission> overdueInstallments,  List<PlanningMission> planningMissions,  double totalXp,  double currentXp,  DateTime startDate,  DateTime endDate,  PartyStatus partyStatus,  double partyHp,  double totalPlannedAmount,  double totalActualAmount)  $default,) {final _that = this;
 switch (_that) {
 case _MissionModel():
-return $default(_that.pendingInstallments,_that.completedInstallments,_that.overdueInstallments,_that.planningMissions,_that.totalXp,_that.currentXp,_that.startDate,_that.endDate);}
+return $default(_that.pendingInstallments,_that.completedInstallments,_that.overdueInstallments,_that.planningMissions,_that.totalXp,_that.currentXp,_that.startDate,_that.endDate,_that.partyStatus,_that.partyHp,_that.totalPlannedAmount,_that.totalActualAmount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -192,10 +196,10 @@ return $default(_that.pendingInstallments,_that.completedInstallments,_that.over
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<InstallmentMission> pendingInstallments,  List<InstallmentMission> completedInstallments,  List<InstallmentMission> overdueInstallments,  List<PlanningMission> planningMissions,  double totalXp,  double currentXp,  DateTime startDate,  DateTime endDate)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<InstallmentMission> pendingInstallments,  List<InstallmentMission> completedInstallments,  List<InstallmentMission> overdueInstallments,  List<PlanningMission> planningMissions,  double totalXp,  double currentXp,  DateTime startDate,  DateTime endDate,  PartyStatus partyStatus,  double partyHp,  double totalPlannedAmount,  double totalActualAmount)?  $default,) {final _that = this;
 switch (_that) {
 case _MissionModel() when $default != null:
-return $default(_that.pendingInstallments,_that.completedInstallments,_that.overdueInstallments,_that.planningMissions,_that.totalXp,_that.currentXp,_that.startDate,_that.endDate);case _:
+return $default(_that.pendingInstallments,_that.completedInstallments,_that.overdueInstallments,_that.planningMissions,_that.totalXp,_that.currentXp,_that.startDate,_that.endDate,_that.partyStatus,_that.partyHp,_that.totalPlannedAmount,_that.totalActualAmount);case _:
   return null;
 
 }
@@ -207,7 +211,7 @@ return $default(_that.pendingInstallments,_that.completedInstallments,_that.over
 
 
 class _MissionModel extends MissionModel {
-  const _MissionModel({required final  List<InstallmentMission> pendingInstallments, required final  List<InstallmentMission> completedInstallments, required final  List<InstallmentMission> overdueInstallments, required final  List<PlanningMission> planningMissions, required this.totalXp, required this.currentXp, required this.startDate, required this.endDate}): _pendingInstallments = pendingInstallments,_completedInstallments = completedInstallments,_overdueInstallments = overdueInstallments,_planningMissions = planningMissions,super._();
+  const _MissionModel({required final  List<InstallmentMission> pendingInstallments, required final  List<InstallmentMission> completedInstallments, required final  List<InstallmentMission> overdueInstallments, required final  List<PlanningMission> planningMissions, required this.totalXp, required this.currentXp, required this.startDate, required this.endDate, this.partyStatus = PartyStatus.healthy, this.partyHp = 1.0, this.totalPlannedAmount = 0.0, this.totalActualAmount = 0.0}): _pendingInstallments = pendingInstallments,_completedInstallments = completedInstallments,_overdueInstallments = overdueInstallments,_planningMissions = planningMissions,super._();
   
 
  final  List<InstallmentMission> _pendingInstallments;
@@ -242,6 +246,10 @@ class _MissionModel extends MissionModel {
 @override final  double currentXp;
 @override final  DateTime startDate;
 @override final  DateTime endDate;
+@override@JsonKey() final  PartyStatus partyStatus;
+@override@JsonKey() final  double partyHp;
+@override@JsonKey() final  double totalPlannedAmount;
+@override@JsonKey() final  double totalActualAmount;
 
 /// Create a copy of MissionModel
 /// with the given fields replaced by the non-null parameter values.
@@ -253,16 +261,16 @@ _$MissionModelCopyWith<_MissionModel> get copyWith => __$MissionModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MissionModel&&const DeepCollectionEquality().equals(other._pendingInstallments, _pendingInstallments)&&const DeepCollectionEquality().equals(other._completedInstallments, _completedInstallments)&&const DeepCollectionEquality().equals(other._overdueInstallments, _overdueInstallments)&&const DeepCollectionEquality().equals(other._planningMissions, _planningMissions)&&(identical(other.totalXp, totalXp) || other.totalXp == totalXp)&&(identical(other.currentXp, currentXp) || other.currentXp == currentXp)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MissionModel&&const DeepCollectionEquality().equals(other._pendingInstallments, _pendingInstallments)&&const DeepCollectionEquality().equals(other._completedInstallments, _completedInstallments)&&const DeepCollectionEquality().equals(other._overdueInstallments, _overdueInstallments)&&const DeepCollectionEquality().equals(other._planningMissions, _planningMissions)&&(identical(other.totalXp, totalXp) || other.totalXp == totalXp)&&(identical(other.currentXp, currentXp) || other.currentXp == currentXp)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.partyStatus, partyStatus) || other.partyStatus == partyStatus)&&(identical(other.partyHp, partyHp) || other.partyHp == partyHp)&&(identical(other.totalPlannedAmount, totalPlannedAmount) || other.totalPlannedAmount == totalPlannedAmount)&&(identical(other.totalActualAmount, totalActualAmount) || other.totalActualAmount == totalActualAmount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_pendingInstallments),const DeepCollectionEquality().hash(_completedInstallments),const DeepCollectionEquality().hash(_overdueInstallments),const DeepCollectionEquality().hash(_planningMissions),totalXp,currentXp,startDate,endDate);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_pendingInstallments),const DeepCollectionEquality().hash(_completedInstallments),const DeepCollectionEquality().hash(_overdueInstallments),const DeepCollectionEquality().hash(_planningMissions),totalXp,currentXp,startDate,endDate,partyStatus,partyHp,totalPlannedAmount,totalActualAmount);
 
 @override
 String toString() {
-  return 'MissionModel(pendingInstallments: $pendingInstallments, completedInstallments: $completedInstallments, overdueInstallments: $overdueInstallments, planningMissions: $planningMissions, totalXp: $totalXp, currentXp: $currentXp, startDate: $startDate, endDate: $endDate)';
+  return 'MissionModel(pendingInstallments: $pendingInstallments, completedInstallments: $completedInstallments, overdueInstallments: $overdueInstallments, planningMissions: $planningMissions, totalXp: $totalXp, currentXp: $currentXp, startDate: $startDate, endDate: $endDate, partyStatus: $partyStatus, partyHp: $partyHp, totalPlannedAmount: $totalPlannedAmount, totalActualAmount: $totalActualAmount)';
 }
 
 
@@ -273,7 +281,7 @@ abstract mixin class _$MissionModelCopyWith<$Res> implements $MissionModelCopyWi
   factory _$MissionModelCopyWith(_MissionModel value, $Res Function(_MissionModel) _then) = __$MissionModelCopyWithImpl;
 @override @useResult
 $Res call({
- List<InstallmentMission> pendingInstallments, List<InstallmentMission> completedInstallments, List<InstallmentMission> overdueInstallments, List<PlanningMission> planningMissions, double totalXp, double currentXp, DateTime startDate, DateTime endDate
+ List<InstallmentMission> pendingInstallments, List<InstallmentMission> completedInstallments, List<InstallmentMission> overdueInstallments, List<PlanningMission> planningMissions, double totalXp, double currentXp, DateTime startDate, DateTime endDate, PartyStatus partyStatus, double partyHp, double totalPlannedAmount, double totalActualAmount
 });
 
 
@@ -290,7 +298,7 @@ class __$MissionModelCopyWithImpl<$Res>
 
 /// Create a copy of MissionModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? pendingInstallments = null,Object? completedInstallments = null,Object? overdueInstallments = null,Object? planningMissions = null,Object? totalXp = null,Object? currentXp = null,Object? startDate = null,Object? endDate = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? pendingInstallments = null,Object? completedInstallments = null,Object? overdueInstallments = null,Object? planningMissions = null,Object? totalXp = null,Object? currentXp = null,Object? startDate = null,Object? endDate = null,Object? partyStatus = null,Object? partyHp = null,Object? totalPlannedAmount = null,Object? totalActualAmount = null,}) {
   return _then(_MissionModel(
 pendingInstallments: null == pendingInstallments ? _self._pendingInstallments : pendingInstallments // ignore: cast_nullable_to_non_nullable
 as List<InstallmentMission>,completedInstallments: null == completedInstallments ? _self._completedInstallments : completedInstallments // ignore: cast_nullable_to_non_nullable
@@ -300,7 +308,11 @@ as List<PlanningMission>,totalXp: null == totalXp ? _self.totalXp : totalXp // i
 as double,currentXp: null == currentXp ? _self.currentXp : currentXp // ignore: cast_nullable_to_non_nullable
 as double,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as DateTime,endDate: null == endDate ? _self.endDate : endDate // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,partyStatus: null == partyStatus ? _self.partyStatus : partyStatus // ignore: cast_nullable_to_non_nullable
+as PartyStatus,partyHp: null == partyHp ? _self.partyHp : partyHp // ignore: cast_nullable_to_non_nullable
+as double,totalPlannedAmount: null == totalPlannedAmount ? _self.totalPlannedAmount : totalPlannedAmount // ignore: cast_nullable_to_non_nullable
+as double,totalActualAmount: null == totalActualAmount ? _self.totalActualAmount : totalActualAmount // ignore: cast_nullable_to_non_nullable
+as double,
   ));
 }
 
@@ -588,7 +600,7 @@ $InstallmentModelCopyWith<$Res> get installment {
 /// @nodoc
 mixin _$PlanningMission {
 
- CategoryModel get category; PeriodSummaryCategoryModel get summary; double get weeklyPlannedAmount; double get weeklyActualAmount; double get xpValue; double get progress; bool get isAdherent; double get earnedXp;
+ CategoryModel get category; PeriodSummaryCategoryModel get summary; double get weeklyPlannedAmount; double get weeklyActualAmount; double get xpValue; double get progress; bool get isAdherent; double get earnedXp; double get hp; ChallengeStatus get status;
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -599,16 +611,16 @@ $PlanningMissionCopyWith<PlanningMission> get copyWith => _$PlanningMissionCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanningMission&&(identical(other.category, category) || other.category == category)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanningMission&&(identical(other.category, category) || other.category == category)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp)&&(identical(other.hp, hp) || other.hp == hp)&&(identical(other.status, status) || other.status == status));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,category,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp);
+int get hashCode => Object.hash(runtimeType,category,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp,hp,status);
 
 @override
 String toString() {
-  return 'PlanningMission(category: $category, summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp)';
+  return 'PlanningMission(category: $category, summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp, hp: $hp, status: $status)';
 }
 
 
@@ -619,7 +631,7 @@ abstract mixin class $PlanningMissionCopyWith<$Res>  {
   factory $PlanningMissionCopyWith(PlanningMission value, $Res Function(PlanningMission) _then) = _$PlanningMissionCopyWithImpl;
 @useResult
 $Res call({
- CategoryModel category, PeriodSummaryCategoryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp
+ CategoryModel category, PeriodSummaryCategoryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp, double hp, ChallengeStatus status
 });
 
 
@@ -636,7 +648,7 @@ class _$PlanningMissionCopyWithImpl<$Res>
 
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? category = null,Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? category = null,Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,Object? hp = null,Object? status = null,}) {
   return _then(_self.copyWith(
 category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
@@ -646,7 +658,9 @@ as double,xpValue: null == xpValue ? _self.xpValue : xpValue // ignore: cast_nul
 as double,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as double,isAdherent: null == isAdherent ? _self.isAdherent : isAdherent // ignore: cast_nullable_to_non_nullable
 as bool,earnedXp: null == earnedXp ? _self.earnedXp : earnedXp // ignore: cast_nullable_to_non_nullable
-as double,
+as double,hp: null == hp ? _self.hp : hp // ignore: cast_nullable_to_non_nullable
+as double,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as ChallengeStatus,
   ));
 }
 /// Create a copy of PlanningMission
@@ -746,10 +760,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp,  double hp,  ChallengeStatus status)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlanningMission() when $default != null:
-return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);case _:
+return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp,_that.hp,_that.status);case _:
   return orElse();
 
 }
@@ -767,10 +781,10 @@ return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.wee
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp,  double hp,  ChallengeStatus status)  $default,) {final _that = this;
 switch (_that) {
 case _PlanningMission():
-return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);}
+return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp,_that.hp,_that.status);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -784,10 +798,10 @@ return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.wee
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryModel category,  PeriodSummaryCategoryModel summary,  double weeklyPlannedAmount,  double weeklyActualAmount,  double xpValue,  double progress,  bool isAdherent,  double earnedXp,  double hp,  ChallengeStatus status)?  $default,) {final _that = this;
 switch (_that) {
 case _PlanningMission() when $default != null:
-return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp);case _:
+return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.weeklyActualAmount,_that.xpValue,_that.progress,_that.isAdherent,_that.earnedXp,_that.hp,_that.status);case _:
   return null;
 
 }
@@ -799,7 +813,7 @@ return $default(_that.category,_that.summary,_that.weeklyPlannedAmount,_that.wee
 
 
 class _PlanningMission implements PlanningMission {
-  const _PlanningMission({required this.category, required this.summary, required this.weeklyPlannedAmount, required this.weeklyActualAmount, required this.xpValue, required this.progress, required this.isAdherent, required this.earnedXp});
+  const _PlanningMission({required this.category, required this.summary, required this.weeklyPlannedAmount, required this.weeklyActualAmount, required this.xpValue, required this.progress, required this.isAdherent, required this.earnedXp, this.hp = 1.0, this.status = ChallengeStatus.stable});
   
 
 @override final  CategoryModel category;
@@ -810,6 +824,8 @@ class _PlanningMission implements PlanningMission {
 @override final  double progress;
 @override final  bool isAdherent;
 @override final  double earnedXp;
+@override@JsonKey() final  double hp;
+@override@JsonKey() final  ChallengeStatus status;
 
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
@@ -821,16 +837,16 @@ _$PlanningMissionCopyWith<_PlanningMission> get copyWith => __$PlanningMissionCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanningMission&&(identical(other.category, category) || other.category == category)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanningMission&&(identical(other.category, category) || other.category == category)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.weeklyPlannedAmount, weeklyPlannedAmount) || other.weeklyPlannedAmount == weeklyPlannedAmount)&&(identical(other.weeklyActualAmount, weeklyActualAmount) || other.weeklyActualAmount == weeklyActualAmount)&&(identical(other.xpValue, xpValue) || other.xpValue == xpValue)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.isAdherent, isAdherent) || other.isAdherent == isAdherent)&&(identical(other.earnedXp, earnedXp) || other.earnedXp == earnedXp)&&(identical(other.hp, hp) || other.hp == hp)&&(identical(other.status, status) || other.status == status));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,category,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp);
+int get hashCode => Object.hash(runtimeType,category,summary,weeklyPlannedAmount,weeklyActualAmount,xpValue,progress,isAdherent,earnedXp,hp,status);
 
 @override
 String toString() {
-  return 'PlanningMission(category: $category, summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp)';
+  return 'PlanningMission(category: $category, summary: $summary, weeklyPlannedAmount: $weeklyPlannedAmount, weeklyActualAmount: $weeklyActualAmount, xpValue: $xpValue, progress: $progress, isAdherent: $isAdherent, earnedXp: $earnedXp, hp: $hp, status: $status)';
 }
 
 
@@ -841,7 +857,7 @@ abstract mixin class _$PlanningMissionCopyWith<$Res> implements $PlanningMission
   factory _$PlanningMissionCopyWith(_PlanningMission value, $Res Function(_PlanningMission) _then) = __$PlanningMissionCopyWithImpl;
 @override @useResult
 $Res call({
- CategoryModel category, PeriodSummaryCategoryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp
+ CategoryModel category, PeriodSummaryCategoryModel summary, double weeklyPlannedAmount, double weeklyActualAmount, double xpValue, double progress, bool isAdherent, double earnedXp, double hp, ChallengeStatus status
 });
 
 
@@ -858,7 +874,7 @@ class __$PlanningMissionCopyWithImpl<$Res>
 
 /// Create a copy of PlanningMission
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? category = null,Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? category = null,Object? summary = null,Object? weeklyPlannedAmount = null,Object? weeklyActualAmount = null,Object? xpValue = null,Object? progress = null,Object? isAdherent = null,Object? earnedXp = null,Object? hp = null,Object? status = null,}) {
   return _then(_PlanningMission(
 category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel,summary: null == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
@@ -868,7 +884,9 @@ as double,xpValue: null == xpValue ? _self.xpValue : xpValue // ignore: cast_nul
 as double,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
 as double,isAdherent: null == isAdherent ? _self.isAdherent : isAdherent // ignore: cast_nullable_to_non_nullable
 as bool,earnedXp: null == earnedXp ? _self.earnedXp : earnedXp // ignore: cast_nullable_to_non_nullable
-as double,
+as double,hp: null == hp ? _self.hp : hp // ignore: cast_nullable_to_non_nullable
+as double,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as ChallengeStatus,
   ));
 }
 

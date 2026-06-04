@@ -878,6 +878,18 @@ abstract class AppLocalizations {
   /// **'{spent} de {limit}'**
   String spentOfWeeklyPlanning(String spent, String limit);
 
+  /// No description provided for @hpLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'HP'**
+  String get hpLabel;
+
+  /// No description provided for @overBudgetAmount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excesso: {amount}'**
+  String overBudgetAmount(String amount);
+
   /// No description provided for @homeWhereIsMoney.
   ///
   /// In pt, this message translates to:
@@ -2198,29 +2210,65 @@ abstract class AppLocalizations {
   /// **'{count} {count, plural, =1{item} other{itens}} • {xp} XP'**
   String completedMissionsSummary(num count, Object xp);
 
-  /// No description provided for @registerReceiving.
+  /// No description provided for @registerEffectivation.
   ///
   /// In pt, this message translates to:
-  /// **'Registrar Recebimento'**
-  String get registerReceiving;
-
-  /// No description provided for @registerPayment.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar Pagamento'**
-  String get registerPayment;
-
-  /// No description provided for @transferDone.
-  ///
-  /// In pt, this message translates to:
-  /// **'Transferência feita'**
-  String get transferDone;
+  /// **'Marcar como realizado'**
+  String get registerEffectivation;
 
   /// No description provided for @returnToPending.
   ///
   /// In pt, this message translates to:
   /// **'Retornar para Pendente'**
   String get returnToPending;
+
+  /// No description provided for @partyHpLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saúde da Equipe'**
+  String get partyHpLabel;
+
+  /// No description provided for @partyStatusHealthy.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equipe em Segurança'**
+  String get partyStatusHealthy;
+
+  /// No description provided for @partyStatusStrained.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equipe em Perigo'**
+  String get partyStatusStrained;
+
+  /// No description provided for @partyStatusDefeated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equipe Derrotada'**
+  String get partyStatusDefeated;
+
+  /// No description provided for @partyTeamTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equipe'**
+  String get partyTeamTitle;
+
+  /// No description provided for @planned.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejado'**
+  String get planned;
+
+  /// No description provided for @actual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Realizado'**
+  String get actual;
+
+  /// No description provided for @excess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excesso'**
+  String get excess;
 }
 
 class _AppLocalizationsDelegate

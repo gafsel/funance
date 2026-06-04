@@ -100,6 +100,53 @@ class TransactionFormScreen extends StatelessWidget {
               ? l10n.historyEdit
               : l10n.transactionAddExpense,
         ),
+        actions: [
+          Consumer(
+            builder: (context, ref, _) {
+              final state = ref.watch(provider);
+              final notifier = ref.watch(provider.notifier);
+
+              if (!state.creation &&
+                  state.status != InstallmentStatus.settled &&
+                  !state.isInvoice) {
+                return PopupMenuButton(
+                  icon: Icon(Icons.more_vert),
+                  itemBuilder: (context) => [
+                    if (state.status == InstallmentStatus.paid)
+                      PopupMenuItem(
+                        onTap: () =>
+                            notifier.updateStatus(InstallmentStatus.pending),
+                        child: Row(
+                          spacing: 8,
+                          children: [
+                            Icon(Icons.undo, color: AppColors.deepTurquoise),
+                            Text(
+                              l10n.returnToPending,
+                              style: TextStyle(color: AppColors.deepTurquoise),
+                            ),
+                          ],
+                        ),
+                      ),
+                    PopupMenuItem(
+                      onTap: () => _confirmDelete(context, provider),
+                      child: Row(
+                        spacing: 8,
+                        children: [
+                          Icon(Icons.delete_outline, color: AppColors.error),
+                          Text(
+                            l10n.deleteButton,
+                            style: TextStyle(color: AppColors.error),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return SizedBox.shrink();
+            },
+          ),
+        ],
       ),
       body: ResponsiveForm<TransactionFormState, void, TransactionFormNotifier>(
         provider,
@@ -111,61 +158,17 @@ class TransactionFormScreen extends StatelessWidget {
               final state = ref.watch(provider);
               final notifier = ref.watch(provider.notifier);
 
-              return Row(
-                spacing: 16,
-                children: [
-                  if (!state.creation &&
-                      state.status != InstallmentStatus.settled &&
-                      !state.isInvoice)
-                    IconButton(
-                      onPressed: () {
-                        showMenu(
-                          context: context,
-                          items: [
-                            if (state.status == InstallmentStatus.paid)
-                              PopupMenuItem(
-                                onTap: () => notifier.updateStatus(
-                                  InstallmentStatus.pending,
-                                ),
-                                child: Row(
-                                  spacing: 8,
-                                  children: [
-                                    Icon(Icons.undo),
-                                    Text(l10n.returnToPending),
-                                  ],
-                                ),
-                              ),
-                            PopupMenuItem(
-                              onTap: () => _confirmDelete(context, provider),
-                              child: Row(
-                                spacing: 8,
-                                children: [
-                                  Icon(Icons.delete_outline),
-                                  Text(l10n.deleteButton),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                      icon: Icon(Icons.more_vert),
-                    ),
-                  if (!state.creation &&
-                      state.status == InstallmentStatus.pending)
-                    OutlinedButton(
-                      onPressed: () {
-                        notifier.updateStatus(InstallmentStatus.paid);
-                      },
-                      child: Text(
-                        state.type == OrderType.income
-                            ? l10n.registerReceiving
-                            : state.type == OrderType.expense
-                            ? l10n.registerPayment
-                            : l10n.transferDone,
-                      ),
-                    ),
-                ],
-              );
+              if (!state.creation &&
+                  state.status == InstallmentStatus.pending) {
+                return OutlinedButton(
+                  onPressed: () {
+                    notifier.updateStatus(InstallmentStatus.paid);
+                  },
+                  child: Text(l10n.registerEffectivation),
+                );
+              }
+
+              return SizedBox.shrink();
             },
           ),
           Spacer(),

@@ -460,6 +460,14 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get hpLabel => 'HP';
+
+  @override
+  String overBudgetAmount(String amount) {
+    return 'Excesso: $amount';
+  }
+
+  @override
   String get homeWhereIsMoney => 'Onde está o dinheiro?';
 
   @override
@@ -1184,14 +1192,32 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get registerReceiving => 'Registrar Recebimento';
-
-  @override
-  String get registerPayment => 'Registrar Pagamento';
-
-  @override
-  String get transferDone => 'Transferência feita';
+  String get registerEffectivation => 'Marcar como realizado';
 
   @override
   String get returnToPending => 'Retornar para Pendente';
+
+  @override
+  String get partyHpLabel => 'Saúde da Equipe';
+
+  @override
+  String get partyStatusHealthy => 'Equipe em Segurança';
+
+  @override
+  String get partyStatusStrained => 'Equipe em Perigo';
+
+  @override
+  String get partyStatusDefeated => 'Equipe Derrotada';
+
+  @override
+  String get partyTeamTitle => 'Equipe';
+
+  @override
+  String get planned => 'Planejado';
+
+  @override
+  String get actual => 'Realizado';
+
+  @override
+  String get excess => 'Excesso';
 }

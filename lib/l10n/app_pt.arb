@@ -221,6 +221,13 @@
       "limit": { "type": "String" }
     }
   },
+  "hpLabel": "HP",
+  "overBudgetAmount": "Excesso: {amount}",
+  "@overBudgetAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
   "homeWhereIsMoney": "Onde está o dinheiro?",
   "homeTotalSpent": "Total Gasto",
   "homeTotalBalance": "Saldo Total",
@@ -462,8 +469,14 @@
   "periodFilterCustom": "Customizado",
   "periodFilterTitle": "Selecionar Período",
   "completedMissionsSummary": "{count} {count, plural, =1{item} other{itens}} • {xp} XP",
-  "registerReceiving": "Registrar Recebimento",
-  "registerPayment": "Registrar Pagamento",
-  "transferDone": "Transferência feita",
-  "returnToPending": "Retornar para Pendente"
+  "registerEffectivation": "Marcar como realizado",
+  "returnToPending": "Retornar para Pendente",
+  "partyHpLabel": "Saúde da Equipe",
+  "partyStatusHealthy": "Equipe em Segurança",
+  "partyStatusStrained": "Equipe em Perigo",
+  "partyStatusDefeated": "Equipe Derrotada",
+  "partyTeamTitle": "Equipe",
+  "planned": "Planejado",
+  "actual": "Realizado",
+  "excess": "Excesso"
 }
