@@ -55,22 +55,22 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
 
     return Stack(
       children: [
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                left: 16.0,
-                right: 16.0,
-                top: 16.0,
-                bottom: 120.0,
-              ),
-              child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    missionAsync.when(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isLargeScreen = constraints.maxWidth > 1000;
+
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: isLargeScreen ? 1200 : 800),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(
+                    left: 16.0,
+                    right: 16.0,
+                    top: 16.0,
+                    bottom: 120.0,
+                  ),
+                  child: SafeArea(
+                    child: missionAsync.when(
                       data: (mission) {
                         if (mission.planningMissions.isEmpty &&
                             mission.pendingInstallments.isEmpty &&
@@ -81,26 +81,64 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
                         // Se cumpriu tudo (e havia algo a cumprir)
                         final allCompleted =
                             mission.planningMissions.every(
-                              (m) => m.progress >= 1 && m.isAdherent,
-                            ) &&
-                            mission.pendingInstallments.isEmpty &&
-                            mission.overdueInstallments.isEmpty;
+                                  (m) => m.progress >= 1 && m.isAdherent,
+                                ) &&
+                                mission.pendingInstallments.isEmpty &&
+                                mission.overdueInstallments.isEmpty;
 
+                        Widget content;
                         if (allCompleted &&
                             mission.planningMissions.isNotEmpty) {
-                          return Column(
+                          content = Column(
                             children: [
                               _buildEmptyState(context, isSuccess: true),
                               const SizedBox(height: 24),
                               _buildMissionContent(context, mission),
                             ],
                           );
+                        } else {
+                          content = _buildMissionContent(context, mission);
                         }
 
-                        return _buildMissionContent(context, mission);
+                        if (isLargeScreen) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: _buildWeeklyMissions(context, mission),
+                              ),
+                              const SizedBox(width: 32),
+                              Expanded(
+                                flex: 1,
+                                child: Column(
+                                  children: [
+                                    _buildTeamContent(context, mission),
+                                    const SizedBox(height: 32),
+                                    const Divider(),
+                                    const SizedBox(height: 32),
+                                    const AccountsView(),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 16),
+                            content,
+                            const SizedBox(height: 32),
+                            const AccountsView(),
+                          ],
+                        );
                       },
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
+                      loading: () => const Padding(
+                        padding: EdgeInsets.only(top: 32),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
                       error: (e, st) {
                         print(e.toString());
                         print(st.toString());
@@ -108,13 +146,11 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
                         return Center(child: Text(e.toString()));
                       },
                     ),
-                    const SizedBox(height: 32),
-                    const AccountsView(),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ),
+            );
+          },
         ),
         Align(
           alignment: Alignment.topCenter,
@@ -314,7 +350,7 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
     );
   }
 
-  Widget _buildMissionContent(BuildContext context, MissionModel mission) {
+  Widget _buildWeeklyMissions(BuildContext context, MissionModel mission) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
     final periodString = l10n.dateRange(
@@ -325,7 +361,6 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. Missões da Semana (XP + Installments)
         Row(
           spacing: 16,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -383,13 +418,18 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
         // Realizados (Expansível)
         if (mission.completedInstallments.isNotEmpty) ...[
           _buildCompletedSection(context, mission),
-          const SizedBox(height: 24),
         ],
+      ],
+    );
+  }
 
-        const Divider(),
-        const SizedBox(height: 24),
+  Widget _buildTeamContent(BuildContext context, MissionModel mission) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
 
-        // 2. Equipe (Party Status + Challenges)
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Text(
           l10n.partyTeamTitle,
           style: theme.textTheme.titleMedium?.copyWith(
@@ -397,7 +437,6 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
           ),
         ),
         const SizedBox(height: 12),
-
         if (mission.planningMissions.isNotEmpty) ...[
           _buildPartyStatusBar(context, mission),
           const SizedBox(height: 24),
@@ -419,6 +458,19 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
             },
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildMissionContent(BuildContext context, MissionModel mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildWeeklyMissions(context, mission),
+        const SizedBox(height: 24),
+        const Divider(),
+        const SizedBox(height: 24),
+        _buildTeamContent(context, mission),
       ],
     );
   }
