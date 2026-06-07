@@ -8,6 +8,7 @@ import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/controller/mission_controller.dart';
 import 'package:funances/features/home/presentation/widgets/accounts_view.dart';
@@ -521,7 +522,6 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
 
     final isOverLimit = mission.progress > 1;
 
-
     return Container(
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.05),
@@ -744,15 +744,22 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color:
-                    inst.category?.color.asColor().withValues(alpha: 0.1) ??
-                    Colors.grey.withValues(alpha: 0.1),
+                color: inst.isInvoice
+                    ? AppColors.error
+                    : inst.type == OrderType.transfer
+                    ? AppColors.brightCyan
+                    : inst.category?.color.asColor().withValues(alpha: 0.1) ??
+                          Colors.grey.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                inst.category?.icon.asIcon() ?? Icons.category,
+                inst.isInvoice
+                    ? Icons.credit_card
+                    : inst.type == OrderType.transfer
+                    ? Icons.swap_horiz
+                    : inst.category?.icon.asIcon() ?? Icons.category,
                 size: 20,
-                color: inst.category?.color.asColor() ?? Colors.grey,
+                color: inst.category?.color.asColor() ?? Colors.white,
               ),
             ),
             const SizedBox(width: 12),
@@ -790,9 +797,7 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
                                   ? AppColors.success
                                   : AppColors.error
                             : theme.colorScheme.outline,
-                        fontWeight: isCompleted
-                            ? FontWeight.bold
-                            : null,
+                        fontWeight: isCompleted ? FontWeight.bold : null,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -802,9 +807,7 @@ class _MissionsTabState extends ConsumerState<MissionsTab> {
                             ? Icons.check_circle_rounded
                             : Icons.cancel_rounded,
                         size: 20,
-                        color: isSuccess
-                            ? AppColors.success
-                            : AppColors.error,
+                        color: isSuccess ? AppColors.success : AppColors.error,
                       )
                     else
                       Icon(

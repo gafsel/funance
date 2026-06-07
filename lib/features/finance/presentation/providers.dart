@@ -1,3 +1,4 @@
+import 'package:funances/features/finance/domain/services/invoice_service.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -278,6 +279,30 @@ class FinanceViewProviders {
   >((ref) {
     return TransactionListNotifier(
       financeiroService: ref.watch(FinanceDomainProviders.service),
+    );
+  });
+
+  static final invoiceInstallments = StreamProvider.family<List<InstallmentModel>, InstallmentModel>((ref, invoice) {
+    final accountAsync = ref.watch(AccountViewProviders.byId(invoice.accountIdTarget!));
+    
+    return accountAsync.when(
+      data: (account) {
+        if (account == null) return Stream.value([]);
+        
+        final (start, end) = InvoiceService.calculateInvoiceCycleRange(invoice.dueDate, account);
+        
+        return ref.watch(FinanceDomainProviders.service).watchInstallments(
+          accountId: account.id,
+          startDate: start,
+          endDate: end,
+        );
+      },
+      error: (e, s) {
+        print(e.toString());
+
+        return Stream.error(e, s);
+      },
+      loading: () => const Stream.empty(),
     );
   });
 }

@@ -917,6 +917,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionTypeTransfer => 'Transferência';
 
   @override
+  String get transactionTypeInvoice => 'Fatura';
+
+  @override
   String get transactionFromAccountLabel => 'Conta de Origem';
 
   @override
@@ -1315,4 +1318,10 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get excess => 'Excesso';
+
+  @override
+  String get invoiceDetailTitle => 'Detalhe de Fatura';
+
+  @override
+  String get registerInvoicePayment => 'Registrar Pagamento de Fatura';
 }

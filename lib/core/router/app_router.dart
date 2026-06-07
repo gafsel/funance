@@ -10,6 +10,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/features/finance/presentation/screens/category_planning_screen.dart';
+import 'package:funances/features/finance/presentation/screens/invoice_detail_screen.dart';
 import 'package:funances/features/finance/presentation/screens/reconciliation_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_wizard_screen.dart';
@@ -172,8 +173,20 @@ final routerProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>?;
           if (extra != null) {
             if (extra['installment'] != null) {
+              final installment = extra['installment'] as InstallmentModel;
+              final forceEdit = state.uri.queryParameters['forceEdit'] == 'true';
+              if (installment.isInvoice && !forceEdit) {
+                return InvoiceDetailScreen(invoice: installment);
+              }
+
+              final statusStr = state.uri.queryParameters['status'];
+              final status = statusStr != null
+                  ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
+                  : null;
+
               return TransactionFormScreen.updateInstallment(
-                installment: extra['installment'] as InstallmentModel,
+                installment: installment,
+                status: status,
               );
             }
           }

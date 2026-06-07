@@ -13,6 +13,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:funances/features/home/presentation/widgets/history_period_summary.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -172,6 +173,7 @@ class HistoryDesktopView extends ConsumerWidget {
     final theme = Theme.of(context);
     final isExpense = installment.type == OrderType.expense;
     final isTransfer = installment.type == OrderType.transfer;
+    final isInvoice = installment.isInvoice;
 
     Color amountColor;
     if (isTransfer) {
@@ -251,33 +253,7 @@ class HistoryDesktopView extends ConsumerWidget {
                 // Ícone e Status
                 SizedBox(
                   width: 44,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isTransfer
-                              ? Theme.of(context).colorScheme.primaryContainer
-                                    .withValues(alpha: 0.3)
-                              : (category?.color.asColor() ??
-                                        AppColors.deepTurquoise)
-                                    .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          isTransfer
-                              ? Icons.swap_horiz
-                              : category?.icon.asIcon() ?? Icons.category,
-                          color: isTransfer
-                              ? Theme.of(context).colorScheme.primary
-                              : category?.color.asColor() ??
-                                    AppColors.deepTurquoise,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: CategoryIcon.forInstallment(installment),
                 ),
                 const SizedBox(width: 12),
                 // Descrição

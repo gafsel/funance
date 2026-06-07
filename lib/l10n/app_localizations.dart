@@ -1730,6 +1730,12 @@ abstract class AppLocalizations {
   /// **'Transferência'**
   String get transactionTypeTransfer;
 
+  /// No description provided for @transactionTypeInvoice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fatura'**
+  String get transactionTypeInvoice;
+
   /// No description provided for @transactionFromAccountLabel.
   ///
   /// In pt, this message translates to:
@@ -2431,6 +2437,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Excesso'**
   String get excess;
+
+  /// No description provided for @invoiceDetailTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detalhe de Fatura'**
+  String get invoiceDetailTitle;
+
+  /// No description provided for @registerInvoicePayment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registrar Pagamento de Fatura'**
+  String get registerInvoicePayment;
 }
 
 class _AppLocalizationsDelegate

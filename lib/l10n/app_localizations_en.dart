@@ -911,6 +911,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionTypeTransfer => 'Transfer';
 
   @override
+  String get transactionTypeInvoice => 'Invoice';
+
+  @override
   String get transactionFromAccountLabel => 'From Account';
 
   @override
@@ -1307,4 +1310,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get excess => 'Excess';
+
+  @override
+  String get invoiceDetailTitle => 'Invoice Detail';
+
+  @override
+  String get registerInvoicePayment => 'Register Invoice Payment';
 }

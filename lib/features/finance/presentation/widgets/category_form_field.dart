@@ -18,7 +18,8 @@ class CategoryFormField extends ConsumerWidget {
     this.decoration,
     this.autoOpen = false,
     this.emptyMeansAll = false,
-  }) : transfer = false;
+  }) : transfer = false,
+       invoice = false;
 
   final CategoryModel? initialValue;
   final InputDecoration? decoration;
@@ -27,6 +28,7 @@ class CategoryFormField extends ConsumerWidget {
   final FormFieldValidator<CategoryModel?>? validator;
   final bool autoOpen;
   final bool transfer;
+  final bool invoice;
   final bool emptyMeansAll;
 
   const CategoryFormField.transfer({super.key, this.decoration, this.validator})
@@ -35,7 +37,17 @@ class CategoryFormField extends ConsumerWidget {
       categoryType = null,
       transfer = true,
       autoOpen = false,
-      emptyMeansAll = false;
+      emptyMeansAll = false,
+      invoice = false;
+
+  const CategoryFormField.invoice({super.key, this.decoration, this.validator})
+    : initialValue = null,
+      onChanged = _dummyOnChanged,
+      categoryType = null,
+      transfer = true,
+      autoOpen = false,
+      emptyMeansAll = false,
+      invoice = true;
 
   static void _dummyOnChanged(CategoryModel? _) {}
 
@@ -48,7 +60,10 @@ class CategoryFormField extends ConsumerWidget {
       initialValue: initialValue,
       validator: validator,
       builder: (state) {
-        if (autoOpen && state.value == null && categoryType != null && !transfer) {
+        if (autoOpen &&
+            state.value == null &&
+            categoryType != null &&
+            !transfer) {
           final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
           if (!isModalOpen) {
             WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -85,7 +100,28 @@ class CategoryFormField extends ConsumerWidget {
               errorText: state.errorText,
               suffixIcon: enabled ? const Icon(Icons.chevron_right) : null,
             ),
-            child: transfer
+            child: invoice
+                ? Row(
+                    children: [
+                      const CircleAvatar(
+                        radius: 12,
+                        backgroundColor: AppColors.error,
+                        child: Icon(
+                          Icons.credit_card,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.l10n.transactionTypeInvoice,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyMedium?.copyWith(color: Colors.black38),
+                      ),
+                    ],
+                  )
+                : transfer
                 ? Row(
                     children: [
                       const CircleAvatar(
@@ -111,7 +147,9 @@ class CategoryFormField extends ConsumerWidget {
                     children: [
                       CircleAvatar(
                         radius: 12,
-                        backgroundColor: category.color.asColor().withValues(alpha: 0.2),
+                        backgroundColor: category.color.asColor().withValues(
+                          alpha: 0.2,
+                        ),
                         child: Icon(
                           category.icon.asIcon(),
                           size: 16,
@@ -202,7 +240,9 @@ class CategoryFormField extends ConsumerWidget {
                           CategoryModel category = categories[index];
                           return ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: category.color.asColor().withValues(alpha: 0.2),
+                              backgroundColor: category.color
+                                  .asColor()
+                                  .withValues(alpha: 0.2),
                               child: Icon(
                                 category.icon.asIcon(),
                                 color: category.color.asColor(),
@@ -258,5 +298,4 @@ class CategoryFormField extends ConsumerWidget {
       },
     );
   }
-
 }

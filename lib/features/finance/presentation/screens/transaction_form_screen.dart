@@ -290,7 +290,13 @@ class TransactionFormScreen extends StatelessWidget {
                       : null,
                   validator: v.all([v.notNull()]),
                 ),
-                if (state.type == OrderType.transfer) ...[
+                if (state.isInvoice) ...[
+                  CategoryFormField.invoice(
+                    decoration: InputDecoration(
+                      labelText: l10n.transactionCategoriesSection,
+                    ),
+                  ),
+                ] else if (state.type == OrderType.transfer) ...[
                   CategoryFormField.transfer(
                     decoration: InputDecoration(
                       labelText: l10n.transactionCategoriesSection,
@@ -457,7 +463,7 @@ class TransactionFormScreen extends StatelessWidget {
           },
         ),
       MoneyFormField(
-        initialValue: state.amount > 0 ? state.amount : null,
+        initialValue: state.amount,
         decoration: InputDecoration(labelText: amountLabel),
         onChanged: (v) => notifier.updateAmount(v ?? 0.0),
         validator: v.all([v.notNull()]),

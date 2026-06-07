@@ -332,6 +332,7 @@
   "transactionTypeExpense": "Expense",
   "transactionTypeIncome": "Income",
   "transactionTypeTransfer": "Transfer",
+  "transactionTypeInvoice": "Invoice",
   "transactionFromAccountLabel": "From Account",
   "transactionToAccountLabel": "To Account",
   "transactionSaveSuccess": "Transaction saved successfully!",
@@ -438,5 +439,7 @@
   "partyTeamTitle": "Team",
   "planned": "Planned",
   "actual": "Actual",
-  "excess": "Excess"
+  "excess": "Excess",
+  "invoiceDetailTitle": "Invoice Detail",
+  "registerInvoicePayment": "Register Invoice Payment"
 }

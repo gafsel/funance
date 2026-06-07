@@ -394,6 +394,7 @@
   "transactionTypeExpense": "Despesa",
   "transactionTypeIncome": "Receita",
   "transactionTypeTransfer": "Transferência",
+  "transactionTypeInvoice": "Fatura",
   "transactionFromAccountLabel": "Conta de Origem",
   "transactionToAccountLabel": "Conta de Destino",
   "transactionSaveSuccess": "Transação salva com sucesso!",
@@ -510,5 +511,7 @@
   "partyTeamTitle": "Equipe",
   "planned": "Planejado",
   "actual": "Realizado",
-  "excess": "Excesso"
+  "excess": "Excesso",
+  "invoiceDetailTitle": "Detalhe de Fatura",
+  "registerInvoicePayment": "Registrar Pagamento de Fatura"
 }
