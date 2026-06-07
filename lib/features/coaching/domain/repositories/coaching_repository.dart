@@ -5,4 +5,5 @@ abstract class ICoachingRepository {
   Future<List<CoachingModel>> getInsights(String workspaceId);
   Future<void> addInsight(String workspaceId, CoachingModel insight);
   Future<List<HackModel>> getFinanceHacks(String workspaceId);
+  Future<CoachingModel> generateCoaching(String workspaceId);
 }

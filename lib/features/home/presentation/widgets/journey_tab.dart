@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/home/presentation/widgets/period_selection.dart';
 import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
@@ -8,19 +9,12 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
-import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
-import 'package:funances/features/finance/domain/models/period_summary_model.dart';
-import 'package:funances/features/home/presentation/model/overview_view_model.dart';
-import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
-import 'package:funances/core/utils/color_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
-import 'package:fl_chart/fl_chart.dart';
-import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/enum_messages.dart';
-import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/features/coaching/presentation/providers/coaching_providers.dart';
 
 class JourneyTab extends ConsumerWidget {
   const JourneyTab({super.key});
@@ -30,6 +24,8 @@ class JourneyTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final goalsAsync = ref.watch(goalsProvider);
+    final canActionCoach = ref.watch(CoachingViewProviders.canActionCoach);
+    final insightsAsync = ref.watch(coachingInsightsProvider);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(
@@ -42,6 +38,28 @@ class JourneyTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            insightsAsync.when(
+              data: (insights) {
+                if (insights.isEmpty && !canActionCoach) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  children: [
+                    _buildCoachingCall(
+                      context,
+                      ref,
+                      l10n,
+                      theme,
+                      canActionCoach,
+                      insights.isNotEmpty ? insights.first : null,
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+            ),
             // Placar do Mês (Simplificado para o exemplo)
             _buildMonthlyScore(context, l10n, theme),
             const SizedBox(height: 24),
@@ -197,6 +215,163 @@ class JourneyTab extends ConsumerWidget {
                   l10n.homePointsEarned(50),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: AppColors.pureWhite.withValues(alpha: 0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoachingCall(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ThemeData theme,
+    bool canAction,
+    CoachingModel? lastCoaching,
+  ) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: canAction
+              ? [AppColors.deepTurquoise, AppColors.vibrantTeal]
+              : [AppColors.darkNavy, AppColors.darkNavy.withValues(alpha: 0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.darkNavy.withValues(alpha: 0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(
+              Icons.auto_awesome,
+              size: 120,
+              color: (canAction ? AppColors.successGold : AppColors.vibrantTeal)
+                  .withValues(alpha: 0.1),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (canAction
+                                ? AppColors.successGold
+                                : AppColors.vibrantTeal)
+                            .withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.psychology,
+                        color:
+                            canAction
+                                ? AppColors.successGold
+                                : AppColors.vibrantTeal,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      l10n.coachingTitle,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: AppColors.pureWhite,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  canAction
+                      ? l10n.coachingConsultingDesc
+                      : l10n.coachingLastAnalysisFrom(
+                        DateFormat.yMMMd().format(lastCoaching!.date),
+                      ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: AppColors.pureWhite.withValues(alpha: 0.9),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      if (!canAction && lastCoaching != null) {
+                        ref
+                            .read(
+                              CoachingViewProviders.coachingNotifier.notifier,
+                            )
+                            .setCoaching(lastCoaching);
+                        context.push('/coaching');
+                        return;
+                      }
+
+                      try {
+                        final coaching = await showLoadingModal(
+                          context,
+                          ref
+                              .read(
+                                CoachingViewProviders.coachingNotifier.notifier,
+                              )
+                              .generateCoaching(),
+                          child: AnalysisLoadingView(
+                            title: l10n.coachingConsulting,
+                            description: l10n.coachingConsultingDesc,
+                          ),
+                        );
+
+                        if (coaching != null && context.mounted) {
+                          context.push('/coaching');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(l10n.coachingError)),
+                          );
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          canAction
+                              ? AppColors.successGold
+                              : AppColors.vibrantTeal,
+                      foregroundColor: AppColors.darkNavy,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                    child: Text(
+                      (canAction
+                              ? l10n.coachingConsultAction
+                              : l10n.coachingViewLast)
+                          .toUpperCase(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                   ),
                 ),
               ],

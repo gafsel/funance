@@ -9,7 +9,7 @@ import {
     PeriodSummaryUpdateModel,
     OrderStatus,
     InstallmentType,
-    OrderType,
+    OrderType, InstallmentStatus,
 } from "../../domain/models/finance.models";
 import { IFinanceRepository } from "../../domain/repositories/finance.repository";
 
@@ -237,11 +237,28 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await batch.commit();
     }
 
-    async getInstallments(workspaceId: string, filters: { accountId?: string }): Promise<InstallmentModel[]> {
+    async getInstallments(workspaceId: string, filters: {
+        accountId?: string,
+        startDate?: Date,
+        endDate?: Date,
+        status?: InstallmentStatus[]
+    }): Promise<InstallmentModel[]> {
         let query: admin.firestore.Query = this.getInstallmentsCollection(workspaceId);
 
         if (filters.accountId) {
             query = query.where("accountIds", "array-contains", filters.accountId);
+        }
+
+        if (filters.startDate) {
+            query = query.where("referenceDate", ">=", admin.firestore.Timestamp.fromDate(filters.startDate));
+        }
+
+        if (filters.endDate) {
+            query = query.where("referenceDate", "<=", admin.firestore.Timestamp.fromDate(filters.endDate));
+        }
+
+        if (filters.status && filters.status.length > 0) {
+            query = query.where("status", "in", filters.status);
         }
 
         const snapshot = await query.get();
@@ -254,11 +271,15 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             const paidDate = data.paidDate?.toDate();
             if (paidDate) paidDate.setHours(12, 0, 0, 0);
 
+            const referenceDate = data.referenceDate?.toDate();
+            if (referenceDate) referenceDate.setHours(12, 0, 0, 0);
+
             return {
                 id: doc.id,
                 ...data,
                 dueDate: dueDate,
                 paidDate: paidDate,
+                referenceDate: referenceDate,
             } as InstallmentModel;
         });
     }
@@ -499,6 +520,13 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const updateData = this.buildPeriodSummaryUpdateData(year, month, week, category, data, runtimeType);
 
         await docRef.set(updateData, { merge: true });
+    }
+
+    async getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<any | null> {
+        const { docRef } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
+        const doc = await docRef.get();
+        if (!doc.exists) return null;
+        return { id: doc.id, ...doc.data() };
     }
 
     async getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null> {

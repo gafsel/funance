@@ -2,12 +2,14 @@ export interface AIConfig {
   models: {
     goals: string;
     document: string;
+    coaching: string;
   };
     prompts: {
     goals: string;
     document: string;
     documentOfx: string;
     reconciliation: string;
+    coaching: string;
   };
 }
 
@@ -15,6 +17,7 @@ export const DEFAULT_CONFIG: AIConfig = {
     models: {
         goals: "gemini-1.5-flash-latest",
         document: "gemini-1.5-pro-latest",
+        coaching: "gemini-1.5-flash-latest",
     },
     prompts: {
         goals: `
@@ -165,6 +168,50 @@ export const DEFAULT_CONFIG: AIConfig = {
                             "color": "#HEXCODE",
                             "type": "income" | "expense"
                         }
+                    }
+                ]
+            }
+        `,
+        coaching: `
+            Você é um especialista em saúde financeira e independência financeira.
+            Sua tarefa é dar conselhos e insights para o usuário com base em seus dados financeiros recentes, previsões e metas.
+
+            DADOS FINANCEIROS (Últimas 2 semanas):
+            {{financialData}}
+
+            PREVISÕES (Recebimentos e Gastos em conta corrente):
+            {{forecastData}}
+
+            METAS DO USUÁRIO:
+            {{goalsData}}
+
+            OBJETIVO:
+            Ajudar o usuário a atingir seus objetivos financeiros, melhorar sua saúde financeira e buscar a independência financeira.
+
+            REQUISITOS DA RESPOSTA:
+            1. Atue como um coach financeiro motivador, mas direto e baseado em dados.
+            2. Estruture a resposta como uma sequência de slides dinâmicos e interessantes.
+            3. Use gradientes e ícones (Material Design icon names) que façam sentido com o conteúdo.
+            4. O primeiro slide deve ser um resumo/visão geral.
+            5. Os slides seguintes devem conter dicas práticas e específicas sobre os gastos recentes ou metas.
+            6. O último slide deve ser uma mensagem de incentivo focada em liberdade financeira.
+            7. Para tornar os slides dinâmicos, varie as cores e use "secondaryColor" para criar gradientes. 
+            8. Você pode sugerir uma lista de ícones ÚNICOS em "icons" para slides que precisem de mais representação visual.
+            9. Escolha um "animationType" para cada slide: "zoom", "slide", "bounce", "fade" ou "pulse" para tornar a transição e elementos mais dinâmicos.
+
+            Retorne apenas um objeto JSON no formato:
+            {
+                "message": "Resumo geral do coach",
+                "type": "insight" | "warning" | "tip",
+                "slides": [
+                    {
+                        "title": "Título do Slide",
+                        "message": "Mensagem detalhada do slide",
+                        "icon": "ícone_material_design_principal",
+                        "icons": ["ícone1", "ícone2"],
+                        "color": "#HEXCODE_PRINCIPAL",
+                        "secondaryColor": "#HEXCODE_GRADIENTE",
+                        "animationType": "zoom" | "slide" | "bounce" | "fade" | "pulse"
                     }
                 ]
             }

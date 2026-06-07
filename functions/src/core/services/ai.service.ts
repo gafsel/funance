@@ -30,6 +30,12 @@ export interface IAIRepository {
         fileName: string,
         existingCategories: string[],
     ): Promise<any>;
+    generateCoachingSlides(
+        workspaceId: string,
+        financialData: any,
+        forecastData: any,
+        goalsData: any,
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -48,12 +54,14 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                     models: {
                         goals: data?.models?.goals || DEFAULT_CONFIG.models.goals,
                         document: data?.models?.document || DEFAULT_CONFIG.models.document,
+                        coaching: data?.models?.coaching || DEFAULT_CONFIG.models.coaching,
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
                         document: data?.prompts?.document || DEFAULT_CONFIG.prompts.document,
                         documentOfx: data?.prompts?.documentOfx || DEFAULT_CONFIG.prompts.documentOfx,
                         reconciliation: data?.prompts?.reconciliation || DEFAULT_CONFIG.prompts.reconciliation,
+                        coaching: data?.prompts?.coaching || DEFAULT_CONFIG.prompts.coaching,
                     },
                 };
             }
@@ -291,6 +299,41 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 category: t.category,
             })),
         };
+    }
+
+    async generateCoachingSlides(
+        workspaceId: string,
+        financialData: any,
+        forecastData: any,
+        goalsData: any,
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.coaching });
+
+        const prompt = config.prompts.coaching
+            .replace("{{financialData}}", JSON.stringify(financialData))
+            .replace("{{forecastData}}", JSON.stringify(forecastData))
+            .replace("{{goalsData}}", JSON.stringify(goalsData));
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "coaching_analysis",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        throw new Error("Não foi possível gerar os slides de coaching.");
     }
 
     private extractOfxData(parsedOfx: any): { account: any, transactions: any[] } {

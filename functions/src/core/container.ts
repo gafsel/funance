@@ -21,6 +21,7 @@ import { InviteServiceImpl } from "../features/workspace/domain/services/invite.
 import { GoalServiceImpl } from "../features/goal/domain/services/goal.service.impl";
 import { FinanceService } from "../features/finance/domain/services/finance.service";
 import { SummaryService } from "../features/finance/domain/services/summary.service";
+import { CoachingService } from "../features/coaching/domain/services/coaching.service";
 
 class Container {
     private static _workspaceRepository: IWorkspaceRepository;
@@ -34,6 +35,7 @@ class Container {
     private static _goalService: IGoalService;
     private static _financeService: FinanceService;
     private static _summaryService: SummaryService;
+    private static _coachingService: CoachingService;
     private static _aiRepository: IAIRepository;
     private static _onboardingService: IOnboardingService;
     private static _idempotencyService: IIdempotencyService;
@@ -120,6 +122,18 @@ class Container {
             this._goalService = new GoalServiceImpl(this.goalRepository);
         }
         return this._goalService;
+    }
+
+    static get coachingService(): CoachingService {
+        if (!this._coachingService) {
+            this._coachingService = new CoachingService(
+                this.financeRepository,
+                this.goalRepository,
+                this.categoryRepository,
+                this.aiRepository,
+            );
+        }
+        return this._coachingService;
     }
 
     static get aiRepository(): IAIRepository {

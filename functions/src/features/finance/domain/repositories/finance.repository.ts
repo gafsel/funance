@@ -5,7 +5,7 @@ import {
     CategoryPlanningModel,
     AccountModel,
     AccountBalanceModel,
-    PeriodSummaryUpdateModel,
+    PeriodSummaryUpdateModel, InstallmentStatus,
 } from "../models/finance.models";
 
 export interface IFinanceRepository {
@@ -27,7 +27,12 @@ export interface IFinanceRepository {
   getInstallmentById(workspaceId: string, installmentId: string): Promise<InstallmentModel | null>;
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;
   deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void>;
-  getInstallments(workspaceId: string, filters: { accountId?: string }): Promise<InstallmentModel[]>;
+  getInstallments(workspaceId: string, filters: { 
+    accountId?: string, 
+    startDate?: Date, 
+    endDate?: Date, 
+    status?: InstallmentStatus[] 
+  }): Promise<InstallmentModel[]>;
   getOrdersByRecurringNextGenerationGroup(dateThreshold: Date, limit: number): Promise<(OrderModel & { workspaceId: string })[]>;
   processRecurringInstallmentsChunk(
     chunk: (OrderModel & { workspaceId: string })[],
@@ -61,6 +66,7 @@ export interface IFinanceRepository {
         },
         week?: number
     ): Promise<void>;
+  getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<any | null>;
 
   // Accounts
   getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null>;

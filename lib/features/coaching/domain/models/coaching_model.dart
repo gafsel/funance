@@ -13,12 +13,28 @@ enum CoachingType {
 }
 
 @freezed
+sealed class SlideModel with _$SlideModel {
+  const factory SlideModel({
+    required String title,
+    required String message,
+    required String icon,
+    required String color,
+    String? secondaryColor,
+    @Default([]) List<String> icons,
+    String? animationType,
+  }) = _SlideModel;
+
+  factory SlideModel.fromJson(Map<String, dynamic> json) => _$SlideModelFromJson(json);
+}
+
+@freezed
 sealed class CoachingModel with _$CoachingModel {
   const factory CoachingModel({
     required String id,
     required String message,
     required DateTime date,
     required CoachingType type,
+    @Default([]) List<SlideModel> slides,
   }) = _CoachingModel;
 
   factory CoachingModel.fromJson(Map<String, dynamic> json) => _$CoachingModelFromJson(json);

@@ -515,5 +515,29 @@
   "actual": "Realizado",
   "excess": "Excesso",
   "invoiceDetailTitle": "Detalhe de Fatura",
-  "registerInvoicePayment": "Registrar Pagamento de Fatura"
+  "registerInvoicePayment": "Registrar Pagamento de Fatura",
+  "coachingTitle": "Coach Financeiro",
+  "coachingConsultAction": "Consultar Coach",
+  "coachingViewLast": "Ver última análise",
+  "coachingLastAnalysisFrom": "Última análise de {date}",
+  "@coachingLastAnalysisFrom": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "coachingWaitSevenDays": "Você poderá consultar o coach novamente em {days} dias.",
+  "@coachingWaitSevenDays": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "coachingWaitLessOneDay": "Você poderá consultar o coach novamente amanhã.",
+  "coachingConsulting": "Consultando Coach...",
+  "coachingConsultingDesc": "Nossa IA está analisando sua saúde financeira para dar os melhores conselhos.",
+  "coachingError": "Erro ao consultar coach. Tente novamente mais tarde.",
+  "coachingSlideNext": "Próximo",
+  "coachingSlideBack": "Voltar",
+  "coachingSlideFinish": "Concluir",
+  "coachingNoData": "Nenhum dado de coaching disponível.",
+  "coachingNoSlides": "Nenhum slide foi gerado. Tente novamente."
 }

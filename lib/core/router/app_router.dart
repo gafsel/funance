@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/screens/splash_screen.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/auth/presentation/screens/login_screen.dart';
+import 'package:funances/features/coaching/presentation/screens/coaching_slides_screen.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -252,6 +253,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reconciliation',
         builder: (context, state) => const ReconciliationScreen(),
+      ),
+      GoRoute(
+        path: '/coaching',
+        builder: (context, state) => const CoachingSlidesScreen(),
       ),
     ],
   );

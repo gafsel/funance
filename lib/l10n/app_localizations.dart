@@ -2461,6 +2461,90 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Registrar Pagamento de Fatura'**
   String get registerInvoicePayment;
+
+  /// No description provided for @coachingTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coach Financeiro'**
+  String get coachingTitle;
+
+  /// No description provided for @coachingConsultAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultar Coach'**
+  String get coachingConsultAction;
+
+  /// No description provided for @coachingViewLast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver última análise'**
+  String get coachingViewLast;
+
+  /// No description provided for @coachingLastAnalysisFrom.
+  ///
+  /// In pt, this message translates to:
+  /// **'Última análise de {date}'**
+  String coachingLastAnalysisFrom(String date);
+
+  /// No description provided for @coachingWaitSevenDays.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você poderá consultar o coach novamente em {days} dias.'**
+  String coachingWaitSevenDays(int days);
+
+  /// No description provided for @coachingWaitLessOneDay.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você poderá consultar o coach novamente amanhã.'**
+  String get coachingWaitLessOneDay;
+
+  /// No description provided for @coachingConsulting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consultando Coach...'**
+  String get coachingConsulting;
+
+  /// No description provided for @coachingConsultingDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nossa IA está analisando sua saúde financeira para dar os melhores conselhos.'**
+  String get coachingConsultingDesc;
+
+  /// No description provided for @coachingError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao consultar coach. Tente novamente mais tarde.'**
+  String get coachingError;
+
+  /// No description provided for @coachingSlideNext.
+  ///
+  /// In pt, this message translates to:
+  /// **'Próximo'**
+  String get coachingSlideNext;
+
+  /// No description provided for @coachingSlideBack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar'**
+  String get coachingSlideBack;
+
+  /// No description provided for @coachingSlideFinish.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluir'**
+  String get coachingSlideFinish;
+
+  /// No description provided for @coachingNoData.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum dado de coaching disponível.'**
+  String get coachingNoData;
+
+  /// No description provided for @coachingNoSlides.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum slide foi gerado. Tente novamente.'**
+  String get coachingNoSlides;
 }
 
 class _AppLocalizationsDelegate

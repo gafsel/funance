@@ -1330,4 +1330,53 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get registerInvoicePayment => 'Registrar Pagamento de Fatura';
+
+  @override
+  String get coachingTitle => 'Coach Financeiro';
+
+  @override
+  String get coachingConsultAction => 'Consultar Coach';
+
+  @override
+  String get coachingViewLast => 'Ver última análise';
+
+  @override
+  String coachingLastAnalysisFrom(String date) {
+    return 'Última análise de $date';
+  }
+
+  @override
+  String coachingWaitSevenDays(int days) {
+    return 'Você poderá consultar o coach novamente em $days dias.';
+  }
+
+  @override
+  String get coachingWaitLessOneDay =>
+      'Você poderá consultar o coach novamente amanhã.';
+
+  @override
+  String get coachingConsulting => 'Consultando Coach...';
+
+  @override
+  String get coachingConsultingDesc =>
+      'Nossa IA está analisando sua saúde financeira para dar os melhores conselhos.';
+
+  @override
+  String get coachingError =>
+      'Erro ao consultar coach. Tente novamente mais tarde.';
+
+  @override
+  String get coachingSlideNext => 'Próximo';
+
+  @override
+  String get coachingSlideBack => 'Voltar';
+
+  @override
+  String get coachingSlideFinish => 'Concluir';
+
+  @override
+  String get coachingNoData => 'Nenhum dado de coaching disponível.';
+
+  @override
+  String get coachingNoSlides => 'Nenhum slide foi gerado. Tente novamente.';
 }

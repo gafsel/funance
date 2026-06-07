@@ -1322,4 +1322,52 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get registerInvoicePayment => 'Register Invoice Payment';
+
+  @override
+  String get coachingTitle => 'Financial Coach';
+
+  @override
+  String get coachingConsultAction => 'Consult Coach';
+
+  @override
+  String get coachingViewLast => 'View last analysis';
+
+  @override
+  String coachingLastAnalysisFrom(String date) {
+    return 'Last analysis from $date';
+  }
+
+  @override
+  String coachingWaitSevenDays(int days) {
+    return 'You can consult the coach again in $days days.';
+  }
+
+  @override
+  String get coachingWaitLessOneDay =>
+      'You can consult the coach again tomorrow.';
+
+  @override
+  String get coachingConsulting => 'Consulting Coach...';
+
+  @override
+  String get coachingConsultingDesc =>
+      'Our AI is analyzing your financial health to give you the best advice.';
+
+  @override
+  String get coachingError => 'Error consulting coach. Please try again later.';
+
+  @override
+  String get coachingSlideNext => 'Next';
+
+  @override
+  String get coachingSlideBack => 'Back';
+
+  @override
+  String get coachingSlideFinish => 'Finish';
+
+  @override
+  String get coachingNoData => 'No coaching data available.';
+
+  @override
+  String get coachingNoSlides => 'No slides were generated. Please try again.';
 }

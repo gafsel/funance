@@ -443,5 +443,29 @@
   "actual": "Actual",
   "excess": "Excess",
   "invoiceDetailTitle": "Invoice Detail",
-  "registerInvoicePayment": "Register Invoice Payment"
+  "registerInvoicePayment": "Register Invoice Payment",
+  "coachingTitle": "Financial Coach",
+  "coachingConsultAction": "Consult Coach",
+  "coachingViewLast": "View last analysis",
+  "coachingLastAnalysisFrom": "Last analysis from {date}",
+  "@coachingLastAnalysisFrom": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "coachingWaitSevenDays": "You can consult the coach again in {days} days.",
+  "@coachingWaitSevenDays": {
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  },
+  "coachingWaitLessOneDay": "You can consult the coach again tomorrow.",
+  "coachingConsulting": "Consulting Coach...",
+  "coachingConsultingDesc": "Our AI is analyzing your financial health to give you the best advice.",
+  "coachingError": "Error consulting coach. Please try again later.",
+  "coachingSlideNext": "Next",
+  "coachingSlideBack": "Back",
+  "coachingSlideFinish": "Finish",
+  "coachingNoData": "No coaching data available.",
+  "coachingNoSlides": "No slides were generated. Please try again."
 }
