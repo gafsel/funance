@@ -258,6 +258,10 @@ sealed class TransactionTotals with _$TransactionTotals {
     @Default(0.0) double realizedIncomes,
     @Default(0.0) double plannedExpenses,
     @Default(0.0) double realizedExpenses,
+    @Default(0.0) double plannedTransfers,
+    @Default(0.0) double realizedTransfers,
+    @Default(0.0) double plannedInvoices,
+    @Default(0.0) double realizedInvoices,
   }) = _TransactionTotals;
 
   const TransactionTotals._();

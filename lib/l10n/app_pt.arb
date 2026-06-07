@@ -491,6 +491,8 @@
   "periodSummary": "Resumo do Período",
   "totalIncomes": "Total de Receitas",
   "totalExpenses": "Total de Despesas",
+  "totalTransfers": "Total de Transferências",
+  "totalInvoices": "Total de Faturas",
   "periodBalance": "Saldo do Período",
   "plannedLabel": "Planejado",
   "realizedLabel": "Realizado",

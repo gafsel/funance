@@ -2312,6 +2312,18 @@ abstract class AppLocalizations {
   /// **'Total de Despesas'**
   String get totalExpenses;
 
+  /// No description provided for @totalTransfers.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total de Transferências'**
+  String get totalTransfers;
+
+  /// No description provided for @totalInvoices.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total de Faturas'**
+  String get totalInvoices;
+
   /// No description provided for @periodBalance.
   ///
   /// In pt, this message translates to:

@@ -76,6 +76,21 @@ class HistoryPeriodSummary extends ConsumerWidget {
             plannedValue: -totals.plannedExpenses,
             realizedValue: -totals.realizedExpenses,
           ),
+          const SizedBox(height: 8),
+          _buildSummaryRow(
+            context,
+            label: l10n.totalTransfers,
+            plannedValue: totals.plannedTransfers,
+            realizedValue: totals.realizedTransfers,
+          ),
+          const SizedBox(height: 8),
+          _buildSummaryRow(
+            context,
+            label: l10n.totalInvoices,
+            plannedValue: totals.plannedInvoices,
+            realizedValue: totals.realizedInvoices,
+            isError: true,
+          ),
           const Divider(height: 24),
           _buildSummaryRow(
             context,
@@ -94,8 +109,15 @@ class HistoryPeriodSummary extends ConsumerWidget {
     required double plannedValue,
     required double realizedValue,
     bool isBold = false,
+    bool isError = false,
   }) {
     final locale = context.locale;
+
+    Color getColor(double value) {
+      if (value == 0) return Colors.grey;
+      if (isError) return AppColors.error;
+      return value > 0 ? AppColors.limeGreen : AppColors.error;
+    }
 
     return Row(
       children: [
@@ -109,13 +131,7 @@ class HistoryPeriodSummary extends ConsumerWidget {
                 : plannedValue.asSignedCurrency(locale: locale),
             textAlign: TextAlign.right,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color:
-                  (plannedValue == 0
-                          ? Colors.grey
-                          : plannedValue > 0
-                          ? AppColors.limeGreen
-                          : AppColors.error)
-                      .withValues(alpha: .75),
+              color: getColor(plannedValue).withValues(alpha: .75),
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -127,11 +143,7 @@ class HistoryPeriodSummary extends ConsumerWidget {
                 : realizedValue.asSignedCurrency(locale: locale),
             textAlign: TextAlign.right,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: (realizedValue == 0
-                  ? Colors.grey
-                  : realizedValue > 0
-                  ? AppColors.limeGreen
-                  : AppColors.error),
+              color: getColor(realizedValue),
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
           ),

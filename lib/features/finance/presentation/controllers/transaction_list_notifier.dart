@@ -62,6 +62,10 @@ class TransactionListNotifier
     double realizedIncomes = 0;
     double plannedExpenses = 0;
     double realizedExpenses = 0;
+    double plannedTransfers = 0;
+    double realizedTransfers = 0;
+    double plannedInvoices = 0;
+    double realizedInvoices = 0;
 
     for (final item in state.items) {
       if (item.type == OrderType.income) {
@@ -70,6 +74,16 @@ class TransactionListNotifier
       } else if (item.type == OrderType.expense) {
         plannedExpenses += item.amount;
         realizedExpenses += item.paidAmount ?? 0.0;
+      } else if (item.type == OrderType.transfer) {
+        if (!item.isInvoice) {
+          plannedTransfers += item.amount;
+          realizedTransfers += item.paidAmount ?? 0.0;
+        }
+      }
+
+      if (item.isInvoice) {
+        plannedInvoices += item.amount;
+        realizedInvoices += item.paidAmount ?? 0.0;
       }
     }
 
@@ -78,6 +92,10 @@ class TransactionListNotifier
       realizedIncomes: realizedIncomes,
       plannedExpenses: plannedExpenses,
       realizedExpenses: realizedExpenses,
+      plannedTransfers: plannedTransfers,
+      realizedTransfers: realizedTransfers,
+      plannedInvoices: plannedInvoices,
+      realizedInvoices: realizedInvoices,
     );
   }
 

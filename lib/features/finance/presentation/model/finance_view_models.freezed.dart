@@ -1993,7 +1993,7 @@ $CategoryModelCopyWith<$Res>? get category {
 /// @nodoc
 mixin _$TransactionTotals {
 
- double get plannedIncomes; double get realizedIncomes; double get plannedExpenses; double get realizedExpenses;
+ double get plannedIncomes; double get realizedIncomes; double get plannedExpenses; double get realizedExpenses; double get plannedTransfers; double get realizedTransfers; double get plannedInvoices; double get realizedInvoices;
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2004,16 +2004,16 @@ $TransactionTotalsCopyWith<TransactionTotals> get copyWith => _$TransactionTotal
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses)&&(identical(other.plannedTransfers, plannedTransfers) || other.plannedTransfers == plannedTransfers)&&(identical(other.realizedTransfers, realizedTransfers) || other.realizedTransfers == realizedTransfers)&&(identical(other.plannedInvoices, plannedInvoices) || other.plannedInvoices == plannedInvoices)&&(identical(other.realizedInvoices, realizedInvoices) || other.realizedInvoices == realizedInvoices));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses);
+int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses,plannedTransfers,realizedTransfers,plannedInvoices,realizedInvoices);
 
 @override
 String toString() {
-  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses)';
+  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses, plannedTransfers: $plannedTransfers, realizedTransfers: $realizedTransfers, plannedInvoices: $plannedInvoices, realizedInvoices: $realizedInvoices)';
 }
 
 
@@ -2024,7 +2024,7 @@ abstract mixin class $TransactionTotalsCopyWith<$Res>  {
   factory $TransactionTotalsCopyWith(TransactionTotals value, $Res Function(TransactionTotals) _then) = _$TransactionTotalsCopyWithImpl;
 @useResult
 $Res call({
- double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses
+ double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses, double plannedTransfers, double realizedTransfers, double plannedInvoices, double realizedInvoices
 });
 
 
@@ -2041,12 +2041,16 @@ class _$TransactionTotalsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,Object? plannedTransfers = null,Object? realizedTransfers = null,Object? plannedInvoices = null,Object? realizedInvoices = null,}) {
   return _then(_self.copyWith(
 plannedIncomes: null == plannedIncomes ? _self.plannedIncomes : plannedIncomes // ignore: cast_nullable_to_non_nullable
 as double,realizedIncomes: null == realizedIncomes ? _self.realizedIncomes : realizedIncomes // ignore: cast_nullable_to_non_nullable
 as double,plannedExpenses: null == plannedExpenses ? _self.plannedExpenses : plannedExpenses // ignore: cast_nullable_to_non_nullable
 as double,realizedExpenses: null == realizedExpenses ? _self.realizedExpenses : realizedExpenses // ignore: cast_nullable_to_non_nullable
+as double,plannedTransfers: null == plannedTransfers ? _self.plannedTransfers : plannedTransfers // ignore: cast_nullable_to_non_nullable
+as double,realizedTransfers: null == realizedTransfers ? _self.realizedTransfers : realizedTransfers // ignore: cast_nullable_to_non_nullable
+as double,plannedInvoices: null == plannedInvoices ? _self.plannedInvoices : plannedInvoices // ignore: cast_nullable_to_non_nullable
+as double,realizedInvoices: null == realizedInvoices ? _self.realizedInvoices : realizedInvoices // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }
@@ -2129,10 +2133,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionTotals() when $default != null:
-return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses);case _:
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices);case _:
   return orElse();
 
 }
@@ -2150,10 +2154,10 @@ return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionTotals():
-return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses);}
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2167,10 +2171,10 @@ return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionTotals() when $default != null:
-return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses);case _:
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices);case _:
   return null;
 
 }
@@ -2182,13 +2186,17 @@ return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses
 
 
 class _TransactionTotals extends TransactionTotals {
-  const _TransactionTotals({this.plannedIncomes = 0.0, this.realizedIncomes = 0.0, this.plannedExpenses = 0.0, this.realizedExpenses = 0.0}): super._();
+  const _TransactionTotals({this.plannedIncomes = 0.0, this.realizedIncomes = 0.0, this.plannedExpenses = 0.0, this.realizedExpenses = 0.0, this.plannedTransfers = 0.0, this.realizedTransfers = 0.0, this.plannedInvoices = 0.0, this.realizedInvoices = 0.0}): super._();
   
 
 @override@JsonKey() final  double plannedIncomes;
 @override@JsonKey() final  double realizedIncomes;
 @override@JsonKey() final  double plannedExpenses;
 @override@JsonKey() final  double realizedExpenses;
+@override@JsonKey() final  double plannedTransfers;
+@override@JsonKey() final  double realizedTransfers;
+@override@JsonKey() final  double plannedInvoices;
+@override@JsonKey() final  double realizedInvoices;
 
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
@@ -2200,16 +2208,16 @@ _$TransactionTotalsCopyWith<_TransactionTotals> get copyWith => __$TransactionTo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses)&&(identical(other.plannedTransfers, plannedTransfers) || other.plannedTransfers == plannedTransfers)&&(identical(other.realizedTransfers, realizedTransfers) || other.realizedTransfers == realizedTransfers)&&(identical(other.plannedInvoices, plannedInvoices) || other.plannedInvoices == plannedInvoices)&&(identical(other.realizedInvoices, realizedInvoices) || other.realizedInvoices == realizedInvoices));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses);
+int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses,plannedTransfers,realizedTransfers,plannedInvoices,realizedInvoices);
 
 @override
 String toString() {
-  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses)';
+  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses, plannedTransfers: $plannedTransfers, realizedTransfers: $realizedTransfers, plannedInvoices: $plannedInvoices, realizedInvoices: $realizedInvoices)';
 }
 
 
@@ -2220,7 +2228,7 @@ abstract mixin class _$TransactionTotalsCopyWith<$Res> implements $TransactionTo
   factory _$TransactionTotalsCopyWith(_TransactionTotals value, $Res Function(_TransactionTotals) _then) = __$TransactionTotalsCopyWithImpl;
 @override @useResult
 $Res call({
- double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses
+ double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses, double plannedTransfers, double realizedTransfers, double plannedInvoices, double realizedInvoices
 });
 
 
@@ -2237,12 +2245,16 @@ class __$TransactionTotalsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,Object? plannedTransfers = null,Object? realizedTransfers = null,Object? plannedInvoices = null,Object? realizedInvoices = null,}) {
   return _then(_TransactionTotals(
 plannedIncomes: null == plannedIncomes ? _self.plannedIncomes : plannedIncomes // ignore: cast_nullable_to_non_nullable
 as double,realizedIncomes: null == realizedIncomes ? _self.realizedIncomes : realizedIncomes // ignore: cast_nullable_to_non_nullable
 as double,plannedExpenses: null == plannedExpenses ? _self.plannedExpenses : plannedExpenses // ignore: cast_nullable_to_non_nullable
 as double,realizedExpenses: null == realizedExpenses ? _self.realizedExpenses : realizedExpenses // ignore: cast_nullable_to_non_nullable
+as double,plannedTransfers: null == plannedTransfers ? _self.plannedTransfers : plannedTransfers // ignore: cast_nullable_to_non_nullable
+as double,realizedTransfers: null == realizedTransfers ? _self.realizedTransfers : realizedTransfers // ignore: cast_nullable_to_non_nullable
+as double,plannedInvoices: null == plannedInvoices ? _self.plannedInvoices : plannedInvoices // ignore: cast_nullable_to_non_nullable
+as double,realizedInvoices: null == realizedInvoices ? _self.realizedInvoices : realizedInvoices // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }

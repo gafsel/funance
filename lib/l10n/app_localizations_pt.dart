@@ -1249,6 +1249,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get totalExpenses => 'Total de Despesas';
 
   @override
+  String get totalTransfers => 'Total de Transferências';
+
+  @override
+  String get totalInvoices => 'Total de Faturas';
+
+  @override
   String get periodBalance => 'Saldo do Período';
 
   @override

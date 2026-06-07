@@ -420,6 +420,8 @@
   "periodSummary": "Period Summary",
   "totalIncomes": "Total Incomes",
   "totalExpenses": "Total Expenses",
+  "totalTransfers": "Total Transfers",
+  "totalInvoices": "Total Invoices",
   "periodBalance": "Period Balance",
   "plannedLabel": "Planned",
   "realizedLabel": "Realized",

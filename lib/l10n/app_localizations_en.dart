@@ -1241,6 +1241,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get totalExpenses => 'Total Expenses';
 
   @override
+  String get totalTransfers => 'Total Transfers';
+
+  @override
+  String get totalInvoices => 'Total Invoices';
+
+  @override
   String get periodBalance => 'Period Balance';
 
   @override
