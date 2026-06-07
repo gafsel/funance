@@ -2,6 +2,7 @@ import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -348,5 +349,23 @@ class FinanceMapper {
     if (value == 'reduce_credit_card') return GoalType.reduceCreditCard;
     if (value == 'pay_debt') return GoalType.payDebt;
     return GoalType.saveMoney;
+  }
+  static ReconciliationTransaction toReconciliationTransaction(dynamic json) {
+    if (json == null || json is! Map) {
+      return ReconciliationTransaction(
+        description: 'Sem descrição',
+        amount: 0.0,
+        date: DateTime.now(),
+        type: OrderType.expense,
+      );
+    }
+
+    return ReconciliationTransaction(
+      description: json['description']?.toString() ?? 'Sem descrição',
+      amount: _toDouble(json['amount']),
+      date: _toDateTime(json['date']),
+      type: _toOrderType(json['type']),
+      category: json['category'] != null ? toCategory(json['category']) : null,
+    );
   }
 }

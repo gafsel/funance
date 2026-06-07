@@ -22,6 +22,14 @@ export interface IAIRepository {
         existingCategories: string[],
         storagePath?: string,
     ): Promise<any>;
+
+    analyzeReconciliationDocument(
+        workspaceId: string,
+        fileBuffer: Buffer,
+        mimeType: string,
+        fileName: string,
+        existingCategories: string[],
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -45,6 +53,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
                         document: data?.prompts?.document || DEFAULT_CONFIG.prompts.document,
                         documentOfx: data?.prompts?.documentOfx || DEFAULT_CONFIG.prompts.documentOfx,
+                        reconciliation: data?.prompts?.reconciliation || DEFAULT_CONFIG.prompts.reconciliation,
                     },
                 };
             }
@@ -140,6 +149,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
         }
         else {
+            const isImage = mimeType.startsWith("image/");
             const prompt = config.prompts.document
                 .replace("{{fileName}}", fileName)
                 .replace("{{existingCategories}}", existingCategories.join(" | "));
@@ -156,12 +166,12 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const response = await result.response;
             const text = response.text();
 
-            // Log no Firestore para PDF
+            // Log no Firestore para PDF/Imagem
             await admin.firestore().collection("ai_logs").add({
                 workspaceId,
                 prompt,
                 response: text,
-                type: "document_analysis",
+                type: isImage ? "document_analysis_image" : "document_analysis_pdf",
                 fileName,
                 storagePath,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -214,6 +224,72 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 metadata: {},
             },
             orders: [],
+        };
+    }
+
+    async analyzeReconciliationDocument(
+        workspaceId: string,
+        fileBuffer: Buffer,
+        mimeType: string,
+        fileName: string,
+        existingCategories: string[],
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.document });
+
+        let prompt = config.prompts.reconciliation
+            .replace("{{fileName}}", fileName)
+            .replace("{{existingCategories}}", existingCategories.join(", "));
+
+        let aiResult;
+
+        if (mimeType === "application/x-ofx" || fileName.toLowerCase().endsWith(".ofx")) {
+            const ofxData = fileBuffer.toString("utf-8");
+            const parsedOfx = ofx.parse(ofxData);
+            const ofxExtracted = this.extractOfxData(parsedOfx);
+            
+            prompt = config.prompts.documentOfx
+                .replace("{{existingCategories}}", existingCategories.join(", "))
+                .replace("{{transactions}}", JSON.stringify(ofxExtracted.transactions));
+            
+            aiResult = await model.generateContent(prompt);
+        }
+        else {
+            aiResult = await model.generateContent([
+                prompt,
+                {
+                    inlineData: {
+                        data: fileBuffer.toString("base64"),
+                        mimeType: mimeType,
+                    },
+                },
+            ]);
+        }
+
+        const text = aiResult.response.text();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error("Não foi possível extrair JSON da resposta da IA");
+        }
+
+        const data = JSON.parse(jsonMatch[0]);
+
+        if (data.error) {
+            return data;
+        }
+
+        // Tentar encontrar transações em diferentes campos possíveis do JSON
+        const transactionsRaw = data.transactions || data.orders || data.items || [];
+        const transactions = Array.isArray(transactionsRaw) ? transactionsRaw : [];
+
+        return {
+            transactions: transactions.map((t: any) => ({
+                description: t.description || t.memo || t.text || "Sem descrição",
+                amount: t.amount !== undefined ? t.amount : (t.value !== undefined ? t.value : (t.total !== undefined ? t.total : 0)),
+                date: t.date || t.dueDate || t.timestamp || new Date().toISOString(),
+                type: t.type || (t.amount < 0 ? "expense" : "income"),
+                category: t.category,
+            })),
         };
     }
 

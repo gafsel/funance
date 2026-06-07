@@ -649,6 +649,101 @@ class AppLocalizationsPt extends AppLocalizations {
   String get deleteButton => 'Excluir';
 
   @override
+  String get reconciliationTitle => 'Conciliação Bancária';
+
+  @override
+  String reconciliationTransactionsFound(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transações encontradas',
+      one: '1 transação encontrada',
+      zero: 'Nenhuma transação encontrada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reconciliationSelectAccount =>
+      'Selecione o arquivo de extrato ou fatura';
+
+  @override
+  String get reconciliationSupportedFormats =>
+      'Suporta PDF, OFX e Imagens (PNG, JPG)';
+
+  @override
+  String get reconciliationChooseFile => 'Escolher Arquivo';
+
+  @override
+  String get reconciliationAnalyzing => 'Analisando seu extrato';
+
+  @override
+  String get reconciliationAnalyzingDesc =>
+      'A IA está processando as transações do seu documento para conciliação.';
+
+  @override
+  String get reconciliationConfirm => 'Confirmar';
+
+  @override
+  String get reconciliationBack => 'Voltar';
+
+  @override
+  String get reconciliationSuccess => 'Conciliação realizada com sucesso!';
+
+  @override
+  String get reconciliationStatusMatched => 'Encontrado';
+
+  @override
+  String get reconciliationStatusSuggested => 'Sugerido';
+
+  @override
+  String get reconciliationStatusUnmatched => 'Novo';
+
+  @override
+  String get reconciliationStatusIgnored => 'Ignorado';
+
+  @override
+  String get reconciliationActionConfirm => 'Confirmar';
+
+  @override
+  String get reconciliationActionModify => 'Modificar';
+
+  @override
+  String get reconciliationActionIgnore => 'Ignorar';
+
+  @override
+  String get reconciliationActionRestore => 'Restaurar';
+
+  @override
+  String get reconciliationActionLink => 'Vincular';
+
+  @override
+  String get reconciliationActionRegister => 'Cadastrar';
+
+  @override
+  String get reconciliationActionAnalyze => 'Analisar Extrato';
+
+  @override
+  String get reconciliationSystemLabel => 'SISTEMA';
+
+  @override
+  String get reconciliationExtratoLabel => 'EXTRATO';
+
+  @override
+  String get reconciliationNoMatchFound =>
+      'Nenhuma transação correlata encontrada';
+
+  @override
+  String get reconciliationSectionTitle => 'CONCILIAÇÃO';
+
+  @override
+  String get reconciliationSectionDesc =>
+      'Vincule este lançamento a uma transação do seu extrato bancário.';
+
+  @override
+  String get reconciliationChangeAccount => 'Alterar';
+
+  @override
   String get cancelButton => 'Cancelar';
 
   @override

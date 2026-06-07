@@ -24,6 +24,10 @@ class TransactionFormScreen extends StatelessWidget {
   final CategoryModel? category;
   final String? accountIdSource;
   final String? accountIdTarget;
+  final InstallmentStatus? status;
+  final String? description;
+  final DateTime? dueDate;
+  final double? amount;
 
   const TransactionFormScreen._({
     super.key,
@@ -34,6 +38,9 @@ class TransactionFormScreen extends StatelessWidget {
     this.category,
     this.accountIdSource,
     this.accountIdTarget,
+    this.description,
+    this.dueDate,
+    this.amount,
   });
 
   factory TransactionFormScreen.creation({
@@ -42,6 +49,9 @@ class TransactionFormScreen extends StatelessWidget {
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
+    String? description,
+    double? amount,
+    DateTime? dueDate,
   }) {
     return TransactionFormScreen._(
       type: type,
@@ -49,10 +59,11 @@ class TransactionFormScreen extends StatelessWidget {
       category: category,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
+      description: description,
+      amount: amount,
+      dueDate: dueDate,
     );
   }
-
-  final InstallmentStatus? status;
 
   factory TransactionFormScreen.updateInstallment({
     required InstallmentModel installment,
@@ -90,6 +101,9 @@ class TransactionFormScreen extends StatelessWidget {
               category: category,
               accountIdSource: accountIdSource,
               accountIdTarget: accountIdTarget,
+              description: description,
+              amount: amount,
+              date: dueDate,
             ),
           );
 
@@ -148,199 +162,204 @@ class TransactionFormScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ResponsiveForm<TransactionFormState, void, TransactionFormNotifier>(
-        provider,
-        submitLabel: l10n.saveButton,
-        submitEnabled: (state) => state.status != InstallmentStatus.settled,
-        extraActions: [
-          Consumer(
-            builder: (context, ref, _) {
-              final state = ref.watch(provider);
-              final notifier = ref.watch(provider.notifier);
+      body:
+          ResponsiveForm<
+            TransactionFormState,
+            dynamic,
+            TransactionFormNotifier
+          >(
+            provider,
+            submitLabel: l10n.saveButton,
+            submitEnabled: (state) => true,
+            extraActions: [
+              Consumer(
+                builder: (context, ref, _) {
+                  final state = ref.watch(provider);
+                  final notifier = ref.watch(provider.notifier);
 
-              if (!state.creation &&
-                  state.status == InstallmentStatus.pending) {
-                return OutlinedButton(
-                  onPressed: () {
-                    notifier.updateStatus(InstallmentStatus.paid);
-                  },
-                  child: Text(l10n.registerEffectivation),
-                );
+                  if (!state.creation &&
+                      state.status == InstallmentStatus.pending) {
+                    return OutlinedButton(
+                      onPressed: () {
+                        notifier.updateStatus(InstallmentStatus.paid);
+                      },
+                      child: Text(l10n.registerEffectivation),
+                    );
+                  }
+
+                  return SizedBox.shrink();
+                },
+              ),
+              Spacer(),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancelButton),
+              ),
+            ],
+            onSubmit: (snapshot, loading) async {
+              if (!snapshot.validate()) return;
+
+              final state = snapshot.model;
+              final notifier = snapshot.notifier;
+
+              ReplicationCascade cascade = ReplicationCascade.none;
+
+              if (notifier.shouldAskCascade) {
+                final original = installment!;
+                final changedFieldsOtherThanStatusOrPayment =
+                    state.description != original.description ||
+                    state.amount != original.amount ||
+                    state.dueDate != original.dueDate ||
+                    state.category?.id != original.category?.id ||
+                    state.accountIdSource != original.accountIdSource ||
+                    state.accountIdTarget != original.accountIdTarget;
+
+                if (changedFieldsOtherThanStatusOrPayment) {
+                  final selectedCascade =
+                      await ReplicationCascadeDialog.showUpdate(context);
+
+                  if (selectedCascade == null) return;
+                  cascade = selectedCascade;
+                }
               }
 
-              return SizedBox.shrink();
-            },
-          ),
-          Spacer(),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancelButton),
-          ),
-        ],
-        onSubmit: (snapshot, loading) async {
-          if (snapshot.model.status == InstallmentStatus.settled) return;
-          if (!snapshot.validate()) return;
+              notifier.updateReplicationCascade(cascade);
 
-          final state = snapshot.model;
-          final notifier = snapshot.notifier;
+              final result = await loading(notifier.submit());
 
-          ReplicationCascade cascade = ReplicationCascade.none;
-
-          if (notifier.shouldAskCascade) {
-            final original = installment!;
-            final changedFieldsOtherThanStatusOrPayment =
-                state.description != original.description ||
-                state.amount != original.amount ||
-                state.dueDate != original.dueDate ||
-                state.category?.id != original.category?.id ||
-                state.accountIdSource != original.accountIdSource ||
-                state.accountIdTarget != original.accountIdTarget;
-
-            if (changedFieldsOtherThanStatusOrPayment) {
-              final selectedCascade = await ReplicationCascadeDialog.showUpdate(
-                context,
+              messenger.showSnackBar(
+                SnackBar(content: Text(l10n.transactionSaveSuccess)),
               );
 
-              if (selectedCascade == null) return;
-              cascade = selectedCascade;
-            }
-          }
+              navigator.pop(result);
+            },
+            bannerBuilder: (context, snapshot) {
+              final state = snapshot.model;
+              final notifier = snapshot.notifier;
 
-          notifier.updateReplicationCascade(cascade);
-          await loading(notifier.submit());
+              if (!state.creation &&
+                  state.status == InstallmentStatus.settled) {
+                return MaterialBanner(
+                  backgroundColor: AppColors.successGold,
+                  content: Text(l10n.transactionSettledAlert),
+                  actions: [
+                    TextButton(
+                      onPressed: notifier.unsettle,
+                      child: Text(l10n.transactionUnsettleAction),
+                    ),
+                  ],
+                );
+              }
+              return null;
+            },
+            fieldsBuilder: (context, snapshot) {
+              final state = snapshot.model;
+              final notifier = snapshot.notifier;
+              final v = context.validations;
+              final isPending = state.status == InstallmentStatus.pending;
+              final isSettled = state.status == InstallmentStatus.settled;
 
-          navigator.pop(true);
-        },
-        onSuccess: (output) {
-          messenger.showSnackBar(
-            SnackBar(content: Text(l10n.transactionSaveSuccess)),
-          );
+              final showAccounts = true;
 
-          navigator.pop();
-        },
-        bannerBuilder: (context, snapshot) {
-          final state = snapshot.model;
-          final notifier = snapshot.notifier;
-          if (state.status == InstallmentStatus.settled) {
-            return MaterialBanner(
-              backgroundColor: AppColors.successGold,
-              content: Text(l10n.transactionSettledAlert),
-              actions: [
-                TextButton(
-                  onPressed: notifier.unsettle,
-                  child: Text(l10n.transactionUnsettleAction),
-                ),
-              ],
-            );
-          }
-          return null;
-        },
-        fieldsBuilder: (context, snapshot) {
-          final state = snapshot.model;
-          final notifier = snapshot.notifier;
-          final v = context.validations;
-          final isPending = state.status == InstallmentStatus.pending;
-          final isSettled = state.status == InstallmentStatus.settled;
-
-          final showAccounts = true;
-
-          return [
-            ChipFormField<OrderType>(
-              initialValue: state.type,
-              decoration: InputDecoration(
-                labelText: l10n.transactionOrderTypeLabel,
-              ),
-              options: [
-                ChipFormFieldOption(
-                  value: OrderType.expense,
-                  label: l10n.transactionTypeExpense,
-                ),
-                ChipFormFieldOption(
-                  value: OrderType.income,
-                  label: l10n.transactionTypeIncome,
-                ),
-                ChipFormFieldOption(
-                  value: OrderType.transfer,
-                  label: l10n.transactionTypeTransfer,
-                ),
-              ],
-              onChanged: state.creation && !isSettled && !state.isInvoice
-                  ? (v) {
-                      if (v != null) {
-                        notifier.updateOrderType(v);
-                      }
-                    }
-                  : null,
-              validator: v.all([v.notNull()]),
-            ),
-            if (state.type == OrderType.transfer) ...[
-              CategoryFormField.transfer(
-                decoration: InputDecoration(
-                  labelText: l10n.transactionCategoriesSection,
-                ),
-              ),
-            ] else ...[
-              CategoryFormField(
-                initialValue: state.category,
-                categoryType: state.type.categoryType,
-                decoration: InputDecoration(
-                  labelText: l10n.transactionCategoriesSection,
-                ),
-                onChanged:
-                    (state.creation ||
-                            (state.installmentId != null &&
-                                state.status == InstallmentStatus.pending)) &&
-                        !isSettled &&
-                        !state.isInvoice
-                    ? notifier.updateCategory
-                    : null,
-                validator: v.all([v.notNull()]),
-                autoOpen: state.creation && state.type != OrderType.transfer,
-              ),
-            ],
-            if (showAccounts) ...[
-              AccountFormField(
-                initialValue: state.accountIdSource,
-                decoration: InputDecoration(
-                  labelText: state.type == OrderType.transfer
-                      ? l10n.transactionFromAccountLabel
-                      : l10n.transactionAccountLabel,
-                ),
-                onChanged:
-                    (state.status != InstallmentStatus.paid ||
-                            state.creation) &&
-                        !isSettled
-                    ? notifier.updateAccountIdSource
-                    : null,
-                validator: isPending ? null : v.all([v.notEmpty()]),
-                autoOpen:
-                    state.creation && state.status == InstallmentStatus.paid,
-              ),
-              if (state.type == OrderType.transfer) ...[
-                AccountFormField(
-                  initialValue: state.accountIdTarget,
+              return [
+                ChipFormField<OrderType>(
+                  initialValue: state.type,
                   decoration: InputDecoration(
-                    labelText: l10n.transactionToAccountLabel,
+                    labelText: l10n.transactionOrderTypeLabel,
                   ),
-                  onChanged:
-                      (state.status != InstallmentStatus.paid ||
-                              state.creation) &&
-                          !isSettled &&
-                          !state.isInvoice
-                      ? notifier.updateAccountIdTarget
+                  options: [
+                    ChipFormFieldOption(
+                      value: OrderType.expense,
+                      label: l10n.transactionTypeExpense,
+                    ),
+                    ChipFormFieldOption(
+                      value: OrderType.income,
+                      label: l10n.transactionTypeIncome,
+                    ),
+                    ChipFormFieldOption(
+                      value: OrderType.transfer,
+                      label: l10n.transactionTypeTransfer,
+                    ),
+                  ],
+                  onChanged: state.creation && !isSettled && !state.isInvoice
+                      ? (v) {
+                          if (v != null) {
+                            notifier.updateOrderType(v);
+                          }
+                        }
                       : null,
-                  validator: v.all([v.notEmpty()]),
-                  autoOpen:
-                      state.creation &&
-                      state.accountIdSource != null &&
-                      state.type == OrderType.transfer,
+                  validator: v.all([v.notNull()]),
                 ),
-              ],
-            ],
-            ..._buildBasicFields(context, state, notifier),
-          ];
-        },
-      ),
+                if (state.type == OrderType.transfer) ...[
+                  CategoryFormField.transfer(
+                    decoration: InputDecoration(
+                      labelText: l10n.transactionCategoriesSection,
+                    ),
+                  ),
+                ] else ...[
+                  CategoryFormField(
+                    initialValue: state.category,
+                    categoryType: state.type.categoryType,
+                    decoration: InputDecoration(
+                      labelText: l10n.transactionCategoriesSection,
+                    ),
+                    onChanged:
+                        !state.isInvoice && state.creation ||
+                            ((state.installmentId != null &&
+                                    state.status ==
+                                        InstallmentStatus.pending) &&
+                                !isSettled)
+                        ? notifier.updateCategory
+                        : null,
+                    validator: v.all([v.notNull()]),
+                    autoOpen:
+                        state.creation && state.type != OrderType.transfer,
+                  ),
+                ],
+                if (showAccounts) ...[
+                  AccountFormField(
+                    initialValue: state.accountIdSource,
+                    decoration: InputDecoration(
+                      labelText: state.type == OrderType.transfer
+                          ? l10n.transactionFromAccountLabel
+                          : l10n.transactionAccountLabel,
+                    ),
+                    onChanged:
+                        (state.status == InstallmentStatus.pending ||
+                                state.creation) &&
+                            !isSettled
+                        ? notifier.updateAccountIdSource
+                        : null,
+                    validator: isPending ? null : v.all([v.notEmpty()]),
+                    autoOpen:
+                        state.creation &&
+                        state.status != InstallmentStatus.pending,
+                  ),
+                  if (state.type == OrderType.transfer) ...[
+                    AccountFormField(
+                      initialValue: state.accountIdTarget,
+                      decoration: InputDecoration(
+                        labelText: l10n.transactionToAccountLabel,
+                      ),
+                      onChanged:
+                          (state.status == InstallmentStatus.pending ||
+                                  state.creation) &&
+                              !isSettled &&
+                              !state.isInvoice
+                          ? notifier.updateAccountIdTarget
+                          : null,
+                      validator: v.all([v.notEmpty()]),
+                      autoOpen:
+                          state.creation &&
+                          state.accountIdSource != null &&
+                          state.type == OrderType.transfer,
+                    ),
+                  ],
+                ],
+                ..._buildBasicFields(context, state, notifier),
+              ];
+            },
+          ),
     );
   }
 
@@ -374,7 +393,8 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         onChanged: notifier.updateDescription,
         validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
-        enabled: (!isPaid || state.creation) && !isSettled && !state.isInvoice,
+        enabled:
+            state.creation || ((!isPaid || !isSettled) && !state.isInvoice),
       ),
       DateFormField(
         initialValue: state.dueDate,
@@ -457,7 +477,8 @@ class TransactionFormScreen extends StatelessWidget {
         ),
       if (state.formType == TransactionFormType.installment)
         _buildStatusField(context, state, notifier),
-      if (state.formType == TransactionFormType.installment && isPaid) ...[
+      if (state.formType == TransactionFormType.installment &&
+          (isPaid || isSettled)) ...[
         DateFormField(
           initialValue: state.paidDate,
           onChanged: (date) {
@@ -489,7 +510,7 @@ class TransactionFormScreen extends StatelessWidget {
     final isSettled = state.status == InstallmentStatus.settled;
 
     return ChipFormField<InstallmentStatus>(
-      initialValue: state.status,
+      initialValue: isSettled ? InstallmentStatus.paid : state.status,
       decoration: InputDecoration(
         labelText: state.creation
             ? l10n.transactionStatusTypeLabel
@@ -521,7 +542,7 @@ class TransactionFormScreen extends StatelessWidget {
                   label: l10n.transactionStatusSettled,
                 ),
             ],
-      onChanged: state.creation
+      onChanged: state.creation && !isSettled
           ? (v) {
               if (v != null) {
                 notifier.updateStatus(v);

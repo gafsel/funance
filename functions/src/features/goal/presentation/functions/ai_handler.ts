@@ -45,3 +45,27 @@ export const analyzeAccountDocument = onCall({ timeoutSeconds: 300 }, async (req
         throw new HttpsError("internal", error.message || "Erro ao processar análise do documento.");
     }
 });
+
+export const analyzeReconciliationDocument = onCall({ timeoutSeconds: 300 }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
+    }
+
+    const { workspaceId, storagePath } = request.data;
+
+    if (!workspaceId || !storagePath) {
+        throw new HttpsError("invalid-argument", "Workspace ID e caminho no storage são obrigatórios.");
+    }
+
+    try {
+        const analysis = await container.onboardingService.analyzeReconciliationDocument(
+            workspaceId,
+            storagePath,
+        );
+        return analysis;
+    }
+    catch (error: any) {
+        console.error("Erro na análise de conciliação:", error);
+        throw new HttpsError("internal", error.message || "Erro ao processar análise de conciliação.");
+    }
+});

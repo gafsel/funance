@@ -10,8 +10,8 @@ class FinanceService {
 
   FinanceService({required this.workspaceId, required this.repository});
 
-  Future<void> addOrder(OrderModel order) async {
-    await repository.addOrder(workspaceId, order);
+  Future<OrderModel> addOrder(OrderModel order) async {
+    return await repository.addOrder(workspaceId, order);
   }
 
   Future<void> updateOrder(OrderModel order) async {

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 
 class AccountService {
@@ -46,5 +47,9 @@ class AccountService {
 
   Future<AccountDocumentAnalysisResult> analyzeDocument(File file) async {
     return repository.analyseDocument(workspaceId, file);
+  }
+
+  Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(File file) async {
+    return repository.analyzeReconciliationDocument(workspaceId, file);
   }
 }

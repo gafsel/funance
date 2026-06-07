@@ -10,6 +10,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/features/finance/presentation/screens/category_planning_screen.dart';
+import 'package:funances/features/finance/presentation/screens/reconciliation_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_wizard_screen.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
@@ -234,6 +235,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final goal = state.extra as GoalModel?;
           return GoalFormScreen(goal: goal);
         },
+      ),
+      GoRoute(
+        path: '/reconciliation',
+        builder: (context, state) => const ReconciliationScreen(),
       ),
     ],
   );

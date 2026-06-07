@@ -7,6 +7,7 @@ export interface AIConfig {
     goals: string;
     document: string;
     documentOfx: string;
+    reconciliation: string;
   };
 }
 
@@ -134,5 +135,39 @@ export const DEFAULT_CONFIG: AIConfig = {
                     ]
                 }
             `,
+        reconciliation: `
+            Você é um assistente financeiro especializado em conciliação bancária.
+            Sua tarefa é analisar o conteúdo do arquivo "{{fileName}}" (extrato ou fatura) e extrair todas as transações para conciliação.
+
+            REGRAS DE CATEGORIZAÇÃO:
+            - Utilize OBRIGATORIAMENTE as categorias existentes se houver similaridade: {{existingCategories}}.
+            - Só sugira uma nova categoria se não houver nenhuma similar nas existentes.
+
+            CONSIDERAÇÕES:
+            - Extraia cada transação individualmente com data, descrição, valor e tipo (income/expense).
+            - Não agrupe transações.
+            - Para faturas de cartão de crédito, identifique se os valores são gastos (expense) ou pagamentos/créditos (income).
+
+            VALIDAÇÃO:
+            - Se o documento não for um extrato ou fatura válido, retorne um JSON com o campo "error".
+
+            Retorne apenas um objeto JSON no formato:
+            {
+                "transactions": [
+                    {
+                        "description": "Descrição da transação",
+                        "amount": 100.0,
+                        "date": "YYYY-MM-DD",
+                        "type": "expense" | "income",
+                        "category": {
+                            "name": "Categoria Sugerida",
+                            "icon": "ícone_material_design",
+                            "color": "#HEXCODE",
+                            "type": "income" | "expense"
+                        }
+                    }
+                ]
+            }
+        `,
     },
 };

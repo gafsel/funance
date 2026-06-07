@@ -9,9 +9,10 @@ service firebase.storage {
         request.auth.uid in firestore.get(/databases/(default)/documents/workspaces/$(workspaceId)).data.members;
     }
 
-    // Regras para arquivos de onboarding/extratos
-    match /workspaces/{workspaceId}/onboarding/{allPaths=**} {
-      allow read, write: if isMember(workspaceId);
+    // Regras para arquivos do workspace (onboarding, extratos, análise de contas, conciliação)
+    match /workspaces/{workspaceId}/{folder}/{allPaths=**} {
+      allow read, write: if isMember(workspaceId) && 
+        folder in ['onboarding', 'account_analysis', 'reconciliation'];
     }
 
     // Regras para avatares de usuários

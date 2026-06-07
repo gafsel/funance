@@ -139,11 +139,12 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
-  Future<void> addOrder(String workspaceId, OrderModel order) async {
+  Future<OrderModel> addOrder(String workspaceId, OrderModel order) async {
     try {
       final data = order.toJson();
       data.remove('id');
-      await _getWorkspaceDoc(workspaceId).collection('orders').add(data);
+      final doc = await _getWorkspaceDoc(workspaceId).collection('orders').add(data);
+      return order.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

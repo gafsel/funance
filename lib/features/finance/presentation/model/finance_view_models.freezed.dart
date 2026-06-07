@@ -1368,7 +1368,7 @@ $InstallmentModelCopyWith<$Res>? get selectedInstallment {
 /// @nodoc
 mixin _$TransactionCreationArgs {
 
- OrderType get type; InstallmentStatus? get status; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget;
+ OrderType get type; InstallmentStatus? get status; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget; String? get description; DateTime? get date; double? get amount;
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1379,16 +1379,16 @@ $TransactionCreationArgsCopyWith<TransactionCreationArgs> get copyWith => _$Tran
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.description, description) || other.description == description)&&(identical(other.date, date) || other.date == date)&&(identical(other.amount, amount) || other.amount == amount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,status,category,accountIdSource,accountIdTarget);
+int get hashCode => Object.hash(runtimeType,type,status,category,accountIdSource,accountIdTarget,description,date,amount);
 
 @override
 String toString() {
-  return 'TransactionCreationArgs(type: $type, status: $status, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget)';
+  return 'TransactionCreationArgs(type: $type, status: $status, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, description: $description, date: $date, amount: $amount)';
 }
 
 
@@ -1399,7 +1399,7 @@ abstract mixin class $TransactionCreationArgsCopyWith<$Res>  {
   factory $TransactionCreationArgsCopyWith(TransactionCreationArgs value, $Res Function(TransactionCreationArgs) _then) = _$TransactionCreationArgsCopyWithImpl;
 @useResult
 $Res call({
- OrderType type, InstallmentStatus? status, CategoryModel? category, String? accountIdSource, String? accountIdTarget
+ OrderType type, InstallmentStatus? status, CategoryModel? category, String? accountIdSource, String? accountIdTarget, String? description, DateTime? date, double? amount
 });
 
 
@@ -1416,14 +1416,17 @@ class _$TransactionCreationArgsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? status = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? status = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? description = freezed,Object? date = freezed,Object? amount = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as InstallmentStatus?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
 as String?,accountIdTarget: freezed == accountIdTarget ? _self.accountIdTarget : accountIdTarget // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,date: freezed == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as DateTime?,amount: freezed == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 /// Create a copy of TransactionCreationArgs
@@ -1517,10 +1520,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionCreationArgs() when $default != null:
-return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget);case _:
+return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);case _:
   return orElse();
 
 }
@@ -1538,10 +1541,10 @@ return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionCreationArgs():
-return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget);}
+return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1555,10 +1558,10 @@ return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionCreationArgs() when $default != null:
-return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget);case _:
+return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);case _:
   return null;
 
 }
@@ -1570,7 +1573,7 @@ return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_th
 
 
 class _TransactionCreationArgs implements TransactionCreationArgs {
-   _TransactionCreationArgs({required this.type, this.status, this.category, this.accountIdSource, this.accountIdTarget});
+   _TransactionCreationArgs({required this.type, this.status, this.category, this.accountIdSource, this.accountIdTarget, this.description, this.date, this.amount});
   
 
 @override final  OrderType type;
@@ -1578,6 +1581,9 @@ class _TransactionCreationArgs implements TransactionCreationArgs {
 @override final  CategoryModel? category;
 @override final  String? accountIdSource;
 @override final  String? accountIdTarget;
+@override final  String? description;
+@override final  DateTime? date;
+@override final  double? amount;
 
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
@@ -1589,16 +1595,16 @@ _$TransactionCreationArgsCopyWith<_TransactionCreationArgs> get copyWith => __$T
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.description, description) || other.description == description)&&(identical(other.date, date) || other.date == date)&&(identical(other.amount, amount) || other.amount == amount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,status,category,accountIdSource,accountIdTarget);
+int get hashCode => Object.hash(runtimeType,type,status,category,accountIdSource,accountIdTarget,description,date,amount);
 
 @override
 String toString() {
-  return 'TransactionCreationArgs(type: $type, status: $status, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget)';
+  return 'TransactionCreationArgs(type: $type, status: $status, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, description: $description, date: $date, amount: $amount)';
 }
 
 
@@ -1609,7 +1615,7 @@ abstract mixin class _$TransactionCreationArgsCopyWith<$Res> implements $Transac
   factory _$TransactionCreationArgsCopyWith(_TransactionCreationArgs value, $Res Function(_TransactionCreationArgs) _then) = __$TransactionCreationArgsCopyWithImpl;
 @override @useResult
 $Res call({
- OrderType type, InstallmentStatus? status, CategoryModel? category, String? accountIdSource, String? accountIdTarget
+ OrderType type, InstallmentStatus? status, CategoryModel? category, String? accountIdSource, String? accountIdTarget, String? description, DateTime? date, double? amount
 });
 
 
@@ -1626,14 +1632,17 @@ class __$TransactionCreationArgsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? status = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? status = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? description = freezed,Object? date = freezed,Object? amount = freezed,}) {
   return _then(_TransactionCreationArgs(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as InstallmentStatus?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
 as String?,accountIdTarget: freezed == accountIdTarget ? _self.accountIdTarget : accountIdTarget // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String?,date: freezed == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as DateTime?,amount: freezed == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 

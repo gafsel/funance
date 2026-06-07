@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:uuid/uuid.dart';
+import '../../domain/models/reconciliation_model.dart';
 import '../../domain/models/account_model.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import '../models/account_mapper.dart';
@@ -159,6 +160,45 @@ class AccountRepositoryImpl implements IAccountRepository {
       });
 
       return FinanceMapper.toAnalysisResult(result.data);
+    } catch (e, s) {
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  @override
+  Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
+    String workspaceId,
+    File file,
+  ) async {
+    try {
+      String name = file.path.split("/").last;
+
+      // 1. Upload para o Storage
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final storagePath =
+          'workspaces/$workspaceId/reconciliation/${_auth.currentUser!.uid}_${timestamp}_$name';
+
+      await _storage.ref().child(storagePath).putFile(file);
+
+      final callable = _functions.httpsCallable(
+        'analyzeReconciliationDocument',
+        options: HttpsCallableOptions(timeout: const Duration(minutes: 5)),
+      );
+
+      final result = await callable.call({
+        'workspaceId': workspaceId,
+        'storagePath': storagePath,
+      });
+
+      final Map<String, dynamic> data = Map<String, dynamic>.from(result.data);
+      final List<dynamic> transactions = data['transactions'] is List ? data['transactions'] : [];
+      return transactions
+          .map((t) => FinanceMapper.toReconciliationTransaction(t))
+          .toList();
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

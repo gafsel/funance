@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
+
 import '../models/account_model.dart';
 
 abstract class IAccountRepository {
@@ -27,6 +29,11 @@ abstract class IAccountRepository {
   );
 
   Future<AccountDocumentAnalysisResult> analyseDocument(
+    String workspaceId,
+    File file,
+  );
+
+  Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
     String workspaceId,
     File file,
   );

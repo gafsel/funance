@@ -5,7 +5,8 @@ import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
-class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
+class TransactionFormNotifier
+    extends FormNotifier<TransactionFormState, dynamic> {
   final FinanceService financeService;
 
   TransactionFormNotifier(super.initialState, {required this.financeService})
@@ -92,25 +93,28 @@ class TransactionFormNotifier extends FormNotifier<TransactionFormState, void> {
     );
   }
 
-  Future<bool> submit() async {
+  @override
+  Future<dynamic> submit() async {
     if (state.formType == TransactionFormType.order) {
       final order = state.asOrderModel();
 
       if (state.creation) {
-        await financeService.addOrder(order);
+        final saved = await financeService.addOrder(order);
 
-        state = state.copyWith(orderId: order.id);
+        state = state.copyWith(orderId: saved.id);
+
+        return saved;
       } else {
         await financeService.updateOrder(order);
-      }
 
-      return true;
+        return order;
+      }
     } else {
       final installment = state.asInstallmentModel();
 
       await financeService.updateInstallment(installment);
 
-      return true;
+      return installment;
     }
   }
 

@@ -1232,6 +1232,168 @@ abstract class AppLocalizations {
   /// **'Excluir'**
   String get deleteButton;
 
+  /// No description provided for @reconciliationTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliação Bancária'**
+  String get reconciliationTitle;
+
+  /// No description provided for @reconciliationTransactionsFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =0{Nenhuma transação encontrada} =1{1 transação encontrada} other{{count} transações encontradas}}'**
+  String reconciliationTransactionsFound(num count);
+
+  /// No description provided for @reconciliationSelectAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecione o arquivo de extrato ou fatura'**
+  String get reconciliationSelectAccount;
+
+  /// No description provided for @reconciliationSupportedFormats.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suporta PDF, OFX e Imagens (PNG, JPG)'**
+  String get reconciliationSupportedFormats;
+
+  /// No description provided for @reconciliationChooseFile.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolher Arquivo'**
+  String get reconciliationChooseFile;
+
+  /// No description provided for @reconciliationAnalyzing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando seu extrato'**
+  String get reconciliationAnalyzing;
+
+  /// No description provided for @reconciliationAnalyzingDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'A IA está processando as transações do seu documento para conciliação.'**
+  String get reconciliationAnalyzingDesc;
+
+  /// No description provided for @reconciliationConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar'**
+  String get reconciliationConfirm;
+
+  /// No description provided for @reconciliationBack.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar'**
+  String get reconciliationBack;
+
+  /// No description provided for @reconciliationSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliação realizada com sucesso!'**
+  String get reconciliationSuccess;
+
+  /// No description provided for @reconciliationStatusMatched.
+  ///
+  /// In pt, this message translates to:
+  /// **'Encontrado'**
+  String get reconciliationStatusMatched;
+
+  /// No description provided for @reconciliationStatusSuggested.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugerido'**
+  String get reconciliationStatusSuggested;
+
+  /// No description provided for @reconciliationStatusUnmatched.
+  ///
+  /// In pt, this message translates to:
+  /// **'Novo'**
+  String get reconciliationStatusUnmatched;
+
+  /// No description provided for @reconciliationStatusIgnored.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ignorado'**
+  String get reconciliationStatusIgnored;
+
+  /// No description provided for @reconciliationActionConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar'**
+  String get reconciliationActionConfirm;
+
+  /// No description provided for @reconciliationActionModify.
+  ///
+  /// In pt, this message translates to:
+  /// **'Modificar'**
+  String get reconciliationActionModify;
+
+  /// No description provided for @reconciliationActionIgnore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ignorar'**
+  String get reconciliationActionIgnore;
+
+  /// No description provided for @reconciliationActionRestore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restaurar'**
+  String get reconciliationActionRestore;
+
+  /// No description provided for @reconciliationActionLink.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vincular'**
+  String get reconciliationActionLink;
+
+  /// No description provided for @reconciliationActionRegister.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastrar'**
+  String get reconciliationActionRegister;
+
+  /// No description provided for @reconciliationActionAnalyze.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisar Extrato'**
+  String get reconciliationActionAnalyze;
+
+  /// No description provided for @reconciliationSystemLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'SISTEMA'**
+  String get reconciliationSystemLabel;
+
+  /// No description provided for @reconciliationExtratoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'EXTRATO'**
+  String get reconciliationExtratoLabel;
+
+  /// No description provided for @reconciliationNoMatchFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma transação correlata encontrada'**
+  String get reconciliationNoMatchFound;
+
+  /// No description provided for @reconciliationSectionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'CONCILIAÇÃO'**
+  String get reconciliationSectionTitle;
+
+  /// No description provided for @reconciliationSectionDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vincule este lançamento a uma transação do seu extrato bancário.'**
+  String get reconciliationSectionDesc;
+
+  /// No description provided for @reconciliationChangeAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alterar'**
+  String get reconciliationChangeAccount;
+
   /// No description provided for @cancelButton.
   ///
   /// In pt, this message translates to:

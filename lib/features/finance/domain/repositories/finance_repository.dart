@@ -23,7 +23,7 @@ abstract class IFinanceRepository {
 
   Future<OrderModel?> getOrder(String workspaceId, String orderId);
 
-  Future<void> addOrder(String workspaceId, OrderModel order);
+  Future<OrderModel> addOrder(String workspaceId, OrderModel order);
 
   Future<void> updateOrder(String workspaceId, OrderModel order);
 

@@ -9,9 +9,8 @@ part 'finance_view_models.freezed.dart';
 
 @freezed
 sealed class CategoryPlanningArgs with _$CategoryPlanningArgs {
-  factory CategoryPlanningArgs({
-    required CategoryType type,
-  }) = _CategoryPlanningArgs;
+  factory CategoryPlanningArgs({required CategoryType type}) =
+      _CategoryPlanningArgs;
 }
 
 @freezed
@@ -61,6 +60,9 @@ sealed class TransactionCreationArgs with _$TransactionCreationArgs {
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
+    String? description,
+    DateTime? date,
+    double? amount,
   }) = _TransactionCreationArgs;
 }
 
@@ -102,16 +104,31 @@ sealed class TransactionFormState with _$TransactionFormState {
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
+    String? description,
+    DateTime? date,
+    double? amount,
   }) {
     return TransactionFormState(
       formType: TransactionFormType.order,
       type: type,
       category: category,
-      dueDate: DateTime.now(),
+      dueDate: date ?? DateTime.now(),
+      paidDate:
+          status == InstallmentStatus.paid ||
+              status == InstallmentStatus.settled
+          ? date ?? DateTime.now()
+          : null,
       status: status ?? InstallmentStatus.pending,
       installmentType: InstallmentType.single,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
+      description: description ?? "",
+      amount: amount ?? 0.0,
+      paidAmount:
+          status == InstallmentStatus.paid ||
+              status == InstallmentStatus.settled
+          ? amount ?? 0.0
+          : null,
     );
   }
 
@@ -141,7 +158,8 @@ sealed class TransactionFormState with _$TransactionFormState {
     DateTime? paidDate = installment.paidDate;
     double? paidAmount = installment.paidAmount;
 
-    if (status == InstallmentStatus.paid || status == InstallmentStatus.settled) {
+    if (status == InstallmentStatus.paid ||
+        status == InstallmentStatus.settled) {
       paidAmount = installment.amount;
       paidDate = installment.dueDate.isAfter(DateTime.now())
           ? DateTime.now()
@@ -245,6 +263,7 @@ sealed class TransactionTotals with _$TransactionTotals {
   const TransactionTotals._();
 
   double get plannedBalance => plannedIncomes - plannedExpenses;
+
   double get realizedBalance => realizedIncomes - realizedExpenses;
 }
 

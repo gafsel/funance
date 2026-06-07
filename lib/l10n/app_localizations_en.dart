@@ -644,6 +644,100 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteButton => 'Delete';
 
   @override
+  String get reconciliationTitle => 'Bank Reconciliation';
+
+  @override
+  String reconciliationTransactionsFound(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count transactions found',
+      one: '1 transaction found',
+      zero: 'No transactions found',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reconciliationSelectAccount =>
+      'Select the statement or invoice file';
+
+  @override
+  String get reconciliationSupportedFormats =>
+      'Supports PDF, OFX, and Images (PNG, JPG)';
+
+  @override
+  String get reconciliationChooseFile => 'Choose File';
+
+  @override
+  String get reconciliationAnalyzing => 'Analyzing your statement';
+
+  @override
+  String get reconciliationAnalyzingDesc =>
+      'AI is processing your document transactions for reconciliation.';
+
+  @override
+  String get reconciliationConfirm => 'Confirm';
+
+  @override
+  String get reconciliationBack => 'Back';
+
+  @override
+  String get reconciliationSuccess => 'Reconciliation completed successfully!';
+
+  @override
+  String get reconciliationStatusMatched => 'Found';
+
+  @override
+  String get reconciliationStatusSuggested => 'Suggested';
+
+  @override
+  String get reconciliationStatusUnmatched => 'New';
+
+  @override
+  String get reconciliationStatusIgnored => 'Ignored';
+
+  @override
+  String get reconciliationActionConfirm => 'Confirm';
+
+  @override
+  String get reconciliationActionModify => 'Modify';
+
+  @override
+  String get reconciliationActionIgnore => 'Ignore';
+
+  @override
+  String get reconciliationActionRestore => 'Restore';
+
+  @override
+  String get reconciliationActionLink => 'Link';
+
+  @override
+  String get reconciliationActionRegister => 'Register';
+
+  @override
+  String get reconciliationActionAnalyze => 'Analyze Statement';
+
+  @override
+  String get reconciliationSystemLabel => 'SYSTEM';
+
+  @override
+  String get reconciliationExtratoLabel => 'STATEMENT';
+
+  @override
+  String get reconciliationNoMatchFound => 'No matching transaction found';
+
+  @override
+  String get reconciliationSectionTitle => 'RECONCILIATION';
+
+  @override
+  String get reconciliationSectionDesc =>
+      'Link this entry to a transaction from your bank statement.';
+
+  @override
+  String get reconciliationChangeAccount => 'Change';
+
+  @override
   String get cancelButton => 'Cancel';
 
   @override

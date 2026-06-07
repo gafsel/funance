@@ -1,3 +1,4 @@
+import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
@@ -17,6 +18,8 @@ import 'package:funances/features/finance/presentation/controllers/account_form_
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/reconciliation_notifier.dart';
+import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -167,6 +170,9 @@ class FinanceViewProviders {
             category: args.category,
             accountIdSource: args.accountIdSource,
             accountIdTarget: args.accountIdTarget,
+            amount: args.amount,
+            description: args.description,
+            date: args.date,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
         );
@@ -190,6 +196,18 @@ class FinanceViewProviders {
       ) {
         return TransactionFormNotifier(
           TransactionFormState.updateInstallment(installment),
+          financeService: ref.watch(FinanceDomainProviders.service),
+        );
+      });
+
+  static final reconciliationForm = StateNotifierProvider.autoDispose
+      .family<
+        TransactionFormNotifier,
+        TransactionFormState,
+        TransactionFormState
+      >((ref, initialState) {
+        return TransactionFormNotifier(
+          initialState,
           financeService: ref.watch(FinanceDomainProviders.service),
         );
       });
@@ -242,6 +260,26 @@ class FinanceViewProviders {
           type: args.type,
         );
       });
+
+  static final reconciliation = StateNotifierProvider.autoDispose<
+      ReconciliationNotifier,
+      ReconciliationState
+  >((ref) {
+    return ReconciliationNotifier(
+      accountService: ref.watch(AccountDomainProviders.service),
+      financeService: ref.watch(FinanceDomainProviders.service),
+      categoryService: ref.watch(CategoryDomainProviders.service),
+    );
+  });
+
+  static final reconciliationPicker = StateNotifierProvider<
+      TransactionListNotifier,
+      InfiniteListState<TransactionQuery, InstallmentModel>
+  >((ref) {
+    return TransactionListNotifier(
+      financeiroService: ref.watch(FinanceDomainProviders.service),
+    );
+  });
 }
 
 class PeriodSummaryDomainProviders {
