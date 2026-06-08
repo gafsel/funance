@@ -25,11 +25,39 @@ export class CoachingService {
 
         // 3. Forecasts (próximos 30 dias)
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-        const forecasts = await this.financeRepository.getInstallments(workspaceId, {
+        const installments = await this.financeRepository.getInstallments(workspaceId, {
             startDate: now,
             endDate: endOfMonth,
             status: [InstallmentStatus.pending]
         });
+
+        // 3.1. Enriquecer installments com tipo de conta
+        const accountTypesCache = new Map<string, string>();
+        const forecasts = await Promise.all(installments.map(async (f) => {
+            const accountId = f.accountIds?.[0];
+            let accountType = "unknown";
+
+            if (accountId) {
+                if (accountTypesCache.has(accountId)) {
+                    accountType = accountTypesCache.get(accountId)!;
+                }
+                else {
+                    const account = await this.financeRepository.getAccountById(workspaceId, accountId);
+                    if (account) {
+                        accountType = account.runtimeType;
+                        accountTypesCache.set(accountId, accountType);
+                    }
+                }
+            }
+
+            return {
+                description: f.description,
+                amount: f.amount,
+                dueDate: f.dueDate.toISOString().split("T")[0],
+                type: f.type,
+                accountType
+            };
+        }));
 
         // 4. Metas traçadas
         const goals = await this.goalRepository.getGoals(workspaceId);
@@ -37,12 +65,7 @@ export class CoachingService {
         // Formatação dos dados para a LLM
         const coachingData = {
             recentSpending,
-            forecasts: forecasts.map(f => ({
-                description: f.description,
-                amount: f.amount,
-                dueDate: f.dueDate.toISOString().split("T")[0],
-                type: f.type
-            })),
+            forecasts,
             goals: goals.map(g => ({
                 name: g.name,
                 targetAmount: g.targetAmount,

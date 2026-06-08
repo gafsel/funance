@@ -1,12 +1,15 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/providers/coaching_providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CoachingSlidesScreen extends ConsumerStatefulWidget {
   const CoachingSlidesScreen({super.key});
@@ -145,12 +148,26 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
                               ),
                             ),
                             const SizedBox(height: 24),
-                            Text(
-                              slide.message,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
+                            MarkdownBody(
+                              data: slide.message,
+                              selectable: true,
+                              onTapLink: (text, href, title) {
+                                if (href != null) {
+                                  launchUrl(Uri.parse(href));
+                                }
+                              },
+                              styleSheet: MarkdownStyleSheet(
+                                p: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                                a: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: Colors.white,
+                                ),
+                                textAlign: WrapAlignment.center,
                               ),
                             ),
                           ],

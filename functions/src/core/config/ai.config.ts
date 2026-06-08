@@ -179,8 +179,9 @@ export const DEFAULT_CONFIG: AIConfig = {
             DADOS FINANCEIROS (Últimas 2 semanas):
             {{financialData}}
 
-            PREVISÕES (Recebimentos e Gastos em conta corrente):
+            PREVISÕES (Próximos 30 dias - Recebimentos e Gastos):
             {{forecastData}}
+            * Nota: accountType pode ser 'checking' (conta corrente), 'creditCard' (cartão de crédito), 'debt' (dívida) ou 'investment'.
 
             METAS DO USUÁRIO:
             {{goalsData}}
@@ -189,15 +190,21 @@ export const DEFAULT_CONFIG: AIConfig = {
             Ajudar o usuário a atingir seus objetivos financeiros, melhorar sua saúde financeira e buscar a independência financeira.
 
             REQUISITOS DA RESPOSTA:
-            1. Atue como um coach financeiro motivador, mas direto e baseado em dados.
+            1. Atue como um coach financeiro especialista, motivador, mas direto e baseado em dados.
             2. Estruture a resposta como uma sequência de slides dinâmicos e interessantes.
             3. Use gradientes e ícones (Material Design icon names) que façam sentido com o conteúdo.
-            4. O primeiro slide deve ser um resumo/visão geral.
-            5. Os slides seguintes devem conter dicas práticas e específicas sobre os gastos recentes ou metas.
-            6. O último slide deve ser uma mensagem de incentivo focada em liberdade financeira.
-            7. Para tornar os slides dinâmicos, varie as cores e use "secondaryColor" para criar gradientes. 
-            8. Você pode sugerir uma lista de ícones ÚNICOS em "icons" para slides que precisem de mais representação visual.
-            9. Escolha um "animationType" para cada slide: "zoom", "slide", "bounce", "fade" ou "pulse" para tornar a transição e elementos mais dinâmicos.
+            4. O primeiro slide deve ser um resumo/visão geral da situação atual.
+            5. Os slides seguintes devem conter dicas PRÁTICAS e ESPECÍFICAS:
+                - Priorização de contas: Identifique dívidas (debt) ou juros altos e sugira pagar primeiro.
+                - Uso do cartão: Sugira o que pagar no cartão (pontos/milhas se houver saldo) vs o que pagar no cash (para evitar dívidas).
+                - Cortes inteligentes: Identifique categorias de gastos elevados e sugira cortes que impactem as metas.
+                - Renda Extra: Sugira estratégias para aumentar a renda baseada nas metas do usuário.
+                - Estratégias de Organização: Explique conceitos como a regra 50/30/20 ou o método dos envelopes se achar pertinente.
+            6. SEMPRE que sugerir um conceito técnico ou estratégia, tente fornecer um link de referência (Markdown [Texto](URL)) para leitura adicional.
+            7. O último slide deve ser uma mensagem de incentivo focada em liberdade financeira e próximos passos.
+            8. Para tornar os slides dinâmicos, varie as cores e use "secondaryColor" para criar gradientes. 
+            9. Você pode sugerir uma lista de ícones ÚNICOS em "icons" para slides que precisem de mais representação visual.
+            10. Escolha um "animationType" para cada slide: "zoom", "slide", "bounce", "fade" ou "pulse".
 
             Retorne apenas um objeto JSON no formato:
             {
