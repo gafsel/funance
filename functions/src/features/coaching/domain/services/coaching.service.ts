@@ -62,6 +62,13 @@ export class CoachingService {
         // 4. Metas traçadas
         const goals = await this.goalRepository.getGoals(workspaceId);
 
+        // 5. Contexto anterior
+        const previousAnalyses = await this.financeRepository.getLastCoachingAnalyses(workspaceId, 3);
+        const previousContext = previousAnalyses.map(a => ({
+            date: a.date,
+            summary: a.summary || a.message
+        }));
+
         // Formatação dos dados para a LLM
         const coachingData = {
             recentSpending,
@@ -71,19 +78,22 @@ export class CoachingService {
                 targetAmount: g.targetAmount,
                 currentAmount: g.currentAmount,
                 deadline: g.deadline?.toISOString().split("T")[0]
-            }))
+            })),
+            previousContext
         };
 
         const coachingResponse = await this.aiRepository.generateCoachingSlides(
             workspaceId,
             coachingData.recentSpending,
             coachingData.forecasts,
-            coachingData.goals
+            coachingData.goals,
+            coachingData.previousContext
         );
 
         return {
             id: "", // Será gerado no app ou no save
             message: coachingResponse.message || "Insights do seu Coach Financeiro",
+            summary: coachingResponse.summary || coachingResponse.message || "",
             date: new Date().toISOString(),
             type: coachingResponse.type || "insight",
             slides: coachingResponse.slides

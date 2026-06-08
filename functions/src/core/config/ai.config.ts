@@ -186,8 +186,13 @@ export const DEFAULT_CONFIG: AIConfig = {
             METAS DO USUÁRIO:
             {{goalsData}}
 
+            CONTEXTO DE INTERAÇÕES ANTERIORES:
+            {{previousContext}}
+
             OBJETIVO:
             Ajudar o usuário a atingir seus objetivos financeiros, melhorar sua saúde financeira e buscar a independência financeira.
+            Considere o CONTEXTO DE INTERAÇÕES ANTERIORES para evitar repetir conselhos já dados recentemente, a menos que sejam pontos críticos que precisem de reforço. 
+            Se o usuário seguiu uma dica anterior (ex: reduziu gastos em uma categoria), parabenize-o brevemente.
 
             REQUISITOS DA RESPOSTA:
             1. Atue como um coach financeiro especialista, motivador, mas direto e baseado em dados.
@@ -208,7 +213,8 @@ export const DEFAULT_CONFIG: AIConfig = {
 
             Retorne apenas um objeto JSON no formato:
             {
-                "message": "Resumo geral do coach",
+                "message": "Mensagem motivacional curta para o usuário (ex: 'Sua jornada para a liberdade financeira continua!')",
+                "summary": "Resumo técnico e estratégico conciso de todos os conselhos dados nesta iteração, para servir de contexto em chamadas futuras. Foque em o que foi sugerido cortar, priorizar ou investir.",
                 "type": "insight" | "warning" | "tip",
                 "slides": [
                     {

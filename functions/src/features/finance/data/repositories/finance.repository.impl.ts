@@ -667,4 +667,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         await orderRef.set(orderData, { merge: true });
     }
+
+    async getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]> {
+        const snapshot = await admin.firestore()
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("financial_coaching")
+            .orderBy("date", "desc")
+            .limit(limit)
+            .get();
+
+        return snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    }
 }

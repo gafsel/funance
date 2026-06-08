@@ -35,6 +35,7 @@ export interface IAIRepository {
         financialData: any,
         forecastData: any,
         goalsData: any,
+        previousContext?: any[]
     ): Promise<any>;
 }
 
@@ -306,6 +307,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         financialData: any,
         forecastData: any,
         goalsData: any,
+        previousContext?: any[]
     ): Promise<any> {
         const config = await this.getConfig();
         const model = this.genAI.getGenerativeModel({ model: config.models.coaching });
@@ -313,7 +315,8 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const prompt = config.prompts.coaching
             .replace("{{financialData}}", JSON.stringify(financialData))
             .replace("{{forecastData}}", JSON.stringify(forecastData))
-            .replace("{{goalsData}}", JSON.stringify(goalsData));
+            .replace("{{goalsData}}", JSON.stringify(goalsData))
+            .replace("{{previousContext}}", previousContext ? JSON.stringify(previousContext) : "Nenhuma interação anterior.");
 
         const result = await model.generateContent(prompt);
         const response = await result.response;

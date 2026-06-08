@@ -95,4 +95,7 @@ export interface IFinanceRepository {
     dueDate: Date,
     delta: number
   ): Promise<void>;
+
+  // Coaching History
+  getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]>;
 }

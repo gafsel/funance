@@ -32,6 +32,7 @@ sealed class CoachingModel with _$CoachingModel {
   const factory CoachingModel({
     required String id,
     required String message,
+    String? summary,
     required DateTime date,
     required CoachingType type,
     @Default([]) List<SlideModel> slides,

@@ -296,7 +296,7 @@ as String?,
 /// @nodoc
 mixin _$CoachingModel {
 
- String get id; String get message; DateTime get date; CoachingType get type; List<SlideModel> get slides;
+ String get id; String get message; String? get summary; DateTime get date; CoachingType get type; List<SlideModel> get slides;
 /// Create a copy of CoachingModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -309,16 +309,16 @@ $CoachingModelCopyWith<CoachingModel> get copyWith => _$CoachingModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachingModel&&(identical(other.id, id) || other.id == id)&&(identical(other.message, message) || other.message == message)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.slides, slides));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachingModel&&(identical(other.id, id) || other.id == id)&&(identical(other.message, message) || other.message == message)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.slides, slides));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,message,date,type,const DeepCollectionEquality().hash(slides));
+int get hashCode => Object.hash(runtimeType,id,message,summary,date,type,const DeepCollectionEquality().hash(slides));
 
 @override
 String toString() {
-  return 'CoachingModel(id: $id, message: $message, date: $date, type: $type, slides: $slides)';
+  return 'CoachingModel(id: $id, message: $message, summary: $summary, date: $date, type: $type, slides: $slides)';
 }
 
 
@@ -329,7 +329,7 @@ abstract mixin class $CoachingModelCopyWith<$Res>  {
   factory $CoachingModelCopyWith(CoachingModel value, $Res Function(CoachingModel) _then) = _$CoachingModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String message, DateTime date, CoachingType type, List<SlideModel> slides
+ String id, String message, String? summary, DateTime date, CoachingType type, List<SlideModel> slides
 });
 
 
@@ -346,11 +346,12 @@ class _$CoachingModelCopyWithImpl<$Res>
 
 /// Create a copy of CoachingModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? message = null,Object? date = null,Object? type = null,Object? slides = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? message = null,Object? summary = freezed,Object? date = null,Object? type = null,Object? slides = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
-as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as String,summary: freezed == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as String?,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as CoachingType,slides: null == slides ? _self.slides : slides // ignore: cast_nullable_to_non_nullable
 as List<SlideModel>,
@@ -435,10 +436,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String message,  DateTime date,  CoachingType type,  List<SlideModel> slides)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String message,  String? summary,  DateTime date,  CoachingType type,  List<SlideModel> slides)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoachingModel() when $default != null:
-return $default(_that.id,_that.message,_that.date,_that.type,_that.slides);case _:
+return $default(_that.id,_that.message,_that.summary,_that.date,_that.type,_that.slides);case _:
   return orElse();
 
 }
@@ -456,10 +457,10 @@ return $default(_that.id,_that.message,_that.date,_that.type,_that.slides);case 
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String message,  DateTime date,  CoachingType type,  List<SlideModel> slides)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String message,  String? summary,  DateTime date,  CoachingType type,  List<SlideModel> slides)  $default,) {final _that = this;
 switch (_that) {
 case _CoachingModel():
-return $default(_that.id,_that.message,_that.date,_that.type,_that.slides);}
+return $default(_that.id,_that.message,_that.summary,_that.date,_that.type,_that.slides);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -473,10 +474,10 @@ return $default(_that.id,_that.message,_that.date,_that.type,_that.slides);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String message,  DateTime date,  CoachingType type,  List<SlideModel> slides)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String message,  String? summary,  DateTime date,  CoachingType type,  List<SlideModel> slides)?  $default,) {final _that = this;
 switch (_that) {
 case _CoachingModel() when $default != null:
-return $default(_that.id,_that.message,_that.date,_that.type,_that.slides);case _:
+return $default(_that.id,_that.message,_that.summary,_that.date,_that.type,_that.slides);case _:
   return null;
 
 }
@@ -488,11 +489,12 @@ return $default(_that.id,_that.message,_that.date,_that.type,_that.slides);case 
 @JsonSerializable()
 
 class _CoachingModel implements CoachingModel {
-  const _CoachingModel({required this.id, required this.message, required this.date, required this.type, final  List<SlideModel> slides = const []}): _slides = slides;
+  const _CoachingModel({required this.id, required this.message, this.summary, required this.date, required this.type, final  List<SlideModel> slides = const []}): _slides = slides;
   factory _CoachingModel.fromJson(Map<String, dynamic> json) => _$CoachingModelFromJson(json);
 
 @override final  String id;
 @override final  String message;
+@override final  String? summary;
 @override final  DateTime date;
 @override final  CoachingType type;
  final  List<SlideModel> _slides;
@@ -516,16 +518,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachingModel&&(identical(other.id, id) || other.id == id)&&(identical(other.message, message) || other.message == message)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._slides, _slides));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachingModel&&(identical(other.id, id) || other.id == id)&&(identical(other.message, message) || other.message == message)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._slides, _slides));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,message,date,type,const DeepCollectionEquality().hash(_slides));
+int get hashCode => Object.hash(runtimeType,id,message,summary,date,type,const DeepCollectionEquality().hash(_slides));
 
 @override
 String toString() {
-  return 'CoachingModel(id: $id, message: $message, date: $date, type: $type, slides: $slides)';
+  return 'CoachingModel(id: $id, message: $message, summary: $summary, date: $date, type: $type, slides: $slides)';
 }
 
 
@@ -536,7 +538,7 @@ abstract mixin class _$CoachingModelCopyWith<$Res> implements $CoachingModelCopy
   factory _$CoachingModelCopyWith(_CoachingModel value, $Res Function(_CoachingModel) _then) = __$CoachingModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String message, DateTime date, CoachingType type, List<SlideModel> slides
+ String id, String message, String? summary, DateTime date, CoachingType type, List<SlideModel> slides
 });
 
 
@@ -553,11 +555,12 @@ class __$CoachingModelCopyWithImpl<$Res>
 
 /// Create a copy of CoachingModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? message = null,Object? date = null,Object? type = null,Object? slides = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? message = null,Object? summary = freezed,Object? date = null,Object? type = null,Object? slides = null,}) {
   return _then(_CoachingModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
-as String,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as String,summary: freezed == summary ? _self.summary : summary // ignore: cast_nullable_to_non_nullable
+as String?,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as CoachingType,slides: null == slides ? _self._slides : slides // ignore: cast_nullable_to_non_nullable
 as List<SlideModel>,

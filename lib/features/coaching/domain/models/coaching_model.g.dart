@@ -33,6 +33,7 @@ _CoachingModel _$CoachingModelFromJson(Map<String, dynamic> json) =>
     _CoachingModel(
       id: json['id'] as String,
       message: json['message'] as String,
+      summary: json['summary'] as String?,
       date: DateTime.parse(json['date'] as String),
       type: $enumDecode(_$CoachingTypeEnumMap, json['type']),
       slides:
@@ -46,6 +47,7 @@ Map<String, dynamic> _$CoachingModelToJson(_CoachingModel instance) =>
     <String, dynamic>{
       'id': instance.id,
       'message': instance.message,
+      'summary': instance.summary,
       'date': instance.date.toIso8601String(),
       'type': _$CoachingTypeEnumMap[instance.type]!,
       'slides': instance.slides,
