@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
@@ -28,7 +27,7 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
     super.initState();
     _iconAnimationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
   }
 
@@ -283,64 +282,125 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
     final iconsList = uniqueIcons.toList();
     final random = math.Random(slide.title.hashCode);
 
-    return List.generate(10, (index) {
-      final iconName = iconsList[index % iconsList.length];
-      return Positioned(
-        top: random.nextDouble() * 800,
-        left: random.nextDouble() * 400,
-        child: Opacity(
-          opacity: 0.05,
-          child: Icon(
-            iconName.asIcon(orElse: Icons.tips_and_updates),
-            size: 100 + random.nextDouble() * 100,
-            color: Colors.white,
-          ),
-        ),
-      );
-    });
+    return [
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+
+          return Stack(
+            children: List.generate(12, (index) {
+              final iconName = iconsList[index % iconsList.length];
+              final size = 80 + random.nextDouble() * 120;
+              
+              // Divide a tela em uma grade imaginária para melhor distribuição
+              final gridCols = 3;
+              final gridRows = 4;
+              final col = index % gridCols;
+              final row = index ~/ gridCols;
+              
+              final cellWidth = width / gridCols;
+              final cellHeight = height / gridRows;
+              
+              // Posição baseada na célula da grade + um deslocamento aleatório
+              final left = (col * cellWidth) + (random.nextDouble() * (cellWidth - size));
+              final top = (row * cellHeight) + (random.nextDouble() * (cellHeight - size));
+
+              return Positioned(
+                top: top,
+                left: left,
+                child: Opacity(
+                  opacity: 0.08,
+                  child: Transform.rotate(
+                    angle: random.nextDouble() * 0.5 - 0.25, // Rotação leve
+                    child: Icon(
+                      iconName.asIcon(orElse: Icons.tips_and_updates),
+                      size: size,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          );
+        },
+      ),
+    ];
   }
 
   Widget _buildAnimatedIcon(SlideModel slide) {
     final iconData = slide.icon.asIcon(orElse: Icons.tips_and_updates);
+    
+    // Usar uma curva para tornar a animação mais dinâmica
+    final CurvedAnimation curvedAnimation = CurvedAnimation(
+      parent: _iconAnimationController,
+      curve: Curves.easeInOut,
+    );
 
     return AnimatedBuilder(
-      animation: _iconAnimationController,
+      animation: curvedAnimation,
       builder: (context, child) {
         double dx = 0.0;
         double dy = 0.0;
         double scale = 1.0;
         double opacity = 1.0;
+        double rotation = 0.0;
 
         switch (slide.animationType) {
           case 'bounce':
-            dy = -20 * _iconAnimationController.value;
+            // Bounce mais pronunciado
+            final bounceVal = math.sin(curvedAnimation.value * math.pi);
+            dy = -40 * bounceVal;
+            scale = 1.0 + (0.1 * bounceVal);
             break;
           case 'pulse':
-            scale = 1.0 + 0.1 * _iconAnimationController.value;
+            // Pulso mais forte
+            scale = 1.0 + 0.25 * curvedAnimation.value;
             break;
           case 'fade':
-            opacity = 0.6 + 0.4 * _iconAnimationController.value;
+            // Fade com maior amplitude
+            opacity = 0.3 + 0.7 * curvedAnimation.value;
             break;
           case 'zoom':
-            scale = 0.8 + 0.4 * _iconAnimationController.value;
+            // Zoom in e out mais visível
+            scale = 0.7 + 0.6 * curvedAnimation.value;
             break;
           case 'slide':
-            dx = 10 * math.sin(_iconAnimationController.value * 2 * math.pi);
+            // Slide lateral com leve rotação
+            dx = 30 * math.sin(curvedAnimation.value * 2 * math.pi);
+            rotation = 0.15 * math.sin(curvedAnimation.value * 2 * math.pi);
             break;
           default:
-            scale = 1.0 + 0.05 * _iconAnimationController.value;
+            // Animação padrão: pulso leve com rotação
+            scale = 1.0 + 0.1 * curvedAnimation.value;
+            rotation = 0.05 * math.sin(curvedAnimation.value * 2 * math.pi);
         }
 
         return Transform.translate(
           offset: Offset(dx, dy),
-          child: Transform.scale(
-            scale: scale,
-            child: Opacity(
-              opacity: opacity,
-              child: Icon(
-                iconData,
-                size: 100,
-                color: Colors.white,
+          child: Transform.rotate(
+            angle: rotation,
+            child: Transform.scale(
+              scale: scale,
+              child: Opacity(
+                opacity: opacity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.2 * curvedAnimation.value),
+                        blurRadius: 20 * curvedAnimation.value,
+                        spreadRadius: 5 * curvedAnimation.value,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    iconData,
+                    size: 110,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),

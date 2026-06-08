@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/home/presentation/widgets/period_selection.dart';
@@ -60,9 +62,6 @@ class JourneyTab extends ConsumerWidget {
               loading: () => const SizedBox.shrink(),
               error: (_, __) => const SizedBox.shrink(),
             ),
-            // Placar do Mês (Simplificado para o exemplo)
-            _buildMonthlyScore(context, l10n, theme),
-            const SizedBox(height: 24),
             // Listagem de Metas
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -233,13 +232,16 @@ class JourneyTab extends ConsumerWidget {
     bool canAction,
     CoachingModel? lastCoaching,
   ) {
+    final locale = context.locale;
+    final bannerColors = _getBannerColors(canAction, lastCoaching);
+    final accentColor = _getAccentColor(canAction, lastCoaching);
+    final bannerIcon = _getBannerIcon(canAction, lastCoaching);
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: canAction
-              ? [AppColors.deepTurquoise, AppColors.vibrantTeal]
-              : [AppColors.darkNavy, AppColors.darkNavy.withValues(alpha: 0.8)],
+          colors: bannerColors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -260,8 +262,7 @@ class JourneyTab extends ConsumerWidget {
             child: Icon(
               Icons.auto_awesome,
               size: 120,
-              color: (canAction ? AppColors.successGold : AppColors.vibrantTeal)
-                  .withValues(alpha: 0.1),
+              color: accentColor.withValues(alpha: 0.1),
             ),
           ),
           Padding(
@@ -274,27 +275,23 @@ class JourneyTab extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: (canAction
-                                ? AppColors.successGold
-                                : AppColors.vibrantTeal)
-                            .withValues(alpha: 0.2),
+                        color: accentColor.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.psychology,
-                        color:
-                            canAction
-                                ? AppColors.successGold
-                                : AppColors.vibrantTeal,
+                        bannerIcon,
+                        color: accentColor,
                         size: 24,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Text(
-                      l10n.coachingTitle,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: AppColors.pureWhite,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        l10n.coachingTitle,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          color: AppColors.pureWhite,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -303,13 +300,25 @@ class JourneyTab extends ConsumerWidget {
                 Text(
                   canAction
                       ? l10n.coachingConsultingDesc
-                      : l10n.coachingLastAnalysisFrom(
-                        DateFormat.yMMMd().format(lastCoaching!.date),
-                      ),
+                      : lastCoaching?.message ??
+                          l10n.coachingLastAnalysisFrom(
+                            lastCoaching!.date.formated(l10n.formatSimpleDate, locale),
+                          ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.pureWhite.withValues(alpha: 0.9),
                   ),
                 ),
+                if (!canAction && lastCoaching != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.coachingLastAnalysisFrom(
+                      DateFormat.yMMMMd(locale).format(lastCoaching.date),
+                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.pureWhite.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -351,11 +360,8 @@ class JourneyTab extends ConsumerWidget {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          canAction
-                              ? AppColors.successGold
-                              : AppColors.vibrantTeal,
-                      foregroundColor: AppColors.darkNavy,
+                      backgroundColor: accentColor,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -380,6 +386,68 @@ class JourneyTab extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  List<Color> _getBannerColors(bool canAction, CoachingModel? lastCoaching) {
+    if (canAction) {
+      return [AppColors.deepTurquoise, AppColors.vibrantTeal];
+    }
+
+    if (lastCoaching == null) {
+      return [AppColors.darkNavy, AppColors.darkNavy.withValues(alpha: 0.8)];
+    }
+
+    switch (lastCoaching.type) {
+      case CoachingType.warning:
+        return [
+          AppColors.error.withValues(alpha: 0.8),
+          AppColors.error.withValues(alpha: 0.6),
+        ];
+      case CoachingType.tip:
+        return [
+          AppColors.limeGreen.withValues(alpha: 0.8),
+          AppColors.limeGreen.withValues(alpha: 0.6),
+        ];
+      case CoachingType.insight:
+      default:
+        return [AppColors.deepTurquoise, AppColors.vibrantTeal];
+    }
+  }
+
+  Color _getAccentColor(bool canAction, CoachingModel? lastCoaching) {
+    if (canAction) {
+      return AppColors.successGold;
+    }
+
+    if (lastCoaching == null) {
+      return AppColors.vibrantTeal;
+    }
+
+    switch (lastCoaching.type) {
+      case CoachingType.warning:
+        return AppColors.coralOrange;
+      case CoachingType.tip:
+        return AppColors.antiqueGold;
+      case CoachingType.insight:
+      default:
+        return AppColors.deepTurquoise;
+    }
+  }
+
+  IconData _getBannerIcon(bool canAction, CoachingModel? lastCoaching) {
+    if (canAction || lastCoaching == null) {
+      return Icons.psychology;
+    }
+
+    switch (lastCoaching.type) {
+      case CoachingType.warning:
+        return Icons.warning_amber_rounded;
+      case CoachingType.tip:
+        return Icons.lightbulb_outline;
+      case CoachingType.insight:
+      default:
+        return Icons.psychology;
+    }
   }
 
   Widget _buildEmptyGoals(
