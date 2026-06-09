@@ -32,12 +32,7 @@ class GoalFormScreen extends ConsumerWidget {
           GoalViewProvider.form,
           submitLabel: l10n.continueButton,
           onSuccess: (_) => Navigator.pop(context),
-          extraActions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l10n.cancelButton),
-            ),
-          ],
+          onCancel: () => Navigator.pop(context),
           fieldsBuilder: (context, snapshot) {
             final state = snapshot.model;
             final notifier = snapshot.notifier;

@@ -34,12 +34,7 @@ class CategoryFormScreen extends StatelessWidget {
         CategoryViewProviders.form(category),
         submitLabel: l10n.saveButton,
         onSuccess: (_) => Navigator.pop(context),
-        extraActions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l10n.cancelButton),
-          ),
-        ],
+        onCancel: () => Navigator.pop(context),
         fieldsBuilder: (context, snapshot) {
           final state = snapshot.model;
           final notifier = snapshot.notifier;

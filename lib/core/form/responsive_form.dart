@@ -5,6 +5,7 @@ import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
 typedef FieldsBuilder<I, O, N extends FormNotifier<I, O>> =
     List<Widget> Function(
@@ -47,6 +48,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     this.onSuccess,
     this.onSubmit,
     this.submitEnabled,
+    this.onCancel,
   });
 
   final AutoDisposeStateNotifierProvider<N, I> provider;
@@ -56,6 +58,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   final List<Widget> extraActions;
   final ValueChanged<O?>? onSuccess;
   final OnPressed<I, O, N>? onSubmit;
+  final VoidCallback? onCancel;
   final bool Function(I state)? submitEnabled;
 
   @override
@@ -77,33 +80,34 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                   children: fieldsBuilder(context, snapshot),
                 ),
                 Divider(height: 32),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  alignment: WrapAlignment.end,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    ...extraActions,
-                    LoadingButton.elevated(
-                      onPressed: (submitEnabled?.call(snapshot.model) ?? true)
-                          ? (loading) async {
-                              if (onSubmit != null) {
-                                await onSubmit!(snapshot, loading);
-                                return;
-                              }
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isLargeWidth = constraints.maxWidth > 500;
 
-                              if (snapshot.validate()) {
-                                final output = await loading(
-                                  snapshot.notifier.submit(),
-                                );
+                    if (isLargeWidth) {
+                      return Row(
+                        spacing: 16,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ...extraActions,
+                          Spacer(),
+                          _buildCancelButton(context, l10n),
+                          _buildSubmitButton(snapshot, l10n),
+                        ],
+                      );
+                    }
 
-                                onSuccess?.call(output);
-                              }
-                            }
-                          : null,
-                      child: Text(submitLabel ?? l10n.saveButton),
-                    ),
-                  ],
+                    return Column(
+                      spacing: 16,
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildSubmitButton(snapshot, l10n),
+                        ...extraActions,
+                        _buildCancelButton(context, l10n),
+                      ],
+                    );
+                  },
                 ),
               ],
             );
@@ -111,6 +115,37 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
         ),
       ),
     );
+  }
+
+  LoadingButton _buildSubmitButton(
+    FormBuilderSnapshot<I, O, N> snapshot,
+    AppLocalizations l10n,
+  ) {
+    return LoadingButton.elevated(
+      onPressed: (submitEnabled?.call(snapshot.model) ?? true)
+          ? (loading) async {
+              if (onSubmit != null) {
+                await onSubmit!(snapshot, loading);
+                return;
+              }
+
+              if (snapshot.validate()) {
+                final output = await loading(snapshot.notifier.submit());
+
+                onSuccess?.call(output);
+              }
+            }
+          : null,
+      child: Text(submitLabel ?? l10n.saveButton),
+    );
+  }
+
+  Widget _buildCancelButton(BuildContext context, AppLocalizations l10n) {
+    if (onCancel != null) {
+      return TextButton(onPressed: onCancel, child: Text(l10n.cancelButton));
+    }
+
+    return SizedBox.shrink();
   }
 }
 

@@ -51,12 +51,7 @@ class AccountFormScreen extends ConsumerWidget {
                 AccountFormArgs(type: initialType, account: account),
               ),
               submitLabel: l10n.saveButton,
-              extraActions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(l10n.cancelButton),
-                ),
-              ],
+              onCancel: () => Navigator.pop(context),
               onSuccess: (_) => Navigator.pop(context),
               fieldsBuilder: (context, snapshot) {
                 final state = snapshot.model;

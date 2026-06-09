@@ -179,7 +179,11 @@ class TransactionFormScreen extends StatelessWidget {
 
                   if (!state.creation &&
                       state.status == InstallmentStatus.pending) {
-                    return OutlinedButton(
+                    return ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.deepTurquoise,
+                        foregroundColor: Colors.white,
+                      ),
                       onPressed: () {
                         notifier.updateStatus(InstallmentStatus.paid);
                       },
@@ -190,12 +194,8 @@ class TransactionFormScreen extends StatelessWidget {
                   return SizedBox.shrink();
                 },
               ),
-              Spacer(),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(l10n.cancelButton),
-              ),
             ],
+            onCancel: () => Navigator.pop(context),
             onSubmit: (snapshot, loading) async {
               if (!snapshot.validate()) return;
 
