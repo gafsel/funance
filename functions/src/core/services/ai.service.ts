@@ -32,6 +32,7 @@ export interface IAIRepository {
     ): Promise<any>;
     generateCoachingSlides(
         workspaceId: string,
+        workspaceType: string,
         financialData: any,
         forecastData: any,
         goalsData: any,
@@ -353,6 +354,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
     async generateCoachingSlides(
         workspaceId: string,
+        workspaceType: string,
         financialData: any,
         forecastData: any,
         goalsData: any,
@@ -362,6 +364,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const model = this.genAI.getGenerativeModel({ model: config.models.coaching });
 
         const prompt = config.prompts.coaching
+            .replace("{{workspaceType}}", workspaceType)
             .replace("{{financialData}}", JSON.stringify(financialData))
             .replace("{{forecastData}}", JSON.stringify(forecastData))
             .replace("{{goalsData}}", JSON.stringify(goalsData))

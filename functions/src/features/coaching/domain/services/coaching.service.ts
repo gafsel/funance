@@ -1,6 +1,7 @@
 import { IFinanceRepository } from "../../../finance/domain/repositories/finance.repository";
 import { IGoalRepository } from "../../../goal/domain/repositories/goal.repository";
 import { ICategoryRepository } from "../../../workspace/domain/repositories/category.repository";
+import { IWorkspaceRepository } from "../../../workspace/domain/repositories/workspace.repository";
 import { IAIRepository } from "../../../../core/services/ai.service";
 import { InstallmentStatus } from "../../../finance/domain/models/finance.models";
 
@@ -9,12 +10,17 @@ export class CoachingService {
         private financeRepository: IFinanceRepository,
         private goalRepository: IGoalRepository,
         private categoryRepository: ICategoryRepository,
+        private workspaceRepository: IWorkspaceRepository,
         private aiRepository: IAIRepository
     ) {
     }
 
     async generateCoaching(workspaceId: string): Promise<any> {
         const now = new Date();
+
+        // 0. Obter tipo de workspace
+        const workspace = await this.workspaceRepository.getWorkspaceById(workspaceId);
+        const workspaceType = workspace?.type || "personal";
 
         // 1. Mapeamento de categorias para nomes
         const categories = await this.categoryRepository.getCategories(workspaceId);
@@ -65,7 +71,7 @@ export class CoachingService {
         // 5. Contexto anterior
         const previousAnalyses = await this.financeRepository.getLastCoachingAnalyses(workspaceId, 3);
         const previousContext = previousAnalyses.map(a => ({
-            date: a.date,
+            date: a.date instanceof Date ? a.date.toISOString() : a.date,
             summary: a.summary || a.message
         }));
 
@@ -84,6 +90,7 @@ export class CoachingService {
 
         const coachingResponse = await this.aiRepository.generateCoachingSlides(
             workspaceId,
+            workspaceType,
             coachingData.recentSpending,
             coachingData.forecasts,
             coachingData.goals,

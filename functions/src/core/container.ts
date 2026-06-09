@@ -130,6 +130,7 @@ class Container {
                 this.financeRepository,
                 this.goalRepository,
                 this.categoryRepository,
+                this.workspaceRepository,
                 this.aiRepository,
             );
         }
