@@ -36,8 +36,31 @@ class _Planning503020ScreenState extends ConsumerState<Planning503020Screen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.planning503020Title),
+        title: Row(
+          spacing: 8,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: () {
+                final newDate = DateTime(state.date.year, state.date.month - 1);
+                ref.read(FinanceViewProviders.planning503020.notifier).changeMonth(newDate);
+              },
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Text(
+              DateFormat.yMMMM(context.locale).format(state.date),
+            ),
+            IconButton(
+              onPressed: () {
+                final newDate = DateTime(state.date.year, state.date.month + 1);
+                ref.read(FinanceViewProviders.planning503020.notifier).changeMonth(newDate);
+              },
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
         actions: [
+
           IconButton(
             onPressed: state.isSubmitting
                 ? null
@@ -74,7 +97,8 @@ class _Planning503020ScreenState extends ConsumerState<Planning503020Screen> {
           final totalActual = state.items.fold<double>(0, (sum, item) => sum + item.actualAmount);
           final totalIncome = state.totalIncomes;
           
-          final actualPercentage = totalIncome > 0 ? (totalActual / totalIncome) : 0.0;
+          final actualPercentage = totalIncome > 0 ? (state.totalActualIncomes / totalIncome) : 0.0;
+          final expenseActualPercentage = totalIncome > 0 ? (totalActual / totalIncome) : 0.0;
           final percentageFormat = NumberFormat.percentPattern(context.locale);
           
           final header = Container(
@@ -93,10 +117,11 @@ class _Planning503020ScreenState extends ConsumerState<Planning503020Screen> {
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
                           Text(
-                            currencyFormat.format(state.totalIncomes),
+                            '${currencyFormat.format(state.totalIncomes)} (${percentageFormat.format(actualPercentage)})',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   color: Colors.green,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                           ),
                         ],
@@ -116,6 +141,7 @@ class _Planning503020ScreenState extends ConsumerState<Planning503020Screen> {
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   color: totalPlanned > state.totalIncomes ? Colors.red : null,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 16,
                                 ),
                           ),
                         ],
@@ -131,7 +157,7 @@ class _Planning503020ScreenState extends ConsumerState<Planning503020Screen> {
                             style: Theme.of(context).textTheme.labelSmall,
                           ),
                           Text(
-                            '${currencyFormat.format(totalActual)} (${percentageFormat.format(actualPercentage)})',
+                            '${currencyFormat.format(totalActual)} (${percentageFormat.format(expenseActualPercentage)})',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   color: totalActual > state.totalIncomes ? Colors.red : AppColors.darkNavy,
                                   fontWeight: FontWeight.bold,
@@ -280,11 +306,11 @@ class _PoolWidget extends ConsumerWidget {
     final currentTotal = items.fold<double>(0, (sum, item) => sum + item.effectiveAmount);
     final currentActual = items.fold<double>(0, (sum, item) => sum + item.actualAmount);
     final idealValue = totalIncome * idealPercentage;
-    final currentPercentage = totalIncome > 0 ? (currentTotal / totalIncome) : 0.0;
-    final actualPercentage = totalIncome > 0 ? (currentActual / totalIncome) : 0.0;
+    final currentPercentage = totalPlanned > 0 ? (currentTotal / totalPlanned) : 0.0;
+    final actualPercentage = totalPlanned > 0 ? (currentActual / totalPlanned) : 0.0;
     final percentageFormat = NumberFormat.percentPattern(context.locale);
     
-    // Indica se está dentro da meta (não ultrapassa o ideal)
+    // Indica se está dentro da meta (não ultrapassa o ideal em relação à receita)
     final isWithinRange = currentTotal <= idealValue;
     final isOver = currentTotal > idealValue;
 
@@ -334,7 +360,7 @@ class _PoolWidget extends ConsumerWidget {
                         final maxWidth = box.maxWidth;
                         final progressWidth = maxWidth * (currentPercentage.clamp(0.0, 1.0));
                         final actualWidth = maxWidth * (actualPercentage.clamp(0.0, 1.0));
-                        final idealX = maxWidth * idealPercentage;
+                        final idealX = totalPlanned > 0 ? (maxWidth * (idealValue / totalPlanned)).clamp(0.0, maxWidth) : 0.0;
 
                         return Column(
                           children: [
@@ -407,7 +433,7 @@ class _PoolWidget extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              l10n.planning503020Actual(currencyFormat.format(currentActual)),
+                              l10n.planning503020ActualAmount(currencyFormat.format(currentActual)),
                               style: TextStyle(
                                 color: statusColor,
                                 fontWeight: FontWeight.bold,

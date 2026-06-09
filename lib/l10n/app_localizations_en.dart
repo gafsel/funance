@@ -313,9 +313,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String planning503020Actual(String amount) {
+  String planning503020ActualAmount(String amount) {
     return 'Actual: $amount';
   }
+
+  @override
+  String get planning503020DistributionTitle => '50-30-20 Distribution';
+
+  @override
+  String get planning503020Planned => 'Planned';
+
+  @override
+  String get planning503020Actual => 'Actual';
+
+  @override
+  String get planning503020Goal => 'Goal';
 
   @override
   String get planning503020SummaryActual => 'Actual Spent';
@@ -482,6 +494,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeOverviewTab => 'Overview';
 
   @override
+  String get homeMissionsTab => 'Missions';
+
+  @override
   String get homeHistoryTab => 'Statement';
 
   @override
@@ -527,6 +542,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get overdueMissions => 'Overdue';
+
+  @override
+  String weeklyMissionsProgress(String completed, String total) {
+    return '$completed of $total completed';
+  }
 
   @override
   String get weeklyGoal => 'Weekly Goal';
@@ -1473,4 +1493,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachingNoSlides => 'No slides were generated. Please try again.';
+
+  @override
+  String get weeklyMissionsTitle => 'Weekly Missions';
 }

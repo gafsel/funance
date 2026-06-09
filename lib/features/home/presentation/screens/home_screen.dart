@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
-import 'package:go_router/go_router.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:go_router/go_router.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
-import 'package:funances/features/home/presentation/widgets/missions_tab.dart';
+import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -75,8 +76,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
                 controller: _tabController,
                 physics: isLargeScreen ? const NeverScrollableScrollPhysics() : null,
                 children: const [
-                  MissionsTab(),
                   JourneyTab(),
+                  OverviewTab(),
                   HistoryTab(),
                   WorkspaceSettingsScreen(),
                 ],
@@ -173,12 +174,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
       },
       destinations: [
         NavigationRailDestination(
-          icon: const Icon(Icons.bar_chart_outlined),
-          label: Text(l10n.homeOverviewTab),
-        ),
-        NavigationRailDestination(
           icon: const Icon(Icons.rocket_launch_outlined),
           label: Text(l10n.homeJourneyTab),
+        ),
+        NavigationRailDestination(
+          icon: const Icon(Icons.bar_chart_outlined),
+          label: Text(l10n.homeOverviewTab),
         ),
         NavigationRailDestination(
           icon: const Icon(Icons.history_outlined),
@@ -298,11 +299,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             IconButton(
-              icon: const Icon(Icons.bar_chart_outlined, color: AppColors.pureWhite),
+              icon: const Icon(Icons.rocket_launch_outlined, color: AppColors.pureWhite),
               onPressed: () => _tabController.animateTo(0),
             ),
             IconButton(
-              icon: const Icon(Icons.rocket_launch_outlined, color: AppColors.pureWhite),
+              icon: const Icon(Icons.bar_chart_outlined, color: AppColors.pureWhite),
               onPressed: () => _tabController.animateTo(1),
             ),
             const SizedBox(width: 48), // Espaço para o FAB

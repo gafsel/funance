@@ -124,12 +124,16 @@
       "amount": { "type": "String" }
     }
   },
-  "planning503020Actual": "Real: {amount}",
-  "@planning503020Actual": {
+  "planning503020ActualAmount": "Real: {amount}",
+  "@planning503020ActualAmount": {
     "placeholders": {
       "amount": { "type": "String" }
     }
   },
+  "planning503020DistributionTitle": "Distribuição 50-30-20",
+  "planning503020Planned": "Planejado",
+  "planning503020Actual": "Executado",
+  "planning503020Goal": "Meta",
   "planning503020SummaryActual": "Gasto Real",
   "planning503020ActualLabel": "Já gasto:",
   "planning503020Total": "Total: {amount}",
@@ -205,6 +209,7 @@
   "declineButton": "Recusar",
   "homeJourneyTab": "A Jornada",
   "homeOverviewTab": "Visão Geral",
+  "homeMissionsTab": "Missões",
   "homeHistoryTab": "Extrato",
   "homeTotalSavedMonth": "Você economizou {amount} a mais que o planejado!",
   "homePointsEarned": "+{points} Pontos",
@@ -218,6 +223,13 @@
   "pendingMissions": "Pendentes",
   "completedMissions": "Concluídas",
   "overdueMissions": "Atrasadas",
+  "weeklyMissionsProgress": "{completed} de {total} completadas",
+  "@weeklyMissionsProgress": {
+    "placeholders": {
+      "completed": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
   "weeklyGoal": "Meta da Semana",
   "xpValue": "{xp} XP",
   "@xpValue": {
@@ -583,5 +595,6 @@
   "coachingSlideBack": "Voltar",
   "coachingSlideFinish": "Concluir",
   "coachingNoData": "Nenhum dado de coaching disponível.",
-  "coachingNoSlides": "Nenhum slide foi gerado. Tente novamente."
+  "coachingNoSlides": "Nenhum slide foi gerado. Tente novamente.",
+  "weeklyMissionsTitle": "Missões Semanais"
 }

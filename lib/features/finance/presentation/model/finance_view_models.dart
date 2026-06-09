@@ -50,11 +50,33 @@ sealed class CategoryPlanning503020Item with _$CategoryPlanning503020Item {
 @freezed
 sealed class CategoryPlanning503020State with _$CategoryPlanning503020State {
   factory CategoryPlanning503020State({
+    required DateTime date,
     @Default([]) List<CategoryPlanning503020Item> items,
     @Default(0.0) double totalIncomes,
+    @Default(0.0) double totalActualIncomes,
     @Default(true) bool isLoading,
     @Default(false) bool isSubmitting,
   }) = _CategoryPlanning503020State;
+}
+
+@freezed
+sealed class Planning503020DistributionGroup with _$Planning503020DistributionGroup {
+  const factory Planning503020DistributionGroup({
+    @Default(0.0) double plannedAmount,
+    @Default(0.0) double actualAmount,
+    @Default(0.0) double idealPercentage,
+  }) = _Planning503020DistributionGroup;
+}
+
+@freezed
+sealed class Planning503020Distribution with _$Planning503020Distribution {
+  const factory Planning503020Distribution({
+    required Planning503020DistributionGroup essential,
+    required Planning503020DistributionGroup comfort,
+    required Planning503020DistributionGroup investment,
+    @Default(0.0) double totalIncome,
+    @Default(0.0) double totalActualIncome,
+  }) = _Planning503020Distribution;
 }
 
 enum TransactionWizardStep { category, transactions, form }

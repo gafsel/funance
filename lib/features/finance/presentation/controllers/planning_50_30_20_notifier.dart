@@ -11,18 +11,28 @@ class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, v
 
   Planning503020Notifier({
     required this.planning503020Service,
-  }) : super(CategoryPlanning503020State(isLoading: true)) {
+  }) : super(CategoryPlanning503020State(isLoading: true, date: DateTime(DateTime.now().year, DateTime.now().month))) {
     _init();
   }
 
   void _init() {
     state = state.copyWith(isLoading: true);
-    final now = DateTime.now();
     
     _subscription?.cancel();
-    _subscription = planning503020Service.watchPlanningItems(now).listen((data) {
-      state = state.copyWith(items: data.items, totalIncomes: data.totalIncomes, isLoading: false);
+    _subscription = planning503020Service.watchPlanningItems(state.date).listen((data) {
+      state = state.copyWith(
+        items: data.items,
+        totalIncomes: data.totalIncomes,
+        totalActualIncomes: data.totalActualIncomes,
+        isLoading: false,
+      );
     });
+  }
+
+  void changeMonth(DateTime newDate) {
+    if (state.date.year == newDate.year && state.date.month == newDate.month) return;
+    state = state.copyWith(date: newDate);
+    _init();
   }
 
   void updateAmount(String categoryId, double amount) {
@@ -52,7 +62,7 @@ class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, v
   Future<void> submit() async {
     state = state.copyWith(isSubmitting: true);
     try {
-      await planning503020Service.savePlanning(state.items);
+      await planning503020Service.savePlanning(state.items, state.date);
       _init();
     } finally {
       state = state.copyWith(isSubmitting: false);

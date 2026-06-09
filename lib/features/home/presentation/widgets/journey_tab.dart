@@ -12,9 +12,9 @@ import 'package:funances/features/finance/presentation/widgets/analysis_loading_
 import 'package:funances/features/finance/presentation/widgets/automatic_transaction_consolidation_widget.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
-import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
-import 'package:funances/features/home/presentation/widgets/period_selection.dart';
-import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
+import 'package:funances/features/home/presentation/controller/mission_controller.dart';
+import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
+import 'package:funances/features/home/presentation/widgets/weekly_missions_view.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -30,153 +30,191 @@ class JourneyTab extends ConsumerWidget {
     final goalsAsync = ref.watch(goalsProvider);
     final canActionCoach = ref.watch(CoachingViewProviders.canActionCoach);
     final insightsAsync = ref.watch(coachingInsightsProvider);
+    final missionAsync = ref.watch(missionProvider);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(
-        left: 16.0,
-        right: 16.0,
-        top: 16.0,
-        bottom: 120.0,
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const AutomaticTransactionConsolidationWidget(),
-            insightsAsync.when(
-              data: (insights) {
-                if (insights.isEmpty && !canActionCoach) {
-                  return const SizedBox.shrink();
-                }
-                return Column(
-                  children: [
-                    _buildCoachingCall(
-                      context,
-                      ref,
-                      l10n,
-                      theme,
-                      canActionCoach,
-                      insights.isNotEmpty ? insights.first : null,
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-            // Listagem de Metas
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLargeScreen = constraints.maxWidth > 900;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: 120.0,
+          ),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.onboardingGoalsTitle,
-                  style: theme.textTheme.titleLarge,
-                ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.add_circle,
-                    color: AppColors.deepTurquoise,
-                  ),
-                  onPressed: () => _showAddGoalDialog(context),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            goalsAsync.when(
-              data: (goals) {
-                if (goals.isEmpty) {
-                  return _buildEmptyGoals(context, l10n, theme);
-                }
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    int crossAxisCount = 1;
-                    if (constraints.maxWidth > 1200) {
-                      crossAxisCount = 4;
-                    } else if (constraints.maxWidth > 900) {
-                      crossAxisCount = 3;
-                    } else if (constraints.maxWidth > 600) {
-                      crossAxisCount = 2;
-                    }
-
-                    if (crossAxisCount > 1) {
-                      final spacing = 16.0;
-                      final width =
-                          (constraints.maxWidth -
-                              (spacing * (crossAxisCount - 1))) /
-                          crossAxisCount;
-                      return Align(
-                        alignment: Alignment.topLeft,
-                        child: Wrap(
-                          spacing: spacing,
-                          runSpacing: spacing,
-                          children: goals.map((goal) {
-                            return SizedBox(
-                              width: width.clamp(0.0, 400.0),
-                              child: _buildGoalCard(context, ref, goal),
-                            );
-                          }).toList(),
-                        ),
-                      );
-                    }
-
-                    return Column(
-                      children: goals
-                          .map(
-                            (goal) => Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: _buildGoalCard(context, ref, goal),
+                const AutomaticTransactionConsolidationWidget(),
+                if (isLargeScreen)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          children: [
+                            insightsAsync.when(
+                              data: (insights) {
+                                if (insights.isEmpty && !canActionCoach) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  children: [
+                                    _buildCoachingCall(
+                                      context,
+                                      ref,
+                                      l10n,
+                                      theme,
+                                      canActionCoach,
+                                      insights.isNotEmpty ? insights.first : null,
+                                    ),
+                                    const SizedBox(height: 24),
+                                  ],
+                                );
+                              },
+                              loading: () => const SizedBox.shrink(),
+                              error: (_, __) => const SizedBox.shrink(),
                             ),
-                          )
-                          .toList(),
+                            missionAsync.when(
+                              data: (mission) => Column(
+                                children: [
+                                  WeeklyMissionsView(mission: mission),
+                                  const SizedBox(height: 32),
+                                ],
+                              ),
+                              loading: () => const Center(child: CircularProgressIndicator()),
+                              error: (e, st) => const SizedBox.shrink(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 32),
+                      Expanded(
+                        flex: 2,
+                        child: missionAsync.when(
+                          data: (mission) => TeamStatusView(mission: mission),
+                          loading: () => const SizedBox.shrink(),
+                          error: (e, st) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  insightsAsync.when(
+                    data: (insights) {
+                      if (insights.isEmpty && !canActionCoach) {
+                        return const SizedBox.shrink();
+                      }
+                      return Column(
+                        children: [
+                          _buildCoachingCall(
+                            context,
+                            ref,
+                            l10n,
+                            theme,
+                            canActionCoach,
+                            insights.isNotEmpty ? insights.first : null,
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                  missionAsync.when(
+                    data: (mission) => Column(
+                      children: [
+                        WeeklyMissionsView(mission: mission),
+                        const SizedBox(height: 32),
+                        TeamStatusView(mission: mission),
+                        const SizedBox(height: 32),
+                      ],
+                    ),
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, st) => const SizedBox.shrink(),
+                  ),
+                ],
+                // Listagem de Metas
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      l10n.onboardingGoalsTitle,
+                      style: theme.textTheme.titleLarge,
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.add_circle,
+                        color: AppColors.deepTurquoise,
+                      ),
+                      onPressed: () => _showAddGoalDialog(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                goalsAsync.when(
+                  data: (goals) {
+                    if (goals.isEmpty) {
+                      return _buildEmptyGoals(context, l10n, theme);
+                    }
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = 1;
+                        if (constraints.maxWidth > 1200) {
+                          crossAxisCount = 4;
+                        } else if (constraints.maxWidth > 900) {
+                          crossAxisCount = 3;
+                        } else if (constraints.maxWidth > 600) {
+                          crossAxisCount = 2;
+                        }
+
+                        if (crossAxisCount > 1) {
+                          final spacing = 16.0;
+                          final width =
+                              (constraints.maxWidth -
+                                  (spacing * (crossAxisCount - 1))) /
+                              crossAxisCount;
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Wrap(
+                              spacing: spacing,
+                              runSpacing: spacing,
+                              children: goals.map((goal) {
+                                return SizedBox(
+                                  width: width.clamp(0.0, 400.0),
+                                  child: _buildGoalCard(context, ref, goal),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        }
+
+                        return Column(
+                          children: goals
+                              .map(
+                                (goal) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _buildGoalCard(context, ref, goal),
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
                     );
                   },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text(e.toString())),
-            ),
-            const SizedBox(height: 32),
-            // Onde está o dinheiro? (Movido da OverviewTab)
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.homeWhereIsMoney,
-                    style: theme.textTheme.titleLarge,
-                  ),
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(child: Text(e.toString())),
                 ),
-                PeriodSelection(),
+                const SizedBox(height: 32),
               ],
             ),
-            const SizedBox(height: 16),
-            // View Type Selector
-            SummaryTypeSelection(),
-            const SizedBox(height: 24),
-            Text(
-              l10n.expenses,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTurquoise,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const CategorySummaryView(categoryType: CategoryType.expense),
-            const SizedBox(height: 32),
-            Text(
-              l10n.incomes,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTurquoise,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const CategorySummaryView(categoryType: CategoryType.income),
-            const SizedBox(height: 32),
-            const BalanceSummaryView(),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 

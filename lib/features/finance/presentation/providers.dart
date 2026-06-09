@@ -412,6 +412,13 @@ class FinanceViewProviders {
           planning503020Service: ref.watch(planning503020Service),
         );
       });
+
+  static final planning503020Distribution = StreamProvider.autoDispose.family<
+    Planning503020Distribution,
+    DateTime
+  >((ref, date) {
+    return ref.watch(planning503020Service).watchDistribution(date);
+  });
 }
 
 class PeriodSummaryDomainProviders {

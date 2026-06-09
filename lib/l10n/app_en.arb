@@ -124,12 +124,16 @@
       "amount": { "type": "String" }
     }
   },
-  "planning503020Actual": "Actual: {amount}",
-  "@planning503020Actual": {
+  "planning503020ActualAmount": "Actual: {amount}",
+  "@planning503020ActualAmount": {
     "placeholders": {
       "amount": { "type": "String" }
     }
   },
+  "planning503020DistributionTitle": "50-30-20 Distribution",
+  "planning503020Planned": "Planned",
+  "planning503020Actual": "Actual",
+  "planning503020Goal": "Goal",
   "planning503020SummaryActual": "Actual Spent",
   "planning503020ActualLabel": "Already spent:",
   "planning503020Total": "Total: {amount}",
@@ -205,6 +209,7 @@
   "declineButton": "Decline",
   "homeJourneyTab": "The Journey",
   "homeOverviewTab": "Overview",
+  "homeMissionsTab": "Missions",
   "homeHistoryTab": "Statement",
   "homeTotalSavedMonth": "You saved {amount} more than planned!",
   "homePointsEarned": "+{points} Points",
@@ -520,6 +525,13 @@
   "pendingMissions": "Pending",
   "completedMissions": "Completed",
   "overdueMissions": "Overdue",
+  "weeklyMissionsProgress": "{completed} of {total} completed",
+  "@weeklyMissionsProgress": {
+    "placeholders": {
+      "completed": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
   "weeklyGoal": "Weekly Goal",
   "xpValue": "{xp} XP",
   "@xpValue": {
@@ -573,5 +585,6 @@
   "transactionDeleteCascadeThisAndNext": "This and next ones",
   "transactionDeleteCascadeAll": "All of them",
   "accountAnalysisFailed": "Processing failed",
-  "completedMissionsSummary": "{count} {count, plural, =1{item} other{items}} • {xp} XP"
+  "completedMissionsSummary": "{count} {count, plural, =1{item} other{items}} • {xp} XP",
+  "weeklyMissionsTitle": "Weekly Missions"
 }

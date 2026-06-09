@@ -15,7 +15,7 @@ extension NumExtensions on num {
   }
 
   String asPercent({String? locale}) {
-    return "${asCompact(locale: locale)}%";
+    return "${(this * 100).asCompact(locale: locale)}%";
   }
 
   String asSignedCurrency({String? locale}) {

@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/features/finance/presentation/widgets/planning_50_30_20_distribution_card.dart';
 import 'package:funances/features/home/presentation/widgets/period_selection.dart';
 import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
 import 'package:go_router/go_router.dart';
@@ -24,81 +25,141 @@ class OverviewTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final overviewDate = ref.watch(HomeViewProviders.period);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(
-        left: 16.0,
-        right: 16.0,
-        top: 16.0,
-        bottom: 120.0,
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Saldos e Faturas
-            Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isLargeScreen = constraints.maxWidth > 900;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.only(
+            left: 16.0,
+            right: 16.0,
+            top: 16.0,
+            bottom: 120.0,
+          ),
+          child: SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.homeAccountsAndCards,
-                      style: theme.textTheme.titleLarge,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: () {
-                        context.push('/workspace/accounts');
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                AccountsView(),
+                if (isLargeScreen)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildAccountsHeader(context, l10n, theme),
+                            const SizedBox(height: 16),
+                            AccountsView(),
+                            const SizedBox(height: 32),
+                            Planning503020DistributionCard(date: overviewDate),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 32),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildWhereIsMoneyHeader(l10n, theme),
+                            const SizedBox(height: 16),
+                            SummaryTypeSelection(),
+                            const SizedBox(height: 24),
+                            _buildCategorySummaries(context, l10n, theme),
+                            const SizedBox(height: 32),
+                            const BalanceSummaryView(),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  // Saldos e Faturas
+                  _buildAccountsHeader(context, l10n, theme),
+                  const SizedBox(height: 16),
+                  AccountsView(),
+                  const SizedBox(height: 32),
+                  // Distribuição 50-30-20
+                  Planning503020DistributionCard(date: overviewDate),
+                  const SizedBox(height: 32),
+                  // Onde está o dinheiro?
+                  _buildWhereIsMoneyHeader(l10n, theme),
+                  const SizedBox(height: 16),
+                  // View Type Selector
+                  SummaryTypeSelection(),
+                  const SizedBox(height: 24),
+                  _buildCategorySummaries(context, l10n, theme),
+                  const SizedBox(height: 32),
+                  const BalanceSummaryView(),
+                ],
               ],
             ),
-            const SizedBox(height: 32),
-            // Onde está o dinheiro?
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.homeWhereIsMoney,
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ),
-                PeriodSelection(),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // View Type Selector
-            SummaryTypeSelection(),
-            const SizedBox(height: 24),
-            Text(
-              l10n.expenses,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTurquoise,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const CategorySummaryView(categoryType: CategoryType.expense),
-            const SizedBox(height: 32),
-            Text(
-              l10n.incomes,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTurquoise,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const CategorySummaryView(categoryType: CategoryType.income),
-            const SizedBox(height: 32),
-            const BalanceSummaryView(),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAccountsHeader(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          l10n.homeAccountsAndCards,
+          style: theme.textTheme.titleLarge,
         ),
-      ),
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline),
+          onPressed: () {
+            context.push('/workspace/accounts');
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWhereIsMoneyHeader(AppLocalizations l10n, ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            l10n.homeWhereIsMoney,
+            style: theme.textTheme.titleLarge,
+          ),
+        ),
+        PeriodSelection(),
+      ],
+    );
+  }
+
+  Widget _buildCategorySummaries(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.expenses,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.deepTurquoise,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const CategorySummaryView(categoryType: CategoryType.expense),
+        const SizedBox(height: 32),
+        Text(
+          l10n.incomes,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.deepTurquoise,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const CategorySummaryView(categoryType: CategoryType.income),
+      ],
     );
   }
 }

@@ -638,11 +638,35 @@ abstract class AppLocalizations {
   /// **'Meta: {amount}'**
   String planning503020Ideal(String amount);
 
-  /// No description provided for @planning503020Actual.
+  /// No description provided for @planning503020ActualAmount.
   ///
   /// In pt, this message translates to:
   /// **'Real: {amount}'**
-  String planning503020Actual(String amount);
+  String planning503020ActualAmount(String amount);
+
+  /// No description provided for @planning503020DistributionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Distribuição 50-30-20'**
+  String get planning503020DistributionTitle;
+
+  /// No description provided for @planning503020Planned.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejado'**
+  String get planning503020Planned;
+
+  /// No description provided for @planning503020Actual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Executado'**
+  String get planning503020Actual;
+
+  /// No description provided for @planning503020Goal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta'**
+  String get planning503020Goal;
 
   /// No description provided for @planning503020SummaryActual.
   ///
@@ -932,6 +956,12 @@ abstract class AppLocalizations {
   /// **'Visão Geral'**
   String get homeOverviewTab;
 
+  /// No description provided for @homeMissionsTab.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões'**
+  String get homeMissionsTab;
+
   /// No description provided for @homeHistoryTab.
   ///
   /// In pt, this message translates to:
@@ -1009,6 +1039,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Atrasadas'**
   String get overdueMissions;
+
+  /// No description provided for @weeklyMissionsProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'{completed} de {total} completadas'**
+  String weeklyMissionsProgress(String completed, String total);
 
   /// No description provided for @weeklyGoal.
   ///
@@ -2719,6 +2755,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhum slide foi gerado. Tente novamente.'**
   String get coachingNoSlides;
+
+  /// No description provided for @weeklyMissionsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões Semanais'**
+  String get weeklyMissionsTitle;
 }
 
 class _AppLocalizationsDelegate
