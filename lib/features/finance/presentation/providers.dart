@@ -1,9 +1,7 @@
-import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
-import 'package:funances/features/finance/domain/services/invoice_service.dart';
-import 'package:funances/core/model/core_models.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
+import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/finance_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/period_summary_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/planning_repository_impl.dart';
@@ -12,28 +10,29 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
+import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
+import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
+import 'package:funances/features/finance/domain/services/invoice_service.dart';
+import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
+import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/domain/services/planning_service.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
-import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
-import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
-import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
-import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
-import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
-import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
-import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
 import 'package:funances/features/finance/presentation/controllers/automatic_transaction_notifier.dart';
-import 'package:funances/features/finance/presentation/controllers/reconciliation_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/planning_50_30_20_notifier.dart';
-import 'package:funances/features/workspace/domain/services/category_service.dart';
+import 'package:funances/features/finance/presentation/controllers/reconciliation_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
-import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 
 class AutomaticTransactionDomainProviders {
   static final repository = Provider<IAutomaticTransactionRepository>((ref) {
@@ -110,6 +109,8 @@ class FinanceDomainProviders {
           ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
           "",
       repository: ref.read(repository),
+      accountRepository: ref.read(AccountDomainProviders.repository),
+      categoryRepository: ref.watch(CategoryDomainProviders.repository),
     ),
   );
 }
@@ -221,6 +222,7 @@ class FinanceViewProviders {
             date: args.date,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
         );
       });
 
@@ -232,6 +234,7 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.updateOrder(order),
           financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
         );
       });
 
@@ -243,6 +246,7 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.updateInstallment(installment),
           financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
         );
       });
 
@@ -255,6 +259,7 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           initialState,
           financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
         );
       });
 
@@ -398,13 +403,15 @@ class FinanceViewProviders {
     );
   });
 
-  static final planning503020 = StateNotifierProvider.autoDispose<
-      Planning503020Notifier,
-      CategoryPlanning503020State>((ref) {
-    return Planning503020Notifier(
-      planning503020Service: ref.watch(planning503020Service),
-    );
-  });
+  static final planning503020 =
+      StateNotifierProvider.autoDispose<
+        Planning503020Notifier,
+        CategoryPlanning503020State
+      >((ref) {
+        return Planning503020Notifier(
+          planning503020Service: ref.watch(planning503020Service),
+        );
+      });
 }
 
 class PeriodSummaryDomainProviders {
@@ -428,24 +435,18 @@ List<OverviewCategorySummary> _mapToOverview(
   if (summary == null) return result;
 
   summary.categories.forEach((categoryId, data) {
-    final category = categories.firstWhere(
-      (c) => c.id == categoryId,
-      orElse: () => CategoryModel(
-        id: categoryId,
-        name: 'Unknown',
-        icon: 'help',
-        color: '0xFF000000',
-      ),
-    );
+    final category = categories.where((c) => c.id == categoryId).firstOrNull;
 
-    result.add(
-      OverviewCategorySummary(
-        category: category,
-        generalPlannedAmount: data.generalPlannedAmount,
-        specificPlannedAmount: data.specificPlannedAmount,
-        actualAmount: data.actualAmount,
-      ),
-    );
+    if (category != null) {
+      result.add(
+        OverviewCategorySummary(
+          category: category,
+          generalPlannedAmount: data.generalPlannedAmount,
+          specificPlannedAmount: data.specificPlannedAmount,
+          actualAmount: data.actualAmount,
+        ),
+      );
+    }
   });
   return result;
 }

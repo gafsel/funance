@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GoalProgress {
 
- double get percent; GoalStatus get status; bool get isLost;
+ double get percent; double get predictionPercent; GoalStatus get status; bool get isLost;
 /// Create a copy of GoalProgress
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $GoalProgressCopyWith<GoalProgress> get copyWith => _$GoalProgressCopyWithImpl<G
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GoalProgress&&(identical(other.percent, percent) || other.percent == percent)&&(identical(other.status, status) || other.status == status)&&(identical(other.isLost, isLost) || other.isLost == isLost));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GoalProgress&&(identical(other.percent, percent) || other.percent == percent)&&(identical(other.predictionPercent, predictionPercent) || other.predictionPercent == predictionPercent)&&(identical(other.status, status) || other.status == status)&&(identical(other.isLost, isLost) || other.isLost == isLost));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,percent,status,isLost);
+int get hashCode => Object.hash(runtimeType,percent,predictionPercent,status,isLost);
 
 @override
 String toString() {
-  return 'GoalProgress(percent: $percent, status: $status, isLost: $isLost)';
+  return 'GoalProgress(percent: $percent, predictionPercent: $predictionPercent, status: $status, isLost: $isLost)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $GoalProgressCopyWith<$Res>  {
   factory $GoalProgressCopyWith(GoalProgress value, $Res Function(GoalProgress) _then) = _$GoalProgressCopyWithImpl;
 @useResult
 $Res call({
- double percent, GoalStatus status, bool isLost
+ double percent, double predictionPercent, GoalStatus status, bool isLost
 });
 
 
@@ -62,9 +62,10 @@ class _$GoalProgressCopyWithImpl<$Res>
 
 /// Create a copy of GoalProgress
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? percent = null,Object? status = null,Object? isLost = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? percent = null,Object? predictionPercent = null,Object? status = null,Object? isLost = null,}) {
   return _then(_self.copyWith(
 percent: null == percent ? _self.percent : percent // ignore: cast_nullable_to_non_nullable
+as double,predictionPercent: null == predictionPercent ? _self.predictionPercent : predictionPercent // ignore: cast_nullable_to_non_nullable
 as double,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as GoalStatus,isLost: null == isLost ? _self.isLost : isLost // ignore: cast_nullable_to_non_nullable
 as bool,
@@ -149,10 +150,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double percent,  GoalStatus status,  bool isLost)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double percent,  double predictionPercent,  GoalStatus status,  bool isLost)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GoalProgress() when $default != null:
-return $default(_that.percent,_that.status,_that.isLost);case _:
+return $default(_that.percent,_that.predictionPercent,_that.status,_that.isLost);case _:
   return orElse();
 
 }
@@ -170,10 +171,10 @@ return $default(_that.percent,_that.status,_that.isLost);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double percent,  GoalStatus status,  bool isLost)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double percent,  double predictionPercent,  GoalStatus status,  bool isLost)  $default,) {final _that = this;
 switch (_that) {
 case _GoalProgress():
-return $default(_that.percent,_that.status,_that.isLost);}
+return $default(_that.percent,_that.predictionPercent,_that.status,_that.isLost);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -187,10 +188,10 @@ return $default(_that.percent,_that.status,_that.isLost);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double percent,  GoalStatus status,  bool isLost)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double percent,  double predictionPercent,  GoalStatus status,  bool isLost)?  $default,) {final _that = this;
 switch (_that) {
 case _GoalProgress() when $default != null:
-return $default(_that.percent,_that.status,_that.isLost);case _:
+return $default(_that.percent,_that.predictionPercent,_that.status,_that.isLost);case _:
   return null;
 
 }
@@ -202,10 +203,11 @@ return $default(_that.percent,_that.status,_that.isLost);case _:
 
 
 class _GoalProgress implements GoalProgress {
-  const _GoalProgress({required this.percent, required this.status, required this.isLost});
+  const _GoalProgress({required this.percent, required this.predictionPercent, required this.status, required this.isLost});
   
 
 @override final  double percent;
+@override final  double predictionPercent;
 @override final  GoalStatus status;
 @override final  bool isLost;
 
@@ -219,16 +221,16 @@ _$GoalProgressCopyWith<_GoalProgress> get copyWith => __$GoalProgressCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalProgress&&(identical(other.percent, percent) || other.percent == percent)&&(identical(other.status, status) || other.status == status)&&(identical(other.isLost, isLost) || other.isLost == isLost));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalProgress&&(identical(other.percent, percent) || other.percent == percent)&&(identical(other.predictionPercent, predictionPercent) || other.predictionPercent == predictionPercent)&&(identical(other.status, status) || other.status == status)&&(identical(other.isLost, isLost) || other.isLost == isLost));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,percent,status,isLost);
+int get hashCode => Object.hash(runtimeType,percent,predictionPercent,status,isLost);
 
 @override
 String toString() {
-  return 'GoalProgress(percent: $percent, status: $status, isLost: $isLost)';
+  return 'GoalProgress(percent: $percent, predictionPercent: $predictionPercent, status: $status, isLost: $isLost)';
 }
 
 
@@ -239,7 +241,7 @@ abstract mixin class _$GoalProgressCopyWith<$Res> implements $GoalProgressCopyWi
   factory _$GoalProgressCopyWith(_GoalProgress value, $Res Function(_GoalProgress) _then) = __$GoalProgressCopyWithImpl;
 @override @useResult
 $Res call({
- double percent, GoalStatus status, bool isLost
+ double percent, double predictionPercent, GoalStatus status, bool isLost
 });
 
 
@@ -256,9 +258,10 @@ class __$GoalProgressCopyWithImpl<$Res>
 
 /// Create a copy of GoalProgress
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? percent = null,Object? status = null,Object? isLost = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? percent = null,Object? predictionPercent = null,Object? status = null,Object? isLost = null,}) {
   return _then(_GoalProgress(
 percent: null == percent ? _self.percent : percent // ignore: cast_nullable_to_non_nullable
+as double,predictionPercent: null == predictionPercent ? _self.predictionPercent : predictionPercent // ignore: cast_nullable_to_non_nullable
 as double,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as GoalStatus,isLost: null == isLost ? _self.isLost : isLost // ignore: cast_nullable_to_non_nullable
 as bool,

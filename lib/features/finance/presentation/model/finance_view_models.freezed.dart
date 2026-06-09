@@ -2543,7 +2543,7 @@ $CategoryModelCopyWith<$Res>? get category {
 /// @nodoc
 mixin _$TransactionTotals {
 
- double get plannedIncomes; double get realizedIncomes; double get plannedExpenses; double get realizedExpenses; double get plannedTransfers; double get realizedTransfers; double get plannedInvoices; double get realizedInvoices;
+ double get plannedIncomes; double get realizedIncomes; double get plannedExpenses; double get realizedExpenses; double get plannedTransfers; double get realizedTransfers; double get plannedInvoices; double get realizedInvoices; double get plannedVirtualDebtExpense; double get realizedVirtualDebtExpense; double get plannedVirtualDebtIncome; double get realizedVirtualDebtIncome; double get plannedVirtualInvestmentExpense; double get realizedVirtualInvestmentExpense; double get plannedVirtualInvestmentIncome; double get realizedVirtualInvestmentIncome;
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2554,16 +2554,16 @@ $TransactionTotalsCopyWith<TransactionTotals> get copyWith => _$TransactionTotal
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses)&&(identical(other.plannedTransfers, plannedTransfers) || other.plannedTransfers == plannedTransfers)&&(identical(other.realizedTransfers, realizedTransfers) || other.realizedTransfers == realizedTransfers)&&(identical(other.plannedInvoices, plannedInvoices) || other.plannedInvoices == plannedInvoices)&&(identical(other.realizedInvoices, realizedInvoices) || other.realizedInvoices == realizedInvoices));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses)&&(identical(other.plannedTransfers, plannedTransfers) || other.plannedTransfers == plannedTransfers)&&(identical(other.realizedTransfers, realizedTransfers) || other.realizedTransfers == realizedTransfers)&&(identical(other.plannedInvoices, plannedInvoices) || other.plannedInvoices == plannedInvoices)&&(identical(other.realizedInvoices, realizedInvoices) || other.realizedInvoices == realizedInvoices)&&(identical(other.plannedVirtualDebtExpense, plannedVirtualDebtExpense) || other.plannedVirtualDebtExpense == plannedVirtualDebtExpense)&&(identical(other.realizedVirtualDebtExpense, realizedVirtualDebtExpense) || other.realizedVirtualDebtExpense == realizedVirtualDebtExpense)&&(identical(other.plannedVirtualDebtIncome, plannedVirtualDebtIncome) || other.plannedVirtualDebtIncome == plannedVirtualDebtIncome)&&(identical(other.realizedVirtualDebtIncome, realizedVirtualDebtIncome) || other.realizedVirtualDebtIncome == realizedVirtualDebtIncome)&&(identical(other.plannedVirtualInvestmentExpense, plannedVirtualInvestmentExpense) || other.plannedVirtualInvestmentExpense == plannedVirtualInvestmentExpense)&&(identical(other.realizedVirtualInvestmentExpense, realizedVirtualInvestmentExpense) || other.realizedVirtualInvestmentExpense == realizedVirtualInvestmentExpense)&&(identical(other.plannedVirtualInvestmentIncome, plannedVirtualInvestmentIncome) || other.plannedVirtualInvestmentIncome == plannedVirtualInvestmentIncome)&&(identical(other.realizedVirtualInvestmentIncome, realizedVirtualInvestmentIncome) || other.realizedVirtualInvestmentIncome == realizedVirtualInvestmentIncome));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses,plannedTransfers,realizedTransfers,plannedInvoices,realizedInvoices);
+int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses,plannedTransfers,realizedTransfers,plannedInvoices,realizedInvoices,plannedVirtualDebtExpense,realizedVirtualDebtExpense,plannedVirtualDebtIncome,realizedVirtualDebtIncome,plannedVirtualInvestmentExpense,realizedVirtualInvestmentExpense,plannedVirtualInvestmentIncome,realizedVirtualInvestmentIncome);
 
 @override
 String toString() {
-  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses, plannedTransfers: $plannedTransfers, realizedTransfers: $realizedTransfers, plannedInvoices: $plannedInvoices, realizedInvoices: $realizedInvoices)';
+  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses, plannedTransfers: $plannedTransfers, realizedTransfers: $realizedTransfers, plannedInvoices: $plannedInvoices, realizedInvoices: $realizedInvoices, plannedVirtualDebtExpense: $plannedVirtualDebtExpense, realizedVirtualDebtExpense: $realizedVirtualDebtExpense, plannedVirtualDebtIncome: $plannedVirtualDebtIncome, realizedVirtualDebtIncome: $realizedVirtualDebtIncome, plannedVirtualInvestmentExpense: $plannedVirtualInvestmentExpense, realizedVirtualInvestmentExpense: $realizedVirtualInvestmentExpense, plannedVirtualInvestmentIncome: $plannedVirtualInvestmentIncome, realizedVirtualInvestmentIncome: $realizedVirtualInvestmentIncome)';
 }
 
 
@@ -2574,7 +2574,7 @@ abstract mixin class $TransactionTotalsCopyWith<$Res>  {
   factory $TransactionTotalsCopyWith(TransactionTotals value, $Res Function(TransactionTotals) _then) = _$TransactionTotalsCopyWithImpl;
 @useResult
 $Res call({
- double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses, double plannedTransfers, double realizedTransfers, double plannedInvoices, double realizedInvoices
+ double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses, double plannedTransfers, double realizedTransfers, double plannedInvoices, double realizedInvoices, double plannedVirtualDebtExpense, double realizedVirtualDebtExpense, double plannedVirtualDebtIncome, double realizedVirtualDebtIncome, double plannedVirtualInvestmentExpense, double realizedVirtualInvestmentExpense, double plannedVirtualInvestmentIncome, double realizedVirtualInvestmentIncome
 });
 
 
@@ -2591,7 +2591,7 @@ class _$TransactionTotalsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,Object? plannedTransfers = null,Object? realizedTransfers = null,Object? plannedInvoices = null,Object? realizedInvoices = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,Object? plannedTransfers = null,Object? realizedTransfers = null,Object? plannedInvoices = null,Object? realizedInvoices = null,Object? plannedVirtualDebtExpense = null,Object? realizedVirtualDebtExpense = null,Object? plannedVirtualDebtIncome = null,Object? realizedVirtualDebtIncome = null,Object? plannedVirtualInvestmentExpense = null,Object? realizedVirtualInvestmentExpense = null,Object? plannedVirtualInvestmentIncome = null,Object? realizedVirtualInvestmentIncome = null,}) {
   return _then(_self.copyWith(
 plannedIncomes: null == plannedIncomes ? _self.plannedIncomes : plannedIncomes // ignore: cast_nullable_to_non_nullable
 as double,realizedIncomes: null == realizedIncomes ? _self.realizedIncomes : realizedIncomes // ignore: cast_nullable_to_non_nullable
@@ -2601,6 +2601,14 @@ as double,plannedTransfers: null == plannedTransfers ? _self.plannedTransfers : 
 as double,realizedTransfers: null == realizedTransfers ? _self.realizedTransfers : realizedTransfers // ignore: cast_nullable_to_non_nullable
 as double,plannedInvoices: null == plannedInvoices ? _self.plannedInvoices : plannedInvoices // ignore: cast_nullable_to_non_nullable
 as double,realizedInvoices: null == realizedInvoices ? _self.realizedInvoices : realizedInvoices // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualDebtExpense: null == plannedVirtualDebtExpense ? _self.plannedVirtualDebtExpense : plannedVirtualDebtExpense // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualDebtExpense: null == realizedVirtualDebtExpense ? _self.realizedVirtualDebtExpense : realizedVirtualDebtExpense // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualDebtIncome: null == plannedVirtualDebtIncome ? _self.plannedVirtualDebtIncome : plannedVirtualDebtIncome // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualDebtIncome: null == realizedVirtualDebtIncome ? _self.realizedVirtualDebtIncome : realizedVirtualDebtIncome // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualInvestmentExpense: null == plannedVirtualInvestmentExpense ? _self.plannedVirtualInvestmentExpense : plannedVirtualInvestmentExpense // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualInvestmentExpense: null == realizedVirtualInvestmentExpense ? _self.realizedVirtualInvestmentExpense : realizedVirtualInvestmentExpense // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualInvestmentIncome: null == plannedVirtualInvestmentIncome ? _self.plannedVirtualInvestmentIncome : plannedVirtualInvestmentIncome // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualInvestmentIncome: null == realizedVirtualInvestmentIncome ? _self.realizedVirtualInvestmentIncome : realizedVirtualInvestmentIncome // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }
@@ -2683,10 +2691,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices,  double plannedVirtualDebtExpense,  double realizedVirtualDebtExpense,  double plannedVirtualDebtIncome,  double realizedVirtualDebtIncome,  double plannedVirtualInvestmentExpense,  double realizedVirtualInvestmentExpense,  double plannedVirtualInvestmentIncome,  double realizedVirtualInvestmentIncome)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionTotals() when $default != null:
-return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices);case _:
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices,_that.plannedVirtualDebtExpense,_that.realizedVirtualDebtExpense,_that.plannedVirtualDebtIncome,_that.realizedVirtualDebtIncome,_that.plannedVirtualInvestmentExpense,_that.realizedVirtualInvestmentExpense,_that.plannedVirtualInvestmentIncome,_that.realizedVirtualInvestmentIncome);case _:
   return orElse();
 
 }
@@ -2704,10 +2712,10 @@ return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices,  double plannedVirtualDebtExpense,  double realizedVirtualDebtExpense,  double plannedVirtualDebtIncome,  double realizedVirtualDebtIncome,  double plannedVirtualInvestmentExpense,  double realizedVirtualInvestmentExpense,  double plannedVirtualInvestmentIncome,  double realizedVirtualInvestmentIncome)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionTotals():
-return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices);}
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices,_that.plannedVirtualDebtExpense,_that.realizedVirtualDebtExpense,_that.plannedVirtualDebtIncome,_that.realizedVirtualDebtIncome,_that.plannedVirtualInvestmentExpense,_that.realizedVirtualInvestmentExpense,_that.plannedVirtualInvestmentIncome,_that.realizedVirtualInvestmentIncome);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2721,10 +2729,10 @@ return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( double plannedIncomes,  double realizedIncomes,  double plannedExpenses,  double realizedExpenses,  double plannedTransfers,  double realizedTransfers,  double plannedInvoices,  double realizedInvoices,  double plannedVirtualDebtExpense,  double realizedVirtualDebtExpense,  double plannedVirtualDebtIncome,  double realizedVirtualDebtIncome,  double plannedVirtualInvestmentExpense,  double realizedVirtualInvestmentExpense,  double plannedVirtualInvestmentIncome,  double realizedVirtualInvestmentIncome)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionTotals() when $default != null:
-return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices);case _:
+return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses,_that.realizedExpenses,_that.plannedTransfers,_that.realizedTransfers,_that.plannedInvoices,_that.realizedInvoices,_that.plannedVirtualDebtExpense,_that.realizedVirtualDebtExpense,_that.plannedVirtualDebtIncome,_that.realizedVirtualDebtIncome,_that.plannedVirtualInvestmentExpense,_that.realizedVirtualInvestmentExpense,_that.plannedVirtualInvestmentIncome,_that.realizedVirtualInvestmentIncome);case _:
   return null;
 
 }
@@ -2736,7 +2744,7 @@ return $default(_that.plannedIncomes,_that.realizedIncomes,_that.plannedExpenses
 
 
 class _TransactionTotals extends TransactionTotals {
-  const _TransactionTotals({this.plannedIncomes = 0.0, this.realizedIncomes = 0.0, this.plannedExpenses = 0.0, this.realizedExpenses = 0.0, this.plannedTransfers = 0.0, this.realizedTransfers = 0.0, this.plannedInvoices = 0.0, this.realizedInvoices = 0.0}): super._();
+  const _TransactionTotals({this.plannedIncomes = 0.0, this.realizedIncomes = 0.0, this.plannedExpenses = 0.0, this.realizedExpenses = 0.0, this.plannedTransfers = 0.0, this.realizedTransfers = 0.0, this.plannedInvoices = 0.0, this.realizedInvoices = 0.0, this.plannedVirtualDebtExpense = 0.0, this.realizedVirtualDebtExpense = 0.0, this.plannedVirtualDebtIncome = 0.0, this.realizedVirtualDebtIncome = 0.0, this.plannedVirtualInvestmentExpense = 0.0, this.realizedVirtualInvestmentExpense = 0.0, this.plannedVirtualInvestmentIncome = 0.0, this.realizedVirtualInvestmentIncome = 0.0}): super._();
   
 
 @override@JsonKey() final  double plannedIncomes;
@@ -2747,6 +2755,14 @@ class _TransactionTotals extends TransactionTotals {
 @override@JsonKey() final  double realizedTransfers;
 @override@JsonKey() final  double plannedInvoices;
 @override@JsonKey() final  double realizedInvoices;
+@override@JsonKey() final  double plannedVirtualDebtExpense;
+@override@JsonKey() final  double realizedVirtualDebtExpense;
+@override@JsonKey() final  double plannedVirtualDebtIncome;
+@override@JsonKey() final  double realizedVirtualDebtIncome;
+@override@JsonKey() final  double plannedVirtualInvestmentExpense;
+@override@JsonKey() final  double realizedVirtualInvestmentExpense;
+@override@JsonKey() final  double plannedVirtualInvestmentIncome;
+@override@JsonKey() final  double realizedVirtualInvestmentIncome;
 
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
@@ -2758,16 +2774,16 @@ _$TransactionTotalsCopyWith<_TransactionTotals> get copyWith => __$TransactionTo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses)&&(identical(other.plannedTransfers, plannedTransfers) || other.plannedTransfers == plannedTransfers)&&(identical(other.realizedTransfers, realizedTransfers) || other.realizedTransfers == realizedTransfers)&&(identical(other.plannedInvoices, plannedInvoices) || other.plannedInvoices == plannedInvoices)&&(identical(other.realizedInvoices, realizedInvoices) || other.realizedInvoices == realizedInvoices));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionTotals&&(identical(other.plannedIncomes, plannedIncomes) || other.plannedIncomes == plannedIncomes)&&(identical(other.realizedIncomes, realizedIncomes) || other.realizedIncomes == realizedIncomes)&&(identical(other.plannedExpenses, plannedExpenses) || other.plannedExpenses == plannedExpenses)&&(identical(other.realizedExpenses, realizedExpenses) || other.realizedExpenses == realizedExpenses)&&(identical(other.plannedTransfers, plannedTransfers) || other.plannedTransfers == plannedTransfers)&&(identical(other.realizedTransfers, realizedTransfers) || other.realizedTransfers == realizedTransfers)&&(identical(other.plannedInvoices, plannedInvoices) || other.plannedInvoices == plannedInvoices)&&(identical(other.realizedInvoices, realizedInvoices) || other.realizedInvoices == realizedInvoices)&&(identical(other.plannedVirtualDebtExpense, plannedVirtualDebtExpense) || other.plannedVirtualDebtExpense == plannedVirtualDebtExpense)&&(identical(other.realizedVirtualDebtExpense, realizedVirtualDebtExpense) || other.realizedVirtualDebtExpense == realizedVirtualDebtExpense)&&(identical(other.plannedVirtualDebtIncome, plannedVirtualDebtIncome) || other.plannedVirtualDebtIncome == plannedVirtualDebtIncome)&&(identical(other.realizedVirtualDebtIncome, realizedVirtualDebtIncome) || other.realizedVirtualDebtIncome == realizedVirtualDebtIncome)&&(identical(other.plannedVirtualInvestmentExpense, plannedVirtualInvestmentExpense) || other.plannedVirtualInvestmentExpense == plannedVirtualInvestmentExpense)&&(identical(other.realizedVirtualInvestmentExpense, realizedVirtualInvestmentExpense) || other.realizedVirtualInvestmentExpense == realizedVirtualInvestmentExpense)&&(identical(other.plannedVirtualInvestmentIncome, plannedVirtualInvestmentIncome) || other.plannedVirtualInvestmentIncome == plannedVirtualInvestmentIncome)&&(identical(other.realizedVirtualInvestmentIncome, realizedVirtualInvestmentIncome) || other.realizedVirtualInvestmentIncome == realizedVirtualInvestmentIncome));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses,plannedTransfers,realizedTransfers,plannedInvoices,realizedInvoices);
+int get hashCode => Object.hash(runtimeType,plannedIncomes,realizedIncomes,plannedExpenses,realizedExpenses,plannedTransfers,realizedTransfers,plannedInvoices,realizedInvoices,plannedVirtualDebtExpense,realizedVirtualDebtExpense,plannedVirtualDebtIncome,realizedVirtualDebtIncome,plannedVirtualInvestmentExpense,realizedVirtualInvestmentExpense,plannedVirtualInvestmentIncome,realizedVirtualInvestmentIncome);
 
 @override
 String toString() {
-  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses, plannedTransfers: $plannedTransfers, realizedTransfers: $realizedTransfers, plannedInvoices: $plannedInvoices, realizedInvoices: $realizedInvoices)';
+  return 'TransactionTotals(plannedIncomes: $plannedIncomes, realizedIncomes: $realizedIncomes, plannedExpenses: $plannedExpenses, realizedExpenses: $realizedExpenses, plannedTransfers: $plannedTransfers, realizedTransfers: $realizedTransfers, plannedInvoices: $plannedInvoices, realizedInvoices: $realizedInvoices, plannedVirtualDebtExpense: $plannedVirtualDebtExpense, realizedVirtualDebtExpense: $realizedVirtualDebtExpense, plannedVirtualDebtIncome: $plannedVirtualDebtIncome, realizedVirtualDebtIncome: $realizedVirtualDebtIncome, plannedVirtualInvestmentExpense: $plannedVirtualInvestmentExpense, realizedVirtualInvestmentExpense: $realizedVirtualInvestmentExpense, plannedVirtualInvestmentIncome: $plannedVirtualInvestmentIncome, realizedVirtualInvestmentIncome: $realizedVirtualInvestmentIncome)';
 }
 
 
@@ -2778,7 +2794,7 @@ abstract mixin class _$TransactionTotalsCopyWith<$Res> implements $TransactionTo
   factory _$TransactionTotalsCopyWith(_TransactionTotals value, $Res Function(_TransactionTotals) _then) = __$TransactionTotalsCopyWithImpl;
 @override @useResult
 $Res call({
- double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses, double plannedTransfers, double realizedTransfers, double plannedInvoices, double realizedInvoices
+ double plannedIncomes, double realizedIncomes, double plannedExpenses, double realizedExpenses, double plannedTransfers, double realizedTransfers, double plannedInvoices, double realizedInvoices, double plannedVirtualDebtExpense, double realizedVirtualDebtExpense, double plannedVirtualDebtIncome, double realizedVirtualDebtIncome, double plannedVirtualInvestmentExpense, double realizedVirtualInvestmentExpense, double plannedVirtualInvestmentIncome, double realizedVirtualInvestmentIncome
 });
 
 
@@ -2795,7 +2811,7 @@ class __$TransactionTotalsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionTotals
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,Object? plannedTransfers = null,Object? realizedTransfers = null,Object? plannedInvoices = null,Object? realizedInvoices = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? plannedIncomes = null,Object? realizedIncomes = null,Object? plannedExpenses = null,Object? realizedExpenses = null,Object? plannedTransfers = null,Object? realizedTransfers = null,Object? plannedInvoices = null,Object? realizedInvoices = null,Object? plannedVirtualDebtExpense = null,Object? realizedVirtualDebtExpense = null,Object? plannedVirtualDebtIncome = null,Object? realizedVirtualDebtIncome = null,Object? plannedVirtualInvestmentExpense = null,Object? realizedVirtualInvestmentExpense = null,Object? plannedVirtualInvestmentIncome = null,Object? realizedVirtualInvestmentIncome = null,}) {
   return _then(_TransactionTotals(
 plannedIncomes: null == plannedIncomes ? _self.plannedIncomes : plannedIncomes // ignore: cast_nullable_to_non_nullable
 as double,realizedIncomes: null == realizedIncomes ? _self.realizedIncomes : realizedIncomes // ignore: cast_nullable_to_non_nullable
@@ -2805,6 +2821,14 @@ as double,plannedTransfers: null == plannedTransfers ? _self.plannedTransfers : 
 as double,realizedTransfers: null == realizedTransfers ? _self.realizedTransfers : realizedTransfers // ignore: cast_nullable_to_non_nullable
 as double,plannedInvoices: null == plannedInvoices ? _self.plannedInvoices : plannedInvoices // ignore: cast_nullable_to_non_nullable
 as double,realizedInvoices: null == realizedInvoices ? _self.realizedInvoices : realizedInvoices // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualDebtExpense: null == plannedVirtualDebtExpense ? _self.plannedVirtualDebtExpense : plannedVirtualDebtExpense // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualDebtExpense: null == realizedVirtualDebtExpense ? _self.realizedVirtualDebtExpense : realizedVirtualDebtExpense // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualDebtIncome: null == plannedVirtualDebtIncome ? _self.plannedVirtualDebtIncome : plannedVirtualDebtIncome // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualDebtIncome: null == realizedVirtualDebtIncome ? _self.realizedVirtualDebtIncome : realizedVirtualDebtIncome // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualInvestmentExpense: null == plannedVirtualInvestmentExpense ? _self.plannedVirtualInvestmentExpense : plannedVirtualInvestmentExpense // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualInvestmentExpense: null == realizedVirtualInvestmentExpense ? _self.realizedVirtualInvestmentExpense : realizedVirtualInvestmentExpense // ignore: cast_nullable_to_non_nullable
+as double,plannedVirtualInvestmentIncome: null == plannedVirtualInvestmentIncome ? _self.plannedVirtualInvestmentIncome : plannedVirtualInvestmentIncome // ignore: cast_nullable_to_non_nullable
+as double,realizedVirtualInvestmentIncome: null == realizedVirtualInvestmentIncome ? _self.realizedVirtualInvestmentIncome : realizedVirtualInvestmentIncome // ignore: cast_nullable_to_non_nullable
 as double,
   ));
 }

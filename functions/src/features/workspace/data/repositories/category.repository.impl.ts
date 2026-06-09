@@ -7,7 +7,12 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
         return admin.firestore().collection("workspaces").doc(workspaceId).collection("categories");
     }
 
-    async createCategory(workspaceId: string, category: Omit<CategoryModel, "id">): Promise<string> {
+    async createCategory(workspaceId: string, category: CategoryModel | Omit<CategoryModel, "id">): Promise<string> {
+        if ("id" in category) {
+            const { id, ...data } = category;
+            await this.getCollection(workspaceId).doc(id).set(data);
+            return id;
+        }
         const docRef = await this.getCollection(workspaceId).add(category);
         return docRef.id;
     }

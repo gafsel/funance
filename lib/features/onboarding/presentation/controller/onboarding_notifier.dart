@@ -184,13 +184,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     List<CategoryModel> categories,
     CategoryModel category,
   ) async {
-    CategoryModel? found = categories
-        .where(
-          (c) =>
-              c.type == category.type &&
-              c.name.toLowerCase() == category.name.toLowerCase(),
-        )
-        .firstOrNull;
+    CategoryModel? found = categories.where((c) {
+      if (category.isVirtual && c.id == category.id) return true;
+
+      return c.type == category.type &&
+          c.name.toLowerCase() == category.name.toLowerCase();
+    }).firstOrNull;
 
     if (found == null) {
       final newCategory = await categoryService.create(

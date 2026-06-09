@@ -4,6 +4,7 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/providers/coaching_providers.dart';
@@ -497,9 +498,10 @@ class JourneyTab extends ConsumerWidget {
   }
 
   Widget _buildGoalCard(BuildContext context, WidgetRef ref, GoalModel goal) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final progress = ref.watch(goalProgressProvider(goal));
+    final locale = context.locale;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -541,18 +543,14 @@ class JourneyTab extends ConsumerWidget {
                         ),
                         Text(
                           l10n.goalTargetTarget(
-                            NumberFormat.simpleCurrency().format(
-                              goal.targetAmount,
-                            ),
+                            goal.targetAmount.asCurrency(locale: locale),
                           ),
                           style: theme.textTheme.bodySmall,
                         ),
                         if (goal.monthlyRequirement > 0)
                           Text(
                             l10n.goalMonthlyRequirementValue(
-                              NumberFormat.simpleCurrency().format(
-                                goal.monthlyRequirement,
-                              ),
+                              goal.monthlyRequirement.asCurrency(locale: locale),
                             ),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: AppColors.deepTurquoise,
@@ -594,6 +592,21 @@ class JourneyTab extends ConsumerWidget {
                     ),
                   ),
                   FractionallySizedBox(
+                    widthFactor: progress.predictionPercent,
+                    child: Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.limeGreen,
+                            progress.getStatusColor(context).withValues(alpha: .5),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                  FractionallySizedBox(
                     widthFactor: progress.percent,
                     child: Container(
                       height: 12,
@@ -618,17 +631,13 @@ class JourneyTab extends ConsumerWidget {
                     goal.type == GoalType.saveMoney ||
                             goal.type == GoalType.payDebt
                         ? l10n.goalRemainingValue(
-                            NumberFormat.simpleCurrency().format(
-                              goal.targetAmount - goal.currentAmount,
-                            ),
+                        (goal.targetAmount - goal.currentAmount).asCurrency(locale: locale)
                           )
-                        : l10n.goalProgressValue(
-                            (progress.percent * 100).toInt().toString(),
-                          ),
+                        : progress.percent.asPercent(locale: locale),
                     style: theme.textTheme.bodySmall,
                   ),
                   Text(
-                    DateFormat.yMd().format(goal.deadline),
+                    goal.deadline.formated(l10n.formatSimpleDate),
                     style: theme.textTheme.bodySmall,
                   ),
                 ],

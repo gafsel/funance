@@ -1,6 +1,6 @@
 import { ICategoryRepository } from "../repositories/category.repository";
 import { ICategoryService } from "./category.service";
-import { CategoryModel, CategoryType } from "../models/category.model";
+import { CategoryModel, CategoryType, VIRTUAL_DEBT_EXPENSE_CATEGORY, VIRTUAL_DEBT_INCOME_CATEGORY, VIRTUAL_INVESTMENT_EXPENSE_CATEGORY, VIRTUAL_INVESTMENT_INCOME_CATEGORY } from "../models/category.model";
 import { WorkspaceType } from "../models/workspace.model";
 import { IFinanceRepository } from "../../../finance/domain/repositories/finance.repository";
 
@@ -12,10 +12,14 @@ export class CategoryServiceImpl implements ICategoryService {
     }
 
     async createDefaultCategories(workspaceId: string, type: WorkspaceType): Promise<void> {
-        const personalCategories: Omit<CategoryModel, "id">[] = [
+        const personalCategories: (CategoryModel | Omit<CategoryModel, "id">)[] = [
+            VIRTUAL_DEBT_EXPENSE_CATEGORY,
+            VIRTUAL_DEBT_INCOME_CATEGORY,
+            VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
+            VIRTUAL_INVESTMENT_INCOME_CATEGORY,
+
             // Receitas
             { name: "Salário", icon: "payments", color: "#9CDE7C", type: CategoryType.income, isDeleted: false },
-            { name: "Investimentos", icon: "trending_up", color: "#25D3D0", type: CategoryType.income, isDeleted: false },
             { name: "Freelance/Extra", icon: "work", color: "#FAD02E", type: CategoryType.income, isDeleted: false },
             { name: "Presentes", icon: "celebration", color: "#E91E63", type: CategoryType.income, isDeleted: false },
 
@@ -37,15 +41,18 @@ export class CategoryServiceImpl implements ICategoryService {
             { name: "Compras", icon: "checkroom", color: "#9C27B0", type: CategoryType.expense, isDeleted: false },
             { name: "Viagens", icon: "flight", color: "#00BCD4", type: CategoryType.expense, isDeleted: false },
             { name: "Assinaturas", icon: "subscriptions", color: "#4CAF50", type: CategoryType.expense, isDeleted: false },
-            { name: "Dívidas/Empréstimos", icon: "credit_card", color: "#795548", type: CategoryType.expense, isDeleted: false },
             { name: "Outros", icon: "category", color: "#607D8B", type: CategoryType.expense, isDeleted: false },
         ];
 
-        const businessCategories: Omit<CategoryModel, "id">[] = [
+        const businessCategories: (CategoryModel | Omit<CategoryModel, "id">)[] = [
+            VIRTUAL_DEBT_EXPENSE_CATEGORY,
+            VIRTUAL_DEBT_INCOME_CATEGORY,
+            VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
+            VIRTUAL_INVESTMENT_INCOME_CATEGORY,
+
             // Receitas
             { name: "Vendas", icon: "shopping_cart", color: "#9CDE7C", type: CategoryType.income, isDeleted: false },
             { name: "Serviços", icon: "handyman", color: "#25D3D0", type: CategoryType.income, isDeleted: false },
-            { name: "Rendimentos", icon: "account_balance", color: "#FAD02E", type: CategoryType.income, isDeleted: false },
 
             // Despesas Operacionais
             { name: "Fornecedores", icon: "inventory", color: "#FF6F61", type: CategoryType.expense, isDeleted: false },

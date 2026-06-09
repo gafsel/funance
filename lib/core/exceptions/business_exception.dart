@@ -18,12 +18,18 @@ enum ErrorCode {
 
 class BusinessException implements Exception {
   final ErrorCode code;
+  final String? message;
   final dynamic originalError;
   final StackTrace? stackTrace;
 
-  BusinessException(this.code, {this.originalError, this.stackTrace}) {
+  BusinessException(
+    this.code, {
+    this.message,
+    this.originalError,
+    this.stackTrace,
+  }) {
     developer.log(
-      'BusinessException: $code',
+      'BusinessException: $code ${message ?? ''}',
       name: 'funances.exception',
       error: originalError,
       stackTrace: stackTrace,

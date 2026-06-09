@@ -22,6 +22,7 @@ enum GoalStatus { onTrack, atRisk, behind, lost }
 sealed class GoalProgress with _$GoalProgress {
   const factory GoalProgress({
     required double percent,
+    required double predictionPercent,
     required GoalStatus status,
     required bool isLost,
   }) = _GoalProgress;
@@ -97,7 +98,7 @@ sealed class GoalModel with _$GoalModel {
     final effectiveMonths = monthsRemaining <= 0 ? 1 : monthsRemaining;
 
     if (type == GoalType.saveMoney || type == GoalType.payDebt) {
-      final remaining = targetAmount - currentAmount;
+      final remaining = (targetAmount - currentAmount).abs();
       return remaining > 0 ? remaining / effectiveMonths : 0;
     }
 
@@ -155,6 +156,11 @@ sealed class GoalModel with _$GoalModel {
       }
     }
 
-    return GoalProgress(percent: percent, status: status, isLost: isLost);
+    return GoalProgress(
+      percent: percent,
+      predictionPercent: timePercent,
+      status: status,
+      isLost: isLost,
+    );
   }
 }

@@ -24,6 +24,12 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   }
 
   @override
+  Future<CategoryModel> getCategory(String workspaceId, String id) async {
+    final snap = await _getCollection(workspaceId).doc(id).get();
+    return snap.toCategoryModel();
+  }
+
+  @override
   Future<CategoryModel> createCategory(
     String workspaceId,
     CategoryModel category,

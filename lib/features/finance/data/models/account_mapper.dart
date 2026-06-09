@@ -9,13 +9,10 @@ extension AccountFirestoreX on DocumentSnapshot {
     return AccountModel.fromJson({
       ...data,
       'id': id,
-      if (data['initial_balance_date'] is Timestamp)
-        'initial_balance_date': (data['initial_balance_date'] as Timestamp).toDate().toIso8601String(),
       if (data['initialBalanceDate'] is Timestamp)
-        'initial_balance_date': (data['initialBalanceDate'] as Timestamp).toDate().toIso8601String(),
+        'initialBalanceDate': (data['initialBalanceDate'] as Timestamp).toDate().toIso8601String(),
       // Mapeamento de metadata legado para campos diretos se necessário, 
       // mas o fromJson já deve cuidar se usarmos @JsonKey
-      if (data['metadata'] is Map) ...data['metadata'] as Map<String, dynamic>,
     });
   }
 }

@@ -144,6 +144,8 @@ class _CategoryList extends ConsumerWidget {
                 separatorBuilder: (context, index) => Divider(),
                 itemBuilder: (context, index) {
                   final category = categories[index];
+                  final isVirtual = category.isVirtual;
+                  
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Color(
@@ -157,7 +159,7 @@ class _CategoryList extends ConsumerWidget {
                     ),
                     title: Text(category.name),
                     subtitle: Text(category.type.name.toUpperCase()),
-                    trailing: Row(
+                    trailing: isVirtual ? null : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(

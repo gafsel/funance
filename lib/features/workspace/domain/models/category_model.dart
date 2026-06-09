@@ -33,4 +33,14 @@ sealed class CategoryModel with _$CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) => _$CategoryModelFromJson(json);
 
+  static const String virtualDebtExpenseId = 'virtual_debt_expense';
+  static const String virtualDebtIncomeId = 'virtual_debt_income';
+  static const String virtualInvestmentExpenseId = 'virtual_investment_expense';
+  static const String virtualInvestmentIncomeId = 'virtual_investment_income';
+
+  bool get isVirtual =>
+      id == virtualDebtExpenseId ||
+      id == virtualDebtIncomeId ||
+      id == virtualInvestmentExpenseId ||
+      id == virtualInvestmentIncomeId;
 }

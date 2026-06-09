@@ -209,7 +209,9 @@ class CategoryFormField extends ConsumerWidget {
                 .when(
                   data: (data) => data
                       .where(
-                        (c) => categoryType == null || c.type == categoryType,
+                        (c) =>
+                            (categoryType == null || c.type == categoryType) &&
+                            (!c.isVirtual || emptyMeansAll),
                       )
                       .toList(),
                   error: (error, stack) => [],

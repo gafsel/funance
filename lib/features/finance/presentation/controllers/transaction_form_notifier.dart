@@ -1,16 +1,23 @@
 import 'package:funances/core/form/form_notifier.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
+import 'package:funances/features/workspace/domain/services/category_service.dart';
 
 class TransactionFormNotifier
     extends FormNotifier<TransactionFormState, dynamic> {
   final FinanceService financeService;
+  final CategoryService categoryService;
 
-  TransactionFormNotifier(super.initialState, {required this.financeService})
-    : super();
+  TransactionFormNotifier(
+    super.initialState, {
+    required this.financeService,
+    required this.categoryService,
+  }) : super();
 
   void updateDescription(String value) =>
       state = state.copyWith(description: value);
@@ -28,19 +35,72 @@ class TransactionFormNotifier
   void updateCategory(CategoryModel? value) =>
       state = state.copyWith(category: value);
 
-  void updateAccountIdTarget(String? value) => state = state.copyWith(
-    accountIdTarget: value,
-    accountIdSource: value == state.accountIdSource
-        ? null
-        : state.accountIdSource,
-  );
+  void updateAccountIdTarget(String? value) {
+    state = state.copyWith(
+      accountIdTarget: value,
+      accountIdSource: value == state.accountIdSource
+          ? null
+          : state.accountIdSource,
+    );
+    _checkVirtualCategory();
+  }
 
-  void updateAccountIdSource(String? value) => state = state.copyWith(
-    accountIdSource: value,
-    accountIdTarget: value == state.accountIdTarget
-        ? null
-        : state.accountIdTarget,
-  );
+  void updateAccountIdSource(String? value) {
+    state = state.copyWith(
+      accountIdSource: value,
+      accountIdTarget: value == state.accountIdTarget
+          ? null
+          : state.accountIdTarget,
+    );
+    _checkVirtualCategory();
+  }
+
+  void _checkVirtualCategory() async {
+    if (state.type != OrderType.transfer) return;
+
+    final sourceId = state.accountIdSource;
+    final targetId = state.accountIdTarget;
+
+    if (sourceId == null && targetId == null) return;
+
+    CategoryModel? virtualCategory;
+
+    if (targetId != null) {
+      try {
+        final targetAccount = await financeService.getAccount(targetId);
+        if (targetAccount.type == AccountType.debt ||
+            targetAccount.type == AccountType.investment) {
+          virtualCategory = targetAccount.type == AccountType.debt
+              ? await categoryService.getCategory(
+                  CategoryModel.virtualDebtExpenseId,
+                )
+              : await categoryService.getCategory(
+                  CategoryModel.virtualInvestmentExpenseId,
+                );
+        }
+      } catch (_) {}
+    }
+
+    if (virtualCategory == null && sourceId != null) {
+      try {
+        final sourceAccount = await financeService.getAccount(sourceId);
+        if (sourceAccount.type == AccountType.debt ||
+            sourceAccount.type == AccountType.investment) {
+          virtualCategory = sourceAccount.type == AccountType.debt
+              ? await categoryService.getCategory(
+                  CategoryModel.virtualDebtIncomeId,
+                )
+              : await categoryService.getCategory(
+                  CategoryModel.virtualInvestmentIncomeId,
+                );
+        }
+      } catch (_) {}
+    }
+
+    if (virtualCategory != null) {
+      state = state.copyWith(category: virtualCategory);
+    }
+  }
 
   void updateInstallmentType(InstallmentType value) {
     if (state.creation) {

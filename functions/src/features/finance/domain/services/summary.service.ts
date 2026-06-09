@@ -1,6 +1,13 @@
-import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel, PeriodSummaryUpdateModel } from "../models/finance.models";
+import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel, PeriodSummaryUpdateModel, AccountType } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
+import {
+    CategoryModel,
+    VIRTUAL_DEBT_EXPENSE_CATEGORY,
+    VIRTUAL_DEBT_INCOME_CATEGORY,
+    VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
+    VIRTUAL_INVESTMENT_INCOME_CATEGORY
+} from "../../../workspace/domain/models/category.model";
 
 export class SummaryService {
     constructor(private financeRepository: IFinanceRepository) {}
@@ -180,52 +187,124 @@ export class SummaryService {
     }
 
     private async updateSummaryProjetado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
-        if (inst.type === OrderType.transfer || !inst.category) return;
+        let category = inst.category;
+        const amount = inst.amount * multiplier;
+
+        if (inst.type === OrderType.transfer) {
+            const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);
+            if (!virtualData) return;
+            category = virtualData.category;
+            // Se for destino (gasto), valor positivo (delta aumenta gasto). 
+            // Se for origem (receita), valor negativo (delta aumenta receita - mas aqui o summary guarda valores absolutos de gasto?)
+            // No Flutter: destino = gasto, origem = receita.
+            // O PeriodSummary do projeto parece somar tudo na categoria.
+            // Se a categoria for de gasto, somar aumenta o gasto.
+            // Se a regra é "origem => receita", e estamos numa categoria "virtual", 
+            // precisamos decidir como o PeriodSummary armazena isso.
+            // Normalmente PeriodSummaryCategoryModel tem actualAmount.
+            if (virtualData.type === "income") {
+                // amount = -amount; // Removido: agora usamos categorias separadas para income/expense
+            }
+        }
+
+        if (!category) return;
 
         const year = inst.dueDate.getFullYear();
         const month = inst.dueDate.getMonth() + 1;
-        const amount = inst.amount * multiplier;
 
         // Month
-        await this.financeRepository.updatePeriodSummary(workspaceId, year, month, inst.category, {
+        await this.financeRepository.updatePeriodSummary(workspaceId, year, month, category, {
             specificPlannedDelta: amount,
         });
 
         // Year
-        await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, inst.category, {
+        await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, category, {
             specificPlannedDelta: amount,
         });
 
         // Week
         const week = this.getWeekNumber(inst.dueDate);
         const weekYear = this.getWeekYear(inst.dueDate);
-        await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, inst.category, {
+        await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, category, {
             specificPlannedDelta: amount,
         }, week);
     }
 
     private async updateSummaryRealizado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
-        if (inst.type === OrderType.transfer || !inst.category || !inst.paidDate) return;
+        if (!inst.paidDate) return;
+
+        let category = inst.category;
+        const amount = (inst.paidAmount ?? inst.amount) * multiplier;
+
+        if (inst.type === OrderType.transfer) {
+            const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);
+            if (!virtualData) return;
+            category = virtualData.category;
+            if (virtualData.type === "income") {
+                // amount = -amount; // Removido: agora usamos categorias separadas para income/expense
+            }
+        }
+
+        if (!category) return;
 
         const year = inst.paidDate.getFullYear();
         const month = inst.paidDate.getMonth() + 1;
-        const amount = (inst.paidAmount ?? inst.amount) * multiplier;
 
         // Month
-        await this.financeRepository.updatePeriodSummary(workspaceId, year, month, inst.category, {
+        await this.financeRepository.updatePeriodSummary(workspaceId, year, month, category, {
             actualDelta: amount,
         });
 
         // Year
-        await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, inst.category, {
+        await this.financeRepository.updatePeriodSummary(workspaceId, year, undefined, category, {
             actualDelta: amount,
         });
 
         // Week
         const week = this.getWeekNumber(inst.paidDate);
         const weekYear = this.getWeekYear(inst.paidDate);
-        await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, inst.category, {
+        await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, category, {
             actualDelta: amount,
         }, week);
+    }
+
+    private async getVirtualCategoryImpact(workspaceId: string, inst: InstallmentModel): Promise<{ category: CategoryModel, type: "income" | "expense" } | null> {
+        const accounts = inst.accounts || {};
+        const accountIds = Object.keys(accounts);
+        if (accountIds.length === 0) return null;
+
+        const sourceId = inst.type === OrderType.transfer
+            ? accountIds.find(id => accounts[id] === "debt")
+            : null;
+        const targetId = inst.type === OrderType.transfer
+            ? accountIds.find(id => accounts[id] === "credit")
+            : null;
+
+        if (!sourceId && !targetId) return null;
+
+        const sourceAccount = sourceId ? await this.financeRepository.getAccountById(workspaceId, sourceId) : null;
+        const targetAccount = targetId ? await this.financeRepository.getAccountById(workspaceId, targetId) : null;
+
+        if (targetAccount && (targetAccount.runtimeType === AccountType.debt || targetAccount.runtimeType === AccountType.investment)) {
+            return {
+                category: this.getVirtualCategoryForAccountType(targetAccount.runtimeType, "expense"),
+                type: "expense"
+            };
+        }
+        else if (sourceAccount && (sourceAccount.runtimeType === AccountType.debt || sourceAccount.runtimeType === AccountType.investment)) {
+            return {
+                category: this.getVirtualCategoryForAccountType(sourceAccount.runtimeType, "income"),
+                type: "income"
+            };
+        }
+
+        return null;
+    }
+
+    private getVirtualCategoryForAccountType(type: AccountType, categoryType: "income" | "expense"): CategoryModel {
+        if (type === AccountType.debt) {
+            return categoryType === "expense" ? VIRTUAL_DEBT_EXPENSE_CATEGORY : VIRTUAL_DEBT_INCOME_CATEGORY;
+        }
+        return categoryType === "expense" ? VIRTUAL_INVESTMENT_EXPENSE_CATEGORY : VIRTUAL_INVESTMENT_INCOME_CATEGORY;
     }
 }

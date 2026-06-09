@@ -5,4 +5,5 @@ abstract class ICategoryRepository {
   Future<CategoryModel> createCategory(String workspaceId, CategoryModel category);
   Future<void> updateCategory(String workspaceId, CategoryModel category);
   Future<void> deleteCategory(String workspaceId, String categoryId);
+  Future<CategoryModel> getCategory(String workspaceId, String virtualDebtExpenseId);
 }

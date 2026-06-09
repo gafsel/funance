@@ -4,6 +4,7 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 class HistoryPeriodSummary extends ConsumerWidget {
@@ -63,34 +64,47 @@ class HistoryPeriodSummary extends ConsumerWidget {
               ],
             ),
           ),
-          _buildSummaryRow(
-            context,
-            label: l10n.totalIncomes,
-            plannedValue: totals.plannedIncomes,
-            realizedValue: totals.realizedIncomes,
-          ),
-          const SizedBox(height: 8),
-          _buildSummaryRow(
-            context,
-            label: l10n.totalExpenses,
-            plannedValue: -totals.plannedExpenses,
-            realizedValue: -totals.realizedExpenses,
-          ),
-          const SizedBox(height: 8),
-          _buildSummaryRow(
-            context,
-            label: l10n.totalTransfers,
-            plannedValue: totals.plannedTransfers,
-            realizedValue: totals.realizedTransfers,
-          ),
-          const SizedBox(height: 8),
-          _buildSummaryRow(
-            context,
-            label: l10n.totalInvoices,
-            plannedValue: totals.plannedInvoices,
-            realizedValue: totals.realizedInvoices,
-            isError: true,
-          ),
+          if (totals.plannedIncomes != 0 || totals.realizedIncomes != 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildSummaryRow(
+                context,
+                label: l10n.totalIncomes,
+                plannedValue: totals.plannedIncomes,
+                realizedValue: totals.realizedIncomes,
+              ),
+            ),
+          if (totals.plannedExpenses != 0 || totals.realizedExpenses != 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildSummaryRow(
+                context,
+                label: l10n.totalExpenses,
+                plannedValue: -totals.plannedExpenses,
+                realizedValue: -totals.realizedExpenses,
+              ),
+            ),
+          if (totals.plannedTransfers != 0 || totals.realizedTransfers != 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildSummaryRow(
+                context,
+                label: l10n.totalTransfers,
+                plannedValue: totals.plannedTransfers,
+                realizedValue: totals.realizedTransfers,
+              ),
+            ),
+          if (totals.plannedInvoices != 0 || totals.realizedInvoices != 0)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildSummaryRow(
+                context,
+                label: l10n.totalInvoices,
+                plannedValue: totals.plannedInvoices,
+                realizedValue: totals.realizedInvoices,
+                isError: true,
+              ),
+            ),
           const Divider(height: 24),
           _buildSummaryRow(
             context,

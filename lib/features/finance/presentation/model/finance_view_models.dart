@@ -288,6 +288,14 @@ sealed class TransactionTotals with _$TransactionTotals {
     @Default(0.0) double realizedTransfers,
     @Default(0.0) double plannedInvoices,
     @Default(0.0) double realizedInvoices,
+    @Default(0.0) double plannedVirtualDebtExpense,
+    @Default(0.0) double realizedVirtualDebtExpense,
+    @Default(0.0) double plannedVirtualDebtIncome,
+    @Default(0.0) double realizedVirtualDebtIncome,
+    @Default(0.0) double plannedVirtualInvestmentExpense,
+    @Default(0.0) double realizedVirtualInvestmentExpense,
+    @Default(0.0) double plannedVirtualInvestmentIncome,
+    @Default(0.0) double realizedVirtualInvestmentIncome,
   }) = _TransactionTotals;
 
   const TransactionTotals._();

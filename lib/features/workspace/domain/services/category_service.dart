@@ -22,4 +22,8 @@ class CategoryService {
   Stream<List<CategoryModel>> getCategories() {
     return repository.getCategories(workspaceId);
   }
+
+  Future<CategoryModel> getCategory(String id) async {
+    return await repository.getCategory(workspaceId, id);
+  }
 }

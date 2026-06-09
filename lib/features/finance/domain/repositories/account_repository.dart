@@ -14,6 +14,8 @@ abstract class IAccountRepository {
 
   Future<void> updateAccount(String workspaceId, AccountModel account);
 
+  Future<AccountModel> getAccount(String workspaceId, String accountId);
+
   Future<void> deleteAccount(String workspaceId, String accountId);
 
   Stream<AccountBalanceModel?> getLatestAccountBalance(

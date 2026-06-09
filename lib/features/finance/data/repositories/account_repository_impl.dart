@@ -47,9 +47,6 @@ class AccountRepositoryImpl implements IAccountRepository {
     try {
       final data = account.toJson();
       data.remove('id');
-      data['initial_balance_date'] = Timestamp.fromDate(
-        account.initialBalanceDate,
-      );
       final doc = await _getCollection(workspaceId).add(data);
       return account.copyWith(id: doc.id);
     } catch (e, s) {
@@ -66,10 +63,24 @@ class AccountRepositoryImpl implements IAccountRepository {
     try {
       final data = account.toJson();
       data.remove('id');
-      data['initial_balance_date'] = Timestamp.fromDate(
-        account.initialBalanceDate,
-      );
       await _getCollection(workspaceId).doc(account.id).update(data);
+    } catch (e, s) {
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  @override
+  Future<AccountModel> getAccount(String workspaceId, String accountId) async {
+    try {
+      final doc = await _getCollection(workspaceId).doc(accountId).get();
+      if (!doc.exists) {
+        throw BusinessException(ErrorCode.unknown, message: 'Account not found');
+      }
+      return doc.toAccountModel();
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

@@ -79,78 +79,77 @@ class MissionService {
           bool isAdherent = true;
           const double earnedXp = 0;
 
-          final category = categories.firstWhere(
+          final category = categories.where(
             (cat) => cat.id == entry.key,
-            orElse: () => CategoryModel(
-              id: entry.key,
-              name: 'Unknown',
-              icon: 'help',
-              color: '0xFF000000',
-            ),
-          );
+          ).firstOrNull;
 
-          if (category.type == CategoryType.expense) {
-            if (summary.actualAmount > (summary.generalPlannedAmount + 0.01)) {
-              isAdherent = false;
-            }
-          } else {
-            if (summary.actualAmount < (summary.generalPlannedAmount - 0.01)) {
-              isAdherent = false;
-            }
-          }
-
-          // Lógica de HP e Status do Desafio
-          double hp = 1.0;
-          ChallengeStatus status = ChallengeStatus.stable;
-
-          if (category.type == CategoryType.expense) {
-            hp = 1.0 - (progress > 1 ? 1 : progress);
-
-            // Proporção da semana decorrida (0.0 a 1.0)
-            final dayOfWeek = now.weekday % 7; // 0 (Dom) a 6 (Sab)
-            // Se hoje é domingo (início da semana), consideramos um pequeno progresso para evitar divisão por zero ou alertas imediatos
-            final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
-
-            if (progress > 1.0) {
-              status = ChallengeStatus.critical;
-              hp = 0.0;
-            } else if (progress > weekElapsedRatio + 0.1) {
-              // Gastou significativamente mais do que o proporcional ao tempo da semana
-              status = ChallengeStatus.warning;
+          if (category != null) {
+            if (category.type == CategoryType.expense) {
+              if (summary.actualAmount >
+                  (summary.generalPlannedAmount + 0.01)) {
+                isAdherent = false;
+              }
             } else {
-              status = ChallengeStatus.stable;
+              if (summary.actualAmount <
+                  (summary.generalPlannedAmount - 0.01)) {
+                isAdherent = false;
+              }
             }
-          } else if (category.type == CategoryType.income) {
-            // Para receitas, HP é o progresso em direção à meta
-            hp = progress > 1 ? 1 : progress;
 
-            final dayOfWeek = now.weekday % 7;
-            final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
 
-            if (progress >= 1.0) {
-              status = ChallengeStatus.stable;
-            } else if (progress < weekElapsedRatio - 0.2) {
-              // Receita está muito abaixo do esperado para o ponto da semana
-              status = ChallengeStatus.warning;
-            } else {
-              status = ChallengeStatus.stable;
+            // Lógica de HP e Status do Desafio
+            double hp = 1.0;
+            ChallengeStatus status = ChallengeStatus.stable;
+
+            if (category.type == CategoryType.expense) {
+              hp = 1.0 - (progress > 1 ? 1 : progress);
+
+              // Proporção da semana decorrida (0.0 a 1.0)
+              final dayOfWeek = now.weekday % 7; // 0 (Dom) a 6 (Sab)
+              // Se hoje é domingo (início da semana), consideramos um pequeno progresso para evitar divisão por zero ou alertas imediatos
+              final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
+
+              if (progress > 1.0) {
+                status = ChallengeStatus.critical;
+                hp = 0.0;
+              } else if (progress > weekElapsedRatio + 0.1) {
+                // Gastou significativamente mais do que o proporcional ao tempo da semana
+                status = ChallengeStatus.warning;
+              } else {
+                status = ChallengeStatus.stable;
+              }
+            } else if (category.type == CategoryType.income) {
+              // Para receitas, HP é o progresso em direção à meta
+              hp = progress > 1 ? 1 : progress;
+
+              final dayOfWeek = now.weekday % 7;
+              final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
+
+              if (progress >= 1.0) {
+                status = ChallengeStatus.stable;
+              } else if (progress < weekElapsedRatio - 0.2) {
+                // Receita está muito abaixo do esperado para o ponto da semana
+                status = ChallengeStatus.warning;
+              } else {
+                status = ChallengeStatus.stable;
+              }
             }
+
+            planningMissions.add(
+              PlanningMission(
+                category: category,
+                summary: summary,
+                weeklyPlannedAmount: summary.generalPlannedAmount,
+                weeklyActualAmount: summary.actualAmount,
+                progress: progress,
+                isAdherent: isAdherent,
+                earnedXp: earnedXp,
+                hp: hp,
+                status: status,
+                xpValue: planningXpValue,
+              ),
+            );
           }
-
-          planningMissions.add(
-            PlanningMission(
-              category: category,
-              summary: summary,
-              weeklyPlannedAmount: summary.generalPlannedAmount,
-              weeklyActualAmount: summary.actualAmount,
-              progress: progress,
-              isAdherent: isAdherent,
-              earnedXp: earnedXp,
-              hp: hp,
-              status: status,
-              xpValue: planningXpValue,
-            ),
-          );
         }
         planningMissions.sort(
           (a, b) => a.category.name.compareTo(b.category.name),
