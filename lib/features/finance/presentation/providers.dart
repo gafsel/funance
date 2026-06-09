@@ -1,3 +1,4 @@
+import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/domain/services/invoice_service.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -19,14 +20,58 @@ import 'package:funances/features/finance/presentation/controllers/account_form_
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
+import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
+import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
+import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
+import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
+import 'package:funances/features/finance/presentation/controllers/automatic_transaction_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/reconciliation_notifier.dart';
-import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
+import 'package:funances/features/finance/presentation/controllers/planning_50_30_20_notifier.dart';
+import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
+import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
+
+class AutomaticTransactionDomainProviders {
+  static final repository = Provider<IAutomaticTransactionRepository>((ref) {
+    return AutomaticTransactionRepositoryImpl();
+  });
+
+  static final service = Provider<AutomaticTransactionService>((ref) {
+    final workspace = ref
+        .watch(WorkspaceViewProviders.workspace)
+        .currentWorkspace;
+    return AutomaticTransactionService(
+      workspaceId: workspace?.id ?? "",
+      repository: ref.watch(repository),
+    );
+  });
+
+  static final notificationService = Provider<INotificationListenerService>((
+    ref,
+  ) {
+    return NotificationListenerService(service: ref.watch(service));
+  });
+}
+
+class AutomaticTransactionViewProviders {
+  static final automaticTransactions =
+      StateNotifierProvider.autoDispose<
+        AutomaticTransactionNotifier,
+        AutomaticTransactionState
+      >((ref) {
+        return AutomaticTransactionNotifier(
+          service: ref.watch(AutomaticTransactionDomainProviders.service),
+          financeService: ref.watch(FinanceDomainProviders.service),
+          notificationService: ref.watch(
+            AutomaticTransactionDomainProviders.notificationService,
+          ),
+        );
+      });
+}
 
 class PlanningDomainProviders {
   static final repository = Provider((ref) => PlanningRepositoryImpl());
@@ -220,34 +265,35 @@ class FinanceViewProviders {
   );
 
   static final wizard = StateNotifierProvider.autoDispose
-      .family<TransactionWizardNotifier, TransactionWizardState, TransactionWizardArgs>((
-    ref,
-    args,
-  ) {
-    return TransactionWizardNotifier(
-      TransactionWizardState(
-        type: args.type,
-        skipTransactions: args.skipTransactions,
-      ),
-      financeService: ref.watch(FinanceDomainProviders.service),
-    );
-  });
+      .family<
+        TransactionWizardNotifier,
+        TransactionWizardState,
+        TransactionWizardArgs
+      >((ref, args) {
+        return TransactionWizardNotifier(
+          TransactionWizardState(
+            type: args.type,
+            skipTransactions: args.skipTransactions,
+          ),
+          financeService: ref.watch(FinanceDomainProviders.service),
+        );
+      });
 
   static final pendingInstallments = StreamProvider.autoDispose
       .family<List<InstallmentModel>, ({OrderType type, String? categoryId})>((
-    ref,
-    args,
-  ) {
-    final service = ref.watch(FinanceDomainProviders.service);
-    final today = DateTime.now();
-    return service.watchInstallments(
-      type: args.type,
-      categoryId: args.categoryId,
-      status: InstallmentStatus.pending,
-      startDate: DateTime(today.year, today.month, 1),
-      endDate: DateTime(today.year, today.month + 1, 0),
-    );
-  });
+        ref,
+        args,
+      ) {
+        final service = ref.watch(FinanceDomainProviders.service);
+        final today = DateTime.now();
+        return service.watchInstallments(
+          type: args.type,
+          categoryId: args.categoryId,
+          status: InstallmentStatus.pending,
+          startDate: DateTime(today.year, today.month, 1),
+          endDate: DateTime(today.year, today.month + 1, 0),
+        );
+      });
 
   static final categoryPlanningForm = StateNotifierProvider.autoDispose
       .family<
@@ -262,47 +308,101 @@ class FinanceViewProviders {
         );
       });
 
-  static final reconciliation = StateNotifierProvider.autoDispose<
-      ReconciliationNotifier,
-      ReconciliationState
-  >((ref) {
-    return ReconciliationNotifier(
-      accountService: ref.watch(AccountDomainProviders.service),
+  static final reconciliation =
+      StateNotifierProvider.autoDispose<
+        ReconciliationNotifier,
+        ReconciliationState
+      >((ref) {
+        return ReconciliationNotifier(
+          accountService: ref.watch(AccountDomainProviders.service),
+          financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
+        );
+      });
+
+  static final reconciliationPicker =
+      StateNotifierProvider<
+        TransactionListNotifier,
+        InfiniteListState<TransactionQuery, InstallmentModel>
+      >((ref) {
+        return TransactionListNotifier(
+          financeiroService: ref.watch(FinanceDomainProviders.service),
+        );
+      });
+
+  static final invoiceInstallments =
+      StreamProvider.family<List<InstallmentModel>, InstallmentModel>((
+        ref,
+        invoice,
+      ) {
+        final accountAsync = ref.watch(
+          AccountViewProviders.byId(invoice.accountIdTarget!),
+        );
+
+        return accountAsync.when(
+          data: (account) {
+            if (account == null) return Stream.value([]);
+
+            final (start, end) = InvoiceService.calculateInvoiceCycleRange(
+              invoice.dueDate,
+              account,
+            );
+
+            return ref
+                .watch(FinanceDomainProviders.service)
+                .watchInstallments(
+                  accountId: account.id,
+                  startDate: start,
+                  endDate: end,
+                );
+          },
+          error: (e, s) {
+            print(e.toString());
+
+            return Stream.error(e, s);
+          },
+          loading: () => const Stream.empty(),
+        );
+      });
+
+  static final invoicePieChart =
+      StreamProvider.family<Map<CategoryModel, double>, InstallmentModel>((
+        ref,
+        invoice,
+      ) {
+        final installments = ref.watch(invoiceInstallments(invoice));
+
+        return installments.when(
+          data: (data) => Stream.value(
+            data
+                .where((installment) => installment.type == OrderType.expense)
+                .fold<Map<CategoryModel, double>>({}, (map, installment) {
+                  map.update(
+                    installment.category!,
+                    (value) => value + installment.referenceAmount,
+                    ifAbsent: () => installment.referenceAmount,
+                  );
+                  return map;
+                }),
+          ),
+          error: (e, s) => Stream.error(e, s),
+          loading: () => const Stream.empty(),
+        );
+      });
+
+  static final planning503020Service = Provider<Planning503020Service>((ref) {
+    return Planning503020Service(
       financeService: ref.watch(FinanceDomainProviders.service),
       categoryService: ref.watch(CategoryDomainProviders.service),
+      periodSummaryService: ref.watch(PeriodSummaryDomainProviders.service),
     );
   });
 
-  static final reconciliationPicker = StateNotifierProvider<
-      TransactionListNotifier,
-      InfiniteListState<TransactionQuery, InstallmentModel>
-  >((ref) {
-    return TransactionListNotifier(
-      financeiroService: ref.watch(FinanceDomainProviders.service),
-    );
-  });
-
-  static final invoiceInstallments = StreamProvider.family<List<InstallmentModel>, InstallmentModel>((ref, invoice) {
-    final accountAsync = ref.watch(AccountViewProviders.byId(invoice.accountIdTarget!));
-    
-    return accountAsync.when(
-      data: (account) {
-        if (account == null) return Stream.value([]);
-        
-        final (start, end) = InvoiceService.calculateInvoiceCycleRange(invoice.dueDate, account);
-        
-        return ref.watch(FinanceDomainProviders.service).watchInstallments(
-          accountId: account.id,
-          startDate: start,
-          endDate: end,
-        );
-      },
-      error: (e, s) {
-        print(e.toString());
-
-        return Stream.error(e, s);
-      },
-      loading: () => const Stream.empty(),
+  static final planning503020 = StateNotifierProvider.autoDispose<
+      Planning503020Notifier,
+      CategoryPlanning503020State>((ref) {
+    return Planning503020Notifier(
+      planning503020Service: ref.watch(planning503020Service),
     );
   });
 }

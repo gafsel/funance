@@ -31,6 +31,32 @@ sealed class CategoryPlanningState with _$CategoryPlanningState {
   }) = _CategoryPlanningState;
 }
 
+@freezed
+sealed class CategoryPlanning503020Item with _$CategoryPlanning503020Item {
+  const CategoryPlanning503020Item._();
+
+  factory CategoryPlanning503020Item({
+    required CategoryModel category,
+    @Default(0.0) double generalAmount,
+    @Default(0.0) double specificAmount,
+    @Default(0.0) double actualAmount,
+    String? planningId,
+    @Default(false) bool isDirty,
+  }) = _CategoryPlanning503020Item;
+
+  double get effectiveAmount => generalAmount > 0 ? generalAmount : specificAmount;
+}
+
+@freezed
+sealed class CategoryPlanning503020State with _$CategoryPlanning503020State {
+  factory CategoryPlanning503020State({
+    @Default([]) List<CategoryPlanning503020Item> items,
+    @Default(0.0) double totalIncomes,
+    @Default(true) bool isLoading,
+    @Default(false) bool isSubmitting,
+  }) = _CategoryPlanning503020State;
+}
+
 enum TransactionWizardStep { category, transactions, form }
 
 @freezed

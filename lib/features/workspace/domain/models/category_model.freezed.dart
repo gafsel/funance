@@ -17,7 +17,7 @@ mixin _$CategoryModel {
 
  String get id; String get name; String get icon;// Icon name/code
  String get color;// Hex color string
- CategoryType get type;
+ CategoryType get type; CategoryAllocation get allocation;
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,16 +30,16 @@ $CategoryModelCopyWith<CategoryModel> get copyWith => _$CategoryModelCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.type, type) || other.type == type));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.type, type) || other.type == type)&&(identical(other.allocation, allocation) || other.allocation == allocation));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,type);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,type,allocation);
 
 @override
 String toString() {
-  return 'CategoryModel(id: $id, name: $name, icon: $icon, color: $color, type: $type)';
+  return 'CategoryModel(id: $id, name: $name, icon: $icon, color: $color, type: $type, allocation: $allocation)';
 }
 
 
@@ -50,7 +50,7 @@ abstract mixin class $CategoryModelCopyWith<$Res>  {
   factory $CategoryModelCopyWith(CategoryModel value, $Res Function(CategoryModel) _then) = _$CategoryModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, String color, CategoryType type
+ String id, String name, String icon, String color, CategoryType type, CategoryAllocation allocation
 });
 
 
@@ -67,14 +67,15 @@ class _$CategoryModelCopyWithImpl<$Res>
 
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? type = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? type = null,Object? allocation = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String,color: null == color ? _self.color : color // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as CategoryType,
+as CategoryType,allocation: null == allocation ? _self.allocation : allocation // ignore: cast_nullable_to_non_nullable
+as CategoryAllocation,
   ));
 }
 
@@ -156,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  String color,  CategoryType type)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  String color,  CategoryType type,  CategoryAllocation allocation)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CategoryModel() when $default != null:
-return $default(_that.id,_that.name,_that.icon,_that.color,_that.type);case _:
+return $default(_that.id,_that.name,_that.icon,_that.color,_that.type,_that.allocation);case _:
   return orElse();
 
 }
@@ -177,10 +178,10 @@ return $default(_that.id,_that.name,_that.icon,_that.color,_that.type);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  String color,  CategoryType type)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  String color,  CategoryType type,  CategoryAllocation allocation)  $default,) {final _that = this;
 switch (_that) {
 case _CategoryModel():
-return $default(_that.id,_that.name,_that.icon,_that.color,_that.type);}
+return $default(_that.id,_that.name,_that.icon,_that.color,_that.type,_that.allocation);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -194,10 +195,10 @@ return $default(_that.id,_that.name,_that.icon,_that.color,_that.type);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String icon,  String color,  CategoryType type)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String icon,  String color,  CategoryType type,  CategoryAllocation allocation)?  $default,) {final _that = this;
 switch (_that) {
 case _CategoryModel() when $default != null:
-return $default(_that.id,_that.name,_that.icon,_that.color,_that.type);case _:
+return $default(_that.id,_that.name,_that.icon,_that.color,_that.type,_that.allocation);case _:
   return null;
 
 }
@@ -209,7 +210,7 @@ return $default(_that.id,_that.name,_that.icon,_that.color,_that.type);case _:
 @JsonSerializable()
 
 class _CategoryModel extends CategoryModel {
-  const _CategoryModel({required this.id, required this.name, required this.icon, required this.color, this.type = CategoryType.expense}): super._();
+  const _CategoryModel({required this.id, required this.name, required this.icon, required this.color, this.type = CategoryType.expense, this.allocation = CategoryAllocation.comfort}): super._();
   factory _CategoryModel.fromJson(Map<String, dynamic> json) => _$CategoryModelFromJson(json);
 
 @override final  String id;
@@ -219,6 +220,7 @@ class _CategoryModel extends CategoryModel {
 @override final  String color;
 // Hex color string
 @override@JsonKey() final  CategoryType type;
+@override@JsonKey() final  CategoryAllocation allocation;
 
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
@@ -233,16 +235,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.type, type) || other.type == type));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.type, type) || other.type == type)&&(identical(other.allocation, allocation) || other.allocation == allocation));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,type);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,type,allocation);
 
 @override
 String toString() {
-  return 'CategoryModel(id: $id, name: $name, icon: $icon, color: $color, type: $type)';
+  return 'CategoryModel(id: $id, name: $name, icon: $icon, color: $color, type: $type, allocation: $allocation)';
 }
 
 
@@ -253,7 +255,7 @@ abstract mixin class _$CategoryModelCopyWith<$Res> implements $CategoryModelCopy
   factory _$CategoryModelCopyWith(_CategoryModel value, $Res Function(_CategoryModel) _then) = __$CategoryModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, CategoryType type
+ String id, String name, String icon, String color, CategoryType type, CategoryAllocation allocation
 });
 
 
@@ -270,14 +272,15 @@ class __$CategoryModelCopyWithImpl<$Res>
 
 /// Create a copy of CategoryModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? type = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? type = null,Object? allocation = null,}) {
   return _then(_CategoryModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String,color: null == color ? _self.color : color // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as CategoryType,
+as CategoryType,allocation: null == allocation ? _self.allocation : allocation // ignore: cast_nullable_to_non_nullable
+as CategoryAllocation,
   ));
 }
 

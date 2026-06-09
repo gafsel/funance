@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
+import 'package:funances/features/coaching/presentation/providers/coaching_providers.dart';
+import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/features/finance/presentation/widgets/automatic_transaction_consolidation_widget.dart';
+import 'package:funances/features/goal/domain/models/goal_model.dart';
+import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/home/presentation/widgets/period_selection.dart';
 import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
-import 'package:go_router/go_router.dart';
-import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/core/theme/app_gradients.dart';
-import 'package:funances/features/goal/domain/models/goal_model.dart';
-import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
-import 'package:funances/core/widgets/loading_modal.dart';
-import 'package:funances/features/coaching/presentation/providers/coaching_providers.dart';
 
 class JourneyTab extends ConsumerWidget {
   const JourneyTab({super.key});
@@ -40,6 +41,7 @@ class JourneyTab extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const AutomaticTransactionConsolidationWidget(),
             insightsAsync.when(
               data: (insights) {
                 if (insights.isEmpty && !canActionCoach) {

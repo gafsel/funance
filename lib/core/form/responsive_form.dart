@@ -77,9 +77,11 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                   children: fieldsBuilder(context, snapshot),
                 ),
                 Divider(height: 32),
-                Row(
+                Wrap(
                   spacing: 16,
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  runSpacing: 16,
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     ...extraActions,
                     LoadingButton.elevated(

@@ -105,6 +105,50 @@
   },
   "goalMonthlyRequirementLabel": "Valor por mês",
   "goalMonthlyRequirementValue": "{amount}/mês",
+  "automaticTransactionTitle": "Lançamentos Identificados",
+  "automaticTransactionSubtitle": "Identificamos novas movimentações nas suas notificações. Deseja registrar?",
+  "automaticTransactionConsolidate": "Cadastrar",
+  "automaticTransactionIgnore": "Ignorar",
+  "planning503020Title": "Planejamento 50-30-20",
+  "planning503020SummaryIncome": "Receita Prevista",
+  "planning503020SummaryExpense": "Despesa Prevista",
+  "planning503020Essential": "Essencial",
+  "planning503020Comfort": "Conforto",
+  "planning503020Investment": "Investimento",
+  "planning503020EssentialDesc": "Limites de gastos com necessidades básicas. Ideal: 50% da sua receita.",
+  "planning503020ComfortDesc": "Gastos com seu estilo de vida e lazer. Ideal: 30% da sua receita.",
+  "planning503020InvestmentDesc": "Futuro e segurança (investimentos e dívidas). Ideal: 20% da sua receita.",
+  "planning503020Ideal": "Meta: {amount}",
+  "@planning503020Ideal": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "planning503020Actual": "Real: {amount}",
+  "@planning503020Actual": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "planning503020SummaryActual": "Gasto Real",
+  "planning503020ActualLabel": "Já gasto:",
+  "planning503020Total": "Total: {amount}",
+  "@planning503020Total": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "planning503020AlertSpecificGreater": "Gastos previstos superiores ao estimado!",
+  "planning503020Save": "SALVAR",
+  "planning503020EmptyPool": "Arraste categorias para cá",
+  "automaticTransactionFindExisting": "Buscar Existente",
+  "automaticTransactionEmpty": "Nenhum novo lançamento identificado.",
+  "automaticTransactionSimulate": "Simular Notificação",
+  "automaticTransactionRequestPermission": "Ouvir Notificações",
+  "automaticTransactionPermissionRequired": "Para detectar transações automaticamente, o app precisa de permissão para ler notificações.",
+  "automaticTransactionGrantPermission": "Conceder Permissão",
+  "automaticTransactionSuggestedCategory": "Categoria sugerida: {category}",
+  "automaticTransactionSuggestedAccount": "Conta sugerida: {account}",
   "@goalMonthlyRequirementValue": {
     "placeholders": {
       "amount": { "type": "String" }

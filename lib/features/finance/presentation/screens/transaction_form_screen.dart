@@ -226,12 +226,13 @@ class TransactionFormScreen extends StatelessWidget {
               notifier.updateReplicationCascade(cascade);
 
               final result = await loading(notifier.submit());
+              if (result == null) return;
 
               messenger.showSnackBar(
                 SnackBar(content: Text(l10n.transactionSaveSuccess)),
               );
 
-              navigator.pop(result);
+              navigator.pop(true);
             },
             bannerBuilder: (context, snapshot) {
               final state = snapshot.model;

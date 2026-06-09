@@ -682,4 +682,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             ...doc.data()
         }));
     }
+
+    async getAccounts(workspaceId: string): Promise<AccountModel[]> {
+        const snapshot = await this.getAccountsCollection(workspaceId).where("isDeleted", "==", false).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AccountModel));
+    }
 }

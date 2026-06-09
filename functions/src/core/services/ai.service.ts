@@ -37,6 +37,14 @@ export interface IAIRepository {
         goalsData: any,
         previousContext?: any[]
     ): Promise<any>;
+    enrichAutomaticTransaction(
+        workspaceId: string,
+        description: string,
+        packageName: string | undefined,
+        type: string,
+        existingCategories: any[],
+        existingAccounts: any[]
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -56,6 +64,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         goals: data?.models?.goals || DEFAULT_CONFIG.models.goals,
                         document: data?.models?.document || DEFAULT_CONFIG.models.document,
                         coaching: data?.models?.coaching || DEFAULT_CONFIG.models.coaching,
+                        automaticTransaction: data?.models?.automaticTransaction || DEFAULT_CONFIG.models.automaticTransaction,
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -63,6 +72,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         documentOfx: data?.prompts?.documentOfx || DEFAULT_CONFIG.prompts.documentOfx,
                         reconciliation: data?.prompts?.reconciliation || DEFAULT_CONFIG.prompts.reconciliation,
                         coaching: data?.prompts?.coaching || DEFAULT_CONFIG.prompts.coaching,
+                        automaticTransaction: data?.prompts?.automaticTransaction || DEFAULT_CONFIG.prompts.automaticTransaction,
                     },
                 };
             }
@@ -106,6 +116,45 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         }
 
         return { goals: [], plannings: [] };
+    }
+
+    async enrichAutomaticTransaction(
+        workspaceId: string,
+        description: string,
+        packageName: string | undefined,
+        type: string,
+        existingCategories: any[],
+        existingAccounts: any[]
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.automaticTransaction });
+
+        const prompt = config.prompts.automaticTransaction
+            .replace("{{description}}", description)
+            .replace("{{packageName}}", packageName || "N/A")
+            .replace("{{type}}", type)
+            .replace("{{existingCategories}}", existingCategories.map(c => `${c.name} (${c.id})`).join(" | "))
+            .replace("{{existingAccounts}}", existingAccounts.map(a => `${a.name} (${a.id})`).join(" | "));
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "automatic_transaction_enrichment",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        return null;
     }
 
     async analyzeAccountDocument(

@@ -75,6 +75,11 @@ service cloud.firestore {
       match /finance_hacks/{hackId} {
         allow read: if isMember(workspaceId);
       }
+
+      // Automatic Transactions: Membros podem gerenciar transações identificadas automaticamente
+      match /automatic_transactions/{transactionId} {
+        allow read, write: if isMember(workspaceId);
+      }
     }
 
     match /users/{userId} {

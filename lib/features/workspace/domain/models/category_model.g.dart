@@ -15,6 +15,12 @@ _CategoryModel _$CategoryModelFromJson(Map<String, dynamic> json) =>
       type:
           $enumDecodeNullable(_$CategoryTypeEnumMap, json['type']) ??
           CategoryType.expense,
+      allocation:
+          $enumDecodeNullable(
+            _$CategoryAllocationEnumMap,
+            json['allocation'],
+          ) ??
+          CategoryAllocation.comfort,
     );
 
 Map<String, dynamic> _$CategoryModelToJson(_CategoryModel instance) =>
@@ -24,9 +30,16 @@ Map<String, dynamic> _$CategoryModelToJson(_CategoryModel instance) =>
       'icon': instance.icon,
       'color': instance.color,
       'type': _$CategoryTypeEnumMap[instance.type]!,
+      'allocation': _$CategoryAllocationEnumMap[instance.allocation]!,
     };
 
 const _$CategoryTypeEnumMap = {
   CategoryType.income: 'income',
   CategoryType.expense: 'expense',
+};
+
+const _$CategoryAllocationEnumMap = {
+  CategoryAllocation.essential: 'essential',
+  CategoryAllocation.comfort: 'comfort',
+  CategoryAllocation.investment: 'investment',
 };

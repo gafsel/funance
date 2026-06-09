@@ -3,6 +3,7 @@ export interface AIConfig {
     goals: string;
     document: string;
     coaching: string;
+    automaticTransaction: string;
   };
     prompts: {
     goals: string;
@@ -10,6 +11,7 @@ export interface AIConfig {
     documentOfx: string;
     reconciliation: string;
     coaching: string;
+    automaticTransaction: string;
   };
 }
 
@@ -18,6 +20,7 @@ export const DEFAULT_CONFIG: AIConfig = {
         goals: "gemini-1.5-flash-latest",
         document: "gemini-1.5-pro-latest",
         coaching: "gemini-1.5-flash-latest",
+        automaticTransaction: "gemini-1.5-flash-latest",
     },
     prompts: {
         goals: `
@@ -227,6 +230,38 @@ export const DEFAULT_CONFIG: AIConfig = {
                         "animationType": "zoom" | "slide" | "bounce" | "fade" | "pulse"
                     }
                 ]
+            }
+        `,
+        automaticTransaction: `
+            Você é um assistente financeiro. 
+            Sua tarefa é enriquecer uma transação capturada automaticamente de uma notificação do celular.
+            Com base na descrição da notificação e, opcionalmente, no nome do pacote do app que gerou a notificação, sugira a categoria e a conta mais adequada.
+
+            DADOS DA TRANSAÇÃO:
+            Descrição: {{description}}
+            App (Package): {{packageName}}
+            Tipo: {{type}}
+
+            CONTEXTO DO WORKSPACE:
+            Categorias existentes: {{existingCategories}}
+            Contas existentes: {{existingAccounts}}
+
+            REGRAS:
+            1. Use OBRIGATORIAMENTE uma das categorias existentes se houver similaridade.
+            2. Se não houver categoria similar, sugira uma nova (nome, ícone Material Design, cor HEX e tipo).
+            3. Identifique a conta (Account) se a descrição ou o packageName mencionarem um banco ou carteira digital (ex: Nubank, Inter, Santander, PicPay, etc).
+            4. Se identificar a conta, retorne o ID dela em "accountId".
+
+            Retorne apenas um objeto JSON no formato:
+            {
+                "category": {
+                    "id": "id-existente-se-houver",
+                    "name": "Nome da Categoria",
+                    "icon": "ícone_material_design",
+                    "color": "#HEXCODE",
+                    "type": "income" | "expense"
+                },
+                "accountId": "id-da-conta-identificada-ou-null"
             }
         `,
     },

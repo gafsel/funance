@@ -10,6 +10,15 @@ enum CategoryType {
   expense,
 }
 
+enum CategoryAllocation {
+  @JsonValue('essential')
+  essential,
+  @JsonValue('comfort')
+  comfort,
+  @JsonValue('investment')
+  investment,
+}
+
 @freezed
 sealed class CategoryModel with _$CategoryModel {
   const CategoryModel._();
@@ -19,6 +28,7 @@ sealed class CategoryModel with _$CategoryModel {
     required String icon, // Icon name/code
     required String color, // Hex color string
     @Default(CategoryType.expense) CategoryType type,
+    @Default(CategoryAllocation.comfort) CategoryAllocation allocation,
   }) = _CategoryModel;
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) => _$CategoryModelFromJson(json);

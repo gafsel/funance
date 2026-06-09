@@ -554,6 +554,180 @@ abstract class AppLocalizations {
   /// **'{amount}/mês'**
   String goalMonthlyRequirementValue(String amount);
 
+  /// No description provided for @automaticTransactionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançamentos Identificados'**
+  String get automaticTransactionTitle;
+
+  /// No description provided for @automaticTransactionSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Identificamos novas movimentações nas suas notificações. Deseja registrar?'**
+  String get automaticTransactionSubtitle;
+
+  /// No description provided for @automaticTransactionConsolidate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cadastrar'**
+  String get automaticTransactionConsolidate;
+
+  /// No description provided for @automaticTransactionIgnore.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ignorar'**
+  String get automaticTransactionIgnore;
+
+  /// No description provided for @planning503020Title.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejamento 50-30-20'**
+  String get planning503020Title;
+
+  /// No description provided for @planning503020SummaryIncome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receita Prevista'**
+  String get planning503020SummaryIncome;
+
+  /// No description provided for @planning503020SummaryExpense.
+  ///
+  /// In pt, this message translates to:
+  /// **'Despesa Prevista'**
+  String get planning503020SummaryExpense;
+
+  /// No description provided for @planning503020Essential.
+  ///
+  /// In pt, this message translates to:
+  /// **'Essencial'**
+  String get planning503020Essential;
+
+  /// No description provided for @planning503020Comfort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conforto'**
+  String get planning503020Comfort;
+
+  /// No description provided for @planning503020Investment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Investimento'**
+  String get planning503020Investment;
+
+  /// No description provided for @planning503020EssentialDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limites de gastos com necessidades básicas. Ideal: 50% da sua receita.'**
+  String get planning503020EssentialDesc;
+
+  /// No description provided for @planning503020ComfortDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gastos com seu estilo de vida e lazer. Ideal: 30% da sua receita.'**
+  String get planning503020ComfortDesc;
+
+  /// No description provided for @planning503020InvestmentDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Futuro e segurança (investimentos e dívidas). Ideal: 20% da sua receita.'**
+  String get planning503020InvestmentDesc;
+
+  /// No description provided for @planning503020Ideal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta: {amount}'**
+  String planning503020Ideal(String amount);
+
+  /// No description provided for @planning503020Actual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Real: {amount}'**
+  String planning503020Actual(String amount);
+
+  /// No description provided for @planning503020SummaryActual.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gasto Real'**
+  String get planning503020SummaryActual;
+
+  /// No description provided for @planning503020ActualLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já gasto:'**
+  String get planning503020ActualLabel;
+
+  /// No description provided for @planning503020Total.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total: {amount}'**
+  String planning503020Total(String amount);
+
+  /// No description provided for @planning503020AlertSpecificGreater.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gastos previstos superiores ao estimado!'**
+  String get planning503020AlertSpecificGreater;
+
+  /// No description provided for @planning503020Save.
+  ///
+  /// In pt, this message translates to:
+  /// **'SALVAR'**
+  String get planning503020Save;
+
+  /// No description provided for @planning503020EmptyPool.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arraste categorias para cá'**
+  String get planning503020EmptyPool;
+
+  /// No description provided for @automaticTransactionFindExisting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Buscar Existente'**
+  String get automaticTransactionFindExisting;
+
+  /// No description provided for @automaticTransactionEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum novo lançamento identificado.'**
+  String get automaticTransactionEmpty;
+
+  /// No description provided for @automaticTransactionSimulate.
+  ///
+  /// In pt, this message translates to:
+  /// **'Simular Notificação'**
+  String get automaticTransactionSimulate;
+
+  /// No description provided for @automaticTransactionRequestPermission.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ouvir Notificações'**
+  String get automaticTransactionRequestPermission;
+
+  /// No description provided for @automaticTransactionPermissionRequired.
+  ///
+  /// In pt, this message translates to:
+  /// **'Para detectar transações automaticamente, o app precisa de permissão para ler notificações.'**
+  String get automaticTransactionPermissionRequired;
+
+  /// No description provided for @automaticTransactionGrantPermission.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conceder Permissão'**
+  String get automaticTransactionGrantPermission;
+
+  /// No description provided for @automaticTransactionSuggestedCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria sugerida: {category}'**
+  String automaticTransactionSuggestedCategory(Object category);
+
+  /// No description provided for @automaticTransactionSuggestedAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta sugerida: {account}'**
+  String automaticTransactionSuggestedAccount(Object account);
+
   /// No description provided for @goalRemainingValue.
   ///
   /// In pt, this message translates to:

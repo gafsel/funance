@@ -105,6 +105,50 @@
   },
   "goalMonthlyRequirementLabel": "Monthly value",
   "goalMonthlyRequirementValue": "{amount}/mo",
+  "automaticTransactionTitle": "Identified Transactions",
+  "automaticTransactionSubtitle": "We identified new movements in your notifications. Do you want to register them?",
+  "automaticTransactionConsolidate": "Register",
+  "automaticTransactionIgnore": "Ignore",
+  "planning503020Title": "50-30-20 Planning",
+  "planning503020SummaryIncome": "Planned Income",
+  "planning503020SummaryExpense": "Planned Expense",
+  "planning503020Essential": "Essential",
+  "planning503020Comfort": "Comfort",
+  "planning503020Investment": "Investment",
+  "planning503020EssentialDesc": "Spending limits for basic needs. Ideal: 50% of your income.",
+  "planning503020ComfortDesc": "Spending on lifestyle and leisure. Ideal: 30% of your income.",
+  "planning503020InvestmentDesc": "Future and security (investments and debts). Ideal: 20% of your income.",
+  "planning503020Ideal": "Goal: {amount}",
+  "@planning503020Ideal": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "planning503020Actual": "Actual: {amount}",
+  "@planning503020Actual": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "planning503020SummaryActual": "Actual Spent",
+  "planning503020ActualLabel": "Already spent:",
+  "planning503020Total": "Total: {amount}",
+  "@planning503020Total": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "planning503020AlertSpecificGreater": "Planned spending higher than estimated!",
+  "planning503020Save": "SAVE",
+  "planning503020EmptyPool": "Drag categories here",
+  "automaticTransactionFindExisting": "Find Existing",
+  "automaticTransactionEmpty": "No new transactions identified.",
+  "automaticTransactionSimulate": "Simulate Notification",
+  "automaticTransactionRequestPermission": "Listen to Notifications",
+  "automaticTransactionPermissionRequired": "To detect transactions automatically, the app needs permission to read notifications.",
+  "automaticTransactionGrantPermission": "Grant Permission",
+  "automaticTransactionSuggestedCategory": "Suggested category: {category}",
+  "automaticTransactionSuggestedAccount": "Suggested account: {account}",
   "@goalMonthlyRequirementValue": {
     "placeholders": {
       "amount": { "type": "String" }
@@ -467,5 +511,67 @@
   "coachingSlideBack": "Back",
   "coachingSlideFinish": "Finish",
   "coachingNoData": "No coaching data available.",
-  "coachingNoSlides": "No slides were generated. Please try again."
+  "coachingNoSlides": "No slides were generated. Please try again.",
+  "weeklyMissions": "Weekly Missions",
+  "weeklyMissionsSuccess": "Successful Week!",
+  "weeklyMissionsNone": "No missions for this week",
+  "weeklyMissionsSuccessDesc": "You have met all your goals. Congratulations!",
+  "weeklyMissionsNoneDesc": "Set up plannings or add transactions to start.",
+  "pendingMissions": "Pending",
+  "completedMissions": "Completed",
+  "overdueMissions": "Overdue",
+  "weeklyGoal": "Weekly Goal",
+  "xpValue": "{xp} XP",
+  "@xpValue": {
+    "placeholders": {
+      "xp": { "type": "String" }
+    }
+  },
+  "xpProgress": "{current} / {total} XP",
+  "@xpProgress": {
+    "placeholders": {
+      "current": { "type": "String" },
+      "total": { "type": "String" }
+    }
+  },
+  "percentage": "{value}%",
+  "@percentage": {
+    "placeholders": {
+      "value": { "type": "String" }
+    }
+  },
+  "dateRange": "{start} - {end}",
+  "@dateRange": {
+    "placeholders": {
+      "start": { "type": "String" },
+      "end": { "type": "String" }
+    }
+  },
+  "remainingWeeklyPlanning": "Available this week",
+  "spentOfWeeklyPlanning": "{spent} of {limit}",
+  "@spentOfWeeklyPlanning": {
+    "placeholders": {
+      "spent": { "type": "String" },
+      "limit": { "type": "String" }
+    }
+  },
+  "hpLabel": "HP",
+  "overBudgetAmount": "Excess: {amount}",
+  "@overBudgetAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "transactionCascadeTitle": "Apply changes",
+  "transactionCascadeDescription": "Do you want to apply these changes only to this installment or replicate to others?",
+  "transactionCascadeOnlyThis": "Only this one",
+  "transactionCascadeThisAndNext": "This and next ones",
+  "transactionCascadeAll": "All of them",
+  "transactionDeleteCascadeTitle": "Delete installments",
+  "transactionDeleteCascadeDescription": "Do you want to delete only this installment or the others as well?",
+  "transactionDeleteCascadeOnlyThis": "Only this one",
+  "transactionDeleteCascadeThisAndNext": "This and next ones",
+  "transactionDeleteCascadeAll": "All of them",
+  "accountAnalysisFailed": "Processing failed",
+  "completedMissionsSummary": "{count} {count, plural, =1{item} other{items}} • {xp} XP"
 }

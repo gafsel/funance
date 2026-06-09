@@ -196,6 +196,16 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
               ),
               _buildActionItem(
                 context,
+                icon: Icons.pie_chart_outline,
+                color: AppColors.paleGold,
+                label: l10n.planning503020Title,
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/planning-50-30-20');
+                },
+              ),
+              _buildActionItem(
+                context,
                 icon: Icons.assignment_turned_in_outlined,
                 color: AppColors.limeGreen,
                 label: l10n.planningIncomeLimits,

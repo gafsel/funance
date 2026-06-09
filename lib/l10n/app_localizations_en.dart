@@ -265,6 +265,109 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get automaticTransactionTitle => 'Identified Transactions';
+
+  @override
+  String get automaticTransactionSubtitle =>
+      'We identified new movements in your notifications. Do you want to register them?';
+
+  @override
+  String get automaticTransactionConsolidate => 'Register';
+
+  @override
+  String get automaticTransactionIgnore => 'Ignore';
+
+  @override
+  String get planning503020Title => '50-30-20 Planning';
+
+  @override
+  String get planning503020SummaryIncome => 'Planned Income';
+
+  @override
+  String get planning503020SummaryExpense => 'Planned Expense';
+
+  @override
+  String get planning503020Essential => 'Essential';
+
+  @override
+  String get planning503020Comfort => 'Comfort';
+
+  @override
+  String get planning503020Investment => 'Investment';
+
+  @override
+  String get planning503020EssentialDesc =>
+      'Spending limits for basic needs. Ideal: 50% of your income.';
+
+  @override
+  String get planning503020ComfortDesc =>
+      'Spending on lifestyle and leisure. Ideal: 30% of your income.';
+
+  @override
+  String get planning503020InvestmentDesc =>
+      'Future and security (investments and debts). Ideal: 20% of your income.';
+
+  @override
+  String planning503020Ideal(String amount) {
+    return 'Goal: $amount';
+  }
+
+  @override
+  String planning503020Actual(String amount) {
+    return 'Actual: $amount';
+  }
+
+  @override
+  String get planning503020SummaryActual => 'Actual Spent';
+
+  @override
+  String get planning503020ActualLabel => 'Already spent:';
+
+  @override
+  String planning503020Total(String amount) {
+    return 'Total: $amount';
+  }
+
+  @override
+  String get planning503020AlertSpecificGreater =>
+      'Planned spending higher than estimated!';
+
+  @override
+  String get planning503020Save => 'SAVE';
+
+  @override
+  String get planning503020EmptyPool => 'Drag categories here';
+
+  @override
+  String get automaticTransactionFindExisting => 'Find Existing';
+
+  @override
+  String get automaticTransactionEmpty => 'No new transactions identified.';
+
+  @override
+  String get automaticTransactionSimulate => 'Simulate Notification';
+
+  @override
+  String get automaticTransactionRequestPermission => 'Listen to Notifications';
+
+  @override
+  String get automaticTransactionPermissionRequired =>
+      'To detect transactions automatically, the app needs permission to read notifications.';
+
+  @override
+  String get automaticTransactionGrantPermission => 'Grant Permission';
+
+  @override
+  String automaticTransactionSuggestedCategory(Object category) {
+    return 'Suggested category: $category';
+  }
+
+  @override
+  String automaticTransactionSuggestedAccount(Object account) {
+    return 'Suggested account: $account';
+  }
+
+  @override
   String goalRemainingValue(String amount) {
     return '$amount left';
   }
@@ -400,33 +503,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeAccountsAndCards => 'Balances & Invoices';
 
   @override
-  String get weeklyMissions => 'Missões da Semana';
+  String get weeklyMissions => 'Weekly Missions';
 
   @override
-  String get weeklyMissionsSuccess => 'Semana de Sucesso!';
+  String get weeklyMissionsSuccess => 'Successful Week!';
 
   @override
-  String get weeklyMissionsNone => 'Nenhuma missão para esta semana';
+  String get weeklyMissionsNone => 'No missions for this week';
 
   @override
   String get weeklyMissionsSuccessDesc =>
-      'Você cumpriu todas as suas metas. Parabéns!';
+      'You have met all your goals. Congratulations!';
 
   @override
   String get weeklyMissionsNoneDesc =>
-      'Configure planejamentos ou adicione transações para começar.';
+      'Set up plannings or add transactions to start.';
 
   @override
-  String get pendingMissions => 'Pendentes';
+  String get pendingMissions => 'Pending';
 
   @override
-  String get completedMissions => 'Concluídas';
+  String get completedMissions => 'Completed';
 
   @override
-  String get overdueMissions => 'Atrasadas';
+  String get overdueMissions => 'Overdue';
 
   @override
-  String get weeklyGoal => 'Meta da Semana';
+  String get weeklyGoal => 'Weekly Goal';
 
   @override
   String xpValue(String xp) {
@@ -449,11 +552,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get remainingWeeklyPlanning => 'Disponível na semana';
+  String get remainingWeeklyPlanning => 'Available this week';
 
   @override
   String spentOfWeeklyPlanning(String spent, String limit) {
-    return '$spent de $limit';
+    return '$spent of $limit';
   }
 
   @override
@@ -461,7 +564,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String overBudgetAmount(String amount) {
-    return 'Excesso: $amount';
+    return 'Excess: $amount';
   }
 
   @override
@@ -923,36 +1026,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionSaveSuccess => 'Transaction saved successfully!';
 
   @override
-  String get transactionCascadeTitle => 'Aplicar alterações';
+  String get transactionCascadeTitle => 'Apply changes';
 
   @override
   String get transactionCascadeDescription =>
-      'Deseja aplicar estas alterações apenas a esta parcela ou replicar para as demais?';
+      'Do you want to apply these changes only to this installment or replicate to others?';
 
   @override
-  String get transactionCascadeOnlyThis => 'Apenas esta';
+  String get transactionCascadeOnlyThis => 'Only this one';
 
   @override
-  String get transactionCascadeThisAndNext => 'Esta e próximas';
+  String get transactionCascadeThisAndNext => 'This and next ones';
 
   @override
-  String get transactionCascadeAll => 'Todas';
+  String get transactionCascadeAll => 'All of them';
 
   @override
-  String get transactionDeleteCascadeTitle => 'Excluir parcelas';
+  String get transactionDeleteCascadeTitle => 'Delete installments';
 
   @override
   String get transactionDeleteCascadeDescription =>
-      'Deseja excluir apenas esta parcela ou as demais também?';
+      'Do you want to delete only this installment or the others as well?';
 
   @override
-  String get transactionDeleteCascadeOnlyThis => 'Apenas esta';
+  String get transactionDeleteCascadeOnlyThis => 'Only this one';
 
   @override
-  String get transactionDeleteCascadeThisAndNext => 'Esta e próximas';
+  String get transactionDeleteCascadeThisAndNext => 'This and next ones';
 
   @override
-  String get transactionDeleteCascadeAll => 'Todas';
+  String get transactionDeleteCascadeAll => 'All of them';
 
   @override
   String get transactionDueDateLabel => 'Due Date';
@@ -1030,7 +1133,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountAnalysisProcessing => 'Processing data...';
 
   @override
-  String get accountAnalysisFailed => 'Falha no processamento ';
+  String get accountAnalysisFailed => 'Processing failed';
 
   @override
   String get onboardingPlanningAnalyzingTitle => 'Analyzing patterns...';
@@ -1281,7 +1384,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'itens',
+      other: 'items',
       one: 'item',
     );
     return '$count $_temp0 • $xp XP';

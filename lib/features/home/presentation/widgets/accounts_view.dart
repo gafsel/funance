@@ -1,6 +1,8 @@
+import 'package:funances/core/utils/string_util.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
@@ -62,16 +64,33 @@ class AccountsView extends ConsumerWidget {
     final locale = context.locale;
 
     double total = 0;
+    final Map<String, double> totalsByMonth = {};
+
     if (type == AccountType.creditCard) {
       for (final account in accounts) {
         final nextInvoice = ref
             .watch(AccountViewProviders.nextInvoiceByAccountId(account.id))
             .value;
-        total += nextInvoice?.amount ?? 0;
+        if (nextInvoice != null) {
+          total += nextInvoice.amount;
+          final monthKey = nextInvoice.dueDate.formated('MMMM', locale);
+          totalsByMonth[monthKey] =
+              (totalsByMonth[monthKey] ?? 0) + nextInvoice.amount;
+        }
       }
     } else {
       total = ref.watch(AccountViewProviders.latestBalanceByType(type));
     }
+
+    final List<String> sortedMonthKeys = totalsByMonth.keys.toList()
+      ..sort((a, b) {
+        final dateA = DateFormat('MMMM', locale).parse(a);
+        final dateB = DateFormat('MMMM', locale).parse(b);
+        return dateA.compareTo(dateB);
+      });
+
+    final showMonthlyTotal =
+        type == AccountType.creditCard && totalsByMonth.length > 1;
 
     return Theme(
       data: theme.copyWith(dividerColor: Colors.transparent),
@@ -81,12 +100,24 @@ class AccountsView extends ConsumerWidget {
           l10n.fromAccountType(type),
           style: theme.textTheme.bodyMedium,
         ),
-        trailing: Text(
-          total.asCurrency(locale: locale),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        trailing: showMonthlyTotal
+            ? Text(
+                sortedMonthKeys
+                    .map(
+                      (month) =>
+                          '${month.capitalize()}: ${totalsByMonth[month]!.asCurrency(locale: locale)}',
+                    )
+                    .join(" | "),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              )
+            : Text(
+                total.asCurrency(locale: locale),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
         children: accounts
             .map((account) => _buildAccountItem(context, ref, account))
             .toList(),
@@ -125,8 +156,17 @@ class AccountsView extends ConsumerWidget {
               : 0.0;
 
           return ListTile(
-            onTap: () =>
-                context.push('/workspace/accounts?type=${account.type.name}'),
+            onTap: () {
+              final nextInvoice = nextInvoiceAsync.valueOrNull;
+              if (nextInvoice != null) {
+                context.push(
+                  '/transactions/form',
+                  extra: {'installment': nextInvoice},
+                );
+              } else {
+                context.push('/workspace/accounts?type=${account.type.name}');
+              }
+            },
             contentPadding: const EdgeInsets.only(left: 16, right: 16),
             leading: Container(
               width: 4,

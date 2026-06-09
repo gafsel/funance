@@ -801,6 +801,556 @@ as bool,
 }
 
 /// @nodoc
+mixin _$CategoryPlanning503020Item {
+
+ CategoryModel get category; double get generalAmount; double get specificAmount; double get actualAmount; String? get planningId; bool get isDirty;
+/// Create a copy of CategoryPlanning503020Item
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CategoryPlanning503020ItemCopyWith<CategoryPlanning503020Item> get copyWith => _$CategoryPlanning503020ItemCopyWithImpl<CategoryPlanning503020Item>(this as CategoryPlanning503020Item, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanning503020Item&&(identical(other.category, category) || other.category == category)&&(identical(other.generalAmount, generalAmount) || other.generalAmount == generalAmount)&&(identical(other.specificAmount, specificAmount) || other.specificAmount == specificAmount)&&(identical(other.actualAmount, actualAmount) || other.actualAmount == actualAmount)&&(identical(other.planningId, planningId) || other.planningId == planningId)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,category,generalAmount,specificAmount,actualAmount,planningId,isDirty);
+
+@override
+String toString() {
+  return 'CategoryPlanning503020Item(category: $category, generalAmount: $generalAmount, specificAmount: $specificAmount, actualAmount: $actualAmount, planningId: $planningId, isDirty: $isDirty)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CategoryPlanning503020ItemCopyWith<$Res>  {
+  factory $CategoryPlanning503020ItemCopyWith(CategoryPlanning503020Item value, $Res Function(CategoryPlanning503020Item) _then) = _$CategoryPlanning503020ItemCopyWithImpl;
+@useResult
+$Res call({
+ CategoryModel category, double generalAmount, double specificAmount, double actualAmount, String? planningId, bool isDirty
+});
+
+
+$CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class _$CategoryPlanning503020ItemCopyWithImpl<$Res>
+    implements $CategoryPlanning503020ItemCopyWith<$Res> {
+  _$CategoryPlanning503020ItemCopyWithImpl(this._self, this._then);
+
+  final CategoryPlanning503020Item _self;
+  final $Res Function(CategoryPlanning503020Item) _then;
+
+/// Create a copy of CategoryPlanning503020Item
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? category = null,Object? generalAmount = null,Object? specificAmount = null,Object? actualAmount = null,Object? planningId = freezed,Object? isDirty = null,}) {
+  return _then(_self.copyWith(
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,generalAmount: null == generalAmount ? _self.generalAmount : generalAmount // ignore: cast_nullable_to_non_nullable
+as double,specificAmount: null == specificAmount ? _self.specificAmount : specificAmount // ignore: cast_nullable_to_non_nullable
+as double,actualAmount: null == actualAmount ? _self.actualAmount : actualAmount // ignore: cast_nullable_to_non_nullable
+as double,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
+as String?,isDirty: null == isDirty ? _self.isDirty : isDirty // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+/// Create a copy of CategoryPlanning503020Item
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [CategoryPlanning503020Item].
+extension CategoryPlanning503020ItemPatterns on CategoryPlanning503020Item {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CategoryPlanning503020Item value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CategoryPlanning503020Item() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CategoryPlanning503020Item value)  $default,){
+final _that = this;
+switch (_that) {
+case _CategoryPlanning503020Item():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CategoryPlanning503020Item value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CategoryPlanning503020Item() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryModel category,  double generalAmount,  double specificAmount,  double actualAmount,  String? planningId,  bool isDirty)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CategoryPlanning503020Item() when $default != null:
+return $default(_that.category,_that.generalAmount,_that.specificAmount,_that.actualAmount,_that.planningId,_that.isDirty);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryModel category,  double generalAmount,  double specificAmount,  double actualAmount,  String? planningId,  bool isDirty)  $default,) {final _that = this;
+switch (_that) {
+case _CategoryPlanning503020Item():
+return $default(_that.category,_that.generalAmount,_that.specificAmount,_that.actualAmount,_that.planningId,_that.isDirty);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryModel category,  double generalAmount,  double specificAmount,  double actualAmount,  String? planningId,  bool isDirty)?  $default,) {final _that = this;
+switch (_that) {
+case _CategoryPlanning503020Item() when $default != null:
+return $default(_that.category,_that.generalAmount,_that.specificAmount,_that.actualAmount,_that.planningId,_that.isDirty);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _CategoryPlanning503020Item extends CategoryPlanning503020Item {
+   _CategoryPlanning503020Item({required this.category, this.generalAmount = 0.0, this.specificAmount = 0.0, this.actualAmount = 0.0, this.planningId, this.isDirty = false}): super._();
+  
+
+@override final  CategoryModel category;
+@override@JsonKey() final  double generalAmount;
+@override@JsonKey() final  double specificAmount;
+@override@JsonKey() final  double actualAmount;
+@override final  String? planningId;
+@override@JsonKey() final  bool isDirty;
+
+/// Create a copy of CategoryPlanning503020Item
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CategoryPlanning503020ItemCopyWith<_CategoryPlanning503020Item> get copyWith => __$CategoryPlanning503020ItemCopyWithImpl<_CategoryPlanning503020Item>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanning503020Item&&(identical(other.category, category) || other.category == category)&&(identical(other.generalAmount, generalAmount) || other.generalAmount == generalAmount)&&(identical(other.specificAmount, specificAmount) || other.specificAmount == specificAmount)&&(identical(other.actualAmount, actualAmount) || other.actualAmount == actualAmount)&&(identical(other.planningId, planningId) || other.planningId == planningId)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,category,generalAmount,specificAmount,actualAmount,planningId,isDirty);
+
+@override
+String toString() {
+  return 'CategoryPlanning503020Item(category: $category, generalAmount: $generalAmount, specificAmount: $specificAmount, actualAmount: $actualAmount, planningId: $planningId, isDirty: $isDirty)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CategoryPlanning503020ItemCopyWith<$Res> implements $CategoryPlanning503020ItemCopyWith<$Res> {
+  factory _$CategoryPlanning503020ItemCopyWith(_CategoryPlanning503020Item value, $Res Function(_CategoryPlanning503020Item) _then) = __$CategoryPlanning503020ItemCopyWithImpl;
+@override @useResult
+$Res call({
+ CategoryModel category, double generalAmount, double specificAmount, double actualAmount, String? planningId, bool isDirty
+});
+
+
+@override $CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class __$CategoryPlanning503020ItemCopyWithImpl<$Res>
+    implements _$CategoryPlanning503020ItemCopyWith<$Res> {
+  __$CategoryPlanning503020ItemCopyWithImpl(this._self, this._then);
+
+  final _CategoryPlanning503020Item _self;
+  final $Res Function(_CategoryPlanning503020Item) _then;
+
+/// Create a copy of CategoryPlanning503020Item
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? category = null,Object? generalAmount = null,Object? specificAmount = null,Object? actualAmount = null,Object? planningId = freezed,Object? isDirty = null,}) {
+  return _then(_CategoryPlanning503020Item(
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,generalAmount: null == generalAmount ? _self.generalAmount : generalAmount // ignore: cast_nullable_to_non_nullable
+as double,specificAmount: null == specificAmount ? _self.specificAmount : specificAmount // ignore: cast_nullable_to_non_nullable
+as double,actualAmount: null == actualAmount ? _self.actualAmount : actualAmount // ignore: cast_nullable_to_non_nullable
+as double,planningId: freezed == planningId ? _self.planningId : planningId // ignore: cast_nullable_to_non_nullable
+as String?,isDirty: null == isDirty ? _self.isDirty : isDirty // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+/// Create a copy of CategoryPlanning503020Item
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
+/// @nodoc
+mixin _$CategoryPlanning503020State {
+
+ List<CategoryPlanning503020Item> get items; double get totalIncomes; bool get isLoading; bool get isSubmitting;
+/// Create a copy of CategoryPlanning503020State
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CategoryPlanning503020StateCopyWith<CategoryPlanning503020State> get copyWith => _$CategoryPlanning503020StateCopyWithImpl<CategoryPlanning503020State>(this as CategoryPlanning503020State, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanning503020State&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.totalIncomes, totalIncomes) || other.totalIncomes == totalIncomes)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),totalIncomes,isLoading,isSubmitting);
+
+@override
+String toString() {
+  return 'CategoryPlanning503020State(items: $items, totalIncomes: $totalIncomes, isLoading: $isLoading, isSubmitting: $isSubmitting)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CategoryPlanning503020StateCopyWith<$Res>  {
+  factory $CategoryPlanning503020StateCopyWith(CategoryPlanning503020State value, $Res Function(CategoryPlanning503020State) _then) = _$CategoryPlanning503020StateCopyWithImpl;
+@useResult
+$Res call({
+ List<CategoryPlanning503020Item> items, double totalIncomes, bool isLoading, bool isSubmitting
+});
+
+
+
+
+}
+/// @nodoc
+class _$CategoryPlanning503020StateCopyWithImpl<$Res>
+    implements $CategoryPlanning503020StateCopyWith<$Res> {
+  _$CategoryPlanning503020StateCopyWithImpl(this._self, this._then);
+
+  final CategoryPlanning503020State _self;
+  final $Res Function(CategoryPlanning503020State) _then;
+
+/// Create a copy of CategoryPlanning503020State
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? totalIncomes = null,Object? isLoading = null,Object? isSubmitting = null,}) {
+  return _then(_self.copyWith(
+items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
+as List<CategoryPlanning503020Item>,totalIncomes: null == totalIncomes ? _self.totalIncomes : totalIncomes // ignore: cast_nullable_to_non_nullable
+as double,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as bool,isSubmitting: null == isSubmitting ? _self.isSubmitting : isSubmitting // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [CategoryPlanning503020State].
+extension CategoryPlanning503020StatePatterns on CategoryPlanning503020State {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CategoryPlanning503020State value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CategoryPlanning503020State() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CategoryPlanning503020State value)  $default,){
+final _that = this;
+switch (_that) {
+case _CategoryPlanning503020State():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CategoryPlanning503020State value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CategoryPlanning503020State() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<CategoryPlanning503020Item> items,  double totalIncomes,  bool isLoading,  bool isSubmitting)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CategoryPlanning503020State() when $default != null:
+return $default(_that.items,_that.totalIncomes,_that.isLoading,_that.isSubmitting);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<CategoryPlanning503020Item> items,  double totalIncomes,  bool isLoading,  bool isSubmitting)  $default,) {final _that = this;
+switch (_that) {
+case _CategoryPlanning503020State():
+return $default(_that.items,_that.totalIncomes,_that.isLoading,_that.isSubmitting);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<CategoryPlanning503020Item> items,  double totalIncomes,  bool isLoading,  bool isSubmitting)?  $default,) {final _that = this;
+switch (_that) {
+case _CategoryPlanning503020State() when $default != null:
+return $default(_that.items,_that.totalIncomes,_that.isLoading,_that.isSubmitting);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _CategoryPlanning503020State implements CategoryPlanning503020State {
+   _CategoryPlanning503020State({final  List<CategoryPlanning503020Item> items = const [], this.totalIncomes = 0.0, this.isLoading = true, this.isSubmitting = false}): _items = items;
+  
+
+ final  List<CategoryPlanning503020Item> _items;
+@override@JsonKey() List<CategoryPlanning503020Item> get items {
+  if (_items is EqualUnmodifiableListView) return _items;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_items);
+}
+
+@override@JsonKey() final  double totalIncomes;
+@override@JsonKey() final  bool isLoading;
+@override@JsonKey() final  bool isSubmitting;
+
+/// Create a copy of CategoryPlanning503020State
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CategoryPlanning503020StateCopyWith<_CategoryPlanning503020State> get copyWith => __$CategoryPlanning503020StateCopyWithImpl<_CategoryPlanning503020State>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanning503020State&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.totalIncomes, totalIncomes) || other.totalIncomes == totalIncomes)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),totalIncomes,isLoading,isSubmitting);
+
+@override
+String toString() {
+  return 'CategoryPlanning503020State(items: $items, totalIncomes: $totalIncomes, isLoading: $isLoading, isSubmitting: $isSubmitting)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CategoryPlanning503020StateCopyWith<$Res> implements $CategoryPlanning503020StateCopyWith<$Res> {
+  factory _$CategoryPlanning503020StateCopyWith(_CategoryPlanning503020State value, $Res Function(_CategoryPlanning503020State) _then) = __$CategoryPlanning503020StateCopyWithImpl;
+@override @useResult
+$Res call({
+ List<CategoryPlanning503020Item> items, double totalIncomes, bool isLoading, bool isSubmitting
+});
+
+
+
+
+}
+/// @nodoc
+class __$CategoryPlanning503020StateCopyWithImpl<$Res>
+    implements _$CategoryPlanning503020StateCopyWith<$Res> {
+  __$CategoryPlanning503020StateCopyWithImpl(this._self, this._then);
+
+  final _CategoryPlanning503020State _self;
+  final $Res Function(_CategoryPlanning503020State) _then;
+
+/// Create a copy of CategoryPlanning503020State
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? totalIncomes = null,Object? isLoading = null,Object? isSubmitting = null,}) {
+  return _then(_CategoryPlanning503020State(
+items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
+as List<CategoryPlanning503020Item>,totalIncomes: null == totalIncomes ? _self.totalIncomes : totalIncomes // ignore: cast_nullable_to_non_nullable
+as double,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as bool,isSubmitting: null == isSubmitting ? _self.isSubmitting : isSubmitting // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$TransactionWizardArgs {
 
  OrderType get type; bool get skipTransactions;

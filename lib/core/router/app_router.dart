@@ -11,6 +11,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/features/finance/presentation/screens/category_planning_screen.dart';
+import 'package:funances/features/finance/presentation/screens/planning_50_30_20_screen.dart';
 import 'package:funances/features/finance/presentation/screens/invoice_detail_screen.dart';
 import 'package:funances/features/finance/presentation/screens/reconciliation_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
@@ -203,11 +204,17 @@ final routerProvider = Provider<GoRouter>((ref) {
               state.uri.queryParameters['accountIdSource'] != null ||
               state.uri.queryParameters['accountIdTarget'] != null;
 
-          if (hasCategory || hasAccounts) {
+          if (hasCategory || hasAccounts || state.uri.queryParameters['description'] != null) {
             final statusStr = state.uri.queryParameters['status'];
             final status = statusStr != null
                 ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
                 : null;
+
+            final amountStr = state.uri.queryParameters['amount'];
+            final amount = amountStr != null ? double.tryParse(amountStr) : null;
+
+            final dateStr = state.uri.queryParameters['date'];
+            final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
 
             return TransactionFormScreen.creation(
               type: type,
@@ -215,6 +222,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               category: extra?['category'] as CategoryModel?,
               accountIdSource: state.uri.queryParameters['accountIdSource'],
               accountIdTarget: state.uri.queryParameters['accountIdTarget'],
+              description: state.uri.queryParameters['description'],
+              amount: amount,
+              dueDate: date,
             );
           }
 
@@ -253,6 +263,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/reconciliation',
         builder: (context, state) => const ReconciliationScreen(),
+      ),
+      GoRoute(
+        path: '/planning-50-30-20',
+        builder: (context, state) => const Planning503020Screen(),
       ),
       GoRoute(
         path: '/coaching',

@@ -98,4 +98,7 @@ export interface IFinanceRepository {
 
   // Coaching History
   getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]>;
+
+  // Accounts
+  getAccounts(workspaceId: string): Promise<AccountModel[]>;
 }

@@ -267,6 +267,110 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get automaticTransactionTitle => 'Lançamentos Identificados';
+
+  @override
+  String get automaticTransactionSubtitle =>
+      'Identificamos novas movimentações nas suas notificações. Deseja registrar?';
+
+  @override
+  String get automaticTransactionConsolidate => 'Cadastrar';
+
+  @override
+  String get automaticTransactionIgnore => 'Ignorar';
+
+  @override
+  String get planning503020Title => 'Planejamento 50-30-20';
+
+  @override
+  String get planning503020SummaryIncome => 'Receita Prevista';
+
+  @override
+  String get planning503020SummaryExpense => 'Despesa Prevista';
+
+  @override
+  String get planning503020Essential => 'Essencial';
+
+  @override
+  String get planning503020Comfort => 'Conforto';
+
+  @override
+  String get planning503020Investment => 'Investimento';
+
+  @override
+  String get planning503020EssentialDesc =>
+      'Limites de gastos com necessidades básicas. Ideal: 50% da sua receita.';
+
+  @override
+  String get planning503020ComfortDesc =>
+      'Gastos com seu estilo de vida e lazer. Ideal: 30% da sua receita.';
+
+  @override
+  String get planning503020InvestmentDesc =>
+      'Futuro e segurança (investimentos e dívidas). Ideal: 20% da sua receita.';
+
+  @override
+  String planning503020Ideal(String amount) {
+    return 'Meta: $amount';
+  }
+
+  @override
+  String planning503020Actual(String amount) {
+    return 'Real: $amount';
+  }
+
+  @override
+  String get planning503020SummaryActual => 'Gasto Real';
+
+  @override
+  String get planning503020ActualLabel => 'Já gasto:';
+
+  @override
+  String planning503020Total(String amount) {
+    return 'Total: $amount';
+  }
+
+  @override
+  String get planning503020AlertSpecificGreater =>
+      'Gastos previstos superiores ao estimado!';
+
+  @override
+  String get planning503020Save => 'SALVAR';
+
+  @override
+  String get planning503020EmptyPool => 'Arraste categorias para cá';
+
+  @override
+  String get automaticTransactionFindExisting => 'Buscar Existente';
+
+  @override
+  String get automaticTransactionEmpty =>
+      'Nenhum novo lançamento identificado.';
+
+  @override
+  String get automaticTransactionSimulate => 'Simular Notificação';
+
+  @override
+  String get automaticTransactionRequestPermission => 'Ouvir Notificações';
+
+  @override
+  String get automaticTransactionPermissionRequired =>
+      'Para detectar transações automaticamente, o app precisa de permissão para ler notificações.';
+
+  @override
+  String get automaticTransactionGrantPermission => 'Conceder Permissão';
+
+  @override
+  String automaticTransactionSuggestedCategory(Object category) {
+    return 'Categoria sugerida: $category';
+  }
+
+  @override
+  String automaticTransactionSuggestedAccount(Object account) {
+    return 'Conta sugerida: $account';
+  }
+
+  @override
   String goalRemainingValue(String amount) {
     return 'Faltam $amount';
   }
