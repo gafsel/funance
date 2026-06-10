@@ -41,14 +41,25 @@ abstract class InfiniteListNotifier<Q, E>
   _load() async {
     try {
       state = state.copyWith(status: InfiniteListStatus.loading);
+      log("Loading chunk with query: ${state.query}, ref: ${state.nextChunkRef}");
 
       final chunk = await executor(state.query, chunkRef: state.nextChunkRef);
+      log("Loaded ${chunk.items.length} items. Has next: ${chunk.hasNextChunk}");
+
+      final newItems = [...state.items, ...chunk.items];
 
       state = state.copyWith(
-        items: [...state.items, ...chunk.items],
+        items: newItems,
         nextChunkRef: chunk.nextChunckRef,
         status: InfiniteListStatus.found,
       );
+
+      // Se o chunk retornou itens vazios mas tem um nextChunkRef, 
+      // significa que o filtro em memória removeu tudo, então buscamos mais.
+      if (chunk.items.isEmpty && chunk.hasNextChunk) {
+        log("Chunk is empty but has more data, loading next...");
+        await _load();
+      }
     } catch (ex, stack) {
       log("Failed to retrieve next chunk", error: ex, stackTrace: stack);
 

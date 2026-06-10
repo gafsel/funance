@@ -148,6 +148,13 @@ class AccountManagementScreen extends ConsumerWidget {
     final l10n = context.l10n;
 
     final tile = ListTile(
+      onTap: () {
+        if (account.type != AccountType.creditCard) {
+          context.push('/accounts/${account.id}/statement');
+        } else {
+          _showAccountDialog(context, ref, account);
+        }
+      },
       contentPadding: isGrid
           ? const EdgeInsets.symmetric(horizontal: 12)
           : null,

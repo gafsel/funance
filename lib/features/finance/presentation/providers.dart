@@ -20,6 +20,7 @@ import 'package:funances/features/finance/domain/services/period_summary_service
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/domain/services/planning_service.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/account_statement_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/automatic_transaction_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/category_planning_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/planning_50_30_20_notifier.dart';
@@ -192,6 +193,10 @@ class AccountViewProviders {
             .watch(FinanceDomainProviders.service)
             .watchNextInvoice(accountId);
       });
+
+  static final balanceAtDate = StreamProvider.autoDispose.family<AccountBalanceModel, ({String accountId, DateTime date})>((ref, args) {
+    return ref.watch(AccountDomainProviders.service).getAccountBalanceAtDate(args.accountId, args.date);
+  });
 }
 
 class PlanningViewProviders {
@@ -269,6 +274,18 @@ class FinanceViewProviders {
     ),
   );
 
+  static final statement = StateNotifierProvider.family<
+    AccountStatementNotifier,
+    InfiniteListState<TransactionQuery, InstallmentModel>,
+    ({String accountId, bool isFuture})
+  >((ref, args) {
+    return AccountStatementNotifier(
+      financeiroService: ref.watch(FinanceDomainProviders.service),
+      accountId: args.accountId,
+      isFuture: args.isFuture,
+    );
+  });
+
   static final wizard = StateNotifierProvider.autoDispose
       .family<
         TransactionWizardNotifier,
@@ -314,14 +331,16 @@ class FinanceViewProviders {
       });
 
   static final reconciliation =
-      StateNotifierProvider.autoDispose<
+      StateNotifierProvider.autoDispose.family<
         ReconciliationNotifier,
-        ReconciliationState
-      >((ref) {
+        ReconciliationState,
+        AccountModel
+      >((ref, account) {
         return ReconciliationNotifier(
           accountService: ref.watch(AccountDomainProviders.service),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          account: account,
         );
       });
 

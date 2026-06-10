@@ -5,13 +5,13 @@ import 'dart:io';
 
 part 'reconciliation_view_models.freezed.dart';
 
-enum ReconciliationStep { selectAccount, uploadFile, review }
+enum ReconciliationStep { uploadFile, review }
 
 @freezed
 sealed class ReconciliationState with _$ReconciliationState {
   const factory ReconciliationState({
-    @Default(ReconciliationStep.selectAccount) ReconciliationStep step,
-    AccountModel? selectedAccount,
+    @Default(ReconciliationStep.uploadFile) ReconciliationStep step,
+    required AccountModel selectedAccount,
     File? selectedFile,
     @Default([]) List<ReconciliationMatch> matches,
   }) = _ReconciliationState;

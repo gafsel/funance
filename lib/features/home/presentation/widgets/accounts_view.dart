@@ -243,8 +243,13 @@ class AccountsView extends ConsumerWidget {
         }
 
         return ListTile(
-          onTap: () =>
-              context.push('/workspace/accounts?type=${account.type.name}'),
+          onTap: () {
+            if (account.type == AccountType.creditCard) {
+              context.push('/workspace/accounts?type=${account.type.name}');
+            } else {
+              context.push('/accounts/${account.id}/statement');
+            }
+          },
           contentPadding: const EdgeInsets.only(left: 16),
           leading: Container(
             width: 4,

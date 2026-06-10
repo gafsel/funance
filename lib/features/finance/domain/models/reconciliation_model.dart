@@ -32,9 +32,14 @@ enum ReconciliationMatchStatus {
 @freezed
 sealed class ReconciliationMatch with _$ReconciliationMatch {
   const factory ReconciliationMatch({
-    required ReconciliationTransaction documentTransaction,
+    ReconciliationTransaction? documentTransaction,
     InstallmentModel? systemInstallment,
     OrderModel? createdOrder,
     @Default(ReconciliationMatchStatus.unmatched) ReconciliationMatchStatus status,
+    String? customDescription,
+    CategoryModel? customCategory,
+    OrderType? customType,
+    String? targetAccountId,
+    int? installmentCount,
   }) = _ReconciliationMatch;
 }

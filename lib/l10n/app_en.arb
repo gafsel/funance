@@ -588,5 +588,9 @@
   "transactionDeleteCascadeAll": "All of them",
   "accountAnalysisFailed": "Processing failed",
   "completedMissionsSummary": "{count} {count, plural, =1{item} other{items}} • {xp} XP",
-  "weeklyMissionsTitle": "Weekly Missions"
+  "weeklyMissionsTitle": "Weekly Missions",
+  "accountStatementCurrent": "Current",
+  "accountStatementFuture": "Future",
+  "currentBalance": "Current Balance",
+  "transactions": "Transactions"
 }

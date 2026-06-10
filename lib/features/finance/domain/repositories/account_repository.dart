@@ -23,6 +23,12 @@ abstract class IAccountRepository {
     String accountId,
   );
 
+  Stream<AccountBalanceModel?> getAccountBalanceAtDate(
+    String workspaceId,
+    String accountId,
+    DateTime date,
+  );
+
   // Anexos e Processamento
   Future<String> uploadAccountFile(
     String workspaceId,

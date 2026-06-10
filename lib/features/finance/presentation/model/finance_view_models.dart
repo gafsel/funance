@@ -339,5 +339,6 @@ sealed class TransactionQuery with _$TransactionQuery {
     double? minAmount,
     double? maxAmount,
     InstallmentStatus? status,
+    @Default(true) bool descending,
   }) = _TransactionQuery;
 }

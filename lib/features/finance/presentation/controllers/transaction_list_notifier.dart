@@ -32,7 +32,7 @@ class TransactionListNotifier
             minAmount: query.minAmount,
             maxAmount: query.maxAmount,
             status: query.status,
-            lastOrderId: chunkRef,
+            chunkRef: chunkRef,
           );
         },
       ) {

@@ -187,7 +187,8 @@ class FinanceService {
     double? minAmount,
     double? maxAmount,
     InstallmentStatus? status,
-    dynamic lastOrderId,
+    bool descending = true,
+    dynamic chunkRef,
   }) async {
     return repository.queryInstallments(
       workspaceId,
@@ -201,7 +202,8 @@ class FinanceService {
       minAmount: minAmount,
       maxAmount: maxAmount,
       status: status,
-      chunkRef: lastOrderId,
+      descending: descending,
+      chunkRef: chunkRef,
     );
   }
 

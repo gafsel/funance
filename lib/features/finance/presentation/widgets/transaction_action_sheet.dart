@@ -104,15 +104,6 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                   ),
                   const SizedBox(height: 12),
                   _buildPlanningToolsGrid(context),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle(
-                    context,
-                    l10n.reconciliationSectionTitle,
-                    l10n.reconciliationSectionDesc,
-                    Icons.account_balance_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildReconciliationAction(context),
                 ],
               ),
             ),
@@ -249,38 +240,6 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     );
   }
 
-  Widget _buildReconciliationAction(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
-
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: SizedBox(
-        width: maxGridWidth,
-        child: GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 3,
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: 0.85,
-          children: [
-            _buildActionItem(
-              context,
-              icon: Icons.account_balance_outlined,
-              color: AppColors.antiqueGold,
-              label: l10n.reconciliationActionAnalyze,
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/reconciliation');
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildActionItem(
     BuildContext context, {

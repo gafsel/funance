@@ -10,6 +10,7 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
+import 'package:funances/features/finance/presentation/screens/account_statement_screen.dart';
 import 'package:funances/features/finance/presentation/screens/category_planning_screen.dart';
 import 'package:funances/features/finance/presentation/screens/planning_50_30_20_screen.dart';
 import 'package:funances/features/finance/presentation/screens/invoice_detail_screen.dart';
@@ -170,6 +171,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/accounts/:id/statement',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return AccountStatementScreen(accountId: id);
+        },
+      ),
+      GoRoute(
         path: '/transactions/form',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
@@ -262,7 +270,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/reconciliation',
-        builder: (context, state) => const ReconciliationScreen(),
+        builder: (context, state) {
+          final account = state.extra as AccountModel;
+          return ReconciliationScreen(account: account);
+        },
       ),
       GoRoute(
         path: '/planning-50-30-20',

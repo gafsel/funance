@@ -8,25 +8,32 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
+import 'package:funances/features/finance/presentation/controllers/reconciliation_notifier.dart';
 import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
+import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
+import 'package:funances/core/form/chip_form_field.dart';
+import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/widgets/reconciliation_history_picker.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
-import 'package:funances/l10n/app_localizations.dart';
 
 class ReconciliationScreen extends ConsumerWidget {
-  const ReconciliationScreen({super.key});
+  final AccountModel account;
+  const ReconciliationScreen({super.key, required this.account});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(FinanceViewProviders.reconciliation);
-    final notifier = ref.read(FinanceViewProviders.reconciliation.notifier);
+    final state = ref.watch(FinanceViewProviders.reconciliation(account));
+    final notifier = ref.read(FinanceViewProviders.reconciliation(account).notifier);
 
     final l10n = context.l10n;
     return Scaffold(
@@ -35,7 +42,8 @@ class ReconciliationScreen extends ConsumerWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            if (state.step == ReconciliationStep.selectAccount) {
+            if (state.step == ReconciliationStep.uploadFile) {
+              notifier.reset();
               Navigator.of(context).pop();
             } else {
               notifier.back();
@@ -50,12 +58,11 @@ class ReconciliationScreen extends ConsumerWidget {
   Widget _buildBody(
     BuildContext context,
     ReconciliationState state,
-    dynamic notifier,
+    ReconciliationNotifier notifier,
   ) {
     return Column(
       children: [
-        if (state.selectedAccount != null)
-          _buildSelectedAccountHeader(context, state, notifier),
+        _buildSelectedAccountHeader(context, state, notifier),
         Expanded(child: _buildStepContent(context, state, notifier)),
       ],
     );
@@ -64,10 +71,9 @@ class ReconciliationScreen extends ConsumerWidget {
   Widget _buildSelectedAccountHeader(
     BuildContext context,
     ReconciliationState state,
-    dynamic notifier,
+    ReconciliationNotifier notifier,
   ) {
-    final l10n = context.l10n;
-    final account = state.selectedAccount!;
+    final account = state.selectedAccount;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: account.color.asColor().withValues(alpha: 0.1),
@@ -94,12 +100,9 @@ class ReconciliationScreen extends ConsumerWidget {
               ],
             ),
           ),
-          if (state.step != ReconciliationStep.review || state.matches.isEmpty)
-            TextButton.icon(
-              onPressed: () => notifier.back(),
-              icon: const Icon(Icons.edit, size: 16),
-              label: Text(l10n.reconciliationChangeAccount),
-            ),
+          if (state.step != ReconciliationStep.review ||
+              state.matches.isEmpty)
+            const SizedBox.shrink(),
         ],
       ),
     );
@@ -108,11 +111,9 @@ class ReconciliationScreen extends ConsumerWidget {
   Widget _buildStepContent(
     BuildContext context,
     ReconciliationState state,
-    dynamic notifier,
+    ReconciliationNotifier notifier,
   ) {
     switch (state.step) {
-      case ReconciliationStep.selectAccount:
-        return _buildSelectAccount(context, notifier);
       case ReconciliationStep.uploadFile:
         return _buildUploadFile(context, state, notifier);
       case ReconciliationStep.review:
@@ -120,42 +121,10 @@ class ReconciliationScreen extends ConsumerWidget {
     }
   }
 
-  Widget _buildSelectAccount(
-    BuildContext context,
-    dynamic notifier,
-  ) {
-    return Consumer(
-      builder: (context, ref, _) {
-        final accountsAsync = ref.watch(AccountViewProviders.all);
-
-        return accountsAsync.when(
-          data: (accounts) => ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: accounts.length,
-            itemBuilder: (context, index) {
-              final account = accounts[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: account.color.asColor(),
-                  child: Icon(account.icon.asIcon(), color: Colors.white),
-                ),
-                title: Text(account.name),
-                subtitle: Text(account.type.name),
-                onTap: () => notifier.selectAccount(account),
-              );
-            },
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, s) => Center(child: Text(e.toString())),
-        );
-      },
-    );
-  }
-
   Widget _buildUploadFile(
     BuildContext context,
     ReconciliationState state,
-    dynamic notifier,
+    ReconciliationNotifier notifier,
   ) {
     final l10n = context.l10n;
     return Center(
@@ -225,7 +194,7 @@ class ReconciliationScreen extends ConsumerWidget {
   Widget _buildReview(
     BuildContext context,
     ReconciliationState state,
-    dynamic notifier,
+    ReconciliationNotifier notifier,
   ) {
     final l10n = context.l10n;
     return LayoutBuilder(
@@ -251,7 +220,7 @@ class ReconciliationScreen extends ConsumerWidget {
                     onChanged: (newMatch) =>
                         notifier.updateMatch(index, newMatch),
                     onLinkManual: (inst) => notifier.linkManual(index, inst),
-                    accountId: state.selectedAccount!.id,
+                    accountId: state.selectedAccount.id,
                     isDesktop: isDesktop,
                   );
                 },
@@ -322,37 +291,48 @@ class _MatchItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = context.locale;
     final l10n = context.l10n;
+    final locale = context.locale;
     final docTx = match.documentTransaction;
     final sysInst = match.systemInstallment;
     final createdOrder = match.createdOrder;
+    final category = match.customCategory ?? sysInst?.category ?? createdOrder?.category;
+    final description = match.customDescription ?? sysInst?.description ?? createdOrder?.description;
+
+    final isSystemOnly = docTx == null && sysInst != null;
+    final isLinked = docTx != null && sysInst != null;
 
     Color statusColor;
     String statusText;
     IconData statusIcon;
 
-    switch (match.status) {
-      case ReconciliationMatchStatus.matched:
-        statusColor = Colors.green;
-        statusText = l10n.reconciliationStatusMatched;
-        statusIcon = Icons.check_circle;
-        break;
-      case ReconciliationMatchStatus.suggested:
-        statusColor = Colors.orange;
-        statusText = l10n.reconciliationStatusSuggested;
-        statusIcon = Icons.help;
-        break;
-      case ReconciliationMatchStatus.unmatched:
-        statusColor = Colors.blue;
-        statusText = l10n.reconciliationStatusUnmatched;
-        statusIcon = Icons.add_circle;
-        break;
-      case ReconciliationMatchStatus.ignored:
-        statusColor = Colors.grey;
-        statusText = l10n.reconciliationStatusIgnored;
-        statusIcon = Icons.block;
-        break;
+    if (isSystemOnly) {
+      statusColor = Colors.purple;
+      statusText = "Apenas no Sistema";
+      statusIcon = Icons.info_outline;
+    } else {
+      switch (match.status) {
+        case ReconciliationMatchStatus.matched:
+          statusColor = Colors.green;
+          statusText = l10n.reconciliationStatusMatched;
+          statusIcon = Icons.check_circle;
+          break;
+        case ReconciliationMatchStatus.suggested:
+          statusColor = Colors.orange;
+          statusText = l10n.reconciliationStatusSuggested;
+          statusIcon = Icons.help;
+          break;
+        case ReconciliationMatchStatus.unmatched:
+          statusColor = Colors.blue;
+          statusText = l10n.reconciliationStatusUnmatched;
+          statusIcon = Icons.add_circle;
+          break;
+        case ReconciliationMatchStatus.ignored:
+          statusColor = Colors.grey;
+          statusText = l10n.reconciliationStatusIgnored;
+          statusIcon = Icons.block;
+          break;
+      }
     }
 
     if (isDesktop) {
@@ -367,23 +347,27 @@ class _MatchItem extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: isSystemOnly ? Colors.purple.withValues(alpha: 0.05) : null,
       child: Column(
         children: [
           ListTile(
             leading: Icon(statusIcon, color: statusColor),
-            title: Text(docTx.description),
-            subtitle: Text(docTx.date.formated(l10n.formatSimpleDate, locale)),
+            title: Text(docTx?.description ?? sysInst?.description ?? ""),
+            subtitle: Text((docTx?.date ?? sysInst?.referenceDate ?? DateTime.now())
+                .formated(l10n.formatSimpleDate, locale)),
             trailing: Text(
-              docTx.amount.asCurrency(locale: locale),
+              (docTx?.amount ?? sysInst?.referenceAmount ?? 0)
+                  .asCurrency(locale: locale),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: docTx.type == OrderType.income
+                color: (docTx?.type ?? sysInst?.type ?? OrderType.expense) ==
+                        OrderType.income
                     ? Colors.green
                     : Colors.red,
               ),
             ),
           ),
-          if (sysInst != null || createdOrder != null)
+          if (isLinked || createdOrder != null || match.customDescription != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
@@ -401,15 +385,18 @@ class _MatchItem extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            sysInst?.description ??
-                                createdOrder?.description ??
-                                "",
+                            description ?? "",
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            '${(sysInst?.referenceDate ?? createdOrder?.firstDueDate ?? DateTime.now()).formated(l10n.formatSimpleDate)} • ${(sysInst?.referenceAmount ?? createdOrder?.amount ?? 0.0).asCurrency(locale: locale)}',
+                            '${(sysInst?.referenceDate ?? createdOrder?.firstDueDate ?? docTx?.date ?? DateTime.now()).formated(l10n.formatSimpleDate)} • ${(sysInst?.referenceAmount ?? createdOrder?.amount ?? docTx?.amount.abs() ?? 0).asCurrency(locale: locale)}',
                             style: const TextStyle(fontSize: 12),
                           ),
+                          if (category != null)
+                            Text(
+                              category.name,
+                              style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                            ),
                         ],
                       ),
                     ),
@@ -441,9 +428,15 @@ class _MatchItem extends StatelessWidget {
   ) {
     final l10n = context.l10n;
     final locale = context.locale;
-    final docTx = match.documentTransaction;
     final sysInst = match.systemInstallment;
     final createdOrder = match.createdOrder;
+    final category =
+        match.customCategory ?? sysInst?.category ?? createdOrder?.category;
+    final description =
+        match.customDescription ?? sysInst?.description ?? createdOrder?.description;
+
+    final dTx = match.documentTransaction;
+    final sInst = match.systemInstallment;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -453,60 +446,87 @@ class _MatchItem extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Status Indicator
-            Column(
-              children: [
-                Icon(statusIcon, color: statusColor, size: 32),
-                const SizedBox(height: 4),
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 24),
-            // Document Transaction
-            Expanded(
+            SizedBox(
+              width: 80,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    l10n.reconciliationExtratoLabel,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Icon(statusIcon, color: statusColor, size: 32),
                   const SizedBox(height: 4),
                   Text(
-                    docTx.description,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(docTx.date.formated(l10n.formatSimpleDate)),
-                  Text(
-                    docTx.amount.asCurrency(locale: locale),
+                    statusText,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
+                      color: statusColor,
                       fontWeight: FontWeight.bold,
-                      color: docTx.type == OrderType.income
-                          ? Colors.green
-                          : Colors.red,
+                      fontSize: 10,
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward, color: Colors.grey),
             const SizedBox(width: 24),
-            // System Installment
+            // Document Transaction (Pool 1)
             Expanded(
-              child: sysInst != null || createdOrder != null
+              child: dTx != null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.reconciliationExtratoLabel,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          dTx.description,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(dTx.date.formated(l10n.formatSimpleDate)),
+                        Text(
+                          dTx.amount.asCurrency(locale: locale),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: dTx.type == OrderType.income
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.reconciliationExtratoLabel,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          "Não consta no documento",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+            const SizedBox(width: 16),
+            const Icon(Icons.link, color: Colors.grey),
+            const SizedBox(width: 16),
+            // System Pool (Pool 2)
+            Expanded(
+              child: sInst != null || createdOrder != null || match.customDescription != null
                   ? Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -519,37 +539,45 @@ class _MatchItem extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                  Text(
-                    l10n.reconciliationSystemLabel,
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
+                          Text(
+                            l10n.reconciliationSystemLabel,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(height: 4),
                           Text(
-                            sysInst?.description ??
-                                createdOrder?.description ??
-                                "",
+                            description ?? "",
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            (sysInst?.referenceDate ??
+                            (sInst?.referenceDate ??
                                     createdOrder?.firstDueDate ??
+                                    dTx?.date ??
                                     DateTime.now())
                                 .formated(l10n.formatSimpleDate),
                           ),
+                          if (category != null)
+                            Text(
+                              category.name,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
                           Text(
-                            (sysInst?.referenceAmount ??
+                            (sInst?.referenceAmount ??
                                     createdOrder?.amount ??
-                                    0.0)
+                                    (dTx?.amount ?? 0).abs())
                                 .asCurrency(locale: locale),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color:
-                                  (sysInst?.type ??
+                              color: (match.customType ??
+                                          sInst?.type ??
                                           createdOrder?.type ??
+                                          dTx?.type ??
                                           OrderType.expense) ==
                                       OrderType.income
                                   ? Colors.green
@@ -593,22 +621,22 @@ class _MatchItem extends StatelessWidget {
                     child: Text(l10n.reconciliationActionConfirm),
                   ),
                 if (isDesktop &&
-                    match.status == ReconciliationMatchStatus.matched &&
-                    match.systemInstallment != null)
+                    match.status == ReconciliationMatchStatus.matched)
                   TextButton.icon(
                     onPressed: () async {
-                      final result = await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              TransactionFormScreen.updateInstallment(
-                                installment: match.systemInstallment!,
-                                status: InstallmentStatus.settled,
-                              ),
+                      final result =
+                          await showModalBottomSheet<ReconciliationMatch?>(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => ReconciliationTransactionForm(
+                          match: match,
+                          accountId: accountId,
                         ),
                       );
 
-                      if (result != null && result is InstallmentModel) {
-                        onLinkManual(result);
+                      if (result != null) {
+                        onChanged(result);
                       }
                     },
                     icon: const Icon(Icons.edit, size: 16),
@@ -630,39 +658,23 @@ class _MatchItem extends StatelessWidget {
   Widget _buildActions(BuildContext context, {bool isVertical = false}) {
     final l10n = context.l10n;
     final actions = [
-      if (match.status == ReconciliationMatchStatus.unmatched)
+      if (match.status == ReconciliationMatchStatus.unmatched ||
+          (match.status == ReconciliationMatchStatus.matched &&
+              match.systemInstallment == null))
         TextButton.icon(
           onPressed: () async {
-            final result = await Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => TransactionFormScreen.creation(
-                  accountIdSource:
-                      match.documentTransaction.type == OrderType.expense
-                      ? accountId
-                      : null,
-                  accountIdTarget:
-                      match.documentTransaction.type == OrderType.income
-                      ? accountId
-                      : null,
-                  status: InstallmentStatus.settled,
-                  type: match.documentTransaction.type,
-                  description: match.documentTransaction.description,
-                  amount: match.documentTransaction.amount,
-                  dueDate: match.documentTransaction.date,
-                  category: match.documentTransaction.category,
-                ),
+            final result = await showModalBottomSheet<ReconciliationMatch?>(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => ReconciliationTransactionForm(
+                match: match,
+                accountId: accountId,
               ),
             );
 
-            if (result != null && result is InstallmentModel) {
-              onLinkManual(result);
-            } else if (result != null && result is OrderModel) {
-              onChanged(
-                match.copyWith(
-                  status: ReconciliationMatchStatus.matched,
-                  createdOrder: result,
-                ),
-              );
+            if (result != null) {
+              onChanged(result);
             }
           },
           icon: const Icon(Icons.add),
@@ -670,6 +682,8 @@ class _MatchItem extends StatelessWidget {
         ),
       TextButton.icon(
         onPressed: () {
+          final dTx = match.documentTransaction;
+          final sInst = match.systemInstallment;
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -677,10 +691,10 @@ class _MatchItem extends StatelessWidget {
             builder: (context) => ReconciliationHistoryPicker(
               initialQuery: TransactionQuery(
                 accountId: accountId,
-                startDate: match.documentTransaction.date.subtract(
+                startDate: (dTx?.date ?? sInst?.referenceDate ?? DateTime.now()).subtract(
                   const Duration(days: 7),
                 ),
-                endDate: match.documentTransaction.date.add(
+                endDate: (dTx?.date ?? sInst?.referenceDate ?? DateTime.now()).add(
                   const Duration(days: 7),
                 ),
               ),
@@ -724,5 +738,213 @@ class _MatchItem extends StatelessWidget {
     }
 
     return OverflowBar(alignment: MainAxisAlignment.end, children: actions);
+  }
+}
+
+class ReconciliationTransactionForm extends StatefulWidget {
+  final ReconciliationMatch match;
+  final String accountId;
+
+  const ReconciliationTransactionForm({
+    super.key,
+    required this.match,
+    required this.accountId,
+  });
+
+  @override
+  State<ReconciliationTransactionForm> createState() =>
+      _ReconciliationTransactionFormState();
+}
+
+class _ReconciliationTransactionFormState
+    extends State<ReconciliationTransactionForm> {
+  late String description;
+  CategoryModel? category;
+  late OrderType type;
+  String? targetAccountId;
+  int? installmentCount;
+  bool isRecurring = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final isCredit = (widget.match.documentTransaction?.amount ??
+            widget.match.systemInstallment?.referenceAmount ??
+            0) >=
+        0;
+    description = widget.match.customDescription ??
+        widget.match.systemInstallment?.description ??
+        widget.match.documentTransaction?.description ??
+        "";
+    category = widget.match.customCategory ??
+        widget.match.systemInstallment?.category ??
+        widget.match.documentTransaction?.category;
+    type = widget.match.customType ??
+        widget.match.systemInstallment?.type ??
+        (isCredit ? OrderType.income : OrderType.expense);
+    targetAccountId = widget.match.targetAccountId ??
+        widget.match.systemInstallment?.accountIdTarget;
+    installmentCount = widget.match.installmentCount ??
+        widget.match.systemInstallment?.installmentCount;
+    isRecurring = (installmentCount ?? 1) > 1;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final isCredit = (widget.match.documentTransaction?.amount ??
+            widget.match.systemInstallment?.referenceAmount ??
+            0) >=
+        0;
+
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      decoration: const BoxDecoration(
+        gradient: AppGradients.backgroundGradient,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.reconciliationActionRegister,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.pureWhite,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close, color: AppColors.pureWhite),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                initialValue: description,
+                onChanged: (value) => setState(() => description = value),
+                decoration: InputDecoration(
+                  labelText: l10n.transactionDescriptionLabel,
+                  prefixIcon: const Icon(Icons.description_outlined),
+                ),
+                style: const TextStyle(color: AppColors.pureWhite),
+              ),
+              const SizedBox(height: 16),
+              CategoryFormField(
+                initialValue: category,
+                categoryType: type == OrderType.transfer ? null : type.categoryType,
+                onChanged: (value) => setState(() => category = value),
+              ),
+              const SizedBox(height: 16),
+              ChipFormField<OrderType>(
+                initialValue: type,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      type = value;
+                      if (type == OrderType.transfer) {
+                        category = null;
+                      }
+                    });
+                  }
+                },
+                decoration: InputDecoration(
+                  labelText: l10n.transactionTypeLabel,
+                ),
+                options: [
+                  if (isCredit)
+                    ChipFormFieldOption(
+                      value: OrderType.income,
+                      label: l10n.transactionTypeIncome,
+                    )
+                  else
+                    ChipFormFieldOption(
+                      value: OrderType.expense,
+                      label: l10n.transactionTypeExpense,
+                    ),
+                  ChipFormFieldOption(
+                    value: OrderType.transfer,
+                    label: l10n.transactionTypeTransfer,
+                  ),
+                ],
+              ),
+              if (type == OrderType.transfer) ...[
+                const SizedBox(height: 16),
+                AccountFormField(
+                  initialValue: targetAccountId,
+                  onChanged: (value) => setState(() => targetAccountId = value),
+                  decoration: InputDecoration(
+                    labelText: isCredit
+                        ? l10n.transactionFromAccountLabel
+                        : l10n.transactionToAccountLabel,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              SwitchListTile(
+                title: Text(
+                  l10n.transactionTypeInstallment,
+                  style: const TextStyle(color: AppColors.pureWhite),
+                ),
+                value: isRecurring,
+                onChanged: (value) => setState(() {
+                  isRecurring = value;
+                  if (!value) installmentCount = null;
+                  if (value && installmentCount == null) installmentCount = 2;
+                }),
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: theme.colorScheme.primary,
+              ),
+              if (isRecurring) ...[
+                const SizedBox(height: 16),
+                TextFormField(
+                  initialValue: installmentCount?.toString(),
+                  keyboardType: TextInputType.number,
+                  onChanged: (value) =>
+                      setState(() => installmentCount = int.tryParse(value)),
+                  decoration: InputDecoration(
+                    labelText: l10n.transactionInstallmentsLabel,
+                    prefixIcon: const Icon(Icons.repeat),
+                  ),
+                  style: const TextStyle(color: AppColors.pureWhite),
+                ),
+              ],
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final updatedMatch = widget.match.copyWith(
+                      status: ReconciliationMatchStatus.matched,
+                      customDescription: description,
+                      customCategory: category,
+                      customType: type,
+                      targetAccountId: targetAccountId,
+                      installmentCount: installmentCount,
+                    );
+                    Navigator.pop(context, updatedMatch);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: Text(l10n.saveButton),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

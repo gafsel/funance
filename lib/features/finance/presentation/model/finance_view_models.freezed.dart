@@ -3419,7 +3419,7 @@ as double,
 /// @nodoc
 mixin _$TransactionQuery {
 
- String? get accountId; DateTime? get startDate; DateTime? get endDate; String? get categoryId; OrderType? get type; String? get description; double? get minAmount; double? get maxAmount; InstallmentStatus? get status;
+ String? get accountId; DateTime? get startDate; DateTime? get endDate; String? get categoryId; OrderType? get type; String? get description; double? get minAmount; double? get maxAmount; InstallmentStatus? get status; bool get descending;
 /// Create a copy of TransactionQuery
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -3430,16 +3430,16 @@ $TransactionQueryCopyWith<TransactionQuery> get copyWith => _$TransactionQueryCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionQuery&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionQuery&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.status, status) || other.status == status)&&(identical(other.descending, descending) || other.descending == descending));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,accountId,startDate,endDate,categoryId,type,description,minAmount,maxAmount,status);
+int get hashCode => Object.hash(runtimeType,accountId,startDate,endDate,categoryId,type,description,minAmount,maxAmount,status,descending);
 
 @override
 String toString() {
-  return 'TransactionQuery(accountId: $accountId, startDate: $startDate, endDate: $endDate, categoryId: $categoryId, type: $type, description: $description, minAmount: $minAmount, maxAmount: $maxAmount, status: $status)';
+  return 'TransactionQuery(accountId: $accountId, startDate: $startDate, endDate: $endDate, categoryId: $categoryId, type: $type, description: $description, minAmount: $minAmount, maxAmount: $maxAmount, status: $status, descending: $descending)';
 }
 
 
@@ -3450,7 +3450,7 @@ abstract mixin class $TransactionQueryCopyWith<$Res>  {
   factory $TransactionQueryCopyWith(TransactionQuery value, $Res Function(TransactionQuery) _then) = _$TransactionQueryCopyWithImpl;
 @useResult
 $Res call({
- String? accountId, DateTime? startDate, DateTime? endDate, String? categoryId, OrderType? type, String? description, double? minAmount, double? maxAmount, InstallmentStatus? status
+ String? accountId, DateTime? startDate, DateTime? endDate, String? categoryId, OrderType? type, String? description, double? minAmount, double? maxAmount, InstallmentStatus? status, bool descending
 });
 
 
@@ -3467,7 +3467,7 @@ class _$TransactionQueryCopyWithImpl<$Res>
 
 /// Create a copy of TransactionQuery
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? accountId = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? categoryId = freezed,Object? type = freezed,Object? description = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? status = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? accountId = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? categoryId = freezed,Object? type = freezed,Object? description = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? status = freezed,Object? descending = null,}) {
   return _then(_self.copyWith(
 accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as String?,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
@@ -3478,7 +3478,8 @@ as OrderType?,description: freezed == description ? _self.description : descript
 as String?,minAmount: freezed == minAmount ? _self.minAmount : minAmount // ignore: cast_nullable_to_non_nullable
 as double?,maxAmount: freezed == maxAmount ? _self.maxAmount : maxAmount // ignore: cast_nullable_to_non_nullable
 as double?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as InstallmentStatus?,
+as InstallmentStatus?,descending: null == descending ? _self.descending : descending // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -3560,10 +3561,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? accountId,  DateTime? startDate,  DateTime? endDate,  String? categoryId,  OrderType? type,  String? description,  double? minAmount,  double? maxAmount,  InstallmentStatus? status)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? accountId,  DateTime? startDate,  DateTime? endDate,  String? categoryId,  OrderType? type,  String? description,  double? minAmount,  double? maxAmount,  InstallmentStatus? status,  bool descending)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionQuery() when $default != null:
-return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_that.type,_that.description,_that.minAmount,_that.maxAmount,_that.status);case _:
+return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_that.type,_that.description,_that.minAmount,_that.maxAmount,_that.status,_that.descending);case _:
   return orElse();
 
 }
@@ -3581,10 +3582,10 @@ return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? accountId,  DateTime? startDate,  DateTime? endDate,  String? categoryId,  OrderType? type,  String? description,  double? minAmount,  double? maxAmount,  InstallmentStatus? status)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? accountId,  DateTime? startDate,  DateTime? endDate,  String? categoryId,  OrderType? type,  String? description,  double? minAmount,  double? maxAmount,  InstallmentStatus? status,  bool descending)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionQuery():
-return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_that.type,_that.description,_that.minAmount,_that.maxAmount,_that.status);}
+return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_that.type,_that.description,_that.minAmount,_that.maxAmount,_that.status,_that.descending);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -3598,10 +3599,10 @@ return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? accountId,  DateTime? startDate,  DateTime? endDate,  String? categoryId,  OrderType? type,  String? description,  double? minAmount,  double? maxAmount,  InstallmentStatus? status)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? accountId,  DateTime? startDate,  DateTime? endDate,  String? categoryId,  OrderType? type,  String? description,  double? minAmount,  double? maxAmount,  InstallmentStatus? status,  bool descending)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionQuery() when $default != null:
-return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_that.type,_that.description,_that.minAmount,_that.maxAmount,_that.status);case _:
+return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_that.type,_that.description,_that.minAmount,_that.maxAmount,_that.status,_that.descending);case _:
   return null;
 
 }
@@ -3613,7 +3614,7 @@ return $default(_that.accountId,_that.startDate,_that.endDate,_that.categoryId,_
 
 
 class _TransactionQuery implements TransactionQuery {
-   _TransactionQuery({this.accountId, this.startDate, this.endDate, this.categoryId, this.type, this.description, this.minAmount, this.maxAmount, this.status});
+   _TransactionQuery({this.accountId, this.startDate, this.endDate, this.categoryId, this.type, this.description, this.minAmount, this.maxAmount, this.status, this.descending = true});
   
 
 @override final  String? accountId;
@@ -3625,6 +3626,7 @@ class _TransactionQuery implements TransactionQuery {
 @override final  double? minAmount;
 @override final  double? maxAmount;
 @override final  InstallmentStatus? status;
+@override@JsonKey() final  bool descending;
 
 /// Create a copy of TransactionQuery
 /// with the given fields replaced by the non-null parameter values.
@@ -3636,16 +3638,16 @@ _$TransactionQueryCopyWith<_TransactionQuery> get copyWith => __$TransactionQuer
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionQuery&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionQuery&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.endDate, endDate) || other.endDate == endDate)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.type, type) || other.type == type)&&(identical(other.description, description) || other.description == description)&&(identical(other.minAmount, minAmount) || other.minAmount == minAmount)&&(identical(other.maxAmount, maxAmount) || other.maxAmount == maxAmount)&&(identical(other.status, status) || other.status == status)&&(identical(other.descending, descending) || other.descending == descending));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,accountId,startDate,endDate,categoryId,type,description,minAmount,maxAmount,status);
+int get hashCode => Object.hash(runtimeType,accountId,startDate,endDate,categoryId,type,description,minAmount,maxAmount,status,descending);
 
 @override
 String toString() {
-  return 'TransactionQuery(accountId: $accountId, startDate: $startDate, endDate: $endDate, categoryId: $categoryId, type: $type, description: $description, minAmount: $minAmount, maxAmount: $maxAmount, status: $status)';
+  return 'TransactionQuery(accountId: $accountId, startDate: $startDate, endDate: $endDate, categoryId: $categoryId, type: $type, description: $description, minAmount: $minAmount, maxAmount: $maxAmount, status: $status, descending: $descending)';
 }
 
 
@@ -3656,7 +3658,7 @@ abstract mixin class _$TransactionQueryCopyWith<$Res> implements $TransactionQue
   factory _$TransactionQueryCopyWith(_TransactionQuery value, $Res Function(_TransactionQuery) _then) = __$TransactionQueryCopyWithImpl;
 @override @useResult
 $Res call({
- String? accountId, DateTime? startDate, DateTime? endDate, String? categoryId, OrderType? type, String? description, double? minAmount, double? maxAmount, InstallmentStatus? status
+ String? accountId, DateTime? startDate, DateTime? endDate, String? categoryId, OrderType? type, String? description, double? minAmount, double? maxAmount, InstallmentStatus? status, bool descending
 });
 
 
@@ -3673,7 +3675,7 @@ class __$TransactionQueryCopyWithImpl<$Res>
 
 /// Create a copy of TransactionQuery
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? accountId = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? categoryId = freezed,Object? type = freezed,Object? description = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? status = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? accountId = freezed,Object? startDate = freezed,Object? endDate = freezed,Object? categoryId = freezed,Object? type = freezed,Object? description = freezed,Object? minAmount = freezed,Object? maxAmount = freezed,Object? status = freezed,Object? descending = null,}) {
   return _then(_TransactionQuery(
 accountId: freezed == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as String?,startDate: freezed == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
@@ -3684,7 +3686,8 @@ as OrderType?,description: freezed == description ? _self.description : descript
 as String?,minAmount: freezed == minAmount ? _self.minAmount : minAmount // ignore: cast_nullable_to_non_nullable
 as double?,maxAmount: freezed == maxAmount ? _self.maxAmount : maxAmount // ignore: cast_nullable_to_non_nullable
 as double?,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as InstallmentStatus?,
+as InstallmentStatus?,descending: null == descending ? _self.descending : descending // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

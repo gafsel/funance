@@ -1,0 +1,81 @@
+import 'dart:async';
+import 'dart:developer';
+import 'package:funances/core/list/infinite_list_notifier.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/domain/services/finance_service.dart';
+import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+
+class AccountStatementNotifier
+    extends InfiniteListNotifier<TransactionQuery, InstallmentModel> {
+  final FinanceService financeiroService;
+
+  Timer? _debounceTimer;
+
+  AccountStatementNotifier({
+    required this.financeiroService,
+    required String accountId,
+    required bool isFuture,
+  }) : super(
+         initialQuery: TransactionQuery(
+           accountId: accountId,
+           startDate: isFuture ? DateTime.now() : null,
+           endDate: isFuture ? null : DateTime.now(),
+           descending: !isFuture,
+         ),
+         executor: (query, {chunkRef}) async {
+           log(
+             "AccountStatementNotifier: Executing query for ${isFuture ? 'future' : 'current'} statement. Account: ${query.accountId}, Start: ${query.startDate}, End: ${query.endDate}, Descending: ${query.descending}",
+           );
+           return await financeiroService.queryInstallments(
+             limit: 20,
+             accountId: query.accountId,
+             startDate: query.startDate,
+             endDate: query.endDate,
+             categoryId: query.categoryId,
+             type: query.type,
+             description: query.description,
+             minAmount: query.minAmount,
+             maxAmount: query.maxAmount,
+             status: query.status,
+             descending: query.descending,
+             chunkRef: chunkRef,
+           );
+         },
+       ) {
+    load();
+  }
+
+  @override
+  void reset({TransactionQuery? query}) {
+    if (query?.description != state.query.description) {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+        super.reset(query: query);
+      });
+      state = state.copyWith(query: query ?? state.query);
+    } else {
+      super.reset(query: query);
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> delete(
+    String id, {
+    required ReplicationCascade replicationCascade,
+  }) async {
+    await financeiroService.cancelInstallment(
+      id,
+      replicationCascade: replicationCascade,
+    );
+
+    state = state.copyWith(
+      items: [...state.items.where((item) => item.id != id)],
+    );
+  }
+}

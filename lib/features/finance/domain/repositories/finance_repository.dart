@@ -18,6 +18,7 @@ abstract class IFinanceRepository {
     double? minAmount,
     double? maxAmount,
     InstallmentStatus? status,
+    bool descending = true,
     dynamic chunkRef,
   });
 

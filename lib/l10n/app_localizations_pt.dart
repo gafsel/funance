@@ -1513,4 +1513,16 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get weeklyMissionsTitle => 'Missões Semanais';
+
+  @override
+  String get accountStatementCurrent => 'Atual';
+
+  @override
+  String get accountStatementFuture => 'Futuros';
+
+  @override
+  String get currentBalance => 'Saldo Atual';
+
+  @override
+  String get transactions => 'Lançamentos';
 }

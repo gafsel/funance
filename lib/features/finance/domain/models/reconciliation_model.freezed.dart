@@ -309,7 +309,7 @@ $CategoryModelCopyWith<$Res>? get category {
 /// @nodoc
 mixin _$ReconciliationMatch {
 
- ReconciliationTransaction get documentTransaction; InstallmentModel? get systemInstallment; OrderModel? get createdOrder; ReconciliationMatchStatus get status;
+ ReconciliationTransaction? get documentTransaction; InstallmentModel? get systemInstallment; OrderModel? get createdOrder; ReconciliationMatchStatus get status; String? get customDescription; CategoryModel? get customCategory; OrderType? get customType; String? get targetAccountId; int? get installmentCount;
 /// Create a copy of ReconciliationMatch
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -320,16 +320,16 @@ $ReconciliationMatchCopyWith<ReconciliationMatch> get copyWith => _$Reconciliati
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconciliationMatch&&(identical(other.documentTransaction, documentTransaction) || other.documentTransaction == documentTransaction)&&(identical(other.systemInstallment, systemInstallment) || other.systemInstallment == systemInstallment)&&(identical(other.createdOrder, createdOrder) || other.createdOrder == createdOrder)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ReconciliationMatch&&(identical(other.documentTransaction, documentTransaction) || other.documentTransaction == documentTransaction)&&(identical(other.systemInstallment, systemInstallment) || other.systemInstallment == systemInstallment)&&(identical(other.createdOrder, createdOrder) || other.createdOrder == createdOrder)&&(identical(other.status, status) || other.status == status)&&(identical(other.customDescription, customDescription) || other.customDescription == customDescription)&&(identical(other.customCategory, customCategory) || other.customCategory == customCategory)&&(identical(other.customType, customType) || other.customType == customType)&&(identical(other.targetAccountId, targetAccountId) || other.targetAccountId == targetAccountId)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,documentTransaction,systemInstallment,createdOrder,status);
+int get hashCode => Object.hash(runtimeType,documentTransaction,systemInstallment,createdOrder,status,customDescription,customCategory,customType,targetAccountId,installmentCount);
 
 @override
 String toString() {
-  return 'ReconciliationMatch(documentTransaction: $documentTransaction, systemInstallment: $systemInstallment, createdOrder: $createdOrder, status: $status)';
+  return 'ReconciliationMatch(documentTransaction: $documentTransaction, systemInstallment: $systemInstallment, createdOrder: $createdOrder, status: $status, customDescription: $customDescription, customCategory: $customCategory, customType: $customType, targetAccountId: $targetAccountId, installmentCount: $installmentCount)';
 }
 
 
@@ -340,11 +340,11 @@ abstract mixin class $ReconciliationMatchCopyWith<$Res>  {
   factory $ReconciliationMatchCopyWith(ReconciliationMatch value, $Res Function(ReconciliationMatch) _then) = _$ReconciliationMatchCopyWithImpl;
 @useResult
 $Res call({
- ReconciliationTransaction documentTransaction, InstallmentModel? systemInstallment, OrderModel? createdOrder, ReconciliationMatchStatus status
+ ReconciliationTransaction? documentTransaction, InstallmentModel? systemInstallment, OrderModel? createdOrder, ReconciliationMatchStatus status, String? customDescription, CategoryModel? customCategory, OrderType? customType, String? targetAccountId, int? installmentCount
 });
 
 
-$ReconciliationTransactionCopyWith<$Res> get documentTransaction;$InstallmentModelCopyWith<$Res>? get systemInstallment;$OrderModelCopyWith<$Res>? get createdOrder;
+$ReconciliationTransactionCopyWith<$Res>? get documentTransaction;$InstallmentModelCopyWith<$Res>? get systemInstallment;$OrderModelCopyWith<$Res>? get createdOrder;$CategoryModelCopyWith<$Res>? get customCategory;
 
 }
 /// @nodoc
@@ -357,22 +357,30 @@ class _$ReconciliationMatchCopyWithImpl<$Res>
 
 /// Create a copy of ReconciliationMatch
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? documentTransaction = null,Object? systemInstallment = freezed,Object? createdOrder = freezed,Object? status = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? documentTransaction = freezed,Object? systemInstallment = freezed,Object? createdOrder = freezed,Object? status = null,Object? customDescription = freezed,Object? customCategory = freezed,Object? customType = freezed,Object? targetAccountId = freezed,Object? installmentCount = freezed,}) {
   return _then(_self.copyWith(
-documentTransaction: null == documentTransaction ? _self.documentTransaction : documentTransaction // ignore: cast_nullable_to_non_nullable
-as ReconciliationTransaction,systemInstallment: freezed == systemInstallment ? _self.systemInstallment : systemInstallment // ignore: cast_nullable_to_non_nullable
+documentTransaction: freezed == documentTransaction ? _self.documentTransaction : documentTransaction // ignore: cast_nullable_to_non_nullable
+as ReconciliationTransaction?,systemInstallment: freezed == systemInstallment ? _self.systemInstallment : systemInstallment // ignore: cast_nullable_to_non_nullable
 as InstallmentModel?,createdOrder: freezed == createdOrder ? _self.createdOrder : createdOrder // ignore: cast_nullable_to_non_nullable
 as OrderModel?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as ReconciliationMatchStatus,
+as ReconciliationMatchStatus,customDescription: freezed == customDescription ? _self.customDescription : customDescription // ignore: cast_nullable_to_non_nullable
+as String?,customCategory: freezed == customCategory ? _self.customCategory : customCategory // ignore: cast_nullable_to_non_nullable
+as CategoryModel?,customType: freezed == customType ? _self.customType : customType // ignore: cast_nullable_to_non_nullable
+as OrderType?,targetAccountId: freezed == targetAccountId ? _self.targetAccountId : targetAccountId // ignore: cast_nullable_to_non_nullable
+as String?,installmentCount: freezed == installmentCount ? _self.installmentCount : installmentCount // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 /// Create a copy of ReconciliationMatch
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$ReconciliationTransactionCopyWith<$Res> get documentTransaction {
-  
-  return $ReconciliationTransactionCopyWith<$Res>(_self.documentTransaction, (value) {
+$ReconciliationTransactionCopyWith<$Res>? get documentTransaction {
+    if (_self.documentTransaction == null) {
+    return null;
+  }
+
+  return $ReconciliationTransactionCopyWith<$Res>(_self.documentTransaction!, (value) {
     return _then(_self.copyWith(documentTransaction: value));
   });
 }/// Create a copy of ReconciliationMatch
@@ -398,6 +406,18 @@ $OrderModelCopyWith<$Res>? get createdOrder {
 
   return $OrderModelCopyWith<$Res>(_self.createdOrder!, (value) {
     return _then(_self.copyWith(createdOrder: value));
+  });
+}/// Create a copy of ReconciliationMatch
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res>? get customCategory {
+    if (_self.customCategory == null) {
+    return null;
+  }
+
+  return $CategoryModelCopyWith<$Res>(_self.customCategory!, (value) {
+    return _then(_self.copyWith(customCategory: value));
   });
 }
 }
@@ -478,10 +498,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ReconciliationTransaction documentTransaction,  InstallmentModel? systemInstallment,  OrderModel? createdOrder,  ReconciliationMatchStatus status)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ReconciliationTransaction? documentTransaction,  InstallmentModel? systemInstallment,  OrderModel? createdOrder,  ReconciliationMatchStatus status,  String? customDescription,  CategoryModel? customCategory,  OrderType? customType,  String? targetAccountId,  int? installmentCount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReconciliationMatch() when $default != null:
-return $default(_that.documentTransaction,_that.systemInstallment,_that.createdOrder,_that.status);case _:
+return $default(_that.documentTransaction,_that.systemInstallment,_that.createdOrder,_that.status,_that.customDescription,_that.customCategory,_that.customType,_that.targetAccountId,_that.installmentCount);case _:
   return orElse();
 
 }
@@ -499,10 +519,10 @@ return $default(_that.documentTransaction,_that.systemInstallment,_that.createdO
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ReconciliationTransaction documentTransaction,  InstallmentModel? systemInstallment,  OrderModel? createdOrder,  ReconciliationMatchStatus status)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ReconciliationTransaction? documentTransaction,  InstallmentModel? systemInstallment,  OrderModel? createdOrder,  ReconciliationMatchStatus status,  String? customDescription,  CategoryModel? customCategory,  OrderType? customType,  String? targetAccountId,  int? installmentCount)  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationMatch():
-return $default(_that.documentTransaction,_that.systemInstallment,_that.createdOrder,_that.status);}
+return $default(_that.documentTransaction,_that.systemInstallment,_that.createdOrder,_that.status,_that.customDescription,_that.customCategory,_that.customType,_that.targetAccountId,_that.installmentCount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -516,10 +536,10 @@ return $default(_that.documentTransaction,_that.systemInstallment,_that.createdO
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ReconciliationTransaction documentTransaction,  InstallmentModel? systemInstallment,  OrderModel? createdOrder,  ReconciliationMatchStatus status)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ReconciliationTransaction? documentTransaction,  InstallmentModel? systemInstallment,  OrderModel? createdOrder,  ReconciliationMatchStatus status,  String? customDescription,  CategoryModel? customCategory,  OrderType? customType,  String? targetAccountId,  int? installmentCount)?  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationMatch() when $default != null:
-return $default(_that.documentTransaction,_that.systemInstallment,_that.createdOrder,_that.status);case _:
+return $default(_that.documentTransaction,_that.systemInstallment,_that.createdOrder,_that.status,_that.customDescription,_that.customCategory,_that.customType,_that.targetAccountId,_that.installmentCount);case _:
   return null;
 
 }
@@ -531,13 +551,18 @@ return $default(_that.documentTransaction,_that.systemInstallment,_that.createdO
 
 
 class _ReconciliationMatch implements ReconciliationMatch {
-  const _ReconciliationMatch({required this.documentTransaction, this.systemInstallment, this.createdOrder, this.status = ReconciliationMatchStatus.unmatched});
+  const _ReconciliationMatch({this.documentTransaction, this.systemInstallment, this.createdOrder, this.status = ReconciliationMatchStatus.unmatched, this.customDescription, this.customCategory, this.customType, this.targetAccountId, this.installmentCount});
   
 
-@override final  ReconciliationTransaction documentTransaction;
+@override final  ReconciliationTransaction? documentTransaction;
 @override final  InstallmentModel? systemInstallment;
 @override final  OrderModel? createdOrder;
 @override@JsonKey() final  ReconciliationMatchStatus status;
+@override final  String? customDescription;
+@override final  CategoryModel? customCategory;
+@override final  OrderType? customType;
+@override final  String? targetAccountId;
+@override final  int? installmentCount;
 
 /// Create a copy of ReconciliationMatch
 /// with the given fields replaced by the non-null parameter values.
@@ -549,16 +574,16 @@ _$ReconciliationMatchCopyWith<_ReconciliationMatch> get copyWith => __$Reconcili
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconciliationMatch&&(identical(other.documentTransaction, documentTransaction) || other.documentTransaction == documentTransaction)&&(identical(other.systemInstallment, systemInstallment) || other.systemInstallment == systemInstallment)&&(identical(other.createdOrder, createdOrder) || other.createdOrder == createdOrder)&&(identical(other.status, status) || other.status == status));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ReconciliationMatch&&(identical(other.documentTransaction, documentTransaction) || other.documentTransaction == documentTransaction)&&(identical(other.systemInstallment, systemInstallment) || other.systemInstallment == systemInstallment)&&(identical(other.createdOrder, createdOrder) || other.createdOrder == createdOrder)&&(identical(other.status, status) || other.status == status)&&(identical(other.customDescription, customDescription) || other.customDescription == customDescription)&&(identical(other.customCategory, customCategory) || other.customCategory == customCategory)&&(identical(other.customType, customType) || other.customType == customType)&&(identical(other.targetAccountId, targetAccountId) || other.targetAccountId == targetAccountId)&&(identical(other.installmentCount, installmentCount) || other.installmentCount == installmentCount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,documentTransaction,systemInstallment,createdOrder,status);
+int get hashCode => Object.hash(runtimeType,documentTransaction,systemInstallment,createdOrder,status,customDescription,customCategory,customType,targetAccountId,installmentCount);
 
 @override
 String toString() {
-  return 'ReconciliationMatch(documentTransaction: $documentTransaction, systemInstallment: $systemInstallment, createdOrder: $createdOrder, status: $status)';
+  return 'ReconciliationMatch(documentTransaction: $documentTransaction, systemInstallment: $systemInstallment, createdOrder: $createdOrder, status: $status, customDescription: $customDescription, customCategory: $customCategory, customType: $customType, targetAccountId: $targetAccountId, installmentCount: $installmentCount)';
 }
 
 
@@ -569,11 +594,11 @@ abstract mixin class _$ReconciliationMatchCopyWith<$Res> implements $Reconciliat
   factory _$ReconciliationMatchCopyWith(_ReconciliationMatch value, $Res Function(_ReconciliationMatch) _then) = __$ReconciliationMatchCopyWithImpl;
 @override @useResult
 $Res call({
- ReconciliationTransaction documentTransaction, InstallmentModel? systemInstallment, OrderModel? createdOrder, ReconciliationMatchStatus status
+ ReconciliationTransaction? documentTransaction, InstallmentModel? systemInstallment, OrderModel? createdOrder, ReconciliationMatchStatus status, String? customDescription, CategoryModel? customCategory, OrderType? customType, String? targetAccountId, int? installmentCount
 });
 
 
-@override $ReconciliationTransactionCopyWith<$Res> get documentTransaction;@override $InstallmentModelCopyWith<$Res>? get systemInstallment;@override $OrderModelCopyWith<$Res>? get createdOrder;
+@override $ReconciliationTransactionCopyWith<$Res>? get documentTransaction;@override $InstallmentModelCopyWith<$Res>? get systemInstallment;@override $OrderModelCopyWith<$Res>? get createdOrder;@override $CategoryModelCopyWith<$Res>? get customCategory;
 
 }
 /// @nodoc
@@ -586,13 +611,18 @@ class __$ReconciliationMatchCopyWithImpl<$Res>
 
 /// Create a copy of ReconciliationMatch
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? documentTransaction = null,Object? systemInstallment = freezed,Object? createdOrder = freezed,Object? status = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? documentTransaction = freezed,Object? systemInstallment = freezed,Object? createdOrder = freezed,Object? status = null,Object? customDescription = freezed,Object? customCategory = freezed,Object? customType = freezed,Object? targetAccountId = freezed,Object? installmentCount = freezed,}) {
   return _then(_ReconciliationMatch(
-documentTransaction: null == documentTransaction ? _self.documentTransaction : documentTransaction // ignore: cast_nullable_to_non_nullable
-as ReconciliationTransaction,systemInstallment: freezed == systemInstallment ? _self.systemInstallment : systemInstallment // ignore: cast_nullable_to_non_nullable
+documentTransaction: freezed == documentTransaction ? _self.documentTransaction : documentTransaction // ignore: cast_nullable_to_non_nullable
+as ReconciliationTransaction?,systemInstallment: freezed == systemInstallment ? _self.systemInstallment : systemInstallment // ignore: cast_nullable_to_non_nullable
 as InstallmentModel?,createdOrder: freezed == createdOrder ? _self.createdOrder : createdOrder // ignore: cast_nullable_to_non_nullable
 as OrderModel?,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as ReconciliationMatchStatus,
+as ReconciliationMatchStatus,customDescription: freezed == customDescription ? _self.customDescription : customDescription // ignore: cast_nullable_to_non_nullable
+as String?,customCategory: freezed == customCategory ? _self.customCategory : customCategory // ignore: cast_nullable_to_non_nullable
+as CategoryModel?,customType: freezed == customType ? _self.customType : customType // ignore: cast_nullable_to_non_nullable
+as OrderType?,targetAccountId: freezed == targetAccountId ? _self.targetAccountId : targetAccountId // ignore: cast_nullable_to_non_nullable
+as String?,installmentCount: freezed == installmentCount ? _self.installmentCount : installmentCount // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -600,9 +630,12 @@ as ReconciliationMatchStatus,
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$ReconciliationTransactionCopyWith<$Res> get documentTransaction {
-  
-  return $ReconciliationTransactionCopyWith<$Res>(_self.documentTransaction, (value) {
+$ReconciliationTransactionCopyWith<$Res>? get documentTransaction {
+    if (_self.documentTransaction == null) {
+    return null;
+  }
+
+  return $ReconciliationTransactionCopyWith<$Res>(_self.documentTransaction!, (value) {
     return _then(_self.copyWith(documentTransaction: value));
   });
 }/// Create a copy of ReconciliationMatch
@@ -628,6 +661,18 @@ $OrderModelCopyWith<$Res>? get createdOrder {
 
   return $OrderModelCopyWith<$Res>(_self.createdOrder!, (value) {
     return _then(_self.copyWith(createdOrder: value));
+  });
+}/// Create a copy of ReconciliationMatch
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res>? get customCategory {
+    if (_self.customCategory == null) {
+    return null;
+  }
+
+  return $CategoryModelCopyWith<$Res>(_self.customCategory!, (value) {
+    return _then(_self.copyWith(customCategory: value));
   });
 }
 }

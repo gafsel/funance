@@ -15,18 +15,23 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
   final AccountService accountService;
   final FinanceService financeService;
   final CategoryService categoryService;
+  final AccountModel account;
 
   ReconciliationNotifier({
     required this.accountService,
     required this.financeService,
     required this.categoryService,
-  }) : super(const ReconciliationState());
+    required this.account,
+  }) : super(ReconciliationState(selectedAccount: account));
 
-  void selectAccount(AccountModel account) {
-    state = state.copyWith(
-      selectedAccount: account,
-      step: ReconciliationStep.uploadFile,
-    );
+  void back() {
+    if (state.step == ReconciliationStep.review) {
+      state = state.copyWith(step: ReconciliationStep.uploadFile);
+    }
+  }
+
+  void reset() {
+    state = ReconciliationState(selectedAccount: account);
   }
 
   Future<void> uploadFile(File file) async {
@@ -50,7 +55,7 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
 
     final systemInstallmentsChunk = await financeService.queryInstallments(
       limit: 1000,
-      accountId: state.selectedAccount?.id,
+      accountId: state.selectedAccount.id,
       startDate: startDate,
       endDate: endDate,
     );
@@ -58,7 +63,6 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
     final systemInstallments = systemInstallmentsChunk.items;
 
     final matches = _matchTransactions(transactions, systemInstallments);
-
     state = state.copyWith(matches: matches, step: ReconciliationStep.review);
   }
 
@@ -119,6 +123,23 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
       }
     }
 
+    // Adicionar as transações do sistema que não foram vinculadas
+    for (final inst in availableInstallments) {
+      matches.add(
+        ReconciliationMatch(
+          systemInstallment: inst,
+          status: ReconciliationMatchStatus.unmatched,
+        ),
+      );
+    }
+
+    // Ordenar por data
+    matches.sort((a, b) {
+      final dateA = a.documentTransaction?.date ?? a.systemInstallment?.referenceDate ?? DateTime.now();
+      final dateB = b.documentTransaction?.date ?? b.systemInstallment?.referenceDate ?? DateTime.now();
+      return dateA.compareTo(dateB);
+    });
+
     return matches;
   }
 
@@ -128,14 +149,29 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
     state = state.copyWith(matches: newMatches);
   }
 
-  void linkManual(int index, InstallmentModel systemInstallment) {
-    final docTx = state.matches[index].documentTransaction;
-    final newMatch = ReconciliationMatch(
-      documentTransaction: docTx,
-      systemInstallment: systemInstallment,
-      status: ReconciliationMatchStatus.matched,
+  void linkManual(int index, InstallmentModel installment) {
+    final matches = List<ReconciliationMatch>.from(state.matches);
+    
+    // Se a transação que estamos vinculando já existia como um match isolado do sistema,
+    // precisamos removê-la para não ficar duplicada.
+    final existingSystemMatchIndex = matches.indexWhere(
+      (m) => m.documentTransaction == null && m.systemInstallment?.id == installment.id,
     );
-    updateMatch(index, newMatch);
+    
+    matches[index] = matches[index].copyWith(
+      systemInstallment: installment,
+      status: ReconciliationMatchStatus.matched,
+      customCategory: installment.category,
+      customDescription: installment.description,
+      customType: installment.type,
+      targetAccountId: installment.accountIdTarget,
+    );
+
+    if (existingSystemMatchIndex != -1) {
+      matches.removeAt(existingSystemMatchIndex);
+    }
+    
+    state = state.copyWith(matches: matches);
   }
 
   Future<void> confirmReconciliation() async {
@@ -149,93 +185,123 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
           match.status == ReconciliationMatchStatus.suggested) {
         if (match.systemInstallment != null) {
           final installment = match.systemInstallment!;
-          final type = installment.type;
+          final type = match.customType ?? installment.type;
 
-          // Atualizar o mapa de contas para a conta selecionada na conciliação
           final Map<String, AccountImpact> newAccounts = Map.from(
             installment.accounts,
           );
 
-          // Remover impactos de outras contas se for transação comum (não transferência)
           if (type != OrderType.transfer) {
             newAccounts.clear();
             newAccounts[selectedAccount.id] = type == OrderType.income
                 ? AccountImpact.credit
                 : AccountImpact.debt;
           } else {
-            // Se for transferência, precisamos decidir qual ponta atualizar.
-            // Geralmente concilia-se a conta onde o extrato foi gerado.
-            // Se a conta selecionada já estiver no mapa, garantimos o impacto correto.
-            // Se não estiver, substituímos a ponta que faz sentido.
-            if (newAccounts.containsKey(selectedAccount.id)) {
-              // Já está lá, mantemos.
-            } else {
-              // Lógica simplificada: se o valor no extrato for positivo, é crédito na conta.
-              final impact = match.documentTransaction.amount >= 0
-                  ? AccountImpact.credit
-                  : AccountImpact.debt;
-
-              // Se estamos inserindo um crédito, removemos o crédito antigo.
-              if (impact == AccountImpact.credit) {
-                newAccounts.removeWhere(
-                  (key, value) => value == AccountImpact.credit,
-                );
-              } else {
-                newAccounts.removeWhere(
-                  (key, value) => value == AccountImpact.debt,
-                );
+            newAccounts.clear();
+            final docTx = match.documentTransaction;
+            final sysInst = match.systemInstallment;
+            final isCredit = (docTx?.amount ??
+                    sysInst?.referenceAmount ??
+                    0) >=
+                0;
+            if (isCredit) {
+              newAccounts[selectedAccount.id] = AccountImpact.credit;
+              if (match.targetAccountId != null) {
+                newAccounts[match.targetAccountId!] = AccountImpact.debt;
               }
-              newAccounts[selectedAccount.id] = impact;
+            } else {
+              newAccounts[selectedAccount.id] = AccountImpact.debt;
+              if (match.targetAccountId != null) {
+                newAccounts[match.targetAccountId!] = AccountImpact.credit;
+              }
             }
           }
 
-          // Marcar como settled e atualizar conta
+          final docTx = match.documentTransaction;
+          final sysInst = match.systemInstallment;
+
           await financeService.updateInstallment(
             installment.copyWith(
               status: InstallmentStatus.settled,
-              paidAmount: match.documentTransaction.amount.abs(),
-              paidDate: match.documentTransaction.date,
+              paidAmount: (docTx?.amount ??
+                      sysInst?.referenceAmount ??
+                      0)
+                  .abs(),
+              paidDate: docTx?.date ??
+                  sysInst?.referenceDate ??
+                  DateTime.now(),
               accounts: newAccounts,
+              type: type,
+              category: match.customCategory ?? installment.category,
+              description: match.customDescription ?? installment.description,
             ),
           );
         }
-      } else if (match.status == ReconciliationMatchStatus.unmatched) {
-        // Cadastrar nova transação
-        final category = await _findOrCreateCategory(
-          categories,
-          match.documentTransaction.category ??
-              CategoryModel(
-                id: const Uuid().v4(),
-                name: 'Outros',
-                icon: 'help',
-                color: '#9E9E9E',
-                type: match.documentTransaction.type == 'income'
-                    ? CategoryType.income
-                    : CategoryType.expense,
-              ),
-        );
+      }
 
-        final type = match.documentTransaction.type == 'income'
-            ? OrderType.income
-            : OrderType.expense;
+      if (match.status == ReconciliationMatchStatus.unmatched ||
+          (match.status == ReconciliationMatchStatus.matched &&
+              match.systemInstallment == null &&
+              match.createdOrder == null)) {
+        if (match.documentTransaction == null) continue;
+
+        // Criar nova transação baseada nos campos customizados ou no original
+        final docTx = match.documentTransaction!;
+        final type = match.customType ?? docTx.type;
+        final isCredit = docTx.amount >= 0;
+
+        final category = match.customCategory ??
+            await _findOrCreateCategory(
+              categories,
+              docTx.category ??
+                  CategoryModel(
+                    id: const Uuid().v4(),
+                    name: 'Outros',
+                    icon: 'help',
+                    color: '#9E9E9E',
+                    type: type == OrderType.income
+                        ? CategoryType.income
+                        : CategoryType.expense,
+                  ),
+            );
+
+        final Map<String, AccountImpact> accounts = {};
+        if (type != OrderType.transfer) {
+          accounts[selectedAccount.id] = type == OrderType.income
+              ? AccountImpact.credit
+              : AccountImpact.debt;
+        } else {
+          if (isCredit) {
+            accounts[selectedAccount.id] = AccountImpact.credit;
+            if (match.targetAccountId != null) {
+              accounts[match.targetAccountId!] = AccountImpact.debt;
+            }
+          } else {
+            accounts[selectedAccount.id] = AccountImpact.debt;
+            if (match.targetAccountId != null) {
+              accounts[match.targetAccountId!] = AccountImpact.credit;
+            }
+          }
+        }
+
+        final installmentType = (match.installmentCount ?? 1) > 1
+            ? InstallmentType.installment
+            : InstallmentType.single;
 
         final order = OrderModel(
           id: const Uuid().v4(),
-          amount: match.documentTransaction.amount,
-          description: match.documentTransaction.description,
-          dueDay: match.documentTransaction.date.day,
+          amount: docTx.amount.abs(),
+          description: match.customDescription ?? docTx.description,
+          dueDay: docTx.date.day,
           startMonth:
-              '${match.documentTransaction.date.year}-${match.documentTransaction.date.month.toString().padLeft(2, '0')}',
-          installmentType: InstallmentType.single,
+              '${docTx.date.year}-${docTx.date.month.toString().padLeft(2, '0')}',
+          installmentType: installmentType,
+          installmentCount: match.installmentCount,
           status: OrderStatus.active,
           type: type,
           installmentCreationStatus: InstallmentStatus.settled,
           category: category,
-          accounts: {
-            state.selectedAccount!.id: type == OrderType.income
-                ? AccountImpact.credit
-                : AccountImpact.debt,
-          },
+          accounts: accounts,
         );
 
         await financeService.addOrder(order);
@@ -265,11 +331,4 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
     return found;
   }
 
-  void back() {
-    if (state.step == ReconciliationStep.uploadFile) {
-      state = state.copyWith(step: ReconciliationStep.selectAccount);
-    } else if (state.step == ReconciliationStep.review) {
-      state = state.copyWith(step: ReconciliationStep.uploadFile);
-    }
-  }
 }

@@ -28,6 +28,12 @@ class AccountService {
         .map((balance) => balance ?? AccountBalanceModel.zero());
   }
 
+  Stream<AccountBalanceModel> getAccountBalanceAtDate(String accountId, DateTime date) {
+    return repository
+        .getAccountBalanceAtDate(workspaceId, accountId, date)
+        .map((balance) => balance ?? AccountBalanceModel.zero(date: date));
+  }
+
   Stream<List<AccountModel>> getAccounts() {
     return repository.getAccounts(workspaceId);
   }

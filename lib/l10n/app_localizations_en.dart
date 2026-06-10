@@ -1503,4 +1503,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get weeklyMissionsTitle => 'Weekly Missions';
+
+  @override
+  String get accountStatementCurrent => 'Current';
+
+  @override
+  String get accountStatementFuture => 'Future';
+
+  @override
+  String get currentBalance => 'Current Balance';
+
+  @override
+  String get transactions => 'Transactions';
 }

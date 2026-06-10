@@ -111,18 +111,33 @@ class AccountRepositoryImpl implements IAccountRepository {
     String workspaceId,
     String accountId,
   ) {
-    final today = DateTime.now().toIso8601String().split('T')[0];
-
     return _getCollection(workspaceId)
         .doc(accountId)
         .collection('balance')
-        // .where(FieldPath.documentId, isLessThanOrEqualTo: today)
         .orderBy(FieldPath.documentId, descending: true)
         .limit(1)
         .snapshots()
         .map((snapshot) {
           if (snapshot.docs.isEmpty) return null;
           return snapshot.docs.first.toAccountBalanceModel();
+        });
+  }
+
+  @override
+  Stream<AccountBalanceModel?> getAccountBalanceAtDate(
+    String workspaceId,
+    String accountId,
+    DateTime date,
+  ) {
+    final dateId = date.toIso8601String().split('T')[0];
+    return _getCollection(workspaceId)
+        .doc(accountId)
+        .collection('balance')
+        .doc(dateId)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) return null;
+          return snapshot.toAccountBalanceModel();
         });
   }
 

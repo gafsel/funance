@@ -46,6 +46,19 @@ class InvoiceDetailScreen extends ConsumerWidget {
               SliverAppBar(
                 expandedHeight: isSmallWidth ? 430 : 250,
                 pinned: true,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.account_balance_wallet_outlined),
+                    onPressed: () {
+                      final account = accountAsync.valueOrNull;
+                      if (account != null) {
+                        context.push('/reconciliation', extra: account);
+                      }
+                    },
+                    tooltip: l10n.reconciliationTitle,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   collapseMode: CollapseMode.pin,
                   background: _buildHeader(

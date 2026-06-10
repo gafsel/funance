@@ -31,6 +31,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     double? minAmount,
     double? maxAmount,
     InstallmentStatus? status,
+    bool descending = true,
     dynamic chunkRef,
   }) async {
     try {
@@ -73,15 +74,19 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         if (startDate != null) {
           query = query.where(
             "referenceDate",
-            isGreaterThanOrEqualTo: startDate,
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
           );
         }
 
         if (endDate != null) {
-          query = query.where("referenceDate", isLessThanOrEqualTo: endDate);
+          query = query.where(
+            "referenceDate",
+            isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+          );
         }
       }
-      query = query.orderBy("referenceDate", descending: true);
+
+      query = query.orderBy("referenceDate", descending: descending);
 
       if (limit != null) {
         query = query.limit(limit);
@@ -104,6 +109,8 @@ class FinanceRepositoryImpl implements IFinanceRepository {
             )
             .toList();
       }
+
+      log("Firestore returned ${snapshot.docs.length} docs, after filter: ${items.length} items. Descending: $descending");
 
       return QueryChunk(items: items, nextChunckRef: snapshot.docs.lastOrNull);
     } catch (e, s) {

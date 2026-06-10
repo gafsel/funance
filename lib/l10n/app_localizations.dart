@@ -2773,6 +2773,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Missões Semanais'**
   String get weeklyMissionsTitle;
+
+  /// No description provided for @accountStatementCurrent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atual'**
+  String get accountStatementCurrent;
+
+  /// No description provided for @accountStatementFuture.
+  ///
+  /// In pt, this message translates to:
+  /// **'Futuros'**
+  String get accountStatementFuture;
+
+  /// No description provided for @currentBalance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo Atual'**
+  String get currentBalance;
+
+  /// No description provided for @transactions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançamentos'**
+  String get transactions;
 }
 
 class _AppLocalizationsDelegate

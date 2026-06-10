@@ -3,6 +3,7 @@ import 'package:funances/core/utils/date_time_converter.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 
 part 'account_model.freezed.dart';
+
 part 'account_model.g.dart';
 
 enum AccountType {
@@ -86,15 +87,19 @@ sealed class AccountBalanceModel with _$AccountBalanceModel {
     required DateTime updatedAt,
   }) = _AccountBalanceModel;
 
-  factory AccountBalanceModel.zero() =>
-      AccountBalanceModel(id: "", balance: 0, updatedAt: DateTime.now());
+  factory AccountBalanceModel.zero({DateTime? date}) => AccountBalanceModel(
+    id: "",
+    balance: 0,
+    updatedAt: date ?? DateTime.now(),
+  );
 
   factory AccountBalanceModel.fromJson(Map<String, dynamic> json) =>
       _$AccountBalanceModelFromJson(json);
 }
 
 @freezed
-sealed class AccountDocumentAnalysisResult with _$AccountDocumentAnalysisResult {
+sealed class AccountDocumentAnalysisResult
+    with _$AccountDocumentAnalysisResult {
   factory AccountDocumentAnalysisResult({
     required AccountModel account,
     @Default([]) List<OrderModel> orders,

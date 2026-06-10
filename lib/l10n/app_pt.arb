@@ -598,5 +598,9 @@
   "coachingSlideFinish": "Concluir",
   "coachingNoData": "Nenhum dado de coaching disponível.",
   "coachingNoSlides": "Nenhum slide foi gerado. Tente novamente.",
-  "weeklyMissionsTitle": "Missões Semanais"
+  "weeklyMissionsTitle": "Missões Semanais",
+  "accountStatementCurrent": "Atual",
+  "accountStatementFuture": "Futuros",
+  "currentBalance": "Saldo Atual",
+  "transactions": "Lançamentos"
 }
