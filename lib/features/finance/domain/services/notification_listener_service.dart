@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_notification_listener/flutter_notification_listener.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
@@ -27,6 +28,10 @@ class NotificationListenerService implements INotificationListenerService {
 
   @override
   Future<void> startListening() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
     bool hasPermission = await isPermissionGranted();
     if (!hasPermission) {
       return;
@@ -43,16 +48,28 @@ class NotificationListenerService implements INotificationListenerService {
 
   @override
   Future<void> stopListening() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
     NotificationsListener.stopService();
   }
 
   @override
   Future<bool> isPermissionGranted() async {
+    if (!Platform.isAndroid) {
+      return false;
+    }
+
     return await NotificationsListener.hasPermission ?? false;
   }
 
   @override
   Future<void> openPermissionSettings() async {
+    if (!Platform.isAndroid) {
+      return;
+    }
+
     await NotificationsListener.openPermissionSettings();
   }
 
@@ -107,11 +124,11 @@ class NotificationListenerService implements INotificationListenerService {
     String? packageName,
   ) {
     // Regex simples para capturar valores em R$
-    final regExp = RegExp(r'R\$\s?(\d+[,.]\d{2})');
+    final regExp = RegExp(r'R\$\s?((\d+\.)*\d+,\d{2})');
     final match = regExp.firstMatch(body);
     
     if (match != null) {
-      final amountStr = match.group(1)?.replaceAll(',', '.') ?? "0.0";
+      final amountStr = match.group(1)?.replaceAll('.', '').replaceAll(',', '.') ?? "0.0";
       final amount = double.tryParse(amountStr) ?? 0.0;
       
       // Identifica o tipo baseado em palavras chave

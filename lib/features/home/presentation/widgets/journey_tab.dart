@@ -142,9 +142,12 @@ class JourneyTab extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      l10n.onboardingGoalsTitle,
-                      style: theme.textTheme.titleLarge,
+                    Expanded(
+                      child: Text(
+                        l10n.onboardingGoalsTitle,
+                        style: theme.textTheme.titleLarge,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(
