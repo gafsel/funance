@@ -858,11 +858,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhuma transação correlata encontrada';
 
   @override
-  String get reconciliationSectionTitle => 'CONCILIAÇÃO';
+  String get reconciliationSectionTitle => 'Conciliação';
 
   @override
   String get reconciliationSectionDesc =>
-      'Vincule este lançamento a uma transação do seu extrato bancário.';
+      'Compare seus registros com o extrato bancário real.';
 
   @override
   String get reconciliationChangeAccount => 'Alterar';
@@ -963,6 +963,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionActionTransfer => 'Transferência';
 
   @override
+  String get transactionCategoriesSection => 'Categorias';
+
+  @override
   String get transactionRealizedSection => 'Lançamentos Realizados';
 
   @override
@@ -970,14 +973,18 @@ class AppLocalizationsPt extends AppLocalizations {
       'Transações que já aconteceram e impactaram seu saldo.';
 
   @override
-  String get transactionPlannedSection => 'Planejamentos';
+  String get transactionPlannedSection => 'Agendamentos';
 
   @override
   String get transactionPlannedSubtitle =>
-      'Previsões de gastos ou ganhos futuros para organizar suas finanças.';
+      'Controle suas contas a pagar e a receber que estão por vir.';
 
   @override
-  String get transactionCategoriesSection => 'Categorias';
+  String get planningSectionTitle => 'Estratégia';
+
+  @override
+  String get planningSectionSubtitle =>
+      'Defina limites e acompanhe sua distribuição de gastos ideal.';
 
   @override
   String get transactionDescriptionLabel => 'Descrição';

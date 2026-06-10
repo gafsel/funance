@@ -10,8 +10,6 @@ import '../../../../l10n/app_localizations.dart';
 import '../screens/category_planning_screen.dart';
 import '../screens/transaction_form_screen.dart';
 
-enum TransactionActionStep { initial, selectType }
-
 class TransactionActionSheet extends StatefulWidget {
   final Function(OrderType)? onSelect;
 
@@ -49,34 +47,37 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
             ),
           ),
           const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  l10n.homeNewTransaction,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.pureWhite,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.pureWhite, size: 20),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppColors.pureWhite.withValues(alpha: 0.1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        l10n.homeNewTransaction,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.pureWhite,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, color: AppColors.pureWhite, size: 20),
-                        constraints: const BoxConstraints(),
-                        padding: const EdgeInsets.all(8),
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppColors.pureWhite.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
                   _buildSectionTitle(
                     context,
                     l10n.transactionRealizedSection,
@@ -88,21 +89,30 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                   const SizedBox(height: 32),
                   _buildSectionTitle(
                     context,
+                    l10n.transactionPlannedSection,
+                    l10n.transactionPlannedSubtitle,
+                    Icons.calendar_month_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionGrid(context, InstallmentStatus.pending),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(
+                    context,
+                    l10n.planningSectionTitle,
+                    l10n.planningSectionSubtitle,
+                    Icons.insights_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPlanningToolsGrid(context),
+                  const SizedBox(height: 32),
+                  _buildSectionTitle(
+                    context,
                     l10n.reconciliationSectionTitle,
-                    l10n.reconciliationAnalyzingDesc,
+                    l10n.reconciliationSectionDesc,
                     Icons.account_balance_outlined,
                   ),
                   const SizedBox(height: 12),
                   _buildReconciliationAction(context),
-                  const SizedBox(height: 32),
-                  _buildSectionTitle(
-                    context,
-                    l10n.transactionPlannedSection,
-                    l10n.transactionPlannedSubtitle,
-                    Icons.calendar_today_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildActionGrid(context, InstallmentStatus.pending),
                 ],
               ),
             ),
@@ -119,13 +129,13 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
       children: [
         Row(
           children: [
-            Icon(icon, color: AppColors.paleGold, size: 22),
+            Icon(icon, color: AppColors.antiqueGold, size: 22),
             const SizedBox(width: 8),
             Text(
               title,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: AppColors.paleGold,
+                color: AppColors.antiqueGold,
               ),
             ),
           ],
@@ -145,9 +155,6 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     final isPlanning = status == InstallmentStatus.pending;
     final l10n = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
-    
-    // Para telas muito largas (ex: tablets ou desktop), limitamos a largura máxima do grid
-    // para que os botões não fiquem excessivamente largos, mantendo o aspecto de bottom sheet.
     final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
     
     return Align(
@@ -183,38 +190,59 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
               label: isPlanning ? l10n.transactionPlanTransfer : l10n.transactionTransfer,
               onTap: () => _navigateToForm(context, OrderType.transfer, status),
             ),
-            if (isPlanning) ...[
-              _buildActionItem(
-                context,
-                icon: Icons.assignment_outlined,
-                color: AppColors.error,
-                label: l10n.planningExpenseLimits,
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push('/planning?type=expense');
-                },
-              ),
-              _buildActionItem(
-                context,
-                icon: Icons.pie_chart_outline,
-                color: AppColors.paleGold,
-                label: l10n.planning503020Title,
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push('/planning-50-30-20');
-                },
-              ),
-              _buildActionItem(
-                context,
-                icon: Icons.assignment_turned_in_outlined,
-                color: AppColors.limeGreen,
-                label: l10n.planningIncomeLimits,
-                onTap: () {
-                  Navigator.pop(context);
-                  context.push('/planning?type=income');
-                },
-              ),
-            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlanningToolsGrid(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SizedBox(
+        width: maxGridWidth,
+        child: GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 3,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.85,
+          children: [
+            _buildActionItem(
+              context,
+              icon: Icons.assignment_turned_in_outlined,
+              color: AppColors.limeGreen,
+              label: l10n.planningIncomeLimits,
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/planning?type=income');
+              },
+            ),
+            _buildActionItem(
+              context,
+              icon: Icons.assignment_outlined,
+              color: AppColors.error,
+              label: l10n.planningExpenseLimits,
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/planning?type=expense');
+              },
+            ),
+            _buildActionItem(
+              context,
+              icon: Icons.pie_chart_outline,
+              color: AppColors.antiqueGold,
+              label: l10n.planning503020Title,
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/planning-50-30-20');
+              },
+            ),
           ],
         ),
       ),
@@ -240,8 +268,8 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
           children: [
             _buildActionItem(
               context,
-              icon: Icons.analytics_outlined,
-              color: AppColors.paleGold,
+              icon: Icons.account_balance_outlined,
+              color: AppColors.antiqueGold,
               label: l10n.reconciliationActionAnalyze,
               onTap: () {
                 Navigator.pop(context);
@@ -302,6 +330,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.darkNavy,
+                letterSpacing: 0,
               ),
             ),
           ],

@@ -1589,13 +1589,13 @@ abstract class AppLocalizations {
   /// No description provided for @reconciliationSectionTitle.
   ///
   /// In pt, this message translates to:
-  /// **'CONCILIAÇÃO'**
+  /// **'Conciliação'**
   String get reconciliationSectionTitle;
 
   /// No description provided for @reconciliationSectionDesc.
   ///
   /// In pt, this message translates to:
-  /// **'Vincule este lançamento a uma transação do seu extrato bancário.'**
+  /// **'Compare seus registros com o extrato bancário real.'**
   String get reconciliationSectionDesc;
 
   /// No description provided for @reconciliationChangeAccount.
@@ -1790,6 +1790,12 @@ abstract class AppLocalizations {
   /// **'Transferência'**
   String get transactionActionTransfer;
 
+  /// No description provided for @transactionCategoriesSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorias'**
+  String get transactionCategoriesSection;
+
   /// No description provided for @transactionRealizedSection.
   ///
   /// In pt, this message translates to:
@@ -1805,20 +1811,26 @@ abstract class AppLocalizations {
   /// No description provided for @transactionPlannedSection.
   ///
   /// In pt, this message translates to:
-  /// **'Planejamentos'**
+  /// **'Agendamentos'**
   String get transactionPlannedSection;
 
   /// No description provided for @transactionPlannedSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Previsões de gastos ou ganhos futuros para organizar suas finanças.'**
+  /// **'Controle suas contas a pagar e a receber que estão por vir.'**
   String get transactionPlannedSubtitle;
 
-  /// No description provided for @transactionCategoriesSection.
+  /// No description provided for @planningSectionTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Categorias'**
-  String get transactionCategoriesSection;
+  /// **'Estratégia'**
+  String get planningSectionTitle;
+
+  /// No description provided for @planningSectionSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Defina limites e acompanhe sua distribuição de gastos ideal.'**
+  String get planningSectionSubtitle;
 
   /// No description provided for @transactionDescriptionLabel.
   ///

@@ -851,11 +851,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reconciliationNoMatchFound => 'No matching transaction found';
 
   @override
-  String get reconciliationSectionTitle => 'RECONCILIATION';
+  String get reconciliationSectionTitle => 'Reconciliation';
 
   @override
   String get reconciliationSectionDesc =>
-      'Link this entry to a transaction from your bank statement.';
+      'Compare your records with the actual bank statement.';
 
   @override
   String get reconciliationChangeAccount => 'Change';
@@ -956,6 +956,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionActionTransfer => 'Transfer';
 
   @override
+  String get transactionCategoriesSection => 'Categories';
+
+  @override
   String get transactionRealizedSection => 'Realized Transactions';
 
   @override
@@ -963,14 +966,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Transactions that have already happened and impacted your balance.';
 
   @override
-  String get transactionPlannedSection => 'Plannings';
+  String get transactionPlannedSection => 'Schedules';
 
   @override
   String get transactionPlannedSubtitle =>
-      'Forecasts of future income or expenses to organize your finances.';
+      'Keep track of your upcoming bills and earnings.';
 
   @override
-  String get transactionCategoriesSection => 'Categories';
+  String get planningSectionTitle => 'Strategy';
+
+  @override
+  String get planningSectionSubtitle =>
+      'Set limits and track your ideal spending distribution.';
 
   @override
   String get transactionDescriptionLabel => 'Description';
