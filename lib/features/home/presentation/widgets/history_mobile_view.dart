@@ -14,6 +14,7 @@ import 'package:funances/features/finance/presentation/controllers/transaction_l
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:funances/features/home/presentation/widgets/history_period_summary.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_list_item.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -50,8 +51,7 @@ class HistoryMobileView extends ConsumerWidget {
         return const SizedBox.shrink();
       },
       itemBuilder: (context, item) {
-        return _buildTransactionItem(
-          context,
+        return TransactionListItem(
           notifier: historyNotifier,
           installment: item,
           category: item.category,

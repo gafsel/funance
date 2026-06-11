@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/goal/data/repositories/goal_repository_impl.dart';
+import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/domain/services/goal_service.dart';
 import 'package:funances/features/goal/presentation/providers/goal_form_provider.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -24,4 +25,18 @@ sealed class GoalViewProvider {
       accountService: ref.watch(AccountDomainProviders.service),
     ),
   );
+
+  static final goalsStream = StreamProvider<List<GoalModel>>((ref) {
+    final service = ref.watch(GoalDomainProvider.service);
+    return service.watchGoals();
+  });
+
+  static final goalById = StreamProvider.family<GoalModel?, String>((ref, id) {
+    final goals = ref.watch(goalsStream);
+    return goals.when(
+      data: (data) => Stream.value(data.where((g) => g.id == id).firstOrNull),
+      error: (error, stack) => Stream.error(error, stack),
+      loading: () => const Stream.empty(),
+    );
+  });
 }

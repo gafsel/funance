@@ -19,6 +19,7 @@ import 'package:funances/features/finance/presentation/screens/transaction_form_
 import 'package:funances/features/finance/presentation/screens/transaction_wizard_screen.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
+import 'package:funances/features/goal/presentation/screen/goal_detail_screen.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -271,6 +272,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final goal = state.extra as GoalModel?;
           return GoalFormScreen(goal: goal);
+        },
+      ),
+      GoRoute(
+        path: '/goals/:id',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return GoalDetailScreen(goalId: id);
         },
       ),
       GoRoute(

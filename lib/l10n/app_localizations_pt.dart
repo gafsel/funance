@@ -259,6 +259,37 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get goalDetailsTitle => 'Detalhes da Meta';
+
+  @override
+  String get goalTransactionsTitle => 'Transações Relacionadas';
+
+  @override
+  String get goalEditButton => 'Editar Meta';
+
+  @override
+  String get goalDeleteButton => 'Excluir Meta';
+
+  @override
+  String get goalDeleteConfirmTitle => 'Excluir Meta?';
+
+  @override
+  String get goalDeleteConfirmMessage =>
+      'Tem certeza que deseja excluir esta meta? Esta ação não pode ser desfeita.';
+
+  @override
+  String get goalStatusOnTrack => 'No Caminho';
+
+  @override
+  String get goalStatusAtRisk => 'Em Risco';
+
+  @override
+  String get goalStatusBehind => 'Atrasada';
+
+  @override
+  String get goalStatusLost => 'Perdida';
+
+  @override
   String get goalMonthlyRequirementLabel => 'Valor por mês';
 
   @override
@@ -1543,6 +1574,13 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get weeklyMissionsTitle => 'Missões Semanais';
+
+  @override
+  String get weeklyMissionsSuccessTitle => 'Missões Concluídas!';
+
+  @override
+  String get weeklyMissionsSuccessMessage =>
+      'Parabéns! Você completou todas as atividades desta semana. Continue assim para manter sua saúde financeira em dia!';
 
   @override
   String get accountStatementCurrent => 'Atual';

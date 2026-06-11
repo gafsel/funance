@@ -274,6 +274,17 @@ class FinanceViewProviders {
     ),
   );
 
+  static final goalTransactions = StateNotifierProvider.family<
+    TransactionListNotifier,
+    InfiniteListState<TransactionQuery, InstallmentModel>,
+    TransactionQuery
+  >((ref, query) {
+    return TransactionListNotifier(
+      financeiroService: ref.watch(FinanceDomainProviders.service),
+      initialQuery: query,
+    );
+  });
+
   static final statement = StateNotifierProvider.family<
     AccountStatementNotifier,
     InfiniteListState<TransactionQuery, InstallmentModel>,

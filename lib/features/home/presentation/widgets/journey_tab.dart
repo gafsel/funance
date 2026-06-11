@@ -276,6 +276,21 @@ class JourneyTab extends ConsumerWidget {
     bool canAction,
     CoachingModel? lastCoaching,
   ) {
+    if (!canAction && lastCoaching != null) {
+      return _buildReviewLastInsight(context, ref, l10n, theme, lastCoaching);
+    }
+
+    return _buildNewInsightCall(context, ref, l10n, theme, canAction, lastCoaching);
+  }
+
+  Widget _buildNewInsightCall(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ThemeData theme,
+    bool canAction,
+    CoachingModel? lastCoaching,
+  ) {
     final locale = context.locale;
     final bannerColors = _getBannerColors(canAction, lastCoaching);
     final accentColor = _getAccentColor(canAction, lastCoaching);
@@ -346,7 +361,8 @@ class JourneyTab extends ConsumerWidget {
                       ? l10n.coachingConsultingDesc
                       : lastCoaching?.message ??
                           l10n.coachingLastAnalysisFrom(
-                            lastCoaching!.date.formated(l10n.formatSimpleDate, locale),
+                            lastCoaching!.date
+                                .formated(l10n.formatSimpleDate, locale),
                           ),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppColors.pureWhite.withValues(alpha: 0.9),
@@ -367,42 +383,7 @@ class JourneyTab extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (!canAction && lastCoaching != null) {
-                        ref
-                            .read(
-                              CoachingViewProviders.coachingNotifier.notifier,
-                            )
-                            .setCoaching(lastCoaching);
-                        context.push('/coaching');
-                        return;
-                      }
-
-                      try {
-                        final coaching = await showLoadingModal(
-                          context,
-                          ref
-                              .read(
-                                CoachingViewProviders.coachingNotifier.notifier,
-                              )
-                              .generateCoaching(),
-                          child: AnalysisLoadingView(
-                            title: l10n.coachingConsulting,
-                            description: l10n.coachingConsultingDesc,
-                          ),
-                        );
-
-                        if (coaching != null && context.mounted) {
-                          context.push('/coaching');
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.coachingError)),
-                          );
-                        }
-                      }
-                    },
+                    onPressed: () => _handleCoachingAction(context, ref, canAction, lastCoaching),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accentColor,
                       foregroundColor: Colors.white,
@@ -413,10 +394,7 @@ class JourneyTab extends ConsumerWidget {
                       elevation: 4,
                     ),
                     child: Text(
-                      (canAction
-                              ? l10n.coachingConsultAction
-                              : l10n.coachingViewLast)
-                          .toUpperCase(),
+                      (canAction ? l10n.coachingConsultAction : l10n.coachingViewLast).toUpperCase(),
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
@@ -430,6 +408,116 @@ class JourneyTab extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildReviewLastInsight(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ThemeData theme,
+    CoachingModel lastCoaching,
+  ) {
+    final locale = context.locale;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.psychology_outlined,
+                color: AppColors.deepTurquoise,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  l10n.coachingTitle,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                DateFormat.yMMMd(locale).format(lastCoaching.date),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            lastCoaching.message,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => _handleCoachingAction(context, ref, false, lastCoaching),
+            child: Text(
+              l10n.coachingViewLast,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: AppColors.deepTurquoise,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleCoachingAction(
+    BuildContext context,
+    WidgetRef ref,
+    bool canAction,
+    CoachingModel? lastCoaching,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (!canAction && lastCoaching != null) {
+      ref
+          .read(
+            CoachingViewProviders.coachingNotifier.notifier,
+          )
+          .setCoaching(lastCoaching);
+      context.push('/coaching');
+      return;
+    }
+
+    if (canAction) {
+      try {
+        final coaching = await showLoadingModal(
+          context,
+          ref
+              .read(
+                CoachingViewProviders.coachingNotifier.notifier,
+              )
+              .generateCoaching(),
+          child: AnalysisLoadingView(
+            title: l10n.coachingConsulting,
+            description: l10n.coachingConsultingDesc,
+          ),
+        );
+
+        if (coaching != null && context.mounted) {
+          context.push('/coaching');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.coachingError)),
+          );
+        }
+      }
+    }
   }
 
   List<Color> _getBannerColors(bool canAction, CoachingModel? lastCoaching) {
@@ -547,8 +635,7 @@ class JourneyTab extends ConsumerWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: InkWell(
-        onTap: () => _showAddGoalDialog(context, goal),
-        onLongPress: () => ref.read(goalsProvider.notifier).deleteGoal(goal.id),
+        onTap: () => context.push('/goals/${goal.id}'),
         borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16.0),

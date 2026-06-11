@@ -2,6 +2,7 @@ import '../models/goal_model.dart';
 
 abstract class IGoalRepository {
   Future<List<GoalModel>> getGoals(String workspaceId);
+  Stream<List<GoalModel>> watchGoals(String workspaceId);
   Future<GoalModel> addGoal(String workspaceId, GoalModel goal);
   Future<void> updateGoal(String workspaceId, GoalModel goal);
   Future<void> deleteGoal(String workspaceId, String goalId);

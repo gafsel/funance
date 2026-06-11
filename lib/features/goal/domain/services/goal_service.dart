@@ -11,8 +11,15 @@ class GoalService {
     return await repository.addGoal(workspaceId, goal);
   }
 
+  Stream<List<GoalModel>> watchGoals() {
+    return repository.watchGoals(workspaceId);
+  }
+
   Future<void> updateGoal(GoalModel goal) async {
     await repository.updateGoal(workspaceId, goal);
   }
 
+  Future<void> deleteGoal(String goalId) async {
+    await repository.deleteGoal(workspaceId, goalId);
+  }
 }

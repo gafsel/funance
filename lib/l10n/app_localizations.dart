@@ -542,6 +542,66 @@ abstract class AppLocalizations {
   /// **'{amount}/mês até {date}'**
   String goalRemainingMonthlyTarget(String amount, String date);
 
+  /// No description provided for @goalDetailsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detalhes da Meta'**
+  String get goalDetailsTitle;
+
+  /// No description provided for @goalTransactionsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transações Relacionadas'**
+  String get goalTransactionsTitle;
+
+  /// No description provided for @goalEditButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar Meta'**
+  String get goalEditButton;
+
+  /// No description provided for @goalDeleteButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir Meta'**
+  String get goalDeleteButton;
+
+  /// No description provided for @goalDeleteConfirmTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir Meta?'**
+  String get goalDeleteConfirmTitle;
+
+  /// No description provided for @goalDeleteConfirmMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tem certeza que deseja excluir esta meta? Esta ação não pode ser desfeita.'**
+  String get goalDeleteConfirmMessage;
+
+  /// No description provided for @goalStatusOnTrack.
+  ///
+  /// In pt, this message translates to:
+  /// **'No Caminho'**
+  String get goalStatusOnTrack;
+
+  /// No description provided for @goalStatusAtRisk.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em Risco'**
+  String get goalStatusAtRisk;
+
+  /// No description provided for @goalStatusBehind.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atrasada'**
+  String get goalStatusBehind;
+
+  /// No description provided for @goalStatusLost.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perdida'**
+  String get goalStatusLost;
+
   /// No description provided for @goalMonthlyRequirementLabel.
   ///
   /// In pt, this message translates to:
@@ -2833,6 +2893,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Missões Semanais'**
   String get weeklyMissionsTitle;
+
+  /// No description provided for @weeklyMissionsSuccessTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões Concluídas!'**
+  String get weeklyMissionsSuccessTitle;
+
+  /// No description provided for @weeklyMissionsSuccessMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parabéns! Você completou todas as atividades desta semana. Continue assim para manter sua saúde financeira em dia!'**
+  String get weeklyMissionsSuccessMessage;
 
   /// No description provided for @accountStatementCurrent.
   ///

@@ -14,13 +14,17 @@ class TransactionListNotifier
 
   Timer? _debounceTimer;
 
-  TransactionListNotifier({required this.financeiroService})
-    : super(
-        initialQuery: TransactionQuery(
-          startDate: HistoryPeriodType.month.getRange().$1,
-          endDate: HistoryPeriodType.month.getRange().$2,
-        ),
-        executor: (query, {chunkRef}) async {
+  TransactionListNotifier({
+    required this.financeiroService,
+    TransactionQuery? initialQuery,
+  }) : super(
+         initialQuery:
+             initialQuery ??
+             TransactionQuery(
+               startDate: HistoryPeriodType.month.getRange().$1,
+               endDate: HistoryPeriodType.month.getRange().$2,
+             ),
+         executor: (query, {chunkRef}) async {
           return await financeiroService.queryInstallments(
             limit: 10,
             accountId: query.accountId,

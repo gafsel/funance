@@ -42,13 +42,13 @@ extension GoalProgressUi on GoalProgress {
   String getStatusText(AppLocalizations l10n) {
     switch (status) {
       case GoalStatus.onTrack:
-        return l10n.statusOnTrack;
+        return l10n.goalStatusOnTrack;
       case GoalStatus.atRisk:
-        return l10n.statusAtRisk;
+        return l10n.goalStatusAtRisk;
       case GoalStatus.behind:
-        return l10n.statusBehind;
+        return l10n.goalStatusBehind;
       case GoalStatus.lost:
-        return l10n.statusLost;
+        return l10n.goalStatusLost;
     }
   }
 }

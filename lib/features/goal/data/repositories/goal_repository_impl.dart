@@ -31,6 +31,14 @@ class GoalRepositoryImpl implements IGoalRepository {
   }
 
   @override
+  Stream<List<GoalModel>> watchGoals(String workspaceId) {
+    return _getCollection(workspaceId)
+        .where('isDeleted', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.toGoalModel()).toList());
+  }
+
+  @override
   Future<GoalModel> addGoal(String workspaceId, GoalModel goal) async {
     try {
       final data = goal.toJson();

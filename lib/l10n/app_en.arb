@@ -589,6 +589,8 @@
   "accountAnalysisFailed": "Processing failed",
   "completedMissionsSummary": "{count} {count, plural, =1{item} other{items}} • {xp} XP",
   "weeklyMissionsTitle": "Weekly Missions",
+  "weeklyMissionsSuccessTitle": "Missions Completed!",
+  "weeklyMissionsSuccessMessage": "Congratulations! You completed all activities for this week. Keep it up to maintain your financial health!",
   "accountStatementCurrent": "Current",
   "accountStatementFuture": "Future",
   "currentBalance": "Current Balance",
