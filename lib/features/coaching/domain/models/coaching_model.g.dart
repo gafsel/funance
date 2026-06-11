@@ -50,7 +50,7 @@ Map<String, dynamic> _$CoachingModelToJson(_CoachingModel instance) =>
       'summary': instance.summary,
       'date': instance.date.toIso8601String(),
       'type': _$CoachingTypeEnumMap[instance.type]!,
-      'slides': instance.slides,
+      'slides': instance.slides.map((e) => e.toJson()).toList(),
     };
 
 const _$CoachingTypeEnumMap = {

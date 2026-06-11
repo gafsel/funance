@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'coaching_model.freezed.dart';
+
 part 'coaching_model.g.dart';
 
 enum CoachingType {
@@ -24,11 +25,13 @@ sealed class SlideModel with _$SlideModel {
     String? animationType,
   }) = _SlideModel;
 
-  factory SlideModel.fromJson(Map<String, dynamic> json) => _$SlideModelFromJson(json);
+  factory SlideModel.fromJson(Map<String, dynamic> json) =>
+      _$SlideModelFromJson(json);
 }
 
 @freezed
 sealed class CoachingModel with _$CoachingModel {
+  @JsonSerializable(explicitToJson: true)
   const factory CoachingModel({
     required String id,
     required String message,
@@ -38,5 +41,10 @@ sealed class CoachingModel with _$CoachingModel {
     @Default([]) List<SlideModel> slides,
   }) = _CoachingModel;
 
-  factory CoachingModel.fromJson(Map<String, dynamic> json) => _$CoachingModelFromJson(json);
+  const CoachingModel._();
+
+  factory CoachingModel.fromJson(Map<String, dynamic> json) =>
+      _$CoachingModelFromJson(json);
+
+  bool get isDeprecated => DateTime.now().difference(date).inDays >= 7;
 }

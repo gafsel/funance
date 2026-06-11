@@ -5,19 +5,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
-import 'package:funances/features/coaching/presentation/providers/coaching_providers.dart';
+import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class CoachingSlidesScreen extends ConsumerStatefulWidget {
-  const CoachingSlidesScreen({super.key});
+  const CoachingSlidesScreen({super.key, required this.coaching});
+
+  final CoachingModel coaching;
 
   @override
-  ConsumerState<CoachingSlidesScreen> createState() => _CoachingSlidesScreenState();
+  ConsumerState<CoachingSlidesScreen> createState() =>
+      _CoachingSlidesScreenState();
 }
 
-class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> with TickerProviderStateMixin {
+class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
+    with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   late AnimationController _iconAnimationController;
@@ -40,65 +44,15 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(CoachingViewProviders.coachingNotifier);
+    return Scaffold(
+      body: _buildSlides(context)
+    );
+  }
+
+  Widget _buildSlides(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
-      body: state.error != null
-          ? _buildError(state.error!, l10n)
-          : state.latestCoaching != null
-              ? _buildSlides(state.latestCoaching!, l10n)
-              : Center(child: Text(l10n.coachingNoData)),
-    );
-  }
-
-  Widget _buildError(String error, AppLocalizations l10n) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 80, color: Colors.red),
-            const SizedBox(height: 24),
-            Text(
-              l10n.coachingError,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.grey, fontSize: 16),
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => ref.read(CoachingViewProviders.coachingNotifier.notifier).generateCoaching(),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: Text(l10n.retry),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => context.pop(),
-              child: Text(l10n.onboardingBack),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlides(CoachingModel coaching, AppLocalizations l10n) {
-    final slides = coaching.slides;
-    if (slides.isEmpty) {
-      return _buildError(l10n.coachingNoSlides, l10n);
-    }
+    final slides = widget.coaching.slides;
 
     return Stack(
       children: [
@@ -126,7 +80,7 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
                 children: [
                   // Ícones decorativos de fundo
                   ..._buildBackgroundIcons(slide),
-                  
+
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -198,7 +152,9 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
                         height: 4,
                         margin: const EdgeInsets.symmetric(horizontal: 2),
                         decoration: BoxDecoration(
-                          color: index <= _currentPage ? Colors.white : Colors.white38,
+                          color: index <= _currentPage
+                              ? Colors.white
+                              : Colors.white38,
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -239,8 +195,10 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
                         ),
-                        child: Text(l10n.coachingSlideBack,
-                            style: const TextStyle(color: Colors.white)),
+                        child: Text(
+                          l10n.coachingSlideBack,
+                          style: const TextStyle(color: Colors.white),
+                        ),
                       )
                     else
                       const SizedBox.shrink(),
@@ -259,13 +217,18 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
                         backgroundColor: Colors.white,
                         foregroundColor: slides[_currentPage].color.asColor(),
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 12),
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25)),
+                          borderRadius: BorderRadius.circular(25),
+                        ),
                       ),
-                      child: Text(_currentPage < slides.length - 1
-                          ? l10n.coachingSlideNext
-                          : l10n.coachingSlideFinish),
+                      child: Text(
+                        _currentPage < slides.length - 1
+                            ? l10n.coachingSlideNext
+                            : l10n.coachingSlideFinish,
+                      ),
                     ),
                   ],
                 ),
@@ -292,19 +255,23 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
             children: List.generate(12, (index) {
               final iconName = iconsList[index % iconsList.length];
               final size = 80 + random.nextDouble() * 120;
-              
+
               // Divide a tela em uma grade imaginária para melhor distribuição
               final gridCols = 3;
               final gridRows = 4;
               final col = index % gridCols;
               final row = index ~/ gridCols;
-              
+
               final cellWidth = width / gridCols;
               final cellHeight = height / gridRows;
-              
+
               // Posição baseada na célula da grade + um deslocamento aleatório
-              final left = (col * cellWidth) + (random.nextDouble() * (cellWidth - size));
-              final top = (row * cellHeight) + (random.nextDouble() * (cellHeight - size));
+              final left =
+                  (col * cellWidth) +
+                  (random.nextDouble() * (cellWidth - size));
+              final top =
+                  (row * cellHeight) +
+                  (random.nextDouble() * (cellHeight - size));
 
               return Positioned(
                 top: top,
@@ -330,7 +297,7 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
 
   Widget _buildAnimatedIcon(SlideModel slide) {
     final iconData = slide.icon.asIcon(orElse: Icons.tips_and_updates);
-    
+
     // Usar uma curva para tornar a animação mais dinâmica
     final CurvedAnimation curvedAnimation = CurvedAnimation(
       parent: _iconAnimationController,
@@ -389,17 +356,15 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen> wit
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.2 * curvedAnimation.value),
+                        color: Colors.white.withOpacity(
+                          0.2 * curvedAnimation.value,
+                        ),
                         blurRadius: 20 * curvedAnimation.value,
                         spreadRadius: 5 * curvedAnimation.value,
                       ),
                     ],
                   ),
-                  child: Icon(
-                    iconData,
-                    size: 110,
-                    color: Colors.white,
-                  ),
+                  child: Icon(iconData, size: 110, color: Colors.white),
                 ),
               ),
             ),

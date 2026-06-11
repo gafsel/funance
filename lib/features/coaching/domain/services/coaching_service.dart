@@ -2,22 +2,17 @@ import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/domain/repositories/coaching_repository.dart';
 
 class CoachingService {
+  final String workspaceId;
   final ICoachingRepository repository;
 
-  CoachingService(this.repository);
+  CoachingService({required this.workspaceId, required this.repository});
 
-  Future<List<CoachingModel>> getInsights(String workspaceId) {
-    return repository.getInsights(workspaceId);
+  Future<CoachingModel?> getLastInsight() {
+    return repository.getLastInsight(workspaceId);
   }
 
-  Future<CoachingModel> generateCoaching(String workspaceId) {
+  Future<CoachingModel> generateCoaching() {
     return repository.generateCoaching(workspaceId);
   }
 
-  bool canActionCoach(List<CoachingModel> insights) {
-    if (insights.isEmpty) return true;
-    final lastInsight = insights.first;
-    final diff = DateTime.now().difference(lastInsight.date);
-    return diff.inDays >= 7;
-  }
 }

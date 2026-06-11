@@ -486,10 +486,10 @@ return $default(_that.id,_that.message,_that.summary,_that.date,_that.type,_that
 }
 
 /// @nodoc
-@JsonSerializable()
 
-class _CoachingModel implements CoachingModel {
-  const _CoachingModel({required this.id, required this.message, this.summary, required this.date, required this.type, final  List<SlideModel> slides = const []}): _slides = slides;
+@JsonSerializable(explicitToJson: true)
+class _CoachingModel extends CoachingModel {
+  const _CoachingModel({required this.id, required this.message, this.summary, required this.date, required this.type, final  List<SlideModel> slides = const []}): _slides = slides,super._();
   factory _CoachingModel.fromJson(Map<String, dynamic> json) => _$CoachingModelFromJson(json);
 
 @override final  String id;

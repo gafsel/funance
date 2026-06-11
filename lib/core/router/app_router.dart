@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/screens/splash_screen.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/auth/presentation/screens/login_screen.dart';
+import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/screens/coaching_slides_screen.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -190,14 +191,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (extra != null) {
             if (extra['installment'] != null) {
               final installment = extra['installment'] as InstallmentModel;
-              final forceEdit = state.uri.queryParameters['forceEdit'] == 'true';
+              final forceEdit =
+                  state.uri.queryParameters['forceEdit'] == 'true';
               if (installment.isInvoice && !forceEdit) {
                 return InvoiceDetailScreen(invoice: installment);
               }
 
               final statusStr = state.uri.queryParameters['status'];
               final status = statusStr != null
-                  ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
+                  ? InstallmentStatus.values.firstWhere(
+                      (e) => e.name == statusStr,
+                    )
                   : null;
 
               return TransactionFormScreen.updateInstallment(
@@ -218,14 +222,20 @@ final routerProvider = Provider<GoRouter>((ref) {
               state.uri.queryParameters['accountIdSource'] != null ||
               state.uri.queryParameters['accountIdTarget'] != null;
 
-          if (hasCategory || hasAccounts || state.uri.queryParameters['description'] != null) {
+          if (hasCategory ||
+              hasAccounts ||
+              state.uri.queryParameters['description'] != null) {
             final statusStr = state.uri.queryParameters['status'];
             final status = statusStr != null
-                ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
+                ? InstallmentStatus.values.firstWhere(
+                    (e) => e.name == statusStr,
+                  )
                 : null;
 
             final amountStr = state.uri.queryParameters['amount'];
-            final amount = amountStr != null ? double.tryParse(amountStr) : null;
+            final amount = amountStr != null
+                ? double.tryParse(amountStr)
+                : null;
 
             final dateStr = state.uri.queryParameters['date'];
             final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
@@ -247,7 +257,8 @@ final routerProvider = Provider<GoRouter>((ref) {
               ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
               : null;
 
-          final skipTransactions = state.uri.queryParameters['skipTransactions'] == 'true';
+          final skipTransactions =
+              state.uri.queryParameters['skipTransactions'] == 'true';
 
           return TransactionWizardScreen(
             type: type,
@@ -294,7 +305,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/coaching',
-        builder: (context, state) => const CoachingSlidesScreen(),
+        builder: (context, state) {
+          final coaching = state.extra as CoachingModel;
+          return CoachingSlidesScreen(coaching: coaching);
+        },
       ),
     ],
   );
