@@ -93,6 +93,18 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                 children: [
                   _buildSectionHeader(
                     context,
+                    l10n.profileTitle,
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.person_outline),
+                    title: Text(l10n.profileEditTitle),
+                    onTap: () {
+                      context.push('/profile');
+                    },
+                  ),
+                  const Divider(),
+                  _buildSectionHeader(
+                    context,
                     l10n.workspaceSettingsGeneralSection,
                   ),
                   ListTile(

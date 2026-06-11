@@ -28,12 +28,15 @@ import 'package:funances/features/finance/presentation/widgets/analysis_loading_
 
 class ReconciliationScreen extends ConsumerWidget {
   final AccountModel account;
+
   const ReconciliationScreen({super.key, required this.account});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(FinanceViewProviders.reconciliation(account));
-    final notifier = ref.read(FinanceViewProviders.reconciliation(account).notifier);
+    final notifier = ref.read(
+      FinanceViewProviders.reconciliation(account).notifier,
+    );
 
     final l10n = context.l10n;
     return Scaffold(
@@ -100,8 +103,7 @@ class ReconciliationScreen extends ConsumerWidget {
               ],
             ),
           ),
-          if (state.step != ReconciliationStep.review ||
-              state.matches.isEmpty)
+          if (state.step != ReconciliationStep.review || state.matches.isEmpty)
             const SizedBox.shrink(),
         ],
       ),
@@ -141,7 +143,10 @@ class ReconciliationScreen extends ConsumerWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            Text(l10n.reconciliationSupportedFormats, textAlign: TextAlign.center),
+            Text(
+              l10n.reconciliationSupportedFormats,
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () async {
@@ -165,12 +170,12 @@ class ReconciliationScreen extends ConsumerWidget {
                         description: l10n.reconciliationAnalyzingDesc,
                         firstPhaseDuration:
                             ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                                ? const Duration(seconds: 20)
-                                : const Duration(minutes: 1),
+                            ? const Duration(seconds: 20)
+                            : const Duration(minutes: 1),
                         totalDuration:
                             ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                                ? const Duration(seconds: 45)
-                                : const Duration(minutes: 5),
+                            ? const Duration(seconds: 45)
+                            : const Duration(minutes: 5),
                       ),
                     );
                   }
@@ -296,8 +301,12 @@ class _MatchItem extends StatelessWidget {
     final docTx = match.documentTransaction;
     final sysInst = match.systemInstallment;
     final createdOrder = match.createdOrder;
-    final category = match.customCategory ?? sysInst?.category ?? createdOrder?.category;
-    final description = match.customDescription ?? sysInst?.description ?? createdOrder?.description;
+    final category =
+        match.customCategory ?? sysInst?.category ?? createdOrder?.category;
+    final description =
+        match.customDescription ??
+        sysInst?.description ??
+        createdOrder?.description;
 
     final isSystemOnly = docTx == null && sysInst != null;
     final isLinked = docTx != null && sysInst != null;
@@ -307,9 +316,19 @@ class _MatchItem extends StatelessWidget {
     IconData statusIcon;
 
     if (isSystemOnly) {
-      statusColor = Colors.purple;
-      statusText = "Apenas no Sistema";
-      statusIcon = Icons.info_outline;
+      if (match.status == ReconciliationMatchStatus.ignored) {
+        statusColor = Colors.red;
+        statusText = "Remover do Sistema";
+        statusIcon = Icons.delete_sweep;
+      } else if (match.status == ReconciliationMatchStatus.matched) {
+        statusColor = Colors.green;
+        statusText = "Manter no Sistema";
+        statusIcon = Icons.check_circle;
+      } else {
+        statusColor = Colors.purple;
+        statusText = "Apenas no Sistema";
+        statusIcon = Icons.info_outline;
+      }
     } else {
       switch (match.status) {
         case ReconciliationMatchStatus.matched:
@@ -353,21 +372,27 @@ class _MatchItem extends StatelessWidget {
           ListTile(
             leading: Icon(statusIcon, color: statusColor),
             title: Text(docTx?.description ?? sysInst?.description ?? ""),
-            subtitle: Text((docTx?.date ?? sysInst?.referenceDate ?? DateTime.now())
-                .formated(l10n.formatSimpleDate, locale)),
+            subtitle: Text(
+              (docTx?.date ?? sysInst?.referenceDate ?? DateTime.now())
+                  .formated(l10n.formatSimpleDate, locale),
+            ),
             trailing: Text(
-              (docTx?.amount ?? sysInst?.referenceAmount ?? 0)
-                  .asCurrency(locale: locale),
+              (docTx?.amount ?? sysInst?.referenceAmount ?? 0).asCurrency(
+                locale: locale,
+              ),
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                color: (docTx?.type ?? sysInst?.type ?? OrderType.expense) ==
+                color:
+                    (docTx?.type ?? sysInst?.type ?? OrderType.expense) ==
                         OrderType.income
                     ? Colors.green
                     : Colors.red,
               ),
             ),
           ),
-          if (isLinked || createdOrder != null || match.customDescription != null)
+          if (isLinked ||
+              createdOrder != null ||
+              match.customDescription != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Container(
@@ -395,7 +420,10 @@ class _MatchItem extends StatelessWidget {
                           if (category != null)
                             Text(
                               category.name,
-                              style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
                         ],
                       ),
@@ -433,7 +461,9 @@ class _MatchItem extends StatelessWidget {
     final category =
         match.customCategory ?? sysInst?.category ?? createdOrder?.category;
     final description =
-        match.customDescription ?? sysInst?.description ?? createdOrder?.description;
+        match.customDescription ??
+        sysInst?.description ??
+        createdOrder?.description;
 
     final dTx = match.documentTransaction;
     final sInst = match.systemInstallment;
@@ -526,7 +556,10 @@ class _MatchItem extends StatelessWidget {
             const SizedBox(width: 16),
             // System Pool (Pool 2)
             Expanded(
-              child: sInst != null || createdOrder != null || match.customDescription != null
+              child:
+                  sInst != null ||
+                      createdOrder != null ||
+                      match.customDescription != null
                   ? Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -574,7 +607,8 @@ class _MatchItem extends StatelessWidget {
                                 .asCurrency(locale: locale),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: (match.customType ??
+                              color:
+                                  (match.customType ??
                                           sInst?.type ??
                                           createdOrder?.type ??
                                           dTx?.type ??
@@ -626,14 +660,14 @@ class _MatchItem extends StatelessWidget {
                     onPressed: () async {
                       final result =
                           await showModalBottomSheet<ReconciliationMatch?>(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => ReconciliationTransactionForm(
-                          match: match,
-                          accountId: accountId,
-                        ),
-                      );
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => ReconciliationTransactionForm(
+                              match: match,
+                              accountId: accountId,
+                            ),
+                          );
 
                       if (result != null) {
                         onChanged(result);
@@ -657,10 +691,14 @@ class _MatchItem extends StatelessWidget {
 
   Widget _buildActions(BuildContext context, {bool isVertical = false}) {
     final l10n = context.l10n;
+    final isSystemOnly =
+        match.documentTransaction == null && match.systemInstallment != null;
+
     final actions = [
-      if (match.status == ReconciliationMatchStatus.unmatched ||
-          (match.status == ReconciliationMatchStatus.matched &&
-              match.systemInstallment == null))
+      if (!isSystemOnly &&
+          (match.status == ReconciliationMatchStatus.unmatched ||
+              (match.status == ReconciliationMatchStatus.matched &&
+                  match.systemInstallment == null)))
         TextButton.icon(
           onPressed: () async {
             final result = await showModalBottomSheet<ReconciliationMatch?>(
@@ -680,41 +718,57 @@ class _MatchItem extends StatelessWidget {
           icon: const Icon(Icons.add),
           label: Text(l10n.reconciliationActionRegister),
         ),
-      TextButton.icon(
-        onPressed: () {
-          final dTx = match.documentTransaction;
-          final sInst = match.systemInstallment;
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => ReconciliationHistoryPicker(
-              initialQuery: TransactionQuery(
-                accountId: accountId,
-                startDate: (dTx?.date ?? sInst?.referenceDate ?? DateTime.now()).subtract(
-                  const Duration(days: 7),
+      if (isSystemOnly)
+        TextButton.icon(
+          onPressed: () => onChanged(
+            match.copyWith(status: ReconciliationMatchStatus.matched),
+          ),
+          icon: const Icon(Icons.check_circle_outline),
+          label: const Text("Manter"),
+          style: match.status == ReconciliationMatchStatus.matched
+              ? TextButton.styleFrom(
+                  foregroundColor: Colors.green,
+                  backgroundColor: Colors.green.withValues(alpha: 0.1),
+                )
+              : null,
+        ),
+      if (!isSystemOnly)
+        TextButton.icon(
+          onPressed: () {
+            final dTx = match.documentTransaction;
+            final sInst = match.systemInstallment;
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => ReconciliationHistoryPicker(
+                initialQuery: TransactionQuery(
+                  accountId: accountId,
+                  startDate:
+                      (dTx?.date ?? sInst?.referenceDate ?? DateTime.now())
+                          .subtract(const Duration(days: 7)),
+                  endDate: (dTx?.date ?? sInst?.referenceDate ?? DateTime.now())
+                      .add(const Duration(days: 7)),
                 ),
-                endDate: (dTx?.date ?? sInst?.referenceDate ?? DateTime.now()).add(
-                  const Duration(days: 7),
-                ),
+                onSelected: (inst) {
+                  onLinkManual(inst);
+                  Navigator.pop(context);
+                },
               ),
-              onSelected: (inst) {
-                onLinkManual(inst);
-                Navigator.pop(context);
-              },
-            ),
-          );
-        },
-        icon: const Icon(Icons.link),
-        label: Text(l10n.reconciliationActionLink),
-      ),
+            );
+          },
+          icon: const Icon(Icons.link),
+          label: Text(l10n.reconciliationActionLink),
+        ),
       if (match.status != ReconciliationMatchStatus.ignored)
         TextButton.icon(
           onPressed: () => onChanged(
             match.copyWith(status: ReconciliationMatchStatus.ignored),
           ),
-          icon: const Icon(Icons.block),
-          label: Text(l10n.reconciliationActionIgnore),
+          icon: Icon(isSystemOnly ? Icons.delete_outline : Icons.block),
+          label: Text(
+            isSystemOnly ? "Remover" : l10n.reconciliationActionIgnore,
+          ),
         )
       else
         TextButton.icon(
@@ -727,6 +781,10 @@ class _MatchItem extends StatelessWidget {
           ),
           icon: const Icon(Icons.restore),
           label: Text(l10n.reconciliationActionRestore),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.red,
+            backgroundColor: Colors.red.withValues(alpha: 0.1),
+          ),
         ),
     ];
 
@@ -768,23 +826,26 @@ class _ReconciliationTransactionFormState
   @override
   void initState() {
     super.initState();
-    final isCredit = (widget.match.documentTransaction?.amount ??
-            widget.match.systemInstallment?.referenceAmount ??
-            0) >=
-        0;
-    description = widget.match.customDescription ??
+    description =
+        widget.match.customDescription ??
         widget.match.systemInstallment?.description ??
         widget.match.documentTransaction?.description ??
         "";
-    category = widget.match.customCategory ??
+    category =
+        widget.match.customCategory ??
         widget.match.systemInstallment?.category ??
         widget.match.documentTransaction?.category;
-    type = widget.match.customType ??
-        widget.match.systemInstallment?.type ??
-        (isCredit ? OrderType.income : OrderType.expense);
-    targetAccountId = widget.match.targetAccountId ??
+    final docTx = widget.match.documentTransaction;
+    final sysInst = widget.match.systemInstallment;
+
+    // Se temos transação do documento, confiamos no tipo dela
+    // Caso contrário (transação só do sistema), confiamos no tipo do sistema
+    type = (widget.match.customType ?? docTx?.type ?? sysInst?.type)!;
+    targetAccountId =
+        widget.match.targetAccountId ??
         widget.match.systemInstallment?.accountIdTarget;
-    installmentCount = widget.match.installmentCount ??
+    installmentCount =
+        widget.match.installmentCount ??
         widget.match.systemInstallment?.installmentCount;
     isRecurring = (installmentCount ?? 1) > 1;
   }
@@ -793,10 +854,14 @@ class _ReconciliationTransactionFormState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final isCredit = (widget.match.documentTransaction?.amount ??
-            widget.match.systemInstallment?.referenceAmount ??
-            0) >=
-        0;
+    final dTx = widget.match.documentTransaction;
+    final sInst = widget.match.systemInstallment;
+
+    // Se temos transação do documento, confiamos no tipo dela
+    // Caso contrário (transação só do sistema), confiamos no tipo do sistema
+    final effectiveType = dTx?.type ?? sInst?.type;
+    final isCredit = effectiveType == OrderType.income;
+    final isDebit = effectiveType == OrderType.expense;
 
     return Container(
       padding: EdgeInsets.only(
@@ -841,12 +906,6 @@ class _ReconciliationTransactionFormState
                 style: const TextStyle(color: AppColors.pureWhite),
               ),
               const SizedBox(height: 16),
-              CategoryFormField(
-                initialValue: category,
-                categoryType: type == OrderType.transfer ? null : type.categoryType,
-                onChanged: (value) => setState(() => category = value),
-              ),
-              const SizedBox(height: 16),
               ChipFormField<OrderType>(
                 initialValue: type,
                 onChanged: (value) {
@@ -867,8 +926,8 @@ class _ReconciliationTransactionFormState
                     ChipFormFieldOption(
                       value: OrderType.income,
                       label: l10n.transactionTypeIncome,
-                    )
-                  else
+                    ),
+                  if (isDebit)
                     ChipFormFieldOption(
                       value: OrderType.expense,
                       label: l10n.transactionTypeExpense,
@@ -879,8 +938,8 @@ class _ReconciliationTransactionFormState
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
               if (type == OrderType.transfer) ...[
-                const SizedBox(height: 16),
                 AccountFormField(
                   initialValue: targetAccountId,
                   onChanged: (value) => setState(() => targetAccountId = value),
@@ -889,6 +948,12 @@ class _ReconciliationTransactionFormState
                         ? l10n.transactionFromAccountLabel
                         : l10n.transactionToAccountLabel,
                   ),
+                ),
+              ] else ...[
+                CategoryFormField(
+                  initialValue: category,
+                  categoryType: type.categoryType,
+                  onChanged: (value) => setState(() => category = value),
                 ),
               ],
               const SizedBox(height: 16),

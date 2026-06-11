@@ -22,6 +22,7 @@ import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
+import 'package:funances/features/user/presentation/screens/user_profile_screen.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
@@ -107,6 +108,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/invites',
         builder: (context, state) => const InviteListScreen(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const UserProfileScreen(),
       ),
       GoRoute(
         path: '/onboarding',

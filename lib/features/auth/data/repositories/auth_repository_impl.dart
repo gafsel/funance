@@ -4,6 +4,7 @@ import 'package:funances/features/auth/domain/repositories/auth_repository.dart'
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/repositories/user_repository.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:rxdart/rxdart.dart';
 
 class AuthRepositoryImpl implements IAuthRepository {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -16,9 +17,9 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Stream<UserModel?> get authStateChanges =>
-      _firebaseAuth.authStateChanges().asyncMap((user) async {
-        if (user == null) return null;
-        return await _userRepository.getUserById(user.uid);
+      _firebaseAuth.authStateChanges().switchMap((user) {
+        if (user == null) return Stream.value(null);
+        return _userRepository.watchUser(user.uid);
       });
 
   @override

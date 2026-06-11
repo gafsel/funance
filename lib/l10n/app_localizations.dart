@@ -578,6 +578,66 @@ abstract class AppLocalizations {
   /// **'Ignorar'**
   String get automaticTransactionIgnore;
 
+  /// No description provided for @profileTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil'**
+  String get profileTitle;
+
+  /// No description provided for @profileEditTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar Perfil'**
+  String get profileEditTitle;
+
+  /// No description provided for @profileNameLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nome'**
+  String get profileNameLabel;
+
+  /// No description provided for @profileEmailLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'E-mail'**
+  String get profileEmailLabel;
+
+  /// No description provided for @profileSaveButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvar Alterações'**
+  String get profileSaveButton;
+
+  /// No description provided for @profileUpdateSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Perfil atualizado com sucesso!'**
+  String get profileUpdateSuccess;
+
+  /// No description provided for @profileUpdateError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Erro ao atualizar perfil.'**
+  String get profileUpdateError;
+
+  /// No description provided for @profilePhotoSourceTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha a origem da foto'**
+  String get profilePhotoSourceTitle;
+
+  /// No description provided for @profilePhotoCamera.
+  ///
+  /// In pt, this message translates to:
+  /// **'Câmera'**
+  String get profilePhotoCamera;
+
+  /// No description provided for @profilePhotoGallery.
+  ///
+  /// In pt, this message translates to:
+  /// **'Galeria'**
+  String get profilePhotoGallery;
+
   /// No description provided for @planning503020Title.
   ///
   /// In pt, this message translates to:

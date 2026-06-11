@@ -278,6 +278,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get automaticTransactionIgnore => 'Ignore';
 
   @override
+  String get profileTitle => 'Perfil';
+
+  @override
+  String get profileEditTitle => 'Editar Perfil';
+
+  @override
+  String get profileNameLabel => 'Nome';
+
+  @override
+  String get profileEmailLabel => 'E-mail';
+
+  @override
+  String get profileSaveButton => 'Salvar Alterações';
+
+  @override
+  String get profileUpdateSuccess => 'Perfil atualizado com sucesso!';
+
+  @override
+  String get profileUpdateError => 'Erro ao atualizar perfil.';
+
+  @override
+  String get profilePhotoSourceTitle => 'Escolha a origem da foto';
+
+  @override
+  String get profilePhotoCamera => 'Câmera';
+
+  @override
+  String get profilePhotoGallery => 'Galeria';
+
+  @override
   String get planning503020Title => '50-30-20 Planning';
 
   @override

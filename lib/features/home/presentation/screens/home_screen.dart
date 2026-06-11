@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
@@ -10,7 +11,7 @@ import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -40,7 +41,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     // final workspaceState = ref.watch(workspaceNotifierProvider);
-    final authUser = ref.watch(AuthDomainProviders.user).value;
+    final authUser = ref.watch(AuthDomainProviders.currentUser);
 
     return LayoutBuilder(builder: (context, constraints) {
       final isLargeScreen = constraints.maxWidth > 800;
@@ -52,19 +53,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
             : AppBar(
                 leading: Padding(
                   padding: const EdgeInsets.only(left: 8.0),
-                  child: Center(
-                    child: authUser?.photoUrl != null
-                        ? CircleAvatar(
-                            radius: 16,
-                            backgroundImage: NetworkImage(authUser!.photoUrl!),
-                          )
-                        : const CircleAvatar(
-                            radius: 16,
-                            child: Icon(Icons.person, size: 20),
-                          ),
+                  child: InkWell(
+                    onTap: () => context.push('/profile'),
+                    child: Center(
+                      child: UserAvatar(
+                        displayName: authUser?.displayName,
+                        photoUrl: authUser?.photoUrl,
+                        radius: 16,
+                      ),
+                    ),
                   ),
                 ),
-                title: _buildWorkspaceSelector(context, ref),
+                title: _buildWorkspaceSelector(context, ref, isNavigationRail: false),
                 centerTitle: true,
               ),
         body: Row(
@@ -134,10 +134,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           if (_isNavigationRailExtended)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: _buildWorkspaceSelector(context, ref),
+              child: _buildWorkspaceSelector(context, ref, isNavigationRail: true),
             )
           else
-            const Icon(Icons.account_balance_wallet, color: AppColors.pureWhite),
+            InkWell(
+              onTap: () => _showWorkspacePicker(context, ref, ref.read(WorkspaceViewProviders.workspace)),
+              child: const Icon(Icons.account_balance_wallet, color: AppColors.pureWhite),
+            ),
           const SizedBox(height: 24),
         ],
       ),
@@ -145,16 +148,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            if (authUser?.photoUrl != null)
-              CircleAvatar(
-                radius: 16,
-                backgroundImage: NetworkImage(authUser!.photoUrl!),
-              )
-            else
-              const CircleAvatar(
-                radius: 16,
-                child: Icon(Icons.person, size: 20),
-              ),
+          InkWell(
+            onTap: () => context.push('/profile'),
+            child: UserAvatar(
+              displayName: authUser?.displayName,
+              photoUrl: authUser?.photoUrl,
+              radius: 16,
+            ),
+          ),
             if (_isNavigationRailExtended) ...[
               const SizedBox(height: 8),
               Text(
@@ -193,10 +194,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildWorkspaceSelector(BuildContext context, WidgetRef ref) {
+  Widget _buildWorkspaceSelector(BuildContext context, WidgetRef ref, {required bool isNavigationRail}) {
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final currentWorkspace = workspaceState.currentWorkspace;
     final l10n = AppLocalizations.of(context)!;
+    final color = isNavigationRail ? AppColors.pureWhite : null;
 
     return InkWell(
       onTap: () => _showWorkspacePicker(context, ref, workspaceState),
@@ -206,16 +208,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
           Icon(
             currentWorkspace?.type == WorkspaceType.business ? Icons.business : Icons.home_outlined,
             size: 20,
+            color: color,
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               currentWorkspace?.name ?? l10n.homeNoWorkspaceSelected,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const Icon(Icons.arrow_drop_down),
+          Icon(Icons.arrow_drop_down, color: color),
         ],
       ),
     );
