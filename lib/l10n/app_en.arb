@@ -5,6 +5,8 @@
   "loginSubtitle": "Your journey to financial freedom starts here.",
   "emailLabel": "Email",
   "passwordLabel": "Password",
+  "editButton": "Edit",
+  "deleteButton": "Delete",
   "displayNameLabel": "Full Name",
   "loginButton": "Login",
   "registerButton": "Create Account",
@@ -594,5 +596,9 @@
   "accountStatementCurrent": "Current",
   "accountStatementFuture": "Future",
   "currentBalance": "Current Balance",
-  "transactions": "Transactions"
+  "transactions": "Transactions",
+  "challengeStatusStable": "Stable",
+  "challengeStatusWarning": "Warning",
+  "challengeStatusCritical": "Critical",
+  "rest": "Rest"
 }

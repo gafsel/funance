@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/list/infinite_list_view.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/widgets/transaction_list_item.dart';
+import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
-import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -61,20 +61,118 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         _initQuery(goal);
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(l10n.goalDetailsTitle),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                onPressed: () => context.push('/goals/form', extra: goal),
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              final progress = ref.watch(goalProgressProvider(goal));
+              return [
+                SliverDetailHeader(
+                  title: goal.name,
+                  subtitle: goal.targetAmount.asCurrency(locale: context.locale),
+                  backgroundColor: AppColors.deepTurquoise,
+                  expandedHeight: 320,
+                  chips: [
+                    DetailHeaderChip(
+                      icon: Icons.calendar_today,
+                      label: DateFormat.yMMMd(context.locale)
+                          .format(goal.deadline),
+                    ),
+                    DetailHeaderChip(
+                      icon: progress.getStatusIcon(),
+                      label: progress.getStatusText(l10n),
+                      backgroundColor: progress.getStatusColor(context),
+                    ),
+                  ],
+                  actions: [
+                    DetailHeaderAction(
+                      icon: Icons.edit_outlined,
+                      label: l10n.editButton,
+                      onPressed: () => context.push('/goals/form', extra: goal),
+                    ),
+                    DetailHeaderAction(
+                      icon: Icons.delete_outline,
+                      label: l10n.deleteButton,
+                      onPressed: () => _showDeleteConfirmation(context),
+                    ),
+                  ],
+                  bottomContent: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            l10n.goalCurrentAmountLabel,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: AppColors.pureWhite.withValues(alpha: 0.9),
+                            ),
+                          ),
+                          Text(
+                            progress.percent.asPercent(locale: context.locale),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.brightCyan,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Stack(
+                        children: [
+                          Container(
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: AppColors.pureWhite.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: progress.predictionPercent,
+                            child: Container(
+                              height: 12,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.limeGreen,
+                                    progress
+                                        .getStatusColor(context)
+                                        .withValues(alpha: .5),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                          FractionallySizedBox(
+                            widthFactor: progress.percent,
+                            child: Container(
+                              height: 12,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppColors.limeGreen,
+                                    progress.getStatusColor(context),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ];
+            },
+            body: TransactionListView(
+              provider: FinanceViewProviders.goalTransactions(_query!),
+              accountId: goal.mapOrNull(
+                saveMoney: (g) => g.accountId,
+                reduceCreditCard: (g) => g.accountId,
+                payDebt: (g) => g.accountId,
               ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline),
-                onPressed: () => _showDeleteConfirmation(context),
-              ),
-            ],
+            ),
           ),
-          body: _buildContent(context, goal, l10n, theme),
         );
       },
       error: (e, __) => Scaffold(
@@ -86,204 +184,6 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         body: const Center(child: CircularProgressIndicator()),
       ),
     );
-  }
-
-  Widget _buildContent(
-    BuildContext context,
-    GoalModel goal,
-    AppLocalizations l10n,
-    ThemeData theme,
-  ) {
-    final progress = goal.calculateProgress();
-    final locale = context.locale;
-
-    return Column(
-      children: [
-        // Header de Progresso
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            border: Border(bottom: BorderSide(color: theme.dividerColor)),
-          ),
-          child: Column(
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  SizedBox(
-                    height: 120,
-                    width: 120,
-                    child: CircularProgressIndicator(
-                      value: progress.percent,
-                      strokeWidth: 10,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                      color: _getStatusColor(progress.status),
-                      strokeCap: StrokeCap.round,
-                    ),
-                  ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        "${(progress.percent * 100).toInt()}%",
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        l10n.goalProgressPercent("").split(" ").first,
-                        style: theme.textTheme.labelSmall,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildInfoItem(
-                    goal.targetAmount.asCurrency(locale: locale),
-                    l10n.goalTargetAmountLabel,
-                    theme,
-                  ),
-                  _buildInfoItem(
-                    DateFormat.yMMMd(locale).format(goal.deadline),
-                    l10n.goalDeadlineLabel,
-                    theme,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        // Listagem de Transações
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: Text(
-                  l10n.goalTransactionsTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (_query != null)
-                Expanded(
-                  child: InfiniteListView.separator(
-                    FinanceViewProviders.goalTransactions(_query!),
-                    padding: const EdgeInsets.all(16),
-                    itemBuilder: (context, item) => TransactionListItem(
-                      installment: item,
-                      notifier: ref.read(
-                        FinanceViewProviders.goalTransactions(_query!).notifier,
-                      ),
-                    ),
-                    separatorBuilder: (context, before, after) {
-                      final bool isSameGroup = before != null &&
-                          after != null &&
-                          _isSameDay(before.referenceDate, after.referenceDate);
-
-                      final showHeader =
-                          after != null && (before == null || !isSameGroup);
-
-                      if (showHeader) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (before != null) const Divider(height: 1),
-                            _buildDateHeader(context, after.referenceDate, l10n),
-                          ],
-                        );
-                      }
-
-                      return const Divider(height: 1);
-                    },
-                    emptyStateBuilder: (context) => Center(
-                      child: Text(l10n.noTransactionsInPeriod),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  bool _isSameDay(DateTime d1, DateTime d2) {
-    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
-  }
-
-  Widget _buildDateHeader(
-    BuildContext context,
-    DateTime date,
-    AppLocalizations l10n,
-  ) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final checkDate = DateTime(date.year, date.month, date.day);
-
-    String dateText;
-    if (checkDate == today) {
-      dateText = l10n.today;
-    } else if (checkDate == yesterday) {
-      dateText = l10n.yesterday;
-    } else {
-      dateText = DateFormat.yMMMMd(
-        Localizations.localeOf(context).toString(),
-      ).format(date);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Text(
-        dateText,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-      ),
-    );
-  }
-
-  Widget _buildInfoItem(String value, String label, ThemeData theme) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Color _getStatusColor(GoalStatus status) {
-    switch (status) {
-      case GoalStatus.onTrack:
-        return AppColors.limeGreen;
-      case GoalStatus.atRisk:
-        return AppColors.antiqueGold;
-      case GoalStatus.behind:
-        return AppColors.error;
-      case GoalStatus.lost:
-        return Colors.grey;
-    }
   }
 
   void _showDeleteConfirmation(BuildContext context) {
@@ -308,7 +208,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               if (context.mounted) context.pop();
             },
             child: Text(
-              l10n.goalDeleteButton,
+              l10n.deleteButton,
               style: const TextStyle(color: AppColors.error),
             ),
           ),

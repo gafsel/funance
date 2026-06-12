@@ -24,6 +24,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get passwordLabel => 'Password';
 
   @override
+  String get editButton => 'Edit';
+
+  @override
+  String get deleteButton => 'Delete';
+
+  @override
   String get displayNameLabel => 'Full Name';
 
   @override
@@ -825,9 +831,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveButton => 'Save';
 
   @override
-  String get deleteButton => 'Delete';
-
-  @override
   String get reconciliationTitle => 'Bank Reconciliation';
 
   @override
@@ -1583,4 +1586,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactions => 'Transactions';
+
+  @override
+  String get challengeStatusStable => 'Stable';
+
+  @override
+  String get challengeStatusWarning => 'Warning';
+
+  @override
+  String get challengeStatusCritical => 'Critical';
+
+  @override
+  String get rest => 'Rest';
 }

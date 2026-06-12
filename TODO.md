@@ -37,22 +37,22 @@
   ``` 
 
 ### Jornada
-- [ ] card do coach financeiro está ocupando muito espaço
+- [X] card do coach financeiro está ocupando muito espaço
 ```
     Para aprimorar a usabilidade, o card do coach financeiro deve ter dois comportamentos distintos:
     1. novo insight: nesse comportamento o card deve ser chamativo e grande com um CTA chamativo para que o usuário gere um novo insight, como o card faz hoje
     2. rever o último insight: nesse comportamento o card deve ser menor e mais discreteo (sem o background, aspenas as bordas) e um CTA mais discreto (talvez apenas o link) dando ao usuário a possibilidade de ver o insight novamente, mas indicando que o próximo estará disponível em breve.
 ```
-- [ ] permissão de notificações aparecendo em dispositivos que não tem compatibilidade
+- [X] permissão de notificações aparecendo em dispositivos que não tem compatibilidade
 ```
     Como o recurso de ler notificações e registrar transações automaticamente só é possível no Android, o card de solicitação de permissões deve aparecer apenas para Andorids.
 ```
-- [ ] apresentar uma mensagem de sucesso quando o usuário concluir as missões semanais
+- [X] apresentar uma mensagem de sucesso quando o usuário concluir as missões semanais
 ```
     Quando o usuário concluir as atividades o app deve mostrar um "empty state" de sucesso com uma ilustração e um texto de parabenização.
     Deve ser uma ilustração colorida, portanto, use múltiplos icons distribuídos de forma sortida e com uma leve animação.
 ```
-- [ ] Criar detalhe de missão para permitir visualizar histórico de progresso -> busca pela account relacionada? e gestão (editar/excluir)
+- [X] Criar detalhe de missão para permitir visualizar histórico de progresso -> busca pela account relacionada? e gestão (editar/excluir)
 ```
     O clique nos goals deve levar para uma tela de detalhe. Nessa tela de detalhe, o usuário deve ser capaz de ver os dados gerais do goal (os mesmos que aparecem no card) num header (vide extrato e fatura)
     abaixo do header, o sistema deve listar as transações relacionadas ao goal -> para achar as transações, use o tipo do goal como base:
@@ -61,7 +61,7 @@
     - reduceCreditCard -> busque as faturas do account associado ao goal (dentro do período do goal)
     além disso, o usuário deve ser capaz de editar e excluir o goal atrabés dessa tela -> confirmação antes da exclusão, como é feito no transaction form
 ```
-- Equipe aparece como em Perigo mesmo quando o percentual é 97%?
+- [X] Equipe aparece como em Perigo mesmo quando o percentual é 97%?
 ```
     há uma falha na lógica de status no card da equipe. O status da equipe deve seguir o mesmo padrão dos cards de categorias.
 ```
@@ -71,21 +71,38 @@
 - [ ] relatório de categorias está confuso
 
 ### Detalhe de extrato
-- [ ] opção de consolidação está muito discreta
-- [ ] header está sem graça
-- [ ] abas com contraste ruim
-- [ ] modal de filtros com contraste ruim
-- [ ] busca de saldo parece estar errada (deveria pegar a mais próxima da data quando não encontrar a da data em si)
+- [X] opção de consolidação está muito discreta
+- [X] header está sem graça
+- [X] abas com contraste ruim
+- [X] modal de filtros com contraste ruim
+```
+    padronizar as modais de filtro (history tab / detalhe de account) para que use o mesmo widget base, ocultando ou mostrando filtros com base em configuração.
+    - extrair e usar o widget de filtros do history tab como base
+    - os filtros disponíveis devem ser disponibilizados num enum e um atributo de ocultar fields pode ser recebido para esconder alguns dos filtros
+    - trazer pra dentro do widget de filtros o componente de filtro de período do history tab (o history tab o oculta na modal) 
+    - o widget deve englobar tanto o widget de tela (que mostra os filtros selecionados) quanto a modal que abre ao clicar no botão de filtros
+```
+- [X] busca de saldo parece estar errada (deveria pegar a mais próxima da data quando não encontrar a da data em si)
+```
+    a lógica de saldo não pode filtrar pela data exata. a lógica deve sempre pegar o último balance mais próximo da data. se existir o da data use-o, se não deve usar o mais recente próximo a data (query pela data até a alvo, order by id desc e limit 1)
+```
 
 ### Detalhe de fatura
-- [ ] padronizar header com de extrato
-- [ ] gráfico de categorias está quebrando o layout quando há muitas categorias
-- [ ] opção de consolidação está muito discreta
-- [ ] padronizar opção de lançamento de pagamento junto da consolidação
-- [ ] mostrar status da fatura quando detalhar
-- [ ] permitir abrir a edição do lançamento mesmo após o pagamento
-- [ ] ao selecionar opçào de pagamento, abrir o formulário já marcado como pagamento
-- [ ] padronizar lista de lançamentos com detalhe de extrato
+- [X] padronizar header com de extrato
+- [X] gráfico de categorias está quebrando o layout quando há muitas categorias
+- [X] opção de consolidação está muito discreta
+- [X] padronizar opção de lançamento de pagamento junto da consolidação
+- [X] mostrar status da fatura quando detalhar
+```
+    adicionar um chip no header do detalhe de fatura pra mostrar o status da fatura (status da transação)
+```
+- [X] permitir abrir a edição do lançamento mesmo após o pagamento
+```
+    enquanto estiver no status pendente o botão de editar a fatura deve ser de registrar o pagamento, mas
+    depois do pagamento (paid/settled) o botão deve estar disponível também, mas com outro nome (editar).
+    - o botão de editar atual que redireciona para a edição da conta deve ser removido
+```
+- [X] padronizar lista de lançamentos com detalhe de extrato
 
 ### Limites de Receitas/Despesas
 - [ ] em telas pequenas o layout está quebrado

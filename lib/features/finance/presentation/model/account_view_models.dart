@@ -5,6 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:uuid/uuid.dart';
 
 part 'account_view_models.freezed.dart';
@@ -148,4 +149,14 @@ sealed class AccountFormState with _$AccountFormState {
         );
     }
   }
+}
+
+@freezed
+sealed class CategoryAmountModel with _$CategoryAmountModel {
+
+  factory CategoryAmountModel({
+    required CategoryModel category,
+    required double amount,
+  }) = _CategoryAmountModel;
+
 }

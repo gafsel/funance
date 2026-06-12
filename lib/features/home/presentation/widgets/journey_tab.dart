@@ -1,25 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
-import 'package:funances/core/widgets/loading_modal.dart';
-import 'package:funances/features/coaching/domain/models/coaching_model.dart';
-import 'package:funances/features/coaching/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:funances/features/finance/presentation/widgets/automatic_transaction_consolidation_widget.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
-import 'package:funances/features/home/presentation/controller/mission_controller.dart';
 import 'package:funances/features/home/presentation/widgets/coaching_insight_card.dart';
 import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
 import 'package:funances/features/home/presentation/widgets/weekly_missions_view.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 class JourneyTab extends ConsumerWidget {
   const JourneyTab({super.key});
@@ -29,19 +21,13 @@ class JourneyTab extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final goalsAsync = ref.watch(goalsProvider);
-    final missionAsync = ref.watch(missionProvider);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isLargeScreen = constraints.maxWidth > 900;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            left: 16.0,
-            right: 16.0,
-            top: 16.0,
-            bottom: 120.0,
-          ),
+          padding: const EdgeInsets.all(16),
           child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,48 +40,25 @@ class JourneyTab extends ConsumerWidget {
                       Expanded(
                         flex: 3,
                         child: Column(
+                          spacing: 32,
                           children: [
                             CoachingInsightCard(),
-                            missionAsync.when(
-                              data: (mission) => Column(
-                                children: [
-                                  WeeklyMissionsView(mission: mission),
-                                  const SizedBox(height: 32),
-                                ],
-                              ),
-                              loading: () => const Center(
-                                child: CircularProgressIndicator(),
-                              ),
-                              error: (e, st) => const SizedBox.shrink(),
-                            ),
+                            WeeklyMissionsView(),
                           ],
                         ),
                       ),
                       const SizedBox(width: 32),
-                      Expanded(
-                        flex: 2,
-                        child: missionAsync.when(
-                          data: (mission) => TeamStatusView(mission: mission),
-                          loading: () => const SizedBox.shrink(),
-                          error: (e, st) => const SizedBox.shrink(),
-                        ),
-                      ),
+                      Expanded(flex: 2, child: TeamStatusView()),
                     ],
                   )
                 else ...[
                   CoachingInsightCard(),
-                  missionAsync.when(
-                    data: (mission) => Column(
-                      children: [
-                        WeeklyMissionsView(mission: mission),
-                        const SizedBox(height: 32),
-                        TeamStatusView(mission: mission),
-                        const SizedBox(height: 32),
-                      ],
-                    ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (e, st) => const SizedBox.shrink(),
+                  Column(
+                    spacing: 32,
+                    children: [
+                      WeeklyMissionsView(),
+                      TeamStatusView(),
+                    ],
                   ),
                 ],
                 // Listagem de Metas

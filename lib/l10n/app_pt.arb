@@ -5,6 +5,8 @@
   "loginSubtitle": "Sua jornada para a liberdade financeira começa aqui.",
   "emailLabel": "E-mail",
   "passwordLabel": "Senha",
+  "editButton": "Editar",
+  "deleteButton": "Excluir",
   "displayNameLabel": "Nome Completo",
   "loginButton": "Entrar",
   "registerButton": "Criar Conta",
@@ -624,5 +626,9 @@
   "accountStatementCurrent": "Atual",
   "accountStatementFuture": "Futuros",
   "currentBalance": "Saldo Atual",
-  "transactions": "Lançamentos"
+  "transactions": "Lançamentos",
+  "challengeStatusStable": "Estável",
+  "challengeStatusWarning": "Alerta",
+  "challengeStatusCritical": "Crítico",
+  "rest": "Restante"
 }

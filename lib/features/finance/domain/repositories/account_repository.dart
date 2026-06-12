@@ -23,7 +23,7 @@ abstract class IAccountRepository {
     String accountId,
   );
 
-  Stream<AccountBalanceModel?> getAccountBalanceAtDate(
+  Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
     String workspaceId,
     String accountId,
     DateTime date,

@@ -27,12 +27,15 @@ import 'package:funances/features/finance/presentation/controllers/planning_50_3
 import 'package:funances/features/finance/presentation/controllers/reconciliation_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_filter_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
+import 'package:funances/features/finance/presentation/model/transaction_filter_view_models.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/model/reconciliation_view_models.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
 class AutomaticTransactionDomainProviders {
@@ -194,9 +197,15 @@ class AccountViewProviders {
             .watchNextInvoice(accountId);
       });
 
-  static final balanceAtDate = StreamProvider.autoDispose.family<AccountBalanceModel, ({String accountId, DateTime date})>((ref, args) {
-    return ref.watch(AccountDomainProviders.service).getAccountBalanceAtDate(args.accountId, args.date);
-  });
+  static final balanceAtDate = StreamProvider.autoDispose
+      .family<AccountBalanceModel, ({String accountId, DateTime date})>((
+        ref,
+        args,
+      ) {
+        return ref
+            .watch(AccountDomainProviders.service)
+            .getAccountBalanceAtDate(args.accountId, args.date);
+      });
 }
 
 class PlanningViewProviders {
@@ -268,34 +277,79 @@ class FinanceViewProviders {
         );
       });
 
+  static final transactionFilter =
+      StateNotifierProvider.autoDispose.family<TransactionFilterNotifier, TransactionFilterState, TransactionQuery>((
+    ref,
+    query,
+  ) {
+    return TransactionFilterNotifier(TransactionFilterState.fromQuery(query));
+  });
+
   static final history = StateNotifierProvider(
     (ref) => TransactionListNotifier(
       financeiroService: ref.watch(FinanceDomainProviders.service),
     ),
   );
 
-  static final goalTransactions = StateNotifierProvider.family<
-    TransactionListNotifier,
-    InfiniteListState<TransactionQuery, InstallmentModel>,
-    TransactionQuery
-  >((ref, query) {
-    return TransactionListNotifier(
-      financeiroService: ref.watch(FinanceDomainProviders.service),
-      initialQuery: query,
-    );
-  });
+  static final invoiceInstallmentsList =
+      StateNotifierProvider.family<
+        TransactionListNotifier,
+        InfiniteListState<TransactionQuery, InstallmentModel>,
+        InstallmentModel
+      >((ref, invoice) {
+        final accountAsync = ref.watch(
+          AccountViewProviders.byId(invoice.accountIdTarget ?? ""),
+        );
 
-  static final statement = StateNotifierProvider.family<
-    AccountStatementNotifier,
-    InfiniteListState<TransactionQuery, InstallmentModel>,
-    ({String accountId, bool isFuture})
-  >((ref, args) {
-    return AccountStatementNotifier(
-      financeiroService: ref.watch(FinanceDomainProviders.service),
-      accountId: args.accountId,
-      isFuture: args.isFuture,
-    );
-  });
+        final query = accountAsync.when(
+          data: (account) {
+            if (account == null) return TransactionQuery();
+
+            final (start, end) = InvoiceService.calculateInvoiceCycleRange(
+              invoice.dueDate,
+              account,
+            );
+
+            return TransactionQuery(
+              accountId: account.id,
+              startDate: start,
+              endDate: end,
+            );
+          },
+          error: (_, __) => TransactionQuery(),
+          loading: () => TransactionQuery(),
+        );
+
+        return TransactionListNotifier(
+          financeiroService: ref.watch(FinanceDomainProviders.service),
+          initialQuery: query,
+        );
+      });
+
+  static final goalTransactions =
+      StateNotifierProvider.family<
+        TransactionListNotifier,
+        InfiniteListState<TransactionQuery, InstallmentModel>,
+        TransactionQuery
+      >((ref, query) {
+        return TransactionListNotifier(
+          financeiroService: ref.watch(FinanceDomainProviders.service),
+          initialQuery: query,
+        );
+      });
+
+  static final statement =
+      StateNotifierProvider.family<
+        AccountStatementNotifier,
+        InfiniteListState<TransactionQuery, InstallmentModel>,
+        ({String accountId, bool isFuture})
+      >((ref, args) {
+        return AccountStatementNotifier(
+          financeiroService: ref.watch(FinanceDomainProviders.service),
+          accountId: args.accountId,
+          isFuture: args.isFuture,
+        );
+      });
 
   static final wizard = StateNotifierProvider.autoDispose
       .family<
@@ -341,12 +395,11 @@ class FinanceViewProviders {
         );
       });
 
-  static final reconciliation =
-      StateNotifierProvider.autoDispose.family<
-        ReconciliationNotifier,
-        ReconciliationState,
-        AccountModel
-      >((ref, account) {
+  static final reconciliation = StateNotifierProvider.autoDispose
+      .family<ReconciliationNotifier, ReconciliationState, AccountModel>((
+        ref,
+        account,
+      ) {
         return ReconciliationNotifier(
           accountService: ref.watch(AccountDomainProviders.service),
           financeService: ref.watch(FinanceDomainProviders.service),
@@ -401,15 +454,15 @@ class FinanceViewProviders {
       });
 
   static final invoicePieChart =
-      StreamProvider.family<Map<CategoryModel, double>, InstallmentModel>((
+      StreamProvider.family<List<CategoryAmountModel>, InstallmentModel>((
         ref,
         invoice,
       ) {
         final installments = ref.watch(invoiceInstallments(invoice));
 
         return installments.when(
-          data: (data) => Stream.value(
-            data
+          data: (data) {
+            final map = data
                 .where((installment) => installment.type == OrderType.expense)
                 .fold<Map<CategoryModel, double>>({}, (map, installment) {
                   map.update(
@@ -418,8 +471,22 @@ class FinanceViewProviders {
                     ifAbsent: () => installment.referenceAmount,
                   );
                   return map;
-                }),
-          ),
+                });
+
+            final list =
+                map.entries
+                    .toList()
+                    .map(
+                      (entry) => CategoryAmountModel(
+                        category: entry.key,
+                        amount: entry.value,
+                      ),
+                    )
+                    .toList()
+                  ..sort((e1, e2) => e1.amount < e2.amount ? 1 : -1);
+
+            return Stream.value(list);
+          },
           error: (e, s) => Stream.error(e, s),
           loading: () => const Stream.empty(),
         );
@@ -443,12 +510,93 @@ class FinanceViewProviders {
         );
       });
 
-  static final planning503020Distribution = StreamProvider.autoDispose.family<
-    Planning503020Distribution,
-    DateTime
-  >((ref, date) {
-    return ref.watch(planning503020Service).watchDistribution(date);
-  });
+  static final planning503020Distribution = StreamProvider.autoDispose
+      .family<Planning503020Distribution, DateTime>((ref, date) {
+        return ref.watch(planning503020Service).watchDistribution(date);
+      });
+
+  static final planning503020GlobalProgress =
+      Provider.autoDispose<CategoryGlobalProgressModel>((ref) {
+        final state = ref.watch(planning503020);
+
+        // Calculando renda total prevista (simplificado: soma de todos os planejamentos se tivéssemos acesso fácil,
+        // mas aqui vamos focar na soma das despesas planejadas para referência ou usar um valor fixo se o sistema permitir.
+        // Para o 50-30-20, o ideal é baseado no TOTAL planejado para o mês.
+        final totalPlanned = state.items.fold<double>(
+          0,
+          (sum, item) => sum + item.effectiveAmount,
+        );
+        final totalActual = state.items.fold<double>(
+          0,
+          (sum, item) => sum + item.actualAmount,
+        );
+        final totalIncome = state.totalIncomes;
+
+        final actualPercentage = totalIncome > 0
+            ? (state.totalActualIncomes / totalIncome)
+            : 0.0;
+        final expenseActualPercentage = totalIncome > 0
+            ? (totalActual / totalIncome)
+            : 0.0;
+
+        return CategoryGlobalProgressModel(
+          totalPlanned: totalPlanned,
+          totalActual: totalActual,
+          totalIncome: totalIncome,
+          actualPercentage: actualPercentage,
+          expenseActualPercentage: expenseActualPercentage,
+        );
+      });
+
+  static final planning503020AllocationProgress = Provider.autoDispose
+      .family<CategoryAllocationProgressModel, CategoryAllocation>((
+        ref,
+        allocation,
+      ) {
+        final items = ref.watch(
+          planning503020.select(
+            (planning) => planning.items
+                .where((item) => item.category.allocation == allocation)
+                .toList(),
+          ),
+        );
+        final totalPlanned = ref.watch(
+          planning503020GlobalProgress.select((state) => state.totalPlanned),
+        );
+        final totalIncome = ref.watch(
+          planning503020GlobalProgress.select((state) => state.totalIncome),
+        );
+
+        final currentTotal = items.fold<double>(
+          0,
+          (sum, item) => sum + item.effectiveAmount,
+        );
+        final currentActual = items.fold<double>(
+          0,
+          (sum, item) => sum + item.actualAmount,
+        );
+        final idealValue = totalIncome * allocation.idealPercentage;
+        final currentPercentage = totalPlanned > 0
+            ? (currentTotal / totalPlanned)
+            : 0.0;
+        final actualPercentage = totalPlanned > 0
+            ? (currentActual / totalPlanned)
+            : 0.0;
+
+        // Indica se está dentro da meta (não ultrapassa o ideal em relação à receita)
+        final isWithinRange = currentTotal <= idealValue;
+        final isOver = currentTotal > idealValue;
+
+        return CategoryAllocationProgressModel(
+          currentTotal: currentTotal,
+          currentActual: currentActual,
+          idealValue: idealValue,
+          currentPercentage: currentPercentage,
+          actualPercentage: actualPercentage,
+          isWithinRange: isWithinRange,
+          isOver: isOver,
+        );
+      });
 }
 
 class PeriodSummaryDomainProviders {

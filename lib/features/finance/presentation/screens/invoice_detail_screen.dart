@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,15 +5,14 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
-import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
-import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
   final InstallmentModel invoice;
@@ -23,302 +21,221 @@ class InvoiceDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final mq = MediaQuery.of(context);
     final l10n = context.l10n;
-    final theme = Theme.of(context);
     final accountId =
         invoice.accountIdSource ?? invoice.accounts.keys.firstOrNull ?? "";
     final accountAsync = ref.watch(AccountViewProviders.byId(accountId));
-    final installmentsAsync = ref.watch(
-      FinanceViewProviders.invoiceInstallments(invoice),
-    );
     final pieChartAsync = ref.watch(
       FinanceViewProviders.invoicePieChart(invoice),
     );
 
+    final locale = context.locale;
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isSmallWidth = constraints.maxWidth < 400;
+        final isSmallWidth = constraints.maxWidth < 600;
 
         return Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: isSmallWidth ? 430 : 250,
-                pinned: true,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.account_balance_wallet_outlined),
-                    onPressed: () {
-                      final account = accountAsync.valueOrNull;
-                      if (account != null) {
-                        context.push('/reconciliation', extra: account);
-                      }
-                    },
-                    tooltip: l10n.reconciliationTitle,
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                flexibleSpace: FlexibleSpaceBar(
-                  collapseMode: CollapseMode.pin,
-                  background: _buildHeader(
-                    context,
-                    ref,
-                    invoice,
-                    accountAsync,
-                    pieChartAsync,
-                  ),
-                  titlePadding: EdgeInsets.zero,
-                  title: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final settings = context
-                          .dependOnInheritedWidgetOfExactType<
-                            FlexibleSpaceBarSettings
-                          >();
-                      if (settings == null) return const SizedBox.shrink();
-
-                      final deltaExtent =
-                          settings.maxExtent - settings.minExtent;
-                      final t =
-                          (1.0 -
-                                  (settings.currentExtent -
-                                          settings.minExtent) /
-                                      deltaExtent)
-                              .clamp(0.0, 1.0);
-
-                      if (t > 0.7) {
-                        return Container(
-                          height: settings.minExtent,
-                          padding: const EdgeInsets.symmetric(horizontal: 48),
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            l10n.invoiceDetailTitle,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: theme.colorScheme.onPrimary,
-                            ),
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-              ),
-              if (invoice.status == InstallmentStatus.pending)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
+          body: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverDetailHeader(
+                  title: invoice.description,
+                  subtitle: invoice.amount.asCurrency(locale: locale),
+                  subtitleColor: Colors.white,
+                  backgroundColor: AppColors.deepTurquoise,
+                  expandedHeight: isSmallWidth ? 480 : 320,
+                  chips: [
+                    DetailHeaderChip(
+                      icon: invoice.status == InstallmentStatus.settled
+                          ? Icons.done_all
+                          : invoice.status == InstallmentStatus.paid
+                          ? Icons.check_circle
+                          : Icons.schedule,
+                      label: invoice.status == InstallmentStatus.settled
+                          ? l10n.statusSettled
+                          : invoice.status == InstallmentStatus.paid
+                          ? l10n.statusPaid
+                          : l10n.statusPending,
+                      backgroundColor:
+                          invoice.status == InstallmentStatus.settled
+                          ? AppColors.deepPurple
+                          : invoice.status == InstallmentStatus.paid
+                          ? AppColors.limeGreen
+                          : AppColors.antiqueGold,
+                    ),
+                    DetailHeaderChip(
+                      icon: Icons.calendar_today,
+                      label: invoice.dueDate.formated(
+                        l10n.formatSimpleDate,
+                        locale,
+                      ),
+                    ),
+                    DetailHeaderChip(
+                      icon: Icons.credit_card,
+                      label: accountAsync.when(
+                        data: (data) => data?.name ?? "-",
+                        loading: () => '-',
+                        error: (_, __) => '-',
+                      ),
+                    ),
+                  ],
+                  actions: [
+                    if (invoice.status == InstallmentStatus.paid ||
+                        invoice.status == InstallmentStatus.settled)
+                      DetailHeaderAction(
+                        icon: Icons.edit_outlined,
+                        label: l10n.editButton,
+                        onPressed: () {
+                          context.push(
+                            '/transactions/form?forceEdit=true',
+                            extra: {'installment': invoice},
+                          );
+                        },
+                        tooltip: l10n.editButton,
+                      ),
+                    if (invoice.status == InstallmentStatus.pending)
+                      DetailHeaderAction(
+                        icon: Icons.payment,
+                        label: l10n.registerInvoicePayment,
                         onPressed: () {
                           context.push(
                             '/transactions/form?forceEdit=true&status=paid',
                             extra: {'installment': invoice},
                           );
                         },
-                        icon: const Icon(Icons.payment),
-                        label: Text(l10n.registerInvoicePayment),
+                        tooltip: l10n.registerInvoicePayment,
                       ),
+                    DetailHeaderAction(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: l10n.reconciliationTitle,
+                      onPressed: () {
+                        final account = accountAsync.valueOrNull;
+                        if (account != null) {
+                          context.push('/reconciliation', extra: account);
+                        }
+                      },
+                      tooltip: l10n.reconciliationTitle,
                     ),
+                  ],
+                  sideContent: _buildPieChart(
+                    pieChartAsync,
+                    100,
+                    30,
+                    20,
+                    AppColors
+                        .pureWhite, // Passando a cor do conteúdo para a legenda
                   ),
                 ),
-              installmentsAsync.when(
-                data: (installments) {
-                  if (installments.isEmpty) {
-                    return SliverFillRemaining(child: Center(child: Text(l10n.noTransactionsInPeriod)));
-                  }
-
-                  // Filtrar para remover o próprio invoice da lista (se ele aparecer na query)
-                  final filtered = installments
-                      .where((i) => i.id != invoice.id)
-                      .toList();
-
-                  return SliverList.list(
-                    children: [
-                      for (final item in filtered) ...[
-                        InkWell(
-                          onTap: () async {
-                            await context.push(
-                              '/transactions/form',
-                              extra: {'installment': item},
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            child: _buildInstallmentItem(context, item),
-                          ),
-                        ),
-                        const Divider(height: 1),
-                      ],
-                      SizedBox(height: mq.padding.bottom + 16),
-                    ],
-                  );
-                },
-                loading: () => SliverFillRemaining(child: const Center(child: CircularProgressIndicator())),
-                error: (error, stack) {
-                  print(stack.toString());
-
-                  return SliverFillRemaining(child: Center(child: Text(error.toString())));
-                },
-              ),
-            ],
+              ];
+            },
+            body: Column(
+              children: [
+                _buildFilterBar(context, ref, invoice),
+                Expanded(
+                  child: TransactionListView(
+                    provider: FinanceViewProviders.invoiceInstallmentsList(
+                      invoice,
+                    ),
+                    accountId: invoice.accountIdTarget,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildHeader(
+  Widget _buildFilterBar(
     BuildContext context,
     WidgetRef ref,
     InstallmentModel invoice,
-    AsyncValue<AccountModel?> accountAsync,
-    AsyncValue<Map<CategoryModel, double>> pieChartAsync,
   ) {
-    final l10n = context.l10n;
-    final locale = context.locale;
-    final theme = Theme.of(context);
-    final accountName = accountAsync.when(
-      data: (account) =>
-          account?.name ?? invoice.accounts.keys.firstOrNull ?? "",
-      loading: () => "...",
-      error: (_, __) => invoice.accounts.keys.firstOrNull ?? "",
-    );
+    final provider = FinanceViewProviders.invoiceInstallmentsList(invoice);
+    final state = ref.watch(provider);
+    final hasFilter =
+        state.query.categoryId != null ||
+        state.query.type != null ||
+        state.query.description != null ||
+        state.query.minAmount != null ||
+        state.query.maxAmount != null ||
+        state.query.status != null;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final settings = context
-            .dependOnInheritedWidgetOfExactType<FlexibleSpaceBarSettings>();
-        if (settings == null) return const SizedBox.shrink();
-
-        final deltaExtent = settings.maxExtent - settings.minExtent;
-        final t =
-            (1.0 - (settings.currentExtent - settings.minExtent) / deltaExtent)
-                .clamp(0.0, 1.0);
-
-        final isSmallWidth = constraints.maxWidth < 400;
-
-        return Container(
-          padding: EdgeInsets.only(bottom: 10),
-          color: theme.scaffoldBackgroundColor,
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.fromLTRB(24, 48 + (16 * (1 - t)), 24, 24),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainer,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 5,
-                  offset: Offset(5, 5),
-                ),
-              ],
-              borderRadius: BorderRadius.vertical(
-                bottom: Radius.circular(32 * (1 - t)),
-              ),
-            ),
-            child: Opacity(
-              opacity: (1 - t).clamp(0.0, 1.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              invoice.description,
-                              style: theme.textTheme.titleMedium,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              invoice.amount.asCurrency(locale: locale),
-                              style:
-                                  (isSmallWidth
-                                          ? theme.textTheme.headlineSmall
-                                          : theme.textTheme.headlineMedium)
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.error,
-                                      ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildInfoChip(
-                              context,
-                              Icons.calendar_today,
-                              invoice.dueDate.formated(
-                                l10n.formatSimpleDate,
-                                locale,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildInfoChip(
-                              context,
-                              Icons.credit_card,
-                              accountName,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!isSmallWidth) ...[
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildPieChart(pieChartAsync, 100, 30, 20),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (isSmallWidth) ...[
-                    const SizedBox(height: 20),
-                    Center(child: _buildPieChart(pieChartAsync, 100, 30, 20)),
-                  ],
-                ],
-              ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              context.l10n.transactions,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
           ),
-        );
-      },
+          IconButton(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => TransactionFilterBottomSheet(
+                  initialQuery: state.query,
+                  hiddenFields: const {
+                    TransactionFilterField.account,
+                    TransactionFilterField.amountRange,
+                  },
+                  onApply: (query) {
+                    ref.read(provider.notifier).reset(query: query);
+                  },
+                ),
+              );
+            },
+            icon: Icon(
+              hasFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
+              color: hasFilter ? AppColors.antiqueGold : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPieChart(
-    AsyncValue<Map<CategoryModel, double>> pieChartAsync,
+    AsyncValue<List<CategoryAmountModel>> pieChartAsync,
     double size,
     double radius,
     double centerSpaceRadius,
+    Color contentColor,
   ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final theme = Theme.of(context);
-        final isSmallWidth = constraints.maxWidth < 400;
+        final isSmallWidth = constraints.maxWidth < 600;
 
         return Column(
           crossAxisAlignment: isSmallWidth
               ? CrossAxisAlignment.center
-              : CrossAxisAlignment.end,
+              : CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: size,
-              width: size,
+            Container(
+              padding: EdgeInsets.all(2),
+              decoration: ShapeDecoration(
+                shape: CircleBorder(),
+                color: Colors.white,
+              ),
+              height: size + 2,
+              width: size + 2,
               child: pieChartAsync.when(
                 data: (categoryTotals) {
                   if (categoryTotals.isEmpty) return const SizedBox.shrink();
 
-                  final sections = categoryTotals.entries.map((entry) {
-                    final color = entry.key.color.asColor();
+                  final sections = categoryTotals.map((entry) {
                     return PieChartSectionData(
-                      color: color,
-                      value: entry.value,
+                      color: entry.category.color.asColor(),
+                      value: entry.amount,
                       title: '',
                       radius: radius,
                     );
@@ -328,6 +245,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     PieChartData(
                       sections: sections,
                       sectionsSpace: 2,
+                      startDegreeOffset: -90,
                       centerSpaceRadius: centerSpaceRadius,
                     ),
                   );
@@ -336,33 +254,34 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 error: (_, __) => const SizedBox.shrink(),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             pieChartAsync.when(
               data: (categoryTotals) {
                 if (categoryTotals.isEmpty) return const SizedBox.shrink();
                 return Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
+                  spacing: 8,
+                  runSpacing: 4,
                   alignment: isSmallWidth
                       ? WrapAlignment.center
                       : WrapAlignment.start,
-                  children: categoryTotals.keys.map((cat) {
+                  children: categoryTotals.map((cat) {
                     return Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 10,
-                          height: 10,
+                          width: 8,
+                          height: 8,
                           decoration: BoxDecoration(
-                            color: cat.color.asColor(),
+                            color: cat.category.color.asColor(),
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 4),
                         Text(
-                          cat.name,
+                          cat.category.name,
                           style: theme.textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w500,
+                            fontSize: 10,
+                            color: contentColor.withValues(alpha: 0.8),
                           ),
                         ),
                       ],
@@ -376,88 +295,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
           ],
         );
       },
-    );
-  }
-
-  Widget _buildInfoChip(BuildContext context, IconData icon, String label) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.1)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: theme.colorScheme.primary),
-          const SizedBox(width: 6),
-          Text(label, style: theme.textTheme.bodySmall),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInstallmentItem(
-    BuildContext context,
-    InstallmentModel installment,
-  ) {
-    final theme = Theme.of(context);
-    final category = installment.category;
-    final isExpense = installment.type == OrderType.expense;
-    final l10n = context.l10n;
-    final locale = context.locale;
-
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: (category?.color.asColor() ?? AppColors.deepTurquoise)
-                .withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(
-            category?.icon.asIcon() ?? Icons.category,
-            color: category?.color.asColor() ?? AppColors.deepTurquoise,
-            size: 20,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                installment.description,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                installment.referenceDate.formated(
-                  l10n.formatSimpleDate,
-                  locale,
-                ),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.hintColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Text(
-          (isExpense
-                  ? -installment.referenceAmount
-                  : installment.referenceAmount)
-              .asCurrency(locale: context.locale),
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: isExpense ? AppColors.error : AppColors.limeGreen,
-          ),
-        ),
-      ],
     );
   }
 }

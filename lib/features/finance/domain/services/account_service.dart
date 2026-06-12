@@ -30,7 +30,7 @@ class AccountService {
 
   Stream<AccountBalanceModel> getAccountBalanceAtDate(String accountId, DateTime date) {
     return repository
-        .getAccountBalanceAtDate(workspaceId, accountId, date)
+        .getLatestAccountBalanceBeforeDate(workspaceId, accountId, date)
         .map((balance) => balance ?? AccountBalanceModel.zero(date: date));
   }
 

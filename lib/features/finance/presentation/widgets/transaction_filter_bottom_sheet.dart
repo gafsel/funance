@@ -7,29 +7,41 @@ import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_filter_notifier.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/features/finance/presentation/model/transaction_filter_view_models.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
-import 'package:funances/features/home/presentation/controller/history_filter_notifier.dart';
-import 'package:funances/features/home/presentation/model/history_filter_view_models.dart';
-import 'package:funances/features/home/presentation/provider.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
-class AccountStatementFilterBottomSheet extends StatelessWidget {
+enum TransactionFilterField {
+  description,
+  category,
+  account,
+  type,
+  status,
+  amountRange;
+}
+
+class TransactionFilterBottomSheet extends StatelessWidget {
   final TransactionQuery initialQuery;
   final ValueChanged<TransactionQuery> onApply;
+  final Set<TransactionFilterField> hiddenFields;
 
-  const AccountStatementFilterBottomSheet({
+  const TransactionFilterBottomSheet({
     super.key,
     required this.initialQuery,
     required this.onApply,
+    this.hiddenFields = const {},
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context)!;
-    final provider = HomeViewProviders.historyFilter(initialQuery);
+    final provider = FinanceViewProviders.transactionFilter(initialQuery);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
@@ -51,8 +63,8 @@ class AccountStatementFilterBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Expanded(
-            child: ResponsiveForm<HistoryFilterState, TransactionQuery,
-                HistoryFilterNotifier>(
+            child: ResponsiveForm<TransactionFilterState, TransactionQuery,
+                TransactionFilterNotifier>(
               provider,
               submitLabel: l10n.historyFilterApply,
               onSuccess: (query) {
@@ -84,6 +96,9 @@ class AccountStatementFilterBottomSheet extends StatelessWidget {
                 final state = snapshot.model;
                 final notifier = snapshot.notifier;
 
+                bool isHidden(TransactionFilterField field) =>
+                    hiddenFields.contains(field);
+
                 return [
                   FullWidthItem(
                     Row(
@@ -112,73 +127,86 @@ class AccountStatementFilterBottomSheet extends StatelessWidget {
                       ],
                     ),
                   ),
-                  FullWidthItem(
-                    TextFormField(
-                      initialValue: state.description,
-                      onChanged: notifier.updateDescription,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyFilterDescriptionLabel,
-                        prefixIcon: const Icon(Icons.description_outlined),
-                      ),
-                      style: const TextStyle(color: AppColors.pureWhite),
-                    ),
-                  ),
-                  FullWidthItem(
-                    CategoryFormField(
-                      initialValue: state.category,
-                      onChanged: notifier.updateCategory,
-                    ),
-                  ),
-                  FullWidthItem(
-                    ChipFormField<OrderType>(
-                      initialValue: state.type,
-                      onChanged: notifier.updateType,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyFilterTypeLabel,
-                      ),
-                      options: OrderType.values.map((type) {
-                        return ChipFormFieldOption(
-                          value: type,
-                          label: l10n.fromOrderType(type),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  FullWidthItem(
-                    ChipFormField<InstallmentStatus>(
-                      initialValue: state.status,
-                      onChanged: notifier.updateStatus,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyFilterStatusLabel,
-                      ),
-                      options: InstallmentStatus.values.map((status) {
-                        return ChipFormFieldOption(
-                          value: status,
-                          label: l10n.fromInstallmentStatus(status),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  FullWidthItem(
-                    MoneyFormField(
-                      initialValue: state.minAmount,
-                      onChanged: notifier.updateMinAmount,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyFilterMinAmountLabel,
-                        prefixIcon: const Icon(Icons.remove_circle_outline),
+                  if (!isHidden(TransactionFilterField.description))
+                    FullWidthItem(
+                      TextFormField(
+                        initialValue: state.description,
+                        onChanged: notifier.updateDescription,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyFilterDescriptionLabel,
+                          prefixIcon: const Icon(Icons.description_outlined),
+                        ),
+                        style: const TextStyle(color: AppColors.pureWhite),
                       ),
                     ),
-                  ),
-                  FullWidthItem(
-                    MoneyFormField(
-                      initialValue: state.maxAmount,
-                      onChanged: notifier.updateMaxAmount,
-                      decoration: InputDecoration(
-                        labelText: l10n.historyFilterMaxAmountLabel,
-                        prefixIcon: const Icon(Icons.add_circle_outline),
+                  if (!isHidden(TransactionFilterField.account))
+                    FullWidthItem(
+                      AccountFormField(
+                        initialValue: state.accountId,
+                        onChanged: notifier.updateAccountId,
                       ),
                     ),
-                  ),
+                  if (!isHidden(TransactionFilterField.category))
+                    FullWidthItem(
+                      CategoryFormField(
+                        initialValue: state.category,
+                        onChanged: notifier.updateCategory,
+                      ),
+                    ),
+                  if (!isHidden(TransactionFilterField.type))
+                    FullWidthItem(
+                      ChipFormField<OrderType>(
+                        initialValue: state.type,
+                        onChanged: notifier.updateType,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyFilterTypeLabel,
+                        ),
+                        options: OrderType.values.map((type) {
+                          return ChipFormFieldOption(
+                            value: type,
+                            label: l10n.fromOrderType(type),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  if (!isHidden(TransactionFilterField.status))
+                    FullWidthItem(
+                      ChipFormField<InstallmentStatus>(
+                        initialValue: state.status,
+                        onChanged: notifier.updateStatus,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyFilterStatusLabel,
+                        ),
+                        options: InstallmentStatus.values.map((status) {
+                          return ChipFormFieldOption(
+                            value: status,
+                            label: l10n.fromInstallmentStatus(status),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  if (!isHidden(TransactionFilterField.amountRange)) ...[
+                    FullWidthItem(
+                      MoneyFormField(
+                        initialValue: state.minAmount,
+                        onChanged: notifier.updateMinAmount,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyFilterMinAmountLabel,
+                          prefixIcon: const Icon(Icons.remove_circle_outline),
+                        ),
+                      ),
+                    ),
+                    FullWidthItem(
+                      MoneyFormField(
+                        initialValue: state.maxAmount,
+                        onChanged: notifier.updateMaxAmount,
+                        decoration: InputDecoration(
+                          labelText: l10n.historyFilterMaxAmountLabel,
+                          prefixIcon: const Icon(Icons.add_circle_outline),
+                        ),
+                      ),
+                    ),
+                  ],
                 ];
               },
             ),

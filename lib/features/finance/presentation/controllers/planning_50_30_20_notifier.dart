@@ -29,7 +29,15 @@ class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, v
     });
   }
 
-  void changeMonth(DateTime newDate) {
+  void previousMonth() {
+    _changeMonth(DateTime(state.date.year, state.date.month - 1));
+  }
+
+  void nextMonth() {
+    _changeMonth(DateTime(state.date.year, state.date.month + 1));
+  }
+
+  void _changeMonth(DateTime newDate) {
     if (state.date.year == newDate.year && state.date.month == newDate.month) return;
     state = state.copyWith(date: newDate);
     _init();

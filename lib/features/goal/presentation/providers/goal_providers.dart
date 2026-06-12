@@ -51,6 +51,19 @@ extension GoalProgressUi on GoalProgress {
         return l10n.goalStatusLost;
     }
   }
+
+  IconData getStatusIcon() {
+    switch (status) {
+      case GoalStatus.onTrack:
+        return Icons.mood;
+      case GoalStatus.atRisk:
+        return Icons.warning_amber;
+      case GoalStatus.behind:
+        return Icons.watch_later_outlined;
+      case GoalStatus.lost:
+        return Icons.mood_bad;
+    }
+  }
 }
 
 class GoalNotifier extends StateNotifier<AsyncValue<List<GoalModel>>> {

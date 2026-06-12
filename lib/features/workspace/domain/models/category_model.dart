@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'category_model.freezed.dart';
+
 part 'category_model.g.dart';
 
 enum CategoryType {
@@ -16,12 +17,19 @@ enum CategoryAllocation {
   @JsonValue('comfort')
   comfort,
   @JsonValue('investment')
-  investment,
+  investment;
+
+  double get idealPercentage => switch (this) {
+    essential => .5,
+    comfort => .3,
+    investment => .2,
+  };
 }
 
 @freezed
 sealed class CategoryModel with _$CategoryModel {
   const CategoryModel._();
+
   const factory CategoryModel({
     required String id,
     required String name,
@@ -31,7 +39,8 @@ sealed class CategoryModel with _$CategoryModel {
     @Default(CategoryAllocation.comfort) CategoryAllocation allocation,
   }) = _CategoryModel;
 
-  factory CategoryModel.fromJson(Map<String, dynamic> json) => _$CategoryModelFromJson(json);
+  factory CategoryModel.fromJson(Map<String, dynamic> json) =>
+      _$CategoryModelFromJson(json);
 
   static const String virtualDebtExpenseId = 'virtual_debt_expense';
   static const String virtualDebtIncomeId = 'virtual_debt_income';

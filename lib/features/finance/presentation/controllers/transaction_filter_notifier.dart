@@ -1,14 +1,13 @@
 import 'package:funances/core/form/form_notifier.dart';
-import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
-import 'package:funances/features/home/presentation/model/history_filter_view_models.dart';
+import 'package:funances/features/finance/presentation/model/transaction_filter_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
-class HistoryFilterNotifier
-    extends FormNotifier<HistoryFilterState, TransactionQuery> {
-  HistoryFilterNotifier(super.initialState);
+class TransactionFilterNotifier
+    extends FormNotifier<TransactionFilterState, TransactionQuery> {
+  TransactionFilterNotifier(super.initialState);
 
   void updateAccountId(String? value) {
     state = state.copyWith(accountId: value);
@@ -39,7 +38,7 @@ class HistoryFilterNotifier
   }
 
   void clear() {
-    state = HistoryFilterState(
+    state = TransactionFilterState(
       startDate: state.startDate,
       endDate: state.endDate,
     );

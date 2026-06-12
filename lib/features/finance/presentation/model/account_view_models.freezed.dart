@@ -615,4 +615,276 @@ $AccountModelCopyWith<$Res>? get originalAccount {
 }
 }
 
+/// @nodoc
+mixin _$CategoryAmountModel {
+
+ CategoryModel get category; double get amount;
+/// Create a copy of CategoryAmountModel
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CategoryAmountModelCopyWith<CategoryAmountModel> get copyWith => _$CategoryAmountModelCopyWithImpl<CategoryAmountModel>(this as CategoryAmountModel, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryAmountModel&&(identical(other.category, category) || other.category == category)&&(identical(other.amount, amount) || other.amount == amount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,category,amount);
+
+@override
+String toString() {
+  return 'CategoryAmountModel(category: $category, amount: $amount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CategoryAmountModelCopyWith<$Res>  {
+  factory $CategoryAmountModelCopyWith(CategoryAmountModel value, $Res Function(CategoryAmountModel) _then) = _$CategoryAmountModelCopyWithImpl;
+@useResult
+$Res call({
+ CategoryModel category, double amount
+});
+
+
+$CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class _$CategoryAmountModelCopyWithImpl<$Res>
+    implements $CategoryAmountModelCopyWith<$Res> {
+  _$CategoryAmountModelCopyWithImpl(this._self, this._then);
+
+  final CategoryAmountModel _self;
+  final $Res Function(CategoryAmountModel) _then;
+
+/// Create a copy of CategoryAmountModel
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? category = null,Object? amount = null,}) {
+  return _then(_self.copyWith(
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+/// Create a copy of CategoryAmountModel
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
+
+/// Adds pattern-matching-related methods to [CategoryAmountModel].
+extension CategoryAmountModelPatterns on CategoryAmountModel {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CategoryAmountModel value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CategoryAmountModel() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CategoryAmountModel value)  $default,){
+final _that = this;
+switch (_that) {
+case _CategoryAmountModel():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CategoryAmountModel value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CategoryAmountModel() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryModel category,  double amount)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CategoryAmountModel() when $default != null:
+return $default(_that.category,_that.amount);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryModel category,  double amount)  $default,) {final _that = this;
+switch (_that) {
+case _CategoryAmountModel():
+return $default(_that.category,_that.amount);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryModel category,  double amount)?  $default,) {final _that = this;
+switch (_that) {
+case _CategoryAmountModel() when $default != null:
+return $default(_that.category,_that.amount);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _CategoryAmountModel implements CategoryAmountModel {
+   _CategoryAmountModel({required this.category, required this.amount});
+  
+
+@override final  CategoryModel category;
+@override final  double amount;
+
+/// Create a copy of CategoryAmountModel
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CategoryAmountModelCopyWith<_CategoryAmountModel> get copyWith => __$CategoryAmountModelCopyWithImpl<_CategoryAmountModel>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryAmountModel&&(identical(other.category, category) || other.category == category)&&(identical(other.amount, amount) || other.amount == amount));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,category,amount);
+
+@override
+String toString() {
+  return 'CategoryAmountModel(category: $category, amount: $amount)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CategoryAmountModelCopyWith<$Res> implements $CategoryAmountModelCopyWith<$Res> {
+  factory _$CategoryAmountModelCopyWith(_CategoryAmountModel value, $Res Function(_CategoryAmountModel) _then) = __$CategoryAmountModelCopyWithImpl;
+@override @useResult
+$Res call({
+ CategoryModel category, double amount
+});
+
+
+@override $CategoryModelCopyWith<$Res> get category;
+
+}
+/// @nodoc
+class __$CategoryAmountModelCopyWithImpl<$Res>
+    implements _$CategoryAmountModelCopyWith<$Res> {
+  __$CategoryAmountModelCopyWithImpl(this._self, this._then);
+
+  final _CategoryAmountModel _self;
+  final $Res Function(_CategoryAmountModel) _then;
+
+/// Create a copy of CategoryAmountModel
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? category = null,Object? amount = null,}) {
+  return _then(_CategoryAmountModel(
+category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as CategoryModel,amount: null == amount ? _self.amount : amount // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
+}
+
+/// Create a copy of CategoryAmountModel
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CategoryModelCopyWith<$Res> get category {
+  
+  return $CategoryModelCopyWith<$Res>(_self.category, (value) {
+    return _then(_self.copyWith(category: value));
+  });
+}
+}
+
 // dart format on

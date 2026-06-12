@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/screens/reconciliation_screen.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/history_period_filter.dart';
-import 'package:funances/l10n/app_localizations.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
-import 'package:funances/core/utils/num_extensions.dart';
-import 'history_desktop_view.dart';
-import 'history_filter_bottom_sheet.dart';
-import 'history_mobile_view.dart';
+import 'package:funances/l10n/app_localizations.dart';
+
+import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
+import 'history_period_summary.dart';
 
 class HistoryTab extends ConsumerWidget {
   const HistoryTab({super.key});
@@ -60,7 +60,7 @@ class HistoryTab extends ConsumerWidget {
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
-            builder: (context) => HistoryFilterBottomSheet(
+            builder: (context) => TransactionFilterBottomSheet(
               initialQuery: query,
               onApply: (newQuery) {
                 historyNotifier.reset(query: newQuery);
@@ -289,9 +289,10 @@ class HistoryTab extends ConsumerWidget {
                 ),
               ),
             Expanded(
-              child: isMobile
-                  ? HistoryMobileView(historyNotifier: historyNotifier)
-                  : HistoryDesktopView(historyNotifier: historyNotifier),
+              child: TransactionListView(
+                provider: FinanceViewProviders.history,
+                footerBuilder: (context) => HistoryPeriodSummary(),
+              ),
             ),
           ],
         );

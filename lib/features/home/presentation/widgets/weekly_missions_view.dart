@@ -1,98 +1,106 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
+import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/installment_item.dart';
 
-class WeeklyMissionsView extends StatelessWidget {
-  final MissionModel mission;
-
-  const WeeklyMissionsView({super.key, required this.mission});
+class WeeklyMissionsView extends ConsumerWidget {
+  const WeeklyMissionsView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final periodString = l10n.dateRange(
-      mission.startDate.formated("dd/MM"),
-      mission.endDate.formated("dd/MM"),
-    );
+    final missionAsync = ref.watch(MissionViewProviders.mission);
 
-    final isCompleted =
-        mission.pendingInstallments.isEmpty &&
-        mission.overdueInstallments.isEmpty;
+    return missionAsync.when(
+      data: (mission) {
+        final periodString = l10n.dateRange(
+          mission.startDate.formated("dd/MM"),
+          mission.endDate.formated("dd/MM"),
+        );
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        final isCompleted =
+            mission.pendingInstallments.isEmpty &&
+            mission.overdueInstallments.isEmpty;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  l10n.weeklyMissionsTitle,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  periodString,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.weeklyMissionsTitle,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      periodString,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildOverallProgress(context, mission),
-        const SizedBox(height: 24),
-
-        if (isCompleted)
-          _SuccessEmptyState()
-        else ...[
-          if (mission.overdueInstallments.isNotEmpty) ...[
-            Text(
-              l10n.overdueMissions,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.error,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...mission.overdueInstallments.map(
-              (inst) => InstallmentItem(installmentInfo: inst),
-            ),
+            const SizedBox(height: 16),
+            _buildOverallProgress(context, mission),
             const SizedBox(height: 24),
-          ],
 
-          if (mission.pendingInstallments.isNotEmpty) ...[
-            Text(
-              l10n.pendingMissions,
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ...mission.pendingInstallments.map(
-              (inst) => InstallmentItem(installmentInfo: inst),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ],
+            if (isCompleted)
+              _SuccessEmptyState()
+            else ...[
+              if (mission.overdueInstallments.isNotEmpty) ...[
+                Text(
+                  l10n.overdueMissions,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.error,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...mission.overdueInstallments.map(
+                  (inst) => InstallmentItem(installmentInfo: inst),
+                ),
+                const SizedBox(height: 24),
+              ],
 
-        // Realizados (Expansível)
-        if (mission.completedInstallments.isNotEmpty) ...[
-          _buildCompletedSection(context, mission),
-        ],
-      ],
+              if (mission.pendingInstallments.isNotEmpty) ...[
+                Text(
+                  l10n.pendingMissions,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...mission.pendingInstallments.map(
+                  (inst) => InstallmentItem(installmentInfo: inst),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ],
+
+            // Realizados (Expansível)
+            if (mission.completedInstallments.isNotEmpty) ...[
+              _buildCompletedSection(context, mission),
+            ],
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, st) => const SizedBox.shrink(),
     );
   }
 
@@ -124,8 +132,8 @@ class WeeklyMissionsView extends StatelessWidget {
                 l10n.weeklyMissionsProgress(
                   mission.completedInstallments.length.toString(),
                   (mission.pendingInstallments.length +
-                      mission.overdueInstallments.length +
-                      mission.completedInstallments.length)
+                          mission.overdueInstallments.length +
+                          mission.completedInstallments.length)
                       .toString(),
                 ),
                 style: theme.textTheme.bodyMedium,
@@ -151,7 +159,7 @@ class WeeklyMissionsView extends StatelessWidget {
 
     final totalCompletedXp = mission.completedInstallments.fold(
       0.0,
-          (sum, m) => sum + (m.installment.xp ?? m.earnedXp),
+      (sum, m) => sum + (m.installment.xp ?? m.earnedXp),
     );
 
     return Theme(

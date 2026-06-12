@@ -30,11 +30,7 @@ sealed class CategoryFormState with _$CategoryFormState {
 
   CategoryModel asModel() {
     if (category != null) {
-      return category!.copyWith(
-        name: name,
-        color: color,
-        icon: icon,
-      );
+      return category!.copyWith(name: name, color: color, icon: icon);
     }
 
     return CategoryModel(
@@ -45,4 +41,29 @@ sealed class CategoryFormState with _$CategoryFormState {
       type: type,
     );
   }
+}
+
+@freezed
+sealed class CategoryGlobalProgressModel with _$CategoryGlobalProgressModel {
+  const factory CategoryGlobalProgressModel({
+    required double totalPlanned,
+    required double totalActual,
+    required double totalIncome,
+    required double actualPercentage,
+    required double expenseActualPercentage,
+  }) = _CategoryGlobalProgressModel;
+}
+
+@freezed
+sealed class CategoryAllocationProgressModel
+    with _$CategoryAllocationProgressModel {
+  const factory CategoryAllocationProgressModel({
+    required double currentTotal,
+    required double currentActual,
+    required double idealValue,
+    required double currentPercentage,
+    required double actualPercentage,
+    required bool isWithinRange,
+    required bool isOver,
+  }) = _CategoryAllocationProgressModel;
 }

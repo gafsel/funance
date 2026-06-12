@@ -1,30 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
-import 'package:funances/features/finance/presentation/controllers/transaction_list_notifier.dart';
+import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:go_router/go_router.dart';
 
-class TransactionListItem extends ConsumerWidget {
+typedef TransactionListItemNotifier =
+    InfiniteListNotifier<TransactionQuery, InstallmentModel>;
+
+class TransactionListItem extends StatelessWidget {
   final InstallmentModel installment;
-  final CategoryModel? category;
-  final TransactionListNotifier notifier;
+  final TransactionListItemNotifier notifier;
+  final String? accountId;
 
   const TransactionListItem({
     super.key,
     required this.installment,
-    this.category,
     required this.notifier,
+    this.accountId,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
     final locale = context.locale;
     final theme = Theme.of(context);
@@ -32,38 +35,23 @@ class TransactionListItem extends ConsumerWidget {
     final isTransfer = installment.type == OrderType.transfer;
 
     Color amountColor;
+    String amountPrefix;
+
     if (isTransfer) {
-      amountColor = Theme.of(context).colorScheme.primary;
+      if (accountId != null) {
+        final isOutgoing = installment.accountIdSource == accountId;
+        amountColor = isOutgoing ? AppColors.error : AppColors.limeGreen;
+        amountPrefix = isOutgoing ? '-' : '+';
+      } else {
+        amountColor = Theme.of(context).colorScheme.primary;
+        amountPrefix = '';
+      }
     } else if (isExpense) {
       amountColor = AppColors.error;
+      amountPrefix = '-';
     } else {
       amountColor = AppColors.limeGreen;
-    }
-
-    String amountPrefix;
-    if (isTransfer) {
-      amountPrefix = '';
-    } else {
-      amountPrefix = isExpense ? '-' : '+';
-    }
-
-    String accountName;
-    final source = installment.accountIdSource != null
-        ? ref
-              .watch(AccountViewProviders.byId(installment.accountIdSource!))
-              .whenOrNull(data: (data) => data)
-        : null;
-
-    if (isTransfer) {
-      final target = installment.accountIdTarget != null
-          ? ref
-                .watch(AccountViewProviders.byId(installment.accountIdTarget!))
-                .whenOrNull(data: (data) => data)
-          : null;
-
-      accountName = "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
-    } else {
-      accountName = source?.name ?? "-";
+      amountPrefix = '+';
     }
 
     return Padding(
@@ -124,11 +112,50 @@ class TransactionListItem extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Text(
-                      accountName,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (installment.category != null)
+                      Text(
+                        installment.category!.name,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        String accountName;
+                        final source = installment.accountIdSource != null
+                            ? ref
+                                  .watch(
+                                    AccountViewProviders.byId(
+                                      installment.accountIdSource!,
+                                    ),
+                                  )
+                                  .whenOrNull(data: (data) => data)
+                            : null;
+
+                        if (isTransfer) {
+                          final target = installment.accountIdTarget != null
+                              ? ref
+                                    .watch(
+                                      AccountViewProviders.byId(
+                                        installment.accountIdTarget!,
+                                      ),
+                                    )
+                                    .whenOrNull(data: (data) => data)
+                              : null;
+
+                          accountName =
+                              "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
+                        } else {
+                          accountName = source?.name ?? "-";
+                        }
+
+                        return Text(
+                          accountName,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

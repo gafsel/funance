@@ -10,8 +10,8 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/home/presentation/widgets/history_filter_bottom_sheet.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
@@ -69,7 +69,7 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) => HistoryFilterBottomSheet(
+                      builder: (context) => TransactionFilterBottomSheet(
                         initialQuery: state.query,
                         onApply: (query) {
                           ref.read(provider.notifier).reset(query: query);

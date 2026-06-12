@@ -332,7 +332,7 @@ class TransactionFormScreen extends StatelessWidget {
                           : l10n.transactionAccountLabel,
                     ),
                     onChanged:
-                        (state.status == InstallmentStatus.pending ||
+                        (state.status != InstallmentStatus.settled ||
                                 state.creation) &&
                             !isSettled
                         ? notifier.updateAccountIdSource

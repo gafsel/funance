@@ -5,11 +5,11 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
-part 'history_filter_view_models.freezed.dart';
+part 'transaction_filter_view_models.freezed.dart';
 
 @freezed
-sealed class HistoryFilterState with _$HistoryFilterState {
-  const factory HistoryFilterState({
+sealed class TransactionFilterState with _$TransactionFilterState {
+  const factory TransactionFilterState({
     String? accountId,
     String? description,
     CategoryModel? category,
@@ -19,11 +19,11 @@ sealed class HistoryFilterState with _$HistoryFilterState {
     double? maxAmount,
     DateTime? startDate,
     DateTime? endDate,
-  }) = _HistoryFilterState;
+  }) = _TransactionFilterState;
 
-  factory HistoryFilterState.fromQuery(TransactionQuery query,
+  factory TransactionFilterState.fromQuery(TransactionQuery query,
       {CategoryModel? category, AccountModel? account}) {
-    return HistoryFilterState(
+    return TransactionFilterState(
       accountId: query.accountId,
       description: query.description,
       category: category,
@@ -36,7 +36,7 @@ sealed class HistoryFilterState with _$HistoryFilterState {
     );
   }
 
-  const HistoryFilterState._();
+  const TransactionFilterState._();
 
   TransactionQuery toQuery() {
     return TransactionQuery(

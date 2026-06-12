@@ -128,6 +128,18 @@ abstract class AppLocalizations {
   /// **'Senha'**
   String get passwordLabel;
 
+  /// No description provided for @editButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Editar'**
+  String get editButton;
+
+  /// No description provided for @deleteButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excluir'**
+  String get deleteButton;
+
   /// No description provided for @displayNameLabel.
   ///
   /// In pt, this message translates to:
@@ -1556,12 +1568,6 @@ abstract class AppLocalizations {
   /// **'Salvar'**
   String get saveButton;
 
-  /// No description provided for @deleteButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Excluir'**
-  String get deleteButton;
-
   /// No description provided for @reconciliationTitle.
   ///
   /// In pt, this message translates to:
@@ -2929,6 +2935,30 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Lançamentos'**
   String get transactions;
+
+  /// No description provided for @challengeStatusStable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estável'**
+  String get challengeStatusStable;
+
+  /// No description provided for @challengeStatusWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta'**
+  String get challengeStatusWarning;
+
+  /// No description provided for @challengeStatusCritical.
+  ///
+  /// In pt, this message translates to:
+  /// **'Crítico'**
+  String get challengeStatusCritical;
+
+  /// No description provided for @rest.
+  ///
+  /// In pt, this message translates to:
+  /// **'Restante'**
+  String get rest;
 }
 
 class _AppLocalizationsDelegate

@@ -1,67 +1,112 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
+import 'package:funances/features/home/presentation/provider.dart';
 
-class TeamStatusView extends StatelessWidget {
-  final MissionModel mission;
-
-  const TeamStatusView({
-    super.key,
-    required this.mission,
-  });
+class TeamStatusView extends ConsumerWidget {
+  const TeamStatusView({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final missionAsync = ref.watch(MissionViewProviders.mission);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.partyTeamTitle,
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+    return missionAsync.when(
+      data: (mission) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.partyTeamTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        if (mission.planningMissions.isNotEmpty) ...[
-          _buildPartyStatusBar(context, mission),
-          const SizedBox(height: 24),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              int crossAxisCount = 1;
-              if (constraints.maxWidth > 800) {
-                crossAxisCount = 3;
-              } else if (constraints.maxWidth > 500) {
-                crossAxisCount = 2;
-              }
+          const SizedBox(height: 12),
+          if (mission.planningMissions.isNotEmpty) ...[
+            _buildPartyStatusBar(context, mission),
+            const SizedBox(height: 24),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final groups = ChallengeStatus.values.reversed.map(
+                  (status) => (
+                    status: status,
+                    color: switch (status) {
+                      ChallengeStatus.stable => AppColors.success,
+                      ChallengeStatus.warning => Colors.orange,
+                      ChallengeStatus.critical => AppColors.error,
+                    },
+                    label: switch (status) {
+                      ChallengeStatus.stable => l10n.challengeStatusStable,
+                      ChallengeStatus.warning => l10n.challengeStatusWarning,
+                      ChallengeStatus.critical => l10n.challengeStatusCritical,
+                    },
+                    emoji: switch (status) {
+                      ChallengeStatus.stable => '😊',
+                      ChallengeStatus.warning => '😰',
+                      ChallengeStatus.critical => '💀',
+                    },
+                    items: mission.planningMissions
+                        .where((item) => item.status == status)
+                        .toList(),
+                  ),
+                );
 
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  mainAxisExtent: 160,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                ),
-                itemCount: mission.planningMissions.length,
-                itemBuilder: (context, index) {
-                  return _buildChallengeCard(
-                    context,
-                    mission.planningMissions[index],
-                  );
-                },
-              );
-            },
-          ),
+                return Column(
+                  spacing: 16,
+                  children: [
+                    for (final group in groups) ...[
+                      if (group.items.isNotEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: group.color.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: group.color.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            spacing: 16,
+                            children: [
+                              Text(
+                                "${group.emoji} ${group.label.toUpperCase()}",
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: group.color,
+                                ),
+                              ),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final item in group.items)
+                                    _buildChallengeCard(context, item),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
         ],
-      ],
+      ),
+      loading: () => const SizedBox.shrink(),
+      error: (e, st) => const SizedBox.shrink(),
     );
   }
 
@@ -190,15 +235,14 @@ class TeamStatusView extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(),
           style: theme.textTheme.labelSmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: .8),
             fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
-            fontSize: 9,
+            fontSize: 8,
           ),
         ),
         Text(
@@ -223,121 +267,76 @@ class TeamStatusView extends StatelessWidget {
       ChallengeStatus.critical => AppColors.error,
     };
 
-    final emoji = switch (mission.status) {
-      ChallengeStatus.stable => '😊',
-      ChallengeStatus.warning => '😰',
-      ChallengeStatus.critical => '💀',
-    };
-
     final isOverLimit = mission.progress > 1;
+    final excess = mission.weeklyActualAmount - mission.weeklyPlannedAmount;
+    final rest = mission.weeklyPlannedAmount - mission.weeklyActualAmount;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
+    return SizedBox(
+      width: 70,
+      child: Column(
+        spacing: 8,
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox(
+                height: 40,
+                width: 40,
+                child: CircularProgressIndicator(
+                  value: mission.hp,
+                  strokeWidth: 4,
+                  backgroundColor: color.withValues(alpha: 0.1),
+                  valueColor: AlwaysStoppedAnimation(color),
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: mission.category.color.asColor().withValues(
-                          alpha: 0.1,
-                        ),
+                      alpha: 0.1,
+                    ),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     mission.category.icon.asIcon(),
-                    size: 16,
+                    size: 24,
                     color: mission.category.color.asColor(),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    mission.category.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Text(emoji, style: const TextStyle(fontSize: 20)),
-              ],
-            ),
-            const Spacer(),
-            Row(
-              children: [
-                _buildValueInfo(
-                  context,
-                  l10n.planned,
-                  mission.weeklyPlannedAmount.asCurrency(locale: locale),
-                ),
-                const SizedBox(width: 8),
-                _buildValueInfo(
-                  context,
-                  l10n.actual,
-                  mission.weeklyActualAmount.asCurrency(locale: locale),
-                  valueColor: isOverLimit ? AppColors.error : null,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.hpLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                  ],
-                ),
-                if (isOverLimit)
-                  Text(
-                    l10n.overBudgetAmount(
-                      (mission.weeklyActualAmount - mission.weeklyPlannedAmount)
-                          .asCurrency(locale: locale),
-                    ),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.error,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  )
-                else
-                  Text(
-                    '${(mission.hp * 100).toInt()}%',
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: mission.hp,
-                minHeight: 8,
-                backgroundColor: color.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation(color),
               ),
+            ],
+          ),
+          Text(
+            mission.category.name,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 8,
+            ),
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (isOverLimit) ...[
+            _buildValueInfo(
+              context,
+              l10n.excess,
+              excess.asCurrency(locale: locale),
+              valueColor: AppColors.error,
+            ),
+          ] else ...[
+            _buildValueInfo(
+              context,
+              l10n.rest,
+              rest.asCurrency(locale: locale),
+              valueColor: AppColors.deepTurquoise,
             ),
           ],
-        ),
+        ],
       ),
     );
   }
