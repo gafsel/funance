@@ -48,6 +48,8 @@ extension AccountTypeExtension on AppLocalizations {
         return overviewPlanning;
       case SummaryViewType.effective:
         return overviewEffective;
+      case SummaryViewType.comparison:
+        return overviewComparison;
     }
   }
 }

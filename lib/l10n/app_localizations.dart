@@ -776,6 +776,12 @@ abstract class AppLocalizations {
   /// **'Real: {amount}'**
   String planning503020ActualAmount(String amount);
 
+  /// No description provided for @planning503020Subtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acompanhe sua regra de ouro 50-30-20'**
+  String get planning503020Subtitle;
+
   /// No description provided for @planning503020DistributionTitle.
   ///
   /// In pt, this message translates to:
@@ -2381,13 +2387,13 @@ abstract class AppLocalizations {
   /// No description provided for @overviewPlanning.
   ///
   /// In pt, this message translates to:
-  /// **'Planejamento'**
+  /// **'Planejado'**
   String get overviewPlanning;
 
   /// No description provided for @overviewEffective.
   ///
   /// In pt, this message translates to:
-  /// **'Efetivo'**
+  /// **'Realizado'**
   String get overviewEffective;
 
   /// No description provided for @overviewComparison.
@@ -2395,6 +2401,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Comparação'**
   String get overviewComparison;
+
+  /// No description provided for @homeOverviewShowDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver Detalhes'**
+  String get homeOverviewShowDetails;
+
+  /// No description provided for @categoryReportDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detalhes por Categoria'**
+  String get categoryReportDetails;
 
   /// No description provided for @transactionTransfer.
   ///

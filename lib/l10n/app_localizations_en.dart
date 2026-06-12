@@ -385,6 +385,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get planning503020Subtitle => 'Track your golden rule 50-30-20';
+
+  @override
   String get planning503020DistributionTitle => '50-30-20 Distribution';
 
   @override
@@ -1280,13 +1283,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeTotalPlanned => 'Total Planned';
 
   @override
-  String get overviewPlanning => 'Planning';
+  String get overviewPlanning => 'Planned';
 
   @override
-  String get overviewEffective => 'Effective';
+  String get overviewEffective => 'Actual';
 
   @override
   String get overviewComparison => 'Comparison';
+
+  @override
+  String get homeOverviewShowDetails => 'View Details';
+
+  @override
+  String get categoryReportDetails => 'Category Details';
 
   @override
   String get transactionTransfer => 'Transfer';

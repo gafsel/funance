@@ -132,6 +132,7 @@
       "amount": { "type": "String" }
     }
   },
+  "planning503020Subtitle": "Track your golden rule 50-30-20",
   "planning503020DistributionTitle": "50-30-20 Distribution",
   "planning503020Planned": "Planned",
   "planning503020Actual": "Actual",
@@ -424,9 +425,11 @@
   "transactionTypeInstallment": "Installment",
   "transactionTypeRecurrent": "Recurrence",
   "homeTotalPlanned": "Total Planned",
-  "overviewPlanning": "Planning",
-  "overviewEffective": "Effective",
+  "overviewPlanning": "Planned",
+  "overviewEffective": "Actual",
   "overviewComparison": "Comparison",
+  "homeOverviewShowDetails": "View Details",
+  "categoryReportDetails": "Category Details",
   "transactionTransfer": "Transfer",
   "transactionSelectSourceAccount": "Select Source Account",
   "transactionSelectDestinationAccount": "Select Destination Account",

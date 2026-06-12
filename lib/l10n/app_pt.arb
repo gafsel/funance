@@ -152,6 +152,7 @@
       "amount": { "type": "String" }
     }
   },
+  "planning503020Subtitle": "Acompanhe sua regra de ouro 50-30-20",
   "planning503020DistributionTitle": "Distribuição 50-30-20",
   "planning503020Planned": "Planejado",
   "planning503020Actual": "Executado",
@@ -524,9 +525,11 @@
   "transactionTypeInstallment": "Parcelada",
   "transactionTypeRecurrent": "Recorrência",
   "homeTotalPlanned": "Total Planejado",
-  "overviewPlanning": "Planejamento",
-  "overviewEffective": "Efetivo",
+  "overviewPlanning": "Planejado",
+  "overviewEffective": "Realizado",
   "overviewComparison": "Comparação",
+  "homeOverviewShowDetails": "Ver Detalhes",
+  "categoryReportDetails": "Detalhes por Categoria",
   "transactionTransfer": "Transferência",
   "transactionSelectSourceAccount": "Selecionar Conta de Origem",
   "transactionSelectDestinationAccount": "Selecione a Conta de Destino",

@@ -38,22 +38,52 @@ class IncomeSummaryNotifier extends Notifier<SummaryState> {
   }
 }
 
+class ExpenseSummaryFullNotifier extends Notifier<SummaryState> {
+  @override
+  SummaryState build() {
+    final period = ref.watch(HomeViewProviders.period);
+    final viewType = ref.watch(HomeViewProviders.viewType);
+
+    final summaries =
+        ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+
+    return _buildSummary(
+      summaries.where((s) => s.category.type == CategoryType.expense).toList(),
+      viewType,
+      limit: false,
+    );
+  }
+}
+
+class IncomeSummaryFullNotifier extends Notifier<SummaryState> {
+  @override
+  SummaryState build() {
+    final period = ref.watch(HomeViewProviders.period);
+    final viewType = ref.watch(HomeViewProviders.viewType);
+
+    final summaries =
+        ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+
+    return _buildSummary(
+      summaries.where((s) => s.category.type == CategoryType.income).toList(),
+      viewType,
+      limit: false,
+    );
+  }
+}
+
 SummaryState _buildSummary(
   List<OverviewCategorySummary> filteredSummaries,
-  SummaryViewType viewType,
-) {
+  SummaryViewType viewType, {
+  bool limit = true,
+}) {
   // Ordenar por valor (de maior para menor) baseado no viewType
   final sortedSummaries = [...filteredSummaries];
   sortedSummaries.sort((a, b) {
-    double valA = 0;
-    double valB = 0;
-    if (viewType == SummaryViewType.planning) {
-      valA = a.plannedAmount;
-      valB = b.plannedAmount;
-    } else {
-      valA = a.actualAmount;
-      valB = b.actualAmount;
-    }
+    final valA =
+        a.plannedAmount > a.actualAmount ? a.plannedAmount : a.actualAmount;
+    final valB =
+        b.plannedAmount > b.actualAmount ? b.plannedAmount : b.actualAmount;
     return valB.compareTo(valA);
   });
 
@@ -64,7 +94,7 @@ SummaryState _buildSummary(
   double generalPlannedAmountOthers = 0;
   double actualAmountOthers = 0;
 
-  if (sortedSummaries.length > 10) {
+  if (limit && sortedSummaries.length > 10) {
     displaySummaries = sortedSummaries.sublist(0, 9);
     final others = sortedSummaries.sublist(9);
 

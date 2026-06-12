@@ -67,8 +67,27 @@
 ```
 
 ### Visão Geral
-- [ ] card de 50-30-20 está muito diferente do restante
-- [ ] relatório de categorias está confuso
+- [X] card de 50-30-20 está muito diferente do restante
+```
+    o card funciona bem, alternando a visão de acordo com o mês selecionado, porém o
+    card está muito diferente do restante da tela e com uma aparência que lembra uma imagem estátiva... provavelmente a cor da borda e as barras de alocação dão essa sensação
+    seria bom ser um card um pouco mais bonito e destacado e que tivesse um link para a feature 
+    de planejamento 50-30-20 diretamente do card, estimulando o usuário a manter os dados sempre atualizados (o clique no card pode levar à feature)
+ 
+```
+- [X] relatório de categorias está confuso
+```
+    os gráficos de distribuição por categoria não estão muito intuitivos
+    - o gráfico de planejamento está claro. podemos manter ele como está
+    - o gráfico de realizado está confuso... ao tentar mostrar duas informações juntas (realizado e planejado) acabamos por deixar a informação mais obscura. vamos criar uma visão de realizado puro, sem comparação com o planejado.
+    - novo gráfico de comparação: um novo gráfico deve fazer a comparação entre o planejado e o realizado, porém, ao invés de um gráfico de donut, vamos usar um gráfico de barras em séries, comparando os dois dados. a visão em barras garantirá que seja possível visualizar tanto planejado maior que realizado quanto realizado maior que planejado.
+    a apresentação dos gráficos deve respeitar o limite de 10 categorias por vez (agrupando as categorias de menor valor) e a responsividade, se adaptando em telas pequenas e telas grandes.
+```
+- [X] criar detalhamento de relatório de categorias
+```
+    criar uma tela para visualizar o detalhes dos gráficos de cateogrias. nessa visão de detalhe, o usuário consegue ver todas as categorias, sem o agrupamento das de menor valor.
+    nos gráficos da Visão Geral deve haver um link para a tela de detalhes. 
+```
 
 ### Detalhe de extrato
 - [X] opção de consolidação está muito discreta
@@ -108,7 +127,7 @@
 - [ ] em telas pequenas o layout está quebrado
 
 ### Planejamento 50-30-20
-- [ ] melhorar o design para ser visível o header dos pools
+- [X] melhorar o design para ser visível o header dos pools
 - [ ] rever usabilidade em telas pequenas já que não dá pra arrastar e solvar as categorias entre as pools
 
 ### Histórico/Extrato
@@ -125,6 +144,7 @@
 
 ### Gestão de Contas
 - [ ] Não permitir editar saldos inicias (nem mostrar no formulário de edição, só no cadastro)
+- [ ] Sempre criar o lançamento de saldo inicial (mesmo com o valor zerado)
 - [ ] Criar logos de bancos com cores automáticas
 - [ ] Criar campo de titularidade -> para mostrar nas listagens
 

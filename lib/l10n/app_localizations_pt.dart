@@ -387,6 +387,9 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get planning503020Subtitle => 'Acompanhe sua regra de ouro 50-30-20';
+
+  @override
   String get planning503020DistributionTitle => 'Distribuição 50-30-20';
 
   @override
@@ -1287,13 +1290,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeTotalPlanned => 'Total Planejado';
 
   @override
-  String get overviewPlanning => 'Planejamento';
+  String get overviewPlanning => 'Planejado';
 
   @override
-  String get overviewEffective => 'Efetivo';
+  String get overviewEffective => 'Realizado';
 
   @override
   String get overviewComparison => 'Comparação';
+
+  @override
+  String get homeOverviewShowDetails => 'Ver Detalhes';
+
+  @override
+  String get categoryReportDetails => 'Detalhes por Categoria';
 
   @override
   String get transactionTransfer => 'Transferência';

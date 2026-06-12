@@ -35,8 +35,16 @@ class HomeViewProviders {
     ExpenseSummaryNotifier.new,
   );
 
+  static final summaryExpensesFull = NotifierProvider<ExpenseSummaryFullNotifier, SummaryState>(
+    ExpenseSummaryFullNotifier.new,
+  );
+
   static final summaryIncomes = NotifierProvider<IncomeSummaryNotifier, SummaryState>(
     IncomeSummaryNotifier.new,
+  );
+
+  static final summaryIncomesFull = NotifierProvider<IncomeSummaryFullNotifier, SummaryState>(
+    IncomeSummaryFullNotifier.new,
   );
 
   static final summaryBalance = NotifierProvider<BalanceSummaryNotifier, BalanceState>(

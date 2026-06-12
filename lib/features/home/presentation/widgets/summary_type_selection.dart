@@ -14,24 +14,23 @@ class SummaryTypeSelection extends ConsumerWidget {
     final l10n = context.l10n;
     final viewType = ref.watch(HomeViewProviders.viewType);
 
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: SummaryViewType.values.map((type) {
         final isSelected = viewType == type;
-        return Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(
-            label: Text(l10n.fromSummaryViewType(type)),
-            selected: isSelected,
-            onSelected: (selected) {
-              if (selected) {
-                ref.read(HomeViewProviders.viewType.notifier).state = type;
-              }
-            },
-            selectedColor: AppColors.vibrantTeal.withValues(alpha: 0.2),
-            labelStyle: TextStyle(
-              color: isSelected ? AppColors.deepTurquoise : Colors.grey,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-            ),
+        return ChoiceChip(
+          label: Text(l10n.fromSummaryViewType(type)),
+          selected: isSelected,
+          onSelected: (selected) {
+            if (selected) {
+              ref.read(HomeViewProviders.viewType.notifier).state = type;
+            }
+          },
+          selectedColor: AppColors.vibrantTeal.withValues(alpha: 0.2),
+          labelStyle: TextStyle(
+            color: isSelected ? AppColors.deepTurquoise : Colors.grey,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         );
       }).toList(),

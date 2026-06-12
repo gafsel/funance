@@ -5,7 +5,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 part 'overview_view_model.freezed.dart';
 
-enum SummaryViewType { planning, effective }
+enum SummaryViewType { planning, effective, comparison }
 
 @freezed
 sealed class OverviewCategorySummary with _$OverviewCategorySummary {

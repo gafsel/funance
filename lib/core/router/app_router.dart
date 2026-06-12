@@ -13,6 +13,7 @@ import 'package:funances/features/finance/presentation/screens/account_form_scre
 import 'package:funances/features/finance/presentation/screens/account_management_screen.dart';
 import 'package:funances/features/finance/presentation/screens/account_statement_screen.dart';
 import 'package:funances/features/finance/presentation/screens/category_planning_screen.dart';
+import 'package:funances/features/finance/presentation/screens/category_report_detail_screen.dart';
 import 'package:funances/features/finance/presentation/screens/planning_50_30_20_screen.dart';
 import 'package:funances/features/finance/presentation/screens/invoice_detail_screen.dart';
 import 'package:funances/features/finance/presentation/screens/reconciliation_screen.dart';
@@ -276,6 +277,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             orElse: () => CategoryType.expense,
           );
           return CategoryPlanningScreen(type: type);
+        },
+      ),
+      GoRoute(
+        path: '/category-details',
+        builder: (context, state) {
+          final typeStr = state.uri.queryParameters['type'];
+          final type = CategoryType.values.firstWhere(
+            (e) => e.name == typeStr,
+            orElse: () => CategoryType.expense,
+          );
+          return CategoryReportDetailScreen(type: type);
         },
       ),
       GoRoute(
