@@ -603,5 +603,20 @@
   "challengeStatusStable": "Stable",
   "challengeStatusWarning": "Warning",
   "challengeStatusCritical": "Critical",
-  "rest": "Rest"
+  "rest": "Rest",
+  "category": "Category",
+  "realization": "Realization",
+  "difference": "Difference",
+  "missingAmount": "Missing {amount}",
+  "@missingAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "exceededAmount": "Exceeded {amount}",
+  "@exceededAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  }
 }

@@ -633,5 +633,20 @@
   "challengeStatusStable": "Estável",
   "challengeStatusWarning": "Alerta",
   "challengeStatusCritical": "Crítico",
-  "rest": "Restante"
+  "rest": "Restante",
+  "category": "Categoria",
+  "realization": "Realização",
+  "difference": "Diferença",
+  "missingAmount": "Faltam {amount}",
+  "@missingAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "exceededAmount": "Excederam {amount}",
+  "@exceededAmount": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  }
 }

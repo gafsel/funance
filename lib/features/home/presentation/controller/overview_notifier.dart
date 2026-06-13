@@ -80,10 +80,29 @@ SummaryState _buildSummary(
   // Ordenar por valor (de maior para menor) baseado no viewType
   final sortedSummaries = [...filteredSummaries];
   sortedSummaries.sort((a, b) {
-    final valA =
-        a.plannedAmount > a.actualAmount ? a.plannedAmount : a.actualAmount;
-    final valB =
-        b.plannedAmount > b.actualAmount ? b.plannedAmount : b.actualAmount;
+    // Se um for virtual (pode ser o "Outros" real se implementado como virtual, 
+    // mas aqui estamos lidando com as categorias vindas do banco)
+    // Se o nome for "Outros", deve ficar por último
+    final isAOthers = a.category.name.toLowerCase() == 'outros' || a.category.id == 'others';
+    final isBOthers = b.category.name.toLowerCase() == 'outros' || b.category.id == 'others';
+
+    if (isAOthers && !isBOthers) return 1;
+    if (!isAOthers && isBOthers) return -1;
+
+    double valA = 0;
+    double valB = 0;
+
+    if (viewType == SummaryViewType.planning) {
+      valA = a.plannedAmount;
+      valB = b.plannedAmount;
+    } else if (viewType == SummaryViewType.effective) {
+      valA = a.actualAmount;
+      valB = b.actualAmount;
+    } else {
+      valA = a.plannedAmount > a.actualAmount ? a.plannedAmount : a.actualAmount;
+      valB = b.plannedAmount > b.actualAmount ? b.plannedAmount : b.actualAmount;
+    }
+    
     return valB.compareTo(valA);
   });
 

@@ -2977,6 +2977,36 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Restante'**
   String get rest;
+
+  /// No description provided for @category.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria'**
+  String get category;
+
+  /// No description provided for @realization.
+  ///
+  /// In pt, this message translates to:
+  /// **'Realização'**
+  String get realization;
+
+  /// No description provided for @difference.
+  ///
+  /// In pt, this message translates to:
+  /// **'Diferença'**
+  String get difference;
+
+  /// No description provided for @missingAmount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Faltam {amount}'**
+  String missingAmount(String amount);
+
+  /// No description provided for @exceededAmount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Excederam {amount}'**
+  String exceededAmount(String amount);
 }
 
 class _AppLocalizationsDelegate

@@ -1617,4 +1617,23 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get rest => 'Restante';
+
+  @override
+  String get category => 'Categoria';
+
+  @override
+  String get realization => 'Realização';
+
+  @override
+  String get difference => 'Diferença';
+
+  @override
+  String missingAmount(String amount) {
+    return 'Faltam $amount';
+  }
+
+  @override
+  String exceededAmount(String amount) {
+    return 'Excederam $amount';
+  }
 }

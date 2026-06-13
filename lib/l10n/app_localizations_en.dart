@@ -1607,4 +1607,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rest => 'Rest';
+
+  @override
+  String get category => 'Category';
+
+  @override
+  String get realization => 'Realization';
+
+  @override
+  String get difference => 'Difference';
+
+  @override
+  String missingAmount(String amount) {
+    return 'Missing $amount';
+  }
+
+  @override
+  String exceededAmount(String amount) {
+    return 'Exceeded $amount';
+  }
 }

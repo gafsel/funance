@@ -197,6 +197,13 @@ class CategorySummaryView extends ConsumerWidget {
         ),
     ];
 
+    // Garantir que a categoria "Outros" agrupada fique por último
+    // Já que state.summary vem ordenado do notifier, só precisamos garantir
+    // que o item que acabamos de adicionar (se adicionado) esteja na posição correta.
+    // Como usamos spread e depois o if, ele já está por último.
+    // No entanto, se houver uma categoria "Outros" real em state.summary,
+    // o notifier já a colocou no final de state.summary.
+
     if (summaries.isEmpty) {
       return Center(
         child: Padding(
@@ -261,12 +268,6 @@ class CategorySummaryView extends ConsumerWidget {
             } else {
               value =
                   '${summary.actualAmount.asCurrency(locale: locale)} / ${summary.plannedAmount.asCurrency(locale: locale)}';
-              if (summary.plannedAmount > 0) {
-                progress = (summary.actualAmount / summary.plannedAmount).clamp(
-                  0,
-                  1.2,
-                );
-              }
             }
 
             return _buildCategoryItem(
@@ -276,7 +277,7 @@ class CategorySummaryView extends ConsumerWidget {
               viewType == SummaryViewType.planning
                   ? summary.category.color.asColor().withValues(alpha: 0.4)
                   : summary.category.color.asColor(),
-              progress: progress,
+              progress: viewType == SummaryViewType.comparison ? null : progress,
               secondaryProgress: viewType == SummaryViewType.planning &&
                       summary.plannedAmount > 0
                   ? (summary.specificPlannedAmount / summary.plannedAmount)
