@@ -1626,4 +1626,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String exceededAmount(String amount) {
     return 'Exceeded $amount';
   }
+
+  @override
+  String get paymentInfo => 'Payment Info';
 }

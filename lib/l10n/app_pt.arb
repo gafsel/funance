@@ -648,5 +648,6 @@
     "placeholders": {
       "amount": { "type": "String" }
     }
-  }
+  },
+  "paymentInfo": "Informações de pagamento"
 }

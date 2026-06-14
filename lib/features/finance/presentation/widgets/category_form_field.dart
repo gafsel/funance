@@ -6,7 +6,7 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
-import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
+import 'package:funances/features/workspace/presentation/widgets/category_picker_sheet.dart';
 
 class CategoryFormField extends ConsumerWidget {
   const CategoryFormField({
@@ -197,107 +197,10 @@ class CategoryFormField extends ConsumerWidget {
     BuildContext context,
     CategoryType? categoryType,
   ) async {
-    return showModalBottomSheet<CategoryModel>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final categories = ref
-                .watch(CategoryViewProviders.allStream)
-                .when(
-                  data: (data) => data
-                      .where(
-                        (c) =>
-                            (categoryType == null || c.type == categoryType) &&
-                            (!c.isVirtual || emptyMeansAll),
-                      )
-                      .toList(),
-                  error: (error, stack) => [],
-                  loading: () => [],
-                );
-
-            return SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Text(
-                      context.l10n.transactionCategoriesSection,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  Flexible(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.only(
-                        bottom: MediaQuery.of(context).padding.bottom + 16,
-                      ),
-                      itemCount: categories.length + 4,
-                      // +1 for Add, +1 for Clear, +2 for Dividers
-                      itemBuilder: (context, index) {
-                        if (index < categories.length) {
-                          CategoryModel category = categories[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: category.color
-                                  .asColor()
-                                  .withValues(alpha: 0.2),
-                              child: Icon(
-                                category.icon.asIcon(),
-                                color: category.color.asColor(),
-                              ),
-                            ),
-                            title: Text(category.name),
-                            onTap: () => Navigator.pop(context, category),
-                          );
-                        }
-
-                        if (index == categories.length) {
-                          return const Divider();
-                        }
-
-                        if (index == categories.length + 1) {
-                          return ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Colors.transparent,
-                              child: Icon(Icons.add, color: Colors.grey),
-                            ),
-                            title: Text(context.l10n.categoryCreateTitle),
-                            onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (context) => CategoryFormScreen(
-                                  initialType: categoryType,
-                                ),
-                              );
-                            },
-                          );
-                        }
-
-                        if (index == categories.length + 2) {
-                          return const Divider();
-                        }
-
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: Colors.transparent,
-                            child: Icon(Icons.clear, color: Colors.grey),
-                          ),
-                          title: Text(context.l10n.clear),
-                          onTap: () => Navigator.pop(context, null),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+    return CategoryPickerSheet.show(
+      context,
+      categoryType: categoryType,
+      excludeVirtual: !emptyMeansAll,
     );
   }
 }

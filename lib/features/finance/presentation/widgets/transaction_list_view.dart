@@ -11,6 +11,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_item.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -368,14 +369,15 @@ class TransactionListView extends ConsumerWidget {
     }
 
     return InkWell(
-      onTap: () async {
-        final updated = await context.push<bool>(
-          '/transactions/form',
-          extra: {'installment': installment},
-        );
-
-        if (updated ?? false) {
-          notifier.reset();
+      onTap: () {
+        if (installment.isInvoice) {
+          context.push('/invoices/detail', extra: installment);
+        } else {
+          TransactionDetailSheet.show(
+            context,
+            installment,
+            onUpdated: () => notifier.reset(),
+          );
         }
       },
       child: Container(

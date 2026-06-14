@@ -1636,4 +1636,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String exceededAmount(String amount) {
     return 'Excederam $amount';
   }
+
+  @override
+  String get paymentInfo => 'Informações de pagamento';
 }

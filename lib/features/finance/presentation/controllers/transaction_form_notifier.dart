@@ -117,8 +117,14 @@ class TransactionFormNotifier
     }
   }
 
-  void updatePaidDate(DateTime? value) =>
-      state = state.copyWith(paidDate: value);
+  void updatePaidDate(DateTime? value) {
+    state = state.copyWith(
+      dueDate: state.creation || state.amount > 0
+          ? state.dueDate
+          : value ?? state.dueDate,
+      paidDate: value,
+    );
+  }
 
   void updatePaidAmount(double? value) =>
       state = state.copyWith(paidAmount: value);

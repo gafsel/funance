@@ -61,12 +61,12 @@ Acompanhamento do desenvolvimento baseado nos requisitos do Blueprint e evoluç�
 - [x] **Dashboard:** Visão Geral com gráfico de pizza, totalizadores e navegação por período.
 - [x] **Extrato (History):** Listagem paginada com scroll infinito e ações de swipe.
 - [x] **Recorrências:** Processamento automático de transações mensais (Scheduler).
-- [ ] **Conciliação Bancária:** Parser de PDF/OFX com match inteligente (Próximo passo).
-- [ ] **Faturas de Cartão:** Fechamento automático e gestão de ciclos de fatura (Planejado).
+- [x] **Conciliação Bancária:** Parser de PDF/OFX com match inteligente (Próximo passo).
+- [x] **Faturas de Cartão:** Fechamento automático e gestão de ciclos de fatura (Planejado).
 
 ### R3: Insights & Coaching (Planejado 🚀)
-- [ ] **Insights via LLM:** Análise de gastos e sugestões de economia usando Gemini.
-- [ ] **Projeções de Fluxo de Caixa:** Visão de competência para os próximos 12 meses.
+- [x] **Insights via LLM:** Análise de gastos e sugestões de economia usando Gemini.
+- [x] **Projeções de Fluxo de Caixa:** Visão de competência para os próximos 12 meses.
 - [ ] **Gamificação Avançada:** Sistema de conquistas, badges e pontuação por saúde financeira.
 
 ---

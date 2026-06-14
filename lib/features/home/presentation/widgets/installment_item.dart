@@ -7,6 +7,7 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -35,8 +36,14 @@ class InstallmentItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
-        onTap: () =>
-            context.push('/transactions/form', extra: {'installment': inst}),
+        onTap: () {
+          final inst = installmentInfo.installment;
+          if (inst.isInvoice) {
+            context.push('/invoices/detail', extra: inst);
+          } else {
+            TransactionDetailSheet.show(context, inst);
+          }
+        },
         child: Row(
           children: [
             Container(

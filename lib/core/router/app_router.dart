@@ -186,17 +186,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/invoices/detail',
+        builder: (context, state) {
+          final installment = state.extra as InstallmentModel;
+          return InvoiceDetailScreen(invoice: installment);
+        },
+      ),
+      GoRoute(
         path: '/transactions/form',
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
           if (extra != null) {
             if (extra['installment'] != null) {
               final installment = extra['installment'] as InstallmentModel;
-              final forceEdit =
-                  state.uri.queryParameters['forceEdit'] == 'true';
-              if (installment.isInvoice && !forceEdit) {
-                return InvoiceDetailScreen(invoice: installment);
-              }
 
               final statusStr = state.uri.queryParameters['status'];
               final status = statusStr != null

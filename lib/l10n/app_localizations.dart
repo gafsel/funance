@@ -3007,6 +3007,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Excederam {amount}'**
   String exceededAmount(String amount);
+
+  /// No description provided for @paymentInfo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Informações de pagamento'**
+  String get paymentInfo;
 }
 
 class _AppLocalizationsDelegate

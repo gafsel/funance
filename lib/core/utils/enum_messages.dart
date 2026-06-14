@@ -52,4 +52,13 @@ extension AccountTypeExtension on AppLocalizations {
         return overviewComparison;
     }
   }
+
+  String forInstallmentStatus(InstallmentStatus status) {
+    return switch (status) {
+      InstallmentStatus.pending => transactionStatusPending,
+      InstallmentStatus.paid => transactionStatusPaid,
+      InstallmentStatus.settled => transactionStatusSettled,
+      InstallmentStatus.removed => "-",
+    };
+  }
 }
