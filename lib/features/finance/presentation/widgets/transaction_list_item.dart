@@ -10,6 +10,7 @@ import 'package:funances/features/finance/presentation/model/finance_view_models
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_detail_sheet.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:go_router/go_router.dart';
 
 typedef TransactionListItemNotifier =
@@ -145,17 +146,61 @@ class TransactionListItem extends StatelessWidget {
                                     .whenOrNull(data: (data) => data)
                               : null;
 
-                          accountName =
-                              "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
-                        } else {
-                          accountName = source?.name ?? "-";
+                          return Row(
+                            spacing: 8,
+                            children: [
+                              if (source != null)
+                                AccountLogo(
+                                  account: source,
+                                  size: 24,
+                                  showMembers: true,
+                                ),
+                              Text(
+                                source?.name ?? '-',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const Icon(Icons.arrow_forward, size: 12),
+                              if (target != null)
+                                AccountLogo(
+                                  account: target,
+                                  size: 24,
+                                  showMembers: true,
+                                ),
+                              Expanded(
+                                child: Text(
+                                  target?.name ?? '-',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          );
                         }
 
-                        return Text(
-                          accountName,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                        return Row(
+                          spacing: 8,
+                          children: [
+                            if (source != null)
+                              AccountLogo(
+                                account: source,
+                                size: 24,
+                                showMembers: true,
+                              ),
+                            Expanded(
+                              child: Text(
+                                source?.name ?? "-",
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),

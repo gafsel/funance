@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +27,7 @@ class AccountSelectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final accountsAsync = ref.watch(AccountViewProviders.all);
+    final userId = ref.watch(AuthDomainProviders.currentUser)?.id;
 
     return accountsAsync.when(
       data: (accounts) {
@@ -32,9 +35,16 @@ class AccountSelectionScreen extends ConsumerWidget {
             .where((acc) => acc.id != excludeAccountId)
             .toList();
 
-        filteredAccounts.sort(
-          (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-        );
+        // Ordenação por titularidade e depois nome
+        filteredAccounts.sort((a, b) {
+          if (userId != null) {
+            final aIsOwner = a.ownerIds.contains(userId);
+            final bIsOwner = b.ownerIds.contains(userId);
+            if (aIsOwner && !bIsOwner) return -1;
+            if (!aIsOwner && bIsOwner) return 1;
+          }
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
 
         return SafeArea(
           child: Column(
@@ -75,11 +85,18 @@ class AccountSelectionScreen extends ConsumerWidget {
                                 .toList();
                             if (typeAccounts.isEmpty) continue;
 
-                            typeAccounts.sort(
-                              (a, b) => a.name.toLowerCase().compareTo(
+                            final currentUserId = ref.watch(AuthDomainProviders.currentUser)?.id;
+                            typeAccounts.sort((a, b) {
+                              if (currentUserId != null) {
+                                final aIsOwner = a.ownerIds.contains(currentUserId);
+                                final bIsOwner = b.ownerIds.contains(currentUserId);
+                                if (aIsOwner && !bIsOwner) return -1;
+                                if (!aIsOwner && bIsOwner) return 1;
+                              }
+                              return a.name.toLowerCase().compareTo(
                                 b.name.toLowerCase(),
-                              ),
-                            );
+                              );
+                            });
 
                             // Header do tipo
                             slivers.add(
@@ -281,12 +298,10 @@ class AccountSelectionScreen extends ConsumerWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: account.color.asColor().withValues(alpha: 0.2),
-          child: Icon(
-            account.icon.asIcon(),
-            color: account.color.asColor(),
-          ),
+        leading: AccountLogo(
+          account: account,
+          size: 40,
+          showMembers: true,
         ),
         title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(

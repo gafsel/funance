@@ -11,6 +11,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_item.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
@@ -448,7 +449,6 @@ class TransactionListView extends ConsumerWidget {
               flex: 2,
               child: Consumer(
                 builder: (context, ref, _) {
-                  String accountName;
                   final source = installment.accountIdSource != null
                       ? ref
                             .watch(
@@ -470,13 +470,58 @@ class TransactionListView extends ConsumerWidget {
                               .whenOrNull(data: (data) => data)
                         : null;
 
-                    accountName =
-                        "${source?.name ?? '-'} ➡ ${target?.name ?? '-'}";
-                  } else {
-                    accountName = source?.name ?? "-";
+                    return Row(
+                      spacing: 8,
+                      children: [
+                        if (source != null) ...[
+                          AccountLogo(
+                            account: source,
+                            size: 30,
+                            showMembers: true,
+                          ),
+                        ],
+                        Text(
+                          source?.name ?? "-",
+                          style: theme.textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Icon(Icons.arrow_forward, size: 14),
+                        if (target != null) ...[
+                          AccountLogo(
+                            account: target,
+                            size: 30,
+                            showMembers: true,
+                          ),
+                        ],
+                        Expanded(
+                          child: Text(
+                            target?.name ?? "-",
+                            style: theme.textTheme.bodyMedium,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    );
                   }
 
-                  return Text(accountName, style: theme.textTheme.bodyMedium);
+                  return Row(
+                    spacing: 8,
+                    children: [
+                      if (source != null)
+                        AccountLogo(
+                          account: source,
+                          size: 30,
+                          showMembers: true,
+                        ),
+                      Expanded(
+                        child: Text(
+                          source?.name ?? "-",
+                          style: theme.textTheme.bodyMedium,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
                 },
               ),
             ),

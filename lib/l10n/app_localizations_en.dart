@@ -1161,7 +1161,49 @@ class AppLocalizationsEn extends AppLocalizations {
   String get initialBalanceLabel => 'Initial Balance';
 
   @override
+  String get initialBalanceCreditCardLabel => 'Next Invoice Amount';
+
+  @override
+  String get initialBalanceInvestmentLabel => 'Initial Investment Amount';
+
+  @override
+  String get initialBalanceDebtLabel => 'Current Debt Amount';
+
+  @override
   String get initialBalanceDateLabel => 'Initial Balance Date';
+
+  @override
+  String get initialBalanceInvestmentDateLabel => 'Initial Investment Date';
+
+  @override
+  String get initialBalanceDebtDateLabel => 'Current Amount Date';
+
+  @override
+  String get accountBankLogoLabel => 'Bank/Brand Logo';
+
+  @override
+  String get accountOwnerIdsLabel => 'Owners';
+
+  @override
+  String get customLabel => 'Custom';
+
+  @override
+  String get accountNextInvoiceValueLabel => 'Next invoice amount';
+
+  @override
+  String get accountInitialInvestmentValueLabel => 'Initial investment balance';
+
+  @override
+  String get accountInitialDebtValueLabel => 'Debt amount';
+
+  @override
+  String get accountInitialInvestmentDateLabel => 'Initial investment date';
+
+  @override
+  String get accountInitialDebtDateLabel => 'Debt date';
+
+  @override
+  String get none => 'None';
 
   @override
   String get accountMethodDocument => 'By Document';
@@ -1629,4 +1671,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentInfo => 'Payment Info';
+
+  @override
+  String get accountOwnerLabel => 'Ownership';
 }

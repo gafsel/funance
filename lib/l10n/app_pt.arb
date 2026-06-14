@@ -492,7 +492,21 @@
   "transactionDueDateLabel": "Vencimento",
   "noAccountsFound": "Nenhuma conta encontrada.",
   "initialBalanceLabel": "Saldo Inicial",
+  "initialBalanceCreditCardLabel": "Valor da Próxima Fatura",
+  "initialBalanceInvestmentLabel": "Valor Inicial do Investimento",
+  "initialBalanceDebtLabel": "Valor Atual da Dívida",
   "initialBalanceDateLabel": "Data do Saldo Inicial",
+  "initialBalanceInvestmentDateLabel": "Data do Investimento Inicial",
+  "initialBalanceDebtDateLabel": "Data do Valor Atual",
+  "accountBankLogoLabel": "Banco / Bandeira",
+  "accountOwnerIdsLabel": "Titulares da Conta",
+  "customLabel": "Personalizado",
+  "accountNextInvoiceValueLabel": "Valor da Próxima Fatura",
+  "accountInitialInvestmentValueLabel": "Valor Inicial do Investimento",
+  "accountInitialDebtValueLabel": "Valor Atual da Dívida",
+  "accountInitialInvestmentDateLabel": "Data do Investimento Inicial",
+  "accountInitialDebtDateLabel": "Data do Valor Atual",
+  "none": "Nenhum",
   "accountMethodDocument": "Por Documento",
   "accountMethodManual": "Manual",
   "accountDocumentDescription": "Anexe seu extrato bancário (PDF) ou arquivo de transações (OFX). Nossa IA analisará os dados para configurar sua conta, saldo e transações automaticamente.",
@@ -649,5 +663,13 @@
       "amount": { "type": "String" }
     }
   },
-  "paymentInfo": "Informações de pagamento"
+  "paymentInfo": "Informações de pagamento",
+  "accountBankLogoLabel": "Logo do Banco/Bandeira",
+  "accountOwnerLabel": "Titularidade",
+  "accountOwnerIdsLabel": "Titulares",
+  "accountNextInvoiceValueLabel": "Valor da próxima fatura",
+  "accountInitialDebtValueLabel": "Valor da dívida",
+  "accountInitialDebtDateLabel": "Data da dívida",
+  "accountInitialInvestmentValueLabel": "Saldo inicial do investimento",
+  "accountInitialInvestmentDateLabel": "Data inicial do investimento"
 }

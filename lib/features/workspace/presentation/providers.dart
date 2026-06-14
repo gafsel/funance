@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/workspace/data/repositories/workspace_repository_impl.dart';
+import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
+import 'package:funances/features/workspace/domain/services/workspace_service.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/controller/category_form_notifier.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
@@ -12,8 +15,13 @@ import '../domain/models/category_model.dart';
 import '../domain/repositories/category_repository.dart';
 
 sealed class WorkspaceDomainProviders {
-  static final repository = Provider((ref) {
+  static final repository = Provider<IWorkspaceRepository>((ref) {
     return WorkspaceRepositoryImpl();
+  });
+
+  static final service = Provider((ref) {
+    final repo = ref.watch(repository);
+    return WorkspaceService(repo);
   });
 }
 
@@ -40,6 +48,17 @@ sealed class WorkspaceViewProviders {
 
         return notifier;
       });
+
+  static final currentWorkspaceId = Provider((ref) {
+    return ref.watch(workspace).currentWorkspace?.id;
+  });
+
+  static final members = FutureProvider<List<UserModel>>((ref) async {
+    final workspaceId = ref.watch(currentWorkspaceId);
+    if (workspaceId == null) return [];
+    final service = ref.read(WorkspaceDomainProviders.service);
+    return await service.getWorkspaceMembers(workspaceId);
+  });
 }
 
 sealed class CategoryDomainProviders {

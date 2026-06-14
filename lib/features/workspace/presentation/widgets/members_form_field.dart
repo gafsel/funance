@@ -1,0 +1,72 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
+
+class MembersFormField extends ConsumerWidget {
+  final List<String> initialValue;
+  final ValueChanged<List<String>> onChanged;
+  final String label;
+  final String? errorText;
+
+  const MembersFormField({
+    super.key,
+    required this.initialValue,
+    required this.onChanged,
+    required this.label,
+    this.errorText,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final membersAsync = ref.watch(WorkspaceViewProviders.members);
+    final theme = Theme.of(context);
+
+    return membersAsync.when(
+      data: (members) {
+        return InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            errorText: errorText,
+            border: const OutlineInputBorder(),
+          ),
+          child: Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: members.map((member) {
+              final isSelected = initialValue.contains(member.id);
+              return FilterChip(
+                avatar: UserAvatar(
+                  displayName: member.displayName,
+                  photoUrl: member.photoUrl,
+                  radius: 12,
+                ),
+                label: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(member.displayName ?? member.email, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(member.email, style: const TextStyle(fontSize: 10, color: Colors.black54)),
+                  ],
+                ),
+                selected: isSelected,
+                onSelected: (selected) {
+                  final newList = List<String>.from(initialValue);
+                  if (selected) {
+                    newList.add(member.id);
+                  } else {
+                    newList.remove(member.id);
+                  }
+                  onChanged(newList);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Text('Error loading members: $err'),
+    );
+  }
+}

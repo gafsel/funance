@@ -7,6 +7,7 @@ import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 
 class AccountFormField extends ConsumerWidget {
   const AccountFormField({
@@ -94,19 +95,12 @@ class AccountFormField extends ConsumerWidget {
                 }
                 return Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: ShapeDecoration(
-                        shape: const CircleBorder(),
-                        color: account.color.asColor().withValues(alpha: 0.2),
-                      ),
-                      child: Icon(
-                        account.icon.asIcon(),
-                        size: 16,
-                        color: account.color.asColor(),
-                      ),
+                    AccountLogo(
+                      account: account,
+                      size: 24,
+                      showMembers: true,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,

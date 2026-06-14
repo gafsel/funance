@@ -2186,11 +2186,95 @@ abstract class AppLocalizations {
   /// **'Saldo Inicial'**
   String get initialBalanceLabel;
 
+  /// No description provided for @initialBalanceCreditCardLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor da Próxima Fatura'**
+  String get initialBalanceCreditCardLabel;
+
+  /// No description provided for @initialBalanceInvestmentLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Inicial do Investimento'**
+  String get initialBalanceInvestmentLabel;
+
+  /// No description provided for @initialBalanceDebtLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Atual da Dívida'**
+  String get initialBalanceDebtLabel;
+
   /// No description provided for @initialBalanceDateLabel.
   ///
   /// In pt, this message translates to:
   /// **'Data do Saldo Inicial'**
   String get initialBalanceDateLabel;
+
+  /// No description provided for @initialBalanceInvestmentDateLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data do Investimento Inicial'**
+  String get initialBalanceInvestmentDateLabel;
+
+  /// No description provided for @initialBalanceDebtDateLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data do Valor Atual'**
+  String get initialBalanceDebtDateLabel;
+
+  /// No description provided for @accountBankLogoLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Logo do Banco/Bandeira'**
+  String get accountBankLogoLabel;
+
+  /// No description provided for @accountOwnerIdsLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Titulares'**
+  String get accountOwnerIdsLabel;
+
+  /// No description provided for @customLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Personalizado'**
+  String get customLabel;
+
+  /// No description provided for @accountNextInvoiceValueLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor da próxima fatura'**
+  String get accountNextInvoiceValueLabel;
+
+  /// No description provided for @accountInitialInvestmentValueLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo inicial do investimento'**
+  String get accountInitialInvestmentValueLabel;
+
+  /// No description provided for @accountInitialDebtValueLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor da dívida'**
+  String get accountInitialDebtValueLabel;
+
+  /// No description provided for @accountInitialInvestmentDateLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data inicial do investimento'**
+  String get accountInitialInvestmentDateLabel;
+
+  /// No description provided for @accountInitialDebtDateLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Data da dívida'**
+  String get accountInitialDebtDateLabel;
+
+  /// No description provided for @none.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum'**
+  String get none;
 
   /// No description provided for @accountMethodDocument.
   ///
@@ -3013,6 +3097,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Informações de pagamento'**
   String get paymentInfo;
+
+  /// No description provided for @accountOwnerLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Titularidade'**
+  String get accountOwnerLabel;
 }
 
 class _AppLocalizationsDelegate

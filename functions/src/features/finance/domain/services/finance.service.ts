@@ -552,12 +552,26 @@ export class FinanceService {
         const month = date.getMonth() + 1;
         const startMonth = `${year}-${month.toString().padStart(2, "0")}`;
 
+        let type: OrderType;
+        let impact: "debt" | "credit";
+
+        if (account.runtimeType === AccountType.creditCard || account.runtimeType === AccountType.debt) {
+            // Para cartões e dívidas, um saldo "positivo" (limit usado ou valor da dívida) é um débito (reduz patrimônio líquido)
+            type = OrderType.expense;
+            impact = "debt";
+        }
+        else {
+            // Para conta corrente e investimentos, saldo positivo é crédito
+            type = account.initialBalance >= 0 ? OrderType.income : OrderType.expense;
+            impact = account.initialBalance >= 0 ? "credit" : "debt";
+        }
+
         const category = {
             id: "initial-balance",
             name: "Saldo Inicial",
             icon: "account_balance_wallet",
             color: "0xFF9E9E9E",
-            type: account.initialBalance >= 0 ? CategoryType.income : CategoryType.expense,
+            type: type === OrderType.income ? CategoryType.income : CategoryType.expense,
             isDeleted: false,
         };
 
@@ -566,12 +580,12 @@ export class FinanceService {
             description: "Saldo Inicial",
             category: category,
             status: OrderStatus.settled,
-            type: account.initialBalance >= 0 ? OrderType.income : OrderType.expense,
+            type: type,
             installmentType: InstallmentType.single,
             dueDay: date.getDate(),
             startMonth: startMonth,
             accounts: {
-                [accountId]: account.initialBalance >= 0 ? "credit" : "debt"
+                [accountId]: impact
             },
             accountIds: [accountId],
             installmentCreationStatus: InstallmentStatus.settled

@@ -14,6 +14,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/replication_cascade_dialog.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
@@ -292,10 +293,9 @@ class _TransactionDetailSheetState
                     ),
                   ),
                   if (_currentInstallment.installmentType ==
-                      InstallmentType.installment &&
+                          InstallmentType.installment &&
                       _currentInstallment.installmentNumber != null &&
-                      _currentInstallment.installmentCount !=
-                          null) ...[
+                      _currentInstallment.installmentCount != null) ...[
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -303,8 +303,7 @@ class _TransactionDetailSheetState
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color:
-                        theme.colorScheme.surfaceContainerHighest,
+                        color: theme.colorScheme.surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: theme.colorScheme.outlineVariant,
@@ -408,7 +407,7 @@ class _TransactionDetailSheetState
                 ),
               ),
               if (_currentInstallment.type != OrderType.transfer)
-              const SizedBox(height: 32),
+                const SizedBox(height: 32),
               if (_currentInstallment.type != OrderType.transfer)
                 _DetailItem(
                   label: l10n.category,
@@ -441,26 +440,54 @@ class _TransactionDetailSheetState
                           value: '',
                           customValue: Row(
                             children: [
-                              Text(
-                                source?.name ?? '-',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w500,
+                              if (source != null) ...[
+                                AccountLogo(
+                                  account: source,
+                                  size: 30,
+                                  showMembers: true,
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  source.name,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ] else
+                                Text(
+                                  '-',
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                               const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                padding: EdgeInsets.symmetric(horizontal: 12),
                                 child: Icon(
                                   Icons.arrow_forward,
                                   size: 16,
                                   color: AppColors.antiqueGold,
                                 ),
                               ),
-                              Text(
-                                target?.name ?? '-',
-                                style: theme.textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w500,
+                              if (target != null) ...[
+                                AccountLogo(
+                                  account: target,
+                                  size: 30,
+                                  showMembers: true,
                                 ),
-                              ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  target.name,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ] else
+                                Text(
+                                  '-',
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                             ],
                           ),
                           icon: Icons.swap_horiz,
@@ -483,6 +510,25 @@ class _TransactionDetailSheetState
                               data: (account) => _DetailItem(
                                 label: l10n.transactionAccountLabel,
                                 value: account?.name ?? '-',
+                                customValue: account != null
+                                    ? Row(
+                                        children: [
+                                          AccountLogo(
+                                            account: account,
+                                            size: 30,
+                                            showMembers: true,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            account.name,
+                                            style: theme.textTheme.bodyLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                          ),
+                                        ],
+                                      )
+                                    : null,
                                 icon:
                                     account?.icon.asIcon() ??
                                     Icons.account_balance_wallet_outlined,

@@ -17,6 +17,39 @@ enum AccountType {
   debt,
 }
 
+enum BankLogo {
+  @JsonValue('none')
+  none,
+  @JsonValue('nubank')
+  nubank,
+  @JsonValue('inter')
+  inter,
+  @JsonValue('itau')
+  itau,
+  @JsonValue('bradesco')
+  bradesco,
+  @JsonValue('santander')
+  santander,
+  @JsonValue('bb')
+  bb,
+  @JsonValue('caixa')
+  caixa,
+  @JsonValue('c6')
+  c6,
+  @JsonValue('xp')
+  xp,
+  @JsonValue('btg')
+  btg,
+  @JsonValue('visa')
+  visa,
+  @JsonValue('mastercard')
+  mastercard,
+  @JsonValue('elo')
+  elo,
+  @JsonValue('amex')
+  amex,
+}
+
 @freezed
 sealed class AccountModel with _$AccountModel {
   const AccountModel._();
@@ -29,6 +62,8 @@ sealed class AccountModel with _$AccountModel {
     @Default(false) bool isDeleted,
     @Default(0.0) double initialBalance,
     @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
+    @Default(BankLogo.none) BankLogo bankLogo,
+    @Default([]) List<String> ownerIds,
   }) = CheckingAccount;
 
   const factory AccountModel.investment({
@@ -40,6 +75,8 @@ sealed class AccountModel with _$AccountModel {
     @Default(0.0) double initialBalance,
     @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
     required double interestRate,
+    @Default(BankLogo.none) BankLogo bankLogo,
+    @Default([]) List<String> ownerIds,
   }) = InvestmentAccount;
 
   const factory AccountModel.creditCard({
@@ -53,6 +90,8 @@ sealed class AccountModel with _$AccountModel {
     required double limit,
     required int dueDay,
     required int closingDay,
+    @Default(BankLogo.none) BankLogo bankLogo,
+    @Default([]) List<String> ownerIds,
   }) = CreditCardAccount;
 
   const factory AccountModel.debt({
@@ -64,6 +103,8 @@ sealed class AccountModel with _$AccountModel {
     @Default(0.0) double initialBalance,
     @DateTimeTwelvePmConverter() required DateTime initialBalanceDate,
     required double interestRate,
+    @Default(BankLogo.none) BankLogo bankLogo,
+    @Default([]) List<String> ownerIds,
   }) = DebtAccount;
 
   AccountType get type => map(

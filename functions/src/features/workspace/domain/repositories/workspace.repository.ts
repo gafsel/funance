@@ -5,4 +5,5 @@ export interface IWorkspaceRepository {
   getUserWorkspaces(userId: string): Promise<WorkspaceModel[]>;
   createWorkspace(workspace: Omit<WorkspaceModel, "id">): Promise<string>;
   addMember(workspaceId: string, userId: string): Promise<void>;
+  getMembersByIds(userIds: string[]): Promise<any[]>;
 }

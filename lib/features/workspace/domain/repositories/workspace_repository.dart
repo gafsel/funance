@@ -1,3 +1,5 @@
+import 'package:funances/features/user/domain/models/user_model.dart';
+
 import '../models/workspace_model.dart';
 
 abstract class IWorkspaceRepository {
@@ -6,4 +8,5 @@ abstract class IWorkspaceRepository {
   Future<WorkspaceModel?> getWorkspace(String id);
   Future<void> updateWorkspace(WorkspaceModel workspace);
   Future<void> deleteWorkspace(String workspaceId);
+  Future<List<UserModel>> getWorkspaceMembers(String workspaceId);
 }

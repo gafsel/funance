@@ -3,12 +3,23 @@ import 'dart:io';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
+import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 
 class AccountService {
   final String workspaceId;
   final IAccountRepository repository;
+  final IWorkspaceRepository workspaceRepository;
 
-  AccountService({required this.workspaceId, required this.repository});
+  AccountService({
+    required this.workspaceId,
+    required this.repository,
+    required this.workspaceRepository,
+  });
+
+  Future<List<UserModel>> getWorkspaceMembers() async {
+    return workspaceRepository.getWorkspaceMembers(workspaceId);
+  }
 
   Future<AccountModel> create(AccountModel account) async {
     return await repository.createAccount(workspaceId, account);

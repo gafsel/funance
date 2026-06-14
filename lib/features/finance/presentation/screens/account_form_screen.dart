@@ -20,6 +20,7 @@ import 'package:funances/features/finance/presentation/controllers/account_form_
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/features/workspace/presentation/widgets/members_form_field.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../domain/models/account_model.dart';
@@ -29,6 +30,8 @@ class AccountFormScreen extends ConsumerWidget {
   final AccountType? initialType;
 
   const AccountFormScreen({super.key, this.account, this.initialType});
+
+  static const List<BankLogo> bankLogos = BankLogo.values;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -233,6 +236,7 @@ class AccountFormScreen extends ConsumerWidget {
                       _buildDetectedSummary(context, state, l10n),
                       ..._buildManualFields(
                         context,
+                        ref,
                         state,
                         notifier,
                         l10n,
@@ -242,9 +246,11 @@ class AccountFormScreen extends ConsumerWidget {
                     ],
                   ] else ...[
                     if (state.creation)
-                      FullWidthItem(Text(l10n.accountManualDescription, style: descriptionStyle)),
+                      FullWidthItem(
+                          Text(l10n.accountManualDescription, style: descriptionStyle)),
                     ..._buildManualFields(
                       context,
+                      ref,
                       state,
                       notifier,
                       l10n,
@@ -375,6 +381,7 @@ class AccountFormScreen extends ConsumerWidget {
 
   List<Widget> _buildManualFields(
     BuildContext context,
+    WidgetRef ref,
     AccountFormState state,
     AccountFormNotifier notifier,
     AppLocalizations l10n,
@@ -382,6 +389,7 @@ class AccountFormScreen extends ConsumerWidget {
     ThemeData theme,
   ) {
     final v = context.validations;
+
     return [
       ChipFormField<AccountType>(
         initialValue: state.type,
@@ -407,44 +415,83 @@ class AccountFormScreen extends ConsumerWidget {
         ),
         onChanged: notifier.updateName,
       ),
-      IconFormField(
-        initialValue: state.icon,
-        decoration: InputDecoration(labelText: l10n.accountIconLabel),
-        validator: v.all([v.notEmpty()]),
-        onChanged: (icon) {
-          if (icon != null) {
-            notifier.updateIcon(icon);
-          }
-        },
-      ),
-      ColorFormField(
-        initialValue: state.color,
-        decoration: InputDecoration(labelText: l10n.accountColorLabel),
-        validator: v.all([v.notEmpty()]),
-        onChanged: (value) {
-          if (value != null) {
-            notifier.updateColor(value);
-          }
-        },
-      ),
-      MoneyFormField(
-        initialValue: state.initialBalance,
-        decoration: InputDecoration(
-          labelText: l10n.initialBalanceLabel,
-          labelStyle: labelStyle,
+      FullWidthItem(
+        InputDecorator(
+          decoration: InputDecoration(
+            labelText: "Banco / Bandeira",
+            labelStyle: labelStyle,
+            border: const OutlineInputBorder(),
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _BankLogoOption(
+                logo: BankLogo.none,
+                isSelected: state.bankLogo == BankLogo.none,
+                onSelected: () => notifier.updateBankLogo(BankLogo.none),
+                label: "Personalizado",
+              ),
+              ...BankLogo.values.where((l) => l != BankLogo.none).map(
+                    (logo) => _BankLogoOption(
+                      logo: logo,
+                      isSelected: state.bankLogo == logo,
+                      onSelected: () => notifier.updateBankLogo(logo),
+                    ),
+                  ),
+            ],
+          ),
         ),
-        onChanged: (v) => notifier.updateInitialBalance(v ?? 0.0),
       ),
-      DateFormField(
-        initialValue: state.initialBalanceDate,
-        validator: v.all([v.notNull()]),
-        decoration: InputDecoration(
-          labelText: l10n.initialBalanceDateLabel,
-          labelStyle: labelStyle,
+      if (state.bankLogo == BankLogo.none) ...[
+        IconFormField(
+          initialValue: state.icon,
+          decoration: InputDecoration(labelText: l10n.accountIconLabel),
+          validator: v.all([v.notEmpty()]),
+          onChanged: (icon) {
+            if (icon != null) {
+              notifier.updateIcon(icon);
+            }
+          },
         ),
-        onChanged: (date) =>
-            notifier.updateInitialBalanceDate(date ?? DateTime.now()),
+        ColorFormField(
+          initialValue: state.color,
+          decoration: InputDecoration(labelText: l10n.accountColorLabel),
+          validator: v.all([v.notEmpty()]),
+          onChanged: (value) {
+            if (value != null) {
+              notifier.updateColor(value);
+            }
+          },
+        ),
+      ],
+      FullWidthItem(
+        MembersFormField(
+          initialValue: state.ownerIds,
+          onChanged: notifier.updateOwnerIds,
+          label: "Titulares da Conta",
+        ),
       ),
+      if (state.creation) ...[
+        MoneyFormField(
+          initialValue: state.initialBalance,
+          decoration: InputDecoration(
+            labelText: _getInitialBalanceLabel(state.type, l10n),
+            labelStyle: labelStyle,
+          ),
+          onChanged: (v) => notifier.updateInitialBalance(v ?? 0.0),
+        ),
+        DateFormField(
+          initialValue: state.initialBalanceDate,
+          validator: v.all([v.notNull()]),
+          decoration: InputDecoration(
+            labelText: _getInitialBalanceDateLabel(state.type, l10n),
+            labelStyle: labelStyle,
+          ),
+          onChanged: (date) =>
+              notifier.updateInitialBalanceDate(date ?? DateTime.now()),
+        ),
+      ],
       if (state.type == AccountType.creditCard) ...[
         MoneyFormField(
           initialValue: state.limit,
@@ -500,4 +547,79 @@ class AccountFormScreen extends ConsumerWidget {
     ];
   }
 
+  String _getInitialBalanceLabel(AccountType type, AppLocalizations l10n) {
+    switch (type) {
+      case AccountType.creditCard:
+        return l10n.initialBalanceCreditCardLabel;
+      case AccountType.investment:
+        return l10n.initialBalanceInvestmentLabel;
+      case AccountType.debt:
+        return l10n.initialBalanceDebtLabel;
+      case AccountType.checking:
+        return l10n.initialBalanceLabel;
+    }
+  }
+
+  String _getInitialBalanceDateLabel(AccountType type, AppLocalizations l10n) {
+    switch (type) {
+      case AccountType.investment:
+        return l10n.initialBalanceInvestmentDateLabel;
+      case AccountType.debt:
+        return l10n.initialBalanceDebtDateLabel;
+      default:
+        return l10n.initialBalanceDateLabel;
+    }
+  }
+}
+
+class _BankLogoOption extends StatelessWidget {
+  final BankLogo logo;
+  final bool isSelected;
+  final VoidCallback onSelected;
+  final String? label;
+
+  const _BankLogoOption({
+    required this.logo,
+    required this.isSelected,
+    required this.onSelected,
+    this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onSelected,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.3),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+        ),
+        child: logo == BankLogo.none
+            ? Center(
+                child: Text(
+                  label ?? '?',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.bold : null,
+                  ),
+                ),
+              )
+            : ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.asset(
+                  'assets/logos/${logo.name}.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.help_outline),
+                ),
+              ),
+      ),
+    );
+  }
 }

@@ -48,6 +48,8 @@ sealed class AccountFormState with _$AccountFormState {
     int? dueDay,
     int? closingDay,
     double? interestRate,
+    @Default(BankLogo.none) BankLogo bankLogo,
+    @Default([]) List<String> ownerIds,
     File? selectedFile,
     @Default(AccountProcessingStatus.none)
     AccountProcessingStatus processingStatus,
@@ -75,6 +77,8 @@ sealed class AccountFormState with _$AccountFormState {
         debt: (cc) => cc.interestRate,
         investment: (cc) => cc.interestRate,
       ),
+      bankLogo: account?.bankLogo ?? BankLogo.none,
+      ownerIds: account?.ownerIds ?? [],
       processingStatus: AccountProcessingStatus.none,
       registrationMethod: account != null
           ? AccountRegistrationMethod.manual
@@ -91,6 +95,8 @@ sealed class AccountFormState with _$AccountFormState {
         color: color,
         initialBalanceDate: initialBalanceDate,
         initialBalance: initialBalance,
+        bankLogo: bankLogo,
+        ownerIds: ownerIds,
       )
           .map(
         checking: (checking) => checking,
@@ -108,16 +114,18 @@ sealed class AccountFormState with _$AccountFormState {
     switch (type) {
       case AccountType.checking:
         return AccountModel.checking(
-          id: originalAccount?.id ?? Uuid().v4(),
+          id: originalAccount?.id ?? const Uuid().v4(),
           name: name,
           icon: icon,
           color: color,
           initialBalanceDate: initialBalanceDate,
           initialBalance: initialBalance,
+          bankLogo: bankLogo,
+          ownerIds: ownerIds,
         );
       case AccountType.creditCard:
         return AccountModel.creditCard(
-          id: originalAccount?.id ?? Uuid().v4(),
+          id: originalAccount?.id ?? const Uuid().v4(),
           name: name,
           icon: icon,
           color: color,
@@ -126,26 +134,32 @@ sealed class AccountFormState with _$AccountFormState {
           closingDay: closingDay!,
           dueDay: dueDay!,
           limit: limit!,
+          bankLogo: bankLogo,
+          ownerIds: ownerIds,
         );
       case AccountType.investment:
         return AccountModel.investment(
-          id: originalAccount?.id ?? Uuid().v4(),
+          id: originalAccount?.id ?? const Uuid().v4(),
           name: name,
           icon: icon,
           color: color,
           initialBalanceDate: initialBalanceDate,
           initialBalance: initialBalance,
           interestRate: interestRate!,
+          bankLogo: bankLogo,
+          ownerIds: ownerIds,
         );
       case AccountType.debt:
         return AccountModel.debt(
-          id: originalAccount?.id ?? Uuid().v4(),
+          id: originalAccount?.id ?? const Uuid().v4(),
           name: name,
           icon: icon,
           color: color,
           initialBalanceDate: initialBalanceDate,
           interestRate: interestRate!,
           initialBalance: initialBalance,
+          bankLogo: bankLogo,
+          ownerIds: ownerIds,
         );
     }
   }

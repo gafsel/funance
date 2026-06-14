@@ -22,4 +22,5 @@ export * from "./features/finance/presentation/functions/category_planning_handl
 export * from "./features/goal/presentation/functions/ai_handler";
 export * from "./features/workspace/presentation/functions/invite_handler";
 export * from "./features/workspace/presentation/functions/category_handler";
+export * from "./features/workspace/presentation/functions/workspace_handler";
 export * from "./features/coaching/presentation/functions/coaching_handler";

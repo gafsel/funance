@@ -41,4 +41,37 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
             members: admin.firestore.FieldValue.arrayUnion(userId),
         });
     }
+
+    async getMembersByIds(userIds: string[]): Promise<any[]> {
+        if (userIds.length === 0) return [];
+
+        const members: any[] = [];
+        const db = admin.firestore();
+        
+        // Firestore 'in' query supports up to 30 elements
+        const chunks: string[][] = [];
+        for (let i = 0; i < userIds.length; i += 30) {
+            chunks.push(userIds.slice(i, i + 30));
+        }
+
+        for (const chunk of chunks) {
+            const usersSnapshot = await db.collection("users")
+                .where(admin.firestore.FieldPath.documentId(), "in", chunk)
+                .get();
+
+            usersSnapshot.forEach(doc => {
+                const data = doc.data();
+                members.push({
+                    id: doc.id,
+                    email: data.email,
+                    displayName: data.displayName,
+                    photoUrl: data.photoUrl,
+                    createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+                    lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin,
+                });
+            });
+        }
+
+        return members;
+    }
 }

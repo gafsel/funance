@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../domain/models/account_model.dart';
-import 'account_form_screen.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -155,15 +156,8 @@ class AccountManagementScreen extends ConsumerWidget {
           _showAccountDialog(context, ref, account);
         }
       },
-      contentPadding: isGrid
-          ? const EdgeInsets.symmetric(horizontal: 12)
-          : null,
-      leading: CircleAvatar(
-        backgroundColor: Color(
-          int.parse(account.color.replaceAll('#', '0xFF')),
-        ),
-        child: Icon(_getIconData(account.icon), color: Colors.white, size: 20),
-      ),
+      contentPadding: isGrid ? const EdgeInsets.symmetric(horizontal: 12) : null,
+      leading: AccountLogo(account: account, size: 40, showMembers: true),
       title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
       subtitle: Text(
         l10n.fromAccountType(account.type),
@@ -175,7 +169,7 @@ class AccountManagementScreen extends ConsumerWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () => _showAccountDialog(context, ref, account),
+            onPressed: () => context.push('/accounts/form', extra: account),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

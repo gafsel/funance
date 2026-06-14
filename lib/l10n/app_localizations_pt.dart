@@ -1168,7 +1168,52 @@ class AppLocalizationsPt extends AppLocalizations {
   String get initialBalanceLabel => 'Saldo Inicial';
 
   @override
+  String get initialBalanceCreditCardLabel => 'Valor da Próxima Fatura';
+
+  @override
+  String get initialBalanceInvestmentLabel => 'Valor Inicial do Investimento';
+
+  @override
+  String get initialBalanceDebtLabel => 'Valor Atual da Dívida';
+
+  @override
   String get initialBalanceDateLabel => 'Data do Saldo Inicial';
+
+  @override
+  String get initialBalanceInvestmentDateLabel =>
+      'Data do Investimento Inicial';
+
+  @override
+  String get initialBalanceDebtDateLabel => 'Data do Valor Atual';
+
+  @override
+  String get accountBankLogoLabel => 'Logo do Banco/Bandeira';
+
+  @override
+  String get accountOwnerIdsLabel => 'Titulares';
+
+  @override
+  String get customLabel => 'Personalizado';
+
+  @override
+  String get accountNextInvoiceValueLabel => 'Valor da próxima fatura';
+
+  @override
+  String get accountInitialInvestmentValueLabel =>
+      'Saldo inicial do investimento';
+
+  @override
+  String get accountInitialDebtValueLabel => 'Valor da dívida';
+
+  @override
+  String get accountInitialInvestmentDateLabel =>
+      'Data inicial do investimento';
+
+  @override
+  String get accountInitialDebtDateLabel => 'Data da dívida';
+
+  @override
+  String get none => 'Nenhum';
 
   @override
   String get accountMethodDocument => 'Por Documento';
@@ -1639,4 +1684,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get paymentInfo => 'Informações de pagamento';
+
+  @override
+  String get accountOwnerLabel => 'Titularidade';
 }

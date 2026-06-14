@@ -101,6 +101,24 @@ export enum AccountType {
     debt = "debt",
 }
 
+export enum BankLogo {
+    none = "none",
+    nubank = "nubank",
+    inter = "inter",
+    itau = "itau",
+    bradesco = "bradesco",
+    santander = "santander",
+    bb = "bb",
+    caixa = "caixa",
+    c6 = "c6",
+    xp = "xp",
+    btg = "btg",
+    visa = "visa",
+    mastercard = "mastercard",
+    elo = "elo",
+    amex = "amex",
+}
+
 export interface AccountModel {
     id: string;
     name: string;
@@ -114,6 +132,8 @@ export interface AccountModel {
     dueDay?: number;
     limit?: number;
     interestRate?: number;
+    bankLogo?: BankLogo;
+    ownerIds?: string[];
 }
 
 export interface AccountBalanceModel {

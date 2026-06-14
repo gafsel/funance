@@ -8,6 +8,7 @@ import { IInviteRepository } from "../features/workspace/domain/repositories/inv
 import { ICategoryRepository } from "../features/workspace/domain/repositories/category.repository";
 import { ICategoryService } from "../features/workspace/domain/services/category.service";
 import { IInviteService } from "../features/workspace/domain/services/invite.service";
+import { IWorkspaceService } from "../features/workspace/domain/services/workspace.service";
 import { IGoalRepository } from "../features/goal/domain/repositories/goal.repository";
 import { IGoalService } from "../features/goal/domain/services/goal.service";
 import { WorkspaceRepositoryImpl } from "../features/workspace/data/repositories/workspace.repository.impl";
@@ -18,6 +19,7 @@ import { CategoryRepositoryImpl } from "../features/workspace/data/repositories/
 import { GoalRepositoryImpl } from "../features/goal/data/repositories/goal.repository.impl";
 import { CategoryServiceImpl } from "../features/workspace/domain/services/category.service.impl";
 import { InviteServiceImpl } from "../features/workspace/domain/services/invite.service.impl";
+import { WorkspaceServiceImpl } from "../features/workspace/domain/services/workspace.service.impl";
 import { GoalServiceImpl } from "../features/goal/domain/services/goal.service.impl";
 import { FinanceService } from "../features/finance/domain/services/finance.service";
 import { SummaryService } from "../features/finance/domain/services/summary.service";
@@ -30,6 +32,7 @@ class Container {
     private static _inviteRepository: IInviteRepository;
     private static _categoryRepository: ICategoryRepository;
     private static _categoryService: ICategoryService;
+    private static _workspaceService: IWorkspaceService;
     private static _inviteService: IInviteService;
     private static _goalRepository: IGoalRepository;
     private static _goalService: IGoalService;
@@ -94,6 +97,13 @@ class Container {
             this._categoryService = new CategoryServiceImpl(this.categoryRepository, this.financeRepository);
         }
         return this._categoryService;
+    }
+
+    static get workspaceService(): IWorkspaceService {
+        if (!this._workspaceService) {
+            this._workspaceService = new WorkspaceServiceImpl(this.workspaceRepository);
+        }
+        return this._workspaceService;
     }
 
     static get financeService(): FinanceService {

@@ -100,6 +100,7 @@ class AccountDomainProviders {
           ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
           "",
       repository: ref.read(repository),
+      workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
     ),
   );
 }

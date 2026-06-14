@@ -46,7 +46,7 @@ AccountModel _$AccountModelFromJson(
 /// @nodoc
 mixin _$AccountModel {
 
- String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance;@DateTimeTwelvePmConverter() DateTime get initialBalanceDate;
+ String get id; String get name; String get icon; String get color; bool get isDeleted; double get initialBalance;@DateTimeTwelvePmConverter() DateTime get initialBalanceDate; BankLogo get bankLogo; List<String> get ownerIds;
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -59,16 +59,16 @@ $AccountModelCopyWith<AccountModel> get copyWith => _$AccountModelCopyWithImpl<A
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AccountModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.bankLogo, bankLogo) || other.bankLogo == bankLogo)&&const DeepCollectionEquality().equals(other.ownerIds, ownerIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,bankLogo,const DeepCollectionEquality().hash(ownerIds));
 
 @override
 String toString() {
-  return 'AccountModel(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate)';
+  return 'AccountModel(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, bankLogo: $bankLogo, ownerIds: $ownerIds)';
 }
 
 
@@ -79,7 +79,7 @@ abstract mixin class $AccountModelCopyWith<$Res>  {
   factory $AccountModelCopyWith(AccountModel value, $Res Function(AccountModel) _then) = _$AccountModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, BankLogo bankLogo, List<String> ownerIds
 });
 
 
@@ -96,7 +96,7 @@ class _$AccountModelCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? bankLogo = null,Object? ownerIds = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -105,7 +105,9 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
+as BankLogo,ownerIds: null == ownerIds ? _self.ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -196,13 +198,13 @@ return debt(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  debt,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  debt,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
-return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount() when investment != null:
-return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case CreditCardAccount() when creditCard != null:
-return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount() when debt != null:
-return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case _:
+return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.bankLogo,_that.ownerIds);case InvestmentAccount() when investment != null:
+return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate,_that.bankLogo,_that.ownerIds);case CreditCardAccount() when creditCard != null:
+return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay,_that.bankLogo,_that.ownerIds);case DebtAccount() when debt != null:
+return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate,_that.bankLogo,_that.ownerIds);case _:
   return orElse();
 
 }
@@ -220,13 +222,13 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)  debt,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount():
-return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount():
-return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case CreditCardAccount():
-return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount():
-return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);}
+return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.bankLogo,_that.ownerIds);case InvestmentAccount():
+return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate,_that.bankLogo,_that.ownerIds);case CreditCardAccount():
+return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay,_that.bankLogo,_that.ownerIds);case DebtAccount():
+return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate,_that.bankLogo,_that.ownerIds);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -240,13 +242,13 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate)?  debt,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
-return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate);case InvestmentAccount() when investment != null:
-return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case CreditCardAccount() when creditCard != null:
-return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay);case DebtAccount() when debt != null:
-return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate);case _:
+return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.bankLogo,_that.ownerIds);case InvestmentAccount() when investment != null:
+return investment(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate,_that.bankLogo,_that.ownerIds);case CreditCardAccount() when creditCard != null:
+return creditCard(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.limit,_that.dueDay,_that.closingDay,_that.bankLogo,_that.ownerIds);case DebtAccount() when debt != null:
+return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.interestRate,_that.bankLogo,_that.ownerIds);case _:
   return null;
 
 }
@@ -258,7 +260,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 @JsonSerializable()
 
 class CheckingAccount extends AccountModel {
-  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, final  String? $type}): $type = $type ?? 'checking',super._();
+  const CheckingAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, this.bankLogo = BankLogo.none, final  List<String> ownerIds = const [], final  String? $type}): _ownerIds = ownerIds,$type = $type ?? 'checking',super._();
   factory CheckingAccount.fromJson(Map<String, dynamic> json) => _$CheckingAccountFromJson(json);
 
 @override final  String id;
@@ -268,6 +270,14 @@ class CheckingAccount extends AccountModel {
 @override@JsonKey() final  bool isDeleted;
 @override@JsonKey() final  double initialBalance;
 @override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
+@override@JsonKey() final  BankLogo bankLogo;
+ final  List<String> _ownerIds;
+@override@JsonKey() List<String> get ownerIds {
+  if (_ownerIds is EqualUnmodifiableListView) return _ownerIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_ownerIds);
+}
+
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -286,16 +296,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CheckingAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CheckingAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.bankLogo, bankLogo) || other.bankLogo == bankLogo)&&const DeepCollectionEquality().equals(other._ownerIds, _ownerIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,bankLogo,const DeepCollectionEquality().hash(_ownerIds));
 
 @override
 String toString() {
-  return 'AccountModel.checking(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate)';
+  return 'AccountModel.checking(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, bankLogo: $bankLogo, ownerIds: $ownerIds)';
 }
 
 
@@ -306,7 +316,7 @@ abstract mixin class $CheckingAccountCopyWith<$Res> implements $AccountModelCopy
   factory $CheckingAccountCopyWith(CheckingAccount value, $Res Function(CheckingAccount) _then) = _$CheckingAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, BankLogo bankLogo, List<String> ownerIds
 });
 
 
@@ -323,7 +333,7 @@ class _$CheckingAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? bankLogo = null,Object? ownerIds = null,}) {
   return _then(CheckingAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -332,7 +342,9 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
-as DateTime,
+as DateTime,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
+as BankLogo,ownerIds: null == ownerIds ? _self._ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -343,7 +355,7 @@ as DateTime,
 @JsonSerializable()
 
 class InvestmentAccount extends AccountModel {
-  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'investment',super._();
+  const InvestmentAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.interestRate, this.bankLogo = BankLogo.none, final  List<String> ownerIds = const [], final  String? $type}): _ownerIds = ownerIds,$type = $type ?? 'investment',super._();
   factory InvestmentAccount.fromJson(Map<String, dynamic> json) => _$InvestmentAccountFromJson(json);
 
 @override final  String id;
@@ -354,6 +366,14 @@ class InvestmentAccount extends AccountModel {
 @override@JsonKey() final  double initialBalance;
 @override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
  final  double interestRate;
+@override@JsonKey() final  BankLogo bankLogo;
+ final  List<String> _ownerIds;
+@override@JsonKey() List<String> get ownerIds {
+  if (_ownerIds is EqualUnmodifiableListView) return _ownerIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_ownerIds);
+}
+
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -372,16 +392,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvestmentAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is InvestmentAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate)&&(identical(other.bankLogo, bankLogo) || other.bankLogo == bankLogo)&&const DeepCollectionEquality().equals(other._ownerIds, _ownerIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,interestRate);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,interestRate,bankLogo,const DeepCollectionEquality().hash(_ownerIds));
 
 @override
 String toString() {
-  return 'AccountModel.investment(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, interestRate: $interestRate)';
+  return 'AccountModel.investment(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, interestRate: $interestRate, bankLogo: $bankLogo, ownerIds: $ownerIds)';
 }
 
 
@@ -392,7 +412,7 @@ abstract mixin class $InvestmentAccountCopyWith<$Res> implements $AccountModelCo
   factory $InvestmentAccountCopyWith(InvestmentAccount value, $Res Function(InvestmentAccount) _then) = _$InvestmentAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double interestRate, BankLogo bankLogo, List<String> ownerIds
 });
 
 
@@ -409,7 +429,7 @@ class _$InvestmentAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? interestRate = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? interestRate = null,Object? bankLogo = null,Object? ownerIds = null,}) {
   return _then(InvestmentAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -419,7 +439,9 @@ as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: 
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
 as DateTime,interestRate: null == interestRate ? _self.interestRate : interestRate // ignore: cast_nullable_to_non_nullable
-as double,
+as double,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
+as BankLogo,ownerIds: null == ownerIds ? _self._ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -430,7 +452,7 @@ as double,
 @JsonSerializable()
 
 class CreditCardAccount extends AccountModel {
-  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, final  String? $type}): $type = $type ?? 'creditCard',super._();
+  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, this.bankLogo = BankLogo.none, final  List<String> ownerIds = const [], final  String? $type}): _ownerIds = ownerIds,$type = $type ?? 'creditCard',super._();
   factory CreditCardAccount.fromJson(Map<String, dynamic> json) => _$CreditCardAccountFromJson(json);
 
 @override final  String id;
@@ -443,6 +465,14 @@ class CreditCardAccount extends AccountModel {
  final  double limit;
  final  int dueDay;
  final  int closingDay;
+@override@JsonKey() final  BankLogo bankLogo;
+ final  List<String> _ownerIds;
+@override@JsonKey() List<String> get ownerIds {
+  if (_ownerIds is EqualUnmodifiableListView) return _ownerIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_ownerIds);
+}
+
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -461,16 +491,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreditCardAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CreditCardAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.limit, limit) || other.limit == limit)&&(identical(other.dueDay, dueDay) || other.dueDay == dueDay)&&(identical(other.closingDay, closingDay) || other.closingDay == closingDay)&&(identical(other.bankLogo, bankLogo) || other.bankLogo == bankLogo)&&const DeepCollectionEquality().equals(other._ownerIds, _ownerIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,limit,dueDay,closingDay);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,limit,dueDay,closingDay,bankLogo,const DeepCollectionEquality().hash(_ownerIds));
 
 @override
 String toString() {
-  return 'AccountModel.creditCard(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, limit: $limit, dueDay: $dueDay, closingDay: $closingDay)';
+  return 'AccountModel.creditCard(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, limit: $limit, dueDay: $dueDay, closingDay: $closingDay, bankLogo: $bankLogo, ownerIds: $ownerIds)';
 }
 
 
@@ -481,7 +511,7 @@ abstract mixin class $CreditCardAccountCopyWith<$Res> implements $AccountModelCo
   factory $CreditCardAccountCopyWith(CreditCardAccount value, $Res Function(CreditCardAccount) _then) = _$CreditCardAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double limit, int dueDay, int closingDay
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double limit, int dueDay, int closingDay, BankLogo bankLogo, List<String> ownerIds
 });
 
 
@@ -498,7 +528,7 @@ class _$CreditCardAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? limit = null,Object? dueDay = null,Object? closingDay = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? limit = null,Object? dueDay = null,Object? closingDay = null,Object? bankLogo = null,Object? ownerIds = null,}) {
   return _then(CreditCardAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -510,7 +540,9 @@ as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceD
 as DateTime,limit: null == limit ? _self.limit : limit // ignore: cast_nullable_to_non_nullable
 as double,dueDay: null == dueDay ? _self.dueDay : dueDay // ignore: cast_nullable_to_non_nullable
 as int,closingDay: null == closingDay ? _self.closingDay : closingDay // ignore: cast_nullable_to_non_nullable
-as int,
+as int,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
+as BankLogo,ownerIds: null == ownerIds ? _self._ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 
@@ -521,7 +553,7 @@ as int,
 @JsonSerializable()
 
 class DebtAccount extends AccountModel {
-  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.interestRate, final  String? $type}): $type = $type ?? 'debt',super._();
+  const DebtAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.interestRate, this.bankLogo = BankLogo.none, final  List<String> ownerIds = const [], final  String? $type}): _ownerIds = ownerIds,$type = $type ?? 'debt',super._();
   factory DebtAccount.fromJson(Map<String, dynamic> json) => _$DebtAccountFromJson(json);
 
 @override final  String id;
@@ -532,6 +564,14 @@ class DebtAccount extends AccountModel {
 @override@JsonKey() final  double initialBalance;
 @override@DateTimeTwelvePmConverter() final  DateTime initialBalanceDate;
  final  double interestRate;
+@override@JsonKey() final  BankLogo bankLogo;
+ final  List<String> _ownerIds;
+@override@JsonKey() List<String> get ownerIds {
+  if (_ownerIds is EqualUnmodifiableListView) return _ownerIds;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_ownerIds);
+}
+
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -550,16 +590,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DebtAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DebtAccount&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted)&&(identical(other.initialBalance, initialBalance) || other.initialBalance == initialBalance)&&(identical(other.initialBalanceDate, initialBalanceDate) || other.initialBalanceDate == initialBalanceDate)&&(identical(other.interestRate, interestRate) || other.interestRate == interestRate)&&(identical(other.bankLogo, bankLogo) || other.bankLogo == bankLogo)&&const DeepCollectionEquality().equals(other._ownerIds, _ownerIds));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,interestRate);
+int get hashCode => Object.hash(runtimeType,id,name,icon,color,isDeleted,initialBalance,initialBalanceDate,interestRate,bankLogo,const DeepCollectionEquality().hash(_ownerIds));
 
 @override
 String toString() {
-  return 'AccountModel.debt(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, interestRate: $interestRate)';
+  return 'AccountModel.debt(id: $id, name: $name, icon: $icon, color: $color, isDeleted: $isDeleted, initialBalance: $initialBalance, initialBalanceDate: $initialBalanceDate, interestRate: $interestRate, bankLogo: $bankLogo, ownerIds: $ownerIds)';
 }
 
 
@@ -570,7 +610,7 @@ abstract mixin class $DebtAccountCopyWith<$Res> implements $AccountModelCopyWith
   factory $DebtAccountCopyWith(DebtAccount value, $Res Function(DebtAccount) _then) = _$DebtAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double interestRate
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double interestRate, BankLogo bankLogo, List<String> ownerIds
 });
 
 
@@ -587,7 +627,7 @@ class _$DebtAccountCopyWithImpl<$Res>
 
 /// Create a copy of AccountModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? interestRate = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? color = null,Object? isDeleted = null,Object? initialBalance = null,Object? initialBalanceDate = null,Object? interestRate = null,Object? bankLogo = null,Object? ownerIds = null,}) {
   return _then(DebtAccount(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -597,7 +637,9 @@ as String,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: 
 as bool,initialBalance: null == initialBalance ? _self.initialBalance : initialBalance // ignore: cast_nullable_to_non_nullable
 as double,initialBalanceDate: null == initialBalanceDate ? _self.initialBalanceDate : initialBalanceDate // ignore: cast_nullable_to_non_nullable
 as DateTime,interestRate: null == interestRate ? _self.interestRate : interestRate // ignore: cast_nullable_to_non_nullable
-as double,
+as double,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
+as BankLogo,ownerIds: null == ownerIds ? _self._ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
+as List<String>,
   ));
 }
 

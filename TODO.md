@@ -14,7 +14,7 @@
 11. [X] Separar listagem de categorias de despesas e receitas
 12. [X] Adicionar botão de nova categoria no fluxo de cadastro de transação
 13. [X] Formatar campos monetários
-14. [ ] Permitir modificar a categoria de uma transação
+14. [X] Permitir modificar a categoria de uma transação
 
 ### Defeitos percebidos
 1. [X] A análise de extrato está criando Categorias duplicadas
@@ -143,10 +143,38 @@
 - [ ] ajustar nome do tipo da categoria (não precisa mostrar já que há divisão por aba)
 
 ### Gestão de Contas
-- [ ] Não permitir editar saldos inicias (nem mostrar no formulário de edição, só no cadastro)
-- [ ] Sempre criar o lançamento de saldo inicial (mesmo com o valor zerado)
-- [ ] Criar logos de bancos com cores automáticas
-- [ ] Criar campo de titularidade -> para mostrar nas listagens
+- [X] Não permitir editar saldos inicias (nem mostrar no formulário de edição, só no cadastro)
+```
+    As informações de data e saldo inicias devem estar disponíveis apenas no cadastro da conta.
+    Na edição, esses dois campos não devem aparecer
+```
+- [X] Sempre criar o lançamento de saldo inicial (mesmo com o valor zerado)
+```
+    Na cloud function que cria o primeiro saldo, ele deve sempre ser criado, mesmo quando o valor for zerado.
+```
+- [X] Criar logos de bancos com cores automáticas
+```
+    Alterar model para permitir escolher a logo do banco/bandeira dentre uma lista pré-definida de logos (vindas de uma pasta de assets - crie um enum de bancos/bandeiras com logos nos assets).
+    O model deve permitir usar uma logo ou o ícone e cor. quando a log for escolhida, o campo de cor não aparece, quando o usuário escolher um ícone a opção de cor aparece - o form field de ícone deve mostrar os ícones e as logos como opções
+    Organize uma pasta de assets com as logos dos bancos e coloque o nome do arquivo como o nome do banco. Faça o mesmo com bandeiras de cartões.
+    Altere a function de identificação de dados bancários via IA para selecionar uma das logos, caso seja aplicável, alem de escolher o ícone e a cor, assim, caso a logo não seja selecionada, aplica-se o ícone e a cor.
+    Altere as apresentações de conta para mostrar a logo do banco/bandeira.
+```
+- [X] Criar campo de titularidade -> para mostrar nas listagens
+```
+    Alterar o model do banco para incluir uma lista de ids de titularidades (campo opcional com 1 ou mais titulares).
+    O campo deve listar os membros do workspace como opções de titularidade.
+    Cria uma cloud function que permita recuperar os dados dos membros do workspace (com foto, nome e-mail etc).
+    Nas apresentações de banco, mostrar os titulares com o widget de avatar de membro no canto inferior da logo do banco (bolinhas anexas à logo do banco)
+    No componente de seleção de contas, trazer primeiro as contas de titularidade do membro logado e depois as contas dos outros membros. 
+```
+- [X] Ajustar formulários e inputs para os diferentes tipos de conta
+```
+    - Conta corrente (checking) deve pedir data e saldo inicial, que serão usados para gerar a order de saldo inicial da transação
+    - Conta de investimento (investment) deve pedir juros e a data e o saldo incial que serão usados para gerar a order de saldo inicial
+    - Cartão de crédito (creditCard) deve pedir limite, dia de fechamento e dia de vencimento (nessa ordem) e o valor da fatura no próximo vencimento. o valor da fatura será usado para fazer um lançamento de despesa categoria Outros na data anterior ao fechamento para computar no próximo vencimento
+    - Dívida (debt) deve pedir juros e valor e data da dívida -> o valor deve ser convertido em saldo negativo para a criação do saldo inicial
+```
 
 ### Consolidação
 - [ ] Ajustar formulário para usar padrão de infra
