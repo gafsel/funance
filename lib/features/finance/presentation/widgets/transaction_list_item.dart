@@ -109,22 +109,15 @@ class TransactionListItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    SizedBox(height: 16),
                     Text(
                       installment.description,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (installment.category != null)
-                      Text(
-                        installment.category!.name,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
                     Consumer(
                       builder: (context, ref, _) {
-                        String accountName;
                         final source = installment.accountIdSource != null
                             ? ref
                                   .watch(

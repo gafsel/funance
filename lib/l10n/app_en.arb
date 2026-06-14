@@ -244,6 +244,7 @@
   "historyFilterDescriptionLabel": "Description",
   "historyFilterTypeLabel": "Transaction Type",
   "historyFilterCategoryLabel": "Category",
+  "historyFilterAccountLabel": "Account",
   "historyFilterStatusLabel": "Status",
   "historyFilterAmountRangeLabel": "Amount Range",
   "historyFilterMinAmountLabel": "Min Amount",

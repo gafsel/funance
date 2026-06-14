@@ -64,16 +64,16 @@ class SliverDetailHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isSmallWidth = MediaQuery.of(context).size.width < 600;
+    final mq = MediaQuery.of(context);
+    final isSmallWidth = mq.size.width < 600;
     final effectiveBgColor = backgroundColor ?? theme.colorScheme.primary;
     final isDarkBg = effectiveBgColor.computeLuminance() < 0.5;
     final contentColor = isDarkBg ? AppColors.pureWhite : AppColors.darkNavy;
-    final mq = MediaQuery.of(context);
 
     return SliverAppBar(
       expandedHeight: expandedHeight,
       pinned: true,
-      backgroundColor: AppColors.deepTurquoise,
+      backgroundColor: effectiveBgColor,
       elevation: 0,
       scrolledUnderElevation: 0,
       iconTheme: IconThemeData(color: contentColor),
@@ -112,223 +112,135 @@ class SliverDetailHeader extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               color: AppColors.deepTurquoise,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  effectiveBgColor,
-                  effectiveBgColor.withValues(alpha: 0.5),
-                  effectiveBgColor.withValues(alpha: 0.2),
-                ],
+              gradient: RadialGradient(
+                center: Alignment.topRight,
+                radius: mq.size.width * .005,
+                colors: [Colors.transparent, Colors.black54, Colors.black],
                 stops: const [0.0, 0.5, 1.0],
               ),
             ),
-            child: Stack(
-              children: [
-                if (isDarkBg) ...[
-                  Positioned(
-                    top: -60,
-                    right: -60,
-                    child: Container(
-                      width: 250,
-                      height: 250,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.pureWhite.withValues(alpha: 0.12),
-                            AppColors.pureWhite.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: -100,
-                    left: -40,
-                    child: Container(
-                      width: 300,
-                      height: 300,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.pureWhite.withValues(alpha: 0.08),
-                            AppColors.pureWhite.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 20,
-                    left: 40,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.pureWhite.withValues(alpha: 0.05),
-                            AppColors.pureWhite.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ] else ...[
-                  Positioned(
-                    top: -40,
-                    right: -40,
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            AppColors.darkNavy.withValues(alpha: 0.03),
-                            AppColors.darkNavy.withValues(alpha: 0.0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                SafeArea(
-                  child: Padding(
-                    padding: EdgeInsetsGeometry.only(top: mq.padding.top + kToolbarHeight),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsetsGeometry.only(
+                  top: mq.padding.top + kToolbarHeight + 20,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        if (logo != null) ...[
-                                          logo!,
-                                          const SizedBox(width: 12),
-                                        ],
-                                        Expanded(
-                                          child: Text(
-                                            title,
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                                  color: contentColor.withValues(
-                                                    alpha: 0.7,
-                                                  ),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
+                                    if (logo != null) ...[
+                                      logo!,
+                                      const SizedBox(width: 12),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              color: contentColor.withValues(
+                                                alpha: 0.7,
+                                              ),
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                    if (subtitle != null) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        subtitle!,
-                                        style:
-                                            (isSmallWidth
-                                                    ? theme
-                                                          .textTheme
-                                                          .headlineSmall
-                                                    : theme
-                                                          .textTheme
-                                                          .headlineLarge)
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w900,
-                                                  color:
-                                                      subtitleColor ??
-                                                      contentColor,
-                                                  letterSpacing: -0.5,
-                                                ),
-                                      ),
-                                    ],
-                                    if (chips.isNotEmpty ||
-                                        members.isNotEmpty) ...[
-                                      const SizedBox(height: 16),
-                                      Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        crossAxisAlignment:
-                                            WrapCrossAlignment.center,
-                                        children: [
-                                          ...chips.map(
-                                            (chip) => _buildInfoChip(
-                                              context,
-                                              chip,
-                                              effectiveBgColor,
-                                            ),
-                                          ),
-                                          if (members.isNotEmpty)
-                                            _buildMembersList(
-                                              context,
-                                              members,
-                                              isDarkBg,
-                                            ),
-                                        ],
-                                      ),
-                                    ],
                                   ],
                                 ),
-                              ),
-                              if (!isSmallWidth && sideContent != null) ...[
-                                const SizedBox(width: 32),
-                                SizedBox(width: 300, child: sideContent!),
+                                if (subtitle != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    subtitle!,
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: subtitleColor ?? contentColor,
+                                          letterSpacing: -0.5,
+                                          fontSize: isSmallWidth ? null : 60,
+                                        ),
+                                  ),
+                                ],
+                                if (chips.isNotEmpty || members.isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      ...chips.map(
+                                        (chip) => _buildInfoChip(
+                                          context,
+                                          chip,
+                                          effectiveBgColor,
+                                        ),
+                                      ),
+                                      if (members.isNotEmpty)
+                                        _buildMembersList(
+                                          context,
+                                          members,
+                                          isDarkBg,
+                                        ),
+                                    ],
+                                  ),
+                                ],
                               ],
-                            ],
-                          ),
-                        ),
-                        if (isSmallWidth && sideContent != null) ...[
-                          const SizedBox(height: 24),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: sideContent!,
-                          ),
-                        ],
-                        if (isSmallWidth && actions.isNotEmpty) ...[
-                          const SizedBox(height: 24),
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              children: actions
-                                  .map(
-                                    (action) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 8.0,
-                                      ),
-                                      child: _buildMobileAction(
-                                        context,
-                                        action,
-                                        isDarkBg,
-                                      ),
-                                    ),
-                                  )
-                                  .toList(),
                             ),
                           ),
+                          if (!isSmallWidth && sideContent != null) ...[
+                            const SizedBox(width: 32),
+                            SizedBox(width: 300, child: sideContent!),
+                          ],
                         ],
-                        if (bottomContent != null) ...[
-                          const SizedBox(height: 20),
-                          bottomContent!,
-                        ],
-                      ],
+                      ),
                     ),
-                  ),
+                    if (isSmallWidth && sideContent != null) ...[
+                      const SizedBox(height: 24),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: sideContent!,
+                      ),
+                    ],
+                    if (isSmallWidth && actions.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          children: actions
+                              .map(
+                                (action) => Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: _buildMobileAction(
+                                    context,
+                                    action,
+                                    isDarkBg,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                    if (bottomContent != null) ...[
+                      const SizedBox(height: 20),
+                      bottomContent!,
+                    ],
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

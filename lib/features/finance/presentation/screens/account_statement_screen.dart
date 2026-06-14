@@ -75,7 +75,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                         loading: () => [],
                         error: (_, __) => [],
                       ),
-                      expandedHeight: isDesktop ? 300 : 250,
+                      expandedHeight: 300,
                       chips: [
                         DetailHeaderChip(
                           icon: account.icon.asIcon(),

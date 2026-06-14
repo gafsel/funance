@@ -11,6 +11,7 @@ class MoneyFormField extends StatelessWidget {
     this.validator,
     this.decoration,
     this.enabled = true,
+    this.style,
   });
 
   final double? initialValue;
@@ -18,6 +19,7 @@ class MoneyFormField extends StatelessWidget {
   final FormFieldValidator<double?>? validator;
   final InputDecoration? decoration;
   final bool enabled;
+  final TextStyle? style;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,7 @@ class MoneyFormField extends StatelessWidget {
       initialValue: initialValue != null ? format.format(initialValue) : null,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       enabled: enabled,
+      style: style,
       decoration: (decoration ?? const InputDecoration()).copyWith(
         prefixText: symbol,
       ),

@@ -31,7 +31,7 @@ class ChipFormField<T> extends FormField<T> {
                   return ChoiceChip(
                     label: Text(option.label),
                     selected: field.value == option.value,
-                    showCheckmark: false,
+                    showCheckmark: true,
                     onSelected: onChanged != null
                         ? (bool selected) {
                             final newValue = selected ? option.value : null;

@@ -227,8 +227,8 @@ class InvoiceDetailScreen extends ConsumerWidget {
 
         return Column(
           crossAxisAlignment: isSmallWidth
-              ? CrossAxisAlignment.center
-              : CrossAxisAlignment.start,
+              ? CrossAxisAlignment.stretch
+              : CrossAxisAlignment.center,
           children: [
             Container(
               padding: EdgeInsets.all(2),

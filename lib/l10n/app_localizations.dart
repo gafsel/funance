@@ -1316,6 +1316,12 @@ abstract class AppLocalizations {
   /// **'Selecionar Período'**
   String get historyFilterPeriod;
 
+  /// No description provided for @historyFilterAccountLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta'**
+  String get historyFilterAccountLabel;
+
   /// No description provided for @historyFilterAllAccounts.
   ///
   /// In pt, this message translates to:

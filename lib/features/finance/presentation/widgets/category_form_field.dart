@@ -17,7 +17,9 @@ class CategoryFormField extends ConsumerWidget {
     this.validator,
     this.decoration,
     this.autoOpen = false,
+    this.showNewOption = true,
     this.emptyMeansAll = false,
+    this.style,
   }) : transfer = false,
        invoice = false;
 
@@ -26,28 +28,40 @@ class CategoryFormField extends ConsumerWidget {
   final ValueChanged<CategoryModel?>? onChanged;
   final CategoryType? categoryType;
   final FormFieldValidator<CategoryModel?>? validator;
+  final TextStyle? style;
   final bool autoOpen;
   final bool transfer;
   final bool invoice;
+  final bool showNewOption;
   final bool emptyMeansAll;
 
-  const CategoryFormField.transfer({super.key, this.decoration, this.validator})
-    : initialValue = null,
-      onChanged = _dummyOnChanged,
-      categoryType = null,
-      transfer = true,
-      autoOpen = false,
-      emptyMeansAll = false,
-      invoice = false;
+  const CategoryFormField.transfer({
+    super.key,
+    this.decoration,
+    this.validator,
+    this.style,
+  }) : initialValue = null,
+       onChanged = _dummyOnChanged,
+       categoryType = null,
+       transfer = true,
+       autoOpen = false,
+       emptyMeansAll = false,
+       invoice = false,
+       showNewOption = false;
 
-  const CategoryFormField.invoice({super.key, this.decoration, this.validator})
-    : initialValue = null,
-      onChanged = _dummyOnChanged,
-      categoryType = null,
-      transfer = true,
-      autoOpen = false,
-      emptyMeansAll = false,
-      invoice = true;
+  const CategoryFormField.invoice({
+    super.key,
+    this.decoration,
+    this.validator,
+    this.style,
+  }) : initialValue = null,
+       onChanged = _dummyOnChanged,
+       categoryType = null,
+       transfer = true,
+       autoOpen = false,
+       emptyMeansAll = false,
+       invoice = true,
+       showNewOption = false;
 
   static void _dummyOnChanged(CategoryModel? _) {}
 
@@ -56,14 +70,14 @@ class CategoryFormField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FormField<CategoryModel?>(
-      key: ValueKey(initialValue),
       initialValue: initialValue,
       validator: validator,
       builder: (state) {
         if (autoOpen &&
             state.value == null &&
             categoryType != null &&
-            !transfer && !invoice) {
+            !transfer &&
+            !invoice) {
           final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
           if (!isModalOpen) {
             WidgetsBinding.instance.addPostFrameCallback((_) async {
@@ -115,9 +129,11 @@ class CategoryFormField extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         context.l10n.transactionTypeInvoice,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.black38),
+                        style:
+                            style ??
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.black38,
+                            ),
                       ),
                     ],
                   )
@@ -136,9 +152,11 @@ class CategoryFormField extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         context.l10n.transactionTypeTransfer,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.black38),
+                        style:
+                            style ??
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Colors.black38,
+                            ),
                       ),
                     ],
                   )
@@ -159,9 +177,11 @@ class CategoryFormField extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         category.name,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: enabled ? null : Colors.black38,
-                        ),
+                        style:
+                            style ??
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: enabled ? null : Colors.black38,
+                            ),
                       ),
                     ],
                   )
@@ -180,9 +200,11 @@ class CategoryFormField extends ConsumerWidget {
                       const SizedBox(width: 8),
                       Text(
                         context.l10n.all,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: enabled ? null : Colors.black38,
-                        ),
+                        style:
+                            style ??
+                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: enabled ? null : Colors.black38,
+                            ),
                       ),
                     ],
                   )
@@ -201,6 +223,7 @@ class CategoryFormField extends ConsumerWidget {
       context,
       categoryType: categoryType,
       excludeVirtual: !emptyMeansAll,
+      showAddOption: showNewOption,
     );
   }
 }

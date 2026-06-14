@@ -14,6 +14,7 @@ class AccountSelectionScreen extends ConsumerWidget {
   final String? excludeAccountId;
   final ValueChanged<AccountModel?> onAccountSelected;
   final bool showClearOption;
+  final bool showAddOption;
 
   const AccountSelectionScreen({
     super.key,
@@ -21,6 +22,7 @@ class AccountSelectionScreen extends ConsumerWidget {
     this.excludeAccountId,
     required this.onAccountSelected,
     this.showClearOption = false,
+    this.showAddOption = true,
   });
 
   @override
@@ -85,11 +87,17 @@ class AccountSelectionScreen extends ConsumerWidget {
                                 .toList();
                             if (typeAccounts.isEmpty) continue;
 
-                            final currentUserId = ref.watch(AuthDomainProviders.currentUser)?.id;
+                            final currentUserId = ref
+                                .watch(AuthDomainProviders.currentUser)
+                                ?.id;
                             typeAccounts.sort((a, b) {
                               if (currentUserId != null) {
-                                final aIsOwner = a.ownerIds.contains(currentUserId);
-                                final bIsOwner = b.ownerIds.contains(currentUserId);
+                                final aIsOwner = a.ownerIds.contains(
+                                  currentUserId,
+                                );
+                                final bIsOwner = b.ownerIds.contains(
+                                  currentUserId,
+                                );
                                 if (aIsOwner && !bIsOwner) return -1;
                                 if (!aIsOwner && bIsOwner) return 1;
                               }
@@ -173,15 +181,15 @@ class AccountSelectionScreen extends ConsumerWidget {
                             }
                           }
 
-                          if (showClearOption) {
-                            slivers.add(
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                sliver: SliverToBoxAdapter(
-                                  child: Column(
-                                    children: [
+                          slivers.add(
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                              ),
+                              sliver: SliverToBoxAdapter(
+                                child: Column(
+                                  children: [
+                                    if (showAddOption) ...[
                                       const Divider(),
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -192,43 +200,24 @@ class AccountSelectionScreen extends ConsumerWidget {
                                           l10n,
                                         ),
                                       ),
+                                    ],
+                                    if (showClearOption) ...[
                                       const SizedBox(height: 8),
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
                                         ),
-                                        child: _buildClearOption(context, l10n),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          } else {
-                            slivers.add(
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
-                                sliver: SliverToBoxAdapter(
-                                  child: Column(
-                                    children: [
-                                      const Divider(),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        child: _buildAddAccountOption(
+                                        child: _buildClearOption(
                                           context,
                                           l10n,
                                         ),
                                       ),
                                     ],
-                                  ),
+                                  ],
                                 ),
                               ),
-                            );
-                          }
+                            ),
+                          );
 
                           // Adiciona um padding extra no final para evitar que o conteúdo fique colado na borda inferior
                           slivers.add(
@@ -298,11 +287,7 @@ class AccountSelectionScreen extends ConsumerWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: ListTile(
-        leading: AccountLogo(
-          account: account,
-          size: 40,
-          showMembers: true,
-        ),
+        leading: AccountLogo(account: account, size: 40, showMembers: true),
         title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Text(
           _getAccountTypeName(account.type, l10n),
@@ -326,5 +311,4 @@ class AccountSelectionScreen extends ConsumerWidget {
         return l10n.accountTypeDebt;
     }
   }
-
 }

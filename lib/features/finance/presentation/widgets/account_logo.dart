@@ -32,7 +32,7 @@ class AccountLogo extends ConsumerWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(size * 0.2),
-          border: Border.all(color: AppColors.softGrey, width: size * .05),
+          border: Border.all(color: AppColors.softGrey, width: size * .02),
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(size * 0.2),

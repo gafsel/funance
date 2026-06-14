@@ -704,6 +704,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get historyFilterPeriod => 'Selecionar Período';
 
   @override
+  String get historyFilterAccountLabel => 'Conta';
+
+  @override
   String get historyFilterAllAccounts => 'Todas as Contas';
 
   @override

@@ -699,6 +699,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyFilterPeriod => 'Select Period';
 
   @override
+  String get historyFilterAccountLabel => 'Account';
+
+  @override
   String get historyFilterAllAccounts => 'All Accounts';
 
   @override

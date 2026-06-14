@@ -207,347 +207,359 @@ class _TransactionDetailSheetState
     }
 
     return Padding(
-      padding:
-          const EdgeInsets.all(24) +
-          EdgeInsets.only(bottom: mq.padding.bottom),
+      padding: EdgeInsets.only(bottom: mq.padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              CategoryIcon.forInstallment(_currentInstallment),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _currentInstallment.description,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          DateFormat.yMMMMd(
-                            locale,
-                          ).format(_currentInstallment.referenceDate),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              spacing: 16,
+              children: [
+                CategoryIcon.forInstallment(_currentInstallment),
+                Expanded(
+                  child: Column(
+                    spacing: 4,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _currentInstallment.description,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: amountColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: amountColor.withValues(alpha: 0.5),
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            DateFormat.yMMMMd(
+                              locale,
+                            ).format(_currentInstallment.referenceDate),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                child: Text(
-                  l10n.fromOrderType(_currentInstallment.type),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: amountColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (_currentInstallment.installmentType ==
-                      InstallmentType.installment &&
-                  _currentInstallment.installmentNumber != null &&
-                  _currentInstallment.installmentCount != null) ...[
-                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest,
+                    color: amountColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: theme.colorScheme.outlineVariant,
+                      color: amountColor.withValues(alpha: 0.5),
                     ),
                   ),
                   child: Text(
-                    l10n.installmentCountDescription(
-                      _currentInstallment.installmentCount!,
-                      _currentInstallment.installmentNumber!,
-                    ),
+                    l10n.fromOrderType(_currentInstallment.type),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: amountColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              ],
-              const SizedBox(width: 16),
-              PopupMenuButton(
-                icon: const Icon(Icons.more_vert),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    onTap: () async {
-                      final navigator = Navigator.of(context);
-
-                      final updated = await context.push(
-                        '/transactions/form',
-                        extra: {'installment': _currentInstallment},
-                      );
-
-                      if (updated == true) {
-                        widget.onUpdated?.call();
-                        navigator.pop();
-                      }
-                    },
-                    child: Row(
-                      spacing: 12,
-                      children: [
-                        const Icon(Icons.edit_outlined, size: 20),
-                        Text(l10n.editButton),
-                      ],
+                if (_currentInstallment.installmentType ==
+                        InstallmentType.installment &&
+                    _currentInstallment.installmentNumber != null &&
+                    _currentInstallment.installmentCount != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant,
+                      ),
+                    ),
+                    child: Text(
+                      l10n.installmentCountDescription(
+                        _currentInstallment.installmentCount!,
+                        _currentInstallment.installmentNumber!,
+                      ),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  LoadingPopupMenuItem(
-                    onTap: (loading) async {
-                      await loading(_deleteTransaction());
-                    },
-                    child: Row(
-                      spacing: 12,
-                      children: [
-                        const Icon(
-                          Icons.delete_outline,
-                          size: 20,
-                          color: AppColors.error,
-                        ),
-                        Text(
-                          l10n.deleteButton,
-                          style: const TextStyle(color: AppColors.error),
-                        ),
-                      ],
+                ],
+                PopupMenuButton(
+                  icon: const Icon(Icons.more_vert),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      onTap: () async {
+                        final navigator = Navigator.of(context);
+
+                        final updated = await context.push(
+                          '/transactions/form',
+                          extra: {'installment': _currentInstallment},
+                        );
+
+                        if (updated == true) {
+                          widget.onUpdated?.call();
+                          navigator.pop();
+                        }
+                      },
+                      child: Row(
+                        spacing: 12,
+                        children: [
+                          const Icon(Icons.edit_outlined, size: 20),
+                          Text(l10n.editButton),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (_currentInstallment.status !=
-                          InstallmentStatus.settled &&
-                      _currentInstallment.amount > 0 &&
-                      (_currentInstallment.status ==
-                              InstallmentStatus.paid ||
-                          _currentInstallment.status ==
-                              InstallmentStatus.settled))
                     LoadingPopupMenuItem(
                       onTap: (loading) async {
-                        await loading(_backToPending());
+                        await loading(_deleteTransaction());
                       },
                       child: Row(
                         spacing: 12,
                         children: [
                           const Icon(
-                            Icons.undo,
+                            Icons.delete_outline,
                             size: 20,
-                            color: AppColors.deepTurquoise,
+                            color: AppColors.error,
                           ),
                           Text(
-                            l10n.returnToPending,
-                            style: const TextStyle(
+                            l10n.deleteButton,
+                            style: const TextStyle(color: AppColors.error),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_currentInstallment.status !=
+                            InstallmentStatus.settled &&
+                        _currentInstallment.amount > 0 &&
+                        (_currentInstallment.status ==
+                                InstallmentStatus.paid ||
+                            _currentInstallment.status ==
+                                InstallmentStatus.settled))
+                      LoadingPopupMenuItem(
+                        onTap: (loading) async {
+                          await loading(_backToPending());
+                        },
+                        child: Row(
+                          spacing: 12,
+                          children: [
+                            const Icon(
+                              Icons.undo,
+                              size: 20,
                               color: AppColors.deepTurquoise,
                             ),
-                          ),
-                        ],
+                            Text(
+                              l10n.returnToPending,
+                              style: const TextStyle(
+                                color: AppColors.deepTurquoise,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          Center(
-            child: Text(
-              _currentInstallment.referenceAmount.asCurrency(
-                locale: locale,
-              ),
-              style: theme.textTheme.headlineLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: amountColor,
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
-          if (_currentInstallment.type != OrderType.transfer)
-            const SizedBox(height: 32),
-          if (_currentInstallment.type != OrderType.transfer)
-            _DetailItem(
-              label: l10n.category,
-              value:
-                  _currentInstallment.category?.name ?? l10n.categoryOthers,
-              icon:
-                  _currentInstallment.category?.icon.asIcon() ??
-                  Icons.category_outlined,
-              iconColor: _currentInstallment.category?.color.asColor(),
-              onTap: (loading) async {
-                await loading(_changeCategory());
-              },
-            ),
-          const Divider(height: 32),
-          Consumer(
-            builder: (context, ref, _) {
-              final sourceId = _currentInstallment.accountIdSource;
-              final targetId = _currentInstallment.accountIdTarget;
-
-              if (isTransfer && sourceId != null && targetId != null) {
-                final sourceAccount = ref.watch(
-                  AccountViewProviders.byId(sourceId),
-                );
-                final targetAccount = ref.watch(
-                  AccountViewProviders.byId(targetId),
-                );
-
-                return sourceAccount.when(
-                  data: (source) => targetAccount.when(
-                    data: (target) => _DetailItem(
-                      label: l10n.transactionAccountLabel,
-                      value: '',
-                      customValue: Row(
-                        children: [
-                          if (source != null) ...[
-                            AccountLogo(
-                              account: source,
-                              size: 30,
-                              showMembers: true,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              source.name,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ] else
-                            Text(
-                              '-',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Icon(
-                              Icons.arrow_forward,
-                              size: 16,
-                              color: AppColors.antiqueGold,
-                            ),
-                          ),
-                          if (target != null) ...[
-                            AccountLogo(
-                              account: target,
-                              size: 30,
-                              showMembers: true,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              target.name,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ] else
-                            Text(
-                              '-',
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                        ],
-                      ),
-                      icon: Icons.swap_horiz,
-                      iconColor: AppColors.antiqueGold,
+          Divider(),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              spacing: 8,
+              children: [
+                Container(
+                  padding: EdgeInsets.symmetric(vertical: 32),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _currentInstallment.referenceAmount.asCurrency(
+                      locale: locale,
                     ),
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: amountColor,
+                    ),
                   ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                );
-              }
+                ),
+                if (_currentInstallment.type != OrderType.transfer)
+                  _DetailItem(
+                    label: l10n.category,
+                    value:
+                    _currentInstallment.category?.name ?? l10n.categoryOthers,
+                    icon:
+                    _currentInstallment.category?.icon.asIcon() ??
+                        Icons.category_outlined,
+                    iconColor: _currentInstallment.category?.color.asColor(),
+                    onTap: (loading) async {
+                      await loading(_changeCategory());
+                    },
+                  ),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final sourceId = _currentInstallment.accountIdSource;
+                    final targetId = _currentInstallment.accountIdTarget;
 
-              return Column(
-                children: [
-                  if (sourceId != null)
-                    ref
-                        .watch(AccountViewProviders.byId(sourceId))
-                        .when(
-                          data: (account) => _DetailItem(
+                    if (isTransfer && sourceId != null && targetId != null) {
+                      final sourceAccount = ref.watch(
+                        AccountViewProviders.byId(sourceId),
+                      );
+                      final targetAccount = ref.watch(
+                        AccountViewProviders.byId(targetId),
+                      );
+
+                      return sourceAccount.when(
+                        data: (source) => targetAccount.when(
+                          data: (target) => _DetailItem(
                             label: l10n.transactionAccountLabel,
-                            value: account?.name ?? '-',
-                            customValue: account != null
-                                ? Row(
-                                    children: [
-                                      AccountLogo(
-                                        account: account,
-                                        size: 30,
-                                        showMembers: true,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        account.name,
-                                        style: theme.textTheme.bodyLarge
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                      ),
-                                    ],
-                                  )
-                                : null,
-                            icon: Icons.account_balance_wallet_outlined,
+                            value: '',
+                            customValue: Row(
+                              children: [
+                                if (source != null) ...[
+                                  AccountLogo(
+                                    account: source,
+                                    size: 30,
+                                    showMembers: true,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    source.name,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ] else
+                                  Text(
+                                    '-',
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 12),
+                                  child: Icon(
+                                    Icons.arrow_forward,
+                                    size: 16,
+                                    color: AppColors.antiqueGold,
+                                  ),
+                                ),
+                                if (target != null) ...[
+                                  AccountLogo(
+                                    account: target,
+                                    size: 30,
+                                    showMembers: true,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    target.name,
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ] else
+                                  Text(
+                                    '-',
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            icon: Icons.swap_horiz,
                             iconColor: AppColors.antiqueGold,
                           ),
                           loading: () => const SizedBox.shrink(),
                           error: (_, __) => const SizedBox.shrink(),
                         ),
-                ],
-              );
-            },
-          ),
-          const Divider(height: 32),
-          _DetailItem(
-            label: l10n.transactionStatusLabel,
-            value: l10n.forInstallmentStatus(_currentInstallment.status),
-            icon: _getStatusIcon(_currentInstallment.status),
-            iconColor: _getStatusColor(_currentInstallment.status),
-          ),
-          const SizedBox(height: 40),
-          if (_currentInstallment.status == InstallmentStatus.pending)
-            FilledButton.icon(
-              onPressed: _registerPayment,
-              icon: const Icon(Icons.check),
-              label: Text(l10n.reconciliationConfirm),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                        loading: () => const SizedBox.shrink(),
+                        error: (_, __) => const SizedBox.shrink(),
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        if (sourceId != null)
+                          ref
+                              .watch(AccountViewProviders.byId(sourceId))
+                              .when(
+                            data: (account) => _DetailItem(
+                              label: l10n.transactionAccountLabel,
+                              value: account?.name ?? '-',
+                              customValue: account != null
+                                  ? Row(
+                                children: [
+                                  AccountLogo(
+                                    account: account,
+                                    size: 30,
+                                    showMembers: true,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    account.name,
+                                    style: theme.textTheme.bodyLarge
+                                        ?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              )
+                                  : null,
+                              icon: Icons.account_balance_wallet_outlined,
+                              iconColor: AppColors.antiqueGold,
+                            ),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
+                      ],
+                    );
+                  },
                 ),
-              ),
+                _DetailItem(
+                  label: l10n.transactionStatusLabel,
+                  value: l10n.forInstallmentStatus(_currentInstallment.status),
+                  icon: _getStatusIcon(_currentInstallment.status),
+                  iconColor: _getStatusColor(_currentInstallment.status),
+                ),
+              ],
             ),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            style: TextButton.styleFrom(
-              minimumSize: const Size.fromHeight(56),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: Text(l10n.cancelButton),
           ),
+          Divider(),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              spacing: 8,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_currentInstallment.status == InstallmentStatus.pending)
+                  FilledButton.icon(
+                    onPressed: _registerPayment,
+                    icon: const Icon(Icons.check),
+                    label: Text(l10n.reconciliationConfirm),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(l10n.cancelButton),
+                ),
+              ],
+            ),
+          )
         ],
       ),
     );

@@ -38,16 +38,13 @@ class TransactionPaymentSheet extends StatelessWidget {
     final mq = MediaQuery.of(context);
     return Padding(
       padding: EdgeInsets.only(
-        bottom: mq.viewInsets.bottom + mq.padding.bottom,
+        bottom: mq.padding.bottom,
       ),
       child: SingleChildScrollView(
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 24,
-              ),
+              padding: const EdgeInsets.all(24),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -64,6 +61,7 @@ class TransactionPaymentSheet extends StatelessWidget {
                 ],
               ),
             ),
+            Divider(),
             ResponsiveForm<
               TransactionFormState,
               dynamic,

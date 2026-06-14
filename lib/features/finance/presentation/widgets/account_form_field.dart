@@ -17,6 +17,8 @@ class AccountFormField extends ConsumerWidget {
     this.validator,
     this.decoration,
     this.autoOpen = false,
+    this.showAddOption = true,
+    this.style,
   });
 
   final String? initialValue;
@@ -24,6 +26,8 @@ class AccountFormField extends ConsumerWidget {
   final ValueChanged<String?>? onChanged;
   final FormFieldValidator<String?>? validator;
   final bool autoOpen;
+  final bool showAddOption;
+  final TextStyle? style;
 
   bool get enabled => onChanged != null;
 
@@ -76,6 +80,7 @@ class AccountFormField extends ConsumerWidget {
                       title:
                           decoration?.labelText ?? l10n.transactionAccountLabel,
                       showClearOption: true,
+                        showAddOption: showAddOption,
                       onAccountSelected: (acc) => Navigator.pop(context, acc),
                     ),
                   );
@@ -95,11 +100,7 @@ class AccountFormField extends ConsumerWidget {
                 }
                 return Row(
                   children: [
-                    AccountLogo(
-                      account: account,
-                      size: 24,
-                      showMembers: true,
-                    ),
+                    AccountLogo(account: account, size: 24, showMembers: true),
                     const SizedBox(width: 12),
                     Column(
                       mainAxisSize: MainAxisSize.min,
@@ -107,16 +108,20 @@ class AccountFormField extends ConsumerWidget {
                       children: [
                         Text(
                           account.name,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
+                          style:
+                              style ??
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: enabled ? null : Colors.black38,
                               ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           l10n.fromAccountType(account.type),
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
+                          style:
+                              style?.copyWith(
+                                color: style?.color?.withValues(alpha: .75) ?? Colors.black38,
+                              ) ??
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
                                 color: enabled
                                     ? Theme.of(context).hintColor
                                     : Colors.black38,

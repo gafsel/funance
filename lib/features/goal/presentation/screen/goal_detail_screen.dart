@@ -91,7 +91,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                     loading: () => null,
                     error: (_, __) => null,
                   ),
-                  expandedHeight: 320,
+                  expandedHeight: 360,
                   chips: [
                     DetailHeaderChip(
                       icon: Icons.calendar_today,
@@ -116,72 +116,75 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                       onPressed: () => _showDeleteConfirmation(context),
                     ),
                   ],
-                  bottomContent: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            l10n.goalCurrentAmountLabel,
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: AppColors.pureWhite.withValues(alpha: 0.9),
+                  bottomContent: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              l10n.goalCurrentAmountLabel,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: AppColors.pureWhite.withValues(alpha: 0.9),
+                              ),
                             ),
-                          ),
-                          Text(
-                            progress.percent.asPercent(locale: context.locale),
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.brightCyan,
+                            Text(
+                              progress.percent.asPercent(locale: context.locale),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.brightCyan,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Stack(
-                        children: [
-                          Container(
-                            height: 12,
-                            decoration: BoxDecoration(
-                              color: AppColors.pureWhite.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: progress.predictionPercent,
-                            child: Container(
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Stack(
+                          children: [
+                            Container(
                               height: 12,
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.limeGreen,
-                                    progress
-                                        .getStatusColor(context)
-                                        .withValues(alpha: .5),
-                                  ],
-                                ),
+                                color: AppColors.pureWhite.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: progress.percent,
-                            child: Container(
-                              height: 12,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.limeGreen,
-                                    progress.getStatusColor(context),
-                                  ],
+                            FractionallySizedBox(
+                              widthFactor: progress.predictionPercent,
+                              child: Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.limeGreen,
+                                      progress
+                                          .getStatusColor(context)
+                                          .withValues(alpha: .5),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                                borderRadius: BorderRadius.circular(6),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            FractionallySizedBox(
+                              widthFactor: progress.percent,
+                              child: Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.limeGreen,
+                                      progress.getStatusColor(context),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ];

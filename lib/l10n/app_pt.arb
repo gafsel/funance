@@ -327,6 +327,7 @@
   "homeConsolidate": "Consolidar",
   "noTransactionsInPeriod": "Nenhuma transação encontrada para este período",
   "historyFilterPeriod": "Selecionar Período",
+  "historyFilterAccountLabel": "Conta",
   "historyFilterAllAccounts": "Todas as Contas",
   "all": "Todos",
   "historyFilterTitle": "Filtros",

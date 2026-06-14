@@ -66,7 +66,6 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     final l10n = context.l10n;
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
       child: SafeArea(
         child: ManualForm<I, O, N>(
           provider,
@@ -75,39 +74,45 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
             return Column(
               children: [
                 if (banner != null) ...[banner, const SizedBox(height: 16)],
-                _ResponsiveGrid(
-                  spacing: 16,
-                  children: fieldsBuilder(context, snapshot),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: _ResponsiveGrid(
+                    spacing: 16,
+                    children: fieldsBuilder(context, snapshot),
+                  ),
                 ),
-                Divider(height: 32),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isLargeWidth = constraints.maxWidth > 500;
+                Divider(),
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isLargeWidth = constraints.maxWidth > 500;
 
-                    if (isLargeWidth) {
-                      return Row(
+                      if (isLargeWidth) {
+                        return Row(
+                          spacing: 16,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ...extraActions,
+                            Spacer(),
+                            _buildCancelButton(context, l10n),
+                            _buildSubmitButton(snapshot, l10n),
+                          ],
+                        );
+                      }
+
+                      return Column(
                         spacing: 16,
-                        mainAxisAlignment: MainAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          ...extraActions,
-                          Spacer(),
-                          _buildCancelButton(context, l10n),
                           _buildSubmitButton(snapshot, l10n),
+                          ...extraActions,
+                          _buildCancelButton(context, l10n),
                         ],
                       );
-                    }
-
-                    return Column(
-                      spacing: 16,
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildSubmitButton(snapshot, l10n),
-                        ...extraActions,
-                        _buildCancelButton(context, l10n),
-                      ],
-                    );
-                  },
+                    },
+                  ),
                 ),
               ],
             );

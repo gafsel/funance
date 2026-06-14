@@ -33,17 +33,17 @@ class InstallmentItem extends StatelessWidget {
         ? (inst.xp ?? installmentInfo.earnedXp)
         : installmentInfo.xpValue;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
-        onTap: () {
-          final inst = installmentInfo.installment;
-          if (inst.isInvoice) {
-            context.push('/invoices/detail', extra: inst);
-          } else {
-            TransactionDetailSheet.show(context, inst);
-          }
-        },
+    return InkWell(
+      onTap: () {
+        final inst = installmentInfo.installment;
+        if (inst.isInvoice) {
+          context.push('/invoices/detail', extra: inst);
+        } else {
+          TransactionDetailSheet.show(context, inst);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
             Container(

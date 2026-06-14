@@ -22,7 +22,10 @@ class TransactionFilterNotifier
   }
 
   void updateType(OrderType? value) {
-    state = state.copyWith(type: value);
+    state = state.copyWith(
+      type: value,
+      category: value == OrderType.transfer ? null : state.category,
+    );
   }
 
   void updateStatus(InstallmentStatus? value) {

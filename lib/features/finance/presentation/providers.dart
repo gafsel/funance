@@ -271,7 +271,10 @@ class FinanceViewProviders {
         installment,
       ) {
         return TransactionFormNotifier(
-          TransactionFormState.updateInstallment(installment, status: InstallmentStatus.paid),
+          TransactionFormState.updateInstallment(
+            installment,
+            status: InstallmentStatus.paid,
+          ),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
         );
@@ -290,13 +293,22 @@ class FinanceViewProviders {
         );
       });
 
-  static final transactionFilter =
-      StateNotifierProvider.autoDispose.family<TransactionFilterNotifier, TransactionFilterState, TransactionQuery>((
-    ref,
-    query,
-  ) {
-    return TransactionFilterNotifier(TransactionFilterState.fromQuery(query));
-  });
+  static final transactionFilter = StateNotifierProvider.autoDispose
+      .family<
+        TransactionFilterNotifier,
+        TransactionFilterState,
+        TransactionQuery
+      >((ref, query) {
+        final category = query.categoryId != null
+            ? ref
+                  .read(CategoryViewProviders.byId(query.categoryId!))
+                  .valueOrNull
+            : null;
+
+        return TransactionFilterNotifier(
+          TransactionFilterState.fromQuery(query, category: category),
+        );
+      });
 
   static final history = StateNotifierProvider(
     (ref) => TransactionListNotifier(

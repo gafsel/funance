@@ -30,12 +30,13 @@ extension GoalProgressUi on GoalProgress {
   Color getStatusColor(BuildContext context) {
     switch (status) {
       case GoalStatus.onTrack:
-        return AppColors.limeGreen;
+        return AppColors.success;
       case GoalStatus.atRisk:
-        return AppColors.successGold;
+        return AppColors.antiqueGold;
       case GoalStatus.behind:
+        return AppColors.error;
       case GoalStatus.lost:
-        return AppColors.coralOrange;
+        return Colors.black;
     }
   }
 
