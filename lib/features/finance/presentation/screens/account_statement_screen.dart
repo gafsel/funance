@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
@@ -9,6 +10,8 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
 
 class AccountStatementScreen extends ConsumerStatefulWidget {
@@ -48,6 +51,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
         if (account == null) return const Scaffold(body: Center(child: Text('Conta não encontrada')));
 
         final latestBalanceAsync = ref.watch(AccountViewProviders.latestBalanceById(account.id));
+        final membersAsync = ref.watch(WorkspaceViewProviders.members);
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -64,7 +68,13 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                         loading: () => "...",
                         error: (_, __) => "---",
                       ),
-                      backgroundColor: AppColors.deepTurquoise,
+                      backgroundColor: account.color.asColor(),
+                      logo: AccountLogo(account: account, size: 40),
+                      members: membersAsync.when(
+                        data: (members) => members.where((m) => account.ownerIds.contains(m.id)).toList(),
+                        loading: () => [],
+                        error: (_, __) => [],
+                      ),
                       expandedHeight: isDesktop ? 300 : 250,
                       chips: [
                         DetailHeaderChip(

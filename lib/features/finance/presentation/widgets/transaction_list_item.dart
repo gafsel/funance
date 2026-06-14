@@ -152,7 +152,7 @@ class TransactionListItem extends StatelessWidget {
                               if (source != null)
                                 AccountLogo(
                                   account: source,
-                                  size: 24,
+                                  size: 30,
                                   showMembers: true,
                                 ),
                               Text(
@@ -166,7 +166,7 @@ class TransactionListItem extends StatelessWidget {
                               if (target != null)
                                 AccountLogo(
                                   account: target,
-                                  size: 24,
+                                  size: 30,
                                   showMembers: true,
                                 ),
                               Expanded(
@@ -188,7 +188,7 @@ class TransactionListItem extends StatelessWidget {
                             if (source != null)
                               AccountLogo(
                                 account: source,
-                                size: 24,
+                                size: 30,
                                 showMembers: true,
                               ),
                             Expanded(

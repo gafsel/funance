@@ -7,6 +7,7 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/utils/string_util.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -162,13 +163,10 @@ class AccountsView extends ConsumerWidget {
               }
             },
             contentPadding: const EdgeInsets.only(left: 16, right: 16),
-            leading: Container(
-              width: 4,
-              height: 24,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
-              ),
+            leading: AccountLogo(
+              account: account,
+              size: 32,
+              showMembers: true,
             ),
             title: Text(account.name, style: theme.textTheme.bodySmall),
             subtitle: Column(
@@ -244,14 +242,11 @@ class AccountsView extends ConsumerWidget {
               context.push('/accounts/${account.id}/statement');
             }
           },
-          contentPadding: const EdgeInsets.only(left: 16),
-          leading: Container(
-            width: 4,
-            height: 24,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
+          contentPadding: const EdgeInsets.only(left: 16, right: 16),
+          leading: AccountLogo(
+            account: account,
+            size: 32,
+            showMembers: true,
           ),
           title: Text(account.name, style: theme.textTheme.bodySmall),
           trailing: Text(

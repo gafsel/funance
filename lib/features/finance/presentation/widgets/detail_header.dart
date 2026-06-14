@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 
 class DetailHeaderAction {
   final IconData icon;
@@ -36,6 +38,8 @@ class SliverDetailHeader extends StatelessWidget {
   final Color? backgroundColor;
   final List<DetailHeaderChip> chips;
   final List<DetailHeaderAction> actions;
+  final List<UserModel> members;
+  final Widget? logo;
   final Widget? sideContent;
   final Widget? bottomContent;
   final double expandedHeight;
@@ -49,6 +53,8 @@ class SliverDetailHeader extends StatelessWidget {
     this.backgroundColor,
     this.chips = const [],
     this.actions = const [],
+    this.members = const [],
+    this.logo,
     this.sideContent,
     this.bottomContent,
     this.expandedHeight = 250,
@@ -62,11 +68,12 @@ class SliverDetailHeader extends StatelessWidget {
     final effectiveBgColor = backgroundColor ?? theme.colorScheme.primary;
     final isDarkBg = effectiveBgColor.computeLuminance() < 0.5;
     final contentColor = isDarkBg ? AppColors.pureWhite : AppColors.darkNavy;
+    final mq = MediaQuery.of(context);
 
     return SliverAppBar(
       expandedHeight: expandedHeight,
       pinned: true,
-      backgroundColor: effectiveBgColor,
+      backgroundColor: AppColors.deepTurquoise,
       elevation: 0,
       scrolledUnderElevation: 0,
       iconTheme: IconThemeData(color: contentColor),
@@ -104,26 +111,17 @@ class SliverDetailHeader extends StatelessWidget {
         background: ClipRect(
           child: Container(
             decoration: BoxDecoration(
-              color: effectiveBgColor,
-              gradient: effectiveBgColor == AppColors.pureWhite
-                  ? LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.pureWhite,
-                        AppColors.softGrey.withValues(alpha: 0.5),
-                      ],
-                    )
-                  : LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        effectiveBgColor,
-                        effectiveBgColor.withValues(alpha: 0.8),
-                        effectiveBgColor.withValues(alpha: 0.9),
-                      ],
-                      stops: const [0.0, 0.7, 1.0],
-                    ),
+              color: AppColors.deepTurquoise,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  effectiveBgColor,
+                  effectiveBgColor.withValues(alpha: 0.5),
+                  effectiveBgColor.withValues(alpha: 0.2),
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
             ),
             child: Stack(
               children: [
@@ -200,84 +198,110 @@ class SliverDetailHeader extends StatelessWidget {
                 ],
                 SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
+                    padding: EdgeInsetsGeometry.only(top: mq.padding.top + kToolbarHeight),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: theme.textTheme.titleMedium
-                                        ?.copyWith(
-                                          color: contentColor.withValues(
-                                            alpha: 0.7,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        if (logo != null) ...[
+                                          logo!,
+                                          const SizedBox(width: 12),
+                                        ],
+                                        Expanded(
+                                          child: Text(
+                                            title,
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  color: contentColor.withValues(
+                                                    alpha: 0.7,
+                                                  ),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          fontWeight: FontWeight.w500,
                                         ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (subtitle != null) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      subtitle!,
-                                      style:
-                                          (isSmallWidth
-                                                  ? theme
-                                                        .textTheme
-                                                        .headlineSmall
-                                                  : theme
-                                                        .textTheme
-                                                        .headlineLarge)
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w900,
-                                                color:
-                                                    subtitleColor ??
-                                                    contentColor,
-                                                letterSpacing: -0.5,
-                                              ),
+                                      ],
                                     ),
-                                  ],
-                                  if (chips.isNotEmpty) ...[
-                                    const SizedBox(height: 16),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: chips
-                                          .map(
+                                    if (subtitle != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        subtitle!,
+                                        style:
+                                            (isSmallWidth
+                                                    ? theme
+                                                          .textTheme
+                                                          .headlineSmall
+                                                    : theme
+                                                          .textTheme
+                                                          .headlineLarge)
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w900,
+                                                  color:
+                                                      subtitleColor ??
+                                                      contentColor,
+                                                  letterSpacing: -0.5,
+                                                ),
+                                      ),
+                                    ],
+                                    if (chips.isNotEmpty ||
+                                        members.isNotEmpty) ...[
+                                      const SizedBox(height: 16),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        children: [
+                                          ...chips.map(
                                             (chip) => _buildInfoChip(
                                               context,
                                               chip,
                                               effectiveBgColor,
                                             ),
-                                          )
-                                          .toList(),
-                                    ),
+                                          ),
+                                          if (members.isNotEmpty)
+                                            _buildMembersList(
+                                              context,
+                                              members,
+                                              isDarkBg,
+                                            ),
+                                        ],
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
-                            ),
-                            if (!isSmallWidth && sideContent != null) ...[
-                              const SizedBox(width: 32),
-                              SizedBox(width: 300, child: sideContent!),
+                              if (!isSmallWidth && sideContent != null) ...[
+                                const SizedBox(width: 32),
+                                SizedBox(width: 300, child: sideContent!),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
                         if (isSmallWidth && sideContent != null) ...[
                           const SizedBox(height: 24),
-                          sideContent!,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: sideContent!,
+                          ),
                         ],
                         if (isSmallWidth && actions.isNotEmpty) ...[
                           const SizedBox(height: 24),
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Row(
                               children: actions
                                   .map(
@@ -322,17 +346,65 @@ class SliverDetailHeader extends StatelessWidget {
                     .clamp(0.0, 1.0);
 
             if (t > 0.8) {
-              return Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: contentColor,
-                  fontWeight: FontWeight.bold,
-                ),
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (logo != null) ...[
+                    SizedBox(width: 24, height: 24, child: logo!),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: contentColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               );
             }
             return const SizedBox.shrink();
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildMembersList(
+    BuildContext context,
+    List<UserModel> members,
+    bool isDarkBg,
+  ) {
+    const double avatarRadius = 14;
+    const double overlap = 8.0;
+
+    return SizedBox(
+      height: avatarRadius * 2,
+      child: Stack(
+        children: [
+          for (int i = 0; i < members.length; i++)
+            Positioned(
+              left: i * (avatarRadius * 2 - overlap),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDarkBg ? AppColors.darkNavy : AppColors.pureWhite,
+                    width: 2,
+                  ),
+                ),
+                child: UserAvatar(
+                  displayName: members[i].displayName,
+                  photoUrl: members[i].photoUrl,
+                  radius: avatarRadius,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

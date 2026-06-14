@@ -123,7 +123,6 @@ class TransactionFormScreen extends StatelessWidget {
           >(
             provider,
             submitLabel: l10n.saveButton,
-            submitEnabled: (state) => true,
             onCancel: () => Navigator.pop(context),
             onSubmit: (snapshot, loading) async {
               if (!snapshot.validate()) return;
@@ -269,7 +268,7 @@ class TransactionFormScreen extends StatelessWidget {
                       decoration: InputDecoration(
                         labelText: l10n.transactionToAccountLabel,
                       ),
-                      onChanged: !isSettled || state.creation
+                      onChanged: !state.isInvoice && (!isSettled || state.creation)
                           ? notifier.updateAccountIdTarget
                           : null,
                       validator: v.all([v.notEmpty()]),
@@ -319,7 +318,7 @@ class TransactionFormScreen extends StatelessWidget {
         ),
         onChanged: notifier.updateDescription,
         validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
-        enabled: !isSettled || state.creation,
+        enabled: !state.isInvoice && (!isSettled || state.creation),
       ),
       if (state.creation || state.amount > 0)
         DateFormField(
@@ -330,7 +329,7 @@ class TransactionFormScreen extends StatelessWidget {
             }
           },
           decoration: InputDecoration(labelText: l10n.transactionDateLabel),
-          enabled: !isSettled || state.creation,
+          enabled: !state.isInvoice && (!isSettled || state.creation),
           validator: v.all([v.notNull()]),
         ),
       if (state.type != OrderType.transfer) ...[
@@ -400,7 +399,7 @@ class TransactionFormScreen extends StatelessWidget {
           decoration: InputDecoration(labelText: amountLabel),
           onChanged: (v) => notifier.updateAmount(v ?? 0.0),
           validator: v.all([v.notNull()]),
-          enabled: !isSettled || state.creation,
+          enabled: !state.isInvoice && (!isSettled || state.creation),
         ),
       if (!state.creation) _buildStatusField(context, state, notifier),
       if (!state.creation && (isPaid || isSettled)) ...[

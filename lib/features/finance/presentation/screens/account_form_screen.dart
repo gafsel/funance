@@ -615,7 +615,7 @@ class _BankLogoOption extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.asset(
                   'assets/logos/${logo.name}.png',
-                  fit: BoxFit.cover,
+                  fit: BoxFit.fitWidth,
                   errorBuilder: (context, error, stackTrace) => const Icon(Icons.help_outline),
                 ),
               ),

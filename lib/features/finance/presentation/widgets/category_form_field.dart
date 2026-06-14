@@ -51,7 +51,7 @@ class CategoryFormField extends ConsumerWidget {
 
   static void _dummyOnChanged(CategoryModel? _) {}
 
-  bool get enabled => onChanged != null;
+  bool get enabled => onChanged != null && !transfer && !invoice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,7 +63,7 @@ class CategoryFormField extends ConsumerWidget {
         if (autoOpen &&
             state.value == null &&
             categoryType != null &&
-            !transfer) {
+            !transfer && !invoice) {
           final isModalOpen = ModalRoute.of(context)?.isCurrent == false;
           if (!isModalOpen) {
             WidgetsBinding.instance.addPostFrameCallback((_) async {

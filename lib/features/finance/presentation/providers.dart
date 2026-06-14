@@ -265,6 +265,18 @@ class FinanceViewProviders {
         );
       });
 
+  static final transactionPaymentForm = StateNotifierProvider.autoDispose
+      .family<TransactionFormNotifier, TransactionFormState, InstallmentModel>((
+        ref,
+        installment,
+      ) {
+        return TransactionFormNotifier(
+          TransactionFormState.updateInstallment(installment, status: InstallmentStatus.paid),
+          financeService: ref.watch(FinanceDomainProviders.service),
+          categoryService: ref.watch(CategoryDomainProviders.service),
+        );
+      });
+
   static final reconciliationForm = StateNotifierProvider.autoDispose
       .family<
         TransactionFormNotifier,

@@ -10,8 +10,10 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
 import 'package:go_router/go_router.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
@@ -43,7 +45,16 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   title: invoice.description,
                   subtitle: invoice.amount.asCurrency(locale: locale),
                   subtitleColor: Colors.white,
-                  backgroundColor: AppColors.deepTurquoise,
+                  backgroundColor: accountAsync.when(
+                    data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
+                    loading: () => AppColors.deepTurquoise,
+                    error: (_, __) => AppColors.deepTurquoise,
+                  ),
+                  logo: accountAsync.when(
+                    data: (account) => account != null ? AccountLogo(account: account, size: 40) : null,
+                    loading: () => null,
+                    error: (_, __) => null,
+                  ),
                   expandedHeight: isSmallWidth ? 480 : 320,
                   chips: [
                     DetailHeaderChip(
@@ -81,28 +92,16 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     ),
                   ],
                   actions: [
-                    if (invoice.status == InstallmentStatus.paid ||
-                        invoice.status == InstallmentStatus.settled)
-                      DetailHeaderAction(
-                        icon: Icons.edit_outlined,
-                        label: l10n.editButton,
-                        onPressed: () {
-                          context.push(
-                            '/transactions/form?forceEdit=true',
-                            extra: {'installment': invoice},
-                          );
-                        },
-                        tooltip: l10n.editButton,
-                      ),
                     if (invoice.status == InstallmentStatus.pending)
                       DetailHeaderAction(
                         icon: Icons.payment,
                         label: l10n.registerInvoicePayment,
-                        onPressed: () {
-                          context.push(
-                            '/transactions/form?forceEdit=true&status=paid',
-                            extra: {'installment': invoice},
-                          );
+                        onPressed: () async {
+                          final result = TransactionPaymentSheet.show(context, invoice);
+
+                          if (result is InstallmentModel) {
+                            context.pop(true);
+                          }
                         },
                         tooltip: l10n.registerInvoicePayment,
                       ),
@@ -116,6 +115,17 @@ class InvoiceDetailScreen extends ConsumerWidget {
                         }
                       },
                       tooltip: l10n.reconciliationTitle,
+                    ),
+                    DetailHeaderAction(
+                      icon: Icons.edit_outlined,
+                      label: l10n.editButton,
+                      onPressed: () {
+                        context.push(
+                          '/transactions/form',
+                          extra: {'installment': invoice},
+                        );
+                      },
+                      tooltip: l10n.editButton,
                     ),
                   ],
                   sideContent: _buildPieChart(

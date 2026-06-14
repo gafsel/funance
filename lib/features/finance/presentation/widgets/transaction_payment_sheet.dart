@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/date_form_field.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
+import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 
-class TransactionPaymentSheet extends ConsumerStatefulWidget {
+class TransactionPaymentSheet extends StatelessWidget {
   final InstallmentModel installment;
 
-  const TransactionPaymentSheet({
-    super.key,
-    required this.installment,
-  });
+  const TransactionPaymentSheet({super.key, required this.installment});
 
-  static Future<bool?> show(
+  static Future<InstallmentModel?> show(
     BuildContext context,
     InstallmentModel installment,
   ) {
-    return showModalBottomSheet<bool>(
+    return showModalBottomSheet<InstallmentModel>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -29,108 +27,110 @@ class TransactionPaymentSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<TransactionPaymentSheet> createState() =>
-      _TransactionPaymentSheetState();
-}
-
-class _TransactionPaymentSheetState
-    extends ConsumerState<TransactionPaymentSheet> {
-  final _formKey = GlobalKey<FormState>();
-
-  @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
-    final formState = ref.watch(
-      FinanceViewProviders.updateInstallmentForm(widget.installment),
-    );
+    final provider = FinanceViewProviders.transactionPaymentForm(installment);
 
-    final notifier = ref.read(
-      FinanceViewProviders.updateInstallmentForm(widget.installment).notifier,
-    );
-
+    final mq = MediaQuery.of(context);
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+        bottom: mq.viewInsets.bottom + mq.padding.bottom,
       ),
       child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.reconciliationConfirm,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 24,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    l10n.reconciliationConfirm,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            ResponsiveForm<
+              TransactionFormState,
+              dynamic,
+              TransactionFormNotifier
+            >(
+              provider,
+              onCancel: () => Navigator.pop(context),
+              onSubmit: (snapshot, loading) async {
+                if (!snapshot.validate()) return;
+
+                final notifier = snapshot.notifier;
+
+                final result = await loading(notifier.submit());
+                if (result == null) return;
+
+                messenger.showSnackBar(
+                  SnackBar(content: Text(l10n.transactionSaveSuccess)),
+                );
+
+                navigator.pop(result as InstallmentModel);
+              },
+              fieldsBuilder: (context, snapshot) {
+                final state = snapshot.model;
+                final notifier = snapshot.notifier;
+
+                return [
+                  AccountFormField(
+                    initialValue: state.accountIdSource,
+                    decoration: InputDecoration(
+                      labelText: l10n.transactionAccountLabel,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                AccountFormField(
-                  initialValue: formState.accountIdSource,
-                  decoration: InputDecoration(
-                    labelText: l10n.transactionAccountLabel,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    onChanged: (accountId) {
+                      notifier.updateAccountIdSource(accountId);
+                    },
                   ),
-                  onChanged: (accountId) {
-                    notifier.updateAccountIdSource(accountId);
-                  },
-                ),
-                const SizedBox(height: 16),
-                DateFormField(
-                  initialValue: formState.dueDate,
-                  decoration: InputDecoration(
-                    labelText: l10n.transactionDateLabel,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  DateFormField(
+                    initialValue: state.paidDate,
+                    decoration: InputDecoration(
+                      labelText: l10n.transactionDateLabel,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    onChanged: (date) {
+                      if (date != null) notifier.updatePaidDate(date);
+                    },
                   ),
-                  onChanged: (date) {
-                    if (date != null) notifier.updatePaidDate(date);
-                  },
-                ),
-                const SizedBox(height: 16),
-                MoneyFormField(
-                  initialValue: formState.amount,
-                  decoration: InputDecoration(
-                    labelText: l10n.transactionAmountLabel,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  MoneyFormField(
+                    initialValue: state.paidAmount,
+                    decoration: InputDecoration(
+                      labelText: l10n.transactionAmountLabel,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    onChanged: (value) {
+                      if (value != null) notifier.updatePaidAmount(value);
+                    },
                   ),
-                  onChanged: (value) {
-                    if (value != null) notifier.updatePaidAmount(value);
-                  },
-                ),
-                const SizedBox(height: 32),
-                FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: Text(l10n.reconciliationConfirm),
-                ),
-              ],
+                ];
+              },
             ),
-          ),
+            SizedBox(height: mq.padding.bottom),
+          ],
         ),
       ),
     );

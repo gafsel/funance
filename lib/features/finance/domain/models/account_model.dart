@@ -50,6 +50,28 @@ enum BankLogo {
   amex,
 }
 
+extension BankLogoExtension on BankLogo {
+  String? get defaultColor {
+    return switch (this) {
+      BankLogo.none => null,
+      BankLogo.nubank => '#8A05BE',
+      BankLogo.inter => '#FF7A00',
+      BankLogo.itau => '#EC7000',
+      BankLogo.bradesco => '#CC092F',
+      BankLogo.santander => '#EC0000',
+      BankLogo.bb => '#FCF800',
+      BankLogo.caixa => '#005CA5',
+      BankLogo.c6 => '#212121',
+      BankLogo.xp => '#000000',
+      BankLogo.btg => '#00253E',
+      BankLogo.visa => '#1A1F71',
+      BankLogo.mastercard => '#EB001B',
+      BankLogo.elo => '#00A4E0',
+      BankLogo.amex => '#0070CD',
+    };
+  }
+}
+
 @freezed
 sealed class AccountModel with _$AccountModel {
   const AccountModel._();

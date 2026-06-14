@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
+import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
@@ -60,6 +63,16 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
 
         _initQuery(goal);
 
+        final accountId = goal.mapOrNull(
+          saveMoney: (g) => g.accountId,
+          reduceCreditCard: (g) => g.accountId,
+          payDebt: (g) => g.accountId,
+        );
+
+        final accountAsync = accountId != null
+            ? ref.watch(AccountViewProviders.byId(accountId))
+            : const AsyncValue<AccountModel?>.data(null);
+
         return Scaffold(
           body: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -68,7 +81,16 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 SliverDetailHeader(
                   title: goal.name,
                   subtitle: goal.targetAmount.asCurrency(locale: context.locale),
-                  backgroundColor: AppColors.deepTurquoise,
+                  backgroundColor: accountAsync.when(
+                    data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
+                    loading: () => AppColors.deepTurquoise,
+                    error: (_, __) => AppColors.deepTurquoise,
+                  ),
+                  logo: accountAsync.when(
+                    data: (account) => account != null ? AccountLogo(account: account, size: 40) : null,
+                    loading: () => null,
+                    error: (_, __) => null,
+                  ),
                   expandedHeight: 320,
                   chips: [
                     DetailHeaderChip(

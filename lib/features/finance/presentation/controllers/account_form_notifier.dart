@@ -52,8 +52,12 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
   void updateInterestRate(double interestRate) =>
       state = state.copyWith(interestRate: interestRate);
 
-  void updateBankLogo(BankLogo bankLogo) =>
-      state = state.copyWith(bankLogo: bankLogo);
+  void updateBankLogo(BankLogo bankLogo) {
+    state = state.copyWith(bankLogo: bankLogo);
+    if (bankLogo.defaultColor != null) {
+      state = state.copyWith(color: bankLogo.defaultColor!);
+    }
+  }
 
   void updateOwnerIds(List<String> ownerIds) =>
       state = state.copyWith(ownerIds: ownerIds);

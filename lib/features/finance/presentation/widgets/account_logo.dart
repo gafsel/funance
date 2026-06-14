@@ -38,7 +38,7 @@ class AccountLogo extends ConsumerWidget {
           borderRadius: BorderRadius.circular(size * 0.2),
           child: Image.asset(
             'assets/logos/${account.bankLogo.name}.png',
-            fit: BoxFit.cover,
+            fit: BoxFit.fitWidth,
             errorBuilder: (context, error, stackTrace) => Icon(
               account.icon.asIcon(),
               color: account.color.asColor(),
@@ -52,8 +52,9 @@ class AccountLogo extends ConsumerWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: account.color.asColor().withOpacity(0.1),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(size * 0.2),
+          border: Border.all(color: AppColors.softGrey, width: size * .05),
         ),
         child: Icon(
           account.icon.asIcon(),
@@ -68,7 +69,11 @@ class AccountLogo extends ConsumerWidget {
     }
 
     return SizedBox(
-      width: size + (memberAvatarSize * 0.6 * (account.ownerIds.length > 3 ? 3 : account.ownerIds.length)),
+      width:
+          size +
+          (memberAvatarSize *
+              0.6 *
+              (account.ownerIds.length > 3 ? 3 : account.ownerIds.length)),
       height: size + (memberAvatarSize * 0.4),
       child: Stack(
         children: [
@@ -77,7 +82,7 @@ class AccountLogo extends ConsumerWidget {
             final index = entry.$1;
             final userId = entry.$2;
             final membersAsync = ref.watch(WorkspaceViewProviders.members);
-            
+
             return Positioned(
               bottom: 0,
               right: index * (memberAvatarSize * 0.6),
@@ -96,8 +101,10 @@ class AccountLogo extends ConsumerWidget {
                     ),
                   );
                 },
-                loading: () => SizedBox(width: memberAvatarSize, height: memberAvatarSize),
-                error: (_, __) => SizedBox(width: memberAvatarSize, height: memberAvatarSize),
+                loading: () =>
+                    SizedBox(width: memberAvatarSize, height: memberAvatarSize),
+                error: (_, __) =>
+                    SizedBox(width: memberAvatarSize, height: memberAvatarSize),
               ),
             );
           }),
