@@ -88,189 +88,201 @@ class TransactionFilterBottomSheet extends StatelessWidget {
             ),
           ),
           Divider(),
-          Theme(
-            data: theme.copyWith(
-              inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-                fillColor: Colors.black12,
-                prefixIconColor: Colors.white70,
-                suffixIconColor: Colors.white70,
-                prefixStyle: TextStyle(color: Colors.white70),
-                labelStyle: theme.inputDecorationTheme.labelStyle?.copyWith(
-                  color: Colors.white70,
+          Expanded(
+            child: Theme(
+              data: theme.copyWith(
+                inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+                  fillColor: Colors.black12,
+                  prefixIconColor: Colors.white70,
+                  suffixIconColor: Colors.white70,
+                  prefixStyle: TextStyle(color: Colors.white70),
+                  labelStyle: theme.inputDecorationTheme.labelStyle?.copyWith(
+                    color: Colors.white70,
+                  ),
+                  floatingLabelStyle: theme
+                      .inputDecorationTheme
+                      .floatingLabelStyle
+                      ?.copyWith(color: Colors.white),
                 ),
-                floatingLabelStyle: theme
-                    .inputDecorationTheme
-                    .floatingLabelStyle
-                    ?.copyWith(color: Colors.white),
+                hintColor: Colors.white60,
               ),
-              hintColor: Colors.white60,
-            ),
-            child:
-                ResponsiveForm<
-                  TransactionFilterState,
-                  TransactionQuery,
-                  TransactionFilterNotifier
-                >(
-                  provider,
-                  submitLabel: l10n.historyFilterApply,
-                  onSuccess: (query) {
-                    if (query != null) {
-                      onApply(query);
-                      Navigator.pop(context);
-                    }
-                  },
-                  extraActions: [
-                    Consumer(
-                      builder: (context, ref, child) {
-                        return OutlinedButton(
-                          onPressed: () => ref.read(provider.notifier).clear(),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.pureWhite,
-                            side: const BorderSide(color: AppColors.pureWhite),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                              horizontal: 24,
+              child:
+                  ResponsiveForm<
+                    TransactionFilterState,
+                    TransactionQuery,
+                    TransactionFilterNotifier
+                  >(
+                    provider,
+                    submitLabel: l10n.historyFilterApply,
+                    submitButtonColor: AppColors.successGold,
+                    onSuccess: (query) {
+                      if (query != null) {
+                        onApply(query);
+                        Navigator.pop(context);
+                      }
+                    },
+                    extraActions: [
+                      Consumer(
+                        builder: (context, ref, child) {
+                          return OutlinedButton(
+                            onPressed: () =>
+                                ref.read(provider.notifier).clear(),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.pureWhite,
+                              side: const BorderSide(
+                                color: AppColors.pureWhite,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 24,
+                              ),
                             ),
-                          ),
-                          child: Text(l10n.historyFilterClear),
-                        );
-                      },
-                    ),
-                  ],
-                  fieldsBuilder: (context, snapshot) {
-                    final state = snapshot.model;
-                    final notifier = snapshot.notifier;
+                            child: Text(l10n.historyFilterClear),
+                          );
+                        },
+                      ),
+                    ],
+                    fieldsBuilder: (context, snapshot) {
+                      final state = snapshot.model;
+                      final notifier = snapshot.notifier;
 
-                    bool isHidden(TransactionFilterField field) =>
-                        hiddenFields.contains(field);
+                      bool isHidden(TransactionFilterField field) =>
+                          hiddenFields.contains(field);
 
-                    return [
-                      if (!isHidden(TransactionFilterField.description))
-                        FullWidthItem(
-                          TextFormField(
-                            initialValue: state.description,
-                            onChanged: notifier.updateDescription,
-                            decoration: InputDecoration(
-                              labelText: l10n.historyFilterDescriptionLabel,
-                            ),
-                            style: const TextStyle(color: AppColors.pureWhite),
-                          ),
-                        ),
-                      if (!isHidden(TransactionFilterField.account))
-                        FullWidthItem(
-                          AccountFormField(
-                            initialValue: state.accountId,
-                            onChanged: notifier.updateAccountId,
-                            decoration: InputDecoration(
-                              labelText: l10n.historyFilterAccountLabel,
-                            ),
-                            showAddOption: false,
-                            style: const TextStyle(color: AppColors.pureWhite),
-                          ),
-                        ),
-                      if (!isHidden(TransactionFilterField.type))
-                        FullWidthItem(
-                          ChipFormField<OrderType>(
-                            initialValue: state.type,
-                            onChanged: notifier.updateType,
-                            decoration: InputDecoration(
-                              labelText: l10n.historyFilterTypeLabel,
-                            ),
-                            options: OrderType.values.map((type) {
-                              return ChipFormFieldOption(
-                                value: type,
-                                label: l10n.fromOrderType(type),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      if (!isHidden(TransactionFilterField.category)) ...[
-                        if (state.type == OrderType.transfer) ...[
+                      return [
+                        if (!isHidden(TransactionFilterField.description))
                           FullWidthItem(
-                            CategoryFormField.transfer(
+                            TextFormField(
+                              initialValue: state.description,
+                              onChanged: notifier.updateDescription,
                               decoration: InputDecoration(
-                                labelText: l10n.historyFilterCategoryLabel,
+                                labelText: l10n.historyFilterDescriptionLabel,
                               ),
                               style: const TextStyle(
                                 color: AppColors.pureWhite,
                               ),
                             ),
                           ),
-                        ] else ...[
+                        if (!isHidden(TransactionFilterField.account))
                           FullWidthItem(
-                            CategoryFormField(
-                              emptyMeansAll: true,
-                              showNewOption: false,
-                              categoryType: state.type?.categoryType,
-                              initialValue: state.category,
-                              onChanged: notifier.updateCategory,
+                            AccountFormField(
+                              initialValue: state.accountId,
+                              onChanged: notifier.updateAccountId,
                               decoration: InputDecoration(
-                                labelText: l10n.historyFilterCategoryLabel,
+                                labelText: l10n.historyFilterAccountLabel,
                               ),
+                              showAddOption: false,
                               style: const TextStyle(
                                 color: AppColors.pureWhite,
                               ),
+                            ),
+                          ),
+                        if (!isHidden(TransactionFilterField.type))
+                          FullWidthItem(
+                            ChipFormField<OrderType>(
+                              initialValue: state.type,
+                              onChanged: notifier.updateType,
+                              decoration: InputDecoration(
+                                labelText: l10n.historyFilterTypeLabel,
+                              ),
+                              options: OrderType.values.map((type) {
+                                return ChipFormFieldOption(
+                                  value: type,
+                                  label: l10n.fromOrderType(type),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        if (!isHidden(TransactionFilterField.category)) ...[
+                          if (state.type == OrderType.transfer) ...[
+                            FullWidthItem(
+                              CategoryFormField.transfer(
+                                decoration: InputDecoration(
+                                  labelText: l10n.historyFilterCategoryLabel,
+                                ),
+                                style: const TextStyle(
+                                  color: AppColors.pureWhite,
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            FullWidthItem(
+                              CategoryFormField(
+                                emptyMeansAll: true,
+                                showNewOption: false,
+                                categoryType: state.type?.categoryType,
+                                initialValue: state.category,
+                                onChanged: notifier.updateCategory,
+                                decoration: InputDecoration(
+                                  labelText: l10n.historyFilterCategoryLabel,
+                                ),
+                                style: const TextStyle(
+                                  color: AppColors.pureWhite,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                        if (!isHidden(TransactionFilterField.status))
+                          FullWidthItem(
+                            ChipFormField<InstallmentStatus>(
+                              initialValue: state.status,
+                              onChanged: notifier.updateStatus,
+                              decoration: InputDecoration(
+                                labelText: l10n.historyFilterStatusLabel,
+                              ),
+                              options:
+                                  [
+                                    InstallmentStatus.pending,
+                                    InstallmentStatus.paid,
+                                    InstallmentStatus.settled,
+                                  ].map((status) {
+                                    return ChipFormFieldOption(
+                                      value: status,
+                                      label: l10n.fromInstallmentStatus(status),
+                                    );
+                                  }).toList(),
+                            ),
+                          ),
+                        if (!isHidden(TransactionFilterField.amountRange)) ...[
+                          FullWidthItem(
+                            Row(
+                              spacing: 16,
+                              children: [
+                                Expanded(
+                                  child: MoneyFormField(
+                                    initialValue: state.minAmount,
+                                    onChanged: notifier.updateMinAmount,
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          l10n.historyFilterMinAmountLabel,
+                                    ),
+                                    style: const TextStyle(
+                                      color: AppColors.pureWhite,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: MoneyFormField(
+                                    initialValue: state.maxAmount,
+                                    onChanged: notifier.updateMaxAmount,
+                                    decoration: InputDecoration(
+                                      labelText:
+                                          l10n.historyFilterMaxAmountLabel,
+                                    ),
+                                    style: const TextStyle(
+                                      color: AppColors.pureWhite,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ],
-                      if (!isHidden(TransactionFilterField.status))
-                        FullWidthItem(
-                          ChipFormField<InstallmentStatus>(
-                            initialValue: state.status,
-                            onChanged: notifier.updateStatus,
-                            decoration: InputDecoration(
-                              labelText: l10n.historyFilterStatusLabel,
-                            ),
-                            options:
-                                [
-                                  InstallmentStatus.pending,
-                                  InstallmentStatus.paid,
-                                  InstallmentStatus.settled,
-                                ].map((status) {
-                                  return ChipFormFieldOption(
-                                    value: status,
-                                    label: l10n.fromInstallmentStatus(status),
-                                  );
-                                }).toList(),
-                          ),
-                        ),
-                      if (!isHidden(TransactionFilterField.amountRange)) ...[
-                        FullWidthItem(
-                          Row(
-                            spacing: 16,
-                            children: [
-                              Expanded(
-                                child: MoneyFormField(
-                                  initialValue: state.minAmount,
-                                  onChanged: notifier.updateMinAmount,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.historyFilterMinAmountLabel,
-                                  ),
-                                  style: const TextStyle(
-                                    color: AppColors.pureWhite,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: MoneyFormField(
-                                  initialValue: state.maxAmount,
-                                  onChanged: notifier.updateMaxAmount,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.historyFilterMaxAmountLabel,
-                                  ),
-                                  style: const TextStyle(
-                                    color: AppColors.pureWhite,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ];
-                  },
-                ),
+                      ];
+                    },
+                  ),
+            ),
           ),
         ],
       ),

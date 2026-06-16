@@ -14,6 +14,10 @@ class CategoryIcon extends StatelessWidget {
     this.transfer = false,
   });
 
+  factory CategoryIcon.forCategory(CategoryModel category) {
+    return CategoryIcon._(category: category);
+  }
+
   factory CategoryIcon.forInstallment(InstallmentModel installment) {
     return CategoryIcon._(
       category: installment.category,

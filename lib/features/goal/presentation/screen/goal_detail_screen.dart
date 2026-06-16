@@ -14,6 +14,7 @@ import 'package:funances/features/finance/presentation/widgets/transaction_list_
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
+import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
@@ -73,6 +74,18 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             ? ref.watch(AccountViewProviders.byId(accountId))
             : const AsyncValue<AccountModel?>.data(null);
 
+        final accountLogo = accountAsync.when(
+          data: (account) => account != null ? AccountLogo(account: account, size: 40) : null,
+          loading: () => null,
+          error: (_, __) => null,
+        );
+
+        final accountColor = accountAsync.when(
+          data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
+          loading: () => AppColors.deepTurquoise,
+          error: (_, __) => AppColors.deepTurquoise,
+        );
+
         return Scaffold(
           body: NestedScrollView(
             headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -81,15 +94,17 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                 SliverDetailHeader(
                   title: goal.name,
                   subtitle: goal.targetAmount.asCurrency(locale: context.locale),
-                  backgroundColor: accountAsync.when(
-                    data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
-                    loading: () => AppColors.deepTurquoise,
-                    error: (_, __) => AppColors.deepTurquoise,
+                  backgroundColor: goal.map(
+                    payDebt: (_) => accountColor,
+                    saveMoney: (_) => accountColor,
+                    reduceCreditCard: (_) => accountColor,
+                    reduceExpense: (re) => re.category.color.asColor(),
                   ),
-                  logo: accountAsync.when(
-                    data: (account) => account != null ? AccountLogo(account: account, size: 40) : null,
-                    loading: () => null,
-                    error: (_, __) => null,
+                  logo: goal.map(
+                    payDebt: (_) => accountLogo,
+                    saveMoney: (_) => accountLogo,
+                    reduceCreditCard: (_) => accountLogo,
+                    reduceExpense: (re) => CategoryIcon.forCategory(re.category),
                   ),
                   expandedHeight: 360,
                   chips: [

@@ -56,124 +56,88 @@ class TransactionListItem extends StatelessWidget {
       amountPrefix = '+';
     }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: InkWell(
-        onTap: () {
-          if (installment.isInvoice) {
-            context.push('/invoices/detail', extra: installment);
-          } else {
-            TransactionDetailSheet.show(
-              context,
-              installment,
-              onUpdated: () => notifier.reset(),
-            );
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
-          child: Row(
-            spacing: 12,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  CategoryIcon.forInstallment(installment),
-                  Positioned(
-                    bottom: -5,
-                    right: -5,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: installment.status == InstallmentStatus.settled
-                            ? AppColors.deepPurple
-                            : installment.status == InstallmentStatus.paid
-                            ? AppColors.limeGreen
-                            : AppColors.antiqueGold,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        installment.status == InstallmentStatus.settled
-                            ? Icons.done_all
-                            : installment.status == InstallmentStatus.paid
-                            ? Icons.check
-                            : Icons.schedule,
-                        size: 10,
-                        color: Colors.white,
-                      ),
+    return InkWell(
+      onTap: () {
+        if (installment.isInvoice) {
+          context.push('/invoices/detail', extra: installment);
+        } else {
+          TransactionDetailSheet.show(
+            context,
+            installment,
+            onUpdated: () => notifier.reset(),
+          );
+        }
+      },
+      child: Padding(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16) +
+            EdgeInsets.only(bottom: 16, top: 8),
+        child: Row(
+          spacing: 8,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CategoryIcon.forInstallment(installment),
+                Positioned(
+                  bottom: -5,
+                  right: -5,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: installment.status == InstallmentStatus.settled
+                          ? AppColors.deepPurple
+                          : installment.status == InstallmentStatus.paid
+                          ? AppColors.limeGreen
+                          : AppColors.antiqueGold,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      installment.status == InstallmentStatus.settled
+                          ? Icons.done_all
+                          : installment.status == InstallmentStatus.paid
+                          ? Icons.check
+                          : Icons.schedule,
+                      size: 10,
+                      color: Colors.white,
                     ),
                   ),
-                ],
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 16),
-                    Text(
-                      installment.description,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                ),
+              ],
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 16),
+                  Text(
+                    installment.description,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
-                    Consumer(
-                      builder: (context, ref, _) {
-                        final source = installment.accountIdSource != null
+                  ),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final source = installment.accountIdSource != null
+                          ? ref
+                                .watch(
+                                  AccountViewProviders.byId(
+                                    installment.accountIdSource!,
+                                  ),
+                                )
+                                .whenOrNull(data: (data) => data)
+                          : null;
+
+                      if (isTransfer) {
+                        final target = installment.accountIdTarget != null
                             ? ref
                                   .watch(
                                     AccountViewProviders.byId(
-                                      installment.accountIdSource!,
+                                      installment.accountIdTarget!,
                                     ),
                                   )
                                   .whenOrNull(data: (data) => data)
                             : null;
-
-                        if (isTransfer) {
-                          final target = installment.accountIdTarget != null
-                              ? ref
-                                    .watch(
-                                      AccountViewProviders.byId(
-                                        installment.accountIdTarget!,
-                                      ),
-                                    )
-                                    .whenOrNull(data: (data) => data)
-                              : null;
-
-                          return Row(
-                            spacing: 8,
-                            children: [
-                              if (source != null)
-                                AccountLogo(
-                                  account: source,
-                                  size: 30,
-                                  showMembers: true,
-                                ),
-                              Text(
-                                source?.name ?? '-',
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const Icon(Icons.arrow_forward, size: 12),
-                              if (target != null)
-                                AccountLogo(
-                                  account: target,
-                                  size: 30,
-                                  showMembers: true,
-                                ),
-                              Expanded(
-                                child: Text(
-                                  target?.name ?? '-',
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
 
                         return Row(
                           spacing: 8,
@@ -184,9 +148,23 @@ class TransactionListItem extends StatelessWidget {
                                 size: 30,
                                 showMembers: true,
                               ),
+                            Text(
+                              source?.name ?? '-',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const Icon(Icons.arrow_forward, size: 12),
+                            if (target != null)
+                              AccountLogo(
+                                account: target,
+                                size: 30,
+                                showMembers: true,
+                              ),
                             Expanded(
                               child: Text(
-                                source?.name ?? "-",
+                                target?.name ?? '-',
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
@@ -195,33 +173,57 @@ class TransactionListItem extends StatelessWidget {
                             ),
                           ],
                         );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    "$amountPrefix${installment.referenceAmount.asCurrency(locale: locale)}",
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: amountColor,
-                      fontWeight: FontWeight.bold,
-                    ),
+                      }
+
+                      return Row(
+                        spacing: 8,
+                        children: [
+                          if (source != null)
+                            AccountLogo(
+                              account: source,
+                              size: 30,
+                              showMembers: true,
+                            ),
+                          Expanded(
+                            child: Text(
+                              source?.name ?? "-",
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
-                  if (installment.installmentCount != null &&
-                      installment.installmentCount! > 1)
-                    Text(
-                      "${installment.installmentNumber}/${installment.installmentCount}",
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  "$amountPrefix${installment.referenceAmount.asCurrency(locale: locale)}",
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: amountColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (installment.installmentCount != null &&
+                    installment.installmentCount! > 1)
+                  Text(
+                    l10n.installmentCountDescription(
+                      installment.installmentCount!,
+                      installment.installmentCount!,
+                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

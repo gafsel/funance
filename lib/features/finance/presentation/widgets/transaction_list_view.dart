@@ -112,9 +112,7 @@ class TransactionListView extends ConsumerWidget {
 
     return InfiniteListView.separator(
       provider,
-      padding:
-          const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 0) +
-          EdgeInsets.only(bottom: mq.padding.bottom),
+      padding: EdgeInsets.only(bottom: mq.padding.bottom),
       footerBuilder: footerBuilder,
       separatorBuilder: (context, before, after) {
         final bool isSameGroup =
@@ -134,7 +132,7 @@ class TransactionListView extends ConsumerWidget {
           );
         }
 
-        return const Divider(height: 1);
+        return SizedBox.shrink();
       },
       itemBuilder: (context, item) {
         return TransactionListItem(
@@ -184,7 +182,9 @@ class TransactionListView extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      padding:
+          const EdgeInsets.symmetric(horizontal: 16) +
+          EdgeInsets.only(top: 16, bottom: 8),
       width: double.infinity,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

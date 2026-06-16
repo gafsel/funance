@@ -27,9 +27,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final accountId =
         invoice.accountIdSource ?? invoice.accounts.keys.firstOrNull ?? "";
     final accountAsync = ref.watch(AccountViewProviders.byId(accountId));
-    final pieChartAsync = ref.watch(
-      FinanceViewProviders.invoicePieChart(invoice),
-    );
 
     final locale = context.locale;
 
@@ -46,12 +43,19 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   subtitle: invoice.amount.asCurrency(locale: locale),
                   subtitleColor: Colors.white,
                   backgroundColor: accountAsync.when(
-                    data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
+                    data: (account) =>
+                        account?.color.asColor() ?? AppColors.deepTurquoise,
                     loading: () => AppColors.deepTurquoise,
                     error: (_, __) => AppColors.deepTurquoise,
                   ),
                   logo: accountAsync.when(
-                    data: (account) => account != null ? AccountLogo(account: account, size: 40) : null,
+                    data: (account) => account != null
+                        ? AccountLogo(
+                            account: account,
+                            size: 40,
+                            showMembers: true,
+                          )
+                        : null,
                     loading: () => null,
                     error: (_, __) => null,
                   ),
@@ -82,14 +86,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
                         locale,
                       ),
                     ),
-                    DetailHeaderChip(
-                      icon: Icons.credit_card,
-                      label: accountAsync.when(
-                        data: (data) => data?.name ?? "-",
-                        loading: () => '-',
-                        error: (_, __) => '-',
-                      ),
-                    ),
                   ],
                   actions: [
                     if (invoice.status == InstallmentStatus.pending)
@@ -97,7 +93,10 @@ class InvoiceDetailScreen extends ConsumerWidget {
                         icon: Icons.payment,
                         label: l10n.registerInvoicePayment,
                         onPressed: () async {
-                          final result = TransactionPaymentSheet.show(context, invoice);
+                          final result = TransactionPaymentSheet.show(
+                            context,
+                            invoice,
+                          );
 
                           if (result is InstallmentModel) {
                             context.pop(true);
@@ -129,7 +128,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     ),
                   ],
                   sideContent: _buildPieChart(
-                    pieChartAsync,
                     100,
                     30,
                     20,
@@ -214,7 +212,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildPieChart(
-    AsyncValue<List<CategoryAmountModel>> pieChartAsync,
     double size,
     double radius,
     double centerSpaceRadius,
@@ -225,84 +222,94 @@ class InvoiceDetailScreen extends ConsumerWidget {
         final theme = Theme.of(context);
         final isSmallWidth = constraints.maxWidth < 600;
 
-        return Column(
-          crossAxisAlignment: isSmallWidth
-              ? CrossAxisAlignment.stretch
-              : CrossAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(2),
-              decoration: ShapeDecoration(
-                shape: CircleBorder(),
-                color: Colors.white,
-              ),
-              height: size + 2,
-              width: size + 2,
-              child: pieChartAsync.when(
-                data: (categoryTotals) {
-                  if (categoryTotals.isEmpty) return const SizedBox.shrink();
+        return Consumer(
+          builder: (context, ref, _) {
+            final pieChartAsync = ref.watch(
+              FinanceViewProviders.invoicePieChart(invoice),
+            );
 
-                  final sections = categoryTotals.map((entry) {
-                    return PieChartSectionData(
-                      color: entry.category.color.asColor(),
-                      value: entry.amount,
-                      title: '',
-                      radius: radius,
-                    );
-                  }).toList();
+            return Column(
+              crossAxisAlignment: isSmallWidth
+                  ? CrossAxisAlignment.stretch
+                  : CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(2),
+                  decoration: ShapeDecoration(
+                    shape: CircleBorder(),
+                    color: Colors.white,
+                  ),
+                  height: size + 2,
+                  width: size + 2,
+                  child: pieChartAsync.when(
+                    data: (categoryTotals) {
+                      if (categoryTotals.isEmpty)
+                        return const SizedBox.shrink();
 
-                  return PieChart(
-                    PieChartData(
-                      sections: sections,
-                      sectionsSpace: 2,
-                      startDegreeOffset: -90,
-                      centerSpaceRadius: centerSpaceRadius,
-                    ),
-                  );
-                },
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            pieChartAsync.when(
-              data: (categoryTotals) {
-                if (categoryTotals.isEmpty) return const SizedBox.shrink();
-                return Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  alignment: isSmallWidth
-                      ? WrapAlignment.center
-                      : WrapAlignment.start,
-                  children: categoryTotals.map((cat) {
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: cat.category.color.asColor(),
-                            shape: BoxShape.circle,
-                          ),
+                      final sections = categoryTotals.map((entry) {
+                        return PieChartSectionData(
+                          color: entry.category.color.asColor(),
+                          value: entry.amount,
+                          title: '',
+                          radius: radius,
+                        );
+                      }).toList();
+
+                      return PieChart(
+                        PieChartData(
+                          sections: sections,
+                          sectionsSpace: 2,
+                          startDegreeOffset: -90,
+                          centerSpaceRadius: centerSpaceRadius,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          cat.category.name,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            color: contentColor.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
+                      );
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                pieChartAsync.when(
+                  data: (categoryTotals) {
+                    if (categoryTotals.isEmpty) return const SizedBox.shrink();
+                    return Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      alignment: isSmallWidth
+                          ? WrapAlignment.center
+                          : WrapAlignment.start,
+                      children: categoryTotals.map((cat) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: cat.category.color.asColor(),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              cat.category.name,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                fontSize: 10,
+                                color: contentColor.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
-                );
-              },
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
-          ],
+                  },
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+              ],
+            );
+          },
         );
       },
     );

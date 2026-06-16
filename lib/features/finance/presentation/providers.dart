@@ -510,6 +510,24 @@ class FinanceViewProviders {
                     .toList()
                   ..sort((e1, e2) => e1.amount < e2.amount ? 1 : -1);
 
+            if (list.length > 10) {
+              return Stream.value([
+                ...list.sublist(0, 9),
+                CategoryAmountModel(
+                  category: CategoryModel(
+                    id: "",
+                    name: "Outros",
+                    icon: "category",
+                    color: "#333333",
+                  ),
+                  amount: list
+                      .sublist(9)
+                      .map((cat) => cat.amount)
+                      .reduce((a1, a2) => a1 + a2),
+                ),
+              ]);
+            }
+
             return Stream.value(list);
           },
           error: (e, s) => Stream.error(e, s),

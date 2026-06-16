@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -49,6 +50,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     this.onSubmit,
     this.submitEnabled,
     this.onCancel,
+    this.submitButtonColor,
   });
 
   final AutoDisposeStateNotifierProvider<N, I> provider;
@@ -60,6 +62,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   final OnPressed<I, O, N>? onSubmit;
   final VoidCallback? onCancel;
   final bool Function(I state)? submitEnabled;
+  final Color? submitButtonColor;
 
   @override
   Widget build(BuildContext context) {
@@ -72,10 +75,11 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
           formBuilder: (context, snapshot) {
             final banner = bannerBuilder?.call(context, snapshot);
             return Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (banner != null) ...[banner, const SizedBox(height: 16)],
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(16),
                   child: _ResponsiveGrid(
                     spacing: 16,
                     children: fieldsBuilder(context, snapshot),
@@ -83,7 +87,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                 ),
                 Divider(),
                 Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(16),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final isLargeWidth = constraints.maxWidth > 500;
@@ -102,7 +106,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                       }
 
                       return Column(
-                        spacing: 16,
+                        spacing: 8,
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -126,7 +130,13 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     FormBuilderSnapshot<I, O, N> snapshot,
     AppLocalizations l10n,
   ) {
-    return LoadingButton.elevated(
+    return LoadingButton.filled(
+      style: FilledButton.styleFrom(
+        backgroundColor: submitButtonColor,
+        foregroundColor: (submitButtonColor?.computeLuminance() ?? 0) < .5
+            ? AppColors.pureWhite
+            : AppColors.deepTurquoise,
+      ),
       onPressed: (submitEnabled?.call(snapshot.model) ?? true)
           ? (loading) async {
               if (onSubmit != null) {

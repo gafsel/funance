@@ -38,7 +38,6 @@ class SliverDetailHeader extends StatelessWidget {
   final Color? backgroundColor;
   final List<DetailHeaderChip> chips;
   final List<DetailHeaderAction> actions;
-  final List<UserModel> members;
   final Widget? logo;
   final Widget? sideContent;
   final Widget? bottomContent;
@@ -53,7 +52,6 @@ class SliverDetailHeader extends StatelessWidget {
     this.backgroundColor,
     this.chips = const [],
     this.actions = const [],
-    this.members = const [],
     this.logo,
     this.sideContent,
     this.bottomContent,
@@ -119,127 +117,123 @@ class SliverDetailHeader extends StatelessWidget {
                 stops: const [0.0, 0.5, 1.0],
               ),
             ),
-            child: SafeArea(
-              child: Padding(
-                padding: EdgeInsetsGeometry.only(
-                  top: mq.padding.top + kToolbarHeight + 20,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            child: Padding(
+              padding: EdgeInsetsGeometry.only(
+                top: mq.padding.top + kToolbarHeight,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  if (logo != null) ...[
+                                    logo!,
+                                    const SizedBox(width: 12),
+                                  ],
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          title,
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                                color: contentColor.withValues(
+                                                  alpha: 0.7,
+                                                ),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (chips.isNotEmpty) ...[
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                            children: [
+                                              ...chips.map(
+                                                    (chip) => _buildInfoChip(
+                                                  context,
+                                                  chip,
+                                                  effectiveBgColor,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (subtitle != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  subtitle!,
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w900,
+                                        color: subtitleColor ?? contentColor,
+                                        letterSpacing: -0.5,
+                                        fontSize: 60,
+                                      ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        if (!isSmallWidth && sideContent != null) ...[
+                          const SizedBox(width: 32),
+                          SizedBox(width: 300, child: sideContent!),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (isSmallWidth && sideContent != null) ...[
+                    const SizedBox(height: 24),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: sideContent!,
+                    ),
+                  ],
+                  if (isSmallWidth && actions.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    if (logo != null) ...[
-                                      logo!,
-                                      const SizedBox(width: 12),
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        title,
-                                        style: theme.textTheme.titleMedium
-                                            ?.copyWith(
-                                              color: contentColor.withValues(
-                                                alpha: 0.7,
-                                              ),
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
+                        children: actions
+                            .map(
+                              (action) => Padding(
+                                padding: const EdgeInsets.only(right: 8.0),
+                                child: _buildMobileAction(
+                                  context,
+                                  action,
+                                  isDarkBg,
                                 ),
-                                if (subtitle != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    subtitle!,
-                                    style: theme.textTheme.headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                          color: subtitleColor ?? contentColor,
-                                          letterSpacing: -0.5,
-                                          fontSize: isSmallWidth ? null : 60,
-                                        ),
-                                  ),
-                                ],
-                                if (chips.isNotEmpty || members.isNotEmpty) ...[
-                                  const SizedBox(height: 16),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      ...chips.map(
-                                        (chip) => _buildInfoChip(
-                                          context,
-                                          chip,
-                                          effectiveBgColor,
-                                        ),
-                                      ),
-                                      if (members.isNotEmpty)
-                                        _buildMembersList(
-                                          context,
-                                          members,
-                                          isDarkBg,
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                          if (!isSmallWidth && sideContent != null) ...[
-                            const SizedBox(width: 32),
-                            SizedBox(width: 300, child: sideContent!),
-                          ],
-                        ],
+                              ),
+                            )
+                            .toList(),
                       ),
                     ),
-                    if (isSmallWidth && sideContent != null) ...[
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: sideContent!,
-                      ),
-                    ],
-                    if (isSmallWidth && actions.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          children: actions
-                              .map(
-                                (action) => Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: _buildMobileAction(
-                                    context,
-                                    action,
-                                    isDarkBg,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                    if (bottomContent != null) ...[
-                      const SizedBox(height: 20),
-                      bottomContent!,
-                    ],
                   ],
-                ),
+                  if (bottomContent != null) ...[
+                    const SizedBox(height: 20),
+                    bottomContent!,
+                  ],
+                ],
               ),
             ),
           ),

@@ -36,101 +36,94 @@ class TransactionPaymentSheet extends StatelessWidget {
     final provider = FinanceViewProviders.transactionPaymentForm(installment);
 
     final mq = MediaQuery.of(context);
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: mq.padding.bottom,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.reconciliationConfirm,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l10n.reconciliationConfirm,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Divider(),
-            ResponsiveForm<
-              TransactionFormState,
-              dynamic,
-              TransactionFormNotifier
-            >(
-              provider,
-              onCancel: () => Navigator.pop(context),
-              onSubmit: (snapshot, loading) async {
-                if (!snapshot.validate()) return;
-
-                final notifier = snapshot.notifier;
-
-                final result = await loading(notifier.submit());
-                if (result == null) return;
-
-                messenger.showSnackBar(
-                  SnackBar(content: Text(l10n.transactionSaveSuccess)),
-                );
-
-                navigator.pop(result as InstallmentModel);
-              },
-              fieldsBuilder: (context, snapshot) {
-                final state = snapshot.model;
-                final notifier = snapshot.notifier;
-
-                return [
-                  AccountFormField(
-                    initialValue: state.accountIdSource,
-                    decoration: InputDecoration(
-                      labelText: l10n.transactionAccountLabel,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onChanged: (accountId) {
-                      notifier.updateAccountIdSource(accountId);
-                    },
-                  ),
-                  DateFormField(
-                    initialValue: state.paidDate,
-                    decoration: InputDecoration(
-                      labelText: l10n.transactionDateLabel,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onChanged: (date) {
-                      if (date != null) notifier.updatePaidDate(date);
-                    },
-                  ),
-                  MoneyFormField(
-                    initialValue: state.paidAmount,
-                    decoration: InputDecoration(
-                      labelText: l10n.transactionAmountLabel,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onChanged: (value) {
-                      if (value != null) notifier.updatePaidAmount(value);
-                    },
-                  ),
-                ];
-              },
-            ),
-            SizedBox(height: mq.padding.bottom),
-          ],
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
         ),
-      ),
+        Divider(),
+        ResponsiveForm<
+          TransactionFormState,
+          dynamic,
+          TransactionFormNotifier
+        >(
+          provider,
+          onSubmit: (snapshot, loading) async {
+            if (!snapshot.validate()) return;
+
+            final notifier = snapshot.notifier;
+
+            final result = await loading(notifier.submit());
+            if (result == null) return;
+
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.transactionSaveSuccess)),
+            );
+
+            navigator.pop(result as InstallmentModel);
+          },
+          fieldsBuilder: (context, snapshot) {
+            final state = snapshot.model;
+            final notifier = snapshot.notifier;
+
+            return [
+              AccountFormField(
+                initialValue: state.accountIdSource,
+                decoration: InputDecoration(
+                  labelText: l10n.transactionAccountLabel,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (accountId) {
+                  notifier.updateAccountIdSource(accountId);
+                },
+              ),
+              DateFormField(
+                initialValue: state.paidDate,
+                decoration: InputDecoration(
+                  labelText: l10n.transactionDateLabel,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (date) {
+                  if (date != null) notifier.updatePaidDate(date);
+                },
+              ),
+              MoneyFormField(
+                initialValue: state.paidAmount,
+                decoration: InputDecoration(
+                  labelText: l10n.transactionAmountLabel,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (value) {
+                  if (value != null) notifier.updatePaidAmount(value);
+                },
+              ),
+            ];
+          },
+        ),
+        SizedBox(height: mq.viewInsets.bottom),
+      ],
     );
   }
 }

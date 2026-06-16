@@ -17,6 +17,7 @@ class CategoryReportDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final mq = MediaQuery.of(context);
     final provider = type == CategoryType.expense
         ? HomeViewProviders.summaryExpensesFull
         : HomeViewProviders.summaryIncomesFull;
@@ -57,7 +58,7 @@ class CategoryReportDetailScreen extends ConsumerWidget {
 
           if (isLargeScreen) {
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16) + EdgeInsets.only(bottom: mq.padding.bottom),
               child: CategoryDetailTable(
                 summaries: sortedSummaries,
                 type: type,
@@ -67,7 +68,7 @@ class CategoryReportDetailScreen extends ConsumerWidget {
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16) + EdgeInsets.only(bottom: mq.padding.bottom),
             itemCount: sortedSummaries.length,
             itemBuilder: (context, index) {
               return CategoryDetailItem(
