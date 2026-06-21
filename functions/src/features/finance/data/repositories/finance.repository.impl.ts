@@ -677,10 +677,18 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .limit(limit)
             .get();
 
-        return snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        return snapshot.docs.map(doc => {
+            const data = doc.data() as any;
+            let date = data.date;
+            if (date && typeof date.toDate === "function") {
+                date = date.toDate();
+            }
+            return {
+                id: doc.id,
+                ...data,
+                date
+            };
+        });
     }
 
     async getAccounts(workspaceId: string): Promise<AccountModel[]> {

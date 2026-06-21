@@ -29,6 +29,9 @@ export const onWorkspaceUpdated = onDocumentUpdated(
         if (beforeMembers.length !== afterMembers.length && afterMembers.length >= 3) {
             await gamificationService.checkUnitedFront(workspaceId, afterMembers.length);
         }
+
+        // 3. Simple badges: profile, naming, team size, anniversary
+        await gamificationService.checkSimpleWorkspaceBadges(workspaceId, after);
     }
 );
 
@@ -37,7 +40,10 @@ export const onAccountCreatedGamification = onDocumentCreated(
     async (event) => {
         const workspaceId = event.params.workspaceId;
         logger.info(`[onAccountCreatedGamification] Triggered for workspaceId=${workspaceId}`);
-        await container.gamificationService.checkFirstAccount(workspaceId);
+        const gamificationService = container.gamificationService;
+        await gamificationService.checkFirstAccount(workspaceId);
+        // Simple: multi-account badges
+        await gamificationService.checkSimpleAccountBadges(workspaceId);
     }
 );
 
@@ -53,16 +59,19 @@ export const onInstallmentWrittenGamification = onDocumentWritten(
 
         const gamificationService = container.gamificationService;
 
-        // 1. Check first_transaction
         if (after.status === "paid" || after.status === "settled") {
+            // 1. Check first_transaction
             await gamificationService.checkFirstTransaction(workspaceId);
 
             // 2. Check dynamic_duo
             const paidDate = after.paidDate?.toDate ? after.paidDate.toDate() : (after.paidDate ? new Date(after.paidDate) : new Date());
             await gamificationService.checkDynamicDuo(workspaceId, paidDate);
+
+            // 3. Simple transaction-count and type badges
+            await gamificationService.checkSimpleTransactionBadges(workspaceId, after);
         }
 
-        // 3. Update weekly mission progress
+        // 4. Update weekly mission progress
         await gamificationService.updateWeeklyMissionsProgress(workspaceId, "transaction", after);
     }
 );
@@ -77,8 +86,20 @@ export const onCategoryPlanningWrittenGamification = onDocumentWritten(
         await gamificationService.checkPlanner(workspaceId);
         await gamificationService.checkGoldenRule(workspaceId);
 
+        // Simple: planning count badges
+        await gamificationService.checkSimplePlanningBadges(workspaceId);
+
         const after = event.data?.after.exists ? event.data.after.data() : null;
         await gamificationService.updateWeeklyMissionsProgress(workspaceId, "planning", after);
+    }
+);
+
+export const onCategoryWrittenGamification = onDocumentWritten(
+    "workspaces/{workspaceId}/categories/{categoryId}",
+    async (event) => {
+        const workspaceId = event.params.workspaceId;
+        logger.info(`[onCategoryWrittenGamification] Triggered for workspaceId=${workspaceId}`);
+        await container.gamificationService.checkSimpleCategoryBadges(workspaceId);
     }
 );
 
@@ -99,7 +120,7 @@ export const onReconciliationWritten = onDocumentWritten(
             const totalProcessed = after.totalTransactionsProcessed || 0;
             const createdCount = after.createdTransactionsCount || 0;
 
-            // 1. Check reconciliation badges
+            // 1. Advanced reconciliation badges
             await gamificationService.checkReconciliationBadges(
                 workspaceId,
                 confirmedMatches,
@@ -107,7 +128,10 @@ export const onReconciliationWritten = onDocumentWritten(
                 createdCount
             );
 
-            // 2. Update weekly mission progress
+            // 2. Simple reconciliation frequency badges
+            await gamificationService.checkSimpleReconciliationBadges(workspaceId);
+
+            // 3. Update weekly mission progress
             await gamificationService.updateWeeklyMissionsProgress(workspaceId, "reconciliation", after);
         }
     }
@@ -122,7 +146,13 @@ export const onGoalWritten = onDocumentWritten(
         if (!after) return;
 
         logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
-        await container.gamificationService.checkGoalBadges(workspaceId, after);
+        const gamificationService = container.gamificationService;
+
+        // Advanced goal badges
+        await gamificationService.checkGoalBadges(workspaceId, after);
+
+        // Simple goal badges
+        await gamificationService.checkSimpleGoalBadges(workspaceId, after);
     }
 );
 
@@ -138,7 +168,12 @@ export const triggerWeeklyCron = onCall(async (request) => {
     }
 
     try {
-        await container.gamificationService.evaluateWeeklyMissionsCron(workspaceId);
+        const gamificationService = container.gamificationService;
+        await gamificationService.evaluateWeeklyMissionsCron(workspaceId);
+
+        // Also check time-based simple badges that require weekly aggregation
+        await gamificationService.checkFinancialHealthBadges(workspaceId);
+
         return { success: true };
     }
     catch (e: any) {
@@ -157,7 +192,12 @@ export const triggerMonthlyCron = onCall(async (request) => {
     }
 
     try {
-        await container.gamificationService.evaluateMonthlyMissionsCron(workspaceId);
+        const gamificationService = container.gamificationService;
+        await gamificationService.evaluateMonthlyMissionsCron(workspaceId);
+
+        // Monthly financial health checks
+        await gamificationService.checkFinancialHealthBadges(workspaceId);
+
         return { success: true };
     }
     catch (e: any) {

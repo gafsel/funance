@@ -71,7 +71,7 @@ export class CoachingService {
         // 5. Contexto anterior
         const previousAnalyses = await this.financeRepository.getLastCoachingAnalyses(workspaceId, 3);
         const previousContext = previousAnalyses.map(a => ({
-            date: a.date instanceof Date ? a.date.toISOString() : a.date,
+            date: a.date instanceof Date ? a.date.toISOString() : (typeof a.date === "string" ? a.date : ""),
             summary: a.summary || a.message
         }));
 

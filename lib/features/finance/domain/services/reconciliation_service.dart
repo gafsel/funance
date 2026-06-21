@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -280,15 +279,23 @@ class ReconciliationService {
                 ? docTx.type == OrderType.income
                 : (sysInst?.type == OrderType.income);
 
+            final existingTargetAccountId = sysInst?.accounts.keys
+                .where((key) => key != selectedAccount.id)
+                .firstOrNull;
+            var resolvedTargetAccountId = match.targetAccountId ?? existingTargetAccountId;
+            if (resolvedTargetAccountId == selectedAccount.id) {
+              resolvedTargetAccountId = existingTargetAccountId;
+            }
+
             if (isCredit) {
               newAccounts[selectedAccount.id] = AccountImpact.credit;
-              if (match.targetAccountId != null) {
-                newAccounts[match.targetAccountId!] = AccountImpact.debt;
+              if (resolvedTargetAccountId != null && resolvedTargetAccountId != selectedAccount.id) {
+                newAccounts[resolvedTargetAccountId] = AccountImpact.debt;
               }
             } else {
               newAccounts[selectedAccount.id] = AccountImpact.debt;
-              if (match.targetAccountId != null) {
-                newAccounts[match.targetAccountId!] = AccountImpact.credit;
+              if (resolvedTargetAccountId != null && resolvedTargetAccountId != selectedAccount.id) {
+                newAccounts[resolvedTargetAccountId] = AccountImpact.credit;
               }
             }
           }

@@ -1788,6 +1788,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get yourBadgesLabel => 'Suas Insígnias';
 
   @override
+  String get advancedBadgesLabel => 'Conquistas Avançadas';
+
+  @override
+  String get simpleBadgesLabel => 'Conquistas Simples';
+
+  @override
   String get badgeUnlockedLabel => 'Desbloqueado';
 
   @override
@@ -1997,4 +2003,347 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reconciliationStatusSystemOnly => 'Apenas no Sistema';
+
+  @override
+  String get badge_first_category_name => 'Organizador';
+
+  @override
+  String get badge_first_category_desc =>
+      'Criar a primeira categoria personalizada no workspace.';
+
+  @override
+  String get badge_first_planning_name => 'Planejador Novato';
+
+  @override
+  String get badge_first_planning_desc =>
+      'Criar o primeiro planejamento de categoria com valor definido.';
+
+  @override
+  String get badge_first_goal_name => 'Sonhador';
+
+  @override
+  String get badge_first_goal_desc =>
+      'Criar a primeira meta financeira no workspace.';
+
+  @override
+  String get badge_first_invite_name => 'Anfitrião';
+
+  @override
+  String get badge_first_invite_desc =>
+      'Convidar o primeiro membro para o workspace.';
+
+  @override
+  String get badge_profile_complete_name => 'Perfil Completo';
+
+  @override
+  String get badge_profile_complete_desc => 'Definir nome e tipo do workspace.';
+
+  @override
+  String get badge_first_income_name => 'Receita Registrada';
+
+  @override
+  String get badge_first_income_desc =>
+      'Registrar a primeira receita paga no workspace.';
+
+  @override
+  String get badge_first_expense_name => 'Gasto Registrado';
+
+  @override
+  String get badge_first_expense_desc =>
+      'Registrar o primeiro gasto pago no workspace.';
+
+  @override
+  String get badge_first_transfer_name => 'Transferidor';
+
+  @override
+  String get badge_first_transfer_desc =>
+      'Registrar a primeira transferência entre contas.';
+
+  @override
+  String get badge_workspace_named_name => 'Identidade Própria';
+
+  @override
+  String get badge_workspace_named_desc =>
+      'Dar um nome personalizado ao workspace.';
+
+  @override
+  String get badge_first_month_name => 'Primeiro Mês';
+
+  @override
+  String get badge_first_month_desc =>
+      'Ter pelo menos uma transação registrada em um mês completo.';
+
+  @override
+  String get badge_five_transactions_name => 'Ativo!';
+
+  @override
+  String get badge_five_transactions_desc =>
+      'Registrar 5 transações pagas no total.';
+
+  @override
+  String get badge_twenty_transactions_name => 'Comprometido';
+
+  @override
+  String get badge_twenty_transactions_desc =>
+      'Registrar 20 transações pagas no total.';
+
+  @override
+  String get badge_fifty_transactions_name => 'Veterano';
+
+  @override
+  String get badge_fifty_transactions_desc =>
+      'Registrar 50 transações pagas no total.';
+
+  @override
+  String get badge_hundred_transactions_name => 'Centenário';
+
+  @override
+  String get badge_hundred_transactions_desc =>
+      'Registrar 100 transações pagas no total.';
+
+  @override
+  String get badge_week_complete_name => 'Semana Completa';
+
+  @override
+  String get badge_week_complete_desc =>
+      'Registrar ao menos uma transação em 7 dias consecutivos.';
+
+  @override
+  String get badge_two_accounts_name => 'Multi-Conta';
+
+  @override
+  String get badge_two_accounts_desc => 'Cadastrar 2 contas no workspace.';
+
+  @override
+  String get badge_three_accounts_name => 'Gerenciador';
+
+  @override
+  String get badge_three_accounts_desc => 'Cadastrar 3 contas no workspace.';
+
+  @override
+  String get badge_five_accounts_name => 'Portfólio';
+
+  @override
+  String get badge_five_accounts_desc => 'Cadastrar 5 contas no workspace.';
+
+  @override
+  String get badge_five_categories_name => 'Categorizado';
+
+  @override
+  String get badge_five_categories_desc => 'Criar ao menos 5 categorias.';
+
+  @override
+  String get badge_ten_categories_name => 'Mestre Categorizador';
+
+  @override
+  String get badge_ten_categories_desc => 'Criar ao menos 10 categorias.';
+
+  @override
+  String get badge_round_number_name => 'Número Redondo';
+
+  @override
+  String get badge_round_number_desc =>
+      'Registrar uma transação de valor exato sem centavos.';
+
+  @override
+  String get badge_big_transaction_name => 'Grande Negócio';
+
+  @override
+  String get badge_big_transaction_desc =>
+      'Registrar uma transação individual acima de R\$ 1.000.';
+
+  @override
+  String get badge_small_transactions_ten_name => 'Detalhe Minucioso';
+
+  @override
+  String get badge_small_transactions_ten_desc =>
+      'Registrar 10 transações de valor inferior a R\$ 10.';
+
+  @override
+  String get badge_income_registered_name => 'Bem Documentado';
+
+  @override
+  String get badge_income_registered_desc =>
+      'Registrar ao menos uma receita no workspace.';
+
+  @override
+  String get badge_expense_under_income_name => 'Saldo Positivo';
+
+  @override
+  String get badge_expense_under_income_desc =>
+      'Fechar o mês com despesas menores que as receitas.';
+
+  @override
+  String get badge_three_categories_month_name => 'Diversificado';
+
+  @override
+  String get badge_three_categories_month_desc =>
+      'Ter gastos em 3 categorias diferentes no mesmo mês.';
+
+  @override
+  String get badge_five_categories_month_name => 'Abrangente';
+
+  @override
+  String get badge_five_categories_month_desc =>
+      'Ter gastos em 5 categorias diferentes no mesmo mês.';
+
+  @override
+  String get badge_savings_10pct_name => 'Poupador Iniciante';
+
+  @override
+  String get badge_savings_10pct_desc =>
+      'Poupar ao menos 10% da receita total no mês.';
+
+  @override
+  String get badge_savings_start_name => 'Primeiro Centavo';
+
+  @override
+  String get badge_savings_start_desc =>
+      'Fazer o primeiro depósito em qualquer meta financeira.';
+
+  @override
+  String get badge_no_credit_debt_name => 'Livre de Juros';
+
+  @override
+  String get badge_no_credit_debt_desc =>
+      'Fechar o mês sem nenhuma fatura de crédito em aberto.';
+
+  @override
+  String get badge_goal_halfway_name => 'Na Metade do Caminho';
+
+  @override
+  String get badge_goal_halfway_desc =>
+      'Uma meta financeira atingir 50% do valor alvo.';
+
+  @override
+  String get badge_goal_75pct_name => 'Quase Lá';
+
+  @override
+  String get badge_goal_75pct_desc =>
+      'Uma meta financeira atingir 75% do valor alvo.';
+
+  @override
+  String get badge_goal_under_deadline_name => 'No Prazo';
+
+  @override
+  String get badge_goal_under_deadline_desc =>
+      'Concluir uma meta antes da data limite estabelecida.';
+
+  @override
+  String get badge_two_active_goals_name => 'Ambicioso';
+
+  @override
+  String get badge_two_active_goals_desc =>
+      'Ter 2 metas ativas ao mesmo tempo.';
+
+  @override
+  String get badge_five_active_goals_name => 'Multitarefas';
+
+  @override
+  String get badge_five_active_goals_desc =>
+      'Ter 5 metas ativas ao mesmo tempo.';
+
+  @override
+  String get badge_long_term_goal_name => 'Visão de Longo Prazo';
+
+  @override
+  String get badge_long_term_goal_desc =>
+      'Criar uma meta com prazo superior a 12 meses.';
+
+  @override
+  String get badge_short_term_goal_name => 'Sprint Financeiro';
+
+  @override
+  String get badge_short_term_goal_desc =>
+      'Concluir uma meta em menos de 30 dias.';
+
+  @override
+  String get badge_goal_deposit_name => 'Primeiro Depósito';
+
+  @override
+  String get badge_goal_deposit_desc =>
+      'Fazer o primeiro depósito em uma meta financeira.';
+
+  @override
+  String get badge_goal_debt_paid_name => 'Livre de Dívidas';
+
+  @override
+  String get badge_goal_debt_paid_desc =>
+      'Concluir uma meta do tipo \'Quitar Dívida\'.';
+
+  @override
+  String get badge_goal_linked_account_name => 'Meta Vinculada';
+
+  @override
+  String get badge_goal_linked_account_desc =>
+      'Criar uma meta associada a uma conta bancária.';
+
+  @override
+  String get badge_second_member_name => 'Dupla!';
+
+  @override
+  String get badge_second_member_desc =>
+      'Um segundo membro aceitar o convite para o workspace.';
+
+  @override
+  String get badge_reconcile_second_name => 'Conciliador Frequente';
+
+  @override
+  String get badge_reconcile_second_desc =>
+      'Concluir a segunda conciliação bancária.';
+
+  @override
+  String get badge_reconcile_five_name => 'Conciliador Hábil';
+
+  @override
+  String get badge_reconcile_five_desc =>
+      'Concluir 5 conciliações bancárias ao total.';
+
+  @override
+  String get badge_mission_first_name => 'Primeira Missão';
+
+  @override
+  String get badge_mission_first_desc => 'Completar a primeira missão semanal.';
+
+  @override
+  String get badge_mission_three_name => 'Triatleta Financeiro';
+
+  @override
+  String get badge_mission_three_desc =>
+      'Completar 3 missões semanais ao total.';
+
+  @override
+  String get badge_planning_month_name => 'Planejamento do Mês';
+
+  @override
+  String get badge_planning_month_desc =>
+      'Criar planejamento para ao menos 5 categorias no mês.';
+
+  @override
+  String get badge_two_months_active_name => 'Constante';
+
+  @override
+  String get badge_two_months_active_desc =>
+      'Registrar transações em 2 meses diferentes.';
+
+  @override
+  String get badge_workspace_one_year_name => 'Aniversário!';
+
+  @override
+  String get badge_workspace_one_year_desc =>
+      'O workspace completa 1 ano de existência.';
+
+  @override
+  String get badge_invite_accepted_name => 'Bem-vindo ao Time';
+
+  @override
+  String get badge_invite_accepted_desc =>
+      'Aceitar o convite para entrar em um workspace.';
+
+  @override
+  String get badge_all_missions_week_name => 'Semana Perfeita';
+
+  @override
+  String get badge_all_missions_week_desc =>
+      'Completar todas as missões semanais disponíveis em uma semana.';
 }

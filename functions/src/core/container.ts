@@ -26,6 +26,8 @@ import { SummaryService } from "../features/finance/domain/services/summary.serv
 import { CoachingService } from "../features/coaching/domain/services/coaching.service";
 import { GamificationService } from "../features/goal/domain/services/gamification.service";
 import { GoalFeasibilityService } from "../features/goal/domain/services/goal_feasibility.service";
+import { IGamificationRepository } from "../features/goal/domain/repositories/gamification.repository";
+import { GamificationRepositoryImpl } from "../features/goal/data/repositories/gamification.repository.impl";
 
 class Container {
     private static _workspaceRepository: IWorkspaceRepository;
@@ -44,6 +46,7 @@ class Container {
     private static _aiRepository: IAIRepository;
     private static _onboardingService: IOnboardingService;
     private static _idempotencyService: IIdempotencyService;
+    private static _gamificationRepository: IGamificationRepository;
     private static _gamificationService: GamificationService;
     private static _goalFeasibilityService: GoalFeasibilityService;
 
@@ -170,9 +173,19 @@ class Container {
         return this._onboardingService;
     }
 
+    static get gamificationRepository(): IGamificationRepository {
+        if (!this._gamificationRepository) {
+            this._gamificationRepository = new GamificationRepositoryImpl();
+        }
+        return this._gamificationRepository;
+    }
+
     static get gamificationService(): GamificationService {
         if (!this._gamificationService) {
-            this._gamificationService = new GamificationService(this.aiRepository);
+            this._gamificationService = new GamificationService(
+                this.gamificationRepository,
+                this.aiRepository
+            );
         }
         return this._gamificationService;
     }

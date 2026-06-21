@@ -320,7 +320,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
 
         if (mimeType === "application/x-ofx" || fileName.toLowerCase().endsWith(".ofx")) {
             const ofxData = fileBuffer.toString("utf-8");
-            const parsedOfx = ofx.parse(ofxData);
+            const parsedOfx = await ofx.parse(ofxData);
             const ofxExtracted = this.extractOfxData(parsedOfx);
             
             prompt = config.prompts.documentOfx

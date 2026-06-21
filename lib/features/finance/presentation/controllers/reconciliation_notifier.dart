@@ -93,13 +93,17 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
           m.systemInstallment?.id == installment.id,
     );
 
+    final targetAccountId = installment.accounts.keys
+        .where((key) => key != account.id)
+        .firstOrNull;
+
     matches[index] = matches[index].copyWith(
       systemInstallment: installment,
       status: ReconciliationMatchStatus.matched,
       customCategory: installment.category,
       customDescription: installment.description,
       customType: installment.type,
-      targetAccountId: installment.accountIdTarget,
+      targetAccountId: targetAccountId,
     );
 
     if (existingSystemMatchIndex != -1) {
