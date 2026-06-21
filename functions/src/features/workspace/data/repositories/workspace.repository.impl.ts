@@ -12,7 +12,8 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         return {
             id: doc.id,
             ...data,
-            createdAt: data.createdAt.toDate(),
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+            lastLevelUpAt: data.lastLevelUpAt?.toDate ? data.lastLevelUpAt.toDate() : (data.lastLevelUpAt ? new Date(data.lastLevelUpAt) : undefined),
         } as WorkspaceModel;
     }
 
@@ -23,7 +24,8 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
             return {
                 id: doc.id,
                 ...data,
-                createdAt: data.createdAt.toDate(),
+                createdAt: data.createdAt?.toDate ? data.createdAt.toDate() : (data.createdAt ? new Date(data.createdAt) : new Date()),
+                lastLevelUpAt: data.lastLevelUpAt?.toDate ? data.lastLevelUpAt.toDate() : (data.lastLevelUpAt ? new Date(data.lastLevelUpAt) : undefined),
             } as WorkspaceModel;
         });
     }

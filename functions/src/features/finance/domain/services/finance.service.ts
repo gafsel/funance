@@ -15,6 +15,7 @@ import { IFinanceRepository } from "../repositories/finance.repository";
 import { CategoryType } from "../../../workspace/domain/models/category.model";
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import { InvoiceService } from "./invoice.service";
+import { container } from "../../../../core/container";
 
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
@@ -313,12 +314,14 @@ export class FinanceService {
         if (isBeforePaid && (!after || !isAfterPaid)) {
             const oldXp = before!.xp || this.calculateXp(before!);
             await this.updateWeeklyTotalXp(workspaceId, before!.paidDate || before!.dueDate, -oldXp);
+            await container.gamificationService.addXp(workspaceId, -oldXp, "Estorno de transação paga");
         }
         // Caso 2: Novo pagamento (Não era pago e passou a ser)
         else if (!isBeforePaid && after && isAfterPaid) {
             const xp = this.calculateXp(after);
             await this.financeRepository.updateInstallment(workspaceId, after.id, { xp });
             await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, xp);
+            await container.gamificationService.addXp(workspaceId, xp, "Transação paga");
         }
         // Caso 3: Alteração em pagamento existente (Era pago e continua pago)
         else if (isBeforePaid && isAfterPaid && before && after) {
@@ -335,6 +338,7 @@ export class FinanceService {
                     // Estorna o XP antigo da data antiga e aplica o novo na nova data
                     await this.updateWeeklyTotalXp(workspaceId, before.paidDate || before.dueDate, -oldXp);
                     await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, newXp);
+                    await container.gamificationService.addXp(workspaceId, newXp - oldXp, "Alteração de transação paga");
                 }
             }
         }

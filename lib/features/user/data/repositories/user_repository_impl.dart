@@ -20,7 +20,9 @@ class UserRepositoryImpl implements IUserRepository {
       return UserModel.fromJson({
         ...data,
         'id': doc.id,
-        'createdAt': (data['createdAt'] as Timestamp).toDate().toIso8601String(),
+        'createdAt': (data['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
         'lastLogin': data['lastLogin'] != null
             ? (data['lastLogin'] as Timestamp).toDate().toIso8601String()
             : null,
@@ -32,14 +34,14 @@ class UserRepositoryImpl implements IUserRepository {
   Future<UserModel?> getUserById(String id) async {
     final doc = await _collection.doc(id).get();
     if (!doc.exists) return null;
-    
+
     final data = doc.data() as Map<String, dynamic>;
     return UserModel.fromJson({
       ...data,
       'id': doc.id,
       'createdAt': (data['createdAt'] as Timestamp).toDate().toIso8601String(),
-      'lastLogin': data['lastLogin'] != null 
-          ? (data['lastLogin'] as Timestamp).toDate().toIso8601String() 
+      'lastLogin': data['lastLogin'] != null
+          ? (data['lastLogin'] as Timestamp).toDate().toIso8601String()
           : null,
     });
   }
@@ -51,19 +53,23 @@ class UserRepositoryImpl implements IUserRepository {
     if (user.lastLogin != null) {
       data['lastLogin'] = Timestamp.fromDate(user.lastLogin!);
     }
-    
+
     await _collection.doc(user.id).set(data);
   }
 
   @override
   Future<void> updateUser(String id, Map<String, dynamic> data) async {
     final updateData = Map<String, dynamic>.from(data);
-    
+
     if (data.containsKey('createdAt') && data['createdAt'] is DateTime) {
-      updateData['createdAt'] = Timestamp.fromDate(data['createdAt'] as DateTime);
+      updateData['createdAt'] = Timestamp.fromDate(
+        data['createdAt'] as DateTime,
+      );
     }
     if (data.containsKey('lastLogin') && data['lastLogin'] is DateTime) {
-      updateData['lastLogin'] = Timestamp.fromDate(data['lastLogin'] as DateTime);
+      updateData['lastLogin'] = Timestamp.fromDate(
+        data['lastLogin'] as DateTime,
+      );
     }
 
     await _collection.doc(id).update(updateData);
@@ -74,7 +80,7 @@ class UserRepositoryImpl implements IUserRepository {
     final String extension = file.path.split('.').last;
     final String fileName = '${const Uuid().v4()}.$extension';
     final String path = 'users/$userId/avatar/$fileName';
-    
+
     final ref = _storage.ref().child(path);
     await ref.putFile(file);
     return await ref.getDownloadURL();

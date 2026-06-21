@@ -98,6 +98,31 @@ class CoachingInsightCard extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    InkWell(
+                      onTap: () => context.push('/coaching/history'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              l10n.coachingViewHistory,
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: AppColors.pureWhite.withOpacity(0.9),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.history,
+                              color: AppColors.pureWhite.withOpacity(0.9),
+                              size: 16,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -124,6 +149,9 @@ class CoachingInsightCard extends ConsumerWidget {
                               description: l10n.coachingConsultingDesc,
                             ),
                           );
+
+                          ref.invalidate(CoachingViewProviders.lastInsight);
+                          ref.invalidate(CoachingViewProviders.insightsHistory);
 
                           if (context.mounted) {
                             context.push('/coaching', extra: coaching);
@@ -194,6 +222,32 @@ class CoachingInsightCard extends ConsumerWidget {
                 lastCoaching.date.formated(l10n.formatSimpleDate, locale),
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => context.push('/coaching/history'),
+                borderRadius: BorderRadius.circular(4),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        l10n.coachingViewHistory,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.deepTurquoise,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.history,
+                        color: AppColors.deepTurquoise,
+                        size: 14,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

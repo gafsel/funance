@@ -5,6 +5,7 @@ import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/auth/presentation/screens/login_screen.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/screens/coaching_slides_screen.dart';
+import 'package:funances/features/coaching/presentation/screens/coaching_history_screen.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -30,6 +31,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/features/workspace/presentation/screens/badges_cabinet_screen.dart';
 import 'package:funances/features/workspace/presentation/screens/category_management_screen.dart';
 import 'package:funances/features/workspace/presentation/screens/invite_list_screen.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
@@ -127,6 +129,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/workspace/settings',
         builder: (context, state) => const WorkspaceSettingsScreen(),
+      ),
+      GoRoute(
+        path: '/workspace/badges',
+        builder: (context, state) => const BadgesCabinetScreen(),
       ),
       GoRoute(
         path: '/workspace/categories',
@@ -323,6 +329,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final coaching = state.extra as CoachingModel;
           return CoachingSlidesScreen(coaching: coaching);
         },
+      ),
+      GoRoute(
+        path: '/coaching/history',
+        builder: (context, state) => const CoachingHistoryScreen(),
       ),
     ],
   );

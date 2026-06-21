@@ -25,4 +25,8 @@ sealed class CoachingViewProviders {
   static final lastInsight = FutureProvider<CoachingModel?>((ref) async {
     return ref.watch(CoachingDomainProviders.service).getLastInsight();
   });
+
+  static final insightsHistory = FutureProvider<List<CoachingModel>>((ref) async {
+    return ref.watch(CoachingDomainProviders.service).getInsightsHistory();
+  });
 }

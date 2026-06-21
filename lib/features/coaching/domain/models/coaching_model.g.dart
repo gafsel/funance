@@ -16,6 +16,8 @@ _SlideModel _$SlideModelFromJson(Map<String, dynamic> json) => _SlideModel(
       (json['icons'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
   animationType: json['animationType'] as String?,
+  actionLabel: json['actionLabel'] as String?,
+  actionPath: json['actionPath'] as String?,
 );
 
 Map<String, dynamic> _$SlideModelToJson(_SlideModel instance) =>
@@ -27,6 +29,8 @@ Map<String, dynamic> _$SlideModelToJson(_SlideModel instance) =>
       'secondaryColor': instance.secondaryColor,
       'icons': instance.icons,
       'animationType': instance.animationType,
+      'actionLabel': instance.actionLabel,
+      'actionPath': instance.actionPath,
     };
 
 _CoachingModel _$CoachingModelFromJson(Map<String, dynamic> json) =>

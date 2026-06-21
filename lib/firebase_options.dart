@@ -33,7 +33,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyAnL9woWzGfsbUMQpw53xpEHcqP28daFJk',
-    appId: '1:870067420485:web:865324e941198f1902d22c', // Nota: Chutei o sufixo web baseado no padrão, mas idealmente seria do console. Vou usar o do iOS como base se necessário ou manter um placeholder. Na verdade, usarei o que é mais provável.
+    appId: '1:870067420485:web:22cc31e24f17e3da02d22c',
     messagingSenderId: '870067420485',
     projectId: 'funance-cef1b',
     authDomain: 'funance-cef1b.firebaseapp.com',

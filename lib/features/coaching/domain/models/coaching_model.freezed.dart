@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SlideModel {
 
- String get title; String get message; String get icon; String get color; String? get secondaryColor; List<String> get icons; String? get animationType;
+ String get title; String get message; String get icon; String get color; String? get secondaryColor; List<String> get icons; String? get animationType; String? get actionLabel; String? get actionPath;
 /// Create a copy of SlideModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $SlideModelCopyWith<SlideModel> get copyWith => _$SlideModelCopyWithImpl<SlideMo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SlideModel&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.secondaryColor, secondaryColor) || other.secondaryColor == secondaryColor)&&const DeepCollectionEquality().equals(other.icons, icons)&&(identical(other.animationType, animationType) || other.animationType == animationType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SlideModel&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.secondaryColor, secondaryColor) || other.secondaryColor == secondaryColor)&&const DeepCollectionEquality().equals(other.icons, icons)&&(identical(other.animationType, animationType) || other.animationType == animationType)&&(identical(other.actionLabel, actionLabel) || other.actionLabel == actionLabel)&&(identical(other.actionPath, actionPath) || other.actionPath == actionPath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,message,icon,color,secondaryColor,const DeepCollectionEquality().hash(icons),animationType);
+int get hashCode => Object.hash(runtimeType,title,message,icon,color,secondaryColor,const DeepCollectionEquality().hash(icons),animationType,actionLabel,actionPath);
 
 @override
 String toString() {
-  return 'SlideModel(title: $title, message: $message, icon: $icon, color: $color, secondaryColor: $secondaryColor, icons: $icons, animationType: $animationType)';
+  return 'SlideModel(title: $title, message: $message, icon: $icon, color: $color, secondaryColor: $secondaryColor, icons: $icons, animationType: $animationType, actionLabel: $actionLabel, actionPath: $actionPath)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $SlideModelCopyWith<$Res>  {
   factory $SlideModelCopyWith(SlideModel value, $Res Function(SlideModel) _then) = _$SlideModelCopyWithImpl;
 @useResult
 $Res call({
- String title, String message, String icon, String color, String? secondaryColor, List<String> icons, String? animationType
+ String title, String message, String icon, String color, String? secondaryColor, List<String> icons, String? animationType, String? actionLabel, String? actionPath
 });
 
 
@@ -65,7 +65,7 @@ class _$SlideModelCopyWithImpl<$Res>
 
 /// Create a copy of SlideModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? message = null,Object? icon = null,Object? color = null,Object? secondaryColor = freezed,Object? icons = null,Object? animationType = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? title = null,Object? message = null,Object? icon = null,Object? color = null,Object? secondaryColor = freezed,Object? icons = null,Object? animationType = freezed,Object? actionLabel = freezed,Object? actionPath = freezed,}) {
   return _then(_self.copyWith(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
@@ -74,6 +74,8 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,secondaryColor: freezed == secondaryColor ? _self.secondaryColor : secondaryColor // ignore: cast_nullable_to_non_nullable
 as String?,icons: null == icons ? _self.icons : icons // ignore: cast_nullable_to_non_nullable
 as List<String>,animationType: freezed == animationType ? _self.animationType : animationType // ignore: cast_nullable_to_non_nullable
+as String?,actionLabel: freezed == actionLabel ? _self.actionLabel : actionLabel // ignore: cast_nullable_to_non_nullable
+as String?,actionPath: freezed == actionPath ? _self.actionPath : actionPath // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -156,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String message,  String icon,  String color,  String? secondaryColor,  List<String> icons,  String? animationType)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String title,  String message,  String icon,  String color,  String? secondaryColor,  List<String> icons,  String? animationType,  String? actionLabel,  String? actionPath)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SlideModel() when $default != null:
-return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondaryColor,_that.icons,_that.animationType);case _:
+return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondaryColor,_that.icons,_that.animationType,_that.actionLabel,_that.actionPath);case _:
   return orElse();
 
 }
@@ -177,10 +179,10 @@ return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondary
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String message,  String icon,  String color,  String? secondaryColor,  List<String> icons,  String? animationType)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String title,  String message,  String icon,  String color,  String? secondaryColor,  List<String> icons,  String? animationType,  String? actionLabel,  String? actionPath)  $default,) {final _that = this;
 switch (_that) {
 case _SlideModel():
-return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondaryColor,_that.icons,_that.animationType);}
+return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondaryColor,_that.icons,_that.animationType,_that.actionLabel,_that.actionPath);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -194,10 +196,10 @@ return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondary
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String message,  String icon,  String color,  String? secondaryColor,  List<String> icons,  String? animationType)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String title,  String message,  String icon,  String color,  String? secondaryColor,  List<String> icons,  String? animationType,  String? actionLabel,  String? actionPath)?  $default,) {final _that = this;
 switch (_that) {
 case _SlideModel() when $default != null:
-return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondaryColor,_that.icons,_that.animationType);case _:
+return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondaryColor,_that.icons,_that.animationType,_that.actionLabel,_that.actionPath);case _:
   return null;
 
 }
@@ -209,7 +211,7 @@ return $default(_that.title,_that.message,_that.icon,_that.color,_that.secondary
 @JsonSerializable()
 
 class _SlideModel implements SlideModel {
-  const _SlideModel({required this.title, required this.message, required this.icon, required this.color, this.secondaryColor, final  List<String> icons = const [], this.animationType}): _icons = icons;
+  const _SlideModel({required this.title, required this.message, required this.icon, required this.color, this.secondaryColor, final  List<String> icons = const [], this.animationType, this.actionLabel, this.actionPath}): _icons = icons;
   factory _SlideModel.fromJson(Map<String, dynamic> json) => _$SlideModelFromJson(json);
 
 @override final  String title;
@@ -225,6 +227,8 @@ class _SlideModel implements SlideModel {
 }
 
 @override final  String? animationType;
+@override final  String? actionLabel;
+@override final  String? actionPath;
 
 /// Create a copy of SlideModel
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SlideModel&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.secondaryColor, secondaryColor) || other.secondaryColor == secondaryColor)&&const DeepCollectionEquality().equals(other._icons, _icons)&&(identical(other.animationType, animationType) || other.animationType == animationType));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SlideModel&&(identical(other.title, title) || other.title == title)&&(identical(other.message, message) || other.message == message)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.color, color) || other.color == color)&&(identical(other.secondaryColor, secondaryColor) || other.secondaryColor == secondaryColor)&&const DeepCollectionEquality().equals(other._icons, _icons)&&(identical(other.animationType, animationType) || other.animationType == animationType)&&(identical(other.actionLabel, actionLabel) || other.actionLabel == actionLabel)&&(identical(other.actionPath, actionPath) || other.actionPath == actionPath));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,title,message,icon,color,secondaryColor,const DeepCollectionEquality().hash(_icons),animationType);
+int get hashCode => Object.hash(runtimeType,title,message,icon,color,secondaryColor,const DeepCollectionEquality().hash(_icons),animationType,actionLabel,actionPath);
 
 @override
 String toString() {
-  return 'SlideModel(title: $title, message: $message, icon: $icon, color: $color, secondaryColor: $secondaryColor, icons: $icons, animationType: $animationType)';
+  return 'SlideModel(title: $title, message: $message, icon: $icon, color: $color, secondaryColor: $secondaryColor, icons: $icons, animationType: $animationType, actionLabel: $actionLabel, actionPath: $actionPath)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$SlideModelCopyWith<$Res> implements $SlideModelCopyWith<$
   factory _$SlideModelCopyWith(_SlideModel value, $Res Function(_SlideModel) _then) = __$SlideModelCopyWithImpl;
 @override @useResult
 $Res call({
- String title, String message, String icon, String color, String? secondaryColor, List<String> icons, String? animationType
+ String title, String message, String icon, String color, String? secondaryColor, List<String> icons, String? animationType, String? actionLabel, String? actionPath
 });
 
 
@@ -276,7 +280,7 @@ class __$SlideModelCopyWithImpl<$Res>
 
 /// Create a copy of SlideModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? message = null,Object? icon = null,Object? color = null,Object? secondaryColor = freezed,Object? icons = null,Object? animationType = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? title = null,Object? message = null,Object? icon = null,Object? color = null,Object? secondaryColor = freezed,Object? icons = null,Object? animationType = freezed,Object? actionLabel = freezed,Object? actionPath = freezed,}) {
   return _then(_SlideModel(
 title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
@@ -285,6 +289,8 @@ as String,color: null == color ? _self.color : color // ignore: cast_nullable_to
 as String,secondaryColor: freezed == secondaryColor ? _self.secondaryColor : secondaryColor // ignore: cast_nullable_to_non_nullable
 as String?,icons: null == icons ? _self._icons : icons // ignore: cast_nullable_to_non_nullable
 as List<String>,animationType: freezed == animationType ? _self.animationType : animationType // ignore: cast_nullable_to_non_nullable
+as String?,actionLabel: freezed == actionLabel ? _self.actionLabel : actionLabel // ignore: cast_nullable_to_non_nullable
+as String?,actionPath: freezed == actionPath ? _self.actionPath : actionPath // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

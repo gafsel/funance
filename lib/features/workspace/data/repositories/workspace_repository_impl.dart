@@ -14,9 +14,9 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   @override
   Future<List<UserModel>> getWorkspaceMembers(String workspaceId) async {
     try {
-      final result = await _functions
-          .httpsCallable('getWorkspaceMembers')
-          .call({'workspaceId': workspaceId});
+      final result = await _functions.httpsCallable('getWorkspaceMembers').call(
+        {'workspaceId': workspaceId},
+      );
 
       final List<dynamic> membersData = result.data as List<dynamic>;
 
@@ -53,8 +53,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   @override
   Future<WorkspaceModel> createWorkspace(WorkspaceModel workspace) async {
     try {
-      final data = workspace
-          .toJson();
+      final data = workspace.toJson();
 
       data.remove('id'); // ID is the doc path
 
@@ -70,9 +69,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         await docRef.set(data);
       }
 
-      return workspace.copyWith(
-        id: docRef.id,
-      );
+      return workspace.copyWith(id: docRef.id);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -103,6 +100,9 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
       final data = workspace.toJson();
       data.remove('id');
       data['createdAt'] = Timestamp.fromDate(workspace.createdAt);
+      if (workspace.lastLevelUpAt != null) {
+        data['lastLevelUpAt'] = Timestamp.fromDate(workspace.lastLevelUpAt!);
+      }
       await _firestore.collection(_collection).doc(workspace.id).update(data);
     } catch (e, s) {
       throw BusinessException(

@@ -23,6 +23,12 @@ sealed class WorkspaceModel with _$WorkspaceModel {
     @Default([]) List<String> members,
     required DateTime createdAt,
     OnboardingSteps? lastOnboardingStep,
+    @Default(0) int xp,
+    @Default(1) int level,
+    DateTime? lastLevelUpAt,
+    @Default({}) Map<String, String> unlockedBadges,
+    @Default(false) bool onboardingCompleted,
+    @Default(0) int weeklyStreaks,
   }) = _WorkspaceModel;
 
   factory WorkspaceModel.empty() {

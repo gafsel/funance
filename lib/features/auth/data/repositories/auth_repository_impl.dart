@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/features/auth/domain/repositories/auth_repository.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
@@ -25,6 +26,21 @@ class AuthRepositoryImpl implements IAuthRepository {
   @override
   Future<UserModel> signInWithGoogle() async {
     try {
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+
+        final UserCredential userCredential =
+            await _firebaseAuth.signInWithPopup(googleProvider);
+
+        if (userCredential.user == null) {
+          throw BusinessException(ErrorCode.signInFailed);
+        }
+
+        return await _handleUserPersistance(userCredential.user!);
+      }
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
       if (googleUser == null) {

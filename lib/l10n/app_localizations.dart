@@ -3002,6 +3002,24 @@ abstract class AppLocalizations {
   /// **'Nenhum slide foi gerado. Tente novamente.'**
   String get coachingNoSlides;
 
+  /// No description provided for @coachingViewHistory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver histórico'**
+  String get coachingViewHistory;
+
+  /// No description provided for @coachingHistoryTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Histórico de Insights'**
+  String get coachingHistoryTitle;
+
+  /// No description provided for @coachingReviewTips.
+  ///
+  /// In pt, this message translates to:
+  /// **'Rever Dicas'**
+  String get coachingReviewTips;
+
   /// No description provided for @weeklyMissionsTitle.
   ///
   /// In pt, this message translates to:
@@ -3109,6 +3127,348 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Titularidade'**
   String get accountOwnerLabel;
+
+  /// No description provided for @teamAchievementsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conquistas da Equipe'**
+  String get teamAchievementsTitle;
+
+  /// No description provided for @workspaceLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Workspace: {name}'**
+  String workspaceLabel(String name);
+
+  /// No description provided for @levelLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível {level}'**
+  String levelLabel(int level);
+
+  /// No description provided for @totalXpLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Total: {xp} XP'**
+  String totalXpLabel(String xp);
+
+  /// No description provided for @weeklyStreaksLabelSingular.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sequência semanal: 1 semana'**
+  String get weeklyStreaksLabelSingular;
+
+  /// No description provided for @weeklyStreaksLabelPlural.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sequência semanal: {streaks} semanas'**
+  String weeklyStreaksLabelPlural(int streaks);
+
+  /// No description provided for @yourBadgesLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suas Insígnias'**
+  String get yourBadgesLabel;
+
+  /// No description provided for @badgeUnlockedLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desbloqueado'**
+  String get badgeUnlockedLabel;
+
+  /// No description provided for @badgeLockedLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bloqueado'**
+  String get badgeLockedLabel;
+
+  /// No description provided for @badgeRewardLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recompensa'**
+  String get badgeRewardLabel;
+
+  /// No description provided for @badgeUnlockedAtLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conquistado em'**
+  String get badgeUnlockedAtLabel;
+
+  /// No description provided for @viewAchievementsButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver Conquistas'**
+  String get viewAchievementsButton;
+
+  /// No description provided for @badge_first_step_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Primeiro Passo'**
+  String get badge_first_step_name;
+
+  /// No description provided for @badge_first_step_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'O workspace é criado e o onboarding é concluído com sucesso.'**
+  String get badge_first_step_desc;
+
+  /// No description provided for @badge_first_account_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Primeira Conta'**
+  String get badge_first_account_name;
+
+  /// No description provided for @badge_first_account_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'A primeira conta bancária ou cartão é cadastrado no workspace.'**
+  String get badge_first_account_desc;
+
+  /// No description provided for @badge_first_transaction_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ponto de Partida'**
+  String get badge_first_transaction_name;
+
+  /// No description provided for @badge_first_transaction_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'A primeira transação real (installment) é registrada com status paid.'**
+  String get badge_first_transaction_desc;
+
+  /// No description provided for @badge_planner_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejador Estrategista'**
+  String get badge_planner_name;
+
+  /// No description provided for @badge_planner_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limites de planejamento são criados para pelo menos 5 categorias.'**
+  String get badge_planner_desc;
+
+  /// No description provided for @badge_reconcile_junior_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliador Júnior'**
+  String get badge_reconcile_junior_name;
+
+  /// No description provided for @badge_reconcile_junior_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'A primeira conciliação bancária bem-sucedida é concluída (pelo menos 1 match confirmado).'**
+  String get badge_reconcile_junior_desc;
+
+  /// No description provided for @badge_cash_detective_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Detetive de Caixa'**
+  String get badge_cash_detective_name;
+
+  /// No description provided for @badge_cash_detective_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliação completa de um arquivo de extrato contendo pelo menos 10 transações.'**
+  String get badge_cash_detective_desc;
+
+  /// No description provided for @badge_reconcile_master_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mestre da Conciliação'**
+  String get badge_reconcile_master_name;
+
+  /// No description provided for @badge_reconcile_master_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'O workspace acumula 10 conciliações de extratos concluídas com sucesso.'**
+  String get badge_reconcile_master_desc;
+
+  /// No description provided for @badge_zero_friction_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atrito Zero'**
+  String get badge_zero_friction_name;
+
+  /// No description provided for @badge_zero_friction_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar um extrato mensal inteiro sem necessitar criar lançamentos manuais extras.'**
+  String get badge_zero_friction_desc;
+
+  /// No description provided for @badge_savings_seed_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Semente de Poupança'**
+  String get badge_savings_seed_name;
+
+  /// No description provided for @badge_savings_seed_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'A primeira meta (goal) cadastrada no workspace atinge 100% de progresso.'**
+  String get badge_savings_seed_desc;
+
+  /// No description provided for @badge_goal_bronze_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Colecionador de Metas'**
+  String get badge_goal_bronze_name;
+
+  /// No description provided for @badge_goal_bronze_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'O workspace conclui com sucesso 3 metas financeiras diferentes.'**
+  String get badge_goal_bronze_desc;
+
+  /// No description provided for @badge_goal_silver_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Foco Inabalável'**
+  String get badge_goal_silver_name;
+
+  /// No description provided for @badge_goal_silver_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'O workspace conclui com sucesso 5 metas financeiras diferentes.'**
+  String get badge_goal_silver_desc;
+
+  /// No description provided for @badge_emergency_shield_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escudo de Emergência'**
+  String get badge_emergency_shield_name;
+
+  /// No description provided for @badge_emergency_shield_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atingir 100% de progresso em uma meta criada com a categoria/tag \"Emergência\".'**
+  String get badge_emergency_shield_desc;
+
+  /// No description provided for @badge_under_control_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tudo Sob Controle'**
+  String get badge_under_control_name;
+
+  /// No description provided for @badge_under_control_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar o mês sem estourar nenhuma categoria planejada na regra 50-30-20.'**
+  String get badge_under_control_desc;
+
+  /// No description provided for @badge_golden_rule_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Regra de Ouro'**
+  String get badge_golden_rule_name;
+
+  /// No description provided for @badge_golden_rule_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alocar limites em todos os 3 pools (Essencial, Conforto, Investimento) no mesmo mês.'**
+  String get badge_golden_rule_desc;
+
+  /// No description provided for @badge_future_focus_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Visão de Futuro'**
+  String get badge_future_focus_name;
+
+  /// No description provided for @badge_future_focus_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Poupar e investir efetivamente pelo menos 20% das receitas totais do workspace no mês.'**
+  String get badge_future_focus_desc;
+
+  /// No description provided for @badge_cost_cutter_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tesoura de Gastos'**
+  String get badge_cost_cutter_name;
+
+  /// No description provided for @badge_cost_cutter_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.'**
+  String get badge_cost_cutter_desc;
+
+  /// No description provided for @badge_dynamic_duo_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dupla Dinâmica'**
+  String get badge_dynamic_duo_name;
+
+  /// No description provided for @badge_dynamic_duo_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Workspace com 2 membros ativos registrando transações pagas no mesmo mês.'**
+  String get badge_dynamic_duo_desc;
+
+  /// No description provided for @badge_united_front_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equipe Unida'**
+  String get badge_united_front_name;
+
+  /// No description provided for @badge_united_front_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Workspace com 3 ou mais membros ativos adicionados e aceitos.'**
+  String get badge_united_front_desc;
+
+  /// No description provided for @badge_financial_synapsis_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sinergia Financeira'**
+  String get badge_financial_synapsis_name;
+
+  /// No description provided for @badge_financial_synapsis_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluir uma missão semanal onde todos os membros ativos registraram ao menos 1 transação.'**
+  String get badge_financial_synapsis_desc;
+
+  /// No description provided for @badge_iron_consistency_name.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consistência de Aço'**
+  String get badge_iron_consistency_name;
+
+  /// No description provided for @badge_iron_consistency_desc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluir com sucesso as missões semanais por 4 semanas consecutivas.'**
+  String get badge_iron_consistency_desc;
+
+  /// No description provided for @levelIndicatorSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível do Workspace: {level}, Badges desbloqueados: {count}'**
+  String levelIndicatorSemantics(int level, int count);
+
+  /// No description provided for @levelUpTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'LEVEL UP!'**
+  String get levelUpTitle;
+
+  /// No description provided for @levelUpSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parabéns para a equipe!'**
+  String get levelUpSubtitle;
+
+  /// No description provided for @levelUpContent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu workspace subiu para o Nível {level}!'**
+  String levelUpContent(int level);
+
+  /// No description provided for @levelUpMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!'**
+  String get levelUpMessage;
 }
 
 class _AppLocalizationsDelegate

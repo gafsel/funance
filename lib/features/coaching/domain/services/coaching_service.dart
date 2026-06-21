@@ -15,4 +15,7 @@ class CoachingService {
     return repository.generateCoaching(workspaceId);
   }
 
+  Future<List<CoachingModel>> getInsightsHistory() {
+    return repository.getInsightsHistory(workspaceId);
+  }
 }

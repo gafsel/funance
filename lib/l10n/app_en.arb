@@ -539,6 +539,9 @@
   "coachingSlideFinish": "Finish",
   "coachingNoData": "No coaching data available.",
   "coachingNoSlides": "No slides were generated. Please try again.",
+  "coachingViewHistory": "View history",
+  "coachingHistoryTitle": "Insights History",
+  "coachingReviewTips": "Review Tips",
   "weeklyMissions": "Weekly Missions",
   "weeklyMissionsSuccess": "Successful Week!",
   "weeklyMissionsNone": "No missions for this week",
@@ -642,5 +645,95 @@
   "accountInitialDebtValueLabel": "Debt amount",
   "accountInitialDebtDateLabel": "Debt date",
   "accountInitialInvestmentValueLabel": "Initial investment balance",
-  "accountInitialInvestmentDateLabel": "Initial investment date"
+  "accountInitialInvestmentDateLabel": "Initial investment date",
+  "teamAchievementsTitle": "Team Achievements",
+  "workspaceLabel": "Workspace: {name}",
+  "@workspaceLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "levelLabel": "Level {level}",
+  "@levelLabel": {
+    "placeholders": {
+      "level": { "type": "int" }
+    }
+  },
+  "totalXpLabel": "Total: {xp} XP",
+  "@totalXpLabel": {
+    "placeholders": {
+      "xp": { "type": "String" }
+    }
+  },
+  "weeklyStreaksLabelSingular": "Weekly streak: 1 week",
+  "weeklyStreaksLabelPlural": "Weekly streak: {streaks} weeks",
+  "@weeklyStreaksLabelPlural": {
+    "placeholders": {
+      "streaks": { "type": "int" }
+    }
+  },
+  "yourBadgesLabel": "Your Badges",
+  "badgeUnlockedLabel": "Unlocked",
+  "badgeLockedLabel": "Locked",
+  "badgeRewardLabel": "Reward",
+  "badgeUnlockedAtLabel": "Earned on",
+  "viewAchievementsButton": "View Achievements",
+  "badge_first_step_name": "First Step",
+  "badge_first_step_desc": "The workspace is created and onboarding is successfully completed.",
+  "badge_first_account_name": "First Account",
+  "badge_first_account_desc": "The first bank account or card is registered in the workspace.",
+  "badge_first_transaction_name": "Starting Point",
+  "badge_first_transaction_desc": "The first real transaction (installment) is recorded with paid status.",
+  "badge_planner_name": "Strategic Planner",
+  "badge_planner_desc": "Planning limits are created for at least 5 categories.",
+  "badge_reconcile_junior_name": "Junior Reconciler",
+  "badge_reconcile_junior_desc": "The first successful bank reconciliation is completed (at least 1 confirmed match).",
+  "badge_cash_detective_name": "Cash Detective",
+  "badge_cash_detective_desc": "Full reconciliation of a statement containing at least 10 transactions.",
+  "badge_reconcile_master_name": "Reconciliation Master",
+  "badge_reconcile_master_desc": "The workspace accumulates 10 successfully completed statement reconciliations.",
+  "badge_zero_friction_name": "Zero Friction",
+  "badge_zero_friction_desc": "Reconcile an entire monthly statement without needing to create extra manual transactions.",
+  "badge_savings_seed_name": "Savings Seed",
+  "badge_savings_seed_desc": "The first goal registered in the workspace reaches 100% progress.",
+  "badge_goal_bronze_name": "Goal Collector",
+  "badge_goal_bronze_desc": "The workspace successfully completes 3 different financial goals.",
+  "badge_goal_silver_name": "Unwavering Focus",
+  "badge_goal_silver_desc": "The workspace successfully completes 5 different financial goals.",
+  "badge_emergency_shield_name": "Emergency Shield",
+  "badge_emergency_shield_desc": "Reach 100% progress on a goal created with the \"Emergency\" category/tag.",
+  "badge_under_control_name": "All Under Control",
+  "badge_under_control_desc": "Close the month without exceeding any planned category in the 50-30-20 rule.",
+  "badge_golden_rule_name": "Golden Rule",
+  "badge_golden_rule_desc": "Allocate limits in all 3 pools (Essential, Comfort, Investment) in the same month.",
+  "badge_future_focus_name": "Future Focus",
+  "badge_future_focus_desc": "Effectively save and invest at least 20% of the total workspace revenues in the month.",
+  "badge_cost_cutter_name": "Cost Cutter",
+  "badge_cost_cutter_desc": "Reduce total expenses of the Comfort pool (discretionary) by 20% compared to the previous month.",
+  "badge_dynamic_duo_name": "Dynamic Duo",
+  "badge_dynamic_duo_desc": "Workspace with 2 active members recording paid transactions in the same month.",
+  "badge_united_front_name": "United Front",
+  "badge_united_front_desc": "Workspace with 3 or more active members added and accepted.",
+  "badge_financial_synapsis_name": "Financial Synergy",
+  "badge_financial_synapsis_desc": "Complete a weekly mission where all active members recorded at least 1 transaction.",
+  "badge_iron_consistency_name": "Iron Consistency",
+  "badge_iron_consistency_desc": "Successfully complete weekly missions for 4 consecutive weeks.",
+  "levelIndicatorSemantics": "Workspace Level: {level}, Badges unlocked: {count}",
+  "@levelIndicatorSemantics": {
+    "placeholders": {
+      "level": { "type": "int" },
+      "count": { "type": "int" }
+    }
+  },
+  "levelUpTitle": "LEVEL UP!",
+  "levelUpSubtitle": "Congratulations to the team!",
+  "levelUpContent": "Your workspace rose to Level {level}!",
+  "@levelUpContent": {
+    "placeholders": {
+      "level": { "type": "int" }
+    }
+  },
+  "levelUpMessage": "Keep cooperating and planning together to unlock new achievements and levels!"
 }

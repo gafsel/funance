@@ -23,7 +23,7 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
   Future<void> loadWorkspaces(
     String userUid, [
     String? workspaceIdToSelect,
-    bool background = false
+    bool background = false,
   ]) async {
     state = state.copyWith(isLoading: !background);
 

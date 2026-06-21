@@ -10,6 +10,7 @@ export interface CategoryModel {
     color: string;
     type: CategoryType;
     isDeleted: boolean;
+    allocation?: "essential" | "comfort" | "investment" | string;
 }
 
 export const VIRTUAL_DEBT_EXPENSE_CATEGORY: CategoryModel = {

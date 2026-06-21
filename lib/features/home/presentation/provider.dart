@@ -29,25 +29,32 @@ class HomeViewProviders {
 
   static final viewType = StateProvider((ref) => SummaryViewType.effective);
 
-  static final historyPeriodType = StateProvider((ref) => HistoryPeriodType.month);
-
-  static final summaryExpenses = NotifierProvider<ExpenseSummaryNotifier, SummaryState>(
-    ExpenseSummaryNotifier.new,
+  static final historyPeriodType = StateProvider(
+    (ref) => HistoryPeriodType.month,
   );
 
-  static final summaryExpensesFull = NotifierProvider<ExpenseSummaryFullNotifier, SummaryState>(
-    ExpenseSummaryFullNotifier.new,
-  );
+  static final summaryExpenses =
+      NotifierProvider<ExpenseSummaryNotifier, SummaryState>(
+        ExpenseSummaryNotifier.new,
+      );
 
-  static final summaryIncomes = NotifierProvider<IncomeSummaryNotifier, SummaryState>(
-    IncomeSummaryNotifier.new,
-  );
+  static final summaryExpensesFull =
+      NotifierProvider<ExpenseSummaryFullNotifier, SummaryState>(
+        ExpenseSummaryFullNotifier.new,
+      );
 
-  static final summaryIncomesFull = NotifierProvider<IncomeSummaryFullNotifier, SummaryState>(
-    IncomeSummaryFullNotifier.new,
-  );
+  static final summaryIncomes =
+      NotifierProvider<IncomeSummaryNotifier, SummaryState>(
+        IncomeSummaryNotifier.new,
+      );
 
-  static final summaryBalance = NotifierProvider<BalanceSummaryNotifier, BalanceState>(
-    BalanceSummaryNotifier.new,
-  );
+  static final summaryIncomesFull =
+      NotifierProvider<IncomeSummaryFullNotifier, SummaryState>(
+        IncomeSummaryFullNotifier.new,
+      );
+
+  static final summaryBalance =
+      NotifierProvider<BalanceSummaryNotifier, BalanceState>(
+        BalanceSummaryNotifier.new,
+      );
 }

@@ -9,6 +9,8 @@ export interface SlideModel {
     message: string;
     icon: string;
     color: string;
+    actionLabel?: string;
+    actionPath?: string;
 }
 
 export interface CoachingModel {

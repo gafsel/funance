@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
-import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -123,6 +122,37 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                                 textAlign: WrapAlignment.center,
                               ),
                             ),
+                            if (slide.actionLabel != null && slide.actionPath != null) ...[
+                              const SizedBox(height: 32),
+                              ElevatedButton(
+                                onPressed: () {
+                                  final router = GoRouter.of(context);
+                                  router.pop();
+                                  router.push(slide.actionPath!);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: slideColor,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 32,
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  elevation: 6,
+                                  shadowColor: Colors.black.withOpacity(0.3),
+                                ),
+                                child: Text(
+                                  slide.actionLabel!,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

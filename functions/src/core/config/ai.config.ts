@@ -4,6 +4,7 @@ export interface AIConfig {
     document: string;
     coaching: string;
     automaticTransaction: string;
+    weeklyMissions: string;
   };
     prompts: {
     goals: string;
@@ -12,6 +13,7 @@ export interface AIConfig {
     reconciliation: string;
     coaching: string;
     automaticTransaction: string;
+    weeklyMissions: string;
   };
 }
 
@@ -21,6 +23,7 @@ export const DEFAULT_CONFIG: AIConfig = {
         document: "gemini-1.5-pro-latest",
         coaching: "gemini-1.5-flash-latest",
         automaticTransaction: "gemini-1.5-flash-latest",
+        weeklyMissions: "gemini-1.5-flash-latest",
     },
     prompts: {
         goals: `
@@ -216,6 +219,15 @@ export const DEFAULT_CONFIG: AIConfig = {
             8. Varie as cores e use "secondaryColor" para criar gradientes. 
             9. Sugira uma lista de ícones ÚNICOS em "icons".
             10. Escolha um "animationType": "zoom", "slide", "bounce", "fade" ou "pulse".
+            11. Se o slide recomendar uma ação prática no aplicativo (ex: planejar despesas, ver/criar metas, cadastrar transações, etc.), forneça os seguintes campos adicionais (caso contrário, preencha-os com null ou omita-os):
+                - "actionLabel": Texto curto do botão de ação (ex: "Ver Planejamento", "Nova Meta", "Ver Saldos", "Ver Categorias").
+                - "actionPath": O caminho exato da rota interna do app correspondente à ação. As rotas internas válidas são apenas:
+                    * "/planning" (para planejamento de despesas/receitas)
+                    * "/planning-50-30-20" (para planejamento da regra 50-30-20)
+                    * "/workspace/categories" (para gestão de categorias)
+                    * "/workspace/accounts" (para gestão de contas)
+                    * "/transactions/form" (para novo lançamento/transação manual)
+                    * "/" (para a tela principal/Dashboard)
 
             Retorne apenas um objeto JSON no formato:
             {
@@ -230,11 +242,14 @@ export const DEFAULT_CONFIG: AIConfig = {
                         "icons": ["ícone1", "ícone2"],
                         "color": "#HEXCODE_PRINCIPAL",
                         "secondaryColor": "#HEXCODE_GRADIENTE",
-                        "animationType": "zoom" | "slide" | "bounce" | "fade" | "pulse"
+                        "animationType": "zoom" | "slide" | "bounce" | "fade" | "pulse",
+                        "actionLabel": "Texto do Botão ou null",
+                        "actionPath": "Rota interna ou null"
                     }
                 ]
             }
         `,
+
         automaticTransaction: `
             Você é um assistente financeiro. 
             Sua tarefa é enriquecer uma transação capturada automaticamente de uma notificação do celular.
@@ -265,6 +280,40 @@ export const DEFAULT_CONFIG: AIConfig = {
                     "type": "income" | "expense"
                 },
                 "accountId": "id-da-conta-identificada-ou-null"
+            }
+        `,
+        weeklyMissions: `
+            Você é um assistente financeiro especialista em comportamento e hábitos financeiros saudáveis.
+            Sua tarefa é gerar 3 missões semanais personalizadas e motivadoras para a equipe de um workspace do tipo "{{workspaceType}}".
+            As missões devem focar em hábitos saudáveis de planejamento, acompanhamento de orçamento e organização, evitando metas simples de "registrar N transações" ou "evitar gastar com tal coisa". Em vez disso, foque em:
+            1. Incentivar a equipe a definir ou atualizar limites de planejamento (tipo "consistency").
+            2. Manter a disciplina seguindo o planejamento (tipo "discipline").
+            3. Fazer conciliação bancária ou progredir com objetivos (tipo "organization").
+
+            CONTEXTO DO WORKSPACE:
+            Tipo: {{workspaceType}} (personal = finanças pessoais/domésticas, business = finanças empresariais)
+            Categorias de Gastos Planejados: {{categories}}
+            Metas Ativas: {{goals}}
+
+            REGRAS PARA CADA TIPO:
+            - consistency (Incentivar Planejamento): O nome deve focar em incentivar e estruturar o planejamento financeiro do workspace. Ex: "Equipe planeja limites para as principais categorias para organizar a semana".
+            - discipline (Seguir o Planejado): O nome deve focar em manter os gastos das categorias de forma disciplinada dentro do orçamento planejado, preferencialmente citando a maior categoria planejada fornecida no contexto (ou "Alimentação" como padrão caso não haja). Ex: "Equipe mantém a categoria {{maxCategory}} dentro do orçamento planejado por 5 dias".
+            - organization (Organização/Conciliação): O nome deve focar em fazer conciliação bancária de extrato bancário. Ex: "Fazer a conciliação bancária semanal de um extrato de pelo menos 5 itens para organizar o fluxo de caixa".
+
+            Retorne apenas um objeto JSON estruturado contendo exatamente as chaves:
+            {
+              "consistency": {
+                "name": "Nome descritivo e motivador da missão em português",
+                "target": 3
+              },
+              "discipline": {
+                "name": "Nome descritivo e motivador da missão em português",
+                "target": 5
+              },
+              "organization": {
+                "name": "Nome descritivo e motivador da missão em português",
+                "target": 5
+              }
             }
         `,
     },

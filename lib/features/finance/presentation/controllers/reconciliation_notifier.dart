@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -135,8 +136,14 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
 
     // Ordenar por data
     matches.sort((a, b) {
-      final dateA = a.documentTransaction?.date ?? a.systemInstallment?.referenceDate ?? DateTime.now();
-      final dateB = b.documentTransaction?.date ?? b.systemInstallment?.referenceDate ?? DateTime.now();
+      final dateA =
+          a.documentTransaction?.date ??
+          a.systemInstallment?.referenceDate ??
+          DateTime.now();
+      final dateB =
+          b.documentTransaction?.date ??
+          b.systemInstallment?.referenceDate ??
+          DateTime.now();
       return dateA.compareTo(dateB);
     });
 
@@ -151,13 +158,15 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
 
   void linkManual(int index, InstallmentModel installment) {
     final matches = List<ReconciliationMatch>.from(state.matches);
-    
+
     // Se a transação que estamos vinculando já existia como um match isolado do sistema,
     // precisamos removê-la para não ficar duplicada.
     final existingSystemMatchIndex = matches.indexWhere(
-      (m) => m.documentTransaction == null && m.systemInstallment?.id == installment.id,
+      (m) =>
+          m.documentTransaction == null &&
+          m.systemInstallment?.id == installment.id,
     );
-    
+
     matches[index] = matches[index].copyWith(
       systemInstallment: installment,
       status: ReconciliationMatchStatus.matched,
@@ -170,7 +179,7 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
     if (existingSystemMatchIndex != -1) {
       matches.removeAt(existingSystemMatchIndex);
     }
-    
+
     state = state.copyWith(matches: matches);
   }
 
@@ -200,10 +209,8 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
             newAccounts.clear();
             final docTx = match.documentTransaction;
             final sysInst = match.systemInstallment;
-            final isCredit = (docTx?.amount ??
-                    sysInst?.referenceAmount ??
-                    0) >=
-                0;
+            final isCredit =
+                (docTx?.amount ?? sysInst?.referenceAmount ?? 0) >= 0;
             if (isCredit) {
               newAccounts[selectedAccount.id] = AccountImpact.credit;
               if (match.targetAccountId != null) {
@@ -223,13 +230,9 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
           await financeService.updateInstallment(
             installment.copyWith(
               status: InstallmentStatus.settled,
-              paidAmount: (docTx?.amount ??
-                      sysInst?.referenceAmount ??
-                      0)
+              paidAmount: (docTx?.amount ?? sysInst?.referenceAmount ?? 0)
                   .abs(),
-              paidDate: docTx?.date ??
-                  sysInst?.referenceDate ??
-                  DateTime.now(),
+              paidDate: docTx?.date ?? sysInst?.referenceDate ?? DateTime.now(),
               accounts: newAccounts,
               type: type,
               category: match.customCategory ?? installment.category,
@@ -250,7 +253,8 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
         final type = match.customType ?? docTx.type;
         final isCredit = docTx.amount >= 0;
 
-        final category = match.customCategory ??
+        final category =
+            match.customCategory ??
             await _findOrCreateCategory(
               categories,
               docTx.category ??
@@ -307,6 +311,44 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
         await financeService.addOrder(order);
       }
     }
+
+    // Gravar log de conciliação para triggers de gamificação no backend
+    int confirmedMatchesCount = 0;
+    int totalTransactionsProcessed = 0;
+    int createdTransactionsCount = 0;
+
+    for (final match in state.matches) {
+      if (match.status == ReconciliationMatchStatus.ignored) continue;
+      totalTransactionsProcessed++;
+      if (match.status == ReconciliationMatchStatus.matched ||
+          match.status == ReconciliationMatchStatus.suggested) {
+        if (match.systemInstallment != null) {
+          confirmedMatchesCount++;
+        }
+      }
+      if (match.status == ReconciliationMatchStatus.unmatched ||
+          (match.status == ReconciliationMatchStatus.matched &&
+              match.systemInstallment == null &&
+              match.createdOrder == null)) {
+        if (match.documentTransaction == null) continue;
+        createdTransactionsCount++;
+      }
+    }
+
+    final recId = const Uuid().v4();
+    await FirebaseFirestore.instance
+        .collection('workspaces')
+        .doc(accountService.workspaceId)
+        .collection('reconciliations')
+        .doc(recId)
+        .set({
+      'id': recId,
+      'status': 'completed',
+      'confirmedMatchesCount': confirmedMatchesCount,
+      'totalTransactionsProcessed': totalTransactionsProcessed,
+      'createdTransactionsCount': createdTransactionsCount,
+      'createdAt': Timestamp.now(),
+    });
   }
 
   Future<CategoryModel> _findOrCreateCategory(
@@ -330,5 +372,4 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
 
     return found;
   }
-
 }

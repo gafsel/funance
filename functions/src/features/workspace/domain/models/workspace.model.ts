@@ -9,4 +9,10 @@ export interface WorkspaceModel {
   type: WorkspaceType;
   members: string[];
   createdAt: Date;
+  xp?: number;
+  level?: number;
+  lastLevelUpAt?: Date;
+  unlockedBadges?: Record<string, string>;
+  weeklyStreaks?: number;
+  onboardingCompleted?: boolean;
 }

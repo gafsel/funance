@@ -23,6 +23,8 @@ sealed class SlideModel with _$SlideModel {
     String? secondaryColor,
     @Default([]) List<String> icons,
     String? animationType,
+    String? actionLabel,
+    String? actionPath,
   }) = _SlideModel;
 
   factory SlideModel.fromJson(Map<String, dynamic> json) =>

@@ -55,10 +55,7 @@ class JourneyTab extends ConsumerWidget {
                   CoachingInsightCard(),
                   Column(
                     spacing: 32,
-                    children: [
-                      WeeklyMissionsView(),
-                      TeamStatusView(),
-                    ],
+                    children: [WeeklyMissionsView(), TeamStatusView()],
                   ),
                 ],
                 // Listagem de Metas

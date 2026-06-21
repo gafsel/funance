@@ -46,6 +46,13 @@ export interface IAIRepository {
         existingCategories: any[],
         existingAccounts: any[]
     ): Promise<any>;
+    generateWeeklyMissions(
+        workspaceId: string,
+        workspaceType: string,
+        categories: string[],
+        goals: string[],
+        maxCategory: string,
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -66,6 +73,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         document: data?.models?.document || DEFAULT_CONFIG.models.document,
                         coaching: data?.models?.coaching || DEFAULT_CONFIG.models.coaching,
                         automaticTransaction: data?.models?.automaticTransaction || DEFAULT_CONFIG.models.automaticTransaction,
+                        weeklyMissions: data?.models?.weeklyMissions || DEFAULT_CONFIG.models.weeklyMissions,
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -74,6 +82,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         reconciliation: data?.prompts?.reconciliation || DEFAULT_CONFIG.prompts.reconciliation,
                         coaching: data?.prompts?.coaching || DEFAULT_CONFIG.prompts.coaching,
                         automaticTransaction: data?.prompts?.automaticTransaction || DEFAULT_CONFIG.prompts.automaticTransaction,
+                        weeklyMissions: data?.prompts?.weeklyMissions || DEFAULT_CONFIG.prompts.weeklyMissions,
                     },
                 };
             }
@@ -389,6 +398,43 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         }
 
         throw new Error("Não foi possível gerar os slides de coaching.");
+    }
+
+    async generateWeeklyMissions(
+        workspaceId: string,
+        workspaceType: string,
+        categories: string[],
+        goals: string[],
+        maxCategory: string,
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.weeklyMissions });
+
+        const prompt = config.prompts.weeklyMissions
+            .replace("{{workspaceType}}", workspaceType)
+            .replace("{{categories}}", categories.join(" | ") || "Nenhuma categoria")
+            .replace("{{goals}}", goals.join(" | ") || "Nenhuma meta")
+            .replace("{{maxCategory}}", maxCategory);
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "weekly_missions_generation",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        throw new Error("Não foi possível gerar as missões semanais via IA.");
     }
 
     private extractOfxData(parsedOfx: any): { account: any, transactions: any[] } {

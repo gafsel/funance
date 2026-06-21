@@ -43,4 +43,12 @@ class CoachingRepositoryImpl implements ICoachingRepository {
 
     return coaching.copyWith(id: doc.id);
   }
+
+  @override
+  Future<List<CoachingModel>> getInsightsHistory(String workspaceId) async {
+    final snapshot = await _getInsightsCollection(workspaceId)
+        .orderBy('date', descending: true)
+        .get();
+    return snapshot.docs.map((doc) => doc.toCoachingModel()).toList();
+  }
 }

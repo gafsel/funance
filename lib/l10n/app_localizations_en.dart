@@ -1620,6 +1620,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachingNoSlides => 'No slides were generated. Please try again.';
 
   @override
+  String get coachingViewHistory => 'View history';
+
+  @override
+  String get coachingHistoryTitle => 'Insights History';
+
+  @override
+  String get coachingReviewTips => 'Review Tips';
+
+  @override
   String get weeklyMissionsTitle => 'Weekly Missions';
 
   @override
@@ -1677,4 +1686,208 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountOwnerLabel => 'Ownership';
+
+  @override
+  String get teamAchievementsTitle => 'Team Achievements';
+
+  @override
+  String workspaceLabel(String name) {
+    return 'Workspace: $name';
+  }
+
+  @override
+  String levelLabel(int level) {
+    return 'Level $level';
+  }
+
+  @override
+  String totalXpLabel(String xp) {
+    return 'Total: $xp XP';
+  }
+
+  @override
+  String get weeklyStreaksLabelSingular => 'Weekly streak: 1 week';
+
+  @override
+  String weeklyStreaksLabelPlural(int streaks) {
+    return 'Weekly streak: $streaks weeks';
+  }
+
+  @override
+  String get yourBadgesLabel => 'Your Badges';
+
+  @override
+  String get badgeUnlockedLabel => 'Unlocked';
+
+  @override
+  String get badgeLockedLabel => 'Locked';
+
+  @override
+  String get badgeRewardLabel => 'Reward';
+
+  @override
+  String get badgeUnlockedAtLabel => 'Earned on';
+
+  @override
+  String get viewAchievementsButton => 'View Achievements';
+
+  @override
+  String get badge_first_step_name => 'First Step';
+
+  @override
+  String get badge_first_step_desc =>
+      'The workspace is created and onboarding is successfully completed.';
+
+  @override
+  String get badge_first_account_name => 'First Account';
+
+  @override
+  String get badge_first_account_desc =>
+      'The first bank account or card is registered in the workspace.';
+
+  @override
+  String get badge_first_transaction_name => 'Starting Point';
+
+  @override
+  String get badge_first_transaction_desc =>
+      'The first real transaction (installment) is recorded with paid status.';
+
+  @override
+  String get badge_planner_name => 'Strategic Planner';
+
+  @override
+  String get badge_planner_desc =>
+      'Planning limits are created for at least 5 categories.';
+
+  @override
+  String get badge_reconcile_junior_name => 'Junior Reconciler';
+
+  @override
+  String get badge_reconcile_junior_desc =>
+      'The first successful bank reconciliation is completed (at least 1 confirmed match).';
+
+  @override
+  String get badge_cash_detective_name => 'Cash Detective';
+
+  @override
+  String get badge_cash_detective_desc =>
+      'Full reconciliation of a statement containing at least 10 transactions.';
+
+  @override
+  String get badge_reconcile_master_name => 'Reconciliation Master';
+
+  @override
+  String get badge_reconcile_master_desc =>
+      'The workspace accumulates 10 successfully completed statement reconciliations.';
+
+  @override
+  String get badge_zero_friction_name => 'Zero Friction';
+
+  @override
+  String get badge_zero_friction_desc =>
+      'Reconcile an entire monthly statement without needing to create extra manual transactions.';
+
+  @override
+  String get badge_savings_seed_name => 'Savings Seed';
+
+  @override
+  String get badge_savings_seed_desc =>
+      'The first goal registered in the workspace reaches 100% progress.';
+
+  @override
+  String get badge_goal_bronze_name => 'Goal Collector';
+
+  @override
+  String get badge_goal_bronze_desc =>
+      'The workspace successfully completes 3 different financial goals.';
+
+  @override
+  String get badge_goal_silver_name => 'Unwavering Focus';
+
+  @override
+  String get badge_goal_silver_desc =>
+      'The workspace successfully completes 5 different financial goals.';
+
+  @override
+  String get badge_emergency_shield_name => 'Emergency Shield';
+
+  @override
+  String get badge_emergency_shield_desc =>
+      'Reach 100% progress on a goal created with the \"Emergency\" category/tag.';
+
+  @override
+  String get badge_under_control_name => 'All Under Control';
+
+  @override
+  String get badge_under_control_desc =>
+      'Close the month without exceeding any planned category in the 50-30-20 rule.';
+
+  @override
+  String get badge_golden_rule_name => 'Golden Rule';
+
+  @override
+  String get badge_golden_rule_desc =>
+      'Allocate limits in all 3 pools (Essential, Comfort, Investment) in the same month.';
+
+  @override
+  String get badge_future_focus_name => 'Future Focus';
+
+  @override
+  String get badge_future_focus_desc =>
+      'Effectively save and invest at least 20% of the total workspace revenues in the month.';
+
+  @override
+  String get badge_cost_cutter_name => 'Cost Cutter';
+
+  @override
+  String get badge_cost_cutter_desc =>
+      'Reduce total expenses of the Comfort pool (discretionary) by 20% compared to the previous month.';
+
+  @override
+  String get badge_dynamic_duo_name => 'Dynamic Duo';
+
+  @override
+  String get badge_dynamic_duo_desc =>
+      'Workspace with 2 active members recording paid transactions in the same month.';
+
+  @override
+  String get badge_united_front_name => 'United Front';
+
+  @override
+  String get badge_united_front_desc =>
+      'Workspace with 3 or more active members added and accepted.';
+
+  @override
+  String get badge_financial_synapsis_name => 'Financial Synergy';
+
+  @override
+  String get badge_financial_synapsis_desc =>
+      'Complete a weekly mission where all active members recorded at least 1 transaction.';
+
+  @override
+  String get badge_iron_consistency_name => 'Iron Consistency';
+
+  @override
+  String get badge_iron_consistency_desc =>
+      'Successfully complete weekly missions for 4 consecutive weeks.';
+
+  @override
+  String levelIndicatorSemantics(int level, int count) {
+    return 'Workspace Level: $level, Badges unlocked: $count';
+  }
+
+  @override
+  String get levelUpTitle => 'LEVEL UP!';
+
+  @override
+  String get levelUpSubtitle => 'Congratulations to the team!';
+
+  @override
+  String levelUpContent(int level) {
+    return 'Your workspace rose to Level $level!';
+  }
+
+  @override
+  String get levelUpMessage =>
+      'Keep cooperating and planning together to unlock new achievements and levels!';
 }
