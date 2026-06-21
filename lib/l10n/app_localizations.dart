@@ -3583,6 +3583,72 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!'**
   String get levelUpMessage;
+
+  /// No description provided for @statementDragOverTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Solte o arquivo do extrato aqui'**
+  String get statementDragOverTitle;
+
+  /// No description provided for @reconciliationBulkConfirmSuggestions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar todos os matches sugeridos ({amount})'**
+  String reconciliationBulkConfirmSuggestions(String amount);
+
+  /// No description provided for @reconciliationWarningUnanswered.
+  ///
+  /// In pt, this message translates to:
+  /// **'Responda a todas as transações antes de salvar'**
+  String get reconciliationWarningUnanswered;
+
+  /// No description provided for @reconciliationActionUnlink.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desvincular'**
+  String get reconciliationActionUnlink;
+
+  /// No description provided for @reconciliationAccountLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta de Conciliação'**
+  String get reconciliationAccountLabel;
+
+  /// No description provided for @reconciliationNotInDocument.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não consta no documento'**
+  String get reconciliationNotInDocument;
+
+  /// No description provided for @reconciliationActionKeep.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter'**
+  String get reconciliationActionKeep;
+
+  /// No description provided for @reconciliationActionRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover'**
+  String get reconciliationActionRemove;
+
+  /// No description provided for @reconciliationStatusKeep.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter no Sistema'**
+  String get reconciliationStatusKeep;
+
+  /// No description provided for @reconciliationStatusRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover do Sistema'**
+  String get reconciliationStatusRemove;
+
+  /// No description provided for @reconciliationStatusSystemOnly.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apenas no Sistema'**
+  String get reconciliationStatusSystemOnly;
 }
 
 class _AppLocalizationsDelegate

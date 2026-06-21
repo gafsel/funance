@@ -22,6 +22,16 @@ class AppGradients {
     end: Alignment.centerRight,
   );
 
+  /// Gradiente linear azul turquesa.
+  static const LinearGradient turquoiseBlue = LinearGradient(
+    colors: [
+      AppColors.vibrantTeal,
+      AppColors.brightCyan,
+    ],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   /// Gradiente para botões de sucesso/destaque usando tons de Ouro.
   static const LinearGradient goldGradient = LinearGradient(
     colors: [

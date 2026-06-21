@@ -20,6 +20,7 @@ import 'package:funances/features/finance/presentation/controllers/account_form_
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/features/finance/presentation/widgets/statement_upload_panel.dart';
 import 'package:funances/features/workspace/presentation/widgets/members_form_field.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -86,18 +87,64 @@ class AccountFormScreen extends ConsumerWidget {
                       AccountRegistrationMethod.document) ...[
                     FullWidthItem(Text(l10n.accountDocumentDescription, style: descriptionStyle)),
                     FullWidthItem(
-                      DropTarget(
-                        onDragDone: (detail) {
-                          if (detail.files.isNotEmpty) {
-                            final file = detail.files.first;
-                            final extension = file.name.split('.').last.toLowerCase();
-                            if (extension == 'pdf' || extension == 'ofx') {
+                      state.selectedFile != null
+                          ? Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: AppColors.deepTurquoise.withValues(alpha: 0.3),
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                color: AppColors.deepTurquoise.withValues(alpha: 0.05),
+                              ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(
+                                  Icons.description,
+                                  color: AppColors.deepTurquoise,
+                                ),
+                                title: Text(
+                                  state.selectedFile!.fileName,
+                                  style: labelStyle,
+                                ),
+                                subtitle:
+                                    state.processingStatus ==
+                                        AccountProcessingStatus.pending
+                                    ? Text(
+                                        l10n.accountAnalyzing,
+                                        style: const TextStyle(
+                                          color: AppColors.deepTurquoise,
+                                          fontSize: 10,
+                                        ),
+                                      )
+                                    : state.processingStatus ==
+                                            AccountProcessingStatus.failed
+                                        ? Text(
+                                            state.errorMessage ??
+                                                l10n.errorUnknown,
+                                            style: TextStyle(
+                                              color: theme.colorScheme.error,
+                                              fontSize: 10,
+                                            ),
+                                          )
+                                        : null,
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.close, color: Colors.red),
+                                  onPressed: () => notifier.updateFile(null, null),
+                                ),
+                              ),
+                            )
+                          : StatementUploadPanel(
+                              allowedExtensions: const ['pdf', 'ofx'],
+                              title: l10n.accountDropFile,
+                              dragOverTitle: l10n.statementDragOverTitle,
+                              supportedFormatsText: l10n.accountDocumentAcceptedTypes,
+                              selectFileButtonText: l10n.accountSelectFile,
+                              onFileSelected: (file, name) {
+                                final extension = name.split('.').last.toLowerCase();
                                 showLoadingModal(
                                   context,
-                                  notifier.updateFile(
-                                    kIsWeb ? null : File(file.path),
-                                    file.name,
-                                  ),
+                                  notifier.updateFile(file, name),
                                   child: AnalysisLoadingView(
                                     firstPhaseDuration:
                                         extension == 'ofx'
@@ -109,127 +156,8 @@ class AccountFormScreen extends ConsumerWidget {
                                             : const Duration(minutes: 5),
                                   ),
                                 );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(l10n.accountDocumentAcceptedTypes),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: AppColors.deepTurquoise.withValues(alpha: 0.5),
-                              style: BorderStyle.solid,
+                              },
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-                          ),
-                          child: Column(
-                            children: [
-                              if (state.selectedFile != null)
-                                ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  leading: const Icon(
-                                    Icons.description,
-                                  ),
-                                  title: Text(
-                                    state.selectedFile!.fileName,
-                                    style: labelStyle,
-                                  ),
-                                  subtitle:
-                                      state.processingStatus ==
-                                          AccountProcessingStatus.pending
-                                      ? Text(
-                                          l10n.accountAnalyzing,
-                                          style: const TextStyle(
-                                            color: AppColors.deepTurquoise,
-                                            fontSize: 10,
-                                          ),
-                                        )
-                                      : state.processingStatus ==
-                                              AccountProcessingStatus.failed
-                                          ? Text(
-                                              state.errorMessage ??
-                                                  l10n.errorUnknown,
-                                              style: TextStyle(
-                                                color: theme.colorScheme.error,
-                                                fontSize: 10,
-                                              ),
-                                            )
-                                          : null,
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.close, color: Colors.red),
-                                    onPressed: () => notifier.updateFile(null, null),
-                                  ),
-                                )
-                              else ...[
-                                const Icon(
-                                  Icons.cloud_upload_outlined,
-                                  size: 48,
-                                  color: AppColors.deepTurquoise,
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  l10n.accountDropFile,
-                                  style: descriptionStyle,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 16),
-                                OutlinedButton.icon(
-                                  onPressed: () async {
-                                    final result = await FilePicker.platform
-                                        .pickFiles(
-                                          type: FileType.custom,
-                                          allowedExtensions: ['pdf', 'ofx'],
-                                        );
-
-                                    if (result != null) {
-                                        final extension =
-                                            result.files.single.name
-                                                .split('.')
-                                                .last
-                                                .toLowerCase();
-                                        showLoadingModal(
-                                          context,
-                                          notifier.updateFile(
-                                            kIsWeb
-                                                ? null
-                                                : File(result.files.single.path!),
-                                            result.files.single.name,
-                                          ),
-                                          child: AnalysisLoadingView(
-                                            firstPhaseDuration:
-                                                extension == 'ofx'
-                                                    ? const Duration(seconds: 20)
-                                                    : const Duration(minutes: 1),
-                                            totalDuration:
-                                                extension == 'ofx'
-                                                    ? const Duration(seconds: 45)
-                                                    : const Duration(minutes: 5),
-                                          ),
-                                        );
-                                    }
-                                  },
-                                  icon: const Icon(Icons.upload_file),
-                                  label: Text(l10n.accountSelectFile),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.deepTurquoise,
-                                    side: const BorderSide(color: AppColors.deepTurquoise),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
                     ),
                     if (state.processingStatus ==
                         AccountProcessingStatus.completed) ...[

@@ -33,3 +33,27 @@ const _$OrderTypeEnumMap = {
   OrderType.income: 'income',
   OrderType.transfer: 'transfer',
 };
+
+_UploadProgressModel _$UploadProgressModelFromJson(Map<String, dynamic> json) =>
+    _UploadProgressModel(
+      status: $enumDecode(_$UploadStatusEnumMap, json['status']),
+      progress: (json['progress'] as num).toDouble(),
+      message: json['message'] as String,
+    );
+
+Map<String, dynamic> _$UploadProgressModelToJson(
+  _UploadProgressModel instance,
+) => <String, dynamic>{
+  'status': _$UploadStatusEnumMap[instance.status]!,
+  'progress': instance.progress,
+  'message': instance.message,
+};
+
+const _$UploadStatusEnumMap = {
+  UploadStatus.reading: 'reading',
+  UploadStatus.extracting: 'extracting',
+  UploadStatus.searching: 'searching',
+  UploadStatus.preparing: 'preparing',
+  UploadStatus.completed: 'completed',
+  UploadStatus.error: 'error',
+};

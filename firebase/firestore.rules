@@ -80,6 +80,16 @@ service cloud.firestore {
       match /automatic_transactions/{transactionId} {
         allow read, write: if isMember(workspaceId);
       }
+
+      // Uploads progress tracking logs
+      match /uploads/{uploadId} {
+        allow read, write: if isMember(workspaceId);
+      }
+
+      // Reconciliation histories and logs
+      match /reconciliations/{recId} {
+        allow read, write: if isMember(workspaceId);
+      }
     }
 
     match /users/{userId} {

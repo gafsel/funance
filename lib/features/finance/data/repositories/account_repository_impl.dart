@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -43,7 +44,10 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Future<AccountModel> createAccount(String workspaceId, AccountModel account) async {
+  Future<AccountModel> createAccount(
+    String workspaceId,
+    AccountModel account,
+  ) async {
     try {
       final data = account.toJson();
       data.remove('id');
@@ -78,7 +82,10 @@ class AccountRepositoryImpl implements IAccountRepository {
     try {
       final doc = await _getCollection(workspaceId).doc(accountId).get();
       if (!doc.exists) {
-        throw BusinessException(ErrorCode.unknown, message: 'Account not found');
+        throw BusinessException(
+          ErrorCode.unknown,
+          message: 'Account not found',
+        );
       }
       return doc.toAccountModel();
     } catch (e, s) {
@@ -200,8 +207,9 @@ class AccountRepositoryImpl implements IAccountRepository {
   @override
   Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
     String workspaceId,
-    File file,
-  ) async {
+    File file, {
+    String? uploadId,
+  }) async {
     try {
       String name = file.path.split("/").last;
 
@@ -210,7 +218,7 @@ class AccountRepositoryImpl implements IAccountRepository {
       final storagePath =
           'workspaces/$workspaceId/reconciliation/${_auth.currentUser!.uid}_${timestamp}_$name';
 
-      await _storage.ref().child(storagePath).putFile(file);
+      await _storage.ref().child(storagePath).putData(file.readAsBytesSync());
 
       final callable = _functions.httpsCallable(
         'analyzeReconciliationDocument',
@@ -220,14 +228,19 @@ class AccountRepositoryImpl implements IAccountRepository {
       final result = await callable.call({
         'workspaceId': workspaceId,
         'storagePath': storagePath,
+        if (uploadId != null) 'uploadId': uploadId,
       });
 
       final Map<String, dynamic> data = Map<String, dynamic>.from(result.data);
-      final List<dynamic> transactions = data['transactions'] is List ? data['transactions'] : [];
+      final List<dynamic> transactions = data['transactions'] is List
+          ? data['transactions']
+          : [];
       return transactions
           .map((t) => FinanceMapper.toReconciliationTransaction(t))
           .toList();
     } catch (e, s) {
+      log("Failed to analyze reconciliation document", error: e, stackTrace: s);
+
       throw BusinessException(
         ErrorCode.unknown,
         originalError: e,

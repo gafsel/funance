@@ -19,6 +19,7 @@ class AccountFormField extends ConsumerWidget {
     this.autoOpen = false,
     this.showAddOption = true,
     this.style,
+    this.excludeAccountId,
   });
 
   final String? initialValue;
@@ -28,6 +29,7 @@ class AccountFormField extends ConsumerWidget {
   final bool autoOpen;
   final bool showAddOption;
   final TextStyle? style;
+  final String? excludeAccountId;
 
   bool get enabled => onChanged != null;
 
@@ -51,6 +53,7 @@ class AccountFormField extends ConsumerWidget {
                 builder: (context) => AccountSelectionScreen(
                   title: decoration?.labelText ?? l10n.transactionAccountLabel,
                   showClearOption: true,
+                  excludeAccountId: excludeAccountId,
                   onAccountSelected: (acc) => Navigator.pop(context, acc),
                 ),
               );
@@ -80,7 +83,8 @@ class AccountFormField extends ConsumerWidget {
                       title:
                           decoration?.labelText ?? l10n.transactionAccountLabel,
                       showClearOption: true,
-                        showAddOption: showAddOption,
+                      showAddOption: showAddOption,
+                      excludeAccountId: excludeAccountId,
                       onAccountSelected: (acc) => Navigator.pop(context, acc),
                     ),
                   );

@@ -1948,4 +1948,40 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get levelUpMessage =>
       'Keep cooperating and planning together to unlock new achievements and levels!';
+
+  @override
+  String get statementDragOverTitle => 'Drop the statement file here';
+
+  @override
+  String reconciliationBulkConfirmSuggestions(String amount) {
+    return 'Confirm all suggested matches ($amount)';
+  }
+
+  @override
+  String get reconciliationWarningUnanswered =>
+      'Please answer all transactions before saving';
+
+  @override
+  String get reconciliationActionUnlink => 'Unlink';
+
+  @override
+  String get reconciliationAccountLabel => 'Reconciliation Account';
+
+  @override
+  String get reconciliationNotInDocument => 'Not in document';
+
+  @override
+  String get reconciliationActionKeep => 'Keep';
+
+  @override
+  String get reconciliationActionRemove => 'Remove';
+
+  @override
+  String get reconciliationStatusKeep => 'Keep in System';
+
+  @override
+  String get reconciliationStatusRemove => 'Remove from System';
+
+  @override
+  String get reconciliationStatusSystemOnly => 'Only in System';
 }

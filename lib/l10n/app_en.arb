@@ -17,7 +17,6 @@
   "fieldRequired": "This field is required",
   "invalidEmail": "Invalid email",
   "shortPassword": "Password must be at least 6 characters",
-
   "errorUnknown": "An unexpected error occurred.",
   "errorKeychain": "Your session could not be saved. You can use the app, but you will need to log in again upon reopening.",
   "errorUserNotFound": "User not found.",
@@ -27,7 +26,6 @@
   "errorInvalidEmail": "The email address is not valid.",
   "errorNetworkRequestFailed": "Internet connection failure.",
   "errorGoogleSignInConfig": "Google Sign-In configuration error. Please verify if the SHA-1 key has been added to the Firebase Console.",
-
   "onboardingWelcomeTitle": "Welcome to Funances!",
   "onboardingWelcomeDesc": "The app that transforms your financial management into a journey of achievements.",
   "onboardingNext": "Next",
@@ -101,8 +99,12 @@
   "goalRemainingMonthlyTarget": "{amount}/mo until {date}",
   "@goalRemainingMonthlyTarget": {
     "placeholders": {
-      "amount": { "type": "String" },
-      "date": { "type": "String" }
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
     }
   },
   "goalMonthlyRequirementLabel": "Monthly value",
@@ -123,13 +125,17 @@
   "planning503020Ideal": "Goal: {amount}",
   "@planning503020Ideal": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "planning503020ActualAmount": "Actual: {amount}",
   "@planning503020ActualAmount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "planning503020Subtitle": "Track your golden rule 50-30-20",
@@ -142,7 +148,9 @@
   "planning503020Total": "Total: {amount}",
   "@planning503020Total": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "planning503020AlertSpecificGreater": "Planned spending higher than estimated!",
@@ -158,19 +166,25 @@
   "automaticTransactionSuggestedAccount": "Suggested account: {account}",
   "@goalMonthlyRequirementValue": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "goalRemainingValue": "{amount} left",
   "@goalRemainingValue": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "goalProgressValue": "{percent}%",
   "@goalProgressValue": {
     "placeholders": {
-      "percent": { "type": "String" }
+      "percent": {
+        "type": "String"
+      }
     }
   },
   "goalEmptyMessage": "How about starting to plan your future? Create your first goal now!",
@@ -311,12 +325,13 @@
     }
   },
   "saveButton": "Save",
-  "deleteButton": "Delete",
   "reconciliationTitle": "Bank Reconciliation",
   "reconciliationTransactionsFound": "{count, plural, =0{No transactions found} =1{1 transaction found} other{{count} transactions found}}",
   "@reconciliationTransactionsFound": {
     "placeholders": {
-      "count": { "type": "num" }
+      "count": {
+        "type": "num"
+      }
     }
   },
   "reconciliationSelectAccount": "Select the statement or invoice file",
@@ -422,14 +437,14 @@
   "initialBalanceDateLabel": "Initial Balance Date",
   "initialBalanceInvestmentDateLabel": "Initial Investment Date",
   "initialBalanceDebtDateLabel": "Current Amount Date",
-  "accountBankLogoLabel": "Bank / Brand",
-  "accountOwnerIdsLabel": "Account Owners",
+  "accountBankLogoLabel": "Bank/Brand Logo",
+  "accountOwnerIdsLabel": "Owners",
   "customLabel": "Custom",
-  "accountNextInvoiceValueLabel": "Next Invoice Amount",
-  "accountInitialInvestmentValueLabel": "Initial Investment Amount",
-  "accountInitialDebtValueLabel": "Current Debt Amount",
-  "accountInitialInvestmentDateLabel": "Initial Investment Date",
-  "accountInitialDebtDateLabel": "Current Amount Date",
+  "accountNextInvoiceValueLabel": "Next invoice amount",
+  "accountInitialInvestmentValueLabel": "Initial investment balance",
+  "accountInitialDebtValueLabel": "Debt amount",
+  "accountInitialInvestmentDateLabel": "Initial investment date",
+  "accountInitialDebtDateLabel": "Debt date",
   "none": "None",
   "accountMethodDocument": "By Document",
   "accountMethodManual": "Manual",
@@ -477,7 +492,6 @@
   "transactionTransferDesc": "Move money between your bank accounts or credit cards.",
   "transactionOrderTypeLabel": "Transaction Type",
   "clear": "Clear",
-
   "validationEmailMessage": "Invalid E-mail",
   "validationLengthMaxMessage": "At least {min} characters.",
   "validationLenghtMinMessage": "No more than {max} characters.",
@@ -494,7 +508,6 @@
   "expenses": "Expenses",
   "incomes": "Incomes",
   "balance": "Balance",
-
   "securePasswordAtLeast8Characters": "At least 8 characters",
   "securePasswordAtMost50Characters": "At most 50 characters",
   "securePasswordDontUseSpaces": "Don't use spaces",
@@ -543,13 +556,17 @@
   "coachingLastAnalysisFrom": "Last analysis from {date}",
   "@coachingLastAnalysisFrom": {
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "coachingWaitSevenDays": "You can consult the coach again in {days} days.",
   "@coachingWaitSevenDays": {
     "placeholders": {
-      "days": { "type": "int" }
+      "days": {
+        "type": "int"
+      }
     }
   },
   "coachingWaitLessOneDay": "You can consult the coach again tomorrow.",
@@ -575,50 +592,72 @@
   "weeklyMissionsProgress": "{completed} of {total} completed",
   "@weeklyMissionsProgress": {
     "placeholders": {
-      "completed": { "type": "String" },
-      "total": { "type": "String" }
+      "completed": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
     }
   },
   "weeklyGoal": "Weekly Goal",
   "xpValue": "{xp} XP",
   "@xpValue": {
     "placeholders": {
-      "xp": { "type": "String" }
+      "xp": {
+        "type": "String"
+      }
     }
   },
   "xpProgress": "{current} / {total} XP",
   "@xpProgress": {
     "placeholders": {
-      "current": { "type": "String" },
-      "total": { "type": "String" }
+      "current": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
     }
   },
   "percentage": "{value}%",
   "@percentage": {
     "placeholders": {
-      "value": { "type": "String" }
+      "value": {
+        "type": "String"
+      }
     }
   },
   "dateRange": "{start} - {end}",
   "@dateRange": {
     "placeholders": {
-      "start": { "type": "String" },
-      "end": { "type": "String" }
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
     }
   },
   "remainingWeeklyPlanning": "Available this week",
   "spentOfWeeklyPlanning": "{spent} of {limit}",
   "@spentOfWeeklyPlanning": {
     "placeholders": {
-      "spent": { "type": "String" },
-      "limit": { "type": "String" }
+      "spent": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
     }
   },
   "hpLabel": "HP",
   "overBudgetAmount": "Excess: {amount}",
   "@overBudgetAmount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "transactionCascadeTitle": "Apply changes",
@@ -650,24 +689,21 @@
   "missingAmount": "Missing {amount}",
   "@missingAmount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "exceededAmount": "Exceeded {amount}",
   "@exceededAmount": {
     "placeholders": {
-      "amount": { "type": "String" }
+      "amount": {
+        "type": "String"
+      }
     }
   },
   "paymentInfo": "Payment Info",
-  "accountBankLogoLabel": "Bank/Brand Logo",
   "accountOwnerLabel": "Ownership",
-  "accountOwnerIdsLabel": "Owners",
-  "accountNextInvoiceValueLabel": "Next invoice amount",
-  "accountInitialDebtValueLabel": "Debt amount",
-  "accountInitialDebtDateLabel": "Debt date",
-  "accountInitialInvestmentValueLabel": "Initial investment balance",
-  "accountInitialInvestmentDateLabel": "Initial investment date",
   "teamAchievementsTitle": "Team Achievements",
   "workspaceLabel": "Workspace: {name}",
   "@workspaceLabel": {
@@ -680,20 +716,26 @@
   "levelLabel": "Level {level}",
   "@levelLabel": {
     "placeholders": {
-      "level": { "type": "int" }
+      "level": {
+        "type": "int"
+      }
     }
   },
   "totalXpLabel": "Total: {xp} XP",
   "@totalXpLabel": {
     "placeholders": {
-      "xp": { "type": "String" }
+      "xp": {
+        "type": "String"
+      }
     }
   },
   "weeklyStreaksLabelSingular": "Weekly streak: 1 week",
   "weeklyStreaksLabelPlural": "Weekly streak: {streaks} weeks",
   "@weeklyStreaksLabelPlural": {
     "placeholders": {
-      "streaks": { "type": "int" }
+      "streaks": {
+        "type": "int"
+      }
     }
   },
   "yourBadgesLabel": "Your Badges",
@@ -745,8 +787,12 @@
   "levelIndicatorSemantics": "Workspace Level: {level}, Badges unlocked: {count}",
   "@levelIndicatorSemantics": {
     "placeholders": {
-      "level": { "type": "int" },
-      "count": { "type": "int" }
+      "level": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "levelUpTitle": "LEVEL UP!",
@@ -754,8 +800,28 @@
   "levelUpContent": "Your workspace rose to Level {level}!",
   "@levelUpContent": {
     "placeholders": {
-      "level": { "type": "int" }
+      "level": {
+        "type": "int"
+      }
     }
   },
-  "levelUpMessage": "Keep cooperating and planning together to unlock new achievements and levels!"
+  "levelUpMessage": "Keep cooperating and planning together to unlock new achievements and levels!",
+  "statementDragOverTitle": "Drop the statement file here",
+  "reconciliationBulkConfirmSuggestions": "Confirm all suggested matches ({amount})",
+  "@reconciliationBulkConfirmSuggestions": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reconciliationWarningUnanswered": "Please answer all transactions before saving",
+  "reconciliationActionUnlink": "Unlink",
+  "reconciliationAccountLabel": "Reconciliation Account",
+  "reconciliationNotInDocument": "Not in document",
+  "reconciliationActionKeep": "Keep",
+  "reconciliationActionRemove": "Remove",
+  "reconciliationStatusKeep": "Keep in System",
+  "reconciliationStatusRemove": "Remove from System",
+  "reconciliationStatusSystemOnly": "Only in System"
 }

@@ -1,7 +1,7 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
@@ -25,6 +25,7 @@ import 'package:funances/features/finance/presentation/model/finance_view_models
 import 'package:funances/features/finance/presentation/widgets/reconciliation_history_picker.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/features/finance/presentation/widgets/statement_upload_panel.dart';
 
 class ReconciliationScreen extends ConsumerWidget {
   final AccountModel account;
@@ -132,65 +133,35 @@ class ReconciliationScreen extends ConsumerWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.upload_file, size: 80, color: Colors.blue),
-            const SizedBox(height: 24),
-            Text(
-              l10n.reconciliationSelectAccount,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.reconciliationSupportedFormats,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () async {
-                final result = await FilePicker.platform.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['pdf', 'ofx', 'png', 'jpg', 'jpeg'],
-                );
+        child: StatementUploadPanel(
+          allowedExtensions: const ['pdf', 'ofx', 'png', 'jpg', 'jpeg'],
+          title: l10n.reconciliationSelectAccount,
+          dragOverTitle: l10n.statementDragOverTitle,
+          supportedFormatsText: l10n.reconciliationSupportedFormats,
+          selectFileButtonText: l10n.reconciliationChooseFile,
+          onFileSelected: (file, name) {
+            final extension = name.split('.').last.toLowerCase();
+            final uploadId = const Uuid().v4();
+            final progressStream = notifier.reconciliationService
+                .watchUploadProgress(uploadId);
 
-                if (result != null && result.files.single.path != null) {
-                  final file = File(result.files.single.path!);
-                  final extension =
-                      result.files.single.extension?.toLowerCase() ??
-                      file.path.split('.').last.toLowerCase();
-
-                  if (context.mounted) {
-                    showLoadingModal(
-                      context,
-                      notifier.uploadFile(file),
-                      child: AnalysisLoadingView(
-                        title: l10n.reconciliationAnalyzing,
-                        description: l10n.reconciliationAnalyzingDesc,
-                        firstPhaseDuration:
-                            ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                            ? const Duration(seconds: 20)
-                            : const Duration(minutes: 1),
-                        totalDuration:
-                            ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                            ? const Duration(seconds: 45)
-                            : const Duration(minutes: 5),
-                      ),
-                    );
-                  }
-                }
-              },
-              icon: const Icon(Icons.file_open),
-              label: Text(l10n.reconciliationChooseFile),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
+            showLoadingModal(
+              context,
+              notifier.uploadFile(file, uploadId: uploadId),
+              child: AnalysisLoadingView(
+                title: l10n.reconciliationAnalyzing,
+                description: l10n.reconciliationAnalyzingDesc,
+                progressStream: progressStream,
+                firstPhaseDuration:
+                    ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
+                    ? const Duration(seconds: 20)
+                    : const Duration(minutes: 1),
+                totalDuration: ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
+                    ? const Duration(seconds: 45)
+                    : const Duration(minutes: 5),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -202,6 +173,31 @@ class ReconciliationScreen extends ConsumerWidget {
     ReconciliationNotifier notifier,
   ) {
     final l10n = context.l10n;
+    final locale = context.locale;
+    final scrollController = ScrollController();
+
+    final suggestedMatches = state.matches
+        .where((m) => m.status == ReconciliationMatchStatus.suggested)
+        .toList();
+    final suggestedCount = suggestedMatches.length;
+
+    final suggestedAmount = suggestedMatches.fold<double>(0.0, (
+      accumulated,
+      m,
+    ) {
+      final amount =
+          m.documentTransaction?.amount ??
+          m.systemInstallment?.referenceAmount ??
+          0.0;
+      return accumulated + amount;
+    });
+
+    final canConfirm = state.matches.every(
+      (m) =>
+          m.status == ReconciliationMatchStatus.matched ||
+          m.status == ReconciliationMatchStatus.ignored,
+    );
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth > 800;
@@ -215,8 +211,44 @@ class ReconciliationScreen extends ConsumerWidget {
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
+            if (suggestedCount > 3)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      notifier.confirmAllSuggestions();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (scrollController.hasClients) {
+                          scrollController.animateTo(
+                            scrollController.position.maxScrollExtent,
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeOut,
+                          );
+                        }
+                      });
+                    },
+                    icon: const Icon(Icons.done_all),
+                    label: Text(
+                      l10n.reconciliationBulkConfirmSuggestions(
+                        suggestedAmount.asCurrency(locale: locale),
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.withValues(alpha: 0.1),
+                      foregroundColor: Colors.orange,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ),
             Expanded(
               child: ListView.builder(
+                controller: scrollController,
                 itemCount: state.matches.length,
                 itemBuilder: (context, index) {
                   final match = state.matches[index];
@@ -225,12 +257,44 @@ class ReconciliationScreen extends ConsumerWidget {
                     onChanged: (newMatch) =>
                         notifier.updateMatch(index, newMatch),
                     onLinkManual: (inst) => notifier.linkManual(index, inst),
-                    accountId: state.selectedAccount.id,
+                    onUnlink: () => notifier.unlinkMatch(index),
+                    account: state.selectedAccount,
                     isDesktop: isDesktop,
                   );
                 },
               ),
             ),
+            if (!canConfirm)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.error.withValues(alpha: 0.1),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        l10n.reconciliationWarningUnanswered,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -254,18 +318,24 @@ class ReconciliationScreen extends ConsumerWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: LoadingButton.elevated(
-                      onPressed: (loading) async {
-                        final navigator = Navigator.of(context);
-                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                      onPressed: canConfirm
+                          ? (loading) async {
+                              final navigator = Navigator.of(context);
+                              final scaffoldMessenger = ScaffoldMessenger.of(
+                                context,
+                              );
 
-                        await loading(notifier.confirmReconciliation());
+                              await loading(notifier.confirmReconciliation());
 
-                        scaffoldMessenger.showSnackBar(
-                          SnackBar(content: Text(l10n.reconciliationSuccess)),
-                        );
+                              scaffoldMessenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.reconciliationSuccess),
+                                ),
+                              );
 
-                        navigator.pop();
-                      },
+                              navigator.pop();
+                            }
+                          : null,
                       child: Text(l10n.reconciliationConfirm),
                     ),
                   ),
@@ -283,14 +353,16 @@ class _MatchItem extends StatelessWidget {
   final ReconciliationMatch match;
   final Function(ReconciliationMatch) onChanged;
   final Function(InstallmentModel) onLinkManual;
-  final String accountId;
+  final VoidCallback onUnlink;
+  final AccountModel account;
   final bool isDesktop;
 
   const _MatchItem({
     required this.match,
     required this.onChanged,
     required this.onLinkManual,
-    required this.accountId,
+    required this.onUnlink,
+    required this.account,
     this.isDesktop = false,
   });
 
@@ -318,15 +390,15 @@ class _MatchItem extends StatelessWidget {
     if (isSystemOnly) {
       if (match.status == ReconciliationMatchStatus.ignored) {
         statusColor = Colors.red;
-        statusText = "Remover do Sistema";
+        statusText = l10n.reconciliationStatusRemove;
         statusIcon = Icons.delete_sweep;
       } else if (match.status == ReconciliationMatchStatus.matched) {
         statusColor = Colors.green;
-        statusText = "Manter no Sistema";
+        statusText = l10n.reconciliationStatusKeep;
         statusIcon = Icons.check_circle;
       } else {
         statusColor = Colors.purple;
-        statusText = "Apenas no Sistema";
+        statusText = l10n.reconciliationStatusSystemOnly;
         statusIcon = Icons.info_outline;
       }
     } else {
@@ -455,7 +527,6 @@ class _MatchItem extends StatelessWidget {
     IconData statusIcon,
   ) {
     final l10n = context.l10n;
-    final locale = context.locale;
     final sysInst = match.systemInstallment;
     final createdOrder = match.createdOrder;
     final category =
@@ -467,6 +538,7 @@ class _MatchItem extends StatelessWidget {
 
     final dTx = match.documentTransaction;
     final sInst = match.systemInstallment;
+    final isLinked = dTx != null && sInst != null;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -541,9 +613,9 @@ class _MatchItem extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          "Não consta no documento",
-                          style: TextStyle(
+                        Text(
+                          l10n.reconciliationNotInDocument,
+                          style: const TextStyle(
                             color: Colors.grey,
                             fontStyle: FontStyle.italic,
                           ),
@@ -552,7 +624,7 @@ class _MatchItem extends StatelessWidget {
                     ),
             ),
             const SizedBox(width: 16),
-            const Icon(Icons.link, color: Colors.grey),
+            MatchConnectorWidget(status: match.status, isLinked: isLinked),
             const SizedBox(width: 16),
             // System Pool (Pool 2)
             Expanded(
@@ -654,8 +726,7 @@ class _MatchItem extends StatelessWidget {
                     ),
                     child: Text(l10n.reconciliationActionConfirm),
                   ),
-                if (isDesktop &&
-                    match.status == ReconciliationMatchStatus.matched)
+                if (match.status == ReconciliationMatchStatus.matched)
                   TextButton.icon(
                     onPressed: () async {
                       final result =
@@ -665,7 +736,7 @@ class _MatchItem extends StatelessWidget {
                             backgroundColor: Colors.transparent,
                             builder: (context) => ReconciliationTransactionForm(
                               match: match,
-                              accountId: accountId,
+                              account: account,
                             ),
                           );
 
@@ -695,6 +766,12 @@ class _MatchItem extends StatelessWidget {
         match.documentTransaction == null && match.systemInstallment != null;
 
     final actions = [
+      if (match.documentTransaction != null && match.systemInstallment != null)
+        TextButton.icon(
+          onPressed: onUnlink,
+          icon: const Icon(Icons.link_off),
+          label: Text(l10n.reconciliationActionUnlink),
+        ),
       if (!isSystemOnly &&
           (match.status == ReconciliationMatchStatus.unmatched ||
               (match.status == ReconciliationMatchStatus.matched &&
@@ -705,10 +782,8 @@ class _MatchItem extends StatelessWidget {
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (context) => ReconciliationTransactionForm(
-                match: match,
-                accountId: accountId,
-              ),
+              builder: (context) =>
+                  ReconciliationTransactionForm(match: match, account: account),
             );
 
             if (result != null) {
@@ -724,7 +799,7 @@ class _MatchItem extends StatelessWidget {
             match.copyWith(status: ReconciliationMatchStatus.matched),
           ),
           icon: const Icon(Icons.check_circle_outline),
-          label: const Text("Manter"),
+          label: Text(l10n.reconciliationActionKeep),
           style: match.status == ReconciliationMatchStatus.matched
               ? TextButton.styleFrom(
                   foregroundColor: Colors.green,
@@ -743,7 +818,7 @@ class _MatchItem extends StatelessWidget {
               backgroundColor: Colors.transparent,
               builder: (context) => ReconciliationHistoryPicker(
                 initialQuery: TransactionQuery(
-                  accountId: accountId,
+                  accountId: account.id,
                   startDate:
                       (dTx?.date ?? sInst?.referenceDate ?? DateTime.now())
                           .subtract(const Duration(days: 7)),
@@ -767,7 +842,9 @@ class _MatchItem extends StatelessWidget {
           ),
           icon: Icon(isSystemOnly ? Icons.delete_outline : Icons.block),
           label: Text(
-            isSystemOnly ? "Remover" : l10n.reconciliationActionIgnore,
+            isSystemOnly
+                ? l10n.reconciliationActionRemove
+                : l10n.reconciliationActionIgnore,
           ),
         )
       else
@@ -801,12 +878,12 @@ class _MatchItem extends StatelessWidget {
 
 class ReconciliationTransactionForm extends StatefulWidget {
   final ReconciliationMatch match;
-  final String accountId;
+  final AccountModel account;
 
   const ReconciliationTransactionForm({
     super.key,
     required this.match,
-    required this.accountId,
+    required this.account,
   });
 
   @override
@@ -841,6 +918,7 @@ class _ReconciliationTransactionFormState
     // Se temos transação do documento, confiamos no tipo dela
     // Caso contrário (transação só do sistema), confiamos no tipo do sistema
     type = (widget.match.customType ?? docTx?.type ?? sysInst?.type)!;
+
     targetAccountId =
         widget.match.targetAccountId ??
         widget.match.systemInstallment?.accountIdTarget;
@@ -854,14 +932,14 @@ class _ReconciliationTransactionFormState
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
+    final locale = context.locale;
     final dTx = widget.match.documentTransaction;
     final sInst = widget.match.systemInstallment;
 
-    // Se temos transação do documento, confiamos no tipo dela
-    // Caso contrário (transação só do sistema), confiamos no tipo do sistema
-    final effectiveType = dTx?.type ?? sInst?.type;
-    final isCredit = effectiveType == OrderType.income;
-    final isDebit = effectiveType == OrderType.expense;
+    final isCredit = dTx != null
+        ? dTx.type == OrderType.income
+        : (sInst?.type == OrderType.income);
+    final isDebit = !isCredit;
 
     return Container(
       padding: EdgeInsets.only(
@@ -892,6 +970,95 @@ class _ReconciliationTransactionFormState
                   IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close, color: AppColors.pureWhite),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Read-only metadata fields showing amount, date, status, account
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: dTx != null
+                          ? dTx.amount.abs().asCurrency(locale: locale)
+                          : sInst?.referenceAmount.asCurrency(locale: locale),
+                      decoration: InputDecoration(
+                        labelText: l10n.transactionAmountLabel,
+                        prefixIcon: const Icon(
+                          Icons.attach_money,
+                          color: Colors.grey,
+                        ),
+                        disabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue:
+                          (dTx?.date ?? sInst?.referenceDate ?? DateTime.now())
+                              .formated(l10n.formatSimpleDate, locale),
+                      decoration: InputDecoration(
+                        labelText: l10n.date,
+                        prefixIcon: const Icon(
+                          Icons.calendar_today,
+                          color: Colors.grey,
+                        ),
+                        disabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: l10n.transactionStatusSettled,
+                      decoration: InputDecoration(
+                        labelText: l10n.transactionStatusLabel,
+                        prefixIcon: const Icon(
+                          Icons.assignment_turned_in,
+                          color: Colors.grey,
+                        ),
+                        disabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: widget.account.name,
+                      decoration: InputDecoration(
+                        labelText: type == OrderType.transfer
+                            ? (isCredit
+                                  ? l10n.transactionToAccountLabel
+                                  : l10n.transactionFromAccountLabel)
+                            : l10n.reconciliationAccountLabel,
+                        prefixIcon: const Icon(
+                          Icons.account_balance,
+                          color: Colors.grey,
+                        ),
+                        disabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey),
+                        ),
+                      ),
+                      enabled: false,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
                   ),
                 ],
               ),
@@ -942,6 +1109,7 @@ class _ReconciliationTransactionFormState
               if (type == OrderType.transfer) ...[
                 AccountFormField(
                   initialValue: targetAccountId,
+                  excludeAccountId: widget.account.id,
                   onChanged: (value) => setState(() => targetAccountId = value),
                   decoration: InputDecoration(
                     labelText: isCredit
@@ -1011,5 +1179,137 @@ class _ReconciliationTransactionFormState
         ),
       ),
     );
+  }
+}
+
+class MatchConnectorWidget extends StatelessWidget {
+  final ReconciliationMatchStatus status;
+  final bool isLinked;
+
+  const MatchConnectorWidget({
+    super.key,
+    required this.status,
+    required this.isLinked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!isLinked) {
+      return const SizedBox(
+        width: 60,
+        child: Center(
+          child: Icon(Icons.link_off, color: Colors.grey, size: 20),
+        ),
+      );
+    }
+
+    Color color;
+    bool isDashed = false;
+    IconData icon;
+
+    switch (status) {
+      case ReconciliationMatchStatus.matched:
+        color = Colors.green;
+        isDashed = false;
+        icon = Icons.link;
+        break;
+      case ReconciliationMatchStatus.suggested:
+        color = Colors.orange;
+        isDashed = true;
+        icon = Icons.link;
+        break;
+      case ReconciliationMatchStatus.ignored:
+        color = Colors.red;
+        isDashed = false;
+        icon = Icons.link_off;
+        break;
+      case ReconciliationMatchStatus.unmatched:
+        color = Colors.grey;
+        isDashed = false;
+        icon = Icons.link_off;
+        break;
+    }
+
+    return SizedBox(
+      width: 60,
+      height: 40,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: const Size(60, 40),
+            painter: ConnectorPainter(
+              color: color,
+              isDashed: isDashed,
+              hasCenterGap: true,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: 0.5)),
+            ),
+            child: Icon(icon, color: color, size: 16),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ConnectorPainter extends CustomPainter {
+  final Color color;
+  final bool isDashed;
+  final bool hasCenterGap;
+
+  ConnectorPainter({
+    required this.color,
+    required this.isDashed,
+    required this.hasCenterGap,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke;
+
+    final double y = size.height / 2;
+    final double startX = 0;
+    final double endX = size.width;
+
+    if (hasCenterGap) {
+      final double midX = size.width / 2;
+      final double gap = 12.0;
+      _drawLine(canvas, paint, startX, midX - gap, y);
+      _drawLine(canvas, paint, midX + gap, endX, y);
+    } else {
+      _drawLine(canvas, paint, startX, endX, y);
+    }
+  }
+
+  void _drawLine(Canvas canvas, Paint paint, double x1, double x2, double y) {
+    if (!isDashed) {
+      canvas.drawLine(Offset(x1, y), Offset(x2, y), paint);
+    } else {
+      const double dashWidth = 4.0;
+      const double dashSpace = 3.0;
+      double currentX = x1;
+      while (currentX < x2) {
+        final double nextX = (currentX + dashWidth).clamp(x1, x2);
+        canvas.drawLine(Offset(currentX, y), Offset(nextX, y), paint);
+        currentX += dashWidth + dashSpace;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ConnectorPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.isDashed != isDashed ||
+        oldDelegate.hasCenterGap != hasCenterGap;
   }
 }

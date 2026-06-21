@@ -16,7 +16,7 @@ export interface IOnboardingService {
         orders: OrderModel[]
     }>;
 
-    analyzeReconciliationDocument(workspaceId: string, storagePath: string): Promise<{
+    analyzeReconciliationDocument(workspaceId: string, storagePath: string, uploadId?: string): Promise<{
         transactions: any[]
     }>;
 }
@@ -88,9 +88,16 @@ export class OnboardingServiceImpl implements IOnboardingService {
         );
     }
 
-    async analyzeReconciliationDocument(workspaceId: string, storagePath: string): Promise<{
+    async analyzeReconciliationDocument(workspaceId: string, storagePath: string, uploadId?: string): Promise<{
         transactions: any[]
     }> {
+        if (uploadId) {
+            await this.workspaceRepository.updateUploadProgress(workspaceId, uploadId, {
+                status: "extracting",
+                progress: 0.50,
+                message: "[Fase 2/4] 🔍 Extraindo transações e valores por IA..."
+            });
+        }
         const bucket = admin.storage().bucket();
         const normalizedPath = storagePath.replace(/\/+/g, "/");
         const file = bucket.file(normalizedPath);

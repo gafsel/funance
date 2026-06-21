@@ -21,6 +21,8 @@ abstract class InfiniteListNotifier<Q, E>
       );
 
   reset({Q? query}) async {
+    if (!mounted) return;
+
     state = state.copyWith(
       query: query ?? state.query,
       status: InfiniteListStatus.loading,
@@ -32,19 +34,28 @@ abstract class InfiniteListNotifier<Q, E>
   }
 
   more() async {
-    if (state.status == InfiniteListStatus.loading || !state.hasNextChunk) return;
+    if (!mounted) return;
+
+    if (state.status == InfiniteListStatus.loading || !state.hasNextChunk)
+      return;
     state = state.copyWith(status: InfiniteListStatus.loading);
 
     await _load();
   }
 
   _load() async {
+    if (!mounted) return;
+
     try {
       state = state.copyWith(status: InfiniteListStatus.loading);
-      log("Loading chunk with query: ${state.query}, ref: ${state.nextChunkRef}");
+      log(
+        "Loading chunk with query: ${state.query}, ref: ${state.nextChunkRef}",
+      );
 
       final chunk = await executor(state.query, chunkRef: state.nextChunkRef);
-      log("Loaded ${chunk.items.length} items. Has next: ${chunk.hasNextChunk}");
+      log(
+        "Loaded ${chunk.items.length} items. Has next: ${chunk.hasNextChunk}",
+      );
 
       final newItems = [...state.items, ...chunk.items];
 
@@ -54,7 +65,7 @@ abstract class InfiniteListNotifier<Q, E>
         status: InfiniteListStatus.found,
       );
 
-      // Se o chunk retornou itens vazios mas tem um nextChunkRef, 
+      // Se o chunk retornou itens vazios mas tem um nextChunkRef,
       // significa que o filtro em memória removeu tudo, então buscamos mais.
       if (chunk.items.isEmpty && chunk.hasNextChunk) {
         log("Chunk is empty but has more data, loading next...");
@@ -63,7 +74,9 @@ abstract class InfiniteListNotifier<Q, E>
     } catch (ex, stack) {
       log("Failed to retrieve next chunk", error: ex, stackTrace: stack);
 
-      state = state.copyWith(status: InfiniteListStatus.error, error: ex);
+      if (mounted) {
+        state = state.copyWith(status: InfiniteListStatus.error, error: ex);
+      }
     }
   }
 

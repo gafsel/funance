@@ -76,4 +76,16 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
 
         return members;
     }
+
+    async updateUploadProgress(
+        workspaceId: string,
+        uploadId: string,
+        progress: { status: string; progress: number; message: string }
+    ): Promise<void> {
+        await this.collection
+            .doc(workspaceId)
+            .collection("uploads")
+            .doc(uploadId)
+            .set(progress, { merge: true });
+    }
 }

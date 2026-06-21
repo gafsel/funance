@@ -677,4 +677,267 @@ $CategoryModelCopyWith<$Res>? get customCategory {
 }
 }
 
+
+/// @nodoc
+mixin _$UploadProgressModel {
+
+ UploadStatus get status; double get progress; String get message;
+/// Create a copy of UploadProgressModel
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$UploadProgressModelCopyWith<UploadProgressModel> get copyWith => _$UploadProgressModelCopyWithImpl<UploadProgressModel>(this as UploadProgressModel, _$identity);
+
+  /// Serializes this UploadProgressModel to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UploadProgressModel&&(identical(other.status, status) || other.status == status)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.message, message) || other.message == message));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,status,progress,message);
+
+@override
+String toString() {
+  return 'UploadProgressModel(status: $status, progress: $progress, message: $message)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $UploadProgressModelCopyWith<$Res>  {
+  factory $UploadProgressModelCopyWith(UploadProgressModel value, $Res Function(UploadProgressModel) _then) = _$UploadProgressModelCopyWithImpl;
+@useResult
+$Res call({
+ UploadStatus status, double progress, String message
+});
+
+
+
+
+}
+/// @nodoc
+class _$UploadProgressModelCopyWithImpl<$Res>
+    implements $UploadProgressModelCopyWith<$Res> {
+  _$UploadProgressModelCopyWithImpl(this._self, this._then);
+
+  final UploadProgressModel _self;
+  final $Res Function(UploadProgressModel) _then;
+
+/// Create a copy of UploadProgressModel
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? progress = null,Object? message = null,}) {
+  return _then(_self.copyWith(
+status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as UploadStatus,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
+as double,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [UploadProgressModel].
+extension UploadProgressModelPatterns on UploadProgressModel {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _UploadProgressModel value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _UploadProgressModel() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _UploadProgressModel value)  $default,){
+final _that = this;
+switch (_that) {
+case _UploadProgressModel():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _UploadProgressModel value)?  $default,){
+final _that = this;
+switch (_that) {
+case _UploadProgressModel() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( UploadStatus status,  double progress,  String message)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _UploadProgressModel() when $default != null:
+return $default(_that.status,_that.progress,_that.message);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( UploadStatus status,  double progress,  String message)  $default,) {final _that = this;
+switch (_that) {
+case _UploadProgressModel():
+return $default(_that.status,_that.progress,_that.message);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( UploadStatus status,  double progress,  String message)?  $default,) {final _that = this;
+switch (_that) {
+case _UploadProgressModel() when $default != null:
+return $default(_that.status,_that.progress,_that.message);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _UploadProgressModel implements UploadProgressModel {
+  const _UploadProgressModel({required this.status, required this.progress, required this.message});
+  factory _UploadProgressModel.fromJson(Map<String, dynamic> json) => _$UploadProgressModelFromJson(json);
+
+@override final  UploadStatus status;
+@override final  double progress;
+@override final  String message;
+
+/// Create a copy of UploadProgressModel
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$UploadProgressModelCopyWith<_UploadProgressModel> get copyWith => __$UploadProgressModelCopyWithImpl<_UploadProgressModel>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$UploadProgressModelToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UploadProgressModel&&(identical(other.status, status) || other.status == status)&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.message, message) || other.message == message));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,status,progress,message);
+
+@override
+String toString() {
+  return 'UploadProgressModel(status: $status, progress: $progress, message: $message)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$UploadProgressModelCopyWith<$Res> implements $UploadProgressModelCopyWith<$Res> {
+  factory _$UploadProgressModelCopyWith(_UploadProgressModel value, $Res Function(_UploadProgressModel) _then) = __$UploadProgressModelCopyWithImpl;
+@override @useResult
+$Res call({
+ UploadStatus status, double progress, String message
+});
+
+
+
+
+}
+/// @nodoc
+class __$UploadProgressModelCopyWithImpl<$Res>
+    implements _$UploadProgressModelCopyWith<$Res> {
+  __$UploadProgressModelCopyWithImpl(this._self, this._then);
+
+  final _UploadProgressModel _self;
+  final $Res Function(_UploadProgressModel) _then;
+
+/// Create a copy of UploadProgressModel
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? progress = null,Object? message = null,}) {
+  return _then(_UploadProgressModel(
+status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
+as UploadStatus,progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
+as double,message: null == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
 // dart format on

@@ -43,6 +43,7 @@ abstract class IAccountRepository {
 
   Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
     String workspaceId,
-    File file,
-  );
+    File file, {
+    String? uploadId,
+  });
 }

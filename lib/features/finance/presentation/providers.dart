@@ -19,6 +19,9 @@ import 'package:funances/features/finance/domain/services/notification_listener_
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/domain/services/planning_service.dart';
+import 'package:funances/features/finance/domain/repositories/reconciliation_repository.dart';
+import 'package:funances/features/finance/data/repositories/reconciliation_repository_impl.dart';
+import 'package:funances/features/finance/domain/services/reconciliation_service.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/account_statement_notifier.dart';
 import 'package:funances/features/finance/presentation/controllers/automatic_transaction_notifier.dart';
@@ -118,6 +121,24 @@ class FinanceDomainProviders {
       categoryRepository: ref.watch(CategoryDomainProviders.repository),
     ),
   );
+}
+
+class ReconciliationDomainProviders {
+  static final repository = Provider<IReconciliationRepository>((ref) {
+    return ReconciliationRepositoryImpl();
+  });
+
+  static final service = Provider<ReconciliationService>((ref) {
+    return ReconciliationService(
+      workspaceId:
+          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
+          "",
+      repository: ref.read(repository),
+      accountService: ref.watch(AccountDomainProviders.service),
+      financeService: ref.watch(FinanceDomainProviders.service),
+      categoryService: ref.watch(CategoryDomainProviders.service),
+    );
+  });
 }
 
 class AccountViewProviders {
@@ -426,9 +447,7 @@ class FinanceViewProviders {
         account,
       ) {
         return ReconciliationNotifier(
-          accountService: ref.watch(AccountDomainProviders.service),
-          financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
+          reconciliationService: ref.watch(ReconciliationDomainProviders.service),
           account: account,
         );
       });

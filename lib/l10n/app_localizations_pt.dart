@@ -1961,4 +1961,40 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get levelUpMessage =>
       'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!';
+
+  @override
+  String get statementDragOverTitle => 'Solte o arquivo do extrato aqui';
+
+  @override
+  String reconciliationBulkConfirmSuggestions(String amount) {
+    return 'Confirmar todos os matches sugeridos ($amount)';
+  }
+
+  @override
+  String get reconciliationWarningUnanswered =>
+      'Responda a todas as transações antes de salvar';
+
+  @override
+  String get reconciliationActionUnlink => 'Desvincular';
+
+  @override
+  String get reconciliationAccountLabel => 'Conta de Conciliação';
+
+  @override
+  String get reconciliationNotInDocument => 'Não consta no documento';
+
+  @override
+  String get reconciliationActionKeep => 'Manter';
+
+  @override
+  String get reconciliationActionRemove => 'Remover';
+
+  @override
+  String get reconciliationStatusKeep => 'Manter no Sistema';
+
+  @override
+  String get reconciliationStatusRemove => 'Remover do Sistema';
+
+  @override
+  String get reconciliationStatusSystemOnly => 'Apenas no Sistema';
 }

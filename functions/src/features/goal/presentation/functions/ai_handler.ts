@@ -51,7 +51,7 @@ export const analyzeReconciliationDocument = onCall({ timeoutSeconds: 300 }, asy
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
 
-    const { workspaceId, storagePath } = request.data;
+    const { workspaceId, storagePath, uploadId } = request.data;
 
     if (!workspaceId || !storagePath) {
         throw new HttpsError("invalid-argument", "Workspace ID e caminho no storage são obrigatórios.");
@@ -61,6 +61,7 @@ export const analyzeReconciliationDocument = onCall({ timeoutSeconds: 300 }, asy
         const analysis = await container.onboardingService.analyzeReconciliationDocument(
             workspaceId,
             storagePath,
+            uploadId,
         );
         return analysis;
     }

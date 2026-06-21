@@ -66,7 +66,14 @@ class AccountService {
     return repository.analyseDocument(workspaceId, file);
   }
 
-  Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(File file) async {
-    return repository.analyzeReconciliationDocument(workspaceId, file);
+  Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
+    File file, {
+    String? uploadId,
+  }) async {
+    return repository.analyzeReconciliationDocument(
+      workspaceId,
+      file,
+      uploadId: uploadId,
+    );
   }
 }

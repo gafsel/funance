@@ -43,3 +43,31 @@ sealed class ReconciliationMatch with _$ReconciliationMatch {
     int? installmentCount,
   }) = _ReconciliationMatch;
 }
+
+enum UploadStatus {
+  reading,
+  extracting,
+  searching,
+  preparing,
+  completed,
+  error;
+
+  static UploadStatus fromName(String name) {
+    return UploadStatus.values.firstWhere(
+      (v) => v.name == name,
+      orElse: () => UploadStatus.error,
+    );
+  }
+}
+
+@freezed
+sealed class UploadProgressModel with _$UploadProgressModel {
+  const factory UploadProgressModel({
+    required UploadStatus status,
+    required double progress,
+    required String message,
+  }) = _UploadProgressModel;
+
+  factory UploadProgressModel.fromJson(Map<String, dynamic> json) =>
+      _$UploadProgressModelFromJson(json);
+}

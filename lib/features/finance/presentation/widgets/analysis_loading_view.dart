@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 class AnalysisLoadingView extends StatefulWidget {
@@ -8,6 +9,7 @@ class AnalysisLoadingView extends StatefulWidget {
   final String? description;
   final Duration firstPhaseDuration;
   final Duration totalDuration;
+  final Stream<UploadProgressModel?>? progressStream;
 
   const AnalysisLoadingView({
     super.key,
@@ -15,6 +17,7 @@ class AnalysisLoadingView extends StatefulWidget {
     this.description,
     this.firstPhaseDuration = const Duration(minutes: 1),
     this.totalDuration = const Duration(minutes: 5),
+    this.progressStream,
   });
 
   @override
@@ -27,6 +30,8 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
   late AnimationController _progressController;
   double _currentProgress = 0.0;
   Timer? _secondPhaseTimer;
+  StreamSubscription? _progressSubscription;
+  String? _currentMessage;
 
   @override
   void initState() {
@@ -41,15 +46,26 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
       duration: widget.firstPhaseDuration,
     );
 
-    _progressController.addListener(() {
-      setState(() {
-        _currentProgress = _progressController.value * 0.90;
+    if (widget.progressStream != null) {
+      _progressSubscription = widget.progressStream!.listen((data) {
+        if (mounted && data != null) {
+          setState(() {
+            _currentProgress = data.progress;
+            _currentMessage = data.message;
+          });
+        }
       });
-    });
+    } else {
+      _progressController.addListener(() {
+        setState(() {
+          _currentProgress = _progressController.value * 0.90;
+        });
+      });
 
-    _progressController.forward().then((_) {
-      _startSecondPhase();
-    });
+      _progressController.forward().then((_) {
+        _startSecondPhase();
+      });
+    }
   }
 
   void _startSecondPhase() {
@@ -87,6 +103,7 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
     _rotationController.dispose();
     _progressController.dispose();
     _secondPhaseTimer?.cancel();
+    _progressSubscription?.cancel();
     super.dispose();
   }
 
@@ -170,10 +187,11 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
               ),
               const SizedBox(height: 16),
               Text(
-                l10n.accountAnalysisProcessing,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: AppColors.pureWhite.withValues(alpha: 0.7),
-                  letterSpacing: 1.2,
+                _currentMessage ?? l10n.accountAnalysisProcessing,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.pureWhite.withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
