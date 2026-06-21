@@ -296,6 +296,64 @@ class AppLocalizationsPt extends AppLocalizations {
   String get goalStatusLost => 'Perdida';
 
   @override
+  String get goalProgressChartTitle => 'Progresso';
+
+  @override
+  String get goalChartIdealLine => 'Ideal';
+
+  @override
+  String get goalChartRealLine => 'Real';
+
+  @override
+  String get goalChartStartLabel => 'Início';
+
+  @override
+  String get goalChartEndLabel => 'Prazo';
+
+  @override
+  String get goalMilestone25 => '25%';
+
+  @override
+  String get goalMilestone50 => '50%';
+
+  @override
+  String get goalMilestone75 => '75%';
+
+  @override
+  String get goalMilestone100 => '100%';
+
+  @override
+  String get goalAnalyzeWithAi => 'Analisar com IA';
+
+  @override
+  String get goalAiAnalyzing => 'Analisando sua meta...';
+
+  @override
+  String get goalAiAnalyzingDesc =>
+      'Nossa IA está examinando seu histórico financeiro para avaliar a viabilidade desta meta.';
+
+  @override
+  String get goalAiFeasible => 'Viável';
+
+  @override
+  String get goalAiChallenging => 'Desafiadora';
+
+  @override
+  String get goalAiUnrealistic => 'Irrealista';
+
+  @override
+  String get goalAiResultTitle => 'Análise da Meta';
+
+  @override
+  String get goalAiReason => 'Por quê:';
+
+  @override
+  String get goalAiSuggestion => 'Sugestão:';
+
+  @override
+  String get goalAiClose => 'Entendi';
+
+  @override
   String get goalMonthlyRequirementLabel => 'Valor por mês';
 
   @override

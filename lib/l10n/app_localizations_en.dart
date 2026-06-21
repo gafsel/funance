@@ -263,7 +263,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get goalDetailsTitle => 'Detalhes da Meta';
+  String get goalDetailsTitle => 'Goal Details';
 
   @override
   String get goalTransactionsTitle => 'Transações Relacionadas';
@@ -275,11 +275,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalDeleteButton => 'Excluir Meta';
 
   @override
-  String get goalDeleteConfirmTitle => 'Excluir Meta?';
+  String get goalDeleteConfirmTitle => 'Delete Goal?';
 
   @override
   String get goalDeleteConfirmMessage =>
-      'Tem certeza que deseja excluir esta meta? Esta ação não pode ser desfeita.';
+      'Are you sure you want to delete this goal? This action cannot be undone.';
 
   @override
   String get goalStatusOnTrack => 'No Caminho';
@@ -292,6 +292,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goalStatusLost => 'Perdida';
+
+  @override
+  String get goalProgressChartTitle => 'Progress';
+
+  @override
+  String get goalChartIdealLine => 'Ideal';
+
+  @override
+  String get goalChartRealLine => 'Actual';
+
+  @override
+  String get goalChartStartLabel => 'Start';
+
+  @override
+  String get goalChartEndLabel => 'Deadline';
+
+  @override
+  String get goalMilestone25 => '25%';
+
+  @override
+  String get goalMilestone50 => '50%';
+
+  @override
+  String get goalMilestone75 => '75%';
+
+  @override
+  String get goalMilestone100 => '100%';
+
+  @override
+  String get goalAnalyzeWithAi => 'Analyze with AI';
+
+  @override
+  String get goalAiAnalyzing => 'Analyzing your goal...';
+
+  @override
+  String get goalAiAnalyzingDesc =>
+      'Our AI is examining your financial history to evaluate the feasibility of this goal.';
+
+  @override
+  String get goalAiFeasible => 'Feasible';
+
+  @override
+  String get goalAiChallenging => 'Challenging';
+
+  @override
+  String get goalAiUnrealistic => 'Unrealistic';
+
+  @override
+  String get goalAiResultTitle => 'Goal Analysis';
+
+  @override
+  String get goalAiReason => 'Why:';
+
+  @override
+  String get goalAiSuggestion => 'Suggestion:';
+
+  @override
+  String get goalAiClose => 'Got it';
 
   @override
   String get goalMonthlyRequirementLabel => 'Monthly value';

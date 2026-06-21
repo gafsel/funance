@@ -13,6 +13,12 @@ FormFieldValidator<T> _validate<T>(List<FormFieldValidator<T>> validators) {
   };
 }
 
+extension FormFieldValidatorOps<T> on FormFieldValidator<T> {
+  FormFieldValidator<T> and(FormFieldValidator<T> other) {
+    return _validate([this, other]);
+  }
+}
+
 class Validations {
   final String? notEmptyMessage;
   final String? notNullMessage;

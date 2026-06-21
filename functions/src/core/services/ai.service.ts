@@ -53,6 +53,11 @@ export interface IAIRepository {
         goals: string[],
         maxCategory: string,
     ): Promise<any>;
+    analyzeGoalFeasibility(
+        workspaceId: string,
+        goalPayload: object,
+        monthlyBreakdown: object[]
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -74,6 +79,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         coaching: data?.models?.coaching || DEFAULT_CONFIG.models.coaching,
                         automaticTransaction: data?.models?.automaticTransaction || DEFAULT_CONFIG.models.automaticTransaction,
                         weeklyMissions: data?.models?.weeklyMissions || DEFAULT_CONFIG.models.weeklyMissions,
+                        goalFeasibility: data?.models?.goalFeasibility || DEFAULT_CONFIG.models.goalFeasibility,
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -83,6 +89,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         coaching: data?.prompts?.coaching || DEFAULT_CONFIG.prompts.coaching,
                         automaticTransaction: data?.prompts?.automaticTransaction || DEFAULT_CONFIG.prompts.automaticTransaction,
                         weeklyMissions: data?.prompts?.weeklyMissions || DEFAULT_CONFIG.prompts.weeklyMissions,
+                        goalFeasibility: data?.prompts?.goalFeasibility || DEFAULT_CONFIG.prompts.goalFeasibility,
                     },
                 };
             }
@@ -435,6 +442,39 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         }
 
         throw new Error("Não foi possível gerar as missões semanais via IA.");
+    }
+
+    async analyzeGoalFeasibility(
+        workspaceId: string,
+        goalPayload: object,
+        monthlyBreakdown: object[]
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({ model: config.models.goalFeasibility });
+
+        const prompt = config.prompts.goalFeasibility
+            .replace("{{goalPayload}}", JSON.stringify(goalPayload))
+            .replace("{{monthlyBreakdown}}", JSON.stringify(monthlyBreakdown));
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "goal_feasibility_analysis",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+
+        throw new Error("Não foi possível analisar a viabilidade da meta.");
     }
 
     private extractOfxData(parsedOfx: any): { account: any, transactions: any[] } {

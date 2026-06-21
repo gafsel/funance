@@ -614,6 +614,120 @@ abstract class AppLocalizations {
   /// **'Perdida'**
   String get goalStatusLost;
 
+  /// No description provided for @goalProgressChartTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Progresso'**
+  String get goalProgressChartTitle;
+
+  /// No description provided for @goalChartIdealLine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ideal'**
+  String get goalChartIdealLine;
+
+  /// No description provided for @goalChartRealLine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Real'**
+  String get goalChartRealLine;
+
+  /// No description provided for @goalChartStartLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Início'**
+  String get goalChartStartLabel;
+
+  /// No description provided for @goalChartEndLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prazo'**
+  String get goalChartEndLabel;
+
+  /// No description provided for @goalMilestone25.
+  ///
+  /// In pt, this message translates to:
+  /// **'25%'**
+  String get goalMilestone25;
+
+  /// No description provided for @goalMilestone50.
+  ///
+  /// In pt, this message translates to:
+  /// **'50%'**
+  String get goalMilestone50;
+
+  /// No description provided for @goalMilestone75.
+  ///
+  /// In pt, this message translates to:
+  /// **'75%'**
+  String get goalMilestone75;
+
+  /// No description provided for @goalMilestone100.
+  ///
+  /// In pt, this message translates to:
+  /// **'100%'**
+  String get goalMilestone100;
+
+  /// No description provided for @goalAnalyzeWithAi.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisar com IA'**
+  String get goalAnalyzeWithAi;
+
+  /// No description provided for @goalAiAnalyzing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando sua meta...'**
+  String get goalAiAnalyzing;
+
+  /// No description provided for @goalAiAnalyzingDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nossa IA está examinando seu histórico financeiro para avaliar a viabilidade desta meta.'**
+  String get goalAiAnalyzingDesc;
+
+  /// No description provided for @goalAiFeasible.
+  ///
+  /// In pt, this message translates to:
+  /// **'Viável'**
+  String get goalAiFeasible;
+
+  /// No description provided for @goalAiChallenging.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desafiadora'**
+  String get goalAiChallenging;
+
+  /// No description provided for @goalAiUnrealistic.
+  ///
+  /// In pt, this message translates to:
+  /// **'Irrealista'**
+  String get goalAiUnrealistic;
+
+  /// No description provided for @goalAiResultTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise da Meta'**
+  String get goalAiResultTitle;
+
+  /// No description provided for @goalAiReason.
+  ///
+  /// In pt, this message translates to:
+  /// **'Por quê:'**
+  String get goalAiReason;
+
+  /// No description provided for @goalAiSuggestion.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugestão:'**
+  String get goalAiSuggestion;
+
+  /// No description provided for @goalAiClose.
+  ///
+  /// In pt, this message translates to:
+  /// **'Entendi'**
+  String get goalAiClose;
+
   /// No description provided for @goalMonthlyRequirementLabel.
   ///
   /// In pt, this message translates to:

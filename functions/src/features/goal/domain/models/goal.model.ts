@@ -17,3 +17,19 @@ export interface GoalModel {
   metadata?: Record<string, any>;
   isDeleted: boolean;
 }
+
+export interface GoalFeasibilityPayload {
+  name: string;
+  targetAmount: number;
+  deadlineDays: number;
+  monthlyRequired: number;
+  type: string;
+}
+
+export interface MonthlyBreakdownEntry {
+  month: string;
+  totalIncome: number;
+  totalExpense: number;
+  categories: { name: string; type: string; amount: number }[];
+}
+

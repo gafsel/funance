@@ -3,16 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
+import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
+import 'package:funances/features/goal/domain/models/goal_feasibility_model.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/model/goal_view_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/providers/goal_form_provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+
+import '../../../../core/validation/validation.dart';
 
 class GoalFormScreen extends ConsumerWidget {
   final GoalModel? goal;
@@ -33,6 +40,7 @@ class GoalFormScreen extends ConsumerWidget {
           submitLabel: l10n.continueButton,
           onSuccess: (_) => Navigator.pop(context),
           onCancel: () => Navigator.pop(context),
+          extraActions: [_GoalAiAnalyzeButton(goal: goal)],
           fieldsBuilder: (context, snapshot) {
             final state = snapshot.model;
             final notifier = snapshot.notifier;
@@ -72,7 +80,7 @@ class GoalFormScreen extends ConsumerWidget {
                 initialValue: state.name,
                 decoration: InputDecoration(labelText: l10n.goalNameLabel),
                 onChanged: notifier.updateName,
-                validator: v.all([v.notEmpty(), v.length(max: 150, min: 3)]),
+                validator: v.notEmpty().and(v.length(max: 150, min: 3)),
               ),
               if (state.type == GoalType.saveMoney) ...[
                 MoneyFormField(
@@ -83,7 +91,7 @@ class GoalFormScreen extends ConsumerWidget {
                     labelText: l10n.goalTargetAmountLabel,
                   ),
                   onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                 ),
                 MoneyFormField(
                   initialValue: state.currentAmount > 0
@@ -94,7 +102,7 @@ class GoalFormScreen extends ConsumerWidget {
                   ),
                   enabled: state.accountId == null,
                   onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                 ),
               ] else if (state.type == GoalType.payDebt) ...[
                 MoneyFormField(
@@ -106,7 +114,7 @@ class GoalFormScreen extends ConsumerWidget {
                     hintText: 'Quanto você deve no total?',
                   ),
                   onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                 ),
                 MoneyFormField(
                   initialValue: state.currentAmount > 0
@@ -118,7 +126,7 @@ class GoalFormScreen extends ConsumerWidget {
                   ),
                   enabled: state.accountId == null,
                   onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                 ),
                 AccountFormField(
                   initialValue: state.accountId,
@@ -126,7 +134,7 @@ class GoalFormScreen extends ConsumerWidget {
                     labelText: 'Vincular à Conta de Dívida',
                   ),
                   onChanged: notifier.updateAccountId,
-                  validator: v.all([v.notEmpty()]),
+                  validator: v.notEmpty(),
                 ),
               ] else ...[
                 // Para redução de gastos
@@ -139,7 +147,7 @@ class GoalFormScreen extends ConsumerWidget {
                     hintText: 'Ex: 500.00 (Limite de gasto)',
                   ),
                   onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                 ),
                 MoneyFormField(
                   initialValue: state.averageSpending > 0
@@ -149,7 +157,7 @@ class GoalFormScreen extends ConsumerWidget {
                     labelText: l10n.goalAverageSpendingLabel,
                   ),
                   onChanged: (v) => notifier.updateAverageSpending(v ?? 0),
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                 ),
               ],
               if (state.type == GoalType.reduceExpense)
@@ -159,7 +167,7 @@ class GoalFormScreen extends ConsumerWidget {
                     labelText: l10n.goalCategoryLabel,
                   ),
                   onChanged: notifier.updateCategory,
-                  validator: v.all([v.notNull()]),
+                  validator: v.notNull(),
                   categoryType: CategoryType.expense,
                 ),
               if (state.type == GoalType.reduceCreditCard)
@@ -167,19 +175,19 @@ class GoalFormScreen extends ConsumerWidget {
                   initialValue: state.accountId,
                   decoration: InputDecoration(labelText: l10n.goalAccountLabel),
                   onChanged: notifier.updateAccountId,
-                  validator: v.all([v.notEmpty()]),
+                  validator: v.notEmpty(),
                 ),
               if (state.type == GoalType.saveMoney)
                 AccountFormField(
                   initialValue: state.accountId,
                   decoration: InputDecoration(labelText: l10n.goalAccountLabel),
                   onChanged: notifier.updateAccountId,
-                  validator: v.all([v.notEmpty()]),
+                  validator: v.notEmpty(),
                 ),
               DateFormField(
                 initialValue: state.startDate,
                 decoration: InputDecoration(labelText: l10n.goalStartDateLabel),
-                validator: v.all([v.notNull()]),
+                validator: v.notNull(),
                 onChanged: (date) {
                   if (date != null) {
                     notifier.updateStartDate(date);
@@ -200,6 +208,197 @@ class GoalFormScreen extends ConsumerWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Botão de análise IA — separado para poder usar Consumer e ler o form state
+// ---------------------------------------------------------------------------
+class _GoalAiAnalyzeButton extends ConsumerWidget {
+  final GoalModel? goal;
+
+  const _GoalAiAnalyzeButton({this.goal});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final formState = ref.watch(GoalViewProvider.form);
+
+    final isReady = formState.targetAmount > 0 && formState.name.isNotEmpty;
+
+    return OutlinedButton.icon(
+      icon: const Icon(Icons.auto_awesome, size: 18),
+      label: Text(l10n.goalAnalyzeWithAi),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.deepTurquoise,
+        side: const BorderSide(color: AppColors.deepTurquoise),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: isReady
+          ? () async {
+              final result = await showLoadingModal(
+                context,
+                ref
+                    .read(GoalViewProvider.feasibility.notifier)
+                    .analyze(formState),
+                child: AnalysisLoadingView(
+                  title: l10n.goalAiAnalyzing,
+                  description: l10n.goalAiAnalyzingDesc,
+                  firstPhaseDuration: const Duration(seconds: 15),
+                  totalDuration: const Duration(seconds: 60),
+                ),
+              );
+              if (context.mounted) {
+                _showResultBottomSheet(context, l10n, result);
+              }
+            }
+          : null,
+    );
+  }
+
+  void _showResultBottomSheet(
+    BuildContext context,
+    AppLocalizations l10n,
+    GoalFeasibilityModel result,
+  ) {
+    final (
+      Color statusColor,
+      IconData statusIcon,
+      String statusLabel,
+    ) = switch (result.status) {
+      GoalFeasibilityStatus.feasible => (
+        AppColors.limeGreen,
+        Icons.check_circle_outline,
+        l10n.goalAiFeasible,
+      ),
+      GoalFeasibilityStatus.challenging => (
+        AppColors.coralOrange,
+        Icons.warning_amber_outlined,
+        l10n.goalAiChallenging,
+      ),
+      GoalFeasibilityStatus.unrealistic => (
+        AppColors.error,
+        Icons.cancel_outlined,
+        l10n.goalAiUnrealistic,
+      ),
+    };
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final theme = Theme.of(ctx);
+        final mq = MediaQuery.of(ctx);
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + mq.padding.bottom),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurfaceVariant.withValues(
+                      alpha: 0.4,
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(statusIcon, color: statusColor, size: 32),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.goalAiResultTitle,
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            statusLabel,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: statusColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text(
+                l10n.goalAiReason,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                result.reason,
+                style: theme.textTheme.bodyMedium?.copyWith(height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                l10n.goalAiSuggestion,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                result.suggestion,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(56),
+                  backgroundColor: statusColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(l10n.goalAiClose),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

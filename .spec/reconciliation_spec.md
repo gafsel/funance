@@ -55,6 +55,16 @@ Tornar o fluxo de conciliação bancária por extrato (OFX/PDF) extremamente flu
     *   Se uma parcela local for listada inicialmente como "Apenas no Sistema" (órfã / existe no sistema e não consta no extrato) e o usuário vinculá-la manualmente a alguma transação do extrato, o sistema deve removê-la da lista de itens avulsos ("Apenas no Sistema"), exibindo-a apenas como o item vinculado na transação do extrato.
     *   Caso o usuário desvincule (Unlink) essa parcela posteriormente, ela deve retornar imediatamente para a lista de itens órfãos com o status "Apenas no Sistema".
 
+### 6. Funcionamento Esperado
+    1.  Identificar e listar as transações contidas no documento
+    2.  Sugerir o link com installments já cadastrados (independente de status e não relacionando com mais de uma transação)
+    3.  Listar as transações já cadastradas e não linkadas no mesmo período do documento ("órfãs")
+    4.  Pras transações vindas do documento, permitir ao usuário: buscar e linkar uma transação; deslinkar a transação corrente; ignorar a transação; cadastrar a transação como uma nova (carregando o formulário já preenchido e permitindo ao usuário modificar o que quiser)
+    5.  Pras transações "órfãs", permitir ao usuário: manter a transação; excluir a transação
+    6.  O sistema só deve persistir os dados após submeter o formulário completo, bloqueando a ação de salvar se alguma das transação não tiver uma resposta pelo usuário
+    7.  O sistema persiste as transações modificando o status para settled, cadastrando e excluindo o que for preciso
+    8.  O sistema faz o devido registro na collection de controle de conciliação - vide feature de gamificação e quests
+
 ---
 
 ## 🔍 Critérios de Aceitação

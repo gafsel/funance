@@ -5,6 +5,7 @@ export interface AIConfig {
     coaching: string;
     automaticTransaction: string;
     weeklyMissions: string;
+    goalFeasibility: string;
   };
     prompts: {
     goals: string;
@@ -14,6 +15,7 @@ export interface AIConfig {
     coaching: string;
     automaticTransaction: string;
     weeklyMissions: string;
+    goalFeasibility: string;
   };
 }
 
@@ -24,6 +26,7 @@ export const DEFAULT_CONFIG: AIConfig = {
         coaching: "gemini-1.5-flash-latest",
         automaticTransaction: "gemini-1.5-flash-latest",
         weeklyMissions: "gemini-1.5-flash-latest",
+        goalFeasibility: "gemini-1.5-flash-latest",
     },
     prompts: {
         goals: `
@@ -280,6 +283,28 @@ export const DEFAULT_CONFIG: AIConfig = {
                     "type": "income" | "expense"
                 },
                 "accountId": "id-da-conta-identificada-ou-null"
+            }
+        `,
+        goalFeasibility: `
+            Você é um especialista em planejamento financeiro pessoal e empresarial.
+            Um usuário quer criar uma meta financeira e precisa saber se ela é viável com base em seu histórico financeiro real.
+
+            META PROPOSTA:
+            {{goalPayload}}
+
+            HISTÓRICO FINANCEIRO (últimos 3 meses, separado por categoria):
+            {{monthlyBreakdown}}
+
+            Com base nesses dados, analise:
+            1. A capacidade mensal de poupança/pagamento do usuário (receitas - despesas essenciais).
+            2. Se o valor mensal necessário para atingir a meta no prazo é compatível com essa capacidade.
+            3. Quais categorias de despesa são mais relevantes e poderiam ser ajustadas.
+
+            Retorne APENAS um objeto JSON no seguinte formato (sem markdown, sem explicação adicional):
+            {
+                "status": "feasible" | "challenging" | "unrealistic",
+                "reason": "Justificativa clara e concisa em português, citando os valores reais. Ex: Sua receita média é de R$ 5.000 e suas despesas somam R$ 4.200, deixando apenas R$ 800/mês livres, enquanto a meta exige R$ 1.000/mês.",
+                "suggestion": "Alternativa concreta e prática em português. Ex: Sugerimos estender o prazo para 18 meses ou reduzir o valor alvo para R$ 9.600."
             }
         `,
         weeklyMissions: `
