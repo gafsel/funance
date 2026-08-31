@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { container } from "../../../../core/container";
+import { assertWorkspaceMember } from "../../../../core/services/workspace_access.service";
 
 export const analysePlanning = onCall({ timeoutSeconds: 300 }, async (request) => {
     if (!request.auth) {
@@ -11,6 +12,8 @@ export const analysePlanning = onCall({ timeoutSeconds: 300 }, async (request) =
     if (!workspaceId) {
         throw new HttpsError("invalid-argument", "Workspace ID é obrigatório.");
     }
+
+    await assertWorkspaceMember(workspaceId, request.auth.uid);
 
     try {
         const suggestions = await container.onboardingService.analyzePlanning(workspaceId);
@@ -29,9 +32,11 @@ export const analyzeAccountDocument = onCall({ timeoutSeconds: 300 }, async (req
 
     const { workspaceId, storagePath } = request.data;
 
-    if (!storagePath) {
-        throw new HttpsError("invalid-argument", "Caminho no storage e nome do arquivo são obrigatórios.");
+    if (!workspaceId || !storagePath) {
+        throw new HttpsError("invalid-argument", "Workspace ID e caminho no storage são obrigatórios.");
     }
+
+    await assertWorkspaceMember(workspaceId, request.auth.uid);
 
     try {
         const analysis = await container.onboardingService.analyzeAccountDocument(
@@ -57,6 +62,8 @@ export const analyzeReconciliationDocument = onCall({ timeoutSeconds: 300 }, asy
         throw new HttpsError("invalid-argument", "Workspace ID e caminho no storage são obrigatórios.");
     }
 
+    await assertWorkspaceMember(workspaceId, request.auth.uid);
+
     try {
         const analysis = await container.onboardingService.analyzeReconciliationDocument(
             workspaceId,
@@ -81,6 +88,8 @@ export const analyzeGoalFeasibility = onCall({ timeoutSeconds: 120 }, async (req
     if (!workspaceId || !goalPayload) {
         throw new HttpsError("invalid-argument", "workspaceId e goalPayload são obrigatórios.");
     }
+
+    await assertWorkspaceMember(workspaceId, request.auth.uid);
 
     try {
         const result = await container.goalFeasibilityService.analyze(workspaceId, goalPayload);

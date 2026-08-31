@@ -76,7 +76,7 @@ class Planning503020Screen extends ConsumerWidget {
               );
 
               scaffoldMessenger.showSnackBar(
-                const SnackBar(content: Text('Salvo com sucesso!')),
+                SnackBar(content: Text(context.l10n.savedSuccess)),
               );
             },
           ),

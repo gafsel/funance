@@ -73,7 +73,26 @@ class InvoiceService {
     return invoiceDueDate;
   }
 
-  /// Calcula o range de datas (inclusive) das transações que pertencem a uma fatura com vencimento em [invoiceDueDate].
+  /// Data com o dia limitado ao último dia do mês (fechamento dia 31 em
+  /// fevereiro vira 28/29 em vez de estourar para março). O overflow de mês
+  /// (0, 13...) é normalizado pelo próprio DateTime.
+  static DateTime _dateWithClampedDay(int year, int month, int day) {
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, day > lastDay ? lastDay : day);
+  }
+
+  /// Calcula o range de datas (inclusive nas duas pontas) das transações que
+  /// pertencem à fatura com vencimento em [invoiceDueDate].
+  ///
+  /// Regra de atribuição (mesma de [calculateInvoiceDueDate]): uma compra no
+  /// próprio dia do fechamento já pertence à fatura SEGUINTE. Logo o ciclo vai
+  /// do dia do fechamento anterior (inclusive) até a véspera do fechamento
+  /// atual (inclusive) — o dia do fechamento atual fica de fora por completo.
+  ///
+  /// As bordas usam meia-noite/23:59:59 de propósito: as transações são
+  /// normalizadas para 12:00, mas em fusos diferentes conforme a origem
+  /// (12:00 local no app, 12:00 UTC no servidor). Bordas ao meio-dia faziam o
+  /// dia de fechamento entrar ou sair da fatura dependendo de quem gravou.
   static (DateTime, DateTime) calculateInvoiceCycleRange(DateTime invoiceDueDate, AccountModel account) {
     if (account is! CreditCardAccount) {
       return (invoiceDueDate, invoiceDueDate);
@@ -86,41 +105,21 @@ class InvoiceService {
     // O fechamento que gerou esse vencimento:
     // Se isDueInNextMonth for true, invoiceDueDate.month = closingMonth + 1
     // Caso contrário, invoiceDueDate.month = closingMonth
-    
-    DateTime currentClosingDate = DateTime(
+    final currentClosingDate = _dateWithClampedDay(
       invoiceDueDate.year,
       isDueInNextMonth ? invoiceDueDate.month - 1 : invoiceDueDate.month,
       closingDay,
-      12
     );
-    
-    // Se por algum motivo o mês ficou inválido (ex: subtraiu 1 de janeiro)
-    if (currentClosingDate.month != (isDueInNextMonth ? (invoiceDueDate.month - 1 == 0 ? 12 : invoiceDueDate.month - 1) : invoiceDueDate.month)) {
-       // Ajuste manual se necessário, mas o construtor do DateTime costuma lidar com isso.
-       // Ex: DateTime(2024, 0, 10) vira 2023-12-10.
-    }
 
-    // O fechamento anterior:
-    DateTime previousClosingDate = DateTime(
+    final previousClosingDate = _dateWithClampedDay(
       currentClosingDate.year,
       currentClosingDate.month - 1,
       closingDay,
-      12
     );
 
-    // O range da fatura é:
-    // Início: Próximo dia útil após o fechamento anterior (inclusive)
-    // Fim: Dia anterior ao próximo dia útil após o fechamento atual (inclusive)
-    // Na verdade, a lógica simplificada do calculateInvoiceDueDate usa o nextBusinessDay da transação.
-    // Então, transação T pertence à fatura se getNextBusinessDay(T).day estiver entre previousClosingDate e currentClosingDate.
-
-    // Vamos definir o range como:
-    // Start: Dia que, se for a data de referência, cai nesta fatura.
-    // O primeiro dia que cai nesta fatura é o dia do fechamento anterior.
-    // Se refDay >= closingDay, cai na fatura do mês seguinte.
-    // Então para a fatura atual (que tem fechamento em currentClosingDate),
-    // a data de referência deve ser >= previousClosingDate AND < currentClosingDate.
-
-    return (previousClosingDate, currentClosingDate.subtract(const Duration(seconds: 1)));
+    return (
+      previousClosingDate, // 00:00 do dia do fechamento anterior
+      currentClosingDate.subtract(const Duration(seconds: 1)), // 23:59:59 da véspera do fechamento
+    );
   }
 }

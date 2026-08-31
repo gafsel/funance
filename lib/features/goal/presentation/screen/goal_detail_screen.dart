@@ -32,6 +32,7 @@ class GoalDetailScreen extends ConsumerStatefulWidget {
 class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
   TransactionQuery? _query;
   late ConfettiController _confettiController;
+  int _lastCheckedPct = -1;
 
   @override
   void initState() {
@@ -124,19 +125,33 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           error: (_, __) => AppColors.deepTurquoise,
         );
 
+        // Milestones só fazem sentido para metas de acúmulo (guardar/quitar):
+        // nas metas de redução, percent = gasto/limite — 100% é estourar o
+        // orçamento, não uma conquista.
+        final celebratesMilestones =
+            goal.mapOrNull(
+              saveMoney: (_) => true,
+              payDebt: (_) => true,
+            ) ??
+            false;
+
+        final screenProgress = ref.watch(goalProgressProvider(goal));
+        final pct = (screenProgress.percent * 100).floor();
+        if (celebratesMilestones && pct != _lastCheckedPct) {
+          _lastCheckedPct = pct;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            final allGoals = allGoalsAsync.valueOrNull ?? [];
+            _checkMilestonesAndCleanup(goal, screenProgress.percent, allGoals);
+          });
+        }
+
         return Scaffold(
           body: Stack(
             children: [
               NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
                   final progress = ref.watch(goalProgressProvider(goal));
-
-                  // Check milestones after build
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final allGoals =
-                        allGoalsAsync.valueOrNull ?? [];
-                    _checkMilestonesAndCleanup(goal, progress.percent, allGoals);
-                  });
 
                   return [
                     SliverDetailHeader(
@@ -188,11 +203,13 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // --- Milestone badges ---
-                            _MilestoneBadges(
-                              currentPercent: progress.percent,
-                              statusColor: progress.getStatusColor(context),
-                            ),
-                            const SizedBox(height: 16),
+                            if (celebratesMilestones) ...[
+                              _MilestoneBadges(
+                                currentPercent: progress.percent,
+                                statusColor: progress.getStatusColor(context),
+                              ),
+                              const SizedBox(height: 16),
+                            ],
                             // --- Barra de progresso ---
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -323,7 +340,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(l10n.onboardingBack),
+            child: Text(l10n.cancelButton),
           ),
           TextButton(
             onPressed: () async {

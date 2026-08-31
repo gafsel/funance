@@ -184,7 +184,8 @@ class Container {
         if (!this._gamificationService) {
             this._gamificationService = new GamificationService(
                 this.gamificationRepository,
-                this.aiRepository
+                this.aiRepository,
+                this.idempotencyService
             );
         }
         return this._gamificationService;

@@ -206,6 +206,102 @@ abstract class AppLocalizations {
   /// **'Ocorreu um erro inesperado.'**
   String get errorUnknown;
 
+  /// No description provided for @routeNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Página não encontrada.'**
+  String get routeNotFound;
+
+  /// No description provided for @routeNotFoundGoHome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Voltar para o início'**
+  String get routeNotFoundGoHome;
+
+  /// No description provided for @closeButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar'**
+  String get closeButton;
+
+  /// No description provided for @badgeUnlockedToast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova conquista desbloqueada!'**
+  String get badgeUnlockedToast;
+
+  /// No description provided for @badgeUnlockedView.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver'**
+  String get badgeUnlockedView;
+
+  /// No description provided for @workspacePickerTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Workspaces'**
+  String get workspacePickerTitle;
+
+  /// No description provided for @transactionMoreOptions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mais Opções'**
+  String get transactionMoreOptions;
+
+  /// No description provided for @onboardingConceptXpTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ganhe XP e suba de nível'**
+  String get onboardingConceptXpTitle;
+
+  /// No description provided for @onboardingConceptXpDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cada lançamento vale XP — e gastar dentro do planejado vale ainda mais. Seu workspace evolui de nível como num jogo.'**
+  String get onboardingConceptXpDesc;
+
+  /// No description provided for @onboardingConceptMissionsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões e conquistas'**
+  String get onboardingConceptMissionsTitle;
+
+  /// No description provided for @onboardingConceptMissionsDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Complete missões semanais, mantenha sua sequência de semanas perfeitas e desbloqueie insígnias na sua vitrine de conquistas.'**
+  String get onboardingConceptMissionsDesc;
+
+  /// No description provided for @onboardingConceptCoachTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu coach financeiro'**
+  String get onboardingConceptCoachTitle;
+
+  /// No description provided for @onboardingConceptCoachDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Um coach com IA que conhece seus números e traz conselhos práticos e personalizados rumo à sua liberdade financeira.'**
+  String get onboardingConceptCoachDesc;
+
+  /// No description provided for @onboardingNoSuggestions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma sugestão por enquanto — você pode criar metas e planejamentos depois, na aba Jornada.'**
+  String get onboardingNoSuggestions;
+
+  /// No description provided for @journeyStreakWeeks.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} semanas perfeitas seguidas'**
+  String journeyStreakWeeks(int count);
+
+  /// No description provided for @journeyAddGoalTooltip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova meta'**
+  String get journeyAddGoalTooltip;
+
   /// No description provided for @errorKeychain.
   ///
   /// In pt, this message translates to:
@@ -4261,6 +4357,60 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Completar todas as missões semanais disponíveis em uma semana.'**
   String get badge_all_missions_week_desc;
+
+  /// No description provided for @goalDebtTotalLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Total da Dívida'**
+  String get goalDebtTotalLabel;
+
+  /// No description provided for @goalDebtTotalHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto você deve no total?'**
+  String get goalDebtTotalHint;
+
+  /// No description provided for @goalDebtPaidLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Valor Já Pago'**
+  String get goalDebtPaidLabel;
+
+  /// No description provided for @goalDebtPaidHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto você já amortizou?'**
+  String get goalDebtPaidHint;
+
+  /// No description provided for @goalDebtAccountLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vincular à Conta de Dívida'**
+  String get goalDebtAccountLabel;
+
+  /// No description provided for @goalSpendingLimitHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ex: 500,00 (limite de gasto)'**
+  String get goalSpendingLimitHint;
+
+  /// No description provided for @accountNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta não encontrada.'**
+  String get accountNotFound;
+
+  /// No description provided for @savedSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo com sucesso!'**
+  String get savedSuccess;
+
+  /// No description provided for @wizardPendingIntro.
+  ///
+  /// In pt, this message translates to:
+  /// **'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?'**
+  String get wizardPendingIntro;
 }
 
 class _AppLocalizationsDelegate

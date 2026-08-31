@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_gradients.dart';
@@ -12,6 +13,44 @@ import '../widgets/members_step.dart';
 import '../widgets/success_step.dart';
 import '../widgets/welcome_step.dart';
 import '../widgets/workspace_info_step.dart';
+
+/// Ponto de entrada das rotas de onboarding. Prepara o estado do notifier
+/// fora do `redirect` do GoRouter (que deve permanecer puro): carrega o
+/// workspace corrente para retomar o onboarding, ou zera o fluxo quando o
+/// usuário está criando um novo workspace.
+class OnboardingEntry extends ConsumerStatefulWidget {
+  final bool createNew;
+
+  const OnboardingEntry({super.key, required this.createNew});
+
+  @override
+  ConsumerState<OnboardingEntry> createState() => _OnboardingEntryState();
+}
+
+class _OnboardingEntryState extends ConsumerState<OnboardingEntry> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (!mounted) return;
+      final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
+      if (widget.createNew) {
+        notifier.startNew();
+        return;
+      }
+      final workspace = ref
+          .read(WorkspaceViewProviders.workspace)
+          .currentWorkspace;
+      if (workspace != null &&
+          workspace.lastOnboardingStep != OnboardingSteps.done) {
+        notifier.load(workspace);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const OnboardingScreen();
+}
 
 class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});

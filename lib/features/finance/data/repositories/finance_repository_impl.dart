@@ -268,6 +268,9 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = entry.toJson();
       data.remove('id');
+      // xp é concedido e mantido pelo servidor; enviar 'xp: null' num doc que
+      // não tem o campo conta como alteração e é negado pelas rules.
+      data.remove('xp');
 
       final normalizedDueDate = DateTime(
         entry.dueDate.year,

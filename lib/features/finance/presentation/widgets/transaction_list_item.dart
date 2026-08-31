@@ -215,7 +215,7 @@ class TransactionListItem extends StatelessWidget {
                   Text(
                     l10n.installmentCountDescription(
                       installment.installmentCount!,
-                      installment.installmentCount!,
+                      installment.installmentNumber!,
                     ),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,

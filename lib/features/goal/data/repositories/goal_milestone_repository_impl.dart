@@ -2,7 +2,14 @@ import 'package:funances/features/goal/domain/repositories/goal_milestone_reposi
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GoalMilestoneRepositoryImpl implements IGoalMilestoneRepository {
-  static const _prefix = 'goal_milestone_';
+  /// Chaves com namespace por workspace: sem ele, o cleanup executado no
+  /// workspace A (que só conhece os goals de A) apagaria o estado de
+  /// celebração de todos os goals do workspace B.
+  final String workspaceId;
+
+  GoalMilestoneRepositoryImpl({required this.workspaceId});
+
+  String get _prefix => 'goal_milestone_${workspaceId}_';
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 

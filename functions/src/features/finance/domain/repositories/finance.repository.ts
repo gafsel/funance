@@ -98,6 +98,15 @@ export interface IFinanceRepository {
 
   // Coaching History
   getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]>;
+  saveCoachingAnalysis(workspaceId: string, analysis: any): Promise<string>;
+
+  // Coaching Meta: cache de classificação de categorias em grupos macro
+  // (workspaces/{wid}/coaching_meta/category_groups — escrito apenas via Admin SDK)
+  getCoachingCategoryGroups(workspaceId: string): Promise<Record<string, { group: string; name: string }> | null>;
+  saveCoachingCategoryGroups(workspaceId: string, entries: Record<string, { group: string; name: string }>): Promise<void>;
+
+  // Atividade recente (usado pelo coaching proativo)
+  hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean>;
 
   // Accounts
   getAccounts(workspaceId: string): Promise<AccountModel[]>;

@@ -15,6 +15,8 @@ class CoachingInsightCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lastInsightAsync = ref.watch(CoachingViewProviders.lastInsight);
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
     return lastInsightAsync.when(
       data: (lastInsight) {
         return Column(
@@ -24,8 +26,39 @@ class CoachingInsightCard extends ConsumerWidget {
           ],
         );
       },
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      loading: () => Container(
+        width: double.infinity,
+        height: 120,
+        margin: const EdgeInsets.only(bottom: 24),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.3,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: theme.dividerColor),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.psychology_outlined, color: theme.colorScheme.error),
+            const SizedBox(width: 8),
+            Expanded(child: Text(l10n.coachingError)),
+            TextButton(
+              onPressed: () =>
+                  ref.invalidate(CoachingViewProviders.lastInsight),
+              child: Text(l10n.retry),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -109,14 +142,14 @@ class CoachingInsightCard extends ConsumerWidget {
                             Text(
                               l10n.coachingViewHistory,
                               style: theme.textTheme.labelMedium?.copyWith(
-                                color: AppColors.pureWhite.withOpacity(0.9),
+                                color: AppColors.pureWhite.withValues(alpha: 0.9),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(width: 4),
                             Icon(
                               Icons.history,
-                              color: AppColors.pureWhite.withOpacity(0.9),
+                              color: AppColors.pureWhite.withValues(alpha: 0.9),
                               size: 16,
                             ),
                           ],
@@ -139,27 +172,38 @@ class CoachingInsightCard extends ConsumerWidget {
                     builder: (context, ref, _) {
                       return ElevatedButton(
                         onPressed: () async {
-                          final coaching = await showLoadingModal(
-                            context,
-                            ref
-                                .read(CoachingDomainProviders.service)
-                                .generateCoaching(),
-                            child: AnalysisLoadingView(
-                              title: l10n.coachingConsulting,
-                              description: l10n.coachingConsultingDesc,
-                            ),
-                          );
+                          final messenger = ScaffoldMessenger.of(context);
+                          try {
+                            final coaching = await showLoadingModal(
+                              context,
+                              ref
+                                  .read(CoachingDomainProviders.service)
+                                  .generateCoaching(),
+                              child: AnalysisLoadingView(
+                                title: l10n.coachingConsulting,
+                                description: l10n.coachingConsultingDesc,
+                              ),
+                            );
 
-                          ref.invalidate(CoachingViewProviders.lastInsight);
-                          ref.invalidate(CoachingViewProviders.insightsHistory);
+                            ref.invalidate(CoachingViewProviders.lastInsight);
+                            ref.invalidate(
+                              CoachingViewProviders.insightsHistory,
+                            );
 
-                          if (context.mounted) {
-                            context.push('/coaching', extra: coaching);
+                            if (context.mounted) {
+                              context.push('/coaching', extra: coaching);
+                            }
+                          } catch (e) {
+                            // Sem isso a falha era silenciosa: o modal fechava
+                            // e nada acontecia após minutos de espera.
+                            messenger.showSnackBar(
+                              SnackBar(content: Text(l10n.coachingError)),
+                            );
                           }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.successGold,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.darkNavy,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

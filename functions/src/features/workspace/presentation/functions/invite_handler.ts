@@ -30,5 +30,12 @@ export const onInviteStatusChanged = onDocumentUpdated("invites/{inviteId}", asy
         await container.idempotencyService.runIdempotency(event.id, "handleInviteAccepted", async () => {
             await container.inviteService.handleInviteAccepted(newValue);
         });
+
+        // Gamificação: badges de convite aceito (invite_accepted, first_invite)
+        await container.idempotencyService.runIdempotency(event.id, "inviteAcceptedBadges", async () => {
+            if (newValue.workspace?.id) {
+                await container.gamificationService.checkInviteAcceptedBadge(newValue.workspace.id);
+            }
+        });
     }
 });

@@ -32,7 +32,7 @@ class GoalFormScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(goal == null ? l10n.addGoalButton : l10n.continueButton),
+        title: Text(goal == null ? l10n.addGoalButton : l10n.goalEditButton),
       ),
       body: SingleChildScrollView(
         child: ResponsiveForm<GoalFormState, void, GoalFormNotifier>(
@@ -110,8 +110,8 @@ class GoalFormScreen extends ConsumerWidget {
                       ? state.targetAmount
                       : null,
                   decoration: InputDecoration(
-                    labelText: 'Valor Total da Dívida',
-                    hintText: 'Quanto você deve no total?',
+                    labelText: l10n.goalDebtTotalLabel,
+                    hintText: l10n.goalDebtTotalHint,
                   ),
                   onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
                   validator: v.notNull(),
@@ -121,8 +121,8 @@ class GoalFormScreen extends ConsumerWidget {
                       ? state.currentAmount
                       : null,
                   decoration: InputDecoration(
-                    labelText: 'Valor Já Pago',
-                    hintText: 'Quanto você já amortizou?',
+                    labelText: l10n.goalDebtPaidLabel,
+                    hintText: l10n.goalDebtPaidHint,
                   ),
                   enabled: state.accountId == null,
                   onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
@@ -131,7 +131,7 @@ class GoalFormScreen extends ConsumerWidget {
                 AccountFormField(
                   initialValue: state.accountId,
                   decoration: InputDecoration(
-                    labelText: 'Vincular à Conta de Dívida',
+                    labelText: l10n.goalDebtAccountLabel,
                   ),
                   onChanged: notifier.updateAccountId,
                   validator: v.notEmpty(),
@@ -144,7 +144,7 @@ class GoalFormScreen extends ConsumerWidget {
                       : null,
                   decoration: InputDecoration(
                     labelText: l10n.goalTargetAmountLabel,
-                    hintText: 'Ex: 500.00 (Limite de gasto)',
+                    hintText: l10n.goalSpendingLimitHint,
                   ),
                   onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
                   validator: v.notNull(),

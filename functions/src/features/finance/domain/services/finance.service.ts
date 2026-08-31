@@ -17,6 +17,23 @@ import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import { InvoiceService } from "./invoice.service";
 import { container } from "../../../../core/container";
 
+/**
+ * Divide um valor total em `count` parcelas usando aritmética de centavos inteiros,
+ * evitando erros de ponto flutuante (ex.: 502.40 / 10 deve gerar 10x 50.24).
+ * O resto da divisão é distribuído 1 centavo por parcela nas primeiras `resto` parcelas.
+ */
+export function splitAmountIntoInstallments(totalAmount: number, count: number): number[] {
+    if (!Number.isFinite(totalAmount) || !Number.isInteger(count) || count <= 0) {
+        return [];
+    }
+
+    const totalCents = Math.round(totalAmount * 100);
+    const baseCents = Math.floor(totalCents / count);
+    const remainderCents = totalCents - (baseCents * count);
+
+    return Array.from({ length: count }, (_, i) => (baseCents + (i < remainderCents ? 1 : 0)) / 100);
+}
+
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
     }
@@ -72,6 +89,11 @@ export class FinanceService {
 
         let lastDueDate: Date | undefined;
 
+        // Divisão de parcelas em centavos inteiros (evita erros de ponto flutuante)
+        const installmentAmounts = after.installmentType === InstallmentType.installment
+            ? splitAmountIntoInstallments(after.amount, after.installmentCount || 1)
+            : null;
+
         for (let i = 0; i < installmentsToGenerate; i++) {
             const date = new Date(startYear, startMonth - 1 + i, 1, 12);
             const year = date.getFullYear();
@@ -89,16 +111,8 @@ export class FinanceService {
             const isPaid = status === InstallmentStatus.paid || status === InstallmentStatus.settled;
 
             let installmentAmount = after.amount;
-            if (after.installmentType === InstallmentType.installment) {
-                const totalAmount = after.amount;
-                const count = after.installmentCount || 1;
-                const baseValue = Math.floor((totalAmount / count) * 100) / 100;
-                const remainder = Math.round((totalAmount - (baseValue * count)) * 100) / 100;
-
-                installmentAmount = baseValue;
-                if (i === (after.installmentCount || 1) - 1) {
-                    installmentAmount = Math.round((baseValue + remainder) * 100) / 100;
-                }
+            if (installmentAmounts && installmentAmounts.length > i) {
+                installmentAmount = installmentAmounts[i];
             }
 
             const paidDate = isPaid ? new Date(dueDate) : undefined;
@@ -133,12 +147,23 @@ export class FinanceService {
 
         // 4. Criar as installments
         if (after.isInvoice && existingInstallments.length > 0) {
-            if (existingInstallments[0].amount !== expectedInstallments[0].amount) {
-                await this.financeRepository.updateInstallment(workspaceId, existingInstallments[0].id, {
+            const existingInvoice = existingInstallments[0];
+            if (existingInvoice.amount !== expectedInstallments[0].amount) {
+                const isInvoicePaid = existingInvoice.status === InstallmentStatus.paid
+                    || existingInvoice.status === InstallmentStatus.settled;
+
+                const invoiceUpdate: Partial<InstallmentModel> = {
                     amount: expectedInstallments[0].amount,
                     referenceAmount: expectedInstallments[0].referenceAmount,
-                    status: InstallmentStatus.pending,
-                });
+                };
+
+                // Se a fatura já foi paga/liquidada, atualiza apenas os valores,
+                // SEM reverter o status para pending (o pagamento já impactou o saldo).
+                if (!isInvoicePaid) {
+                    invoiceUpdate.status = InstallmentStatus.pending;
+                }
+
+                await this.financeRepository.updateInstallment(workspaceId, existingInvoice.id, invoiceUpdate);
             }
         }
         else {

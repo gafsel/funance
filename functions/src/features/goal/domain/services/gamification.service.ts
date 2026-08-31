@@ -1,7 +1,28 @@
 import * as logger from "firebase-functions/logger";
 import { CategoryType } from "../../../workspace/domain/models/category.model";
 import { IAIRepository } from "../../../../core/services/ai.service";
+import { IIdempotencyService } from "../../../../core/services/idempotency.service";
 import { IGamificationRepository } from "../repositories/gamification.repository";
+import {
+    addCalendarDays,
+    endOfWeekFromStart,
+    getDayIndexInTz,
+    getMonthKeyInTz,
+    getMonthRangeInTz,
+    getWeekId,
+    getZonedParts,
+    startOfWeekInTz,
+} from "./gamification_time.util";
+
+/**
+ * Um planning cobre o mês se startMonth <= mês <= endMonth (chaves "YYYY-MM").
+ * Plannings sem período definido são considerados sempre ativos.
+ */
+function planningCoversMonth(planning: any, monthKey: string): boolean {
+    const start = planning.startMonth || "0000-00";
+    const end = planning.endMonth || "9999-12";
+    return start <= monthKey && monthKey <= end;
+}
 
 export function calculateLevel(xp: number): number {
     if (xp <= 0) {
@@ -103,7 +124,8 @@ export const BADGES: Record<string, BadgeConfig> = {
 export class GamificationService {
     constructor(
         private gamificationRepository: IGamificationRepository,
-        private aiRepository?: IAIRepository
+        private aiRepository?: IAIRepository,
+        private idempotencyService?: IIdempotencyService
     ) { }
 
     async addXp(workspaceId: string, amount: number, reason: string): Promise<void> {
@@ -275,133 +297,45 @@ export class GamificationService {
         eventData: any
     ): Promise<void> {
         const now = new Date();
-        const startOfWeek = new Date(now.getTime() - (now.getDay() * 24 * 60 * 60 * 1000));
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek.getTime() + (6 * 24 * 60 * 60 * 1000) + 23 * 3600 * 1000 + 59 * 60 * 1000 + 59 * 1000);
-
-        const year = startOfWeek.getFullYear();
-        const firstDayOfYear = new Date(year, 0, 1);
-        const days = Math.floor((startOfWeek.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        const week = Math.floor(days / 7) + 1;
-        const weekId = `${year}-W${String(week).padStart(2, "0")}`;
+        // Fronteiras de semana calculadas no fuso America/Sao_Paulo (util único).
+        const startOfWeek = startOfWeekInTz(now);
+        const endOfWeek = endOfWeekFromStart(startOfWeek);
+        const weekId = getWeekId(startOfWeek);
+        const monthKey = getMonthKeyInTz(now);
 
         const consistencyDoc = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
         if (!consistencyDoc) {
-            logger.info(`[GamificationService] Generating AI weekly missions for workspace ${workspaceId}, week ${weekId}`);
-
-            let workspaceType = "personal";
-            try {
-                const workspaceDoc = await this.gamificationRepository.getWorkspaceById(workspaceId);
-                if (workspaceDoc) {
-                    workspaceType = workspaceDoc.type || "personal";
-                }
+            const generateMissions = async () => {
+                await this.generateWeeklyMissions(workspaceId, weekId, monthKey);
+            };
+            if (this.idempotencyService) {
+                // Chave por workspace+semana: escritas paralelas de installments
+                // não disparam geração (e chamadas de IA) duplicadas.
+                await this.idempotencyService.runIdempotency(
+                    `${workspaceId}_${weekId}`,
+                    "generateWeeklyMissions",
+                    generateMissions
+                );
             }
-            catch (e) {
-                logger.error("[GamificationService] Error fetching workspace type:", e);
+            else {
+                await generateMissions();
             }
-
-            const categoriesList: string[] = [];
-            let maxCategory = "Alimentação";
-            let maxAmount = 0;
-            try {
-                const categoryPlannings = await this.gamificationRepository.getCategoryPlannings(workspaceId);
-                for (const p of categoryPlannings) {
-                    if (p.category && p.category.name) {
-                        categoriesList.push(p.category.name);
-                        if (p.amount > maxAmount) {
-                            maxAmount = p.amount;
-                            maxCategory = p.category.name;
-                        }
-                    }
-                }
-            }
-            catch (e) {
-                logger.error("[GamificationService] Error fetching category plannings:", e);
-            }
-
-            const goalsList: string[] = [];
-            try {
-                const goalsSnapshot = await this.gamificationRepository.getGoals(workspaceId);
-                for (const g of goalsSnapshot) {
-                    if (g.status === "active" && g.name) {
-                        goalsList.push(g.name);
-                    }
-                }
-            }
-            catch (e) {
-                logger.error("[GamificationService] Error fetching goals:", e);
-            }
-
-            let aiMissions: any = null;
-            if (this.aiRepository) {
-                try {
-                    aiMissions = await this.aiRepository.generateWeeklyMissions(
-                        workspaceId,
-                        workspaceType,
-                        categoriesList,
-                        goalsList,
-                        maxCategory
-                    );
-                }
-                catch (e) {
-                    logger.error("[GamificationService] Failed to generate weekly missions via Gemini. Using fallbacks.", e);
-                }
-            }
-
-            const consistencyName = aiMissions?.consistency?.name || "Equipe planeja limites para pelo menos 3 categorias para organizar a semana.";
-            const consistencyTarget = aiMissions?.consistency?.target || 3;
-
-            const disciplineName = aiMissions?.discipline?.name || `Equipe mantém a categoria ${maxCategory} dentro do orçamento planejado por 5 dias.`;
-            const disciplineTarget = aiMissions?.discipline?.target || 5;
-
-            const organizationName = aiMissions?.organization?.name || "Fazer a conciliação bancária completa de um extrato contendo pelo menos 5 itens.";
-            const organizationTarget = aiMissions?.organization?.target || 5;
-
-            await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "consistency", {
-                id: "consistency",
-                name: consistencyName,
-                type: "consistency",
-                status: "pending",
-                rewardXp: 150,
-                progress: 0,
-                target: consistencyTarget,
-                weekId,
-                createdAt: new Date().toISOString(),
-            });
-
-            await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "discipline", {
-                id: "discipline",
-                name: disciplineName,
-                type: "discipline",
-                status: "pending",
-                rewardXp: 250,
-                progress: 0,
-                target: disciplineTarget,
-                weekId,
-                createdAt: new Date().toISOString(),
-            });
-
-            await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "organization", {
-                id: "organization",
-                name: organizationName,
-                type: "organization",
-                status: "pending",
-                rewardXp: 200,
-                progress: 0,
-                target: organizationTarget,
-                weekId,
-                createdAt: new Date().toISOString(),
-            });
         }
 
         if (eventType === "transaction" || eventType === "planning") {
             const categoryPlannings = await this.gamificationRepository.getCategoryPlannings(workspaceId);
 
+            // Apenas plannings cujo período cobre o mês corrente contam para a
+            // missão de consistência (antes, qualquer planning histórico contava).
+            const activePlannings = categoryPlannings.filter((p) => {
+                return planningCoversMonth(p, monthKey);
+            });
+
             let plannedCategoriesCount = 0;
             let targetCategory = "Alimentação";
             let maxAmount = 0;
 
-            for (const p of categoryPlannings) {
+            for (const p of activePlannings) {
                 if (p.amount > 0) {
                     plannedCategoriesCount++;
                 }
@@ -414,18 +348,30 @@ export class GamificationService {
             const constData = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
             if (constData && constData.status !== "completed") {
                 const target = constData.target || 3;
-                const status = plannedCategoriesCount >= target ? "completed" : "pending";
-                await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "consistency", {
-                    progress: plannedCategoriesCount,
-                    status,
-                });
-                if (status === "completed") {
-                    await this.addXp(workspaceId, constData.rewardXp, "Missão Semanal de Consistência Concluída");
+                if (plannedCategoriesCount >= target) {
+                    // Checagem de "já concluída" + concessão de XP em uma única
+                    // transação Firestore (sem corrida entre escritas paralelas).
+                    await this.gamificationRepository.completeMissionAndAwardXp(
+                        workspaceId,
+                        weekId,
+                        "consistency",
+                        plannedCategoriesCount,
+                        constData.rewardXp || 150,
+                        "Missão Semanal de Consistência Concluída"
+                    );
+                }
+                else {
+                    await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "consistency", {
+                        progress: plannedCategoriesCount,
+                        status: "pending",
+                    });
                 }
             }
 
             if (eventType === "transaction") {
-                const installments = await this.gamificationRepository.getInstallmentsInPeriod(
+                // Parcelas efetivamente pagas na semana (por paidDate) — antes a
+                // busca era por dueDate mas o agrupamento por paidDate.
+                const installments = await this.gamificationRepository.getPaidInstallmentsInPeriod(
                     workspaceId,
                     startOfWeek,
                     endOfWeek
@@ -439,21 +385,29 @@ export class GamificationService {
                     if (inst.status === "removed") {
                         continue;
                     }
-                    const date = inst.paidDate?.toDate
-                        ? inst.paidDate.toDate()
-                        : (inst.paidDate ? new Date(inst.paidDate) : (inst.dueDate?.toDate ? inst.dueDate.toDate() : new Date(inst.dueDate)));
-                    const day = date.getDay();
+                    // paidDate consistentemente; dueDate apenas como fallback.
+                    const rawDate = inst.paidDate ?? inst.dueDate;
+                    if (!rawDate) {
+                        continue;
+                    }
+                    const date = rawDate?.toDate ? rawDate.toDate() : new Date(rawDate);
+                    const day = getDayIndexInTz(date);
 
                     if (inst.type === "expense") {
-                        if (inst.category && inst.category.name.toLowerCase() === targetCategory.toLowerCase()) {
+                        if (inst.category && inst.category.name && inst.category.name.toLowerCase() === targetCategory.toLowerCase()) {
                             const amount = inst.paidAmount || inst.amount || 0;
                             expensesByDay[day] = (expensesByDay[day] || 0) + amount;
                         }
                     }
                 }
 
+                // Conta apenas dias JÁ decorridos por completo (exclui o dia de
+                // hoje, que ainda pode receber gastos). Antes, dias futuros
+                // contavam como "dentro do orçamento" e a missão fechava na
+                // primeira transação da semana.
+                const elapsedFullDays = getDayIndexInTz(now);
                 let daysWithinBudgetCount = 0;
-                for (let d = 0; d < 7; d++) {
+                for (let d = 0; d < elapsedFullDays; d++) {
                     const spent = expensesByDay[d] || 0;
                     if (spent <= dailyLimit) {
                         daysWithinBudgetCount++;
@@ -463,13 +417,23 @@ export class GamificationService {
                 const discData = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "discipline");
                 if (discData && discData.status !== "completed") {
                     const target = discData.target || 5;
-                    const status = daysWithinBudgetCount >= target ? "completed" : "pending";
-                    await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "discipline", {
-                        progress: daysWithinBudgetCount,
-                        status,
-                    });
-                    if (status === "completed") {
-                        await this.addXp(workspaceId, discData.rewardXp, "Missão Semanal de Disciplina Concluída");
+                    // Exige que pelo menos `target` dias tenham decorrido antes
+                    // de permitir a conclusão.
+                    if (daysWithinBudgetCount >= target && elapsedFullDays >= target) {
+                        await this.gamificationRepository.completeMissionAndAwardXp(
+                            workspaceId,
+                            weekId,
+                            "discipline",
+                            daysWithinBudgetCount,
+                            discData.rewardXp || 250,
+                            "Missão Semanal de Disciplina Concluída"
+                        );
+                    }
+                    else {
+                        await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "discipline", {
+                            progress: daysWithinBudgetCount,
+                            status: "pending",
+                        });
                     }
                 }
             }
@@ -480,26 +444,144 @@ export class GamificationService {
             if (orgData && orgData.status !== "completed") {
                 const target = orgData.target || 5;
                 if (recDoc.status === "completed" && recDoc.totalTransactionsProcessed >= target) {
-                    await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "organization", {
-                        progress: recDoc.totalTransactionsProcessed,
-                        status: "completed",
-                    });
-                    await this.addXp(workspaceId, orgData.rewardXp, "Missão Semanal de Organização Concluída");
+                    await this.gamificationRepository.completeMissionAndAwardXp(
+                        workspaceId,
+                        weekId,
+                        "organization",
+                        recDoc.totalTransactionsProcessed,
+                        orgData.rewardXp || 200,
+                        "Missão Semanal de Organização Concluída"
+                    );
                 }
             }
         }
     }
 
+    /**
+     * Gera as três missões semanais (com IA quando disponível) para a semana.
+     * Deve ser invocada sob idempotência (workspaceId + weekId) para não
+     * duplicar chamadas de IA em escritas paralelas.
+     */
+    private async generateWeeklyMissions(workspaceId: string, weekId: string, monthKey: string): Promise<void> {
+        logger.info(`[GamificationService] Generating AI weekly missions for workspace ${workspaceId}, week ${weekId}`);
+
+        let workspaceType = "personal";
+        try {
+            const workspaceDoc = await this.gamificationRepository.getWorkspaceById(workspaceId);
+            if (workspaceDoc) {
+                workspaceType = workspaceDoc.type || "personal";
+            }
+        }
+        catch (e) {
+            logger.error("[GamificationService] Error fetching workspace type:", e);
+        }
+
+        const categoriesList: string[] = [];
+        let maxCategory = "Alimentação";
+        let maxAmount = 0;
+        try {
+            const categoryPlannings = await this.gamificationRepository.getCategoryPlannings(workspaceId);
+            for (const p of categoryPlannings) {
+                if (!planningCoversMonth(p, monthKey)) {
+                    continue;
+                }
+                if (p.category && p.category.name) {
+                    categoriesList.push(p.category.name);
+                    if (p.amount > maxAmount) {
+                        maxAmount = p.amount;
+                        maxCategory = p.category.name;
+                    }
+                }
+            }
+        }
+        catch (e) {
+            logger.error("[GamificationService] Error fetching category plannings:", e);
+        }
+
+        const goalsList: string[] = [];
+        try {
+            const goalsSnapshot = await this.gamificationRepository.getGoals(workspaceId);
+            for (const g of goalsSnapshot) {
+                if (g.status === "active" && g.name) {
+                    goalsList.push(g.name);
+                }
+            }
+        }
+        catch (e) {
+            logger.error("[GamificationService] Error fetching goals:", e);
+        }
+
+        let aiMissions: any = null;
+        if (this.aiRepository) {
+            try {
+                aiMissions = await this.aiRepository.generateWeeklyMissions(
+                    workspaceId,
+                    workspaceType,
+                    categoriesList,
+                    goalsList,
+                    maxCategory
+                );
+            }
+            catch (e) {
+                logger.error("[GamificationService] Failed to generate weekly missions via Gemini. Using fallbacks.", e);
+            }
+        }
+
+        const consistencyName = aiMissions?.consistency?.name || "Equipe planeja limites para pelo menos 3 categorias para organizar a semana.";
+        const consistencyTarget = aiMissions?.consistency?.target || 3;
+
+        const disciplineName = aiMissions?.discipline?.name || `Equipe mantém a categoria ${maxCategory} dentro do orçamento planejado por 5 dias.`;
+        const disciplineTarget = aiMissions?.discipline?.target || 5;
+
+        const organizationName = aiMissions?.organization?.name || "Fazer a conciliação bancária completa de um extrato contendo pelo menos 5 itens.";
+        const organizationTarget = aiMissions?.organization?.target || 5;
+
+        await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "consistency", {
+            id: "consistency",
+            name: consistencyName,
+            type: "consistency",
+            status: "pending",
+            rewardXp: 150,
+            progress: 0,
+            target: consistencyTarget,
+            weekId,
+            createdAt: new Date().toISOString(),
+        });
+
+        await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "discipline", {
+            id: "discipline",
+            name: disciplineName,
+            type: "discipline",
+            status: "pending",
+            rewardXp: 250,
+            progress: 0,
+            target: disciplineTarget,
+            weekId,
+            createdAt: new Date().toISOString(),
+        });
+
+        await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "organization", {
+            id: "organization",
+            name: organizationName,
+            type: "organization",
+            status: "pending",
+            rewardXp: 200,
+            progress: 0,
+            target: organizationTarget,
+            weekId,
+            createdAt: new Date().toISOString(),
+        });
+    }
+
     async evaluateWeeklyMissionsCron(workspaceId: string): Promise<void> {
         const now = new Date();
-        const startOfWeek = new Date(now.getTime() - (now.getDay() * 24 * 60 * 60 * 1000));
-        startOfWeek.setHours(0, 0, 0, 0);
-
-        const year = startOfWeek.getFullYear();
-        const firstDayOfYear = new Date(year, 0, 1);
-        const days = Math.floor((startOfWeek.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        const week = Math.floor(days / 7) + 1;
-        const weekId = `${year}-W${String(week).padStart(2, "0")}`;
+        // O cron roda na virada da semana (segunda de madrugada): a semana a
+        // avaliar é a ANTERIOR, já completa. Avaliar a semana corrente (recém
+        // iniciada e vazia) zeraria a streak permanentemente.
+        const currentWeekStart = startOfWeekInTz(now);
+        const startOfWeek = addCalendarDays(currentWeekStart, -7);
+        const endOfWeek = new Date(currentWeekStart.getTime() - 1);
+        const weekId = getWeekId(startOfWeek);
 
         const snapshot = await this.gamificationRepository.getWeeklyMissionsByWeek(workspaceId, weekId);
 
@@ -531,7 +613,6 @@ export class GamificationService {
                 await this.unlockBadge(workspaceId, "iron_consistency");
             }
 
-            const endOfWeek = new Date(startOfWeek.getTime() + (6 * 24 * 60 * 60 * 1000) + 23 * 3600 * 1000 + 59 * 60 * 1000);
             const activeMembers = workspaceData.members || [];
 
             const installments = await this.gamificationRepository.getPaidInstallmentsInPeriod(
@@ -560,17 +641,28 @@ export class GamificationService {
         else {
             await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, 0);
         }
+
+        // Badges de missões (mission_first, mission_three, all_missions_week):
+        // antes estas checagens nunca eram invocadas.
+        try {
+            const completedMissionsTotal = await this.gamificationRepository.getCompletedMissionsCount(workspaceId);
+            await this.checkMissionBadges(workspaceId, completedMissionsTotal, allCompleted ? 1 : 0);
+        }
+        catch (e) {
+            logger.error("[GamificationService] Error checking mission badges:", e);
+        }
     }
 
     async evaluateMonthlyMissionsCron(workspaceId: string): Promise<void> {
         const now = new Date();
-        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 15);
-        const year = lastMonthDate.getFullYear();
+        // Mês anterior completo, no fuso America/Sao_Paulo.
+        const lastMonth = getMonthRangeInTz(now, -1);
+        const year = lastMonth.year;
 
         const snapshot = await this.gamificationRepository.getPeriodSummaries(
             workspaceId,
             year,
-            lastMonthDate.getMonth() + 1
+            lastMonth.month
         );
 
         let underControl = true;
@@ -614,14 +706,12 @@ export class GamificationService {
             await this.unlockBadge(workspaceId, "future_focus");
         }
 
-        const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 2, 15);
-        const prevYear = prevMonthDate.getFullYear();
-        const prevMonthVal = prevMonthDate.getMonth() + 1;
+        const prevMonth = getMonthRangeInTz(now, -2);
 
         const prevSnapshot = await this.gamificationRepository.getPeriodSummaries(
             workspaceId,
-            prevYear,
-            prevMonthVal
+            prevMonth.year,
+            prevMonth.month
         );
 
         let prevComfortExpenses = 0;
@@ -636,27 +726,99 @@ export class GamificationService {
         }
     }
 
+    /**
+     * Badge no_credit_debt ("Livre de Juros"): concedido no cron mensal quando
+     * o workspace possui pelo menos uma conta de cartão de crédito e nenhuma
+     * parcela PENDENTE vinculada a cartão com vencimento no mês anterior.
+     */
+    async checkNoCreditDebtBadge(workspaceId: string): Promise<void> {
+        const workspaceData = await this.gamificationRepository.getWorkspaceById(workspaceId);
+        if (!workspaceData) {
+            return;
+        }
+        const unlockedBadges = workspaceData.unlockedBadges || {};
+        if (unlockedBadges["no_credit_debt"]) {
+            return;
+        }
+
+        const cardAccountIds = await this.gamificationRepository.getCreditCardAccountIds(workspaceId);
+        if (cardAccountIds.length === 0) {
+            // Sem cartão de crédito, o badge não faz sentido.
+            return;
+        }
+
+        const lastMonth = getMonthRangeInTz(new Date(), -1);
+        const hasDebt = await this.gamificationRepository.hasPendingInstallmentsForAccounts(
+            workspaceId,
+            cardAccountIds,
+            lastMonth.start,
+            lastMonth.end
+        );
+
+        if (!hasDebt) {
+            await this.unlockBadge(workspaceId, "no_credit_debt");
+        }
+    }
+
+    /**
+     * Executa a rotina semanal para todos os workspaces (chamado pelo
+     * scheduler toda segunda-feira, 03:00 America/Sao_Paulo).
+     */
+    async runWeeklyCronForAllWorkspaces(): Promise<void> {
+        const workspaceIds = await this.gamificationRepository.getAllWorkspaceIds();
+        logger.info(`[GamificationService] Weekly cron: processing ${workspaceIds.length} workspaces.`);
+        for (const workspaceId of workspaceIds) {
+            try {
+                await this.evaluateWeeklyMissionsCron(workspaceId);
+                await this.checkFinancialHealthBadges(workspaceId);
+            }
+            catch (e) {
+                logger.error(`[GamificationService] Weekly cron failed for workspace ${workspaceId}:`, e);
+            }
+        }
+    }
+
+    /**
+     * Executa a rotina mensal para todos os workspaces (chamado pelo
+     * scheduler todo dia 1, 03:00 America/Sao_Paulo).
+     */
+    async runMonthlyCronForAllWorkspaces(): Promise<void> {
+        const workspaceIds = await this.gamificationRepository.getAllWorkspaceIds();
+        logger.info(`[GamificationService] Monthly cron: processing ${workspaceIds.length} workspaces.`);
+        for (const workspaceId of workspaceIds) {
+            try {
+                await this.evaluateMonthlyMissionsCron(workspaceId);
+                await this.checkFinancialHealthBadges(workspaceId);
+                await this.checkNoCreditDebtBadge(workspaceId);
+            }
+            catch (e) {
+                logger.error(`[GamificationService] Monthly cron failed for workspace ${workspaceId}:`, e);
+            }
+        }
+    }
+
     async checkSimpleWorkspaceBadges(workspaceId: string, workspaceData: any): Promise<void> {
         const name: string = workspaceData.name || "";
         const type: string = workspaceData.type || "";
         const members: string[] = workspaceData.members || [];
+        const unlockedBadges = workspaceData.unlockedBadges || {};
         const createdAt: Date = workspaceData.createdAt?.toDate
             ? workspaceData.createdAt.toDate()
             : new Date(workspaceData.createdAt || Date.now());
 
-        if (name.trim().length > 0 && type.trim().length > 0) {
+        if (!unlockedBadges["profile_complete"] && name.trim().length > 0 && type.trim().length > 0) {
             await this.unlockBadge(workspaceId, "profile_complete");
         }
-        if (name.trim().length > 0) {
+        if (!unlockedBadges["workspace_named"] && name.trim().length > 0) {
             await this.unlockBadge(workspaceId, "workspace_named");
         }
-        if (members.length >= 2) {
+        if (!unlockedBadges["second_member"] && members.length >= 2) {
             await this.unlockBadge(workspaceId, "second_member");
         }
 
         const oneYearAgo = new Date();
         oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-        if (createdAt <= oneYearAgo) {
+        if (!unlockedBadges["workspace_one_year"] && createdAt <= oneYearAgo) {
             await this.unlockBadge(workspaceId, "workspace_one_year");
         }
     }
@@ -693,13 +855,23 @@ export class GamificationService {
     async checkSimpleGoalBadges(workspaceId: string, goalDoc: any): Promise<void> {
         const data = goalDoc;
 
-        await this.unlockBadge(workspaceId, "first_goal");
+        // Early-return por badge já desbloqueado: evita abrir transações e
+        // consultas desnecessárias em cada escrita de goal.
+        const workspaceData = await this.gamificationRepository.getWorkspaceById(workspaceId);
+        const unlockedBadges = workspaceData?.unlockedBadges || {};
+        const isLocked = (badgeId: string) => {
+            return !unlockedBadges[badgeId];
+        };
 
-        if (data.accountId || data.accountIdTarget) {
+        if (isLocked("first_goal")) {
+            await this.unlockBadge(workspaceId, "first_goal");
+        }
+
+        if (isLocked("goal_linked_account") && (data.accountId || data.accountIdTarget)) {
             await this.unlockBadge(workspaceId, "goal_linked_account");
         }
 
-        if (data.targetDate) {
+        if (isLocked("long_term_goal") && data.targetDate) {
             const target = data.targetDate?.toDate ? data.targetDate.toDate() : new Date(data.targetDate);
             const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now());
             const monthsDiff = (target.getFullYear() - createdAt.getFullYear()) * 12 + target.getMonth() - createdAt.getMonth();
@@ -708,18 +880,21 @@ export class GamificationService {
             }
         }
 
-        const allGoals = await this.gamificationRepository.getGoals(workspaceId);
-        let activeGoals = 0;
-        for (const g of allGoals) {
-            if (g.status === "active") {
-                activeGoals++;
+        // Só consulta a lista de goals se algum badge de contagem ainda falta.
+        if (isLocked("two_active_goals") || isLocked("five_active_goals")) {
+            const allGoals = await this.gamificationRepository.getGoals(workspaceId);
+            let activeGoals = 0;
+            for (const g of allGoals) {
+                if (g.status === "active") {
+                    activeGoals++;
+                }
             }
-        }
-        if (activeGoals >= 2) {
-            await this.unlockBadge(workspaceId, "two_active_goals");
-        }
-        if (activeGoals >= 5) {
-            await this.unlockBadge(workspaceId, "five_active_goals");
+            if (isLocked("two_active_goals") && activeGoals >= 2) {
+                await this.unlockBadge(workspaceId, "two_active_goals");
+            }
+            if (isLocked("five_active_goals") && activeGoals >= 5) {
+                await this.unlockBadge(workspaceId, "five_active_goals");
+            }
         }
 
         const current = data.currentAmount || 0;
@@ -727,13 +902,17 @@ export class GamificationService {
         const pct = current / target;
 
         if (current > 0) {
-            await this.unlockBadge(workspaceId, "goal_deposit");
-            await this.unlockBadge(workspaceId, "savings_start");
+            if (isLocked("goal_deposit")) {
+                await this.unlockBadge(workspaceId, "goal_deposit");
+            }
+            if (isLocked("savings_start")) {
+                await this.unlockBadge(workspaceId, "savings_start");
+            }
         }
-        if (pct >= 0.5) {
+        if (isLocked("goal_halfway") && pct >= 0.5) {
             await this.unlockBadge(workspaceId, "goal_halfway");
         }
-        if (pct >= 0.75) {
+        if (isLocked("goal_75pct") && pct >= 0.75) {
             await this.unlockBadge(workspaceId, "goal_75pct");
         }
 
@@ -742,18 +921,18 @@ export class GamificationService {
             const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now());
             const completedAt = data.completedAt?.toDate ? data.completedAt.toDate() : new Date();
             const daysDiff = (completedAt.getTime() - createdAt.getTime()) / 86400000;
-            if (daysDiff < 30) {
+            if (isLocked("short_term_goal") && daysDiff < 30) {
                 await this.unlockBadge(workspaceId, "short_term_goal");
             }
 
-            if (data.targetDate) {
+            if (isLocked("goal_under_deadline") && data.targetDate) {
                 const targetDate = data.targetDate?.toDate ? data.targetDate.toDate() : new Date(data.targetDate);
                 if (completedAt <= targetDate) {
                     await this.unlockBadge(workspaceId, "goal_under_deadline");
                 }
             }
 
-            if (data.type === "payDebt") {
+            if (isLocked("goal_debt_paid") && data.type === "payDebt") {
                 await this.unlockBadge(workspaceId, "goal_debt_paid");
             }
         }
@@ -763,69 +942,96 @@ export class GamificationService {
         const type: string = installmentData.type || "";
         const amount: number = Math.abs(installmentData.referenceAmount || installmentData.amount || 0);
 
-        if (type === "income") {
+        // Early-return por badge já desbloqueado ANTES de qualquer consulta:
+        // evita baixar todas as parcelas do workspace a cada transação.
+        const workspaceData = await this.gamificationRepository.getWorkspaceById(workspaceId);
+        const unlockedBadges = workspaceData?.unlockedBadges || {};
+        const isLocked = (badgeId: string) => {
+            return !unlockedBadges[badgeId];
+        };
+
+        if (isLocked("first_income") && type === "income") {
             await this.unlockBadge(workspaceId, "first_income");
         }
-        if (type === "expense") {
+        if (isLocked("first_expense") && type === "expense") {
             await this.unlockBadge(workspaceId, "first_expense");
         }
-        if (type === "transfer") {
+        if (isLocked("first_transfer") && type === "transfer") {
             await this.unlockBadge(workspaceId, "first_transfer");
         }
 
-        if (amount > 0 && amount % 1 === 0) {
+        if (isLocked("round_number") && amount > 0 && amount % 1 === 0) {
             await this.unlockBadge(workspaceId, "round_number");
         }
 
-        if (amount >= 1000) {
+        if (isLocked("big_transaction") && amount >= 1000) {
             await this.unlockBadge(workspaceId, "big_transaction");
         }
 
-        if (type === "income" && amount > 0) {
+        if (isLocked("income_registered") && type === "income" && amount > 0) {
             await this.unlockBadge(workspaceId, "income_registered");
         }
 
-        const settledSnap = await this.gamificationRepository.getPaidInstallments(workspaceId);
-        const settledCount = settledSnap.length;
+        const countBadges: Array<[string, number]> = [
+            ["five_transactions", 5],
+            ["twenty_transactions", 20],
+            ["fifty_transactions", 50],
+            ["hundred_transactions", 100],
+        ];
+        const needsCount = countBadges.some(([badgeId]) => {
+            return isLocked(badgeId);
+        });
+        const needsDocs = isLocked("small_transactions_ten") ||
+            isLocked("first_month") ||
+            isLocked("two_months_active");
 
-        if (settledCount >= 5) {
-            await this.unlockBadge(workspaceId, "five_transactions");
-        }
-        if (settledCount >= 20) {
-            await this.unlockBadge(workspaceId, "twenty_transactions");
-        }
-        if (settledCount >= 50) {
-            await this.unlockBadge(workspaceId, "fifty_transactions");
-        }
-        if (settledCount >= 100) {
-            await this.unlockBadge(workspaceId, "hundred_transactions");
+        if (!needsCount && !needsDocs) {
+            return;
         }
 
-        let smallCount = 0;
-        for (const d of settledSnap) {
-            const a = Math.abs(d.referenceAmount || d.amount || 0);
-            if (a < 10 && a > 0) {
-                smallCount++;
+        if (needsCount) {
+            // Só o número importa: aggregate count() em vez de baixar os docs.
+            const settledCount = await this.gamificationRepository.getPaidInstallmentsCount(workspaceId);
+            for (const [badgeId, threshold] of countBadges) {
+                if (isLocked(badgeId) && settledCount >= threshold) {
+                    await this.unlockBadge(workspaceId, badgeId);
+                }
             }
         }
-        if (smallCount >= 10) {
-            await this.unlockBadge(workspaceId, "small_transactions_ten");
-        }
 
-        const paidDates = new Set<string>();
-        for (const d of settledSnap) {
-            const pd = d.paidDate?.toDate
-                ? d.paidDate.toDate()
-                : (d.paidDate ? new Date(d.paidDate) : null);
-            if (pd) {
-                paidDates.add(`${pd.getFullYear()}-${pd.getMonth()}`);
+        if (needsDocs) {
+            const settledSnap = await this.gamificationRepository.getPaidInstallments(workspaceId);
+
+            if (isLocked("small_transactions_ten")) {
+                let smallCount = 0;
+                for (const d of settledSnap) {
+                    const a = Math.abs(d.referenceAmount || d.amount || 0);
+                    if (a < 10 && a > 0) {
+                        smallCount++;
+                    }
+                }
+                if (smallCount >= 10) {
+                    await this.unlockBadge(workspaceId, "small_transactions_ten");
+                }
             }
-        }
-        if (paidDates.size >= 1) {
-            await this.unlockBadge(workspaceId, "first_month");
-        }
-        if (paidDates.size >= 2) {
-            await this.unlockBadge(workspaceId, "two_months_active");
+
+            if (isLocked("first_month") || isLocked("two_months_active")) {
+                const paidDates = new Set<string>();
+                for (const d of settledSnap) {
+                    const pd = d.paidDate?.toDate
+                        ? d.paidDate.toDate()
+                        : (d.paidDate ? new Date(d.paidDate) : null);
+                    if (pd) {
+                        paidDates.add(getMonthKeyInTz(pd));
+                    }
+                }
+                if (isLocked("first_month") && paidDates.size >= 1) {
+                    await this.unlockBadge(workspaceId, "first_month");
+                }
+                if (isLocked("two_months_active") && paidDates.size >= 2) {
+                    await this.unlockBadge(workspaceId, "two_months_active");
+                }
+            }
         }
     }
 
@@ -871,10 +1077,13 @@ export class GamificationService {
 
     async checkFinancialHealthBadges(workspaceId: string): Promise<void> {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth() + 1;
+        const currentMonth = getMonthRangeInTz(now, 0);
 
-        const snap = await this.gamificationRepository.getPeriodSummaries(workspaceId, year, month);
+        const snap = await this.gamificationRepository.getPeriodSummaries(
+            workspaceId,
+            currentMonth.year,
+            currentMonth.month
+        );
 
         let totalIncome = 0;
         let totalExpenses = 0;
@@ -916,7 +1125,8 @@ export class GamificationService {
                 ? d.paidDate.toDate()
                 : (d.paidDate ? new Date(d.paidDate) : null);
             if (pd) {
-                activeDays.add(`${pd.getFullYear()}-${pd.getMonth()}-${pd.getDate()}`);
+                const parts = getZonedParts(pd);
+                activeDays.add(`${parts.year}-${parts.month}-${parts.day}`);
             }
         }
         if (activeDays.size >= 7) {

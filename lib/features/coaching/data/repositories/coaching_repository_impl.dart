@@ -32,22 +32,16 @@ class CoachingRepositoryImpl implements ICoachingRepository {
 
     final result = await callable.call({'workspaceId': workspaceId});
 
-    final coaching = CoachingModel.fromJson(
-      CoachingMapper.fromMap(result.data as Map),
-    );
-
-    final data = coaching.toJson();
-    data.remove('id');
-    data['date'] = Timestamp.fromDate(coaching.date);
-    final doc = await _getInsightsCollection(workspaceId).add(data);
-
-    return coaching.copyWith(id: doc.id);
+    // O servidor persiste o insight e devolve o payload já com o id do
+    // documento — o cliente não grava nada (a coleção é somente leitura).
+    return CoachingModel.fromJson(CoachingMapper.fromMap(result.data as Map));
   }
 
   @override
   Future<List<CoachingModel>> getInsightsHistory(String workspaceId) async {
     final snapshot = await _getInsightsCollection(workspaceId)
         .orderBy('date', descending: true)
+        .limit(30)
         .get();
     return snapshot.docs.map((doc) => doc.toCoachingModel()).toList();
   }

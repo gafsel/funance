@@ -20,17 +20,23 @@ class TransactionWizardScreen extends ConsumerWidget {
   final OrderType type;
   final InstallmentStatus? initialStatus;
   final bool skipTransactions;
+  final String? accountIdSource;
 
   const TransactionWizardScreen({
     super.key,
     required this.type,
     this.initialStatus,
     this.skipTransactions = false,
+    this.accountIdSource,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final args = TransactionWizardArgs(type: type, skipTransactions: skipTransactions);
+    final args = TransactionWizardArgs(
+      type: type,
+      skipTransactions: skipTransactions,
+      accountIdSource: accountIdSource,
+    );
     final state = ref.watch(FinanceViewProviders.wizard(args));
     final notifier = ref.read(FinanceViewProviders.wizard(args).notifier);
 
@@ -44,6 +50,7 @@ class TransactionWizardScreen extends ConsumerWidget {
         category: state.selectedCategory,
         onInstallmentSelected: notifier.selectInstallment,
         onBack: notifier.back,
+        accountIdSource: state.accountIdSource,
       ),
       _ =>
         state.selectedInstallment != null
@@ -55,6 +62,7 @@ class TransactionWizardScreen extends ConsumerWidget {
                 type: type,
                 category: state.selectedCategory,
                 status: initialStatus,
+                accountIdSource: state.accountIdSource,
               ),
     };
   }
@@ -240,12 +248,14 @@ class _PendingTransactionsStep extends ConsumerWidget {
   final CategoryModel? category;
   final ValueChanged<InstallmentModel?> onInstallmentSelected;
   final VoidCallback onBack;
+  final String? accountIdSource;
 
   const _PendingTransactionsStep({
     required this.type,
     this.category,
     required this.onInstallmentSelected,
     required this.onBack,
+    this.accountIdSource,
   });
 
   @override
@@ -257,6 +267,7 @@ class _PendingTransactionsStep extends ConsumerWidget {
       FinanceViewProviders.pendingInstallments((
         type: type,
         categoryId: category?.id,
+        accountId: accountIdSource,
       )),
     );
 
@@ -276,13 +287,22 @@ class _PendingTransactionsStep extends ConsumerWidget {
             data: (installments) {
               final itemCount = installments.length + 1;
 
-              if (isLargeScreen) {
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 800),
+              final content = Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      context.l10n.wizardPendingIntro,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  Expanded(
                     child: ListView.builder(
                       itemCount: itemCount,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       itemBuilder: (context, index) => _buildTransactionItem(
                         context,
                         ref,
@@ -293,21 +313,19 @@ class _PendingTransactionsStep extends ConsumerWidget {
                       ),
                     ),
                   ),
+                ],
+              );
+
+              if (isLargeScreen) {
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: content,
+                  ),
                 );
               }
 
-              return ListView.builder(
-                itemCount: itemCount,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                itemBuilder: (context, index) => _buildTransactionItem(
-                  context,
-                  ref,
-                  index,
-                  installments,
-                  l10n,
-                  locale,
-                ),
-              );
+              return content;
             },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, stack) => Center(child: Text(err.toString())),

@@ -407,13 +407,14 @@ class FinanceViewProviders {
           TransactionWizardState(
             type: args.type,
             skipTransactions: args.skipTransactions,
+            accountIdSource: args.accountIdSource,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
         );
       });
 
   static final pendingInstallments = StreamProvider.autoDispose
-      .family<List<InstallmentModel>, ({OrderType type, String? categoryId})>((
+      .family<List<InstallmentModel>, ({OrderType type, String? categoryId, String? accountId})>((
         ref,
         args,
       ) {
@@ -422,9 +423,12 @@ class FinanceViewProviders {
         return service.watchInstallments(
           type: args.type,
           categoryId: args.categoryId,
+          accountId: args.accountId,
           status: InstallmentStatus.pending,
           startDate: DateTime(today.year, today.month, 1),
-          endDate: DateTime(today.year, today.month + 1, 0),
+          // Fim do dia para incluir os lançamentos do último dia do mês
+          // (referenceDate é normalizado às 12:00).
+          endDate: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
         );
       });
 

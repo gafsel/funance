@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, ResponseSchema, SchemaType } from "@google/generative-ai";
 import { defineString } from "firebase-functions/params";
 import * as admin from "firebase-admin";
 import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
@@ -6,6 +6,99 @@ import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../featu
 import * as ofx from "ofx-js";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
+
+// Cache em memória do config de IA (evita uma leitura no Firestore a cada chamada)
+const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000; // ~5 minutos
+let configCache: { config: AIConfig; fetchedAt: number } | null = null;
+
+// Schema estruturado da resposta de coaching (força JSON válido no Gemini)
+const COACHING_RESPONSE_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        message: { type: SchemaType.STRING },
+        summary: { type: SchemaType.STRING },
+        type: { type: SchemaType.STRING, format: "enum", enum: ["insight", "warning", "tip"] },
+        slides: {
+            type: SchemaType.ARRAY,
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    title: { type: SchemaType.STRING },
+                    message: { type: SchemaType.STRING },
+                    icon: { type: SchemaType.STRING },
+                    icons: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                    color: { type: SchemaType.STRING },
+                    secondaryColor: { type: SchemaType.STRING },
+                    animationType: {
+                        type: SchemaType.STRING,
+                        format: "enum",
+                        enum: ["zoom", "slide", "bounce", "fade", "pulse"],
+                    },
+                    actionLabel: { type: SchemaType.STRING, nullable: true },
+                    actionPath: { type: SchemaType.STRING, nullable: true },
+                },
+                required: ["title", "message", "icon", "color"],
+            },
+        },
+    },
+    required: ["message", "summary", "type", "slides"],
+};
+
+// Schema estruturado da classificação de categorias em grupos macro
+const CATEGORY_GROUPS_RESPONSE_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        assignments: {
+            type: SchemaType.ARRAY,
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    id: { type: SchemaType.STRING },
+                    group: {
+                        type: SchemaType.STRING,
+                        format: "enum",
+                        enum: [
+                            "housing", "groceries", "dining_out", "transport", "health_pharmacy",
+                            "education", "leisure", "subscriptions_services", "pets",
+                            "clothing_shopping", "personal_care", "debt_financial",
+                            "savings_investments", "income", "other",
+                        ],
+                    },
+                },
+                required: ["id", "group"],
+            },
+        },
+    },
+    required: ["assignments"],
+};
+
+// Schema estruturado da resposta de viabilidade de meta
+const GOAL_FEASIBILITY_RESPONSE_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        status: { type: SchemaType.STRING, format: "enum", enum: ["feasible", "challenging", "unrealistic"] },
+        reason: { type: SchemaType.STRING },
+        suggestion: { type: SchemaType.STRING },
+    },
+    required: ["status", "reason", "suggestion"],
+};
+
+/**
+ * Faz o parse do texto retornado pela IA. Com responseMimeType "application/json"
+ * o texto já é JSON puro; mantemos o fallback por regex para robustez.
+ */
+function parseAIJson(text: string): any {
+    try {
+        return JSON.parse(text);
+    }
+    catch {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+            return JSON.parse(jsonMatch[0]);
+        }
+        throw new Error("A resposta da IA não contém JSON válido.");
+    }
+}
 
 export interface IAIRepository {
     analyzePlanningAndSuggestGoals(
@@ -58,6 +151,10 @@ export interface IAIRepository {
         goalPayload: object,
         monthlyBreakdown: object[]
     ): Promise<any>;
+    classifyCategoryGroups(
+        workspaceId: string,
+        categories: { id: string; name: string; type: string }[]
+    ): Promise<Record<string, string>>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
@@ -68,11 +165,15 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     }
 
     private async getConfig(): Promise<AIConfig> {
+        if (configCache && (Date.now() - configCache.fetchedAt) < CONFIG_CACHE_TTL_MS) {
+            return configCache.config;
+        }
+
         try {
             const doc = await admin.firestore().collection("config").doc("ai").get();
             if (doc.exists) {
                 const data = doc.data() as any;
-                return {
+                const config: AIConfig = {
                     models: {
                         goals: data?.models?.goals || DEFAULT_CONFIG.models.goals,
                         document: data?.models?.document || DEFAULT_CONFIG.models.document,
@@ -80,6 +181,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         automaticTransaction: data?.models?.automaticTransaction || DEFAULT_CONFIG.models.automaticTransaction,
                         weeklyMissions: data?.models?.weeklyMissions || DEFAULT_CONFIG.models.weeklyMissions,
                         goalFeasibility: data?.models?.goalFeasibility || DEFAULT_CONFIG.models.goalFeasibility,
+                        categoryGroups: data?.models?.categoryGroups || DEFAULT_CONFIG.models.categoryGroups,
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -90,13 +192,17 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         automaticTransaction: data?.prompts?.automaticTransaction || DEFAULT_CONFIG.prompts.automaticTransaction,
                         weeklyMissions: data?.prompts?.weeklyMissions || DEFAULT_CONFIG.prompts.weeklyMissions,
                         goalFeasibility: data?.prompts?.goalFeasibility || DEFAULT_CONFIG.prompts.goalFeasibility,
+                        categoryGroups: data?.prompts?.categoryGroups || DEFAULT_CONFIG.prompts.categoryGroups,
                     },
                 };
+                configCache = { config, fetchedAt: Date.now() };
+                return config;
             }
         }
         catch (error) {
             console.error("Erro ao buscar config de IA no Firestore, usando padrão:", error);
         }
+        configCache = { config: DEFAULT_CONFIG, fetchedAt: Date.now() };
         return DEFAULT_CONFIG;
     }
 
@@ -377,7 +483,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         previousContext?: any[]
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.coaching });
+        const model = this.genAI.getGenerativeModel({
+            model: config.models.coaching,
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: COACHING_RESPONSE_SCHEMA,
+            },
+        });
 
         const prompt = config.prompts.coaching
             .replace("{{workspaceType}}", workspaceType)
@@ -399,12 +511,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+        try {
+            return parseAIJson(text);
         }
-
-        throw new Error("Não foi possível gerar os slides de coaching.");
+        catch (error) {
+            console.error("Falha ao parsear resposta de coaching:", error);
+            throw new Error("Não foi possível gerar os slides de coaching.");
+        }
     }
 
     async generateWeeklyMissions(
@@ -444,13 +557,61 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         throw new Error("Não foi possível gerar as missões semanais via IA.");
     }
 
+    async classifyCategoryGroups(
+        workspaceId: string,
+        categories: { id: string; name: string; type: string }[]
+    ): Promise<Record<string, string>> {
+        if (categories.length === 0) return {};
+
+        const config = await this.getConfig();
+        const model = this.genAI.getGenerativeModel({
+            model: config.models.categoryGroups,
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: CATEGORY_GROUPS_RESPONSE_SCHEMA,
+                temperature: 0,
+            },
+        });
+
+        const prompt = config.prompts.categoryGroups
+            .replace("{{categories}}", JSON.stringify(categories));
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "category_group_classification",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        const parsed = parseAIJson(text);
+        const assignments: Record<string, string> = {};
+        for (const item of parsed?.assignments || []) {
+            if (item && typeof item.id === "string" && typeof item.group === "string") {
+                assignments[item.id] = item.group;
+            }
+        }
+        return assignments;
+    }
+
     async analyzeGoalFeasibility(
         workspaceId: string,
         goalPayload: object,
         monthlyBreakdown: object[]
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.goalFeasibility });
+        const model = this.genAI.getGenerativeModel({
+            model: config.models.goalFeasibility,
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: GOAL_FEASIBILITY_RESPONSE_SCHEMA,
+            },
+        });
 
         const prompt = config.prompts.goalFeasibility
             .replace("{{goalPayload}}", JSON.stringify(goalPayload))
@@ -469,12 +630,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+        try {
+            return parseAIJson(text);
         }
-
-        throw new Error("Não foi possível analisar a viabilidade da meta.");
+        catch (error) {
+            console.error("Falha ao parsear resposta de viabilidade de meta:", error);
+            throw new Error("Não foi possível analisar a viabilidade da meta.");
+        }
     }
 
     private extractOfxData(parsedOfx: any): { account: any, transactions: any[] } {

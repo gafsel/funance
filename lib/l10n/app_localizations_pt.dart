@@ -64,6 +64,60 @@ class AppLocalizationsPt extends AppLocalizations {
   String get errorUnknown => 'Ocorreu um erro inesperado.';
 
   @override
+  String get routeNotFound => 'Página não encontrada.';
+
+  @override
+  String get routeNotFoundGoHome => 'Voltar para o início';
+
+  @override
+  String get closeButton => 'Fechar';
+
+  @override
+  String get badgeUnlockedToast => 'Nova conquista desbloqueada!';
+
+  @override
+  String get badgeUnlockedView => 'Ver';
+
+  @override
+  String get workspacePickerTitle => 'Workspaces';
+
+  @override
+  String get transactionMoreOptions => 'Mais Opções';
+
+  @override
+  String get onboardingConceptXpTitle => 'Ganhe XP e suba de nível';
+
+  @override
+  String get onboardingConceptXpDesc =>
+      'Cada lançamento vale XP — e gastar dentro do planejado vale ainda mais. Seu workspace evolui de nível como num jogo.';
+
+  @override
+  String get onboardingConceptMissionsTitle => 'Missões e conquistas';
+
+  @override
+  String get onboardingConceptMissionsDesc =>
+      'Complete missões semanais, mantenha sua sequência de semanas perfeitas e desbloqueie insígnias na sua vitrine de conquistas.';
+
+  @override
+  String get onboardingConceptCoachTitle => 'Seu coach financeiro';
+
+  @override
+  String get onboardingConceptCoachDesc =>
+      'Um coach com IA que conhece seus números e traz conselhos práticos e personalizados rumo à sua liberdade financeira.';
+
+  @override
+  String get onboardingNoSuggestions =>
+      'Nenhuma sugestão por enquanto — você pode criar metas e planejamentos depois, na aba Jornada.';
+
+  @override
+  String journeyStreakWeeks(int count) {
+    return '$count semanas perfeitas seguidas';
+  }
+
+  @override
+  String get journeyAddGoalTooltip => 'Nova meta';
+
+  @override
   String get errorKeychain =>
       'Sua sessão não pôde ser salva. Você poderá usar o app, mas precisará logar novamente ao reabrir.';
 
@@ -2346,4 +2400,32 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get badge_all_missions_week_desc =>
       'Completar todas as missões semanais disponíveis em uma semana.';
+
+  @override
+  String get goalDebtTotalLabel => 'Valor Total da Dívida';
+
+  @override
+  String get goalDebtTotalHint => 'Quanto você deve no total?';
+
+  @override
+  String get goalDebtPaidLabel => 'Valor Já Pago';
+
+  @override
+  String get goalDebtPaidHint => 'Quanto você já amortizou?';
+
+  @override
+  String get goalDebtAccountLabel => 'Vincular à Conta de Dívida';
+
+  @override
+  String get goalSpendingLimitHint => 'Ex: 500,00 (limite de gasto)';
+
+  @override
+  String get accountNotFound => 'Conta não encontrada.';
+
+  @override
+  String get savedSuccess => 'Salvo com sucesso!';
+
+  @override
+  String get wizardPendingIntro =>
+      'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?';
 }

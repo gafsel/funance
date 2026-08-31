@@ -86,6 +86,7 @@ sealed class TransactionWizardArgs with _$TransactionWizardArgs {
   factory TransactionWizardArgs({
     required OrderType type,
     @Default(false) bool skipTransactions,
+    String? accountIdSource,
   }) = _TransactionWizardArgs;
 }
 
@@ -97,6 +98,7 @@ sealed class TransactionWizardState with _$TransactionWizardState {
     InstallmentModel? selectedInstallment,
     @Default(TransactionWizardStep.category) TransactionWizardStep step,
     @Default(false) bool skipTransactions,
+    String? accountIdSource,
   }) = _TransactionWizardState;
 }
 
@@ -145,6 +147,7 @@ sealed class TransactionFormState with _$TransactionFormState {
   }) = _TransactionFormState;
 
   bool get creation => formType == TransactionFormType.order && orderId == null;
+  bool get isPlanning => amount > 0.0;
 
   factory TransactionFormState.creation({
     required OrderType type,

@@ -39,7 +39,9 @@ sealed class GoalDomainProvider {
   );
 
   static final milestoneRepository = Provider<IGoalMilestoneRepository>(
-    (_) => GoalMilestoneRepositoryImpl(),
+    (ref) => GoalMilestoneRepositoryImpl(
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
+    ),
   );
 
   static final milestoneService = Provider(

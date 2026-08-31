@@ -9,6 +9,7 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/installment_item.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 
 class WeeklyMissionsView extends ConsumerWidget {
   const WeeklyMissionsView({super.key});
@@ -26,7 +27,15 @@ class WeeklyMissionsView extends ConsumerWidget {
           mission.endDate.formated("dd/MM"),
         );
 
+        final hasAnyActivity =
+            mission.pendingInstallments.isNotEmpty ||
+            mission.overdueInstallments.isNotEmpty ||
+            mission.completedInstallments.isNotEmpty;
+
+        // Só celebra quando havia missões e todas foram concluídas; uma semana
+        // sem nenhuma atividade mostra um convite, não uma parabenização.
         final isCompleted =
+            hasAnyActivity &&
             mission.pendingInstallments.isEmpty &&
             mission.overdueInstallments.isEmpty;
 
@@ -53,13 +62,16 @@ class WeeklyMissionsView extends ConsumerWidget {
                     ),
                   ],
                 ),
+                _buildStreakBadge(context, ref),
               ],
             ),
             const SizedBox(height: 16),
             _buildOverallProgress(context, mission),
             const SizedBox(height: 24),
 
-            if (isCompleted)
+            if (!hasAnyActivity)
+              _NoMissionsEmptyState()
+            else if (isCompleted)
               _SuccessEmptyState()
             else ...[
               if (mission.overdueInstallments.isNotEmpty) ...[
@@ -100,7 +112,50 @@ class WeeklyMissionsView extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => const SizedBox.shrink(),
+      error: (e, st) => Row(
+        children: [
+          Icon(Icons.cloud_off_outlined, color: theme.colorScheme.error),
+          const SizedBox(width: 8),
+          Expanded(child: Text(l10n.errorUnknown)),
+          TextButton(
+            onPressed: () => ref.invalidate(MissionViewProviders.mission),
+            child: Text(l10n.retry),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Streak de semanas perfeitas, inline no título — visível sem ocupar
+  /// espaço extra, e só quando existe streak.
+  Widget _buildStreakBadge(BuildContext context, WidgetRef ref) {
+    final streak = ref.watch(
+      WorkspaceViewProviders.workspace.select(
+        (s) => s.currentWorkspace?.weeklyStreaks ?? 0,
+      ),
+    );
+    if (streak <= 0) return const SizedBox.shrink();
+
+    return Tooltip(
+      message: context.l10n.journeyStreakWeeks(streak),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.local_fire_department,
+            color: AppColors.coralOrange,
+            size: 18,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            '$streak',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppColors.coralOrange,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -364,4 +419,49 @@ class _FloatingIcon {
     required this.yRelative,
     required this.delay,
   });
+}
+
+class _NoMissionsEmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.flag_outlined,
+            size: 40,
+            color: AppColors.deepTurquoise,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.weeklyMissionsNone,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.weeklyMissionsNoneDesc,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

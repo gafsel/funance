@@ -6,8 +6,7 @@ extension NumExtensions on num {
       NumberFormat.compact(locale: locale);
 
   String asCurrency({String? locale}) {
-    return NumberFormat.simpleCurrency(locale: locale).currencySymbol +
-        _compactFormat(locale).format(this);
+    return NumberFormat.simpleCurrency(locale: locale).format(this);
   }
 
   String asCompact({String? locale}) {

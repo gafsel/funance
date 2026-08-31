@@ -7,10 +7,9 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
-import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
+import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
@@ -24,8 +23,14 @@ class InvoiceDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    // A conta da fatura é o cartão (lado credit/target). Depois que a fatura é
+    // paga, accountIdSource passa a ser a conta corrente que pagou — usá-la
+    // aqui deixaria header e FAB apontando para a conta errada.
     final accountId =
-        invoice.accountIdSource ?? invoice.accounts.keys.firstOrNull ?? "";
+        invoice.accountIdTarget ??
+        invoice.accountIdSource ??
+        invoice.accounts.keys.firstOrNull ??
+        "";
     final accountAsync = ref.watch(AccountViewProviders.byId(accountId));
 
     final locale = context.locale;
@@ -93,12 +98,12 @@ class InvoiceDetailScreen extends ConsumerWidget {
                         icon: Icons.payment,
                         label: l10n.registerInvoicePayment,
                         onPressed: () async {
-                          final result = TransactionPaymentSheet.show(
+                          final result = await TransactionPaymentSheet.show(
                             context,
                             invoice,
                           );
 
-                          if (result is InstallmentModel) {
+                          if (result is InstallmentModel && context.mounted) {
                             context.pop(true);
                           }
                         },
@@ -150,6 +155,16 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              context.push(
+                '/transactions/form?type=expense&accountIdSource=$accountId',
+              );
+            },
+            backgroundColor: AppColors.successGold,
+            shape: const CircleBorder(),
+            child: const Icon(Icons.add, color: AppColors.darkNavy),
           ),
         );
       },

@@ -48,10 +48,51 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
     );
   }
 
+  /// Rotas internas que um slide pode acionar. A IA pode alucinar um
+  /// `actionPath` fora deste conjunto; nesse caso o botão não é exibido.
+  static const _allowedActionPaths = {
+    '/planning',
+    '/planning-50-30-20',
+    '/goals/form',
+    '/accounts/form',
+    '/transactions/form',
+    '/category-details',
+    '/workspace/categories',
+    '/workspace/accounts',
+    '/workspace/badges',
+    '/coaching/history',
+  };
+
+  static bool _isAllowedActionPath(String? path) {
+    if (path == null) return false;
+    final normalized = Uri.tryParse(path)?.path ?? path;
+    return _allowedActionPaths.contains(normalized);
+  }
+
   Widget _buildSlides(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     final slides = widget.coaching.slides;
+
+    if (slides.isEmpty) {
+      return SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.psychology_outlined, size: 48),
+              const SizedBox(height: 16),
+              Text(l10n.coachingNoSlides),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => context.pop(),
+                child: Text(l10n.coachingSlideFinish),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Stack(
       children: [
@@ -104,8 +145,15 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                               data: slide.message,
                               selectable: true,
                               onTapLink: (text, href, title) {
-                                if (href != null) {
-                                  launchUrl(Uri.parse(href));
+                                // Só abre links http(s) válidos — a IA pode
+                                // gerar URLs malformadas ou de outros esquemas.
+                                final uri = href != null
+                                    ? Uri.tryParse(href)
+                                    : null;
+                                if (uri != null &&
+                                    (uri.scheme == 'https' ||
+                                        uri.scheme == 'http')) {
+                                  launchUrl(uri);
                                 }
                               },
                               styleSheet: MarkdownStyleSheet(
@@ -122,7 +170,8 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                                 textAlign: WrapAlignment.center,
                               ),
                             ),
-                            if (slide.actionLabel != null && slide.actionPath != null) ...[
+                            if (slide.actionLabel != null &&
+                                _isAllowedActionPath(slide.actionPath)) ...[
                               const SizedBox(height: 32),
                               ElevatedButton(
                                 onPressed: () {
@@ -141,7 +190,9 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                                     borderRadius: BorderRadius.circular(30),
                                   ),
                                   elevation: 6,
-                                  shadowColor: Colors.black.withOpacity(0.3),
+                                  shadowColor: Colors.black.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                                 child: Text(
                                   slide.actionLabel!,
@@ -386,8 +437,8 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(
-                          0.2 * curvedAnimation.value,
+                        color: Colors.white.withValues(
+                          alpha: 0.2 * curvedAnimation.value,
                         ),
                         blurRadius: 20 * curvedAnimation.value,
                         spreadRadius: 5 * curvedAnimation.value,

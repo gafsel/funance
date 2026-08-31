@@ -58,16 +58,29 @@ export class InvoiceService {
             // Impacta o vencimento correspondente ao fechamento deste mês
             // Se isDueInNextMonth for true, o vencimento deste fechamento é no mês seguinte
             const dueMonth = isDueInNextMonth ? refMonth + 1 : refMonth;
-            invoiceDueDate = new Date(refYear, dueMonth, dueDay, 12);
+            invoiceDueDate = this.buildClampedDate(refYear, dueMonth, dueDay);
         }
         else {
             // Impacta o vencimento correspondente ao fechamento do PRÓXIMO mês
             // Se isDueInNextMonth for true, o vencimento desse fechamento será refMonth + 2
             const dueMonth = isDueInNextMonth ? refMonth + 2 : refMonth + 1;
-            invoiceDueDate = new Date(refYear, dueMonth, dueDay, 12);
+            invoiceDueDate = this.buildClampedDate(refYear, dueMonth, dueDay);
         }
 
         return invoiceDueDate;
+    }
+
+    /**
+     * Cria a data com o dia limitado ao último dia do mês (clamp), evitando que
+     * vencimentos em dia 29-31 "estourem" para o mês seguinte (ex.: 31/02 virando 03/03),
+     * o que geraria faturas duplicadas já que o id da fatura deriva da data.
+     * Mesmo padrão usado em finance.service.ts na geração de installments.
+     */
+    static buildClampedDate(year: number, month: number, day: number): Date {
+        // new Date normaliza month fora de 0-11 (ex.: 13 vira janeiro do ano seguinte)
+        const normalized = new Date(year, month, 1, 12);
+        const lastDayOfMonth = new Date(normalized.getFullYear(), normalized.getMonth() + 1, 0).getDate();
+        return new Date(normalized.getFullYear(), normalized.getMonth(), Math.min(day, lastDayOfMonth), 12);
     }
 
 }

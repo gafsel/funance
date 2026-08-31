@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/screens/splash_screen.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/auth/presentation/screens/login_screen.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
@@ -24,7 +25,6 @@ import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
 import 'package:funances/features/goal/presentation/screen/goal_detail_screen.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
-import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:funances/features/user/presentation/screens/user_profile_screen.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -38,14 +38,97 @@ import 'package:funances/features/workspace/presentation/screens/workspace_setti
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:go_router/go_router.dart';
 
+/// Notifica o GoRouter quando auth/workspace/convites mudam, sem recriar o
+/// router (recriar o router descarta a pilha de navegação inteira).
+///
+/// Notifica APENAS quando muda algo que o `redirect` realmente usa. Notificar
+/// em toda mudança de estado (ex.: o XP do workspace atualizando em tempo
+/// real) força o go_router a reprocessar a rota atual, o que desidrata o
+/// `extra` tipado para um Map e quebra telas abertas.
+class _RouterRefreshNotifier extends ChangeNotifier {
+  _RouterRefreshNotifier(Ref ref) {
+    ref.listen(AuthDomainProviders.user, (previous, next) {
+      final before = (previous?.isLoading, previous?.valueOrNull?.id);
+      final after = (next.isLoading, next.valueOrNull?.id);
+      if (before != after) notifyListeners();
+    });
+    ref.listen(WorkspaceViewProviders.workspace, (previous, next) {
+      final before = (
+        previous?.isLoading,
+        previous?.initialLoadDone,
+        previous?.availableWorkspaces.isEmpty,
+        previous?.currentWorkspace?.id,
+        previous?.currentWorkspace?.lastOnboardingStep,
+      );
+      final after = (
+        next.isLoading,
+        next.initialLoadDone,
+        next.availableWorkspaces.isEmpty,
+        next.currentWorkspace?.id,
+        next.currentWorkspace?.lastOnboardingStep,
+      );
+      if (before != after) notifyListeners();
+    });
+    ref.listen(inviteNotifierProvider, (previous, next) {
+      final before = (
+        previous?.isLoading,
+        previous?.initialLoadDone,
+        previous?.pendingInvites.length,
+      );
+      final after = (
+        next.isLoading,
+        next.initialLoadDone,
+        next.pendingInvites.length,
+      );
+      if (before != after) notifyListeners();
+    });
+  }
+}
+
+/// Recupera um `extra` tipado. Quando o go_router reprocessa a rota, o objeto
+/// pode chegar desidratado como Map (via `jsonEncode`/`toJson`) — nesse caso,
+/// re-hidrata com [fromJson]. Retorna null se não for possível.
+T? _extraAs<T>(Object? extra, T Function(Map<String, dynamic>) fromJson) {
+  if (extra is T) return extra;
+  if (extra is Map) {
+    try {
+      return fromJson(Map<String, dynamic>.from(extra));
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(AuthDomainProviders.user);
-  final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
-  final inviteState = ref.watch(inviteNotifierProvider);
+  final refreshNotifier = _RouterRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
 
   return GoRouter(
     initialLocation: '/splash',
+    refreshListenable: refreshNotifier,
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.explore_off_outlined, size: 48),
+            const SizedBox(height: 16),
+            Text(context.l10n.routeNotFound),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => context.go('/'),
+              child: Text(context.l10n.routeNotFoundGoHome),
+            ),
+          ],
+        ),
+      ),
+    ),
     redirect: (context, state) {
+      final authState = ref.read(AuthDomainProviders.user);
+      final workspaceState = ref.read(WorkspaceViewProviders.workspace);
+      final inviteState = ref.read(inviteNotifierProvider);
+
       final isSplash = state.matchedLocation == '/splash';
 
       if (authState.isLoading) {
@@ -91,13 +174,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       if ((hasNoWorkspaces || needsOnboarding) &&
           state.matchedLocation != '/onboarding' &&
           state.matchedLocation != '/accounts/form') {
-        if (needsOnboarding && workspaceState.currentWorkspace != null) {
-          Future(() {
-            ref
-                .read(OnboardingViewProviders.onboarding.notifier)
-                .load(workspaceState.currentWorkspace!);
-          });
-        }
         return '/onboarding';
       }
 
@@ -120,11 +196,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => OnboardingScreen(),
+        builder: (context, state) => const OnboardingEntry(createNew: false),
       ),
       GoRoute(
         path: '/workspace/form',
-        builder: (context, state) => OnboardingScreen(),
+        builder: (context, state) => const OnboardingEntry(createNew: true),
       ),
       GoRoute(
         path: '/workspace/settings',
@@ -141,7 +217,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/workspace/categories/form',
         builder: (context, state) {
-          final category = state.extra as CategoryModel?;
+          final category = _extraAs(state.extra, CategoryModel.fromJson);
           return CategoryFormScreen(category: category);
         },
       ),
@@ -152,11 +228,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accounts/form',
         builder: (context, state) {
-          final account = state.extra as AccountModel?;
+          final account = _extraAs(state.extra, AccountModel.fromJson);
           final typeStr = state.uri.queryParameters['type'];
-          final initialType = typeStr != null
-              ? AccountType.values.firstWhere((e) => e.name == typeStr)
-              : null;
+          final initialType = AccountType.values
+              .where((e) => e.name == typeStr)
+              .firstOrNull;
 
           if (account != null) {
             return AccountFormScreen(account: account);
@@ -174,8 +250,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                   loading: () => const Scaffold(
                     body: Center(child: CircularProgressIndicator()),
                   ),
-                  error: (err, stack) =>
-                      Scaffold(body: Center(child: Text('Error: $err'))),
+                  error: (err, stack) => Scaffold(
+                    body: Center(child: Text(context.l10n.errorUnknown)),
+                  ),
                 );
               },
             );
@@ -193,31 +270,35 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/invoices/detail',
+        redirect: (context, state) =>
+            _extraAs(state.extra, InstallmentModel.fromJson) != null
+            ? null
+            : '/',
         builder: (context, state) {
-          final installment = state.extra as InstallmentModel;
+          final installment = _extraAs(state.extra, InstallmentModel.fromJson)!;
           return InvoiceDetailScreen(invoice: installment);
         },
       ),
       GoRoute(
         path: '/transactions/form',
         builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>?;
-          if (extra != null) {
-            if (extra['installment'] != null) {
-              final installment = extra['installment'] as InstallmentModel;
+          final extra = state.extra is Map
+              ? Map<String, dynamic>.from(state.extra as Map)
+              : null;
+          final statusStr = state.uri.queryParameters['status'];
+          final status = InstallmentStatus.values
+              .where((e) => e.name == statusStr)
+              .firstOrNull;
 
-              final statusStr = state.uri.queryParameters['status'];
-              final status = statusStr != null
-                  ? InstallmentStatus.values.firstWhere(
-                      (e) => e.name == statusStr,
-                    )
-                  : null;
-
-              return TransactionFormScreen.updateInstallment(
-                installment: installment,
-                status: status,
-              );
-            }
+          final extraInstallment = _extraAs(
+            extra?['installment'],
+            InstallmentModel.fromJson,
+          );
+          if (extraInstallment != null) {
+            return TransactionFormScreen.updateInstallment(
+              installment: extraInstallment,
+              status: status,
+            );
           }
 
           final typeStr = state.uri.queryParameters['type'];
@@ -226,21 +307,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             orElse: () => OrderType.expense,
           );
 
-          final hasCategory = extra?['category'] != null;
-          final hasAccounts =
-              state.uri.queryParameters['accountIdSource'] != null ||
-              state.uri.queryParameters['accountIdTarget'] != null;
+          final extraCategory = _extraAs(
+            extra?['category'],
+            CategoryModel.fromJson,
+          );
+          final hasCategory = extraCategory != null;
+          final hasDescription =
+              state.uri.queryParameters['description'] != null;
 
-          if (hasCategory ||
-              hasAccounts ||
-              state.uri.queryParameters['description'] != null) {
-            final statusStr = state.uri.queryParameters['status'];
-            final status = statusStr != null
-                ? InstallmentStatus.values.firstWhere(
-                    (e) => e.name == statusStr,
-                  )
-                : null;
-
+          if (hasCategory || hasDescription) {
             final amountStr = state.uri.queryParameters['amount'];
             final amount = amountStr != null
                 ? double.tryParse(amountStr)
@@ -252,7 +327,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             return TransactionFormScreen.creation(
               type: type,
               status: status,
-              category: extra?['category'] as CategoryModel?,
+              category: extraCategory,
               accountIdSource: state.uri.queryParameters['accountIdSource'],
               accountIdTarget: state.uri.queryParameters['accountIdTarget'],
               description: state.uri.queryParameters['description'],
@@ -261,11 +336,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             );
           }
 
-          final statusStr = state.uri.queryParameters['status'];
-          final status = statusStr != null
-              ? InstallmentStatus.values.firstWhere((e) => e.name == statusStr)
-              : null;
-
           final skipTransactions =
               state.uri.queryParameters['skipTransactions'] == 'true';
 
@@ -273,6 +343,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             type: type,
             initialStatus: status,
             skipTransactions: skipTransactions,
+            accountIdSource: state.uri.queryParameters['accountIdSource'],
           );
         },
       ),
@@ -301,7 +372,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/goals/form',
         builder: (context, state) {
-          final goal = state.extra as GoalModel?;
+          final goal = _extraAs(state.extra, GoalModel.fromJson);
           return GoalFormScreen(goal: goal);
         },
       ),
@@ -314,8 +385,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/reconciliation',
+        redirect: (context, state) =>
+            _extraAs(state.extra, AccountModel.fromJson) != null ? null : '/',
         builder: (context, state) {
-          final account = state.extra as AccountModel;
+          final account = _extraAs(state.extra, AccountModel.fromJson)!;
           return ReconciliationScreen(account: account);
         },
       ),
@@ -325,8 +398,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/coaching',
+        redirect: (context, state) =>
+            _extraAs(state.extra, CoachingModel.fromJson) != null
+            ? null
+            : '/coaching/history',
         builder: (context, state) {
-          final coaching = state.extra as CoachingModel;
+          final coaching = _extraAs(state.extra, CoachingModel.fromJson)!;
           return CoachingSlidesScreen(coaching: coaching);
         },
       ),

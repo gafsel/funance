@@ -47,7 +47,11 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, stack) => Scaffold(body: Center(child: Text(error.toString()))),
       data: (account) {
-        if (account == null) return const Scaffold(body: Center(child: Text('Conta não encontrada')));
+        if (account == null) {
+          return Scaffold(
+            body: Center(child: Text(context.l10n.accountNotFound)),
+          );
+        }
 
         final latestBalanceAsync = ref.watch(AccountViewProviders.latestBalanceById(account.id));
 
@@ -118,6 +122,60 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                     _StatementList(accountId: widget.accountId, isFuture: true, isDesktop: isDesktop),
                   ],
                 ),
+              ),
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  showModalBottomSheet(
+                    context: context,
+                    builder: (context) {
+                      final theme = Theme.of(context);
+                      final l10n = context.l10n;
+                      return SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                "Novo Lançamento",
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              title: Text(l10n.transactionTypeExpense),
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push('/transactions/form?type=expense&accountIdSource=${account.id}');
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.add_circle_outline, color: Colors.green),
+                              title: Text(l10n.transactionTypeIncome),
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push('/transactions/form?type=income&accountIdSource=${account.id}');
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.swap_horiz, color: Colors.blue),
+                              title: Text(l10n.transactionTypeTransfer),
+                              onTap: () {
+                                Navigator.pop(context);
+                                context.push('/transactions/form?type=transfer&accountIdSource=${account.id}');
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+                backgroundColor: AppColors.successGold,
+                shape: const CircleBorder(),
+                child: const Icon(Icons.add, color: AppColors.darkNavy),
               ),
             );
           },

@@ -8,6 +8,7 @@ import {
     VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
     VIRTUAL_INVESTMENT_INCOME_CATEGORY
 } from "../../../workspace/domain/models/category.model";
+import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
 
 export class SummaryService {
     constructor(private financeRepository: IFinanceRepository) {}
@@ -96,8 +97,8 @@ export class SummaryService {
             
             while (currentDay <= lastDayOfMonth) {
                 if (currentDay.getDay() === 0 || currentDay.getDate() === 1) {
-                    const week = this.getWeekNumber(currentDay);
-                    const weekYear = this.getWeekYear(currentDay);
+                    const week = getWeekNumber(currentDay);
+                    const weekYear = getWeekYear(currentDay);
                     
                     const daysInMonth = lastDayOfMonth.getDate();
                     const weeklyProportion = (planning.amount / daysInMonth) * 7;
@@ -140,24 +141,6 @@ export class SummaryService {
                 return this.calculatePlanningImpacts(planning, 1, new Date(), predictabilityMonths);
             });
         }
-    }
-
-    private getWeekNumber(d: Date): number {
-        const date = new Date(d.getTime());
-        date.setHours(0, 0, 0, 0);
-        // Ajusta para o domingo mais próximo (início da semana)
-        date.setDate(date.getDate() - date.getDay());
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const days = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        return Math.floor(days / 7) + 1;
-    }
-
-    private getWeekYear(d: Date): number {
-        const date = new Date(d.getTime());
-        date.setHours(0, 0, 0, 0);
-        // Ajusta para o domingo mais próximo
-        date.setDate(date.getDate() - date.getDay());
-        return date.getFullYear();
     }
 
     async processInstallmentChange(
@@ -223,8 +206,8 @@ export class SummaryService {
         });
 
         // Week
-        const week = this.getWeekNumber(inst.dueDate);
-        const weekYear = this.getWeekYear(inst.dueDate);
+        const week = getWeekNumber(inst.dueDate);
+        const weekYear = getWeekYear(inst.dueDate);
         await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, category, {
             specificPlannedDelta: amount,
         }, week);
@@ -261,8 +244,8 @@ export class SummaryService {
         });
 
         // Week
-        const week = this.getWeekNumber(inst.paidDate);
-        const weekYear = this.getWeekYear(inst.paidDate);
+        const week = getWeekNumber(inst.paidDate);
+        const weekYear = getWeekYear(inst.paidDate);
         await this.financeRepository.updatePeriodSummary(workspaceId, weekYear, undefined, category, {
             actualDelta: amount,
         }, week);

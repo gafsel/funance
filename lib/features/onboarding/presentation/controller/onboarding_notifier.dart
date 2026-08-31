@@ -37,6 +37,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     }
   }
 
+  /// Reinicia o fluxo do zero para a criação de um novo workspace,
+  /// descartando o estado de um onboarding anterior (que pode já estar
+  /// em `done` e deixaria a tela inerte).
+  void startNew() {
+    state = OnboardingState(workspace: WorkspaceModel.empty());
+  }
+
   Future<void> nextStep() async {
     if (state.currentStep != OnboardingSteps.done) {
       var nextStep = OnboardingSteps.values[state.currentStep.index + 1];

@@ -36,7 +36,7 @@ extension GoalProgressUi on GoalProgress {
       case GoalStatus.behind:
         return AppColors.error;
       case GoalStatus.lost:
-        return Colors.black;
+        return AppColors.error;
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -8,6 +9,64 @@ import 'package:go_router/go_router.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
   const WorkspaceSettingsScreen({super.key});
+
+  Future<void> _signOut(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      await ref.read(AuthDomainProviders.service).signOut();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.errorUnknown)));
+    }
+  }
+
+  Future<void> _editWorkspaceName(
+    BuildContext context,
+    WidgetRef ref,
+    WorkspaceModel workspace,
+  ) async {
+    final l10n = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final controller = TextEditingController(text: workspace.name);
+
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.workspaceSettingsEditName),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            labelText: l10n.onboardingWorkspaceNameLabel,
+          ),
+          onSubmitted: (value) => Navigator.pop(context, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancelButton),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: Text(l10n.saveButton),
+          ),
+        ],
+      ),
+    );
+
+    final trimmed = newName?.trim() ?? '';
+    if (trimmed.isEmpty || trimmed == workspace.name) return;
+
+    try {
+      await ref
+          .read(WorkspaceDomainProviders.repository)
+          .updateWorkspace(workspace.copyWith(name: trimmed));
+      // O watch em tempo real do workspace atualiza a UI automaticamente.
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l10n.errorUnknown)));
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -42,9 +101,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       title: l10n.workspaceSettingsEditName,
                       description: l10n.workspaceSettingsEditNameDesc,
                       subtitle: workspace.name,
-                      onTap: () {
-                        // TODO: Implementar edição de nome do workspace
-                      },
+                      onTap: () => _editWorkspaceName(context, ref, workspace),
                     ),
                     _buildGridItem(
                       context,
@@ -80,9 +137,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       description: l10n.workspaceSettingsLogoutDesc,
                       iconColor: Colors.red,
                       titleColor: Colors.red,
-                      onTap: () {
-                        ref.read(AuthDomainProviders.service).signOut();
-                      },
+                      onTap: () => _signOut(context, ref),
                     ),
                   ],
                 );
@@ -111,9 +166,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     leading: const Icon(Icons.edit_outlined),
                     title: Text(l10n.workspaceSettingsEditName),
                     subtitle: Text(workspace.name),
-                    onTap: () {
-                      // TODO: Implementar edição de nome do workspace
-                    },
+                    onTap: () => _editWorkspaceName(context, ref, workspace),
                   ),
                   const Divider(),
                   _buildSectionHeader(
@@ -156,9 +209,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       l10n.workspaceSettingsLogout,
                       style: const TextStyle(color: Colors.red),
                     ),
-                    onTap: () {
-                      ref.read(AuthDomainProviders.service).signOut();
-                    },
+                    onTap: () => _signOut(context, ref),
                   ),
                 ],
               );

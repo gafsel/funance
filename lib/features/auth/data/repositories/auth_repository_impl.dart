@@ -268,7 +268,13 @@ class AuthRepositoryImpl implements IAuthRepository {
 
   @override
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
+    // O signOut do Firebase é o que efetivamente desloga o app; ele precisa
+    // executar mesmo que o signOut do Google falhe.
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {
+      // Falha ao limpar a sessão Google não deve impedir o logout do app.
+    }
     await _firebaseAuth.signOut();
   }
 }

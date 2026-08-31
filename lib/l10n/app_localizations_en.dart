@@ -63,6 +63,60 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnknown => 'An unexpected error occurred.';
 
   @override
+  String get routeNotFound => 'Page not found.';
+
+  @override
+  String get routeNotFoundGoHome => 'Back to home';
+
+  @override
+  String get closeButton => 'Close';
+
+  @override
+  String get badgeUnlockedToast => 'New achievement unlocked!';
+
+  @override
+  String get badgeUnlockedView => 'View';
+
+  @override
+  String get workspacePickerTitle => 'Workspaces';
+
+  @override
+  String get transactionMoreOptions => 'More Options';
+
+  @override
+  String get onboardingConceptXpTitle => 'Earn XP and level up';
+
+  @override
+  String get onboardingConceptXpDesc =>
+      'Every transaction earns XP — and spending within your plan earns even more. Your workspace levels up like in a game.';
+
+  @override
+  String get onboardingConceptMissionsTitle => 'Missions and achievements';
+
+  @override
+  String get onboardingConceptMissionsDesc =>
+      'Complete weekly missions, keep your perfect-week streak and unlock badges in your achievements cabinet.';
+
+  @override
+  String get onboardingConceptCoachTitle => 'Your financial coach';
+
+  @override
+  String get onboardingConceptCoachDesc =>
+      'An AI coach that knows your numbers and gives practical, personalized advice on your path to financial freedom.';
+
+  @override
+  String get onboardingNoSuggestions =>
+      'No suggestions for now — you can create goals and plannings later, in the Journey tab.';
+
+  @override
+  String journeyStreakWeeks(int count) {
+    return '$count perfect weeks in a row';
+  }
+
+  @override
+  String get journeyAddGoalTooltip => 'New goal';
+
+  @override
   String get errorKeychain =>
       'Your session could not be saved. You can use the app, but you will need to log in again upon reopening.';
 
@@ -266,13 +320,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalDetailsTitle => 'Goal Details';
 
   @override
-  String get goalTransactionsTitle => 'Transações Relacionadas';
+  String get goalTransactionsTitle => 'Related Transactions';
 
   @override
-  String get goalEditButton => 'Editar Meta';
+  String get goalEditButton => 'Edit Goal';
 
   @override
-  String get goalDeleteButton => 'Excluir Meta';
+  String get goalDeleteButton => 'Delete Goal';
 
   @override
   String get goalDeleteConfirmTitle => 'Delete Goal?';
@@ -282,16 +336,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'Are you sure you want to delete this goal? This action cannot be undone.';
 
   @override
-  String get goalStatusOnTrack => 'No Caminho';
+  String get goalStatusOnTrack => 'On Track';
 
   @override
-  String get goalStatusAtRisk => 'Em Risco';
+  String get goalStatusAtRisk => 'At Risk';
 
   @override
-  String get goalStatusBehind => 'Atrasada';
+  String get goalStatusBehind => 'Behind';
 
   @override
-  String get goalStatusLost => 'Perdida';
+  String get goalStatusLost => 'Lost';
 
   @override
   String get goalProgressChartTitle => 'Progress';
@@ -373,34 +427,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get automaticTransactionIgnore => 'Ignore';
 
   @override
-  String get profileTitle => 'Perfil';
+  String get profileTitle => 'Profile';
 
   @override
-  String get profileEditTitle => 'Editar Perfil';
+  String get profileEditTitle => 'Edit Profile';
 
   @override
-  String get profileNameLabel => 'Nome';
+  String get profileNameLabel => 'Name';
 
   @override
-  String get profileEmailLabel => 'E-mail';
+  String get profileEmailLabel => 'Email';
 
   @override
-  String get profileSaveButton => 'Salvar Alterações';
+  String get profileSaveButton => 'Save Changes';
 
   @override
-  String get profileUpdateSuccess => 'Perfil atualizado com sucesso!';
+  String get profileUpdateSuccess => 'Profile updated successfully!';
 
   @override
-  String get profileUpdateError => 'Erro ao atualizar perfil.';
+  String get profileUpdateError => 'Error updating profile.';
 
   @override
-  String get profilePhotoSourceTitle => 'Escolha a origem da foto';
+  String get profilePhotoSourceTitle => 'Choose photo source';
 
   @override
-  String get profilePhotoCamera => 'Câmera';
+  String get profilePhotoCamera => 'Camera';
 
   @override
-  String get profilePhotoGallery => 'Galeria';
+  String get profilePhotoGallery => 'Gallery';
 
   @override
   String get planning503020Title => '50-30-20 Planning';
@@ -2334,4 +2388,32 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get badge_all_missions_week_desc =>
       'Complete all available weekly missions in one week.';
+
+  @override
+  String get goalDebtTotalLabel => 'Total Debt Amount';
+
+  @override
+  String get goalDebtTotalHint => 'How much do you owe in total?';
+
+  @override
+  String get goalDebtPaidLabel => 'Amount Already Paid';
+
+  @override
+  String get goalDebtPaidHint => 'How much have you already paid off?';
+
+  @override
+  String get goalDebtAccountLabel => 'Link to Debt Account';
+
+  @override
+  String get goalSpendingLimitHint => 'E.g.: 500.00 (spending limit)';
+
+  @override
+  String get accountNotFound => 'Account not found.';
+
+  @override
+  String get savedSuccess => 'Saved successfully!';
+
+  @override
+  String get wizardPendingIntro =>
+      'We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?';
 }

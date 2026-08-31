@@ -53,6 +53,29 @@ class _SuccessStepState extends ConsumerState<SuccessStep> {
         icon: Icons.receipt_long_outlined,
         color: AppColors.limeGreen,
       ),
+      // O jogo: XP/nível, missões/conquistas e o coach — os diferenciais do
+      // produto precisam ser apresentados antes de o usuário cair na home.
+      _buildConceptSlide(
+        context,
+        title: l10n.onboardingConceptXpTitle,
+        description: l10n.onboardingConceptXpDesc,
+        icon: Icons.bolt,
+        color: AppColors.successGold,
+      ),
+      _buildConceptSlide(
+        context,
+        title: l10n.onboardingConceptMissionsTitle,
+        description: l10n.onboardingConceptMissionsDesc,
+        icon: Icons.emoji_events_outlined,
+        color: AppColors.paleGold,
+      ),
+      _buildConceptSlide(
+        context,
+        title: l10n.onboardingConceptCoachTitle,
+        description: l10n.onboardingConceptCoachDesc,
+        icon: Icons.psychology_outlined,
+        color: AppColors.vibrantTeal,
+      ),
       _buildConceptSlide(
         context,
         title: l10n.onboardingConceptFeaturesTitle,

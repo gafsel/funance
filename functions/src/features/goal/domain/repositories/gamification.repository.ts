@@ -23,4 +23,31 @@ export interface IGamificationRepository {
     getCategoriesCount(workspaceId: string): Promise<number>;
     getPaidInstallments(workspaceId: string): Promise<any[]>;
     getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<any[]>;
+    /** Lista os IDs de todos os workspaces (para os crons agendados). */
+    getAllWorkspaceIds(): Promise<string[]>;
+    /**
+     * Marca a missão como concluída e concede o XP na MESMA transação.
+     * Retorna false (sem conceder nada) se a missão já estava concluída.
+     */
+    completeMissionAndAwardXp(
+        workspaceId: string,
+        weekId: string,
+        type: string,
+        progress: number,
+        rewardXp: number,
+        reason: string
+    ): Promise<boolean>;
+    /** Contagem (aggregate count) de installments pagas/settled do workspace. */
+    getPaidInstallmentsCount(workspaceId: string): Promise<number>;
+    /** Contagem (aggregate count) de missões semanais concluídas do workspace. */
+    getCompletedMissionsCount(workspaceId: string): Promise<number>;
+    /** IDs das contas do tipo cartão de crédito (não deletadas). */
+    getCreditCardAccountIds(workspaceId: string): Promise<string[]>;
+    /** Existe installment pendente no período vinculada a alguma das contas? */
+    hasPendingInstallmentsForAccounts(
+        workspaceId: string,
+        accountIds: string[],
+        start: Date,
+        end: Date
+    ): Promise<boolean>;
 }

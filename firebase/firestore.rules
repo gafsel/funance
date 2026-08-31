@@ -2,7 +2,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Auxiliar para verificar se o usuário é membro do workspace
     function isMember(workspaceId) {
       return request.auth != null && (
@@ -10,14 +10,106 @@ service cloud.firestore {
       );
     }
 
-    match /workspaces/{workspaceId} {
-      allow read, update: if request.auth != null && request.auth.uid in resource.data.members;
-      allow create: if request.auth != null && request.auth.uid in request.resource.data.members;
+    // ===== Auxiliares de validação de payload =====
 
-      // Orders: Membros podem ler e criar (update e delete desabilitados para o client)
+    function isStr(value, maxLen) {
+      return value is string && value.size() <= maxLen;
+    }
+
+    // Número finito com limite sane (exclui NaN/Infinity, pois comparações com NaN são falsas)
+    function isNum(value) {
+      return value is number && value > -1000000000000 && value < 1000000000000;
+    }
+
+    function isOptStr(data, field, maxLen) {
+      return !(field in data) || data[field] == null || isStr(data[field], maxLen);
+    }
+
+    function isOptNum(data, field) {
+      return !(field in data) || data[field] == null || isNum(data[field]);
+    }
+
+    function isOptTimestamp(data, field) {
+      return !(field in data) || data[field] == null || data[field] is timestamp;
+    }
+
+    function isOptInt(data, field, minVal, maxVal) {
+      return !(field in data) || data[field] == null ||
+        (data[field] is int && data[field] >= minVal && data[field] <= maxVal);
+    }
+
+    match /workspaces/{workspaceId} {
+
+      function validWorkspaceBase(data) {
+        return isStr(data.name, 200)
+          && data.type in ['personal', 'business']
+          && data.members is list
+          && data.members.size() >= 1
+          && data.members.size() <= 50
+          && isOptStr(data, 'lastOnboardingStep', 40);
+      }
+
+      allow read: if request.auth != null && request.auth.uid in resource.data.members;
+
+      // Criação: o criador deve ser o único membro e os campos de gamificação
+      // devem estar nos valores iniciais (eles pertencem às Cloud Functions).
+      allow create: if request.auth != null
+        && request.resource.data.members == [request.auth.uid]
+        && validWorkspaceBase(request.resource.data)
+        && (!('xp' in request.resource.data) || request.resource.data.xp == 0)
+        && (!('level' in request.resource.data) || request.resource.data.level == 1)
+        && (!('weeklyStreaks' in request.resource.data) || request.resource.data.weeklyStreaks == 0)
+        && (!('unlockedBadges' in request.resource.data) || request.resource.data.unlockedBadges.size() == 0)
+        && (!('lastLevelUpAt' in request.resource.data) || request.resource.data.lastLevelUpAt == null);
+
+      // Update: membros só podem alterar campos de apresentação/onboarding.
+      // 'members' é imutável pelo cliente (o aceite de convite adiciona membros
+      // via Cloud Function onInviteStatusChanged com Admin SDK, que ignora rules).
+      // Campos de gamificação (xp, level, unlockedBadges, weeklyStreaks,
+      // lastLevelUpAt) são escritos apenas por Cloud Functions.
+      // 'createdAt' permitido apenas porque o fluxo de onboarding reescreve o doc
+      // inteiro com um timestamp gerado no cliente logo após a criação.
+      allow update: if request.auth != null
+        && request.auth.uid in resource.data.members
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['name', 'type', 'lastOnboardingStep', 'onboardingCompleted', 'createdAt'])
+        && validWorkspaceBase(request.resource.data)
+        && (!('onboardingCompleted' in request.resource.data) || request.resource.data.onboardingCompleted is bool)
+        && isOptTimestamp(request.resource.data, 'createdAt');
+
+      // Delete: não há fluxo real no app (deleteWorkspace é código morto) — negado.
+
+      // Orders: Membros podem ler, criar e atualizar (delete desabilitado; o
+      // cancelamento é feito via status e a exclusão de parcelas via status 'removed')
       match /orders/{orderId} {
-        allow read, create: if isMember(workspaceId);
-        allow update, delete: if false;
+
+        function validOrder(data) {
+          return isNum(data.amount)
+            && isStr(data.description, 1000)
+            && data.dueDay is int && data.dueDay >= 1 && data.dueDay <= 31
+            && isStr(data.startMonth, 10)
+            && data.installmentType in ['single', 'installment', 'recurring']
+            && data.status in ['active', 'cancelled']
+            && data.type in ['expense', 'income', 'transfer']
+            && isOptInt(data, 'installmentCount', 1, 1200)
+            && (!('isInvoice' in data) || data.isInvoice is bool)
+            && (!('accounts' in data) || data.accounts == null || data.accounts is map)
+            && (!('category' in data) || data.category == null || data.category is map);
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create: if isMember(workspaceId) && validOrder(request.resource.data);
+        // Update usado pelo app ao editar transações recorrentes/parceladas
+        // (TransactionFormScreen -> FinanceService.updateOrder). Campos gerados
+        // pelo servidor (ex.: lastGeneratedDueDate) não podem ser alterados.
+        allow update: if isMember(workspaceId)
+          && validOrder(request.resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'amount', 'description', 'dueDay', 'startMonth', 'installmentCount',
+            'installmentType', 'status', 'type', 'accounts', 'category',
+            'isInvoice', 'installmentCreationStatus'
+          ]);
+        allow delete: if false;
 
         // Histórico de ordens: Apenas leitura pelo cliente
         match /history/{historyId} {
@@ -26,24 +118,88 @@ service cloud.firestore {
         }
       }
 
-      // Installments: Membros podem ler e escrever
+      // Installments: criadas pelo servidor (syncInstallments); o cliente só lê
+      // e atualiza (editar/pagar/cancelar). orderId e xp são imutáveis pelo cliente.
       match /installments/{installmentId} {
-        allow read, update: if isMember(workspaceId);
+        allow read: if isMember(workspaceId);
+        allow update: if isMember(workspaceId)
+          && isNum(request.resource.data.amount)
+          && isNum(request.resource.data.referenceAmount)
+          && isOptNum(request.resource.data, 'paidAmount')
+          && isStr(request.resource.data.description, 1000)
+          && request.resource.data.status in ['pending', 'paid', 'settled', 'removed']
+          && request.resource.data.type in ['expense', 'income', 'transfer']
+          && request.resource.data.installmentType in ['single', 'installment', 'recurring']
+          && request.resource.data.dueDate is timestamp
+          && request.resource.data.referenceDate is timestamp
+          && isOptTimestamp(request.resource.data, 'paidDate')
+          && (!('accounts' in request.resource.data) || request.resource.data.accounts is map)
+          && (!('accountIds' in request.resource.data) ||
+              (request.resource.data.accountIds is list && request.resource.data.accountIds.size() <= 20))
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['orderId'])
+          // xp é do servidor. Exceção: builds do app que gravam o doc inteiro
+          // escrevem 'xp: null' em docs que ainda não têm o campo — isso conta
+          // como mudança de chave, mas não é uma alteração real de valor.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['xp'])
+              || (request.resource.data.xp == null && !('xp' in resource.data)));
+        // create/delete: não há fluxo real no cliente (addInstallment/deleteInstallment
+        // são código morto); o servidor usa Admin SDK — negados por padrão.
       }
 
-      // Goals: Membros podem ler e escrever
+      // Goals: Membros podem ler, criar e atualizar (exclusão é lógica via isDeleted)
       match /goals/{goalId} {
-        allow read, write: if isMember(workspaceId);
+
+        function validGoal(data) {
+          return isStr(data.name, 500)
+            && isNum(data.targetAmount)
+            && isNum(data.currentAmount)
+            && data.deadline is timestamp
+            && data.startDate is timestamp
+            && data.isDeleted is bool
+            && isOptStr(data, 'runtimeType', 50)
+            && isOptStr(data, 'accountId', 128)
+            && isOptNum(data, 'averageSpending')
+            && (!('category' in data) || data.category == null || data.category is map);
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create, update: if isMember(workspaceId) && validGoal(request.resource.data);
+        // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }
 
-      // Categories: Membros podem ler e escrever
+      // Categories: Membros podem ler e escrever (delete é usado pelo app)
       match /categories/{categoryId} {
-        allow read, write: if isMember(workspaceId);
+
+        function validCategory(data) {
+          return isStr(data.name, 200)
+            && isStr(data.icon, 100)
+            && isStr(data.color, 50)
+            && data.type in ['income', 'expense']
+            && data.allocation in ['essential', 'comfort', 'investment'];
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create, update: if isMember(workspaceId) && validCategory(request.resource.data);
+        allow delete: if isMember(workspaceId);
       }
 
-      // Planning: Membros podem ler e escrever
+      // Planning: Membros podem ler e escrever (delete é usado pelo app).
+      // lastSummaryMonth é gerenciado pelo servidor e não pode ser alterado pelo cliente.
       match /category_planning/{planningId} {
-        allow read, write: if isMember(workspaceId);
+
+        function validPlanning(data) {
+          return isNum(data.amount)
+            && isStr(data.startMonth, 10)
+            && isStr(data.endMonth, 10)
+            && data.category is map;
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create: if isMember(workspaceId) && validPlanning(request.resource.data);
+        allow update: if isMember(workspaceId)
+          && validPlanning(request.resource.data)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSummaryMonth']);
+        allow delete: if isMember(workspaceId);
       }
 
       // Period Summaries: Membros podem apenas ler
@@ -56,19 +212,47 @@ service cloud.firestore {
         allow read: if isMember(workspaceId);
       }
 
-      // Accounts: Membros podem ler e escrever
+      // Accounts: Membros podem ler, criar e atualizar (exclusão é lógica via isDeleted)
       match /accounts/{accountId} {
-        allow read, write: if isMember(workspaceId);
 
-        // Account Balances: Membros podem ler e escrever
+        function validAccount(data) {
+          return isStr(data.name, 200)
+            && isStr(data.icon, 100)
+            && isStr(data.color, 50)
+            && data.runtimeType in ['checking', 'investment', 'creditCard', 'debt']
+            && data.isDeleted is bool
+            && isNum(data.initialBalance)
+            && isStr(data.initialBalanceDate, 40)
+            && isOptStr(data, 'bankLogo', 30)
+            && isOptNum(data, 'interestRate')
+            && isOptNum(data, 'limit')
+            && isOptInt(data, 'dueDay', 1, 31)
+            && isOptInt(data, 'closingDay', 1, 31)
+            && (!('ownerIds' in data) || (data.ownerIds is list && data.ownerIds.size() <= 50));
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create, update: if isMember(workspaceId) && validAccount(request.resource.data);
+        // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
+
+        // Account Balances: Membros podem apenas ler (escrito pelo servidor)
         match /balance/{balanceId} {
           allow read: if isMember(workspaceId);
         }
       }
 
-      // Financial Coaching: Membros podem ler e escrever (insights gerados pela IA)
+      // Financial Coaching: insights gerados e gravados exclusivamente pelo
+      // servidor (Admin SDK); o cliente apenas lê.
       match /financial_coaching/{coachingId} {
-        allow read, write: if isMember(workspaceId);
+        allow read: if isMember(workspaceId);
+        allow write: if false;
+      }
+
+      // Coaching Meta: cache da classificação de categorias em grupos macro,
+      // gerado e gravado exclusivamente pelo servidor (Admin SDK).
+      match /coaching_meta/{docId} {
+        allow read: if isMember(workspaceId);
+        allow write: if false;
       }
 
       // Finance Hacks: Membros podem apenas ler
@@ -76,19 +260,57 @@ service cloud.firestore {
         allow read: if isMember(workspaceId);
       }
 
-      // Automatic Transactions: Membros podem gerenciar transações identificadas automaticamente
+      // Automatic Transactions: Membros podem gerenciar transações identificadas
+      // automaticamente (create/update/delete usados pelo app, incl. mover entre workspaces)
       match /automatic_transactions/{transactionId} {
-        allow read, write: if isMember(workspaceId);
+
+        function validAutomaticTransaction(data) {
+          return isStr(data.description, 1000)
+            && isNum(data.amount)
+            && (data.date is timestamp || isStr(data.date, 40))
+            && data.type in ['expense', 'income', 'transfer']
+            && data.isConsolidated is bool
+            && data.isIgnored is bool
+            && isOptStr(data, 'originNotificationId', 300)
+            && isOptStr(data, 'packageName', 300)
+            && isOptStr(data, 'accountId', 128)
+            && isOptStr(data, 'categoryId', 128);
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create, update: if isMember(workspaceId) && validAutomaticTransaction(request.resource.data);
+        allow delete: if isMember(workspaceId);
       }
 
       // Uploads progress tracking logs
       match /uploads/{uploadId} {
-        allow read, write: if isMember(workspaceId);
+
+        function validUpload(data) {
+          return isStr(data.status, 50)
+            && data.progress is number && data.progress >= 0 && data.progress <= 100
+            && isStr(data.message, 2000);
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create, update: if isMember(workspaceId) && validUpload(request.resource.data);
+        // delete: sem fluxo no cliente — negado.
       }
 
       // Reconciliation histories and logs
       match /reconciliations/{recId} {
-        allow read, write: if isMember(workspaceId);
+
+        function validReconciliation(data) {
+          return isStr(data.status, 50)
+            && isOptStr(data, 'id', 128)
+            && isOptInt(data, 'confirmedMatchesCount', 0, 1000000)
+            && isOptInt(data, 'totalTransactionsProcessed', 0, 1000000)
+            && isOptInt(data, 'createdTransactionsCount', 0, 1000000)
+            && isOptTimestamp(data, 'createdAt');
+        }
+
+        allow read: if isMember(workspaceId);
+        allow create, update: if isMember(workspaceId) && validReconciliation(request.resource.data);
+        // delete: sem fluxo no cliente — negado.
       }
     }
 
@@ -104,22 +326,35 @@ service cloud.firestore {
     match /workspaces_members/{memberId} {
       // O memberId é uid_workspaceId
       allow read: if request.auth != null && (
-        request.auth.uid == resource.data.userId || 
+        request.auth.uid == resource.data.userId ||
         isMember(resource.data.workspaceId)
       );
     }
 
     match /invites/{inviteId} {
-      // Qualquer um logado pode ler convites enviados para seu e-mail
-      allow read: if request.auth != null && request.auth.token.email == resource.data.receiverEmail;
-      
-      // Apenas membros do workspace podem criar convites
-      allow create: if request.auth != null && isMember(request.resource.data.workspace.id);
-      
-      // O destinatário pode atualizar o status do convite
-      allow update: if request.auth != null && 
-                    request.auth.token.email == resource.data.receiverEmail &&
-                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      // O destinatário lê convites enviados para seu e-mail;
+      // o remetente lê os convites que enviou (query por senderId no app)
+      allow read: if request.auth != null && (
+        request.auth.token.email == resource.data.receiverEmail ||
+        request.auth.uid == resource.data.senderId
+      );
+
+      // Apenas membros do workspace podem criar convites, sempre em nome próprio
+      // e com status inicial 'pending'
+      allow create: if request.auth != null
+        && isMember(request.resource.data.workspace.id)
+        && request.resource.data.senderId == request.auth.uid
+        && isStr(request.resource.data.senderName, 200)
+        && isStr(request.resource.data.receiverEmail, 320)
+        && request.resource.data.status == 'pending';
+
+      // O destinatário pode responder um convite pendente (aceitar/recusar);
+      // a adição ao workspace é feita pela Cloud Function onInviteStatusChanged
+      allow update: if request.auth != null
+        && request.auth.token.email == resource.data.receiverEmail
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
 
     match /{document=**} {

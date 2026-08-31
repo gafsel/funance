@@ -81,15 +81,26 @@ class GoalsAnalysisStep extends ConsumerWidget {
                     const SizedBox(height: 12),
                     _buildSuggestedPlannings(plannings, notifier, context),
                   ],
+                  if (goals.isEmpty && plannings.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 24),
+                      child: Text(
+                        l10n.onboardingNoSuggestions,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.pureWhite.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 24),
+          // Sempre habilitado: sem sugestões da IA o usuário precisa poder
+          // seguir em frente (metas podem ser criadas depois, na Jornada).
           ElevatedButton(
-            onPressed: (goals.isEmpty && plannings.isEmpty)
-                ? null
-                : () => notifier.nextStep(),
+            onPressed: () => notifier.nextStep(),
             child: Text(l10n.onboardingGoalsButton),
           ),
         ],

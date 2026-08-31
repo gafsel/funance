@@ -1,7 +1,33 @@
 import { onDocumentWritten, onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
-import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
+import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
+
+/**
+ * Campos do doc do workspace escritos pela própria gamificação
+ * (addXp/unlockBadge/updateWorkspaceStreaks). Escritas que alteram APENAS
+ * estes campos não devem redisparar as checagens de badge — sem este guard,
+ * cada unlock/addXp reativa onWorkspaceUpdated em cascata.
+ */
+const GAMIFICATION_ONLY_FIELDS = new Set([
+    "xp",
+    "level",
+    "unlockedBadges",
+    "weeklyStreaks",
+    "lastLevelUpAt",
+]);
+
+function getChangedTopLevelFields(before: Record<string, any>, after: Record<string, any>): string[] {
+    const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+    const changed: string[] = [];
+    for (const key of keys) {
+        if (JSON.stringify(before[key]) !== JSON.stringify(after[key])) {
+            changed.push(key);
+        }
+    }
+    return changed;
+}
 
 export const onWorkspaceUpdated = onDocumentUpdated(
     "workspaces/{workspaceId}",
@@ -11,6 +37,14 @@ export const onWorkspaceUpdated = onDocumentUpdated(
         const after = event.data?.after.data();
 
         if (!before || !after) return;
+
+        const changedFields = getChangedTopLevelFields(before, after);
+        if (changedFields.length === 0 ||
+            changedFields.every((field) => GAMIFICATION_ONLY_FIELDS.has(field))) {
+            // Escrita originada da própria gamificação (ou no-op): early return
+            // para evitar o trigger recursivo.
+            return;
+        }
 
         logger.info(`[onWorkspaceUpdated] Triggered for workspaceId=${workspaceId}`);
 
@@ -156,52 +190,43 @@ export const onGoalWritten = onDocumentWritten(
     }
 );
 
-// Cron simulation triggers (HTTP Callables)
+// Crons agendados (firebase-functions v2 scheduler).
+// Antes eram onCall ("cron simulation triggers") que nenhum código chamava —
+// streaks e missões semanais/mensais nunca eram avaliadas.
 
-export const triggerWeeklyCron = onCall(async (request) => {
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
+export const weeklyGamificationCron = onSchedule(
+    {
+        // Toda segunda-feira às 03:00, horário de São Paulo — avalia a semana
+        // anterior (domingo a sábado) já encerrada.
+        schedule: "0 3 * * 1",
+        timeZone: GAMIFICATION_TIME_ZONE,
+    },
+    async () => {
+        logger.info("[weeklyGamificationCron] Starting weekly gamification cron.");
+        try {
+            await container.gamificationService.runWeeklyCronForAllWorkspaces();
+            logger.info("[weeklyGamificationCron] Weekly gamification cron finished.");
+        }
+        catch (e) {
+            logger.error("[weeklyGamificationCron] Error processing weekly cron:", e);
+        }
     }
-    const { workspaceId } = request.data;
-    if (!workspaceId) {
-        throw new HttpsError("invalid-argument", "O ID do workspace é obrigatório.");
-    }
+);
 
-    try {
-        const gamificationService = container.gamificationService;
-        await gamificationService.evaluateWeeklyMissionsCron(workspaceId);
-
-        // Also check time-based simple badges that require weekly aggregation
-        await gamificationService.checkFinancialHealthBadges(workspaceId);
-
-        return { success: true };
+export const monthlyGamificationCron = onSchedule(
+    {
+        // Todo dia 1 às 03:00, horário de São Paulo — avalia o mês anterior.
+        schedule: "0 3 1 * *",
+        timeZone: GAMIFICATION_TIME_ZONE,
+    },
+    async () => {
+        logger.info("[monthlyGamificationCron] Starting monthly gamification cron.");
+        try {
+            await container.gamificationService.runMonthlyCronForAllWorkspaces();
+            logger.info("[monthlyGamificationCron] Monthly gamification cron finished.");
+        }
+        catch (e) {
+            logger.error("[monthlyGamificationCron] Error processing monthly cron:", e);
+        }
     }
-    catch (e: any) {
-        logger.error("[triggerWeeklyCron] Error processing weekly cron:", e);
-        throw new HttpsError("internal", e.message || "Erro ao executar cron semanal.");
-    }
-});
-
-export const triggerMonthlyCron = onCall(async (request) => {
-    if (!request.auth) {
-        throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
-    }
-    const { workspaceId } = request.data;
-    if (!workspaceId) {
-        throw new HttpsError("invalid-argument", "O ID do workspace é obrigatório.");
-    }
-
-    try {
-        const gamificationService = container.gamificationService;
-        await gamificationService.evaluateMonthlyMissionsCron(workspaceId);
-
-        // Monthly financial health checks
-        await gamificationService.checkFinancialHealthBadges(workspaceId);
-
-        return { success: true };
-    }
-    catch (e: any) {
-        logger.error("[triggerMonthlyCron] Error processing monthly cron:", e);
-        throw new HttpsError("internal", e.message || "Erro ao executar cron mensal.");
-    }
-});
+);

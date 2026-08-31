@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -29,16 +30,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late TabController _tabController;
   bool _isNavigationRailExtended = false;
   late ConfettiController _confettiController;
+  int? _xpGain;
+  int _xpGainSeq = 0;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
+    _tabController.addListener(_onTabChanged);
     _confettiController = ConfettiController(duration: const Duration(seconds: 4));
+  }
+
+  void _onTabChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     _confettiController.dispose();
     super.dispose();
@@ -49,23 +58,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // final workspaceState = ref.watch(workspaceNotifierProvider);
     final authUser = ref.watch(AuthDomainProviders.currentUser);
 
-    // Listen to level up events
+    // Reage às atualizações em tempo real do workspace (XP, badges, nível
+    // concedidos pelo servidor) com celebrações imediatas.
     ref.listen(WorkspaceViewProviders.workspace, (previous, next) {
       final prevWorkspace = previous?.currentWorkspace;
       final currWorkspace = next.currentWorkspace;
-      
-      if (prevWorkspace != null && currWorkspace != null) {
-        if (currWorkspace.level > prevWorkspace.level) {
-          _confettiController.play();
-          _showLevelUpDialog(context, currWorkspace.level);
-        } else if (currWorkspace.lastLevelUpAt != null && 
-                   currWorkspace.lastLevelUpAt != prevWorkspace.lastLevelUpAt) {
-          final diff = DateTime.now().difference(currWorkspace.lastLevelUpAt!);
-          if (diff.inSeconds.abs() < 30) {
-            _confettiController.play();
-            _showLevelUpDialog(context, currWorkspace.level);
-          }
-        }
+
+      if (prevWorkspace == null || currWorkspace == null) return;
+      if (prevWorkspace.id != currWorkspace.id) return;
+
+      final leveledUp = currWorkspace.level > prevWorkspace.level;
+      final xpDelta = currWorkspace.xp - prevWorkspace.xp;
+
+      if (leveledUp) {
+        HapticFeedback.heavyImpact();
+        _confettiController.play();
+        _showLevelUpDialog(context, currWorkspace.level);
+      } else if (xpDelta > 0) {
+        HapticFeedback.mediumImpact();
+        setState(() {
+          _xpGain = xpDelta;
+          _xpGainSeq++;
+        });
+      }
+
+      final newBadges = currWorkspace.unlockedBadges.keys
+          .toSet()
+          .difference(prevWorkspace.unlockedBadges.keys.toSet());
+      if (newBadges.isNotEmpty) {
+        HapticFeedback.heavyImpact();
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.emoji_events, color: Colors.amber),
+                const SizedBox(width: 12),
+                Expanded(child: Text(l10n.badgeUnlockedToast)),
+              ],
+            ),
+            action: SnackBarAction(
+              label: l10n.badgeUnlockedView,
+              onPressed: () => context.push('/workspace/badges'),
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
       }
     });
 
@@ -128,16 +166,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   confettiController: _confettiController,
                   blastDirectionality: BlastDirectionality.explosive,
                   shouldLoop: false,
+                  numberOfParticles: 30,
+                  maxBlastForce: 40,
+                  minBlastForce: 10,
+                  emissionFrequency: 0.05,
                   colors: const [
-                    Colors.green,
-                    Colors.blue,
+                    AppColors.vibrantTeal,
+                    AppColors.successGold,
+                    AppColors.limeGreen,
+                    AppColors.deepTurquoise,
                     Colors.pink,
-                    Colors.orange,
                     Colors.purple,
-                    Colors.amber,
                   ],
                 ),
               ),
+              if (_xpGain != null)
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: _XpGainToast(
+                      key: ValueKey(_xpGainSeq),
+                      amount: _xpGain!,
+                    ),
+                  ),
+                ),
             ],
           ),
           bottomNavigationBar: isLargeScreen ? null : _buildBottomBar(context),
@@ -328,7 +381,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Text(
-                  'Workspaces',
+                  l10n.workspacePickerTitle,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
@@ -391,6 +444,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildBottomBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
       notchMargin: 8.0,
@@ -400,36 +454,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            IconButton(
-              icon: const Icon(
-                Icons.rocket_launch_outlined,
-                color: AppColors.pureWhite,
-              ),
-              onPressed: () => _tabController.animateTo(0),
+            _buildBottomBarItem(
+              index: 0,
+              icon: Icons.rocket_launch_outlined,
+              selectedIcon: Icons.rocket_launch,
+              label: l10n.homeJourneyTab,
             ),
-            IconButton(
-              icon: const Icon(
-                Icons.bar_chart_outlined,
-                color: AppColors.pureWhite,
-              ),
-              onPressed: () => _tabController.animateTo(1),
+            _buildBottomBarItem(
+              index: 1,
+              icon: Icons.bar_chart_outlined,
+              selectedIcon: Icons.bar_chart,
+              label: l10n.homeOverviewTab,
             ),
             const SizedBox(width: 48), // Espaço para o FAB
-            IconButton(
-              icon: const Icon(
-                Icons.history_outlined,
-                color: AppColors.pureWhite,
-              ),
-              onPressed: () => _tabController.animateTo(2),
+            _buildBottomBarItem(
+              index: 2,
+              icon: Icons.history_outlined,
+              selectedIcon: Icons.history,
+              label: l10n.homeHistoryTab,
             ),
-            IconButton(
-              icon: const Icon(
-                Icons.settings_outlined,
-                color: AppColors.pureWhite,
-              ),
-              onPressed: () => _tabController.animateTo(3),
+            _buildBottomBarItem(
+              index: 3,
+              icon: Icons.settings_outlined,
+              selectedIcon: Icons.settings,
+              label: l10n.homeSettings,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBarItem({
+    required int index,
+    required IconData icon,
+    required IconData selectedIcon,
+    required String label,
+  }) {
+    final isSelected = _tabController.index == index;
+    final color = isSelected
+        ? AppColors.successGold
+        : AppColors.pureWhite.withValues(alpha: 0.8);
+    return Expanded(
+      child: Tooltip(
+        message: label,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _tabController.animateTo(index),
+          child: Semantics(
+            label: label,
+            selected: isSelected,
+            button: true,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(isSelected ? selectedIcon : icon, color: color),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: isSelected ? FontWeight.bold : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -439,6 +532,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
+      // Barreira mais leve para o confetti atrás do diálogo continuar visível.
+      barrierColor: Colors.black26,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
@@ -489,19 +584,72 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           ],
         ),
         actions: [
-          Center(
-            child: TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                context.push('/workspace/badges');
-              },
-              child: Text(
-                l10n.viewAchievementsButton,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.closeButton),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/workspace/badges');
+            },
+            child: Text(
+              l10n.viewAchievementsButton,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Chip animado de "+N XP" que sobe e desaparece — feedback imediato quando o
+/// servidor concede XP ao workspace.
+class _XpGainToast extends StatelessWidget {
+  final int amount;
+
+  const _XpGainToast({super.key, required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 1800),
+      builder: (context, t, child) {
+        // Entra rápido, sobe devagar e some no fim.
+        final opacity = t < 0.15 ? t / 0.15 : (t > 0.7 ? (1 - t) / 0.3 : 1.0);
+        return Opacity(
+          opacity: opacity.clamp(0.0, 1.0),
+          child: Transform.translate(offset: Offset(0, 24 - 24 * t), child: child),
+        );
+      },
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.deepTurquoise,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 2)),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.bolt, color: AppColors.successGold, size: 20),
+              const SizedBox(width: 6),
+              Text(
+                '+$amount XP',
+                style: const TextStyle(
+                  color: AppColors.pureWhite,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

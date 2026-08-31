@@ -74,6 +74,7 @@ class JourneyTab extends ConsumerWidget {
                         Icons.add_circle,
                         color: AppColors.deepTurquoise,
                       ),
+                      tooltip: l10n.journeyAddGoalTooltip,
                       onPressed: () => _showAddGoalDialog(context),
                     ),
                   ],

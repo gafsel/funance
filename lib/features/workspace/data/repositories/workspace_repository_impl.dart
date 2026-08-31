@@ -97,12 +97,16 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   @override
   Future<void> updateWorkspace(WorkspaceModel workspace) async {
     try {
-      final data = workspace.toJson();
-      data.remove('id');
-      data['createdAt'] = Timestamp.fromDate(workspace.createdAt);
-      if (workspace.lastLevelUpAt != null) {
-        data['lastLevelUpAt'] = Timestamp.fromDate(workspace.lastLevelUpAt!);
-      }
+      // Grava apenas os campos editáveis pelo usuário. Campos de gamificação
+      // (xp, level, unlockedBadges, weeklyStreaks, lastLevelUpAt) e members
+      // são mantidos pelo servidor; incluí-los aqui causaria lost update.
+      final json = workspace.toJson();
+      final data = <String, dynamic>{
+        'name': json['name'],
+        'type': json['type'],
+        'lastOnboardingStep': json['lastOnboardingStep'],
+        'onboardingCompleted': json['onboardingCompleted'],
+      };
       await _firestore.collection(_collection).doc(workspace.id).update(data);
     } catch (e, s) {
       throw BusinessException(
@@ -111,6 +115,15 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         stackTrace: s,
       );
     }
+  }
+
+  @override
+  Stream<WorkspaceModel?> watchWorkspace(String id) {
+    return _firestore
+        .collection(_collection)
+        .doc(id)
+        .snapshots()
+        .map((doc) => doc.exists ? doc.toWorkspaceModel() : null);
   }
 
   @override

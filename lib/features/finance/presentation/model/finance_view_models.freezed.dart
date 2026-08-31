@@ -1933,7 +1933,7 @@ $Planning503020DistributionGroupCopyWith<$Res> get investment {
 /// @nodoc
 mixin _$TransactionWizardArgs {
 
- OrderType get type; bool get skipTransactions;
+ OrderType get type; bool get skipTransactions; String? get accountIdSource;
 /// Create a copy of TransactionWizardArgs
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1944,16 +1944,16 @@ $TransactionWizardArgsCopyWith<TransactionWizardArgs> get copyWith => _$Transact
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionWizardArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionWizardArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,skipTransactions);
+int get hashCode => Object.hash(runtimeType,type,skipTransactions,accountIdSource);
 
 @override
 String toString() {
-  return 'TransactionWizardArgs(type: $type, skipTransactions: $skipTransactions)';
+  return 'TransactionWizardArgs(type: $type, skipTransactions: $skipTransactions, accountIdSource: $accountIdSource)';
 }
 
 
@@ -1964,7 +1964,7 @@ abstract mixin class $TransactionWizardArgsCopyWith<$Res>  {
   factory $TransactionWizardArgsCopyWith(TransactionWizardArgs value, $Res Function(TransactionWizardArgs) _then) = _$TransactionWizardArgsCopyWithImpl;
 @useResult
 $Res call({
- OrderType type, bool skipTransactions
+ OrderType type, bool skipTransactions, String? accountIdSource
 });
 
 
@@ -1981,11 +1981,12 @@ class _$TransactionWizardArgsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionWizardArgs
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? skipTransactions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? skipTransactions = null,Object? accountIdSource = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -2067,10 +2068,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions,  String? accountIdSource)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionWizardArgs() when $default != null:
-return $default(_that.type,_that.skipTransactions);case _:
+return $default(_that.type,_that.skipTransactions,_that.accountIdSource);case _:
   return orElse();
 
 }
@@ -2088,10 +2089,10 @@ return $default(_that.type,_that.skipTransactions);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  bool skipTransactions,  String? accountIdSource)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionWizardArgs():
-return $default(_that.type,_that.skipTransactions);}
+return $default(_that.type,_that.skipTransactions,_that.accountIdSource);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2105,10 +2106,10 @@ return $default(_that.type,_that.skipTransactions);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  bool skipTransactions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  bool skipTransactions,  String? accountIdSource)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionWizardArgs() when $default != null:
-return $default(_that.type,_that.skipTransactions);case _:
+return $default(_that.type,_that.skipTransactions,_that.accountIdSource);case _:
   return null;
 
 }
@@ -2120,11 +2121,12 @@ return $default(_that.type,_that.skipTransactions);case _:
 
 
 class _TransactionWizardArgs implements TransactionWizardArgs {
-   _TransactionWizardArgs({required this.type, this.skipTransactions = false});
+   _TransactionWizardArgs({required this.type, this.skipTransactions = false, this.accountIdSource});
   
 
 @override final  OrderType type;
 @override@JsonKey() final  bool skipTransactions;
+@override final  String? accountIdSource;
 
 /// Create a copy of TransactionWizardArgs
 /// with the given fields replaced by the non-null parameter values.
@@ -2136,16 +2138,16 @@ _$TransactionWizardArgsCopyWith<_TransactionWizardArgs> get copyWith => __$Trans
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionWizardArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionWizardArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,skipTransactions);
+int get hashCode => Object.hash(runtimeType,type,skipTransactions,accountIdSource);
 
 @override
 String toString() {
-  return 'TransactionWizardArgs(type: $type, skipTransactions: $skipTransactions)';
+  return 'TransactionWizardArgs(type: $type, skipTransactions: $skipTransactions, accountIdSource: $accountIdSource)';
 }
 
 
@@ -2156,7 +2158,7 @@ abstract mixin class _$TransactionWizardArgsCopyWith<$Res> implements $Transacti
   factory _$TransactionWizardArgsCopyWith(_TransactionWizardArgs value, $Res Function(_TransactionWizardArgs) _then) = __$TransactionWizardArgsCopyWithImpl;
 @override @useResult
 $Res call({
- OrderType type, bool skipTransactions
+ OrderType type, bool skipTransactions, String? accountIdSource
 });
 
 
@@ -2173,11 +2175,12 @@ class __$TransactionWizardArgsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionWizardArgs
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? skipTransactions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? skipTransactions = null,Object? accountIdSource = freezed,}) {
   return _then(_TransactionWizardArgs(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -2187,7 +2190,7 @@ as bool,
 /// @nodoc
 mixin _$TransactionWizardState {
 
- OrderType get type; CategoryModel? get selectedCategory; InstallmentModel? get selectedInstallment; TransactionWizardStep get step; bool get skipTransactions;
+ OrderType get type; CategoryModel? get selectedCategory; InstallmentModel? get selectedInstallment; TransactionWizardStep get step; bool get skipTransactions; String? get accountIdSource;
 /// Create a copy of TransactionWizardState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2198,16 +2201,16 @@ $TransactionWizardStateCopyWith<TransactionWizardState> get copyWith => _$Transa
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionWizardState&&(identical(other.type, type) || other.type == type)&&(identical(other.selectedCategory, selectedCategory) || other.selectedCategory == selectedCategory)&&(identical(other.selectedInstallment, selectedInstallment) || other.selectedInstallment == selectedInstallment)&&(identical(other.step, step) || other.step == step)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionWizardState&&(identical(other.type, type) || other.type == type)&&(identical(other.selectedCategory, selectedCategory) || other.selectedCategory == selectedCategory)&&(identical(other.selectedInstallment, selectedInstallment) || other.selectedInstallment == selectedInstallment)&&(identical(other.step, step) || other.step == step)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,selectedCategory,selectedInstallment,step,skipTransactions);
+int get hashCode => Object.hash(runtimeType,type,selectedCategory,selectedInstallment,step,skipTransactions,accountIdSource);
 
 @override
 String toString() {
-  return 'TransactionWizardState(type: $type, selectedCategory: $selectedCategory, selectedInstallment: $selectedInstallment, step: $step, skipTransactions: $skipTransactions)';
+  return 'TransactionWizardState(type: $type, selectedCategory: $selectedCategory, selectedInstallment: $selectedInstallment, step: $step, skipTransactions: $skipTransactions, accountIdSource: $accountIdSource)';
 }
 
 
@@ -2218,7 +2221,7 @@ abstract mixin class $TransactionWizardStateCopyWith<$Res>  {
   factory $TransactionWizardStateCopyWith(TransactionWizardState value, $Res Function(TransactionWizardState) _then) = _$TransactionWizardStateCopyWithImpl;
 @useResult
 $Res call({
- OrderType type, CategoryModel? selectedCategory, InstallmentModel? selectedInstallment, TransactionWizardStep step, bool skipTransactions
+ OrderType type, CategoryModel? selectedCategory, InstallmentModel? selectedInstallment, TransactionWizardStep step, bool skipTransactions, String? accountIdSource
 });
 
 
@@ -2235,14 +2238,15 @@ class _$TransactionWizardStateCopyWithImpl<$Res>
 
 /// Create a copy of TransactionWizardState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? selectedCategory = freezed,Object? selectedInstallment = freezed,Object? step = null,Object? skipTransactions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? selectedCategory = freezed,Object? selectedInstallment = freezed,Object? step = null,Object? skipTransactions = null,Object? accountIdSource = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,selectedCategory: freezed == selectedCategory ? _self.selectedCategory : selectedCategory // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,selectedInstallment: freezed == selectedInstallment ? _self.selectedInstallment : selectedInstallment // ignore: cast_nullable_to_non_nullable
 as InstallmentModel?,step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as TransactionWizardStep,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of TransactionWizardState
@@ -2348,10 +2352,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions,  String? accountIdSource)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionWizardState() when $default != null:
-return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);case _:
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions,_that.accountIdSource);case _:
   return orElse();
 
 }
@@ -2369,10 +2373,10 @@ return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions,  String? accountIdSource)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionWizardState():
-return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);}
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions,_that.accountIdSource);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2386,10 +2390,10 @@ return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  CategoryModel? selectedCategory,  InstallmentModel? selectedInstallment,  TransactionWizardStep step,  bool skipTransactions,  String? accountIdSource)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionWizardState() when $default != null:
-return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions);case _:
+return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_that.step,_that.skipTransactions,_that.accountIdSource);case _:
   return null;
 
 }
@@ -2401,7 +2405,7 @@ return $default(_that.type,_that.selectedCategory,_that.selectedInstallment,_tha
 
 
 class _TransactionWizardState implements TransactionWizardState {
-  const _TransactionWizardState({required this.type, this.selectedCategory, this.selectedInstallment, this.step = TransactionWizardStep.category, this.skipTransactions = false});
+  const _TransactionWizardState({required this.type, this.selectedCategory, this.selectedInstallment, this.step = TransactionWizardStep.category, this.skipTransactions = false, this.accountIdSource});
   
 
 @override final  OrderType type;
@@ -2409,6 +2413,7 @@ class _TransactionWizardState implements TransactionWizardState {
 @override final  InstallmentModel? selectedInstallment;
 @override@JsonKey() final  TransactionWizardStep step;
 @override@JsonKey() final  bool skipTransactions;
+@override final  String? accountIdSource;
 
 /// Create a copy of TransactionWizardState
 /// with the given fields replaced by the non-null parameter values.
@@ -2420,16 +2425,16 @@ _$TransactionWizardStateCopyWith<_TransactionWizardState> get copyWith => __$Tra
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionWizardState&&(identical(other.type, type) || other.type == type)&&(identical(other.selectedCategory, selectedCategory) || other.selectedCategory == selectedCategory)&&(identical(other.selectedInstallment, selectedInstallment) || other.selectedInstallment == selectedInstallment)&&(identical(other.step, step) || other.step == step)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionWizardState&&(identical(other.type, type) || other.type == type)&&(identical(other.selectedCategory, selectedCategory) || other.selectedCategory == selectedCategory)&&(identical(other.selectedInstallment, selectedInstallment) || other.selectedInstallment == selectedInstallment)&&(identical(other.step, step) || other.step == step)&&(identical(other.skipTransactions, skipTransactions) || other.skipTransactions == skipTransactions)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,selectedCategory,selectedInstallment,step,skipTransactions);
+int get hashCode => Object.hash(runtimeType,type,selectedCategory,selectedInstallment,step,skipTransactions,accountIdSource);
 
 @override
 String toString() {
-  return 'TransactionWizardState(type: $type, selectedCategory: $selectedCategory, selectedInstallment: $selectedInstallment, step: $step, skipTransactions: $skipTransactions)';
+  return 'TransactionWizardState(type: $type, selectedCategory: $selectedCategory, selectedInstallment: $selectedInstallment, step: $step, skipTransactions: $skipTransactions, accountIdSource: $accountIdSource)';
 }
 
 
@@ -2440,7 +2445,7 @@ abstract mixin class _$TransactionWizardStateCopyWith<$Res> implements $Transact
   factory _$TransactionWizardStateCopyWith(_TransactionWizardState value, $Res Function(_TransactionWizardState) _then) = __$TransactionWizardStateCopyWithImpl;
 @override @useResult
 $Res call({
- OrderType type, CategoryModel? selectedCategory, InstallmentModel? selectedInstallment, TransactionWizardStep step, bool skipTransactions
+ OrderType type, CategoryModel? selectedCategory, InstallmentModel? selectedInstallment, TransactionWizardStep step, bool skipTransactions, String? accountIdSource
 });
 
 
@@ -2457,14 +2462,15 @@ class __$TransactionWizardStateCopyWithImpl<$Res>
 
 /// Create a copy of TransactionWizardState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? selectedCategory = freezed,Object? selectedInstallment = freezed,Object? step = null,Object? skipTransactions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? selectedCategory = freezed,Object? selectedInstallment = freezed,Object? step = null,Object? skipTransactions = null,Object? accountIdSource = freezed,}) {
   return _then(_TransactionWizardState(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,selectedCategory: freezed == selectedCategory ? _self.selectedCategory : selectedCategory // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,selectedInstallment: freezed == selectedInstallment ? _self.selectedInstallment : selectedInstallment // ignore: cast_nullable_to_non_nullable
 as InstallmentModel?,step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as TransactionWizardStep,skipTransactions: null == skipTransactions ? _self.skipTransactions : skipTransactions // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

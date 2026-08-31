@@ -691,6 +691,54 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         });
     }
 
+    async saveCoachingAnalysis(workspaceId: string, analysis: any): Promise<string> {
+        const docRef = await admin.firestore()
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("financial_coaching")
+            .add({
+                ...analysis,
+                date: analysis.date instanceof Date
+                    ? admin.firestore.Timestamp.fromDate(analysis.date)
+                    : admin.firestore.FieldValue.serverTimestamp(),
+            });
+        return docRef.id;
+    }
+
+    private getCoachingMetaDocRef(workspaceId: string) {
+        return this.firestore
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("coaching_meta")
+            .doc("category_groups");
+    }
+
+    async getCoachingCategoryGroups(workspaceId: string): Promise<Record<string, { group: string; name: string }> | null> {
+        const doc = await this.getCoachingMetaDocRef(workspaceId).get();
+        if (!doc.exists) return null;
+        const data = doc.data() as any;
+        return data?.groups || null;
+    }
+
+    async saveCoachingCategoryGroups(
+        workspaceId: string,
+        entries: Record<string, { group: string; name: string }>
+    ): Promise<void> {
+        if (Object.keys(entries).length === 0) return;
+        await this.getCoachingMetaDocRef(workspaceId).set({
+            groups: entries,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+    }
+
+    async hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean> {
+        const snapshot = await this.getInstallmentsCollection(workspaceId)
+            .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))
+            .limit(1)
+            .get();
+        return !snapshot.empty;
+    }
+
     async getAccounts(workspaceId: string): Promise<AccountModel[]> {
         const snapshot = await this.getAccountsCollection(workspaceId).where("isDeleted", "==", false).get();
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AccountModel));

@@ -20,23 +20,37 @@ class TransactionWizardNotifier extends StateNotifier<TransactionWizardState> {
     }
   }
 
+  /// Início e fim do mês corrente. O fim precisa cobrir o dia inteiro:
+  /// `DateTime(y, m+1, 0)` seria meia-noite do último dia e excluiria os
+  /// lançamentos desse dia (normalizados às 12:00).
+  ({DateTime start, DateTime end}) _currentMonthRange() {
+    final today = DateTime.now();
+    return (
+      start: DateTime(today.year, today.month, 1),
+      end: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
+    );
+  }
+
   void _checkPendingTransfer() async {
     if (state.skipTransactions) return;
     try {
-      final today = DateTime.now();
+      final range = _currentMonthRange();
       final pending = await financeService.queryInstallments(
         limit: 1,
         type: OrderType.transfer,
+        accountId: state.accountIdSource,
         status: InstallmentStatus.pending,
-        startDate: DateTime(today.year, today.month, 1),
-        endDate: DateTime(today.year, today.month + 1, 0),
+        startDate: range.start,
+        endDate: range.end,
       );
 
+      if (!mounted) return;
       if (pending.items.isEmpty) {
         state = state.copyWith(step: TransactionWizardStep.form);
       }
       // If items exist, it remains in transactions step which we set above
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(step: TransactionWizardStep.form);
     }
   }
@@ -52,15 +66,21 @@ class TransactionWizardNotifier extends StateNotifier<TransactionWizardState> {
     }
 
     try {
-      final today = DateTime.now();
+      final range = _currentMonthRange();
       final pending = await financeService.queryInstallments(
         limit: 1,
         type: state.type,
         categoryId: category.id,
+        accountId: state.accountIdSource,
         status: InstallmentStatus.pending,
-        startDate: DateTime(today.year, today.month, 1),
-        endDate: DateTime(today.year, today.month + 1, 0),
+        startDate: range.start,
+        endDate: range.end,
       );
+
+      if (!mounted) return;
+      // Resposta atrasada de uma categoria que não é mais a selecionada não
+      // deve mudar o passo do wizard.
+      if (state.selectedCategory?.id != category.id) return;
 
       if (pending.items.isEmpty) {
         state = state.copyWith(step: TransactionWizardStep.form);
@@ -68,6 +88,7 @@ class TransactionWizardNotifier extends StateNotifier<TransactionWizardState> {
         state = state.copyWith(step: TransactionWizardStep.transactions);
       }
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(step: TransactionWizardStep.form);
     }
   }

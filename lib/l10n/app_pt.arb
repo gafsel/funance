@@ -18,6 +18,29 @@
   "invalidEmail": "E-mail inválido",
   "shortPassword": "A senha deve ter pelo menos 6 caracteres",
   "errorUnknown": "Ocorreu um erro inesperado.",
+  "routeNotFound": "Página não encontrada.",
+  "routeNotFoundGoHome": "Voltar para o início",
+  "closeButton": "Fechar",
+  "badgeUnlockedToast": "Nova conquista desbloqueada!",
+  "badgeUnlockedView": "Ver",
+  "workspacePickerTitle": "Workspaces",
+  "transactionMoreOptions": "Mais Opções",
+  "onboardingConceptXpTitle": "Ganhe XP e suba de nível",
+  "onboardingConceptXpDesc": "Cada lançamento vale XP — e gastar dentro do planejado vale ainda mais. Seu workspace evolui de nível como num jogo.",
+  "onboardingConceptMissionsTitle": "Missões e conquistas",
+  "onboardingConceptMissionsDesc": "Complete missões semanais, mantenha sua sequência de semanas perfeitas e desbloqueie insígnias na sua vitrine de conquistas.",
+  "onboardingConceptCoachTitle": "Seu coach financeiro",
+  "onboardingConceptCoachDesc": "Um coach com IA que conhece seus números e traz conselhos práticos e personalizados rumo à sua liberdade financeira.",
+  "onboardingNoSuggestions": "Nenhuma sugestão por enquanto — você pode criar metas e planejamentos depois, na aba Jornada.",
+  "journeyStreakWeeks": "{count} semanas perfeitas seguidas",
+  "@journeyStreakWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "journeyAddGoalTooltip": "Nova meta",
   "errorKeychain": "Sua sessão não pôde ser salva. Você poderá usar o app, mas precisará logar novamente ao reabrir.",
   "errorUserNotFound": "Usuário não encontrado.",
   "errorWrongPassword": "Senha incorreta.",
@@ -942,5 +965,14 @@
   "badge_invite_accepted_name": "Bem-vindo ao Time",
   "badge_invite_accepted_desc": "Aceitar o convite para entrar em um workspace.",
   "badge_all_missions_week_name": "Semana Perfeita",
-  "badge_all_missions_week_desc": "Completar todas as missões semanais disponíveis em uma semana."
+  "badge_all_missions_week_desc": "Completar todas as missões semanais disponíveis em uma semana.",
+  "goalDebtTotalLabel": "Valor Total da Dívida",
+  "goalDebtTotalHint": "Quanto você deve no total?",
+  "goalDebtPaidLabel": "Valor Já Pago",
+  "goalDebtPaidHint": "Quanto você já amortizou?",
+  "goalDebtAccountLabel": "Vincular à Conta de Dívida",
+  "goalSpendingLimitHint": "Ex: 500,00 (limite de gasto)",
+  "accountNotFound": "Conta não encontrada.",
+  "savedSuccess": "Salvo com sucesso!",
+  "wizardPendingIntro": "Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?"
 }
