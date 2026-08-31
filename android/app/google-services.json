@@ -7,9 +7,61 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:870067420485:android:dd117619a51bdb3802d22c",
+        "mobilesdk_app_id": "1:870067420485:android:69c9a34d96dd9bc702d22c",
         "android_client_info": {
           "package_name": "br.com.funance"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "870067420485-itsld5r8accrmah9b68hej7ersotj2au.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.funance",
+            "certificate_hash": "9b272f58ea6862ae5d7fdb172e3259c0be96a644"
+          }
+        },
+        {
+          "client_id": "870067420485-kapi82mvctp9l7s6abfs6cr6t0pchrd7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "br.com.funance",
+            "certificate_hash": "37854f67919b0f9584543f5d96edc2423d48614f"
+          }
+        },
+        {
+          "client_id": "870067420485-gljsboqc1hphe2b2q3chlp03bhdfi4bk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB7-Y1oYV7BXImAL-16zKW34t4Q_DbrWl8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "870067420485-gljsboqc1hphe2b2q3chlp03bhdfi4bk.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "870067420485-scammnugo3cptuv4ssshsu8pknoa444d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.funances"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:870067420485:android:dd117619a51bdb3802d22c",
+        "android_client_info": {
+          "package_name": "com.example.funances"
         }
       },
       "oauth_client": [
@@ -29,6 +81,13 @@
             {
               "client_id": "870067420485-gljsboqc1hphe2b2q3chlp03bhdfi4bk.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "870067420485-scammnugo3cptuv4ssshsu8pknoa444d.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.funances"
+              }
             }
           ]
         }
