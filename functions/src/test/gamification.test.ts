@@ -1,4 +1,4 @@
-import { calculateLevel, GamificationService } from "../features/goal/domain/services/gamification.service";
+import { BADGES, calculateLevel, GamificationService } from "../features/goal/domain/services/gamification.service";
 import {
     addCalendarDays,
     endOfWeekFromStart,
@@ -110,12 +110,13 @@ describe("GamificationService", () => {
 
         it("should unlock planner if 5 plannings with amount > 0", async () => {
             const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+            // Formato real dos documentos de workspaces/{w}/category_planning
             const mockPlannings = [
-                { amount: 100 },
-                { amount: 200 },
-                { amount: 50 },
-                { amount: 300 },
-                { amount: 150 },
+                { amount: 100, category: { id: "c1", name: "Moradia", type: "expense", allocation: "essential" }, startMonth: "2026-01", endMonth: "2026-12" },
+                { amount: 200, category: { id: "c2", name: "Lazer", type: "expense", allocation: "comfort" }, startMonth: "2026-01", endMonth: "2026-12" },
+                { amount: 50, category: { id: "c3", name: "Aportes", type: "expense", allocation: "investment" }, startMonth: "2026-01", endMonth: "2026-12" },
+                { amount: 300, category: { id: "c4", name: "Alimentação", type: "expense", allocation: "essential" }, startMonth: "2026-01", endMonth: "2026-12" },
+                { amount: 150, category: { id: "c5", name: "Transporte", type: "expense", allocation: "essential" }, startMonth: "2026-01", endMonth: "2026-12" },
             ];
             mockRepository.getCategoryPlannings.mockResolvedValue(mockPlannings);
 
@@ -126,9 +127,9 @@ describe("GamificationService", () => {
         it("should unlock golden_rule when plannings cover all 3 pools", async () => {
             const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
             const mockPlannings = [
-                { amount: 100, category: { allocation: "essential" } },
-                { amount: 200, category: { allocation: "comfort" } },
-                { amount: 50, category: { allocation: "investment" } },
+                { amount: 100, category: { id: "c1", name: "Moradia", type: "expense", allocation: "essential" }, startMonth: "2026-01", endMonth: "2026-12" },
+                { amount: 200, category: { id: "c2", name: "Lazer", type: "expense", allocation: "comfort" }, startMonth: "2026-01", endMonth: "2026-12" },
+                { amount: 50, category: { id: "c3", name: "Aportes", type: "expense", allocation: "investment" }, startMonth: "2026-01", endMonth: "2026-12" },
             ];
             mockRepository.getCategoryPlannings.mockResolvedValue(mockPlannings);
 
@@ -150,12 +151,11 @@ describe("GamificationService", () => {
         it("should unlock goal badges", async () => {
             const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
             mockRepository.getGoals.mockResolvedValue([
-                { status: "completed" },
+                { runtimeType: "saveMoney", currentAmount: 100, targetAmount: 100 },
             ]);
 
-            await service.checkGoalBadges("w1", { status: "completed", type: "emergency" });
+            await service.checkGoalBadges("w1", { runtimeType: "saveMoney", currentAmount: 100, targetAmount: 100 });
             expect(spy).toHaveBeenCalledWith("w1", "savings_seed");
-            expect(spy).toHaveBeenCalledWith("w1", "emergency_shield");
         });
     });
 
@@ -166,7 +166,7 @@ describe("GamificationService", () => {
                 type: "personal",
             };
             const mockCategoryPlannings = [
-                { amount: 100, category: { name: "Alimentação" } },
+                { amount: 100, category: { id: "c1", name: "Alimentação", type: "expense", allocation: "essential" }, startMonth: "2026-01", endMonth: "2026-12" },
             ];
             const mockGoals: any[] = [];
 
@@ -421,9 +421,9 @@ describe("Weekly cron — evaluates the PREVIOUS full week", () => {
         expect(mockRepository.getWeeklyMissionsByWeek).toHaveBeenCalledWith("w1", "2026-W31");
         expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", 3);
 
-        const [, start, end] = mockRepository.getPaidInstallmentsInPeriod.mock.calls[0];
-        expect(start.toISOString()).toBe("2026-08-02T03:00:00.000Z");
-        expect(end.toISOString()).toBe("2026-08-09T02:59:59.999Z");
+        // O badge financial_synapsis foi removido: o cron não precisa mais
+        // varrer as parcelas pagas da semana.
+        expect(mockRepository.getPaidInstallmentsInPeriod).not.toHaveBeenCalled();
     });
 
     it("resets the streak when the previous week is incomplete", async () => {
@@ -546,5 +546,240 @@ describe("checkSimpleTransactionBadges — early return and count()", () => {
         expect(spy).toHaveBeenCalledWith("w1", "five_transactions");
         expect(spy).toHaveBeenCalledWith("w1", "twenty_transactions");
         expect(spy).not.toHaveBeenCalledWith("w1", "fifty_transactions");
+    });
+});
+
+/**
+ * Regressões da F2.1 — cada bloco abaixo falharia antes das correções.
+ */
+describe("F2.1 — badges de dupla removidos", () => {
+    it("o catálogo não expõe mais dynamic_duo, financial_synapsis nem emergency_shield", () => {
+        // dynamic_duo/financial_synapsis dependiam de createdBy/paidBy, que não
+        // existem em InstallmentModel; emergency_shield dependia do tipo de meta
+        // "emergency", que não existe no enum GoalType.
+        expect(BADGES.dynamic_duo).toBeUndefined();
+        expect(BADGES.financial_synapsis).toBeUndefined();
+        expect(BADGES.emergency_shield).toBeUndefined();
+    });
+
+    it("o serviço não expõe mais checkDynamicDuo", () => {
+        const service = new GamificationService(mockRepository as any);
+        expect((service as any).checkDynamicDuo).toBeUndefined();
+    });
+
+    it("checkGoalBadges não concede nenhum badge de dupla/emergência", async () => {
+        const service = new GamificationService(mockRepository as any);
+        const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        mockRepository.getGoals.mockResolvedValue([
+            { runtimeType: "payDebt", currentAmount: 10, targetAmount: 10 },
+        ]);
+
+        await service.checkGoalBadges("w1", { runtimeType: "payDebt", currentAmount: 10, targetAmount: 10 });
+
+        const granted = spy.mock.calls.map((c) => c[1]);
+        expect(granted).not.toContain("emergency_shield");
+        expect(granted).not.toContain("dynamic_duo");
+    });
+});
+
+describe("F2.1 — evaluateMonthlyMissionsCron lê linhas achatadas de period_summaries", () => {
+    let service: GamificationService;
+    let spy: jest.SpyInstance;
+
+    const row = (over: Partial<any>) => ({
+        categoryId: "c",
+        type: "expense",
+        allocation: undefined,
+        actualAmount: 0,
+        generalPlannedAmount: 0,
+        specificPlannedAmount: 0,
+        ...over,
+    });
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        jest.useFakeTimers({ now: new Date("2026-08-01T06:00:00Z") });
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    const granted = () => spy.mock.calls.map((c) => c[1]);
+
+    it("concede under_control quando o realizado fica dentro do planejado", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "moradia", generalPlannedAmount: 2000, actualAmount: 1800 }),
+                row({ categoryId: "salario", type: "income", actualAmount: 8000 }),
+            ])
+            .mockResolvedValueOnce([]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        expect(granted()).toContain("under_control");
+    });
+
+    it("NÃO concede under_control quando não houve planejamento de despesa (bug antigo)", async () => {
+        // Antes, qualquer workspace com um period_summary ganhava o badge,
+        // porque summary.actualAmount/summary.category eram sempre undefined.
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "lazer", generalPlannedAmount: 0, actualAmount: 900 }),
+            ])
+            .mockResolvedValueOnce([]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        expect(granted()).not.toContain("under_control");
+    });
+
+    it("NÃO concede under_control quando estourou o planejado", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "lazer", allocation: "comfort", generalPlannedAmount: 500, actualAmount: 900 }),
+            ])
+            .mockResolvedValueOnce([]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        expect(granted()).not.toContain("under_control");
+    });
+
+    it("concede future_focus quando o investido é >= 20% da receita", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "salario", type: "income", actualAmount: 5000 }),
+                row({ categoryId: "aportes", allocation: "investment", generalPlannedAmount: 1000, actualAmount: 1200 }),
+            ])
+            .mockResolvedValueOnce([]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        expect(granted()).toContain("future_focus");
+    });
+
+    it("concede cost_cutter quando o conforto cai para <= 80% do mês anterior", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "lazer", allocation: "comfort", generalPlannedAmount: 1000, actualAmount: 700 }),
+            ])
+            .mockResolvedValueOnce([
+                row({ categoryId: "lazer", allocation: "comfort", generalPlannedAmount: 1000, actualAmount: 1000 }),
+            ]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        expect(granted()).toContain("cost_cutter");
+    });
+});
+
+describe("F2.1 — checkFinancialHealthBadges lê linhas achatadas de period_summaries", () => {
+    let service: GamificationService;
+    let spy: jest.SpyInstance;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        mockRepository.getPaidInstallmentsSince.mockResolvedValue([]);
+    });
+
+    it("concede os badges de saúde financeira a partir do realizado por categoria", async () => {
+        mockRepository.getPeriodSummaries.mockResolvedValue([
+            { categoryId: "salario", type: "income", actualAmount: 6000, generalPlannedAmount: 0, specificPlannedAmount: 0 },
+            { categoryId: "moradia", type: "expense", actualAmount: 2000, generalPlannedAmount: 2000, specificPlannedAmount: 0 },
+            { categoryId: "alimentacao", type: "expense", actualAmount: 900, generalPlannedAmount: 1000, specificPlannedAmount: 0 },
+            { categoryId: "transporte", type: "expense", actualAmount: 400, generalPlannedAmount: 400, specificPlannedAmount: 0 },
+            { categoryId: "lazer", type: "expense", actualAmount: 300, generalPlannedAmount: 300, specificPlannedAmount: 0 },
+            { categoryId: "saude", type: "expense", actualAmount: 200, generalPlannedAmount: 200, specificPlannedAmount: 0 },
+        ]);
+
+        await service.checkFinancialHealthBadges("w1");
+
+        const granted = spy.mock.calls.map((c) => c[1]);
+        expect(granted).toContain("expense_under_income");
+        expect(granted).toContain("three_categories_month");
+        expect(granted).toContain("five_categories_month");
+        // 6000 - 3800 = 2200 >= 10% de 6000
+        expect(granted).toContain("savings_10pct");
+    });
+
+    it("não concede nada quando não há receita realizada no mês", async () => {
+        mockRepository.getPeriodSummaries.mockResolvedValue([
+            { categoryId: "moradia", type: "expense", actualAmount: 2000, generalPlannedAmount: 2000, specificPlannedAmount: 0 },
+        ]);
+
+        await service.checkFinancialHealthBadges("w1");
+
+        const granted = spy.mock.calls.map((c) => c[1]);
+        expect(granted).not.toContain("expense_under_income");
+        expect(granted).not.toContain("savings_10pct");
+    });
+
+    it("ignora categorias de despesa sem movimento na contagem de categorias do mês", async () => {
+        mockRepository.getPeriodSummaries.mockResolvedValue([
+            { categoryId: "salario", type: "income", actualAmount: 6000, generalPlannedAmount: 0, specificPlannedAmount: 0 },
+            { categoryId: "moradia", type: "expense", actualAmount: 2000, generalPlannedAmount: 2000, specificPlannedAmount: 0 },
+            { categoryId: "lazer", type: "expense", actualAmount: 0, generalPlannedAmount: 300, specificPlannedAmount: 0 },
+            { categoryId: "saude", type: "expense", actualAmount: 0, generalPlannedAmount: 200, specificPlannedAmount: 0 },
+        ]);
+
+        await service.checkFinancialHealthBadges("w1");
+
+        const granted = spy.mock.calls.map((c) => c[1]);
+        expect(granted).not.toContain("three_categories_month");
+    });
+});
+
+describe("F2.1 — tipo de meta lido do campo realmente persistido (runtimeType)", () => {
+    let service: GamificationService;
+    let spy: jest.SpyInstance;
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        // Todos os outros badges já desbloqueados para isolar goal_debt_paid.
+        mockRepository.getWorkspaceById.mockResolvedValue({
+            unlockedBadges: {
+                first_goal: "x", goal_linked_account: "x", long_term_goal: "x",
+                two_active_goals: "x", five_active_goals: "x", goal_deposit: "x",
+                savings_start: "x", goal_halfway: "x", goal_75pct: "x",
+                short_term_goal: "x", goal_under_deadline: "x",
+            },
+        });
+    });
+
+    it("concede goal_debt_paid para uma meta payDebt concluída", async () => {
+        await service.checkSimpleGoalBadges("w1", {
+            runtimeType: "payDebt",
+            currentAmount: 5000,
+            targetAmount: 5000,
+        });
+
+        expect(spy.mock.calls.map((c) => c[1])).toContain("goal_debt_paid");
+    });
+
+    it("aceita o campo legado `type` como fallback", async () => {
+        await service.checkSimpleGoalBadges("w1", {
+            type: "payDebt",
+            currentAmount: 5000,
+            targetAmount: 5000,
+        });
+
+        expect(spy.mock.calls.map((c) => c[1])).toContain("goal_debt_paid");
+    });
+
+    it("não concede goal_debt_paid para outros tipos de meta", async () => {
+        await service.checkSimpleGoalBadges("w1", {
+            runtimeType: "saveMoney",
+            currentAmount: 5000,
+            targetAmount: 5000,
+        });
+
+        expect(spy.mock.calls.map((c) => c[1])).not.toContain("goal_debt_paid");
     });
 });

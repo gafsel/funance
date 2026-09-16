@@ -47,11 +47,11 @@ export class GoalServiceImpl implements IGoalService {
         const role = inst.accounts![accountId];
         const amount = inst.paidAmount || inst.amount;
 
-        if (goalType === GoalType.save_money) {
+        if (goalType === GoalType.saveMoney) {
             // Contribui positivamente se for crédito, negativamente se for débito
             return role === "credit" ? amount : -amount;
         }
-        else if (goalType === GoalType.reduce_credit_card) {
+        else if (goalType === GoalType.reduceCreditCard) {
             // Interessa o total gasto (débitos)
             return role === "debt" ? amount : 0;
         }

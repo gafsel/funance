@@ -1,3 +1,17 @@
+/**
+ * Linha achatada de um period_summary: uma entrada do mapa `categories` do
+ * documento mensal, já com o join em `workspaces/{wid}/categories` feito
+ * (categorias `isDeleted` são omitidas). Há um único documento por mês.
+ */
+export interface PeriodSummaryRow {
+    categoryId: string;
+    type: string;
+    allocation?: string;
+    actualAmount: number;
+    generalPlannedAmount: number;
+    specificPlannedAmount: number;
+}
+
 export interface IGamificationRepository {
     getWorkspaceById(workspaceId: string): Promise<any | null>;
     addXp(workspaceId: string, amount: number, reason: string): Promise<void>;
@@ -18,7 +32,8 @@ export interface IGamificationRepository {
     updateWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void>;
     getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]>;
     updateWorkspaceStreaks(workspaceId: string, streaks: number): Promise<void>;
-    getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<any[]>;
+    /** Linhas (categoria x mês) do period_summary, já achatadas e com join em categories. */
+    getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<PeriodSummaryRow[]>;
     getCategoriesCount(workspaceId: string): Promise<number>;
     getPaidInstallments(workspaceId: string): Promise<any[]>;
     getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<any[]>;

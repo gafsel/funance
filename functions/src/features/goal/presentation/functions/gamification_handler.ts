@@ -97,11 +97,7 @@ export const onInstallmentWrittenGamification = onDocumentWritten(
             // 1. Check first_transaction
             await gamificationService.checkFirstTransaction(workspaceId);
 
-            // 2. Check dynamic_duo
-            const paidDate = after.paidDate?.toDate ? after.paidDate.toDate() : (after.paidDate ? new Date(after.paidDate) : new Date());
-            await gamificationService.checkDynamicDuo(workspaceId, paidDate);
-
-            // 3. Simple transaction-count and type badges
+            // 2. Simple transaction-count and type badges
             await gamificationService.checkSimpleTransactionBadges(workspaceId, after);
         }
 
@@ -110,8 +106,11 @@ export const onInstallmentWrittenGamification = onDocumentWritten(
     }
 );
 
+// A coleção real é `category_planning` (singular): é o caminho usado pelo
+// cliente, pelo category_planning_handler, pelas rules e pelos índices.
+// Com o plural, este trigger nunca disparava.
 export const onCategoryPlanningWrittenGamification = onDocumentWritten(
-    "workspaces/{workspaceId}/category_plannings/{planningId}",
+    "workspaces/{workspaceId}/category_planning/{planningId}",
     async (event) => {
         const workspaceId = event.params.workspaceId;
         logger.info(`[onCategoryPlanningWrittenGamification] Triggered for workspaceId=${workspaceId}`);

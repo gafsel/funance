@@ -3,6 +3,7 @@ import { CategoryType } from "../../../workspace/domain/models/category.model";
 import { IAIRepository } from "../../../../core/services/ai.service";
 import { IIdempotencyService } from "../../../../core/services/idempotency.service";
 import { IGamificationRepository } from "../repositories/gamification.repository";
+import { GoalType, resolveGoalType } from "../models/goal.model";
 import {
     addCalendarDays,
     endOfWeekFromStart,
@@ -50,14 +51,11 @@ export const BADGES: Record<string, BadgeConfig> = {
     savings_seed: { id: "savings_seed", name: "Semente de Poupança", icon: "savings", xpReward: 500 },
     goal_bronze: { id: "goal_bronze", name: "Colecionador de Metas", icon: "military_tech", xpReward: 1000 },
     goal_silver: { id: "goal_silver", name: "Foco Inabalável", icon: "stars", xpReward: 2000 },
-    emergency_shield: { id: "emergency_shield", name: "Escudo de Emergência", icon: "shield", xpReward: 800 },
     under_control: { id: "under_control", name: "Tudo Sob Controle", icon: "check_circle", xpReward: 1500 },
     golden_rule: { id: "golden_rule", name: "Regra de Ouro", icon: "pie_chart", xpReward: 1200 },
     future_focus: { id: "future_focus", name: "Visão de Futuro", icon: "trending_up", xpReward: 1000 },
     cost_cutter: { id: "cost_cutter", name: "Tesoura de Gastos", icon: "content_cut", xpReward: 800 },
-    dynamic_duo: { id: "dynamic_duo", name: "Dupla Dinâmica", icon: "people", xpReward: 400 },
     united_front: { id: "united_front", name: "Equipe Unida", icon: "groups", xpReward: 600 },
-    financial_synapsis: { id: "financial_synapsis", name: "Sinergia Financeira", icon: "hub", xpReward: 800 },
     iron_consistency: { id: "iron_consistency", name: "Consistência de Aço", icon: "calendar_month", xpReward: 2500 },
 
     // ── Simple Badges — Primeiros Passos (10) ────────────────────────────────────────
@@ -259,35 +257,6 @@ export class GamificationService {
             if (completedCount >= 5) {
                 await this.unlockBadge(workspaceId, "goal_silver");
             }
-
-            if (data.type === "emergency") {
-                await this.unlockBadge(workspaceId, "emergency_shield");
-            }
-        }
-    }
-
-    async checkDynamicDuo(workspaceId: string, paidDate: Date): Promise<void> {
-        const startOfMonth = new Date(paidDate.getFullYear(), paidDate.getMonth(), 1);
-        const endOfMonth = new Date(paidDate.getFullYear(), paidDate.getMonth() + 1, 0, 23, 59, 59);
-
-        const snapshot = await this.gamificationRepository.getPaidInstallmentsInPeriod(
-            workspaceId,
-            startOfMonth,
-            endOfMonth
-        );
-
-        const userIds = new Set<string>();
-        for (const inst of snapshot) {
-            if (inst.createdBy) {
-                userIds.add(inst.createdBy);
-            }
-            if (inst.paidBy) {
-                userIds.add(inst.paidBy);
-            }
-        }
-
-        if (userIds.size >= 2) {
-            await this.unlockBadge(workspaceId, "dynamic_duo");
         }
     }
 
@@ -580,7 +549,6 @@ export class GamificationService {
         // iniciada e vazia) zeraria a streak permanentemente.
         const currentWeekStart = startOfWeekInTz(now);
         const startOfWeek = addCalendarDays(currentWeekStart, -7);
-        const endOfWeek = new Date(currentWeekStart.getTime() - 1);
         const weekId = getWeekId(startOfWeek);
 
         const snapshot = await this.gamificationRepository.getWeeklyMissionsByWeek(workspaceId, weekId);
@@ -612,31 +580,6 @@ export class GamificationService {
             if (currentStreaks >= 4) {
                 await this.unlockBadge(workspaceId, "iron_consistency");
             }
-
-            const activeMembers = workspaceData.members || [];
-
-            const installments = await this.gamificationRepository.getPaidInstallmentsInPeriod(
-                workspaceId,
-                startOfWeek,
-                endOfWeek
-            );
-
-            const transactingUsers = new Set<string>();
-            for (const inst of installments) {
-                if (inst.createdBy) {
-                    transactingUsers.add(inst.createdBy);
-                }
-                if (inst.paidBy) {
-                    transactingUsers.add(inst.paidBy);
-                }
-            }
-
-            const allMembersTransacted = activeMembers.every((mId: string) => {
-                return transactingUsers.has(mId);
-            });
-            if (allMembersTransacted && activeMembers.length > 0) {
-                await this.unlockBadge(workspaceId, "financial_synapsis");
-            }
         }
         else {
             await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, 0);
@@ -659,46 +602,47 @@ export class GamificationService {
         const lastMonth = getMonthRangeInTz(now, -1);
         const year = lastMonth.year;
 
-        const snapshot = await this.gamificationRepository.getPeriodSummaries(
+        // Linhas achatadas (uma por categoria) já com o join em `categories`.
+        const rows = await this.gamificationRepository.getPeriodSummaries(
             workspaceId,
             year,
             lastMonth.month
         );
 
         let underControl = true;
-        let summaryCount = 0;
+        // Só faz sentido premiar "tudo sob controle" quando houve de fato
+        // planejamento de despesa no mês. Antes, qualquer workspace com um
+        // period_summary qualquer ganhava o badge.
+        let plannedExpenseCount = 0;
 
         let totalComfortExpenses = 0;
         let totalInvestmentSavings = 0;
         let totalIncomes = 0;
 
-        for (const summary of snapshot) {
-            summaryCount++;
-            const actual = summary.actualAmount || 0;
-            const planned = summary.generalPlannedAmount || 0;
+        for (const row of rows) {
+            const actual = row.actualAmount || 0;
+            const planned = row.generalPlannedAmount || 0;
 
-            if (summary.category) {
-                const type = summary.category.type;
-                const allocation = summary.category.allocation;
-
-                if (type === CategoryType.expense) {
-                    if (actual > planned) {
-                        underControl = false;
-                    }
-                    if (allocation === "comfort") {
-                        totalComfortExpenses += actual;
-                    }
-                    if (allocation === "investment") {
-                        totalInvestmentSavings += actual;
-                    }
+            if (row.type === CategoryType.expense) {
+                if (planned > 0) {
+                    plannedExpenseCount++;
                 }
-                else if (type === CategoryType.income) {
-                    totalIncomes += actual;
+                if (actual > planned) {
+                    underControl = false;
                 }
+                if (row.allocation === "comfort") {
+                    totalComfortExpenses += actual;
+                }
+                if (row.allocation === "investment") {
+                    totalInvestmentSavings += actual;
+                }
+            }
+            else if (row.type === CategoryType.income) {
+                totalIncomes += actual;
             }
         }
 
-        if (underControl && summaryCount > 0) {
+        if (underControl && plannedExpenseCount > 0) {
             await this.unlockBadge(workspaceId, "under_control");
         }
 
@@ -708,16 +652,16 @@ export class GamificationService {
 
         const prevMonth = getMonthRangeInTz(now, -2);
 
-        const prevSnapshot = await this.gamificationRepository.getPeriodSummaries(
+        const prevRows = await this.gamificationRepository.getPeriodSummaries(
             workspaceId,
             prevMonth.year,
             prevMonth.month
         );
 
         let prevComfortExpenses = 0;
-        for (const summary of prevSnapshot) {
-            if (summary.category && summary.category.type === CategoryType.expense && summary.category.allocation === "comfort") {
-                prevComfortExpenses += (summary.actualAmount || 0);
+        for (const row of prevRows) {
+            if (row.type === CategoryType.expense && row.allocation === "comfort") {
+                prevComfortExpenses += (row.actualAmount || 0);
             }
         }
 
@@ -932,7 +876,7 @@ export class GamificationService {
                 }
             }
 
-            if (isLocked("goal_debt_paid") && data.type === "payDebt") {
+            if (isLocked("goal_debt_paid") && resolveGoalType(data) === GoalType.payDebt) {
                 await this.unlockBadge(workspaceId, "goal_debt_paid");
             }
         }
@@ -1079,7 +1023,7 @@ export class GamificationService {
         const now = new Date();
         const currentMonth = getMonthRangeInTz(now, 0);
 
-        const snap = await this.gamificationRepository.getPeriodSummaries(
+        const rows = await this.gamificationRepository.getPeriodSummaries(
             workspaceId,
             currentMonth.year,
             currentMonth.month
@@ -1089,14 +1033,15 @@ export class GamificationService {
         let totalExpenses = 0;
         const categoryIds = new Set<string>();
 
-        for (const d of snap) {
-            if (d.category?.type === "income") {
-                totalIncome += d.actualAmount || 0;
+        for (const row of rows) {
+            if (row.type === CategoryType.income) {
+                totalIncome += row.actualAmount || 0;
             }
-            else if (d.category?.type === "expense") {
-                totalExpenses += d.actualAmount || 0;
-                if (d.category?.id) {
-                    categoryIds.add(d.category.id);
+            else if (row.type === CategoryType.expense) {
+                totalExpenses += row.actualAmount || 0;
+                // Só conta a categoria que teve movimento realizado no mês.
+                if ((row.actualAmount || 0) !== 0) {
+                    categoryIds.add(row.categoryId);
                 }
             }
         }
