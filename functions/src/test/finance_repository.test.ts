@@ -24,6 +24,7 @@ jest.mock("firebase-admin", () => {
 });
 
 import { FinanceRepositoryImpl } from "../features/finance/data/repositories/finance.repository.impl";
+import { InstallmentStatus } from "../features/finance/domain/models/finance.models";
 
 describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
     let whereCalls: Array<[string, string, any]>;
@@ -84,5 +85,76 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
         expect(deletedIds).toHaveLength(403);
         expect(deletedIds[0]).toBe("a-0");
         expect(deletedIds[402]).toBe("b-2");
+    });
+});
+
+/**
+ * Cobre a regra F1.13: `getInstallments` não excluía parcelas com
+ * status 'removed' (exclusão lógica) quando nenhum filtro de status era
+ * informado, contaminando relatórios e agregações.
+ */
+describe("FinanceRepositoryImpl.getInstallments", () => {
+    let whereCalls: Array<[string, string, any]>;
+
+    beforeEach(() => {
+        whereCalls = [];
+
+        const query: any = {
+            where(field: string, operator: string, value: any) {
+                whereCalls.push([field, operator, value]);
+                return query;
+            },
+            async get() {
+                return { docs: [], empty: true, size: 0 };
+            },
+        };
+
+        mockFirestoreState.collection = jest.fn(() => query);
+        mockFirestoreState.batch = () => ({
+            delete: jest.fn(), update: jest.fn(), set: jest.fn(), commit: jest.fn(),
+        });
+    });
+
+    it("exclui 'removed' por padrão quando nenhum status é informado", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        await repository.getInstallments("w1", {});
+
+        expect(whereCalls).toEqual([
+            ["status", "in", [InstallmentStatus.pending, InstallmentStatus.paid, InstallmentStatus.settled]],
+        ]);
+    });
+
+    it("mantém o filtro explícito de status, removendo 'removed' do conjunto", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        await repository.getInstallments("w1", {
+            status: [InstallmentStatus.paid, InstallmentStatus.removed],
+        });
+
+        expect(whereCalls).toEqual([["status", "in", [InstallmentStatus.paid]]]);
+    });
+
+    it("inclui 'removed' apenas com includeRemoved", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        await repository.getInstallments("w1", { includeRemoved: true });
+        expect(whereCalls).toEqual([]);
+
+        whereCalls = [];
+        await repository.getInstallments("w1", {
+            status: [InstallmentStatus.removed],
+            includeRemoved: true,
+        });
+        expect(whereCalls).toEqual([["status", "in", [InstallmentStatus.removed]]]);
+    });
+
+    it("retorna vazio (sem consultar) quando o filtro pede apenas 'removed' sem includeRemoved", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        const result = await repository.getInstallments("w1", { status: [InstallmentStatus.removed] });
+
+        expect(result).toEqual([]);
+        expect(whereCalls).toEqual([]);
     });
 });

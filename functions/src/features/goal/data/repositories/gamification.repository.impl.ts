@@ -203,17 +203,6 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             .update(data);
     }
 
-    async getInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<any[]> {
-        const snapshot = await admin.firestore()
-            .collection(`workspaces/${workspaceId}/installments`)
-            .where("dueDate", ">=", start)
-            .where("dueDate", "<=", end)
-            .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
-    }
-
     async getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/weekly_missions`)

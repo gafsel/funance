@@ -16,7 +16,6 @@ export interface IGamificationRepository {
     getWeeklyMission(workspaceId: string, weekId: string, type: string): Promise<any | null>;
     createWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void>;
     updateWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void>;
-    getInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<any[]>;
     getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]>;
     updateWorkspaceStreaks(workspaceId: string, streaks: number): Promise<void>;
     getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<any[]>;

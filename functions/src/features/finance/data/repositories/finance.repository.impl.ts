@@ -187,24 +187,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.getInstallmentsCollection(workspaceId).doc(installmentId).delete();
     }
 
-    async getInstallmentById(workspaceId: string, installmentId: string): Promise<InstallmentModel | null> {
-        const doc = await this.getInstallmentsCollection(workspaceId).doc(installmentId).get();
-        if (!doc.exists) return null;
-        const data = doc.data() as any;
-        const dueDate = data.dueDate.toDate();
-        dueDate.setHours(12, 0, 0, 0);
-
-        const paidDate = data.paidDate?.toDate();
-        if (paidDate) paidDate.setHours(12, 0, 0, 0);
-
-        return {
-            id: doc.id,
-            ...data,
-            dueDate: dueDate,
-            paidDate: paidDate,
-        } as InstallmentModel;
-    }
-
     async getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]> {
         const snapshot = await this.getInstallmentsCollection(workspaceId)
             .where("orderId", "==", orderId)
@@ -227,23 +209,12 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         });
     }
 
-    async deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void> {
-        const snapshot = await this.getInstallmentsCollection(workspaceId)
-            .where("orderId", "==", orderId)
-            .get();
-
-        const batch = this.firestore.batch();
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
-    }
-
     async getInstallments(workspaceId: string, filters: {
         accountId?: string,
         startDate?: Date,
         endDate?: Date,
-        status?: InstallmentStatus[]
+        status?: InstallmentStatus[],
+        includeRemoved?: boolean
     }): Promise<InstallmentModel[]> {
         let query: admin.firestore.Query = this.getInstallmentsCollection(workspaceId);
 
@@ -260,7 +231,26 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         }
 
         if (filters.status && filters.status.length > 0) {
-            query = query.where("status", "in", filters.status);
+            const status = filters.includeRemoved
+                ? filters.status
+                : filters.status.filter((s) => s !== InstallmentStatus.removed);
+
+            // Filtro explícito que só pedia 'removed' com includeRemoved=false:
+            // nada pode ser retornado (um `in` vazio é inválido no Firestore).
+            if (status.length === 0) {
+                return [];
+            }
+
+            query = query.where("status", "in", status);
+        }
+        else if (!filters.includeRemoved) {
+            // Parcelas 'removed' são exclusões lógicas: por padrão nunca entram
+            // em relatórios/agregações. Use includeRemoved para incluí-las.
+            query = query.where("status", "in", [
+                InstallmentStatus.pending,
+                InstallmentStatus.paid,
+                InstallmentStatus.settled,
+            ]);
         }
 
         const snapshot = await query.get();
@@ -283,26 +273,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 paidDate: paidDate,
                 referenceDate: referenceDate,
             } as InstallmentModel;
-        });
-    }
-
-    async getOrdersByRecurringNextGeneration(workspaceId: string, dateThreshold: Date): Promise<OrderModel[]> {
-        const snapshot = await this.getOrdersCollection(workspaceId)
-            .where("installmentType", "==", "recurring")
-            .where("status", "==", "active")
-            .where("lastGeneratedDueDate", "<", dateThreshold)
-            .get();
-
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            const lastGeneratedDueDate = data.lastGeneratedDueDate?.toDate();
-            if (lastGeneratedDueDate) lastGeneratedDueDate.setHours(12, 0, 0, 0);
-
-            return {
-                id: doc.id,
-                ...data,
-                lastGeneratedDueDate: lastGeneratedDueDate,
-            } as OrderModel;
         });
     }
 
@@ -359,25 +329,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 });
             }
         });
-    }
-
-    async getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null> {
-        const doc = await this.getCategoryPlanningCollection(workspaceId).doc(id).get();
-        if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() } as CategoryPlanningModel;
-    }
-
-    async createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string> {
-        const docRef = await this.getCategoryPlanningCollection(workspaceId).add(planning);
-        return docRef.id;
-    }
-
-    async updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void> {
-        await this.getCategoryPlanningCollection(workspaceId).doc(id).update(planning);
-    }
-
-    async deleteCategoryPlanning(workspaceId: string, id: string): Promise<void> {
-        await this.getCategoryPlanningCollection(workspaceId).doc(id).delete();
     }
 
     async deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void> {

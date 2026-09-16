@@ -22,7 +22,6 @@ const mockRepository = {
     getWeeklyMission: jest.fn(),
     createWeeklyMission: jest.fn(),
     updateWeeklyMission: jest.fn(),
-    getInstallmentsInPeriod: jest.fn(),
     getWeeklyMissionsByWeek: jest.fn(),
     updateWorkspaceStreaks: jest.fn(),
     getPeriodSummaries: jest.fn(),
