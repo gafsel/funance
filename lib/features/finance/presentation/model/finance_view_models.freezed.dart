@@ -3053,7 +3053,10 @@ mixin _$TransactionFormState {
 // cria uma order nova e deixa a parcela pendente para trás: o planejado
 // conta duas vezes no 50-30-20 e a parcela vira uma missão atrasada que
 // nunca fecha.
- List<InstallmentModel> get pendingMatches; bool get loadingMatches;// O usuário disse que é lançamento novo. A marca fica no estado para o
+ List<InstallmentModel> get pendingMatches;// Verdadeiro enquanto a busca corre. O formulário reserva o espaço do
+// banner enquanto isso: deixar a oferta aparecer depois empurraria os
+// campos para baixo bem quando o usuário já está tocando no valor.
+ bool get loadingMatches;// O usuário disse que é lançamento novo. A marca fica no estado para o
 // nudge de F3.2 saber que a pergunta já foi feita e recusada.
  bool get dismissedMatch;// Agendamento escolhido: a tela passa a editar esta parcela em vez de
 // criar uma order.
@@ -3357,6 +3360,9 @@ class _TransactionFormState extends TransactionFormState {
   return EqualUnmodifiableListView(_pendingMatches);
 }
 
+// Verdadeiro enquanto a busca corre. O formulário reserva o espaço do
+// banner enquanto isso: deixar a oferta aparecer depois empurraria os
+// campos para baixo bem quando o usuário já está tocando no valor.
 @override@JsonKey() final  bool loadingMatches;
 // O usuário disse que é lançamento novo. A marca fica no estado para o
 // nudge de F3.2 saber que a pergunta já foi feita e recusada.
