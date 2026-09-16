@@ -301,4 +301,273 @@ $WorkspaceModelCopyWith<$Res>? get currentWorkspace {
 }
 }
 
+/// @nodoc
+mixin _$WorkspaceGamification {
+
+ String? get workspaceId; int get xp; int get level; int get weeklyStreaks; Map<String, String> get unlockedBadges;
+/// Create a copy of WorkspaceGamification
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WorkspaceGamificationCopyWith<WorkspaceGamification> get copyWith => _$WorkspaceGamificationCopyWithImpl<WorkspaceGamification>(this as WorkspaceGamification, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceGamification&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&const DeepCollectionEquality().equals(other.unlockedBadges, unlockedBadges));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,workspaceId,xp,level,weeklyStreaks,const DeepCollectionEquality().hash(unlockedBadges));
+
+@override
+String toString() {
+  return 'WorkspaceGamification(workspaceId: $workspaceId, xp: $xp, level: $level, weeklyStreaks: $weeklyStreaks, unlockedBadges: $unlockedBadges)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $WorkspaceGamificationCopyWith<$Res>  {
+  factory $WorkspaceGamificationCopyWith(WorkspaceGamification value, $Res Function(WorkspaceGamification) _then) = _$WorkspaceGamificationCopyWithImpl;
+@useResult
+$Res call({
+ String? workspaceId, int xp, int level, int weeklyStreaks, Map<String, String> unlockedBadges
+});
+
+
+
+
+}
+/// @nodoc
+class _$WorkspaceGamificationCopyWithImpl<$Res>
+    implements $WorkspaceGamificationCopyWith<$Res> {
+  _$WorkspaceGamificationCopyWithImpl(this._self, this._then);
+
+  final WorkspaceGamification _self;
+  final $Res Function(WorkspaceGamification) _then;
+
+/// Create a copy of WorkspaceGamification
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? workspaceId = freezed,Object? xp = null,Object? level = null,Object? weeklyStreaks = null,Object? unlockedBadges = null,}) {
+  return _then(_self.copyWith(
+workspaceId: freezed == workspaceId ? _self.workspaceId : workspaceId // ignore: cast_nullable_to_non_nullable
+as String?,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
+as int,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
+as int,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
+as int,unlockedBadges: null == unlockedBadges ? _self.unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [WorkspaceGamification].
+extension WorkspaceGamificationPatterns on WorkspaceGamification {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WorkspaceGamification value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _WorkspaceGamification() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WorkspaceGamification value)  $default,){
+final _that = this;
+switch (_that) {
+case _WorkspaceGamification():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WorkspaceGamification value)?  $default,){
+final _that = this;
+switch (_that) {
+case _WorkspaceGamification() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  Map<String, String> unlockedBadges)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _WorkspaceGamification() when $default != null:
+return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.unlockedBadges);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  Map<String, String> unlockedBadges)  $default,) {final _that = this;
+switch (_that) {
+case _WorkspaceGamification():
+return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.unlockedBadges);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  Map<String, String> unlockedBadges)?  $default,) {final _that = this;
+switch (_that) {
+case _WorkspaceGamification() when $default != null:
+return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.unlockedBadges);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class _WorkspaceGamification implements WorkspaceGamification {
+  const _WorkspaceGamification({this.workspaceId, this.xp = 0, this.level = 1, this.weeklyStreaks = 0, final  Map<String, String> unlockedBadges = const {}}): _unlockedBadges = unlockedBadges;
+  
+
+@override final  String? workspaceId;
+@override@JsonKey() final  int xp;
+@override@JsonKey() final  int level;
+@override@JsonKey() final  int weeklyStreaks;
+ final  Map<String, String> _unlockedBadges;
+@override@JsonKey() Map<String, String> get unlockedBadges {
+  if (_unlockedBadges is EqualUnmodifiableMapView) return _unlockedBadges;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_unlockedBadges);
+}
+
+
+/// Create a copy of WorkspaceGamification
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$WorkspaceGamificationCopyWith<_WorkspaceGamification> get copyWith => __$WorkspaceGamificationCopyWithImpl<_WorkspaceGamification>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceGamification&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&const DeepCollectionEquality().equals(other._unlockedBadges, _unlockedBadges));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,workspaceId,xp,level,weeklyStreaks,const DeepCollectionEquality().hash(_unlockedBadges));
+
+@override
+String toString() {
+  return 'WorkspaceGamification(workspaceId: $workspaceId, xp: $xp, level: $level, weeklyStreaks: $weeklyStreaks, unlockedBadges: $unlockedBadges)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$WorkspaceGamificationCopyWith<$Res> implements $WorkspaceGamificationCopyWith<$Res> {
+  factory _$WorkspaceGamificationCopyWith(_WorkspaceGamification value, $Res Function(_WorkspaceGamification) _then) = __$WorkspaceGamificationCopyWithImpl;
+@override @useResult
+$Res call({
+ String? workspaceId, int xp, int level, int weeklyStreaks, Map<String, String> unlockedBadges
+});
+
+
+
+
+}
+/// @nodoc
+class __$WorkspaceGamificationCopyWithImpl<$Res>
+    implements _$WorkspaceGamificationCopyWith<$Res> {
+  __$WorkspaceGamificationCopyWithImpl(this._self, this._then);
+
+  final _WorkspaceGamification _self;
+  final $Res Function(_WorkspaceGamification) _then;
+
+/// Create a copy of WorkspaceGamification
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? workspaceId = freezed,Object? xp = null,Object? level = null,Object? weeklyStreaks = null,Object? unlockedBadges = null,}) {
+  return _then(_WorkspaceGamification(
+workspaceId: freezed == workspaceId ? _self.workspaceId : workspaceId // ignore: cast_nullable_to_non_nullable
+as String?,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
+as int,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
+as int,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
+as int,unlockedBadges: null == unlockedBadges ? _self._unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+
+}
+
 // dart format on

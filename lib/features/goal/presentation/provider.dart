@@ -8,6 +8,7 @@ import 'package:funances/features/goal/domain/models/goal_feasibility_model.dart
 import 'package:funances/features/goal/domain/services/goal_service.dart';
 import 'package:funances/features/goal/domain/services/goal_feasibility_service.dart';
 import 'package:funances/features/goal/domain/services/goal_milestone_service.dart';
+import 'package:funances/features/goal/domain/repositories/goal_repository.dart';
 import 'package:funances/features/goal/domain/repositories/goal_milestone_repository.dart';
 import 'package:funances/features/goal/presentation/providers/goal_feasibility_provider.dart';
 import 'package:funances/features/goal/presentation/providers/goal_form_provider.dart';
@@ -15,12 +16,13 @@ import 'package:funances/features/goal/presentation/providers/goal_milestone_pro
 import 'package:funances/features/workspace/presentation/providers.dart';
 
 sealed class GoalDomainProvider {
-  static final repository = Provider((_) => GoalRepositoryImpl());
+  static final repository = Provider<IGoalRepository>(
+    (_) => GoalRepositoryImpl(),
+  );
 
   static final service = Provider(
     (ref) => GoalService(
-      workspaceId:
-          ref.read(WorkspaceViewProviders.workspace).currentWorkspace?.id ?? "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
     ),
   );
@@ -31,9 +33,7 @@ sealed class GoalDomainProvider {
 
   static final feasibilityService = Provider(
     (ref) => GoalFeasibilityService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(feasibilityRepository),
     ),
   );

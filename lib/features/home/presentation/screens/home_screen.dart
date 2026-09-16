@@ -60,12 +60,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Reage às atualizações em tempo real do workspace (XP, badges, nível
     // concedidos pelo servidor) com celebrações imediatas.
-    ref.listen(WorkspaceViewProviders.workspace, (previous, next) {
-      final prevWorkspace = previous?.currentWorkspace;
-      final currWorkspace = next.currentWorkspace;
+    ref.listen(WorkspaceViewProviders.gamification, (previous, next) {
+      final prevWorkspace = previous;
+      final currWorkspace = next;
 
-      if (prevWorkspace == null || currWorkspace == null) return;
-      if (prevWorkspace.id != currWorkspace.id) return;
+      if (prevWorkspace == null) return;
+      if (prevWorkspace.workspaceId == null || currWorkspace.workspaceId == null) {
+        return;
+      }
+      if (prevWorkspace.workspaceId != currWorkspace.workspaceId) return;
 
       final leveledUp = currWorkspace.level > prevWorkspace.level;
       final xpDelta = currWorkspace.xp - prevWorkspace.xp;

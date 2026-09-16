@@ -13,6 +13,8 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
+import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
+import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -52,11 +54,8 @@ class AutomaticTransactionDomainProviders {
   });
 
   static final service = Provider<AutomaticTransactionService>((ref) {
-    final workspace = ref
-        .watch(WorkspaceViewProviders.workspace)
-        .currentWorkspace;
     return AutomaticTransactionService(
-      workspaceId: workspace?.id ?? "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.watch(repository),
     );
   });
@@ -89,9 +88,7 @@ class PlanningDomainProviders {
 
   static final service = Provider(
     (ref) => PlanningService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
     ),
   );
@@ -104,9 +101,7 @@ class AccountDomainProviders {
 
   static final service = Provider<AccountService>(
     (ref) => AccountService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
     ),
@@ -114,13 +109,13 @@ class AccountDomainProviders {
 }
 
 class FinanceDomainProviders {
-  static final repository = Provider((ref) => FinanceRepositoryImpl());
+  static final repository = Provider<IFinanceRepository>(
+    (ref) => FinanceRepositoryImpl(),
+  );
 
   static final service = Provider(
     (ref) => FinanceService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       accountRepository: ref.read(AccountDomainProviders.repository),
       categoryRepository: ref.watch(CategoryDomainProviders.repository),
@@ -137,9 +132,7 @@ class PlanningAnalysisDomainProviders {
 
   static final service = Provider.autoDispose<PlanningAnalysisService>((ref) {
     return PlanningAnalysisService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.watch(repository),
     );
   });
@@ -152,9 +145,7 @@ class ReconciliationDomainProviders {
 
   static final service = Provider<ReconciliationService>((ref) {
     return ReconciliationService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       accountService: ref.watch(AccountDomainProviders.service),
       financeService: ref.watch(FinanceDomainProviders.service),
@@ -701,13 +692,13 @@ class FinanceViewProviders {
 }
 
 class PeriodSummaryDomainProviders {
-  static final repository = Provider((ref) => PeriodSummaryRepositoryImpl());
+  static final repository = Provider<IPeriodSummaryRepository>(
+    (ref) => PeriodSummaryRepositoryImpl(),
+  );
 
   static final service = Provider(
     (ref) => PeriodSummaryService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
     ),
   );
