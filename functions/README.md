@@ -71,6 +71,39 @@ Quando o modelo primário responde 503/429/500, `generateResilient` tenta de nov
 e depois cai para `gemini-2.5-flash` → `gemini-2.5-flash-lite`. O `ai_log`
 registra o modelo que **de fato** respondeu.
 
+## Análise de documento: limites e transporte do arquivo
+
+Extrato/fatura em PDF ou imagem sobem para o Storage e as callables
+`analyzeAccountDocument` e `analyzeReconciliationDocument` os enviam ao Gemini.
+Duas fronteiras (`src/core/utils/document_limits.ts`):
+
+| Tamanho          | O que acontece |
+|------------------|----------------|
+| até **4 MB**     | vai **inline** no prompt (base64) — um round-trip a menos |
+| 4 MB a **10 MB** | sobe pela **Files API** do Gemini; o prompt referencia só a URI (`fileData`) e o arquivo remoto é apagado logo após a resposta |
+| acima de **10 MB** | `invalid-argument` com mensagem em português |
+
+Por que a fronteira de 4 MB: base64 infla o arquivo em ~33%, e o payload
+inteiro precisa caber no limite de request do Gemini e na memória da function.
+
+O teto de 10 MB é verificado **no handler, só pelos metadados do Storage** —
+antes de consumir cota e antes de baixar o arquivo. Um upload de 40 MB não
+custa cota nem memória. O serviço reconfere pelo tamanho do buffer: ele não
+confia em quem o chama.
+
+As duas callables usam o preset `AI_DOCUMENT_CALLABLE_OPTIONS`
+(**1GiB**, 300s): no pior caso legítimo convivem no processo o buffer de 10 MB
+baixado do Storage, o base64 e a resposta do modelo.
+
+### Contrato com o cliente Flutter
+
+- Arquivo acima de 10 MB: `FirebaseFunctionsException` com
+  `code: "invalid-argument"` e a mensagem
+  *"O arquivo tem X MB e o limite para análise é de 10,0 MB. Envie um período
+  menor (um mês por vez) ou o arquivo OFX do seu banco, que é bem mais leve."*
+  Vale checar o tamanho no app antes do upload, para não gastar banda à toa.
+- Arquivo inexistente no Storage: agora `not-found` (antes vinha `internal`).
+
 ## Quotas de IA
 
 `src/core/services/quota.service.ts` aplica um limite diário por workspace em

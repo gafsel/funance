@@ -17,6 +17,19 @@ export const AI_CALLABLE_OPTIONS: CallableOptions = {
 };
 
 /**
+ * Callables que analisam DOCUMENTO (extrato/fatura em PDF ou imagem).
+ *
+ * 1GiB porque o pior caso legítimo é um arquivo de 10 MB (o teto de F5.4)
+ * dentro do processo ao mesmo tempo que o buffer baixado do Storage, o base64
+ * do caminho inline e a resposta do modelo. Com 512MiB o OOM não era teórico.
+ */
+export const AI_DOCUMENT_CALLABLE_OPTIONS: CallableOptions = {
+    memory: "1GiB",
+    timeoutSeconds: 300,
+    maxInstances: 3,
+};
+
+/**
  * Callables de IA mais rápidas (payload já pré-calculado pelo servidor,
  * sem upload de documento): mesmo teto de instâncias, timeout menor.
  */

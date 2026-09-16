@@ -1,7 +1,8 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { container } from "../../../../core/container";
 import { assertWorkspaceMember } from "../../../../core/services/workspace_access.service";
-import { AI_CALLABLE_OPTIONS, AI_CALLABLE_OPTIONS_SHORT } from "../../../../core/config/functions.config";
+import { AI_CALLABLE_OPTIONS, AI_CALLABLE_OPTIONS_SHORT, AI_DOCUMENT_CALLABLE_OPTIONS } from "../../../../core/config/functions.config";
+import { assertStoredDocumentWithinLimit } from "../../../../core/utils/document_limits";
 import { AI_DAILY_QUOTAS } from "../../../../core/config/quota.config";
 import { isTransientAiError } from "../../../../core/services/ai.service";
 import { validateGoalFeasibilityPayload } from "../../../../core/services/ai_validation";
@@ -39,7 +40,7 @@ export const analysePlanning = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     }
 });
 
-export const analyzeAccountDocument = onCall(AI_CALLABLE_OPTIONS, async (request) => {
+export const analyzeAccountDocument = onCall(AI_DOCUMENT_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
@@ -51,6 +52,10 @@ export const analyzeAccountDocument = onCall(AI_CALLABLE_OPTIONS, async (request
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
+
+    // Teto de 10 MB checado só pelos METADADOS do Storage, antes de consumir
+    // cota e antes de baixar o arquivo (F5.4).
+    await assertStoredDocumentWithinLimit(storagePath);
 
     // Sem cache server-side: a cota é consumida já aqui. O estorno em
     // falha de infraestrutura mantém a simetria com coaching/50-30-20.
@@ -75,7 +80,7 @@ export const analyzeAccountDocument = onCall(AI_CALLABLE_OPTIONS, async (request
     }
 });
 
-export const analyzeReconciliationDocument = onCall(AI_CALLABLE_OPTIONS, async (request) => {
+export const analyzeReconciliationDocument = onCall(AI_DOCUMENT_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
@@ -87,6 +92,10 @@ export const analyzeReconciliationDocument = onCall(AI_CALLABLE_OPTIONS, async (
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
+
+    // Teto de 10 MB checado só pelos METADADOS do Storage, antes de consumir
+    // cota e antes de baixar o arquivo (F5.4).
+    await assertStoredDocumentWithinLimit(storagePath);
 
     // Sem cache server-side: a cota é consumida já aqui. O estorno em
     // falha de infraestrutura mantém a simetria com coaching/50-30-20.

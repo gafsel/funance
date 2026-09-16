@@ -8,6 +8,10 @@ import * as ofx from "ofx-js";
 import * as crypto from "crypto";
 import { renderTemplate } from "../utils/prompt_template";
 import {
+    INLINE_DOCUMENT_MAX_BYTES,
+    assertDocumentWithinLimit,
+} from "../utils/document_limits";
+import {
     ValidatedDocumentAnalysis,
     validateAutomaticTransaction,
     validateDocumentAnalysis,
@@ -486,6 +490,11 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     private static readonly FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
     private static readonly RETRYABLE_STATUS = [429, 500, 503];
 
+    // Espera do upload na Files API (arquivo grande fica PROCESSING antes de
+    // poder ser referenciado num prompt).
+    private static readonly FILE_PROCESSING_TIMEOUT_MS = 60_000;
+    private static readonly FILE_POLL_INTERVAL_MS = 1_000;
+
     constructor() {
         this.genAI = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     }
@@ -537,6 +546,84 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             }
         }
         throw lastError;
+    }
+
+    /**
+     * Monta a parte do prompt que carrega o documento (PDF/imagem).
+     *
+     * Até 4 MB vai **inline** em base64: um round-trip a menos e nada para
+     * limpar depois. Acima disso o base64 inflaria o payload em ~33% e
+     * estouraria o limite de request do Gemini, então o arquivo sobe pela
+     * **Files API** e o prompt referencia só a URI (`fileData`).
+     *
+     * Devolve também um `cleanup`: o arquivo remoto é apagado assim que a
+     * resposta chega. O Gemini já expira o upload em 48h sozinho, mas deixar
+     * extrato do usuário parado lá é dado financeiro sem motivo.
+     */
+    private async buildDocumentPart(
+        fileBuffer: Buffer,
+        mimeType: string,
+        fileName: string
+    ): Promise<{ part: any; cleanup: () => Promise<void> }> {
+        // Segunda linha de defesa: o handler já recusou pelo metadado do
+        // Storage, mas o serviço não pode confiar em quem o chama.
+        assertDocumentWithinLimit(fileBuffer.length);
+
+        const noop = async () => undefined;
+
+        if (fileBuffer.length <= INLINE_DOCUMENT_MAX_BYTES) {
+            return {
+                part: { inlineData: { data: fileBuffer.toString("base64"), mimeType } },
+                cleanup: noop,
+            };
+        }
+
+        console.log(
+            `Documento ${fileName} com ${fileBuffer.length} bytes: enviando pela Files API do Gemini.`
+        );
+
+        const uploaded = await this.genAI.files.upload({
+            file: new Blob([new Uint8Array(fileBuffer)], { type: mimeType }),
+            config: { mimeType, displayName: fileName },
+        });
+
+        const ready = await this.waitForFileActive(uploaded);
+
+        return {
+            part: { fileData: { fileUri: ready.uri, mimeType: ready.mimeType || mimeType } },
+            cleanup: async () => {
+                if (!ready.name) return;
+                try {
+                    await this.genAI.files.delete({ name: ready.name });
+                }
+                catch (error) {
+                    // Expira sozinho em 48h; não vale derrubar a análise.
+                    console.warn(`Falha ao apagar o arquivo ${ready.name} da Files API:`, error);
+                }
+            },
+        };
+    }
+
+    /**
+     * Espera o upload sair de PROCESSING. Um PDF grande não fica utilizável
+     * no mesmo instante do upload; usar a URI antes disso devolve 400.
+     */
+    private async waitForFileActive(file: any): Promise<any> {
+        const deadline = Date.now() + GeminiAIRepositoryImpl.FILE_PROCESSING_TIMEOUT_MS;
+        let current = file;
+
+        while (current?.state === "PROCESSING" && Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, GeminiAIRepositoryImpl.FILE_POLL_INTERVAL_MS));
+            current = await this.genAI.files.get({ name: current.name });
+        }
+
+        if (current?.state === "FAILED") {
+            throw new Error(`O Gemini não conseguiu processar o arquivo enviado: ${current?.error?.message ?? "motivo desconhecido"}.`);
+        }
+        if (current?.state === "PROCESSING") {
+            throw new Error("O processamento do arquivo pelo Gemini demorou demais. Tente novamente.");
+        }
+        return current;
     }
 
     /**
@@ -856,28 +943,27 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 existingCategories: existingCategories.join(" | "),
             });
 
-            const text = await this.generateWithLogging(
-                workspaceId,
-                isImage ? "document_analysis_image" : "document_analysis_pdf",
-                {
-                    model: config.models.document,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: DOCUMENT_RESPONSE_SCHEMA,
-                    },
-                },
-                [
-                    prompt,
+            const document = await this.buildDocumentPart(fileBuffer, mimeType, fileName);
+            let text: string;
+            try {
+                text = await this.generateWithLogging(
+                    workspaceId,
+                    isImage ? "document_analysis_image" : "document_analysis_pdf",
                     {
-                        inlineData: {
-                            data: fileBuffer.toString("base64"),
-                            mimeType: mimeType,
+                        model: config.models.document,
+                        config: {
+                            responseMimeType: "application/json",
+                            responseSchema: DOCUMENT_RESPONSE_SCHEMA,
                         },
                     },
-                ],
-                prompt,
-                { fileName, storagePath },
-            );
+                    [prompt, document.part],
+                    prompt,
+                    { fileName, storagePath },
+                );
+            }
+            finally {
+                await document.cleanup();
+            }
 
             analysis = validateDocumentAnalysis(parseAIJsonSafe(text));
         }
@@ -959,28 +1045,26 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             );
         }
         else {
-            text = await this.generateWithLogging(
-                workspaceId,
-                "reconciliation_analysis",
-                {
-                    model: config.models.document,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: RECONCILIATION_RESPONSE_SCHEMA,
-                    },
-                },
-                [
-                    prompt,
+            const document = await this.buildDocumentPart(fileBuffer, mimeType, fileName);
+            try {
+                text = await this.generateWithLogging(
+                    workspaceId,
+                    "reconciliation_analysis",
                     {
-                        inlineData: {
-                            data: fileBuffer.toString("base64"),
-                            mimeType: mimeType,
+                        model: config.models.document,
+                        config: {
+                            responseMimeType: "application/json",
+                            responseSchema: RECONCILIATION_RESPONSE_SCHEMA,
                         },
                     },
-                ],
-                prompt,
-                { fileName },
-            );
+                    [prompt, document.part],
+                    prompt,
+                    { fileName },
+                );
+            }
+            finally {
+                await document.cleanup();
+            }
         }
 
         const parsed = parseAIJsonSafe(text);
