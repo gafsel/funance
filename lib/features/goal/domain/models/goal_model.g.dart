@@ -15,6 +15,9 @@ _GoalModelPayDebt _$GoalModelPayDebtFromJson(Map<String, dynamic> json) =>
       deadline: DateTime.parse(json['deadline'] as String),
       accountId: json['accountId'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
       isDeleted: json['isDeleted'] as bool? ?? false,
       $type: json['runtimeType'] as String?,
     );
@@ -28,6 +31,7 @@ Map<String, dynamic> _$GoalModelPayDebtToJson(_GoalModelPayDebt instance) =>
       'deadline': instance.deadline.toIso8601String(),
       'accountId': instance.accountId,
       'startDate': instance.startDate.toIso8601String(),
+      'completedAt': instance.completedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'runtimeType': instance.$type,
     };
@@ -42,6 +46,9 @@ _GoalModelCreditCard _$GoalModelCreditCardFromJson(Map<String, dynamic> json) =>
       deadline: DateTime.parse(json['deadline'] as String),
       accountId: json['accountId'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
       isDeleted: json['isDeleted'] as bool? ?? false,
       $type: json['runtimeType'] as String?,
     );
@@ -57,6 +64,7 @@ Map<String, dynamic> _$GoalModelCreditCardToJson(
   'deadline': instance.deadline.toIso8601String(),
   'accountId': instance.accountId,
   'startDate': instance.startDate.toIso8601String(),
+  'completedAt': instance.completedAt?.toIso8601String(),
   'isDeleted': instance.isDeleted,
   'runtimeType': instance.$type,
 };
@@ -72,6 +80,9 @@ _GoalModelReduceExpense _$GoalModelReduceExpenseFromJson(
   deadline: DateTime.parse(json['deadline'] as String),
   category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
   startDate: DateTime.parse(json['startDate'] as String),
+  completedAt: json['completedAt'] == null
+      ? null
+      : DateTime.parse(json['completedAt'] as String),
   isDeleted: json['isDeleted'] as bool? ?? false,
   $type: json['runtimeType'] as String?,
 );
@@ -87,6 +98,7 @@ Map<String, dynamic> _$GoalModelReduceExpenseToJson(
   'deadline': instance.deadline.toIso8601String(),
   'category': instance.category.toJson(),
   'startDate': instance.startDate.toIso8601String(),
+  'completedAt': instance.completedAt?.toIso8601String(),
   'isDeleted': instance.isDeleted,
   'runtimeType': instance.$type,
 };
@@ -100,6 +112,9 @@ _GoalModelSaveMoney _$GoalModelSaveMoneyFromJson(Map<String, dynamic> json) =>
       deadline: DateTime.parse(json['deadline'] as String),
       accountId: json['accountId'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
       isDeleted: json['isDeleted'] as bool? ?? false,
       $type: json['runtimeType'] as String?,
     );
@@ -113,6 +128,7 @@ Map<String, dynamic> _$GoalModelSaveMoneyToJson(_GoalModelSaveMoney instance) =>
       'deadline': instance.deadline.toIso8601String(),
       'accountId': instance.accountId,
       'startDate': instance.startDate.toIso8601String(),
+      'completedAt': instance.completedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'runtimeType': instance.$type,
     };

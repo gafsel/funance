@@ -82,84 +82,34 @@ class GoalFormScreen extends ConsumerWidget {
                 onChanged: notifier.updateName,
                 validator: v.notEmpty().and(v.length(max: 150, min: 3)),
               ),
-              if (state.type == GoalType.saveMoney) ...[
-                MoneyFormField(
-                  initialValue: state.targetAmount > 0
-                      ? state.targetAmount
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalTargetAmountLabel,
-                  ),
-                  onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
-                  validator: v.notNull(),
+              // Valor de referência da meta. O rótulo muda porque o número
+              // significa coisas diferentes: em `saveMoney`/`payDebt` é o
+              // quanto se quer juntar/quitar; nas de redução é um TETO.
+              MoneyFormField(
+                initialValue: state.targetAmount > 0
+                    ? state.targetAmount
+                    : null,
+                decoration: InputDecoration(
+                  labelText: switch (state.type) {
+                    GoalType.saveMoney => l10n.goalTargetAmountLabel,
+                    GoalType.payDebt => l10n.goalDebtTotalLabel,
+                    GoalType.reduceExpense ||
+                    GoalType.reduceCreditCard => l10n.goalSpendingLimitLabel,
+                  },
+                  hintText: switch (state.type) {
+                    GoalType.saveMoney => null,
+                    GoalType.payDebt => l10n.goalDebtTotalHint,
+                    GoalType.reduceExpense ||
+                    GoalType.reduceCreditCard => l10n.goalSpendingLimitHint,
+                  },
                 ),
-                MoneyFormField(
-                  initialValue: state.currentAmount > 0
-                      ? state.currentAmount
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalCurrentAmountLabel,
-                  ),
-                  enabled: state.accountId == null,
-                  onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
-                  validator: v.notNull(),
-                ),
-              ] else if (state.type == GoalType.payDebt) ...[
-                MoneyFormField(
-                  initialValue: state.targetAmount > 0
-                      ? state.targetAmount
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalDebtTotalLabel,
-                    hintText: l10n.goalDebtTotalHint,
-                  ),
-                  onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
-                  validator: v.notNull(),
-                ),
-                MoneyFormField(
-                  initialValue: state.currentAmount > 0
-                      ? state.currentAmount
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalDebtPaidLabel,
-                    hintText: l10n.goalDebtPaidHint,
-                  ),
-                  enabled: state.accountId == null,
-                  onChanged: (v) => notifier.updateCurrentAmount(v ?? 0),
-                  validator: v.notNull(),
-                ),
-                AccountFormField(
-                  initialValue: state.accountId,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalDebtAccountLabel,
-                  ),
-                  onChanged: notifier.updateAccountId,
-                  validator: v.notEmpty(),
-                ),
-              ] else ...[
-                // Para redução de gastos
-                MoneyFormField(
-                  initialValue: state.targetAmount > 0
-                      ? state.targetAmount
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalTargetAmountLabel,
-                    hintText: l10n.goalSpendingLimitHint,
-                  ),
-                  onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
-                  validator: v.notNull(),
-                ),
-                MoneyFormField(
-                  initialValue: state.averageSpending > 0
-                      ? state.averageSpending
-                      : null,
-                  decoration: InputDecoration(
-                    labelText: l10n.goalAverageSpendingLabel,
-                  ),
-                  onChanged: (v) => notifier.updateAverageSpending(v ?? 0),
-                  validator: v.notNull(),
-                ),
-              ],
+                onChanged: (v) => notifier.updateTargetAmount(v ?? 0),
+                validator: v.notNull(),
+              ),
+              // O "valor atual" saiu do formulário: quem o mantém é o servidor,
+              // pelos pagamentos, pelo realizado da categoria ou pelo saldo da
+              // conta de dívida. Pedi-lo ao usuário era pedir um número que
+              // seria sobrescrito no próximo lançamento.
               if (state.type == GoalType.reduceExpense)
                 CategoryFormField(
                   initialValue: state.category,
@@ -169,31 +119,18 @@ class GoalFormScreen extends ConsumerWidget {
                   onChanged: notifier.updateCategory,
                   validator: v.notNull(),
                   categoryType: CategoryType.expense,
-                ),
-              if (state.type == GoalType.reduceCreditCard)
+                )
+              else
                 AccountFormField(
                   initialValue: state.accountId,
-                  decoration: InputDecoration(labelText: l10n.goalAccountLabel),
+                  decoration: InputDecoration(
+                    labelText: state.type == GoalType.payDebt
+                        ? l10n.goalDebtAccountLabel
+                        : l10n.goalAccountLabel,
+                  ),
                   onChanged: notifier.updateAccountId,
                   validator: v.notEmpty(),
                 ),
-              if (state.type == GoalType.saveMoney)
-                AccountFormField(
-                  initialValue: state.accountId,
-                  decoration: InputDecoration(labelText: l10n.goalAccountLabel),
-                  onChanged: notifier.updateAccountId,
-                  validator: v.notEmpty(),
-                ),
-              DateFormField(
-                initialValue: state.startDate,
-                decoration: InputDecoration(labelText: l10n.goalStartDateLabel),
-                validator: v.notNull(),
-                onChanged: (date) {
-                  if (date != null) {
-                    notifier.updateStartDate(date);
-                  }
-                },
-              ),
               DateFormField(
                 initialValue: state.deadline,
                 decoration: InputDecoration(labelText: l10n.goalDeadlineLabel),

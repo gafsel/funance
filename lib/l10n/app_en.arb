@@ -210,8 +210,6 @@
   "addGoalButton": "New Goal",
   "goalNameLabel": "Goal Name",
   "goalTargetAmountLabel": "Target Amount",
-  "goalCurrentAmountLabel": "Current Amount",
-  "goalStartDateLabel": "Start Date",
   "goalDeadlineLabel": "Deadline",
   "goalTypeLabel": "Goal Type",
   "goalTypeSaveMoney": "Save Money",
@@ -220,7 +218,6 @@
   "goalTypePayDebt": "Pay Debt",
   "goalCategoryLabel": "Category",
   "goalCreditCardLabel": "Credit Card",
-  "goalAverageSpendingLabel": "Monthly Average Spending",
   "errorGoalNotFound": "Goal not found.",
   "errorGoalTypeCannotBeChanged": "Goal type cannot be changed.",
   "statusOnTrack": "On track",
@@ -759,47 +756,11 @@
     }
   },
   "yourBadgesLabel": "Your Badges",
-  "advancedBadgesLabel": "Advanced Achievements",
-  "simpleBadgesLabel": "Simple Achievements",
   "badgeUnlockedLabel": "Unlocked",
   "badgeLockedLabel": "Locked",
   "badgeRewardLabel": "Reward",
   "badgeUnlockedAtLabel": "Earned on",
   "viewAchievementsButton": "View Achievements",
-  "badge_first_step_name": "First Step",
-  "badge_first_step_desc": "The workspace is created and onboarding is successfully completed.",
-  "badge_first_account_name": "First Account",
-  "badge_first_account_desc": "The first bank account or card is registered in the workspace.",
-  "badge_first_transaction_name": "Starting Point",
-  "badge_first_transaction_desc": "The first real transaction (installment) is recorded with paid status.",
-  "badge_planner_name": "Strategic Planner",
-  "badge_planner_desc": "Planning limits are created for at least 5 categories.",
-  "badge_reconcile_junior_name": "Junior Reconciler",
-  "badge_reconcile_junior_desc": "The first successful bank reconciliation is completed (at least 1 confirmed match).",
-  "badge_cash_detective_name": "Cash Detective",
-  "badge_cash_detective_desc": "Full reconciliation of a statement containing at least 10 transactions.",
-  "badge_reconcile_master_name": "Reconciliation Master",
-  "badge_reconcile_master_desc": "The workspace accumulates 10 successfully completed statement reconciliations.",
-  "badge_zero_friction_name": "Zero Friction",
-  "badge_zero_friction_desc": "Reconcile an entire monthly statement without needing to create extra manual transactions.",
-  "badge_savings_seed_name": "Savings Seed",
-  "badge_savings_seed_desc": "The first goal registered in the workspace reaches 100% progress.",
-  "badge_goal_bronze_name": "Goal Collector",
-  "badge_goal_bronze_desc": "The workspace successfully completes 3 different financial goals.",
-  "badge_goal_silver_name": "Unwavering Focus",
-  "badge_goal_silver_desc": "The workspace successfully completes 5 different financial goals.",
-  "badge_under_control_name": "All Under Control",
-  "badge_under_control_desc": "Close the month without exceeding any planned category in the 50-30-20 rule.",
-  "badge_golden_rule_name": "Golden Rule",
-  "badge_golden_rule_desc": "Allocate limits in all 3 pools (Essential, Comfort, Investment) in the same month.",
-  "badge_future_focus_name": "Future Focus",
-  "badge_future_focus_desc": "Effectively save and invest at least 20% of the total workspace revenues in the month.",
-  "badge_cost_cutter_name": "Cost Cutter",
-  "badge_cost_cutter_desc": "Reduce total expenses of the Comfort pool (discretionary) by 20% compared to the previous month.",
-  "badge_united_front_name": "United Front",
-  "badge_united_front_desc": "Workspace with 3 or more active members added and accepted.",
-  "badge_iron_consistency_name": "Iron Consistency",
-  "badge_iron_consistency_desc": "Successfully complete weekly missions for 4 consecutive weeks.",
   "levelIndicatorSemantics": "Workspace Level: {level}, Badges unlocked: {count}",
   "@levelIndicatorSemantics": {
     "placeholders": {
@@ -840,106 +801,6 @@
   "reconciliationStatusKeep": "Keep in System",
   "reconciliationStatusRemove": "Remove from System",
   "reconciliationStatusSystemOnly": "Only in System",
-  "badge_first_category_name": "Organizer",
-  "badge_first_category_desc": "Create the first custom category in the workspace.",
-  "badge_first_planning_name": "Rookie Planner",
-  "badge_first_planning_desc": "Create the first category planning with a defined budget.",
-  "badge_first_goal_name": "Dreamer",
-  "badge_first_goal_desc": "Create the first financial goal in the workspace.",
-  "badge_first_invite_name": "Host",
-  "badge_first_invite_desc": "Invite the first member to the workspace.",
-  "badge_profile_complete_name": "Complete Profile",
-  "badge_profile_complete_desc": "Set the workspace name and type.",
-  "badge_first_income_name": "Income Recorded",
-  "badge_first_income_desc": "Record the first paid income in the workspace.",
-  "badge_first_expense_name": "Expense Recorded",
-  "badge_first_expense_desc": "Record the first paid expense in the workspace.",
-  "badge_first_transfer_name": "Transferrer",
-  "badge_first_transfer_desc": "Record the first transfer between accounts.",
-  "badge_workspace_named_name": "Own Identity",
-  "badge_workspace_named_desc": "Give a custom name to the workspace.",
-  "badge_first_month_name": "First Month",
-  "badge_first_month_desc": "Have at least one transaction in a full calendar month.",
-  "badge_five_transactions_name": "Active!",
-  "badge_five_transactions_desc": "Record 5 paid transactions in total.",
-  "badge_twenty_transactions_name": "Committed",
-  "badge_twenty_transactions_desc": "Record 20 paid transactions in total.",
-  "badge_fifty_transactions_name": "Veteran",
-  "badge_fifty_transactions_desc": "Record 50 paid transactions in total.",
-  "badge_hundred_transactions_name": "Centurion",
-  "badge_hundred_transactions_desc": "Record 100 paid transactions in total.",
-  "badge_week_complete_name": "Full Week",
-  "badge_week_complete_desc": "Record at least one transaction on 7 consecutive days.",
-  "badge_two_accounts_name": "Multi-Account",
-  "badge_two_accounts_desc": "Register 2 accounts in the workspace.",
-  "badge_three_accounts_name": "Manager",
-  "badge_three_accounts_desc": "Register 3 accounts in the workspace.",
-  "badge_five_accounts_name": "Portfolio",
-  "badge_five_accounts_desc": "Register 5 accounts in the workspace.",
-  "badge_five_categories_name": "Categorized",
-  "badge_five_categories_desc": "Create at least 5 categories.",
-  "badge_ten_categories_name": "Category Master",
-  "badge_ten_categories_desc": "Create at least 10 categories.",
-  "badge_round_number_name": "Round Number",
-  "badge_round_number_desc": "Record a transaction with an exact amount, no cents.",
-  "badge_big_transaction_name": "Big Deal",
-  "badge_big_transaction_desc": "Record a single transaction above R$ 1,000.",
-  "badge_small_transactions_ten_name": "Meticulous Detail",
-  "badge_small_transactions_ten_desc": "Record 10 transactions each under R$ 10.",
-  "badge_income_registered_name": "Well Documented",
-  "badge_income_registered_desc": "Record at least one income in the workspace.",
-  "badge_expense_under_income_name": "Positive Balance",
-  "badge_expense_under_income_desc": "Close the month with expenses lower than income.",
-  "badge_three_categories_month_name": "Diversified",
-  "badge_three_categories_month_desc": "Have spending in 3 different categories in the same month.",
-  "badge_five_categories_month_name": "Comprehensive",
-  "badge_five_categories_month_desc": "Have spending in 5 different categories in the same month.",
-  "badge_savings_10pct_name": "Rookie Saver",
-  "badge_savings_10pct_desc": "Save at least 10% of total monthly income.",
-  "badge_savings_start_name": "First Cent",
-  "badge_savings_start_desc": "Make the first deposit in any financial goal.",
-  "badge_no_credit_debt_name": "Interest Free",
-  "badge_no_credit_debt_desc": "Close the month without any open credit card invoices.",
-  "badge_goal_halfway_name": "Halfway There",
-  "badge_goal_halfway_desc": "A financial goal reaches 50% of its target amount.",
-  "badge_goal_75pct_name": "Almost There",
-  "badge_goal_75pct_desc": "A financial goal reaches 75% of its target amount.",
-  "badge_goal_under_deadline_name": "On Time",
-  "badge_goal_under_deadline_desc": "Complete a goal before its established deadline.",
-  "badge_two_active_goals_name": "Ambitious",
-  "badge_two_active_goals_desc": "Have 2 active goals at the same time.",
-  "badge_five_active_goals_name": "Multitasker",
-  "badge_five_active_goals_desc": "Have 5 active goals at the same time.",
-  "badge_long_term_goal_name": "Long-Term Vision",
-  "badge_long_term_goal_desc": "Create a goal with a deadline more than 12 months away.",
-  "badge_short_term_goal_name": "Financial Sprint",
-  "badge_short_term_goal_desc": "Complete a goal in less than 30 days.",
-  "badge_goal_deposit_name": "First Deposit",
-  "badge_goal_deposit_desc": "Make the first deposit into a financial goal.",
-  "badge_goal_debt_paid_name": "Debt Free",
-  "badge_goal_debt_paid_desc": "Complete a goal of type 'Pay Off Debt'.",
-  "badge_goal_linked_account_name": "Linked Goal",
-  "badge_goal_linked_account_desc": "Create a goal linked to a bank account.",
-  "badge_second_member_name": "Dynamic Duo!",
-  "badge_second_member_desc": "A second member accepts the invitation to the workspace.",
-  "badge_reconcile_second_name": "Frequent Reconciler",
-  "badge_reconcile_second_desc": "Complete the second bank reconciliation.",
-  "badge_reconcile_five_name": "Skilled Reconciler",
-  "badge_reconcile_five_desc": "Complete 5 bank reconciliations in total.",
-  "badge_mission_first_name": "First Mission",
-  "badge_mission_first_desc": "Complete the first weekly mission.",
-  "badge_mission_three_name": "Financial Triathlete",
-  "badge_mission_three_desc": "Complete 3 weekly missions in total.",
-  "badge_planning_month_name": "Monthly Planner",
-  "badge_planning_month_desc": "Create a budget for at least 5 categories in the month.",
-  "badge_two_months_active_name": "Consistent",
-  "badge_two_months_active_desc": "Record transactions in 2 different months.",
-  "badge_workspace_one_year_name": "Anniversary!",
-  "badge_workspace_one_year_desc": "The workspace completes 1 year of existence.",
-  "badge_invite_accepted_name": "Welcome to the Team",
-  "badge_invite_accepted_desc": "Accept an invitation to join a workspace.",
-  "badge_all_missions_week_name": "Perfect Week",
-  "badge_all_missions_week_desc": "Complete all available weekly missions in one week.",
   "goalDeleteButton": "Delete Goal",
   "goalEditButton": "Edit Goal",
   "goalStatusAtRisk": "At Risk",
@@ -959,8 +820,6 @@
   "profileUpdateSuccess": "Profile updated successfully!",
   "goalDebtTotalLabel": "Total Debt Amount",
   "goalDebtTotalHint": "How much do you owe in total?",
-  "goalDebtPaidLabel": "Amount Already Paid",
-  "goalDebtPaidHint": "How much have you already paid off?",
   "goalDebtAccountLabel": "Link to Debt Account",
   "goalSpendingLimitHint": "E.g.: 500.00 (spending limit)",
   "accountNotFound": "Account not found.",
@@ -1033,11 +892,89 @@
   "planningAnalysisInsightsTitle": "Insights",
   "planningAnalysisGeneratedAt": "Analysis generated on {date}",
   "@planningAnalysisGeneratedAt": {
-    "placeholders": { "date": { "type": "String" } }
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   },
   "planningAnalysisNextAvailable": "{days, plural, one{New analysis available in {days} day} other{New analysis available in {days} days}}",
   "@planningAnalysisNextAvailable": {
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
-  "planningAnalysisGenerateNew": "Generate new analysis"
+  "planningAnalysisGenerateNew": "Generate new analysis",
+  "goalSpendingLimitLabel": "Spending Cap",
+  "goalAmountSavedLabel": "Saved",
+  "goalAmountPaidLabel": "Paid off",
+  "goalAmountSpentLabel": "Spent",
+  "goalCompletedAt": "Completed on {date}",
+  "@goalCompletedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "goalLimitReachedAt": "Cap reached on {date}",
+  "@goalLimitReachedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "goalSpentOfLimit": "{amount} of {limit}",
+  "@goalSpentOfLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
+  "goalRemainingLimit": "{amount} still fits",
+  "@goalRemainingLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "goalOverLimit": "{amount} over",
+  "@goalOverLimit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "partyEmptyTitle": "Your team has no challenges yet",
+  "partyEmptyMessage": "Every category spending limit becomes a team challenge. Create the first one and follow it here.",
+  "partyEmptyButton": "Create first limit",
+  "partyErrorMessage": "We could not load the team status.",
+  "badgeCatalogUnavailableTitle": "Catalog unavailable",
+  "badgeCatalogUnavailableMessage": "We have not received the achievement list from the server yet. Try again in a moment.",
+  "badgeCategoryAdvanced": "Advanced Achievements",
+  "badgeCategoryFirstSteps": "First Steps",
+  "badgeCategoryConsistency": "Consistent Tracking",
+  "badgeCategorySavings": "Spending and Savings",
+  "badgeCategoryGoals": "Goals",
+  "badgeCategoryTeam": "Team and Consistency",
+  "badgeCatalogTotal": "{unlocked} of {total}",
+  "@badgeCatalogTotal": {
+    "placeholders": {
+      "unlocked": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }

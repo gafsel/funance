@@ -41,6 +41,10 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     required String accountId,
     required DateTime startDate,
+    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
+    /// O app só lê: as security rules negam a escrita pelo cliente e o
+    /// repositório remove o campo antes de salvar.
+    DateTime? completedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelPayDebt;
 
@@ -54,6 +58,10 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     required String accountId,
     required DateTime startDate,
+    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
+    /// O app só lê: as security rules negam a escrita pelo cliente e o
+    /// repositório remove o campo antes de salvar.
+    DateTime? completedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelCreditCard;
 
@@ -67,6 +75,10 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     required CategoryModel category,
     required DateTime startDate,
+    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
+    /// O app só lê: as security rules negam a escrita pelo cliente e o
+    /// repositório remove o campo antes de salvar.
+    DateTime? completedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelReduceExpense;
 
@@ -79,8 +91,17 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     required String accountId,
     required DateTime startDate,
+    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
+    /// O app só lê: as security rules negam a escrita pelo cliente e o
+    /// repositório remove o campo antes de salvar.
+    DateTime? completedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelSaveMoney;
+
+  /// Metas de acúmulo: o progresso é uma conquista (juntar, quitar).
+  /// Nas de redução, `currentAmount` é GASTO e 100% significa estourar o teto.
+  bool get isAccumulation =>
+      type == GoalType.saveMoney || type == GoalType.payDebt;
 
   GoalType get type => map(
     payDebt: (_) => GoalType.payDebt,
