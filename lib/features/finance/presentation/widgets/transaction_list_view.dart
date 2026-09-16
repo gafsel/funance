@@ -169,7 +169,7 @@ class TransactionListView extends ConsumerWidget {
   ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
+    final yesterday = today.addCalendarDays(-1);
     final checkDate = DateTime(date.year, date.month, date.day);
 
     String dateText;

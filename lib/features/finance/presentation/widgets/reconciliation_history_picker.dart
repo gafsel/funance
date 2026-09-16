@@ -5,6 +5,7 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -129,7 +130,7 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
   ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
+    final yesterday = today.addCalendarDays(-1);
     final checkDate = DateTime(date.year, date.month, date.day);
 
     String dateText;

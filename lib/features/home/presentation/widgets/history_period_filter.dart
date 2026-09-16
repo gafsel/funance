@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
@@ -46,9 +47,9 @@ enum HistoryPeriodType {
   (DateTime startDate, DateTime endDate) nextRange(DateTime currentStart) {
     return switch (this) {
       HistoryPeriodType.day => (
-        currentStart.add(const Duration(days: 1)),
-        currentStart.add(
-          const Duration(days: 1, hours: 23, minutes: 59, seconds: 59),
+        currentStart.addCalendarDays(1),
+        currentStart.addCalendarDays(1).add(
+          const Duration(hours: 23, minutes: 59, seconds: 59),
         ),
       ),
       HistoryPeriodType.month => (
@@ -72,7 +73,7 @@ enum HistoryPeriodType {
   (DateTime startDate, DateTime endDate) previousRange(DateTime currentStart) {
     return switch (this) {
       HistoryPeriodType.day => (
-        currentStart.subtract(const Duration(days: 1)),
+        currentStart.addCalendarDays(-1),
         currentStart.subtract(const Duration(seconds: 1)),
       ),
       HistoryPeriodType.month => (

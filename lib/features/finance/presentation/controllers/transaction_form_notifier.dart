@@ -6,6 +6,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/features/home/domain/services/mission_service.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 
@@ -258,16 +259,13 @@ class TransactionFormNotifier
     }
   }
 
+  /// Usa a mesma janela do `MissionService`: aqui a semana começava na
+  /// segunda e lá no domingo, então uma parcela paga no domingo contava como
+  /// missão numa ponta e não na outra.
   static bool _isInCurrentWeek(DateTime date) {
-    final now = DateTime.now();
-    final startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+    final week = MissionService.weekWindow(DateTime.now());
 
-    return !date.isBefore(startOfWeek) && date.isBefore(endOfWeek);
+    return !date.isBefore(week.start) && !date.isAfter(week.end);
   }
 
   bool get shouldAskCascade {

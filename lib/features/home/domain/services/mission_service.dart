@@ -311,7 +311,12 @@ class MissionService {
     return watchMissions().first;
   }
 
-  // Métodos auxiliares de data (iguais aos do TS) para garantir consistência
+  // Métodos auxiliares de data (iguais aos do TS) para garantir consistência.
+  //
+  // De propósito ainda em aritmética de 24h e duplicados com o backend: o
+  // servidor está unificando a identidade da semana e o cliente vai passar a
+  // ler `currentWeekId` do workspace, em outro pacote. Mexer aqui agora só
+  // criaria uma terceira definição para depois jogar fora.
   int _getWeekNumber(DateTime d) {
     final date = DateTime(d.year, d.month, d.day);
     // Ajusta para o domingo mais próximo (início da semana)
