@@ -305,8 +305,11 @@ passagens, ambas paginadas por cursor — o `GLOBAL_LIMIT = 500` sumiu:
 2. varredura dos **legados** (o Firestore não consulta "campo que não existe"):
    quem não tem `summarizedUntil` é **adotado** — o cron grava os marcadores
    **sem reaplicar impacto nenhum**, porque o gatilho antigo já os aplicou.
-   Reaplicar aqui dobraria o planejado de toda a base. A varredura é limitada a
-   2000 documentos por execução e avisa no log quando trunca; rodar
+   Reaplicar aqui dobraria o planejado de toda a base. A varredura tem teto por
+   execução — 2000 **adoções** (as escritas) e 10000 leituras — e guarda onde
+   parou em `config/cron_checkpoints.planningLegacyScanPath`, retomando dali na
+   execução seguinte em vez de recomeçar do início do grupo de coleções. Quando
+   a varredura chega ao fim, o checkpoint é zerado. Rodar
    `migrate_planning_summaries.ts` encerra essa passagem de vez.
 
 ### `migrate_planning_summaries.ts`
@@ -347,22 +350,11 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 | `--page-size=<n>` | planejamentos lidos por página (default 200)                    |
 | `--force`         | recalcula os marcadores mesmo de quem já os tem                 |
 
-### Ordem recomendada de execução
+### Ordem de execução
 
-Nada disso foi executado contra o projeto real. A ordem é **migrações primeiro,
-rebuild depois**:
-
-```
-1. migrate_balance_date_key.js      (dry-run → revisar → --apply)
-2. migrate_planning_summaries.js    (dry-run → revisar → --apply)
-3. rebuild_workspace.js --workspace=<wid>                 (dry-run → revisar → --apply)
-4. rebuild_workspace.js --workspace=<wid> --rebuild-planning  (idem, por último)
-```
-
-O passo 4 é o que conserta os `generalPlannedAmount` acumulados pelo regime
-antigo e os ids de semana gravados em UTC. Ele é **por workspace**, então numa
-base grande o roteiro é um laço sobre os workspaces, sempre com o dry-run
-revisado imediatamente antes.
+A ordem completa do rollout está em [Ordem de rollout](#ordem-de-rollout) — em
+resumo: **migrações primeiro, rebuild depois**, e o rebuild com
+`--rebuild-planning` **antes do segundo cron mensal**.
 
 ### Contrato com o cliente Flutter
 
@@ -535,14 +527,26 @@ Quem escreve é `core/services/week_sync.service.ts`, por dois caminhos:
 Os três campos são exclusivos do servidor — o `allow update` do workspace usa
 `affectedKeys().hasOnly([...])` com uma lista fechada que não os inclui.
 
+### O mês do sumário também é do fuso do produto
+
+Dia, semana, **mês e ano** dos `period_summaries` vêm todos do mesmo fuso. O mês
+e o ano ficaram para trás numa primeira versão (`getFullYear()/getMonth()`, ou
+seja, UTC no servidor): um pagamento às 23h30 de 31/10 em São Paulo é 01/11 em
+UTC e ia para o sumário de **novembro**, enquanto o saldo do mesmo pagamento
+ficava em outubro. `SummaryService` e `rebuild.service.ts` usam
+`getZonedParts` (reexportado por `core/utils/date_key.ts`, junto de `toDateKey`
+e `toMonthKey` — é o ponto único de entrada da "data do produto").
+
 ### Migração dos ids antigos
 
-Os documentos `period_summaries/{YYYY-Www}` e `weekly_xp/{YYYY-Www}` gravados
-com a regra antiga (UTC) podem estar no id errado quando o movimento caiu no
-sábado à noite. Não há script dedicado: **o `rebuild_workspace.ts` já
-reconstrói as duas coleções com a regra nova** — rode o dry-run, revise o diff
-(ele mostra `criar 2026-W37` / `apagar 2026-W36`, por exemplo) e só então
-aplique. Nada disso foi executado contra o projeto real.
+Os documentos `period_summaries/{YYYY|YYYY-MM|YYYY-Www}` e
+`weekly_xp/{YYYY-Www}` gravados com as regras antigas podem estar no id errado
+quando o movimento caiu perto da meia-noite de Brasília — a semana, quando foi
+no sábado à noite; **o mês e o ano, quando foi na virada do mês** (um realizado
+de 31/10 contabilizado em novembro). Não há script dedicado: **o
+`rebuild_workspace.ts` reconstrói as três coleções com as regras novas** — rode
+o dry-run, revise o diff (ele mostra `criar 2026-10` / `alterar 2026-11`, por
+exemplo) e só então aplique. Nada disso foi executado contra o projeto real.
 
 ## Crons de manutenção
 
@@ -565,6 +569,71 @@ documento gravado tenha sempre o mesmo formato — `Timestamp` em todas as datas
 `paidDate: null` explícito, `referenceDate`/`referenceAmount` preenchidos. Antes
 o cron montava o documento por conta própria e as parcelas nasciam com um
 schema ligeiramente diferente das criadas pelo app.
+
+## Ordem de rollout
+
+Os pacotes F1.4/F1.5/F1.9 mudam formato de documento, consultas e ids. A ordem
+abaixo é a que evita janela quebrada — **nada disso foi executado contra o
+projeto real**.
+
+```
+1. rules + índices   firebase deploy --only firestore:rules,firestore:indexes
+                     ⏳ ESPERAR os índices ficarem READY antes de seguir
+2. functions         firebase deploy --only functions
+3. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
+4. migração          node lib/scripts/migrate_planning_summaries.js    (dry-run → --apply)
+5. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
+6. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
+```
+
+**1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
+`balance.dateKey` (descendente) e `category_planning.summarizedUntil` (no grupo
+de coleções). Enquanto o índice estiver `CREATING`, essas consultas respondem
+`FAILED_PRECONDITION` e o gatilho de saldo/cron de planejamento falha. Confira
+com:
+
+```bash
+gcloud firestore indexes fields list --project=funance-cef1b
+```
+
+As rules podem ir junto: elas só **negam** campos novos ao cliente
+(`currentWeekId`, `currentWeekStart` e os quatro marcadores do planejamento), e
+o app ainda não os envia.
+
+**2. Depois as functions.** Elas convivem com os documentos no formato antigo
+(ver "Compatibilidade com o formato antigo"), então não há janela de indisponi-
+bilidade entre o passo 2 e o 3 — só um custo de leitura maior por pagamento, em
+contas com histórico longo, até a migração rodar.
+
+**3 e 4. Migrações, na ordem.** `migrate_balance_date_key` preenche
+`dateKey`/`delta` nos saldos; `migrate_planning_summaries` grava os marcadores
+dos planejamentos. Ambas são idempotentes, dry-run por padrão e não mexem em
+`period_summaries`. Rodar a segunda também encerra a varredura de legados do
+cron mensal.
+
+**5. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
+em UTC (pagamento perto da meia-noite de Brasília), ids de semana antigos e
+saldos acumulados divergentes. `--all-workspaces` percorre a base um workspace
+de cada vez, com um relatório por workspace e um resumo final; um workspace que
+falha não interrompe os demais.
+
+**6. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
+único passo que reescreve o `generalPlannedAmount`. O motivo do prazo: o valor
+gravado hoje carrega a acumulação do regime antigo (aplicação repetida sem
+estorno), e **cada execução do cron mensal soma mais um mês por cima desse
+valor errado**. A primeira execução depois do deploy é inevitável; rodar o
+`--rebuild-planning` antes da segunda impede que o erro continue crescendo.
+
+> ⚠️ **O rebuild não é transacional.** Escolha uma janela sem uso e refaça o
+> dry-run imediatamente antes de cada `--apply`.
+
+> ⚠️ **Contas apagadas logicamente.** `onAccountUpdated` apaga as
+> orders/parcelas da conta marcada como `isDeleted`, mas **não** a subcoleção
+> `balance`. Sem parcelas não há como reconstruir aquele histórico, então o
+> rebuild **propõe apagar** os saldos remanescentes dessas contas. Numa
+> execução com `--all-workspaces` isso aparece espalhado pelos relatórios —
+> revise as amostras (`apagar accounts/<id>/balance/...`) antes do `--apply`,
+> workspace a workspace se necessário.
 
 ## Scripts de migração
 
@@ -752,12 +821,17 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 # 2) Execução real (somente após revisar a saída do dry-run)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
   node lib/scripts/rebuild_workspace.js --project=<projectId> --workspace=<workspaceId> --apply
+
+# 3) Base inteira, um workspace de cada vez (dry-run e, depois, --apply)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/rebuild_workspace.js --project=<projectId> --all-workspaces
 ```
 
 | Flag                | Efeito                                                              |
 |---------------------|---------------------------------------------------------------------|
 | _(nenhuma)_         | dry-run: só relata o que mudaria                                     |
-| `--workspace=<id>`  | **obrigatória**: workspace a reconstruir                             |
+| `--workspace=<id>`  | workspace a reconstruir (obrigatória sem `--all-workspaces`)          |
+| `--all-workspaces`  | percorre TODOS os workspaces (`listDocuments()`), um de cada vez, com um relatório por workspace e um resumo final; um que falha não interrompe os demais |
 | `--apply`           | executa as escritas                                                  |
 | `--project=<id>`    | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)              |
 | `--page-size=<n>`   | tamanho da página nas leituras (default 500)                         |
