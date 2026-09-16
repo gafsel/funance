@@ -6,6 +6,7 @@ import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/core/time/clock.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:rxdart/rxdart.dart';
 
 class MissionService {
@@ -25,18 +26,22 @@ class MissionService {
   }) : now = now ?? DateTime.now;
 
   /// Semana corrente (domingo a sábado) que contém [reference].
+  ///
+  /// Os limites andam por calendário: somar `Duration(days: n)` são 24h
+  /// absolutas e escorrega uma hora na semana em que o horário de verão entra
+  /// ou sai, deixando de fora (ou incluindo a mais) os lançamentos da última
+  /// hora do sábado.
   static ({DateTime start, DateTime end}) weekWindow(DateTime reference) {
     final start = DateTime(
       reference.year,
       reference.month,
       reference.day,
-    ).subtract(Duration(days: reference.weekday % 7));
+    ).addCalendarDays(-(reference.weekday % 7));
 
     return (
       start: start,
-      end: start.add(
-        const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
-      ),
+      // Véspera do início da semana seguinte.
+      end: start.addCalendarDays(7).subtract(const Duration(milliseconds: 1)),
     );
   }
 

@@ -121,7 +121,7 @@ void main() {
       final window = MissionService.weekWindow(DateTime(2026, 3, 11, 15, 42));
 
       expect(window.start, DateTime(2026, 3, 8));
-      expect(window.end, DateTime(2026, 3, 14, 23, 59, 59));
+      expect(window.end, DateTime(2026, 3, 14, 23, 59, 59, 999));
       expect(window.start.weekday, DateTime.sunday);
       expect(window.end.weekday, DateTime.saturday);
     });
@@ -130,14 +130,14 @@ void main() {
       final window = MissionService.weekWindow(DateTime(2026, 3, 8, 0, 1));
 
       expect(window.start, DateTime(2026, 3, 8));
-      expect(window.end, DateTime(2026, 3, 14, 23, 59, 59));
+      expect(window.end, DateTime(2026, 3, 14, 23, 59, 59, 999));
     });
 
     test('num sábado a semana termina no próprio dia', () {
       final window = MissionService.weekWindow(DateTime(2026, 3, 14, 23, 0));
 
       expect(window.start, DateTime(2026, 3, 8));
-      expect(window.end, DateTime(2026, 3, 14, 23, 59, 59));
+      expect(window.end, DateTime(2026, 3, 14, 23, 59, 59, 999));
     });
 
     test('atravessa a virada do ano', () {
@@ -145,7 +145,7 @@ void main() {
       final window = MissionService.weekWindow(DateTime(2026, 1, 1, 9));
 
       expect(window.start, DateTime(2025, 12, 28));
-      expect(window.end, DateTime(2026, 1, 3, 23, 59, 59));
+      expect(window.end, DateTime(2026, 1, 3, 23, 59, 59, 999));
     });
   });
 
@@ -170,7 +170,7 @@ void main() {
     expect(financeRepository.watchCalls[1].startDate, DateTime(2026, 3, 8));
     expect(
       financeRepository.watchCalls[1].endDate,
-      DateTime(2026, 3, 14, 23, 59, 59),
+      DateTime(2026, 3, 14, 23, 59, 59, 999),
     );
 
     expect(summaryRepository.weekCalls, hasLength(1));
