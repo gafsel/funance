@@ -5,9 +5,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
+import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/accounts_view.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -25,6 +30,13 @@ mixin _Unimplemented {
 
 class _FakeWorkspaceRepository with _Unimplemented
     implements IWorkspaceRepository {}
+
+class _FakeCategoryRepository with _Unimplemented
+    implements ICategoryRepository {
+  @override
+  Stream<List<CategoryModel>> getCategories(String workspaceId) =>
+      const Stream.empty();
+}
 
 class _FakeAccountRepository with _Unimplemented
     implements IAccountRepository {
@@ -45,6 +57,24 @@ class _FakeAccountRepository with _Unimplemented
   ) => Stream.value(
     AccountBalanceModel(id: '2025-03-10', balance: -800, updatedAt: DateTime(2025, 3, 10)),
   );
+}
+
+/// A tela de detalhe ainda recebe o `InstallmentModel` inteiro, então a lista
+/// de contas precisa da parcela da fatura para navegar.
+class _FakeFinanceRepository with _Unimplemented implements IFinanceRepository {
+  _FakeFinanceRepository(this.invoice);
+
+  final InstallmentModel? invoice;
+  int watchCalls = 0;
+
+  @override
+  Stream<InstallmentModel?> watchNextInvoice(
+    String workspaceId,
+    String accountId,
+  ) {
+    watchCalls++;
+    return Stream.value(invoice);
+  }
 }
 
 DateTime _spNoon(String dateKey) {
@@ -75,7 +105,28 @@ CreditCardAccount _card({NextInvoice? nextInvoice, String id = 'card-1'}) =>
       nextInvoice: nextInvoice,
     );
 
-Future<void> _pump(WidgetTester tester, List<AccountModel> accounts) async {
+InstallmentModel _invoiceInstallment() => InstallmentModel(
+  id: 'inst-fatura',
+  orderId: 'invoice-card-1-2025-03-10',
+  amount: 1234.56,
+  description: 'Fatura Cartão',
+  dueDate: _spNoon('2025-03-10'),
+  status: InstallmentStatus.pending,
+  type: OrderType.transfer,
+  installmentType: InstallmentType.single,
+  accounts: const {'card-1': AccountImpact.credit},
+  isInvoice: true,
+  cycleStart: DateTime.utc(2025, 2, 5, 3).toLocal(),
+  cycleEnd: DateTime.utc(2025, 3, 5, 2, 59, 59, 999).toLocal(),
+);
+
+Future<_FakeFinanceRepository> _pump(
+  WidgetTester tester,
+  List<AccountModel> accounts, {
+  InstallmentModel? invoice,
+}) async {
+  final financeRepository = _FakeFinanceRepository(invoice);
+
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -85,6 +136,10 @@ Future<void> _pump(WidgetTester tester, List<AccountModel> accounts) async {
         AccountDomainProviders.repository.overrideWithValue(
           _FakeAccountRepository(accounts),
         ),
+        CategoryDomainProviders.repository.overrideWithValue(
+          _FakeCategoryRepository(),
+        ),
+        FinanceDomainProviders.repository.overrideWithValue(financeRepository),
       ],
       child: MaterialApp(
         locale: const Locale('pt'),
@@ -106,6 +161,8 @@ Future<void> _pump(WidgetTester tester, List<AccountModel> accounts) async {
   // animação infinita e o teste nunca "assentaria".
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 50));
+
+  return financeRepository;
 }
 
 /// Abre o grupo recolhido de cartões.
@@ -125,7 +182,11 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await _pump(tester, [_card(nextInvoice: _next)]);
+    final financeRepository = await _pump(
+      tester,
+      [_card(nextInvoice: _next)],
+      invoice: _invoiceInstallment(),
+    );
 
     // O grupo "Cartão de Crédito" começa recolhido: abre para ver a conta.
     await _expandCards(tester);
@@ -133,6 +194,11 @@ void main() {
     expect(find.textContaining('1.234,56'), findsWidgets);
     expect(find.text('10/03/2025'), findsOneWidget);
     expect(find.text('calculando…'), findsNothing);
+
+    // A parcela da fatura é OBSERVADA no build. As famílias são autoDispose:
+    // lê-la só dentro do `onTap` criaria e descartaria o provider na hora, e o
+    // toque cairia na lista de contas em vez da tela de fatura.
+    expect(financeRepository.watchCalls, greaterThan(0));
   });
 
   testWidgets('mostra "calculando" enquanto o servidor não publicou', (

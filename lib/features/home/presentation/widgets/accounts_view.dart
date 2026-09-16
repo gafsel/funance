@@ -158,6 +158,16 @@ class AccountsView extends ConsumerWidget {
           final nextInvoiceAsync = ref.watch(
             AccountViewProviders.nextInvoiceByAccountId(account.id),
           );
+          // A parcela é observada no build, não lida no onTap: as famílias são
+          // autoDispose, e um `ref.read` no callback criaria e descartaria o
+          // provider na hora — o toque nunca chegaria à tela de fatura.
+          final invoiceInstallment = ref
+              .watch(
+                AccountViewProviders.nextInvoiceInstallmentByAccountId(
+                  account.id,
+                ),
+              )
+              .valueOrNull;
           final usedLimit = -balance.balance;
           final availableLimit = (creditCard.limit - usedLimit).clamp(
             0.0,
@@ -172,14 +182,6 @@ class AccountsView extends ConsumerWidget {
               // A tela de detalhe recebe a PARCELA da fatura; o resumo da conta
               // responde pelo que aparece aqui, não pela navegação. Enquanto a
               // rota receber o modelo inteiro, a parcela vem deste provider.
-              final invoiceInstallment = ref
-                  .read(
-                    AccountViewProviders.nextInvoiceInstallmentByAccountId(
-                      account.id,
-                    ),
-                  )
-                  .valueOrNull;
-
               if (invoiceInstallment != null) {
                 context.push('/invoices/detail', extra: invoiceInstallment);
               } else {
