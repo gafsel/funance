@@ -47,6 +47,7 @@ const MEMBER_UID = "uid-convidado";
 
 const CHECKING_ID = "acc-checking";
 const INVEST_ID = "acc-invest";
+const DEBT_ID = "acc-debt";
 
 const MERCADO: CategoryModel = {
     id: "cat-mercado",
@@ -521,6 +522,10 @@ describe("rebuildWorkspace — cenário determinístico", () => {
         // equivale à ausência dele, então não é divergência.
         expect(report.diff.periodSummaries.residual).toBe(1);
         expect(report.diff.periodSummaries.samples).toContain("residual period_summaries/2026-W11");
+
+        // O planejado gravado pelos gatilhos é PRESERVADO (não é reconstruível).
+        expect(report.rebuildPlanning).toBe(false);
+        expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
     }, 60000);
 
     it("apply restaura saldo e sumário corrompidos à mão e converge na execução seguinte", async () => {
@@ -548,7 +553,13 @@ describe("rebuildWorkspace — cenário determinístico", () => {
         const restored = (await summaryRef.get()).data()!.categories[MERCADO.id];
         expect(restored.actualAmount).toBeCloseTo(goodSummary.actualAmount, 2);
         expect(restored.specificPlannedAmount).toBeCloseTo(goodSummary.specificPlannedAmount, 2);
-        expect(restored.generalPlannedAmount).toBeCloseTo(goodSummary.generalPlannedAmount, 2);
+
+        // CONTRATO: o `generalPlannedAmount` NÃO é reconstruível, então o
+        // rebuild o preserva como está — inclusive quando está errado. Corrigir
+        // esse campo exige o `--rebuild-planning` (destrutivo) ou reescrever o
+        // planejamento pelo app, que dispara o gatilho.
+        expect(restored.generalPlannedAmount).toBeCloseTo(3, 2);
+        expect(goodSummary.generalPlannedAmount).toBeCloseTo(0, 2);
 
         const second = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW });
         expect(second.totalChanges).toBe(0);
@@ -559,6 +570,136 @@ describe("rebuildWorkspace — cenário determinístico", () => {
         await expect(assertWorkspaceOwner(WORKSPACE_ID, MEMBER_UID)).rejects.toMatchObject({ code: "permission-denied" });
         await expect(assertWorkspaceOwner("ws-inexistente", OWNER_UID)).rejects.toMatchObject({ code: "not-found" });
     });
+});
+
+describe("rebuildWorkspace — generalPlannedAmount com histórico", () => {
+    const WORKSPACE_ID = `ws-plan-${Date.now()}`;
+    const NOW = new Date();
+
+    const monthKey = (offset: number) => {
+        const date = new Date(NOW.getFullYear(), NOW.getMonth() + offset, 1);
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    beforeAll(async () => {
+        await firestore.doc(`workspaces/${WORKSPACE_ID}`).set({
+            name: "Planejamento antigo",
+            type: "personal",
+            members: [OWNER_UID],
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        await createAccount(WORKSPACE_ID, CHECKING_ID, {
+            name: "Conta Corrente",
+            icon: "account_balance",
+            color: "#4CAF50",
+            runtimeType: AccountType.checking,
+            isDeleted: false,
+            initialBalance: 0,
+            initialBalanceDate: dateAt(2026, 1, 5),
+        });
+
+        const planning = {
+            id: "plan-antigo",
+            category: MERCADO,
+            amount: 1000,
+            startMonth: monthKey(-6),
+            endMonth: monthKey(6),
+        };
+
+        await firestore.doc(`workspaces/${WORKSPACE_ID}/category_planning/${planning.id}`).set({
+            category: planning.category,
+            amount: planning.amount,
+            startMonth: planning.startMonth,
+            endMonth: planning.endMonth,
+            lastSummaryMonth: monthKey(-1),
+        });
+
+        // O planejamento é antigo: além do gatilho de criação, o cron
+        // `generateCategoryPlanningSummaries` já reaplicou os impactos em meses
+        // anteriores. Reproduzimos isso aplicando a partir de meses passados.
+        // `processCategoryPlanningChange` usa `new Date()` internamente, então
+        // para simular as execuções passadas do cron aplicamos os impactos com
+        // a mesma função (`calculatePlanningImpacts`) e o mesmo caminho de
+        // escrita (`updatePeriodSummary`) que o gatilho usa, variando a
+        // data-base de três meses atrás até hoje.
+        for (const offset of [-3, -2, -1, 0]) {
+            const baseDate = new Date(NOW.getFullYear(), NOW.getMonth() + offset, 10, 12);
+
+            for (const impact of summaryService.calculatePlanningImpacts(planning as any, 1, baseDate, 12)) {
+                await financeRepository.updatePeriodSummary(
+                    WORKSPACE_ID, impact.year, impact.month, impact.category,
+                    { generalPlannedDelta: impact.generalPlannedDelta }, impact.week
+                );
+            }
+        }
+
+        // Uma despesa paga no mês passado, para o documento ter também valores
+        // reconstruíveis convivendo com o planejado.
+        const passado = new Date(NOW.getFullYear(), NOW.getMonth() - 1, 15, 12);
+        const mercado = await createOrderWithInstallments(WORKSPACE_ID, "order-mercado-passado", {
+            amount: 210.9,
+            dueDay: 15,
+            description: "Mercado",
+            startMonth: monthKey(-1),
+            installmentType: InstallmentType.single,
+            status: OrderStatus.active,
+            type: OrderType.expense,
+            accounts: { [CHECKING_ID]: "debt" },
+            accountIds: [CHECKING_ID],
+            category: MERCADO,
+        });
+
+        await updateInstallmentWithTriggers(WORKSPACE_ID, mercado[0].id, {
+            status: InstallmentStatus.paid,
+            paidAmount: 210.9,
+            paidDate: passado,
+        });
+    }, 120000);
+
+    afterAll(async () => {
+        await firestore.recursiveDelete(firestore.doc(`workspaces/${WORKSPACE_ID}`));
+    });
+
+    it("dry-run padrão não muda nada do generalPlannedAmount acumulado", async () => {
+        const before = await snapshotWorkspace(WORKSPACE_ID);
+
+        const report = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW });
+
+        expect(report.rebuildPlanning).toBe(false);
+        expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
+        expect(report.totalChanges).toBe(0);
+
+        // Mesmo aplicando, o planejado gravado continua intacto.
+        await rebuildService.rebuildWorkspace(WORKSPACE_ID, { dryRun: false, now: NOW });
+        const after = await snapshotWorkspace(WORKSPACE_ID);
+
+        for (const [summaryId, categories] of Object.entries(before.summaries)) {
+            for (const [categoryId, totals] of Object.entries(categories)) {
+                expect({ summaryId, categoryId, general: after.summaries[summaryId]?.[categoryId]?.general })
+                    .toEqual({ summaryId, categoryId, general: expect.closeTo(totals.general, 2) });
+            }
+        }
+    }, 120000);
+
+    it("rodar de novo um mês depois continua sem mexer no planejado", async () => {
+        const umMesDepois = new Date(NOW.getFullYear(), NOW.getMonth() + 1, NOW.getDate(), 12);
+
+        const report = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: umMesDepois });
+
+        expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
+        expect(report.totalChanges).toBe(0);
+    }, 60000);
+
+    it("com rebuildPlanning as mudanças aparecem e são contadas à parte", async () => {
+        const report = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW, rebuildPlanning: true });
+
+        expect(report.rebuildPlanning).toBe(true);
+        expect(report.totalChanges).toBeGreaterThan(0);
+        expect(report.diff.periodSummaries.generalPlannedChanges).toBeGreaterThan(0);
+        // Nada foi escrito: é dry-run.
+        expect(report.writesCommitted).toBe(0);
+    }, 60000);
 });
 
 /** PRNG determinístico (mulberry32) — a seed fixa mantém o teste reproduzível. */
@@ -604,6 +745,46 @@ describe("rebuildWorkspace — propriedade: incremental == rebuild", () => {
                 initialBalanceDate: dateAt(2026, 1, 5),
             });
 
+            // Destinos de transferência: exercitam as categorias virtuais.
+            await createAccount(workspaceId, INVEST_ID, {
+                name: "Tesouro Direto",
+                icon: "savings",
+                color: "#7E57C2",
+                runtimeType: AccountType.investment,
+                isDeleted: false,
+                initialBalance: 0,
+                initialBalanceDate: dateAt(2026, 1, 5),
+            });
+            await createAccount(workspaceId, DEBT_ID, {
+                name: "Empréstimo",
+                icon: "handshake",
+                color: "#E57373",
+                runtimeType: AccountType.debt,
+                isDeleted: false,
+                initialBalance: 0,
+                initialBalanceDate: dateAt(2026, 1, 5),
+            });
+
+            // Planejamentos: o rebuild padrão tem que PRESERVAR o que os
+            // gatilhos gravaram em `generalPlannedAmount`.
+            if (random() < 0.7) {
+                const planning = {
+                    id: `plan-${sequence}`,
+                    category: pick([MERCADO, MORADIA]),
+                    amount: cents(200, 3000),
+                    startMonth: "2026-01",
+                    endMonth: "2026-12",
+                };
+                await firestore.doc(`workspaces/${workspaceId}/category_planning/${planning.id}`).set({
+                    category: planning.category,
+                    amount: planning.amount,
+                    startMonth: planning.startMonth,
+                    endMonth: planning.endMonth,
+                    lastSummaryMonth: null,
+                });
+                await summaryService.processCategoryPlanningChange(workspaceId, null, planning as any);
+            }
+
             const installmentIds: string[] = [];
             const operations = 6 + Math.floor(random() * 5);
 
@@ -623,8 +804,30 @@ describe("rebuildWorkspace — propriedade: incremental == rebuild", () => {
 
                 if (operation === "criar") {
                     const orderId = `order-${sequence}-${step}`;
-                    const isIncome = random() < 0.3;
+                    const draw = random();
+                    // 25% transferência (categoria virtual), 25% receita, resto despesa.
+                    const kind = draw < 0.25 ? "transfer" : draw < 0.5 ? "income" : "expense";
                     const count = random() < 0.4 ? 2 : 1;
+
+                    let accounts: Record<string, "debt" | "credit">;
+                    let type: OrderType;
+                    let category: CategoryModel | undefined;
+
+                    if (kind === "transfer") {
+                        type = OrderType.transfer;
+                        category = undefined;
+                        const other = pick([INVEST_ID, DEBT_ID]);
+                        // Metade das vezes a conta especial é a ORIGEM
+                        // (categoria virtual de receita), metade o DESTINO.
+                        accounts = random() < 0.5
+                            ? { [CHECKING_ID]: "debt", [other]: "credit" }
+                            : { [other]: "debt", [CHECKING_ID]: "credit" };
+                    }
+                    else {
+                        type = kind === "income" ? OrderType.income : OrderType.expense;
+                        category = kind === "income" ? SALARIO : pick([MERCADO, MORADIA]);
+                        accounts = { [CHECKING_ID]: kind === "income" ? "credit" : "debt" };
+                    }
 
                     const created = await createOrderWithInstallments(workspaceId, orderId, {
                         amount: cents(50, 900),
@@ -634,10 +837,10 @@ describe("rebuildWorkspace — propriedade: incremental == rebuild", () => {
                         installmentCount: count,
                         installmentType: count > 1 ? InstallmentType.installment : InstallmentType.single,
                         status: OrderStatus.active,
-                        type: isIncome ? OrderType.income : OrderType.expense,
-                        accounts: { [CHECKING_ID]: isIncome ? "credit" : "debt" },
-                        accountIds: [CHECKING_ID],
-                        category: isIncome ? SALARIO : pick([MERCADO, MORADIA]),
+                        type,
+                        accounts,
+                        accountIds: Object.keys(accounts),
+                        category: category as CategoryModel,
                     }, false);
 
                     installmentIds.push(...created.map((i) => i.id));
@@ -647,9 +850,15 @@ describe("rebuildWorkspace — propriedade: incremental == rebuild", () => {
                     const paidDate = new Date(target.dueDate);
                     paidDate.setDate(paidDate.getDate() + Math.floor(random() * 6) - 2);
 
+                    // 15% dos pagamentos com paidAmount = 0: o saldo e o
+                    // realizado ignoram, mas o XP ainda é creditado.
+                    const paidAmount = random() < 0.15
+                        ? 0
+                        : Math.round(target.amount * (0.8 + random() * 0.4) * 100) / 100;
+
                     await updateInstallmentWithTriggers(workspaceId, target.id, {
                         status: random() < 0.2 ? InstallmentStatus.settled : InstallmentStatus.paid,
-                        paidAmount: Math.round(target.amount * (0.8 + random() * 0.4) * 100) / 100,
+                        paidAmount,
                         paidDate,
                     });
                 }

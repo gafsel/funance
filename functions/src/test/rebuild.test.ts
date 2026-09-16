@@ -21,6 +21,7 @@ import { CategoryModel, CategoryType } from "../features/workspace/domain/models
 import { FinanceService } from "../features/finance/domain/services/finance.service";
 import { SummaryService } from "../features/finance/domain/services/summary.service";
 import { RebuildService } from "../features/finance/domain/services/rebuild.service";
+import { parseRebuildRequest } from "../features/finance/presentation/functions/rebuild_handler";
 
 const WORKSPACE = "ws-1";
 
@@ -175,8 +176,11 @@ describe("RebuildService", () => {
         service = buildService(repository);
     });
 
-    const apply = () => service.rebuildWorkspace(WORKSPACE, { dryRun: false, now: new Date(2026, 2, 15, 12) });
-    const dryRun = () => service.rebuildWorkspace(WORKSPACE, { now: new Date(2026, 2, 15, 12) });
+    const NOW = new Date(2026, 2, 15, 12);
+    const apply = () => service.rebuildWorkspace(WORKSPACE, { dryRun: false, now: NOW });
+    const dryRun = () => service.rebuildWorkspace(WORKSPACE, { now: NOW });
+    const applyRebuildingPlanning = () =>
+        service.rebuildWorkspace(WORKSPACE, { dryRun: false, now: NOW, rebuildPlanning: true });
 
     describe("saldos diários", () => {
         it("acumula o saldo dia a dia a partir do saldo inicial e das parcelas pagas", async () => {
@@ -370,7 +374,7 @@ describe("RebuildService", () => {
             expect(month.categories.virtual_investment_expense.actualAmount).toBeCloseTo(500, 2);
         });
 
-        it("soma o generalPlannedAmount do category_planning na janela de 12 meses", async () => {
+        it("soma o generalPlannedAmount do category_planning na janela de 12 meses (só com rebuildPlanning)", async () => {
             repository.installments = [];
             repository.plannings = [{
                 id: "plan-mercado",
@@ -380,7 +384,7 @@ describe("RebuildService", () => {
                 endMonth: "2026-04",
             }];
 
-            await apply();
+            await applyRebuildingPlanning();
 
             // Março e abril entram; maio (fora do endMonth) não.
             expect(repository.summaries.get("2026-03")!.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(620, 2);
@@ -390,6 +394,104 @@ describe("RebuildService", () => {
             // Semana: proporção diária * 7 (março tem 31 dias).
             const week = repository.summaries.get("2026-W10")!;
             expect(week.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo((620 / 31) * 7, 6);
+        });
+    });
+
+    describe("generalPlannedAmount (planejamento)", () => {
+        /** Sumários "de produção": planejado acumulado por meses de cron. */
+        const seedAccumulatedPlanning = () => {
+            repository.summaries.set("2025-12", {
+                year: 2025, month: 12, week: null, runtimeType: "month",
+                categories: { [CATEGORY.id]: { generalPlannedAmount: 3000, specificPlannedAmount: 0, actualAmount: 0 } },
+            });
+            repository.summaries.set("2026-03", {
+                year: 2026, month: 3, week: null, runtimeType: "month",
+                categories: { [CATEGORY.id]: { generalPlannedAmount: 4000, specificPlannedAmount: 0, actualAmount: 0 } },
+            });
+            repository.plannings = [{
+                id: "plan-antigo",
+                category: CATEGORY,
+                amount: 1000,
+                startMonth: "2025-10",
+                endMonth: "2026-12",
+            }];
+        };
+
+        it("por padrão preserva o planejado gravado, inclusive de meses passados", async () => {
+            seedAccumulatedPlanning();
+
+            const report = await dryRun();
+
+            expect(report.rebuildPlanning).toBe(false);
+            expect(report.totalChanges).toBe(0);
+            expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
+            expect(report.diff.periodSummaries.toUpdate).toBe(0);
+            expect(report.diff.periodSummaries.toDelete).toBe(0);
+        });
+
+        it("preserva o planejado mesmo quando há parcelas no mesmo documento", async () => {
+            seedAccumulatedPlanning();
+            repository.installments = [
+                rawInstallment("a", {
+                    amount: 100, paidAmount: 100, status: InstallmentStatus.paid,
+                    dueDate: ts(2026, 3, 10), paidDate: ts(2026, 3, 10),
+                }),
+            ];
+
+            await apply();
+
+            const month = repository.summaries.get("2026-03")!;
+            expect(month.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(4000, 2);
+            expect(month.categories[CATEGORY.id].actualAmount).toBeCloseTo(100, 2);
+            expect(repository.summaries.get("2025-12")!.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(3000, 2);
+
+            expect((await dryRun()).totalChanges).toBe(0);
+        });
+
+        it("com rebuildPlanning recalcula e zera o passado — contado à parte no diff", async () => {
+            seedAccumulatedPlanning();
+
+            const report = await service.rebuildWorkspace(WORKSPACE, { now: NOW, rebuildPlanning: true });
+
+            expect(report.rebuildPlanning).toBe(true);
+            expect(report.totalChanges).toBeGreaterThan(0);
+            expect(report.diff.periodSummaries.generalPlannedChanges).toBeGreaterThan(0);
+
+            await applyRebuildingPlanning();
+            // Dezembro/2025 é passado: a projeção não o alcança e ele é apagado.
+            expect(repository.summaries.has("2025-12")).toBe(false);
+            expect(repository.summaries.get("2026-03")!.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(1000, 2);
+        });
+
+        it("não toca em documento com id fora do padrão", async () => {
+            repository.summaries.set("planejamento-legado", { foo: "bar" });
+
+            const report = await dryRun();
+
+            expect(report.diff.periodSummaries.toDelete).toBe(0);
+            expect(report.diff.periodSummaries.residual).toBe(0);
+            expect(repository.summaries.has("planejamento-legado")).toBe(true);
+        });
+
+        it("conta como residual a categoria zerada que sairia do documento", async () => {
+            repository.installments = [
+                rawInstallment("a", {
+                    amount: 100, paidAmount: 100, status: InstallmentStatus.paid,
+                    dueDate: ts(2026, 3, 10), paidDate: ts(2026, 3, 10),
+                }),
+            ];
+            await apply();
+
+            const month = repository.summaries.get("2026-03")!;
+            month.categories["cat-fantasma"] = { generalPlannedAmount: 0, specificPlannedAmount: 0, actualAmount: 0 };
+
+            const report = await dryRun();
+            expect(report.diff.periodSummaries.toUpdate).toBe(0);
+            expect(report.diff.periodSummaries.residual).toBe(1);
+            expect(report.totalChanges).toBe(0);
+
+            await service.rebuildWorkspace(WORKSPACE, { dryRun: false, now: NOW, pruneResidual: true });
+            expect(repository.summaries.get("2026-03")!.categories["cat-fantasma"]).toBeUndefined();
         });
     });
 
@@ -445,6 +547,11 @@ describe("RebuildService", () => {
                 startMonth: "2026-01",
                 endMonth: "2026-12",
             }];
+            // Planejado já gravado pelos gatilhos: o rebuild padrão preserva.
+            repository.summaries.set("2026-03", {
+                year: 2026, month: 3, week: null, runtimeType: "month",
+                categories: { [CATEGORY.id]: { generalPlannedAmount: 300, specificPlannedAmount: 0, actualAmount: 0 } },
+            });
         });
 
         it("dry-run não escreve nada e relata o que mudaria", async () => {
@@ -455,7 +562,8 @@ describe("RebuildService", () => {
             expect(report.totalChanges).toBeGreaterThan(0);
             expect(report.diff.balances.toCreate).toBe(1);
             expect(report.diff.weeklyXp.toCreate).toBe(1);
-            expect(repository.summaries.size).toBe(0);
+            expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
+            expect(repository.summaries.size).toBe(1);
             expect(repository.balances.size).toBe(0);
         });
 
@@ -508,5 +616,30 @@ describe("RebuildService", () => {
             await service.rebuildWorkspace(WORKSPACE, { pageSize: 1, now: new Date(2026, 2, 15, 12) });
             expect(repository.pagesRead).toBe(2);
         });
+    });
+});
+
+describe("callable rebuildWorkspace (validação do payload)", () => {
+    it("aceita apenas o workspaceId e o rebuildPlanning (prévia)", () => {
+        expect(parseRebuildRequest({ workspaceId: "ws-1" })).toEqual({ workspaceId: "ws-1", rebuildPlanning: false });
+        expect(parseRebuildRequest({ workspaceId: "ws-1", rebuildPlanning: true }))
+            .toEqual({ workspaceId: "ws-1", rebuildPlanning: true });
+    });
+
+    it("rejeita `apply`: escrever é exclusivo do script operacional", () => {
+        expect(() => parseRebuildRequest({ workspaceId: "ws-1", apply: true }))
+            .toThrow(expect.objectContaining({ code: "invalid-argument" }));
+        // Mesmo `apply: false` é rejeitado: a callable não tem modo de escrita.
+        expect(() => parseRebuildRequest({ workspaceId: "ws-1", apply: false }))
+            .toThrow(expect.objectContaining({ code: "invalid-argument" }));
+    });
+
+    it("rejeita `pruneResidual` e payload sem workspaceId", () => {
+        expect(() => parseRebuildRequest({ workspaceId: "ws-1", pruneResidual: true }))
+            .toThrow(expect.objectContaining({ code: "invalid-argument" }));
+        expect(() => parseRebuildRequest({}))
+            .toThrow(expect.objectContaining({ code: "invalid-argument" }));
+        expect(() => parseRebuildRequest({ workspaceId: "ws-1", rebuildPlanning: "sim" }))
+            .toThrow(expect.objectContaining({ code: "invalid-argument" }));
     });
 });
