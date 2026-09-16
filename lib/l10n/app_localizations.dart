@@ -200,6 +200,18 @@ abstract class AppLocalizations {
   /// **'A senha deve ter pelo menos 6 caracteres'**
   String get shortPassword;
 
+  /// No description provided for @appErrorWidgetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Algo deu errado'**
+  String get appErrorWidgetTitle;
+
+  /// No description provided for @appErrorWidgetMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.'**
+  String get appErrorWidgetMessage;
+
   /// No description provided for @errorUnknown.
   ///
   /// In pt, this message translates to:
@@ -769,6 +781,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Analisar com IA'**
   String get goalAnalyzeWithAi;
+
+  /// No description provided for @goalAiError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível analisar a meta. Tente novamente.'**
+  String get goalAiError;
+
+  /// No description provided for @reconciliationError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível analisar o extrato. Tente novamente.'**
+  String get reconciliationError;
 
   /// No description provided for @goalAiAnalyzing.
   ///
@@ -3554,18 +3578,6 @@ abstract class AppLocalizations {
   /// **'O workspace conclui com sucesso 5 metas financeiras diferentes.'**
   String get badge_goal_silver_desc;
 
-  /// No description provided for @badge_emergency_shield_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Escudo de Emergência'**
-  String get badge_emergency_shield_name;
-
-  /// No description provided for @badge_emergency_shield_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Atingir 100% de progresso em uma meta criada com a categoria/tag \"Emergência\".'**
-  String get badge_emergency_shield_desc;
-
   /// No description provided for @badge_under_control_name.
   ///
   /// In pt, this message translates to:
@@ -3614,18 +3626,6 @@ abstract class AppLocalizations {
   /// **'Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.'**
   String get badge_cost_cutter_desc;
 
-  /// No description provided for @badge_dynamic_duo_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Dupla Dinâmica'**
-  String get badge_dynamic_duo_name;
-
-  /// No description provided for @badge_dynamic_duo_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Workspace com 2 membros ativos registrando transações pagas no mesmo mês.'**
-  String get badge_dynamic_duo_desc;
-
   /// No description provided for @badge_united_front_name.
   ///
   /// In pt, this message translates to:
@@ -3637,18 +3637,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Workspace com 3 ou mais membros ativos adicionados e aceitos.'**
   String get badge_united_front_desc;
-
-  /// No description provided for @badge_financial_synapsis_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sinergia Financeira'**
-  String get badge_financial_synapsis_name;
-
-  /// No description provided for @badge_financial_synapsis_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir uma missão semanal onde todos os membros ativos registraram ao menos 1 transação.'**
-  String get badge_financial_synapsis_desc;
 
   /// No description provided for @badge_iron_consistency_name.
   ///
@@ -4532,11 +4520,23 @@ abstract class AppLocalizations {
   /// **'Insights'**
   String get planningAnalysisInsightsTitle;
 
-  /// No description provided for @planningAnalysisRefresh.
+  /// No description provided for @planningAnalysisGeneratedAt.
   ///
   /// In pt, this message translates to:
-  /// **'Atualizar análise'**
-  String get planningAnalysisRefresh;
+  /// **'Análise gerada em {date}'**
+  String planningAnalysisGeneratedAt(String date);
+
+  /// No description provided for @planningAnalysisNextAvailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'{days, plural, one{Nova análise disponível em {days} dia} other{Nova análise disponível em {days} dias}}'**
+  String planningAnalysisNextAvailable(int days);
+
+  /// No description provided for @planningAnalysisGenerateNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar nova análise'**
+  String get planningAnalysisGenerateNew;
 }
 
 class _AppLocalizationsDelegate

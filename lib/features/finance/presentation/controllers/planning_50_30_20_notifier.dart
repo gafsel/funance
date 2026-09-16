@@ -7,7 +7,8 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, void> {
   final Planning503020Service planning503020Service;
 
-  StreamSubscription? _subscription;
+  // Só usamos a assinatura para cancelar, então o tipo do elemento é irrelevante.
+  StreamSubscription<void>? _subscription;
 
   Planning503020Notifier({
     required this.planning503020Service,

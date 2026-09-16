@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
-import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:uuid/uuid.dart';

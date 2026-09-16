@@ -12,6 +12,7 @@ class CategoryPickerSheet extends ConsumerWidget {
   final bool showClearOption;
   final bool showAddOption;
   final bool excludeVirtual;
+  final bool excludeSystem;
   final String? title;
 
   const CategoryPickerSheet({
@@ -20,6 +21,7 @@ class CategoryPickerSheet extends ConsumerWidget {
     this.showClearOption = true,
     this.showAddOption = true,
     this.excludeVirtual = true,
+    this.excludeSystem = true,
     this.title,
   });
 
@@ -29,6 +31,7 @@ class CategoryPickerSheet extends ConsumerWidget {
     bool showClearOption = true,
     bool showAddOption = true,
     bool excludeVirtual = true,
+    bool excludeSystem = true,
     String? title,
   }) {
     return showModalBottomSheet<CategoryModel>(
@@ -40,6 +43,7 @@ class CategoryPickerSheet extends ConsumerWidget {
         showClearOption: showClearOption,
         showAddOption: showAddOption,
         excludeVirtual: excludeVirtual,
+        excludeSystem: excludeSystem,
         title: title,
       ),
     );
@@ -53,11 +57,15 @@ class CategoryPickerSheet extends ConsumerWidget {
               .where(
                 (c) =>
                     (categoryType == null || c.type == categoryType) &&
-                    (!c.isVirtual || !excludeVirtual),
+                    (!c.isVirtual || !excludeVirtual) &&
+                    // Excluídas logicamente nunca são selecionáveis; as de
+                    // sistema só aparecem onde a lista serve a relatório.
+                    !c.isDeleted &&
+                    (!c.isSystem || !excludeSystem),
               )
               .toList(),
-          error: (error, stack) => [],
-          loading: () => [],
+          error: (error, stack) => <CategoryModel>[],
+          loading: () => <CategoryModel>[],
         );
 
     return SafeArea(
@@ -82,7 +90,7 @@ class CategoryPickerSheet extends ConsumerWidget {
                   (showClearOption ? 2 : 0),
               itemBuilder: (context, index) {
                 if (index < categories.length) {
-                  CategoryModel category = categories[index];
+                  final CategoryModel category = categories[index];
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor:

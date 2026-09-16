@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -114,6 +115,59 @@ class _Planning503020AnalysisSheetState
         SnackBar(content: Text(l10n.planningAnalysisApplyError)),
       );
     }
+  }
+
+  /// Informação honesta sobre o cache do servidor.
+  ///
+  /// Uma análise é reaproveitada por alguns dias; pedir outra antes disso não
+  /// geraria nada, então em vez de um botão que não faz nada mostramos quando
+  /// a atual foi gerada e quando dá para pedir a próxima.
+  Widget _buildCacheInfo(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    final analysis = widget.analysis;
+    final generatedAt = analysis.createdAt;
+
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+
+    return Column(
+      children: [
+        if (generatedAt != null)
+          Text(
+            l10n.planningAnalysisGeneratedAt(
+              generatedAt.formated(l10n.formatSimpleDate),
+            ),
+            textAlign: TextAlign.center,
+            style: labelStyle,
+          ),
+        if (analysis.canRegenerate)
+          TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).pop();
+              widget.onRefresh!();
+            },
+            icon: const Icon(Icons.refresh, size: 16),
+            label: Text(l10n.planningAnalysisGenerateNew),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onSurfaceVariant,
+              textStyle: theme.textTheme.labelSmall,
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              l10n.planningAnalysisNextAvailable(analysis.daysUntilRenewal),
+              textAlign: TextAlign.center,
+              style: labelStyle,
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -256,20 +310,7 @@ class _Planning503020AnalysisSheetState
           ],
           if (widget.onRefresh != null) ...[
             const SizedBox(height: 8),
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  widget.onRefresh!();
-                },
-                icon: const Icon(Icons.refresh, size: 16),
-                label: Text(l10n.planningAnalysisRefresh),
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.onSurfaceVariant,
-                  textStyle: theme.textTheme.labelSmall,
-                ),
-              ),
-            ),
+            _buildCacheInfo(context, l10n, theme),
           ],
         ],
       ),
@@ -407,10 +448,7 @@ class _CategoryTile extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 2,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
@@ -484,9 +522,7 @@ class _ReclassificationTile extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.successGold.withValues(alpha: 0.08),
-        border: Border.all(
-          color: AppColors.antiqueGold.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: AppColors.antiqueGold.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(

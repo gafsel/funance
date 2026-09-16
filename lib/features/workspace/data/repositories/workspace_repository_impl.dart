@@ -21,7 +21,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
       final List<dynamic> membersData = result.data as List<dynamic>;
 
       return membersData.map((data) {
-        return UserModel.fromJson(Map<String, dynamic>.from(data));
+        return UserModel.fromJson(Map<String, dynamic>.from(data as Map));
       }).toList();
     } catch (e, s) {
       throw BusinessException(

@@ -4,7 +4,6 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 class HistoryPeriodSummary extends ConsumerWidget {

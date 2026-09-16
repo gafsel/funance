@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
@@ -34,6 +35,7 @@ class OnboardingViewProviders {
       accountRepository: ref.read(AccountDomainProviders.repository),
       workspaceNotifier: ref.read(WorkspaceViewProviders.workspace.notifier),
       categoryService: ref.read(CategoryDomainProviders.service),
+      analytics: ref.read(analyticsServiceProvider),
     );
   });
 }

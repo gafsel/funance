@@ -69,7 +69,7 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
       final extension = name.split('.').last.toLowerCase();
 
       if (widget.allowedExtensions.contains(extension)) {
-        widget.onFileSelected(File(file.path), name);
+        widget.onFileSelected(File(file.path as String), name);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

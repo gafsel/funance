@@ -23,7 +23,11 @@ class Planning503020Service {
 
     return periodSummaryService.watchMonth(date.year, date.month).asyncMap((summary) async {
       final categories = await categoryService.getCategories().first;
-      final expenseCategories = categories.where((c) => c.type == CategoryType.expense).toList();
+      // As pools do 50-30-20 são editáveis: só entram categorias que o
+      // usuário pode de fato planejar.
+      final expenseCategories = categories
+          .where((c) => c.type == CategoryType.expense && c.isSelectable)
+          .toList();
       
       final plannings = await financeService.getCategoryPlannings(startMonth: currentMonth);
 
@@ -40,7 +44,9 @@ class Planning503020Service {
         );
       }).toList();
 
-      final incomes = categories.where((c) => c.type == CategoryType.income);
+      final incomes = categories.where(
+        (c) => c.type == CategoryType.income && c.isSelectable,
+      );
       
       final totalIncomes = incomes.fold<double>(0, (sum, category) {
         final summaryCategory = summary?.categories[category.id];

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
-import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 
@@ -47,15 +46,17 @@ class AccountStatementNotifier
   }
 
   @override
-  void reset({TransactionQuery? query}) {
+  Future<void> reset({TransactionQuery? query}) async {
     if (query?.description != state.query.description) {
+      // Busca por texto é debounced: o reset real roda depois do timer, então
+      // este caminho não tem o que aguardar.
       _debounceTimer?.cancel();
       _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-        super.reset(query: query);
+        unawaited(super.reset(query: query));
       });
       state = state.copyWith(query: query ?? state.query);
     } else {
-      super.reset(query: query);
+      await super.reset(query: query);
     }
   }
 

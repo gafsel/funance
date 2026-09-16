@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
@@ -142,7 +143,7 @@ class _SuccessStepState extends ConsumerState<SuccessStep> {
                   onPressed: (loading) async {
                     final router = GoRouter.of(context);
                     await loading(notifier.nextStep());
-                    router.pushReplacement("/splash");
+                    unawaited(router.pushReplacement("/splash"));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.successGold,

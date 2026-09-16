@@ -36,11 +36,7 @@ abstract class IFinanceRepository {
     String? orderId,
   });
 
-  Future<void> addInstallment(String workspaceId, InstallmentModel entry);
-
   Future<void> updateInstallment(String workspaceId, InstallmentModel entry);
-
-  Future<void> deleteInstallment(String workspaceId, String entryId);
 
   Future<InstallmentModel> getInstallment(
     String workspaceId,

@@ -161,7 +161,7 @@ class _DistributionCardContent extends StatelessWidget {
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: isPlanned ? FontWeight.normal : FontWeight.bold,
                 color: isPlanned
-                    ? theme.textTheme.labelMedium?.color?.withOpacity(0.7)
+                    ? theme.textTheme.labelMedium?.color?.withValues(alpha: 0.7)
                     : null,
               ),
             ),
@@ -170,7 +170,7 @@ class _DistributionCardContent extends StatelessWidget {
               style: theme.textTheme.labelMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: isPlanned
-                    ? theme.textTheme.labelMedium?.color?.withOpacity(0.7)
+                    ? theme.textTheme.labelMedium?.color?.withValues(alpha: 0.7)
                     : null,
               ),
             ),
@@ -181,7 +181,7 @@ class _DistributionCardContent extends StatelessWidget {
           height: 16,
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: total <= 0
@@ -194,8 +194,8 @@ class _DistributionCardContent extends StatelessWidget {
                         Expanded(
                           flex: (essential * 1000).toInt(),
                           child: Container(
-                            color: essentialColor.withOpacity(
-                              isPlanned ? 0.4 : 1.0,
+                            color: essentialColor.withValues(
+                              alpha: isPlanned ? 0.4 : 1.0,
                             ),
                             alignment: Alignment.center,
                             child: _BarPercentage(
@@ -208,8 +208,8 @@ class _DistributionCardContent extends StatelessWidget {
                         Expanded(
                           flex: (comfort * 1000).toInt(),
                           child: Container(
-                            color: comfortColor.withOpacity(
-                              isPlanned ? 0.4 : 1.0,
+                            color: comfortColor.withValues(
+                              alpha: isPlanned ? 0.4 : 1.0,
                             ),
                             alignment: Alignment.center,
                             child: _BarPercentage(
@@ -222,8 +222,8 @@ class _DistributionCardContent extends StatelessWidget {
                         Expanded(
                           flex: (investment * 1000).toInt(),
                           child: Container(
-                            color: investmentColor.withOpacity(
-                              isPlanned ? 0.4 : 1.0,
+                            color: investmentColor.withValues(
+                              alpha: isPlanned ? 0.4 : 1.0,
                             ),
                             alignment: Alignment.center,
                             child: _BarPercentage(
@@ -237,25 +237,6 @@ class _DistributionCardContent extends StatelessWidget {
                 ),
         ),
       ],
-    );
-  }
-
-  Widget _buildGoalMarker(double percentage) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: percentage,
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: Container(
-            width: 2,
-            height: 12,
-            color: Colors.black.withOpacity(0.3),
-          ),
-        ),
-      ),
     );
   }
 

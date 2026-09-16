@@ -1,16 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
-import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
 import 'package:uuid/uuid.dart';
 
-import '../../../finance/domain/models/account_model.dart';
 import '../../../goal/domain/models/goal_model.dart';
 import '../../../workspace/domain/models/workspace_model.dart';
 import '../../domain/services/onboarding_service.dart';
@@ -20,12 +18,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final IAccountRepository accountRepository;
   final WorkspaceNotifier workspaceNotifier;
   final CategoryService categoryService;
+  final AnalyticsService analytics;
 
   OnboardingNotifier({
     required this.onboardingService,
     required this.accountRepository,
     required this.workspaceNotifier,
     required this.categoryService,
+    required this.analytics,
   }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
 
   void load(WorkspaceModel workspace) {
@@ -79,6 +79,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
           state.workspace.copyWith(lastOnboardingStep: nextStep),
         );
       }
+
+      // Registra a etapa alcançada, inclusive a final, para fechar o funil.
+      try {
+        await analytics.logOnboardingStep(nextStep.name);
+      } catch (_) {}
 
       if (nextStep == OnboardingSteps.done) {
         await workspaceNotifier.loadWorkspaces(
@@ -168,18 +173,18 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
     // 2. Processar Orders
     final processedPeriodSummaries = <CategoryPlanningModel>[];
-    for (final planning in state.planningSuggestions?.plannings ?? []) {
-      if (planning.category != null) {
-        final category = await _findOrCreateCategory(
-          categories,
-          planning.category!,
-        );
+    for (final planning
+        in state.planningSuggestions?.plannings ??
+            const <CategoryPlanningModel>[]) {
+      final category = await _findOrCreateCategory(
+        categories,
+        planning.category,
+      );
 
-        processedPeriodSummaries.add(planning.copyWith(category: category));
-      }
+      processedPeriodSummaries.add(planning.copyWith(category: category));
     }
 
-    onboardingService.savePlanning(
+    await onboardingService.savePlanning(
       state.workspace,
       (state.planningSuggestions ?? PlanningSuggestions()).copyWith(
         plannings: processedPeriodSummaries,
@@ -191,7 +196,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     List<CategoryModel> categories,
     CategoryModel category,
   ) async {
-    CategoryModel? found = categories.where((c) {
+    final CategoryModel? found = categories.where((c) {
       if (category.isVirtual && c.id == category.id) return true;
 
       return c.type == category.type &&

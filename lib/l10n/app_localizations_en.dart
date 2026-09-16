@@ -60,6 +60,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shortPassword => 'Password must be at least 6 characters';
 
   @override
+  String get appErrorWidgetTitle => 'Something went wrong';
+
+  @override
+  String get appErrorWidgetMessage =>
+      'We have been notified and are working on it. Try going back and opening the screen again.';
+
+  @override
   String get errorUnknown => 'An unexpected error occurred.';
 
   @override
@@ -376,6 +383,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goalAnalyzeWithAi => 'Analyze with AI';
+
+  @override
+  String get goalAiError => 'We could not analyze the goal. Please try again.';
+
+  @override
+  String get reconciliationError =>
+      'We could not analyze the statement. Please try again.';
 
   @override
   String get goalAiAnalyzing => 'Analyzing your goal...';
@@ -1927,13 +1941,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The workspace successfully completes 5 different financial goals.';
 
   @override
-  String get badge_emergency_shield_name => 'Emergency Shield';
-
-  @override
-  String get badge_emergency_shield_desc =>
-      'Reach 100% progress on a goal created with the \"Emergency\" category/tag.';
-
-  @override
   String get badge_under_control_name => 'All Under Control';
 
   @override
@@ -1962,25 +1969,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reduce total expenses of the Comfort pool (discretionary) by 20% compared to the previous month.';
 
   @override
-  String get badge_dynamic_duo_name => 'Dynamic Duo';
-
-  @override
-  String get badge_dynamic_duo_desc =>
-      'Workspace with 2 active members recording paid transactions in the same month.';
-
-  @override
   String get badge_united_front_name => 'United Front';
 
   @override
   String get badge_united_front_desc =>
       'Workspace with 3 or more active members added and accepted.';
-
-  @override
-  String get badge_financial_synapsis_name => 'Financial Synergy';
-
-  @override
-  String get badge_financial_synapsis_desc =>
-      'Complete a weekly mission where all active members recorded at least 1 transaction.';
 
   @override
   String get badge_iron_consistency_name => 'Iron Consistency';
@@ -2492,5 +2485,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planningAnalysisInsightsTitle => 'Insights';
 
   @override
-  String get planningAnalysisRefresh => 'Refresh analysis';
+  String planningAnalysisGeneratedAt(String date) {
+    return 'Analysis generated on $date';
+  }
+
+  @override
+  String planningAnalysisNextAvailable(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'New analysis available in $days days',
+      one: 'New analysis available in $days day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get planningAnalysisGenerateNew => 'Generate new analysis';
 }

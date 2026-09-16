@@ -17,7 +17,7 @@ class PasswordFormField extends StatefulWidget {
   });
 
   @override
-  _PasswordFormFieldState createState() => _PasswordFormFieldState();
+  State<PasswordFormField> createState() => _PasswordFormFieldState();
 }
 
 class _PasswordFormFieldState extends State<PasswordFormField> {

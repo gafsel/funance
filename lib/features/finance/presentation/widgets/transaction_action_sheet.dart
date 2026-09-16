@@ -2,13 +2,10 @@
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../screens/category_planning_screen.dart';
-import '../screens/transaction_form_screen.dart';
 
 class TransactionActionSheet extends StatefulWidget {
   final Function(OrderType)? onSelect;

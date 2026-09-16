@@ -210,7 +210,7 @@ class HistoryTab extends ConsumerWidget {
                               data: (account) =>
                                   account?.name ?? query.accountId,
                               loading: () => query.accountId,
-                              error: (_, __) => query.accountId,
+                              error: (_, _) => query.accountId,
                             );
 
                             return _FilterBadge(
@@ -232,7 +232,7 @@ class HistoryTab extends ConsumerWidget {
                               data: (category) =>
                                   category?.name ?? query.categoryId,
                               loading: () => query.categoryId,
-                              error: (_, __) => query.categoryId,
+                              error: (_, _) => query.categoryId,
                             );
 
                             return _FilterBadge(

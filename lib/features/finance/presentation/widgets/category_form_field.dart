@@ -5,7 +5,6 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_picker_sheet.dart';
 
 class CategoryFormField extends ConsumerWidget {
@@ -222,7 +221,11 @@ class CategoryFormField extends ConsumerWidget {
     return CategoryPickerSheet.show(
       context,
       categoryType: categoryType,
+      // `emptyMeansAll` marca o uso como filtro de extrato/relatório: ali as
+      // categorias virtuais e de sistema precisam aparecer para o usuário
+      // conseguir filtrar lançamentos que já existem nelas.
       excludeVirtual: !emptyMeansAll,
+      excludeSystem: !emptyMeansAll,
       showAddOption: showNewOption,
     );
   }

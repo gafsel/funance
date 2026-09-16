@@ -170,7 +170,9 @@ class _AnimatedDoubleState
           locale: widget.locale,
           softWrap: widget.softWrap,
           overflow: widget.overflow,
-          textScaleFactor: widget.textScaleFactor,
+          textScaler: widget.textScaleFactor == null
+              ? null
+              : TextScaler.linear(widget.textScaleFactor!),
           maxLines: widget.maxLines,
           semanticsLabel: widget.semanticsLabel,
           textWidthBasis: widget.textWidthBasis,

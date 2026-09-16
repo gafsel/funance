@@ -289,9 +289,9 @@ class FinanceMapper {
 
     return CategoryModel(
       id: "",
-      name: json['name'],
-      icon: json['icon'],
-      color: json['color'],
+      name: json['name'] as String? ?? "Outros",
+      icon: json['icon'] as String? ?? "category",
+      color: json['color'] as String? ?? "",
       type: _toCategoryType(json['type']),
     );
   }
@@ -335,6 +335,7 @@ class FinanceMapper {
 
   static OrderStatus _toOrderStatus(dynamic value) {
     if (value == 'cancelled') return OrderStatus.cancelled;
+    if (value == 'settled') return OrderStatus.settled;
     return OrderStatus.active;
   }
 

@@ -9,7 +9,11 @@ class GoalFeasibilityRepository {
     String workspaceId,
     GoalFormState state,
   ) async {
-    final callable = _functions.httpsCallable('analyzeGoalFeasibility');
+    final callable = _functions.httpsCallable(
+      'analyzeGoalFeasibility',
+      // O servidor declara 120s; sem isso o cliente desistia aos 60s padrão.
+      options: HttpsCallableOptions(timeout: const Duration(minutes: 2)),
+    );
 
     final deadlineDays = state.deadline.difference(state.startDate).inDays;
     final months = (deadlineDays / 30).ceil().clamp(1, 999);

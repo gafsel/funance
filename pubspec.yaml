@@ -35,6 +35,8 @@ dependencies:
   firebase_core: ^3.11.0
   cloud_firestore: ^5.6.3
   firebase_auth: ^5.5.3
+  firebase_crashlytics: ^4.3.10
+  firebase_analytics: ^11.6.0
 
   # Estado e UI
   cupertino_icons: ^1.0.8

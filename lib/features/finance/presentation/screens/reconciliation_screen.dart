@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:funances/core/form/loading_button.dart';
@@ -139,28 +139,42 @@ class ReconciliationScreen extends ConsumerWidget {
           dragOverTitle: l10n.statementDragOverTitle,
           supportedFormatsText: l10n.reconciliationSupportedFormats,
           selectFileButtonText: l10n.reconciliationChooseFile,
-          onFileSelected: (file, name) {
+          onFileSelected: (file, name) async {
             final extension = name.split('.').last.toLowerCase();
             final uploadId = const Uuid().v4();
+            final messenger = ScaffoldMessenger.of(context);
             final progressStream = notifier.reconciliationService
                 .watchUploadProgress(uploadId);
 
-            showLoadingModal(
-              context,
-              notifier.uploadFile(file, uploadId: uploadId),
-              child: AnalysisLoadingView(
-                title: l10n.reconciliationAnalyzing,
-                description: l10n.reconciliationAnalyzingDesc,
-                progressStream: progressStream,
-                firstPhaseDuration:
-                    ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                    ? const Duration(seconds: 20)
-                    : const Duration(minutes: 1),
-                totalDuration: ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                    ? const Duration(seconds: 45)
-                    : const Duration(minutes: 5),
-              ),
-            );
+            try {
+              await showLoadingModal(
+                context,
+                notifier.uploadFile(file, uploadId: uploadId),
+                child: AnalysisLoadingView(
+                  title: l10n.reconciliationAnalyzing,
+                  description: l10n.reconciliationAnalyzingDesc,
+                  progressStream: progressStream,
+                  firstPhaseDuration:
+                      ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
+                      ? const Duration(seconds: 20)
+                      : const Duration(minutes: 1),
+                  totalDuration:
+                      ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
+                      ? const Duration(seconds: 45)
+                      : const Duration(minutes: 5),
+                ),
+              );
+            } catch (e) {
+              // Antes a falha era silenciosa: o modal fechava e a tela ficava
+              // parada na etapa de upload.
+              messenger.showSnackBar(
+                SnackBar(
+                  content: Text(
+                    callableErrorMessage(e, l10n.reconciliationError),
+                  ),
+                ),
+              );
+            }
           },
         ),
       ),

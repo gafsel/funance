@@ -61,6 +61,7 @@ const _$InstallmentTypeEnumMap = {
 const _$OrderStatusEnumMap = {
   OrderStatus.active: 'active',
   OrderStatus.cancelled: 'cancelled',
+  OrderStatus.settled: 'settled',
 };
 
 const _$OrderTypeEnumMap = {

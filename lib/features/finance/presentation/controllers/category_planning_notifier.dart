@@ -1,3 +1,4 @@
+import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
@@ -11,10 +12,12 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
   final FinanceService financeService;
   final CategoryService categoryService;
   final CategoryType type;
+  final AnalyticsService analytics;
 
   CategoryPlanningNotifier({
     required this.financeService,
     required this.categoryService,
+    required this.analytics,
     required this.type,
   }) : super(CategoryPlanningState(isLoading: true)) {
     _init();
@@ -25,7 +28,8 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
     try {
       final categories = await categoryService.getCategories().first;
       final filteredCategories = categories.where((c) {
-        return type == c.type;
+        // Não faz sentido planejar categoria de sistema ou já excluída.
+        return type == c.type && c.isSelectable;
       }).toList();
 
       final currentMonth = DateTime.now().formated("yyyy-MM");
@@ -62,8 +66,12 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
     final endMonth = DateTime.now().add(const Duration(days: 365 * 99)).formated("yyyy-MM");
     final previousMonth = DateTime.now().subtract(const Duration(days: 30)).formated("yyyy-MM");
 
+    // Só emite o evento se algo mudou de fato.
+    var created = false;
+
     for (final item in state.items) {
       if (!item.isDirty) continue;
+      created = true;
 
       if (item.planningId == null && item.amount > 0) {
         // Novo planejamento
@@ -96,6 +104,13 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
         }
       }
     }
+    if (created) {
+      // Analytics não pode derrubar o salvamento do planejamento.
+      try {
+        await analytics.logPlanningCreated();
+      } catch (_) {}
+    }
+
     await _init(); // Recarregar estado
   }
 }

@@ -17,6 +17,8 @@
   "fieldRequired": "This field is required",
   "invalidEmail": "Invalid email",
   "shortPassword": "Password must be at least 6 characters",
+  "appErrorWidgetTitle": "Something went wrong",
+  "appErrorWidgetMessage": "We have been notified and are working on it. Try going back and opening the screen again.",
   "errorUnknown": "An unexpected error occurred.",
   "routeNotFound": "Page not found.",
   "routeNotFoundGoHome": "Back to home",
@@ -240,6 +242,8 @@
   "goalMilestone75": "75%",
   "goalMilestone100": "100%",
   "goalAnalyzeWithAi": "Analyze with AI",
+  "goalAiError": "We could not analyze the goal. Please try again.",
+  "reconciliationError": "We could not analyze the statement. Please try again.",
   "goalAiAnalyzing": "Analyzing your goal...",
   "goalAiAnalyzingDesc": "Our AI is examining your financial history to evaluate the feasibility of this goal.",
   "goalAiFeasible": "Feasible",
@@ -784,8 +788,6 @@
   "badge_goal_bronze_desc": "The workspace successfully completes 3 different financial goals.",
   "badge_goal_silver_name": "Unwavering Focus",
   "badge_goal_silver_desc": "The workspace successfully completes 5 different financial goals.",
-  "badge_emergency_shield_name": "Emergency Shield",
-  "badge_emergency_shield_desc": "Reach 100% progress on a goal created with the \"Emergency\" category/tag.",
   "badge_under_control_name": "All Under Control",
   "badge_under_control_desc": "Close the month without exceeding any planned category in the 50-30-20 rule.",
   "badge_golden_rule_name": "Golden Rule",
@@ -794,12 +796,8 @@
   "badge_future_focus_desc": "Effectively save and invest at least 20% of the total workspace revenues in the month.",
   "badge_cost_cutter_name": "Cost Cutter",
   "badge_cost_cutter_desc": "Reduce total expenses of the Comfort pool (discretionary) by 20% compared to the previous month.",
-  "badge_dynamic_duo_name": "Dynamic Duo",
-  "badge_dynamic_duo_desc": "Workspace with 2 active members recording paid transactions in the same month.",
   "badge_united_front_name": "United Front",
   "badge_united_front_desc": "Workspace with 3 or more active members added and accepted.",
-  "badge_financial_synapsis_name": "Financial Synergy",
-  "badge_financial_synapsis_desc": "Complete a weekly mission where all active members recorded at least 1 transaction.",
   "badge_iron_consistency_name": "Iron Consistency",
   "badge_iron_consistency_desc": "Successfully complete weekly missions for 4 consecutive weeks.",
   "levelIndicatorSemantics": "Workspace Level: {level}, Badges unlocked: {count}",
@@ -1033,5 +1031,13 @@
   "planningAnalysisApplied": "Category updated successfully!",
   "planningAnalysisApplyError": "Could not update the category.",
   "planningAnalysisInsightsTitle": "Insights",
-  "planningAnalysisRefresh": "Refresh analysis"
+  "planningAnalysisGeneratedAt": "Analysis generated on {date}",
+  "@planningAnalysisGeneratedAt": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "planningAnalysisNextAvailable": "{days, plural, one{New analysis available in {days} day} other{New analysis available in {days} days}}",
+  "@planningAnalysisNextAvailable": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "planningAnalysisGenerateNew": "Generate new analysis"
 }

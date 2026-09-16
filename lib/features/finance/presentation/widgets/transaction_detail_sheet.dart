@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -488,10 +487,10 @@ class _TransactionDetailSheetState
                             iconColor: AppColors.antiqueGold,
                           ),
                           loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                         ),
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       );
                     }
 
@@ -527,7 +526,7 @@ class _TransactionDetailSheetState
                                   iconColor: AppColors.antiqueGold,
                                 ),
                                 loading: () => const SizedBox.shrink(),
-                                error: (_, __) => const SizedBox.shrink(),
+                                error: (_, _) => const SizedBox.shrink(),
                               ),
                       ],
                     );

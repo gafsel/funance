@@ -1,8 +1,4 @@
-import 'dart:io';
 
-import 'package:desktop_drop/desktop_drop.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/chip_form_field.dart';
@@ -265,7 +261,7 @@ class AccountFormScreen extends ConsumerWidget {
           child: ListView.separated(
             shrinkWrap: true,
             itemCount: items.length,
-            separatorBuilder: (_, __) => const Divider(),
+            separatorBuilder: (_, _) => const Divider(),
             itemBuilder: (context, index) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
@@ -523,11 +519,11 @@ class _BankLogoOption extends StatelessWidget {
         height: 60,
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withOpacity(0.3),
+            color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+          color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
         ),
         child: logo == BankLogo.none
             ? Center(

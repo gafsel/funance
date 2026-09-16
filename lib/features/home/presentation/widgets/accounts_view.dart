@@ -16,7 +16,6 @@ class AccountsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
     final groupedAccountsAsync = ref.watch(AccountViewProviders.byTypeMap);
 
     return groupedAccountsAsync.when(
@@ -168,7 +167,7 @@ class AccountsView extends ConsumerWidget {
                 const SizedBox(height: 4),
                 LinearProgressIndicator(
                   value: progress,
-                  backgroundColor: theme.colorScheme.surfaceVariant,
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   color: color,
                   minHeight: 4,
                   borderRadius: BorderRadius.circular(2),
@@ -210,7 +209,7 @@ class AccountsView extends ConsumerWidget {
                         data: (invoice) =>
                             invoice?.dueDate.formated(l10n.formatSimpleDate) ??
                             "-",
-                        error: (_, __) => "",
+                        error: (_, _) => "",
                         loading: () => "",
                       ),
                       style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
@@ -222,7 +221,7 @@ class AccountsView extends ConsumerWidget {
                 height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
             ),
           );
         }
@@ -249,7 +248,7 @@ class AccountsView extends ConsumerWidget {
         );
       },
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
     );
   }
 }

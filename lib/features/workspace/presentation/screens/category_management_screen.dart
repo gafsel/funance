@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../providers.dart';
@@ -115,7 +113,6 @@ class _CategoryManagementScreenState
 
 class _CategoryList extends ConsumerWidget {
   const _CategoryList({
-    super.key,
     required this.type,
     required this.onUpdate,
     required this.onDelete,
@@ -132,10 +129,15 @@ class _CategoryList extends ConsumerWidget {
 
     return categoriesAsync.when(
       data: (rawCategories) {
+        // A gestão só lista o que o usuário pode manter: categorias de
+        // sistema e excluídas logicamente ficam fora.
         final categories =
-            [...rawCategories].where((c) => c.type == type).toList()..sort(
-              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-            );
+            [...rawCategories]
+                .where((c) => c.type == type && c.isSelectable)
+                .toList()
+              ..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
 
         return categories.isEmpty
             ? Center(child: Text(l10n.categoryManagementEmpty))
@@ -144,8 +146,12 @@ class _CategoryList extends ConsumerWidget {
                 separatorBuilder: (context, index) => Divider(),
                 itemBuilder: (context, index) {
                   final category = categories[index];
-                  final isVirtual = category.isVirtual;
-                  
+                  // Defesa dupla: a lista já exclui categorias de sistema, mas
+                  // se alguma escapar ela não pode oferecer editar/excluir —
+                  // as rules do Firestore negam a escrita e o toque daria
+                  // permission-denied.
+                  final isManaged = category.isVirtual || category.isSystem;
+
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Color(
@@ -159,7 +165,7 @@ class _CategoryList extends ConsumerWidget {
                     ),
                     title: Text(category.name),
                     subtitle: Text(category.type.name.toUpperCase()),
-                    trailing: isVirtual ? null : Row(
+                    trailing: isManaged ? null : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(

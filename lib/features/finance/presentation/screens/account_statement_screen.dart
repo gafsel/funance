@@ -6,6 +6,10 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/model/core_models.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/presentation/controllers/account_statement_notifier.dart';
+import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/detail_header.dart';
@@ -68,7 +72,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                       subtitle: latestBalanceAsync.when(
                         data: (balance) => balance.balance.asCurrency(locale: context.locale),
                         loading: () => "...",
-                        error: (_, __) => "---",
+                        error: (_, _) => "---",
                       ),
                       backgroundColor: account.color.asColor(),
                       logo: AccountLogo(account: account, size: 40, showMembers: true,),
@@ -213,7 +217,15 @@ class _StatementList extends ConsumerWidget {
     );
   }
 
-  Widget _buildFilterBar(BuildContext context, WidgetRef ref, dynamic provider) {
+  Widget _buildFilterBar(
+    BuildContext context,
+    WidgetRef ref,
+    StateNotifierProvider<
+      AccountStatementNotifier,
+      InfiniteListState<TransactionQuery, InstallmentModel>
+    >
+    provider,
+  ) {
     final state = ref.watch(provider);
     final hasFilter = state.query.categoryId != null ||
         state.query.type != null ||

@@ -8,7 +8,6 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 class CategoryIcon extends StatelessWidget {
   const CategoryIcon._({
-    super.key,
     this.category,
     this.invoice = false,
     this.transfer = false,

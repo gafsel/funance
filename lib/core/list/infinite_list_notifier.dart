@@ -20,7 +20,7 @@ abstract class InfiniteListNotifier<Q, E>
         ),
       );
 
-  reset({Q? query}) async {
+  Future<void> reset({Q? query}) async {
     if (!mounted) return;
 
     state = state.copyWith(
@@ -33,17 +33,18 @@ abstract class InfiniteListNotifier<Q, E>
     await _load();
   }
 
-  more() async {
+  Future<void> more() async {
     if (!mounted) return;
 
-    if (state.status == InfiniteListStatus.loading || !state.hasNextChunk)
+    if (state.status == InfiniteListStatus.loading || !state.hasNextChunk) {
       return;
+    }
     state = state.copyWith(status: InfiniteListStatus.loading);
 
     await _load();
   }
 
-  _load() async {
+  Future<void> _load() async {
     if (!mounted) return;
 
     try {

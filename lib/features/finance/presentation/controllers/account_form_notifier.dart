@@ -1,6 +1,8 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:funances/core/analytics/analytics_service.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -16,6 +18,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
   final AccountService accountService;
   final CategoryService categoryService;
   final FinanceService financeService;
+  final AnalyticsService analytics;
 
   AccountFormNotifier({
     AccountModel? account,
@@ -23,6 +26,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     required this.accountService,
     required this.categoryService,
     required this.financeService,
+    required this.analytics,
   }) : super(AccountFormState.initial(account: account, type: type));
 
   void updateName(String value) => state = state.copyWith(name: value);
@@ -100,11 +104,15 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
       } catch (e) {
         log(e.toString());
 
+        final rawMessage = e.toString().contains('BusinessException')
+            ? e.toString().split(':').last.trim()
+            : e.toString();
+
         state = state.copyWith(
           processingStatus: AccountProcessingStatus.failed,
-          errorMessage: e.toString().contains('BusinessException')
-            ? e.toString().split(':').last.trim()
-            : e.toString(),
+          // Limite diário de IA tem mensagem própria do servidor, já pronta
+          // para o usuário.
+          errorMessage: callableErrorMessage(e, rawMessage),
         );
       }
     }
@@ -118,8 +126,13 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
       account = await accountService.create(account);
 
       state = state.copyWith(originalAccount: account);
+
+      // Analytics nunca derruba a criação da conta.
+      try {
+        await analytics.logAccountCreated(account.type.name);
+      } catch (_) {}
     } else {
-      accountService.update(account);
+      await accountService.update(account);
     }
 
     // 1. Garantir que as categorias existam
@@ -158,7 +171,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     List<CategoryModel> categories,
     CategoryModel category,
   ) async {
-    CategoryModel? found = categories
+    final CategoryModel? found = categories
         .where(
           (c) =>
               c.type == category.type &&

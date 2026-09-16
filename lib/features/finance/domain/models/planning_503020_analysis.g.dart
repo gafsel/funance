@@ -111,6 +111,9 @@ _Planning503020Analysis _$Planning503020AnalysisFromJson(
   insights:
       (json['insights'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
+  createdAt: json['createdAt'] == null
+      ? null
+      : DateTime.parse(json['createdAt'] as String),
 );
 
 Map<String, dynamic> _$Planning503020AnalysisToJson(
@@ -123,4 +126,5 @@ Map<String, dynamic> _$Planning503020AnalysisToJson(
   'groups': instance.groups,
   'categories': instance.categories,
   'insights': instance.insights,
+  'createdAt': instance.createdAt?.toIso8601String(),
 };

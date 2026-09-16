@@ -51,14 +51,11 @@ const List<BadgeItem> advancedBadges = [
   BadgeItem(id: 'savings_seed', icon: Icons.savings, xpReward: '+500 XP', themeColor: Colors.pink, tier: BadgeTier.advanced),
   BadgeItem(id: 'goal_bronze', icon: Icons.military_tech, xpReward: '+1000 XP', themeColor: Colors.brown, tier: BadgeTier.advanced),
   BadgeItem(id: 'goal_silver', icon: Icons.stars, xpReward: '+2000 XP', themeColor: Colors.purple, tier: BadgeTier.advanced),
-  BadgeItem(id: 'emergency_shield', icon: Icons.shield, xpReward: '+800 XP', themeColor: Colors.red, tier: BadgeTier.advanced),
   BadgeItem(id: 'under_control', icon: Icons.check_circle, xpReward: '+1500 XP', themeColor: Colors.cyan, tier: BadgeTier.advanced),
   BadgeItem(id: 'golden_rule', icon: Icons.pie_chart, xpReward: '+1200 XP', themeColor: Colors.lightGreen, tier: BadgeTier.advanced),
   BadgeItem(id: 'future_focus', icon: Icons.trending_up, xpReward: '+1000 XP', themeColor: Colors.blueAccent, tier: BadgeTier.advanced),
   BadgeItem(id: 'cost_cutter', icon: Icons.content_cut, xpReward: '+800 XP', themeColor: Colors.deepOrange, tier: BadgeTier.advanced),
-  BadgeItem(id: 'dynamic_duo', icon: Icons.people, xpReward: '+400 XP', themeColor: Colors.lightBlue, tier: BadgeTier.advanced),
   BadgeItem(id: 'united_front', icon: Icons.groups, xpReward: '+600 XP', themeColor: Colors.purple, tier: BadgeTier.advanced),
-  BadgeItem(id: 'financial_synapsis', icon: Icons.hub, xpReward: '+800 XP', themeColor: Colors.pink, tier: BadgeTier.advanced),
   BadgeItem(id: 'iron_consistency', icon: Icons.calendar_month, xpReward: '+2500 XP', themeColor: Colors.redAccent, tier: BadgeTier.advanced),
 ];
 
@@ -145,14 +142,11 @@ String getBadgeName(BuildContext context, String id) {
     case 'savings_seed': return l10n.badge_savings_seed_name;
     case 'goal_bronze': return l10n.badge_goal_bronze_name;
     case 'goal_silver': return l10n.badge_goal_silver_name;
-    case 'emergency_shield': return l10n.badge_emergency_shield_name;
     case 'under_control': return l10n.badge_under_control_name;
     case 'golden_rule': return l10n.badge_golden_rule_name;
     case 'future_focus': return l10n.badge_future_focus_name;
     case 'cost_cutter': return l10n.badge_cost_cutter_name;
-    case 'dynamic_duo': return l10n.badge_dynamic_duo_name;
     case 'united_front': return l10n.badge_united_front_name;
-    case 'financial_synapsis': return l10n.badge_financial_synapsis_name;
     case 'iron_consistency': return l10n.badge_iron_consistency_name;
     // Simple — Primeiros Passos
     case 'first_category': return l10n.badge_first_category_name;
@@ -227,14 +221,11 @@ String getBadgeDescription(BuildContext context, String id) {
     case 'savings_seed': return l10n.badge_savings_seed_desc;
     case 'goal_bronze': return l10n.badge_goal_bronze_desc;
     case 'goal_silver': return l10n.badge_goal_silver_desc;
-    case 'emergency_shield': return l10n.badge_emergency_shield_desc;
     case 'under_control': return l10n.badge_under_control_desc;
     case 'golden_rule': return l10n.badge_golden_rule_desc;
     case 'future_focus': return l10n.badge_future_focus_desc;
     case 'cost_cutter': return l10n.badge_cost_cutter_desc;
-    case 'dynamic_duo': return l10n.badge_dynamic_duo_desc;
     case 'united_front': return l10n.badge_united_front_desc;
-    case 'financial_synapsis': return l10n.badge_financial_synapsis_desc;
     case 'iron_consistency': return l10n.badge_iron_consistency_desc;
     case 'first_category': return l10n.badge_first_category_desc;
     case 'first_planning': return l10n.badge_first_planning_desc;
@@ -1219,10 +1210,10 @@ class _BadgeShapePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    Color activeRingColor = tier == BadgeTier.advanced
+    final Color activeRingColor = tier == BadgeTier.advanced
         ? const Color(0xFFFFE082)
         : Colors.white;
-    double ringAlpha = tier == BadgeTier.advanced ? 0.35 : 0.18;
+    final double ringAlpha = tier == BadgeTier.advanced ? 0.35 : 0.18;
 
     ringPaint.color = isUnlocked
         ? activeRingColor.withValues(alpha: ringAlpha)

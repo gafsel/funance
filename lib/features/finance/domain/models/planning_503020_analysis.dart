@@ -64,6 +64,9 @@ sealed class Planning503020Analysis with _$Planning503020Analysis {
     @Default([]) List<Planning503020AnalysisGroup> groups,
     @Default([]) List<Planning503020AnalysisCategory> categories,
     @Default([]) List<String> insights,
+    // Quando o servidor gerou esta análise (ISO-8601). Análises antigas,
+    // persistidas antes deste campo existir, vêm nulas.
+    DateTime? createdAt,
   }) = _Planning503020Analysis;
 
   factory Planning503020Analysis.fromJson(Map<String, dynamic> json) =>
@@ -71,4 +74,29 @@ sealed class Planning503020Analysis with _$Planning503020Analysis {
 
   List<Planning503020AnalysisCategory> get reclassifications =>
       categories.where((c) => c.shouldReclassify).toList();
+
+  /// O servidor reaproveita uma análise por [cacheMaxAgeDays] dias antes de
+  /// gastar cota de IA gerando outra.
+  static const int cacheMaxAgeDays = 3;
+
+  /// Idade da análise em dias completos. Nulo quando não sabemos a data.
+  int? get ageInDays {
+    final generatedAt = createdAt;
+    if (generatedAt == null) return null;
+
+    final days = DateTime.now().difference(generatedAt).inDays;
+    return days < 0 ? 0 : days;
+  }
+
+  /// Quantos dias faltam até o servidor aceitar gerar uma análise nova.
+  int get daysUntilRenewal {
+    final age = ageInDays;
+    if (age == null) return 0;
+
+    final remaining = cacheMaxAgeDays - age;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  /// Sem data conhecida assumimos que dá para tentar: quem decide é o servidor.
+  bool get canRegenerate => daysUntilRenewal == 0;
 }

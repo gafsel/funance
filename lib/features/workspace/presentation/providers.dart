@@ -42,7 +42,7 @@ sealed class WorkspaceViewProviders {
               }
             },
             loading: () {},
-            error: (_, __) {},
+            error: (_, _) {},
           );
         });
 

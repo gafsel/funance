@@ -61,6 +61,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get shortPassword => 'A senha deve ter pelo menos 6 caracteres';
 
   @override
+  String get appErrorWidgetTitle => 'Algo deu errado';
+
+  @override
+  String get appErrorWidgetMessage =>
+      'Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.';
+
+  @override
   String get errorUnknown => 'Ocorreu um erro inesperado.';
 
   @override
@@ -378,6 +385,14 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get goalAnalyzeWithAi => 'Analisar com IA';
+
+  @override
+  String get goalAiError =>
+      'Não foi possível analisar a meta. Tente novamente.';
+
+  @override
+  String get reconciliationError =>
+      'Não foi possível analisar o extrato. Tente novamente.';
 
   @override
   String get goalAiAnalyzing => 'Analisando sua meta...';
@@ -1940,13 +1955,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'O workspace conclui com sucesso 5 metas financeiras diferentes.';
 
   @override
-  String get badge_emergency_shield_name => 'Escudo de Emergência';
-
-  @override
-  String get badge_emergency_shield_desc =>
-      'Atingir 100% de progresso em uma meta criada com a categoria/tag \"Emergência\".';
-
-  @override
   String get badge_under_control_name => 'Tudo Sob Controle';
 
   @override
@@ -1975,25 +1983,11 @@ class AppLocalizationsPt extends AppLocalizations {
       'Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.';
 
   @override
-  String get badge_dynamic_duo_name => 'Dupla Dinâmica';
-
-  @override
-  String get badge_dynamic_duo_desc =>
-      'Workspace com 2 membros ativos registrando transações pagas no mesmo mês.';
-
-  @override
   String get badge_united_front_name => 'Equipe Unida';
 
   @override
   String get badge_united_front_desc =>
       'Workspace com 3 ou mais membros ativos adicionados e aceitos.';
-
-  @override
-  String get badge_financial_synapsis_name => 'Sinergia Financeira';
-
-  @override
-  String get badge_financial_synapsis_desc =>
-      'Concluir uma missão semanal onde todos os membros ativos registraram ao menos 1 transação.';
 
   @override
   String get badge_iron_consistency_name => 'Consistência de Aço';
@@ -2505,5 +2499,21 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planningAnalysisInsightsTitle => 'Insights';
 
   @override
-  String get planningAnalysisRefresh => 'Atualizar análise';
+  String planningAnalysisGeneratedAt(String date) {
+    return 'Análise gerada em $date';
+  }
+
+  @override
+  String planningAnalysisNextAvailable(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Nova análise disponível em $days dias',
+      one: 'Nova análise disponível em $days dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get planningAnalysisGenerateNew => 'Gerar nova análise';
 }

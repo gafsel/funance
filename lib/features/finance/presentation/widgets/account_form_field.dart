@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
-import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
@@ -141,7 +139,7 @@ class AccountFormField extends ConsumerWidget {
                 width: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, __) => const Icon(Icons.error),
+              error: (_, _) => const Icon(Icons.error),
             ),
           ),
         );

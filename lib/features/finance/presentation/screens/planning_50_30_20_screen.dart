@@ -1,5 +1,5 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -79,13 +79,16 @@ class Planning503020Screen extends ConsumerWidget {
             const Icon(Icons.save),
             onPressed: (loading) async {
               final scaffoldMessenger = ScaffoldMessenger.of(context);
+              // Resolve a mensagem antes do await: depois dele o context pode
+              // não estar mais montado.
+              final successMessage = context.l10n.savedSuccess;
 
               await loading(
                 ref.read(FinanceViewProviders.planning503020.notifier).submit(),
               );
 
               scaffoldMessenger.showSnackBar(
-                SnackBar(content: Text(context.l10n.savedSuccess)),
+                SnackBar(content: Text(successMessage)),
               );
             },
           ),
@@ -162,20 +165,14 @@ class Planning503020Screen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openAnalysis(
-    BuildContext context,
-    WidgetRef ref, {
-    bool force = false,
-  }) async {
+  Future<void> _openAnalysis(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
 
     try {
       final analysis = await showLoadingModal(
         context,
-        ref
-            .read(PlanningAnalysisDomainProviders.service)
-            .analyze(force: force),
+        ref.read(PlanningAnalysisDomainProviders.service).analyze(),
         child: AnalysisLoadingView(
           title: l10n.planningAnalysisLoadingTitle,
           description: l10n.planningAnalysisLoadingDesc,
@@ -190,17 +187,15 @@ class Planning503020Screen extends ConsumerWidget {
         analysis,
         onRefresh: () {
           if (context.mounted) {
-            _openAnalysis(context, ref, force: true);
+            _openAnalysis(context, ref);
           }
         },
       );
-    } on FirebaseFunctionsException catch (e) {
+    } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(e.message ?? l10n.planningAnalysisError)),
-      );
-    } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.planningAnalysisError)),
+        SnackBar(
+          content: Text(callableErrorMessage(e, l10n.planningAnalysisError)),
+        ),
       );
     }
   }
@@ -448,7 +443,7 @@ class _PoolWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
 
-    Widget content = Column(
+    final Widget content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (!isMobile)
@@ -550,10 +545,10 @@ class _PoolWidget extends ConsumerWidget {
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: candidateData.isNotEmpty
-                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withOpacity(0.2)),
+            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
           ),
           child: content,
         );
@@ -637,7 +632,7 @@ class _PoolWidget extends ConsumerWidget {
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(
               context,
-            ).textTheme.bodySmall?.color?.withOpacity(0.7),
+            ).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
           ),
         ),
         const SizedBox(height: 12),
@@ -658,12 +653,6 @@ class _PoolWidget extends ConsumerWidget {
                 allocation,
               ).select((state) => state.actualPercentage),
             );
-            final totalPlanned = ref.watch(
-              FinanceViewProviders.planning503020GlobalProgress.select(
-                (state) => state.totalPlanned,
-              ),
-            );
-
             final statusColor = isOver ? Colors.red : Colors.green;
 
             return LayoutBuilder(
@@ -686,7 +675,7 @@ class _PoolWidget extends ConsumerWidget {
                           height: 24,
                           margin: EdgeInsets.symmetric(vertical: 14),
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
@@ -701,7 +690,7 @@ class _PoolWidget extends ConsumerWidget {
                               margin: EdgeInsets.only(top: 14),
                               width: progressWidth,
                               decoration: BoxDecoration(
-                                color: statusColor.withOpacity(0.3),
+                                color: statusColor.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
@@ -710,7 +699,7 @@ class _PoolWidget extends ConsumerWidget {
                               duration: Duration(milliseconds: 300),
                               style: TextStyle(
                                 fontSize: 10,
-                                color: statusColor.withOpacity(0.7),
+                                color: statusColor.withValues(alpha: 0.7),
                               ),
                             ),
                           ],
@@ -828,7 +817,7 @@ class _PoolWidget extends ConsumerWidget {
                         value.asCurrency(locale: context.locale),
                       ),
                       style: TextStyle(
-                        color: statusColor.withOpacity(0.7),
+                        color: statusColor.withValues(alpha: 0.7),
                         fontSize: 11,
                       ),
                     ),
@@ -925,7 +914,7 @@ class _CategoryCard extends ConsumerWidget {
     return Card(
       elevation: 4,
       color: Colors.white,
-      shadowColor: Colors.black.withOpacity(0.3),
+      shadowColor: Colors.black.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide.none,
@@ -940,7 +929,7 @@ class _CategoryCard extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: item.category.color.asColor().withOpacity(0.2),
+                    color: item.category.color.asColor().withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -990,13 +979,13 @@ class _CategoryCard extends ConsumerWidget {
               initialValue: item.generalAmount > 0 ? item.generalAmount : null,
               decoration: InputDecoration(
                 labelText: 'Limite Mensal',
-                fillColor: Colors.grey.withOpacity(0.05),
+                fillColor: Colors.grey.withValues(alpha: 0.05),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Colors.grey.withOpacity(0.3)),
+                  borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -1016,7 +1005,7 @@ class _CategoryCard extends ConsumerWidget {
                 Text(
                   l10n.planning503020ActualLabel,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.darkNavy.withOpacity(0.7),
+                    color: AppColors.darkNavy.withValues(alpha: 0.7),
                   ),
                 ),
                 Text(
@@ -1035,7 +1024,7 @@ class _CategoryCard extends ConsumerWidget {
                 Text(
                   'Já previsto:',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.darkNavy.withOpacity(0.7),
+                    color: AppColors.darkNavy.withValues(alpha: 0.7),
                   ),
                 ),
                 Text(
@@ -1052,7 +1041,7 @@ class _CategoryCard extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

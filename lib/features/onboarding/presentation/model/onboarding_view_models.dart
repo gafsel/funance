@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 

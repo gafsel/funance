@@ -96,7 +96,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         query = query.startAfterDocument(chunkRef);
       }
 
-      var snapshot = await query.get();
+      final snapshot = await query.get();
 
       var items = snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
 
@@ -215,52 +215,6 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
-  Future<void> addInstallment(
-    String workspaceId,
-    InstallmentModel entry,
-  ) async {
-    try {
-      final data = entry.toJson();
-      data.remove('id');
-
-      final normalizedDueDate = DateTime(
-        entry.dueDate.year,
-        entry.dueDate.month,
-        entry.dueDate.day,
-        12,
-      );
-      data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
-
-      if (entry.paidDate != null) {
-        final normalizedPaidDate = DateTime(
-          entry.paidDate!.year,
-          entry.paidDate!.month,
-          entry.paidDate!.day,
-          12,
-        );
-        data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
-      }
-
-      final normalizedReferenceDate = DateTime(
-        entry.referenceDate.year,
-        entry.referenceDate.month,
-        entry.referenceDate.day,
-        12,
-      );
-      data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
-
-      data['referenceAmount'] = entry.referenceAmount;
-      await _getWorkspaceDoc(workspaceId).collection('installments').add(data);
-    } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
-    }
-  }
-
-  @override
   Future<void> updateInstallment(
     String workspaceId,
     InstallmentModel entry,
@@ -302,21 +256,6 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       await _getWorkspaceDoc(
         workspaceId,
       ).collection('installments').doc(entry.id).update(data);
-    } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
-    }
-  }
-
-  @override
-  Future<void> deleteInstallment(String workspaceId, String entryId) async {
-    try {
-      await _getWorkspaceDoc(
-        workspaceId,
-      ).collection('installments').doc(entryId).delete();
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -477,7 +416,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     String workspaceId,
     String accountId,
   ) {
-    Query query = _getWorkspaceDoc(workspaceId)
+    final Query query = _getWorkspaceDoc(workspaceId)
         .collection('installments')
         .where('isInvoice', isEqualTo: true)
         .where('accountIds', arrayContains: accountId)

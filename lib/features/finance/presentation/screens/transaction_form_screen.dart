@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,7 +37,6 @@ class TransactionFormScreen extends StatelessWidget {
   final double? amount;
 
   const TransactionFormScreen._({
-    super.key,
     required this.type,
     this.status,
     this.order,
@@ -169,7 +169,7 @@ class TransactionFormScreen extends StatelessWidget {
           final result = await loading(notifier.submit());
           if (result == null) return;
 
-          HapticFeedback.mediumImpact();
+          unawaited(HapticFeedback.mediumImpact());
           messenger.showSnackBar(
             SnackBar(content: Text(l10n.transactionSaveSuccess)),
           );
@@ -462,7 +462,7 @@ class TransactionFormScreen extends StatelessWidget {
                           );
                         },
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       );
                     },
                   ),
@@ -503,7 +503,7 @@ class TransactionFormScreen extends StatelessWidget {
                           );
                         },
                         loading: () => const SizedBox.shrink(),
-                        error: (_, __) => const SizedBox.shrink(),
+                        error: (_, _) => const SizedBox.shrink(),
                       );
                     },
                   ),
