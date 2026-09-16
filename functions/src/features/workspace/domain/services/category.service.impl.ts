@@ -1,6 +1,6 @@
 import { ICategoryRepository } from "../repositories/category.repository";
 import { ICategoryService } from "./category.service";
-import { CategoryModel, CategoryType, VIRTUAL_DEBT_EXPENSE_CATEGORY, VIRTUAL_DEBT_INCOME_CATEGORY, VIRTUAL_INVESTMENT_EXPENSE_CATEGORY, VIRTUAL_INVESTMENT_INCOME_CATEGORY } from "../models/category.model";
+import { CategoryModel, CategoryType, INITIAL_BALANCE_CATEGORY, VIRTUAL_DEBT_EXPENSE_CATEGORY, VIRTUAL_DEBT_INCOME_CATEGORY, VIRTUAL_INVESTMENT_EXPENSE_CATEGORY, VIRTUAL_INVESTMENT_INCOME_CATEGORY } from "../models/category.model";
 import { WorkspaceType } from "../models/workspace.model";
 import { IFinanceRepository } from "../../../finance/domain/repositories/finance.repository";
 
@@ -13,6 +13,11 @@ export class CategoryServiceImpl implements ICategoryService {
 
     async createDefaultCategories(workspaceId: string, type: WorkspaceType): Promise<void> {
         const personalCategories: (CategoryModel | Omit<CategoryModel, "id">)[] = [
+            // Categoria de sistema referenciada pelas orders de saldo inicial
+            // (`initial-balance-{accountId}`). Sem o documento, todo lookup por
+            // id falhava, embora ela continuasse somada nos period_summaries.
+            INITIAL_BALANCE_CATEGORY,
+
             VIRTUAL_DEBT_EXPENSE_CATEGORY,
             VIRTUAL_DEBT_INCOME_CATEGORY,
             VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
@@ -45,6 +50,8 @@ export class CategoryServiceImpl implements ICategoryService {
         ];
 
         const businessCategories: (CategoryModel | Omit<CategoryModel, "id">)[] = [
+            INITIAL_BALANCE_CATEGORY,
+
             VIRTUAL_DEBT_EXPENSE_CATEGORY,
             VIRTUAL_DEBT_INCOME_CATEGORY,
             VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
