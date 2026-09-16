@@ -20,9 +20,33 @@ export const onAccountUpdated = onDocumentUpdated(
                 console.log(`Conta ${accountId} marcada como excluída no workspace ${workspaceId}. Removendo transações associadas.`);
                 await financeService.deleteOrdersByAccountId(workspaceId, accountId);
             });
+            return;
+        }
+
+        // Saldo inicial editado: a order sintética `initial-balance-{accountId}`
+        // (e a parcela correspondente) precisa ser ressincronizada, senão o
+        // saldo da conta fica preso no valor informado na criação.
+        const balanceChanged = before.initialBalance !== after.initialBalance;
+        const balanceDateChanged = normalizeDate(before.initialBalanceDate) !== normalizeDate(after.initialBalanceDate);
+
+        if (balanceChanged || balanceDateChanged) {
+            await container.idempotencyService.runIdempotency(event.id, "syncInitialBalance", async () => {
+                console.log(`Saldo inicial da conta ${accountId} alterado no workspace ${workspaceId}. Ressincronizando a order de saldo inicial.`);
+                await financeService.syncInitialBalance(workspaceId, accountId, after as any);
+            });
         }
     }
 );
+
+/**
+ * `initialBalanceDate` chega como string ISO (cliente atual) ou Timestamp
+ * (documentos antigos): normalizamos para comparar antes/depois.
+ */
+function normalizeDate(raw: any): string {
+    if (!raw) return "";
+    if (typeof raw.toDate === "function") return raw.toDate().toISOString();
+    return String(raw);
+}
 
 export const onAccountCreated = onDocumentCreated(
     "workspaces/{workspaceId}/accounts/{accountId}",

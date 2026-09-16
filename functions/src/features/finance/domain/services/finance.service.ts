@@ -12,7 +12,7 @@ import {
     ReplicationCascade
 } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
-import { CategoryType } from "../../../workspace/domain/models/category.model";
+import { CategoryType, INITIAL_BALANCE_CATEGORY } from "../../../workspace/domain/models/category.model";
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import { InvoiceService } from "./invoice.service";
 import { container } from "../../../../core/container";
@@ -563,20 +563,33 @@ export class FinanceService {
         }
     }
 
-    async syncInitialBalance(workspaceId: string, accountId: string, account: AccountModel | null): Promise<void> {
-        if (!account || account.initialBalance === 0) {
-            return;
+    /**
+     * Normaliza a data do saldo inicial: o cliente grava uma string ISO, mas
+     * documentos antigos podem ter Timestamp. Sempre retorna meio-dia local
+     * para evitar viradas de dia por fuso horário.
+     */
+    private resolveInitialBalanceDate(raw: any): Date {
+        let date: Date;
+        if (raw && typeof raw.toDate === "function") {
+            date = raw.toDate();
+        }
+        else if (raw) {
+            date = new Date(raw);
+        }
+        else {
+            date = new Date();
         }
 
-        const initialBalanceOrderId = `initial-balance-${accountId}`;
-
-        const existingOrder = await this.financeRepository.getOrderById(workspaceId, initialBalanceOrderId);
-        if (existingOrder) {
-            return;
+        if (Number.isNaN(date.getTime())) {
+            date = new Date();
         }
 
-        const date = (account.initialBalanceDate as any)?.toDate?.() || new Date(account.initialBalanceDate) || new Date();
         date.setHours(12, 0, 0, 0);
+        return date;
+    }
+
+    /** Monta a order sintética de saldo inicial a partir da conta. */
+    private buildInitialBalanceOrder(accountId: string, account: AccountModel, date: Date): Omit<OrderModel, "id"> {
         const year = date.getFullYear();
         const month = date.getMonth() + 1;
         const startMonth = `${year}-${month.toString().padStart(2, "0")}`;
@@ -595,16 +608,15 @@ export class FinanceService {
             impact = account.initialBalance >= 0 ? "credit" : "debt";
         }
 
+        // Categoria de sistema `initial-balance`, criada em
+        // workspaces/{wid}/categories por createDefaultCategories. O `type`
+        // acompanha o sinal do saldo (a categoria persistida é única).
         const category = {
-            id: "initial-balance",
-            name: "Saldo Inicial",
-            icon: "account_balance_wallet",
-            color: "0xFF9E9E9E",
+            ...INITIAL_BALANCE_CATEGORY,
             type: type === OrderType.income ? CategoryType.income : CategoryType.expense,
-            isDeleted: false,
         };
 
-        const order: Omit<OrderModel, "id"> = {
+        return {
             amount: Math.abs(account.initialBalance),
             description: "Saldo Inicial",
             category: category,
@@ -619,8 +631,78 @@ export class FinanceService {
             accountIds: [accountId],
             installmentCreationStatus: InstallmentStatus.settled
         };
+    }
 
-        await this.financeRepository.createOrder(workspaceId, order, initialBalanceOrderId);
+    /**
+     * Cria, atualiza ou remove a order de saldo inicial da conta.
+     *
+     * Chamada na criação da conta e sempre que `initialBalance`/
+     * `initialBalanceDate` mudarem. Como `syncInstallments` não cascateia
+     * edições de order para as parcelas, a parcela correspondente é ajustada
+     * explicitamente aqui.
+     */
+    async syncInitialBalance(workspaceId: string, accountId: string, account: AccountModel | null): Promise<void> {
+        const initialBalanceOrderId = `initial-balance-${accountId}`;
+        const existingOrder = await this.financeRepository.getOrderById(workspaceId, initialBalanceOrderId);
+
+        if (!account || !account.initialBalance) {
+            // Saldo inicial zerado (ou conta removida): a order sintética não
+            // deve existir. Apagar a order faz onOrderWritten remover as parcelas.
+            if (existingOrder) {
+                logger.info(`[syncInitialBalance] Saldo inicial zerado: removendo ${initialBalanceOrderId} do workspace ${workspaceId}.`);
+                await this.financeRepository.deleteOrder(workspaceId, initialBalanceOrderId);
+            }
+            return;
+        }
+
+        const date = this.resolveInitialBalanceDate(account.initialBalanceDate);
+        const order = this.buildInitialBalanceOrder(accountId, account, date);
+
+        if (!existingOrder) {
+            await this.financeRepository.createOrder(workspaceId, order, initialBalanceOrderId);
+            return;
+        }
+
+        const hasChanged = existingOrder.amount !== order.amount
+            || existingOrder.dueDay !== order.dueDay
+            || existingOrder.startMonth !== order.startMonth
+            || existingOrder.type !== order.type
+            || JSON.stringify(existingOrder.accounts || {}) !== JSON.stringify(order.accounts || {});
+
+        if (!hasChanged) {
+            return;
+        }
+
+        logger.info(`[syncInitialBalance] Ressincronizando ${initialBalanceOrderId} do workspace ${workspaceId} (amount ${existingOrder.amount} -> ${order.amount}).`);
+
+        await this.financeRepository.updateOrder(workspaceId, initialBalanceOrderId, {
+            amount: order.amount,
+            dueDay: order.dueDay,
+            startMonth: order.startMonth,
+            type: order.type,
+            accounts: order.accounts,
+            accountIds: order.accountIds,
+            category: order.category,
+            status: order.status,
+        });
+
+        // A parcela do saldo inicial nasce liquidada: o planejado (`amount`) é
+        // zero e o valor efetivo vive em `paidAmount`/`referenceAmount`.
+        const installments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, initialBalanceOrderId);
+        for (const installment of installments) {
+            await this.financeRepository.updateInstallment(workspaceId, installment.id, {
+                amount: 0,
+                paidAmount: order.amount,
+                dueDate: date,
+                paidDate: date,
+                description: order.description,
+                type: order.type,
+                accounts: order.accounts,
+                category: order.category,
+                status: InstallmentStatus.settled,
+                replicationCascade: ReplicationCascade.none,
+            });
+        }
     }
 
     async deleteOrdersByAccountId(workspaceId: string, accountId: string) {
