@@ -5,6 +5,7 @@ import 'package:funances/features/finance/domain/services/period_summary_service
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:rxdart/rxdart.dart';
 
 class MissionService {
@@ -12,22 +13,36 @@ class MissionService {
   final PeriodSummaryService summaryService;
   final CategoryService categoryService;
 
+  /// Fonte do "hoje". Injetável para o cálculo da semana ser testável e para
+  /// a virada do dia chegar aqui pelo `todayProvider`.
+  final Clock now;
+
   MissionService({
     required this.financeService,
     required this.summaryService,
     required this.categoryService,
-  });
+    Clock? now,
+  }) : now = now ?? DateTime.now;
+
+  /// Semana corrente (domingo a sábado) que contém [reference].
+  static ({DateTime start, DateTime end}) weekWindow(DateTime reference) {
+    final start = DateTime(
+      reference.year,
+      reference.month,
+      reference.day,
+    ).subtract(Duration(days: reference.weekday % 7));
+
+    return (
+      start: start,
+      end: start.add(
+        const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+      ),
+    );
+  }
 
   Stream<MissionModel> watchMissions() {
-    final now = DateTime.now();
-    final startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday % 7));
-    final endOfWeek = startOfWeek.add(
-      const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
-    );
+    final now = this.now();
+    final (start: startOfWeek, end: endOfWeek) = weekWindow(now);
 
     // Determinar semana e ano para o summary semanal
     final weekNumber = _getWeekNumber(startOfWeek);

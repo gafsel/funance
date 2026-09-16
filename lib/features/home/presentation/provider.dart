@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/domain/services/mission_service.dart';
@@ -9,10 +10,16 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 
 sealed class MissionDomainProviders {
   static final service = Provider<MissionService>((ref) {
+    // A janela da semana é calculada quando o stream é criado; observar
+    // `todayProvider` faz o serviço (e o stream) serem refeitos na virada do
+    // dia, em vez de ficarem presos no dia em que o app abriu.
+    final today = ref.watch(todayProvider);
+
     return MissionService(
       financeService: ref.watch(FinanceDomainProviders.service),
       summaryService: ref.watch(PeriodSummaryDomainProviders.service),
       categoryService: ref.watch(CategoryDomainProviders.service),
+      now: () => today,
     );
   });
 }
@@ -24,7 +31,10 @@ sealed class MissionViewProviders {
 }
 
 class HomeViewProviders {
-  static final period = StateProvider((ref) => DateTime.now());
+  /// Período selecionado no filtro. O valor inicial vem do `todayProvider`
+  /// (e não de `DateTime.now()` no corpo do provider, que congelaria a data
+  /// no instante da criação).
+  static final period = StateProvider((ref) => ref.watch(todayProvider));
 
   static final viewType = StateProvider((ref) => SummaryViewType.effective);
 

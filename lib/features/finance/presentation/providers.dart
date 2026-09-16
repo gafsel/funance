@@ -1,7 +1,9 @@
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
@@ -214,29 +216,35 @@ class AccountViewProviders {
         );
       });
 
-  static final latestBalanceByType = Provider.family<double, AccountType>((
-    ref,
-    type,
-  ) {
-    final List<AccountModel> accounts = ref.watch(
-      AccountViewProviders.byTypeMap.select((acc) => acc.value?[type] ?? []),
-    );
+  /// Soma dos saldos das contas de um tipo.
+  ///
+  /// Os saldos são combinados num único stream em vez de um `ref.watch` por
+  /// conta dentro do `map`: o `watch` em loop registrava uma dependência nova
+  /// a cada rebuild e devolvia 0 para toda conta cujo saldo ainda não tivesse
+  /// chegado, fazendo o total piscar enquanto os streams carregavam.
+  static final latestBalanceByType = StreamProvider.autoDispose
+      .family<double, AccountType>((ref, type) {
+        final List<AccountModel> accounts = ref.watch(
+          AccountViewProviders.byTypeMap.select(
+            (acc) => acc.value?[type] ?? const <AccountModel>[],
+          ),
+        );
 
-    if (accounts.isEmpty) {
-      return 0;
-    }
+        if (accounts.isEmpty) {
+          return Stream.value(0);
+        }
 
-    return accounts
-        .map(
-          (account) =>
-              ref
-                  .watch(AccountViewProviders.latestBalanceById(account.id))
-                  .value
-                  ?.balance ??
-              0,
-        )
-        .reduce((v1, v2) => v1 + v2);
-  });
+        final service = ref.watch(AccountDomainProviders.service);
+
+        return Rx.combineLatestList(
+          accounts.map((account) => service.getLatestAccountBalance(account.id)),
+        ).map(
+          (balances) => balances.fold<double>(
+            0,
+            (total, balance) => total + balance.balance,
+          ),
+        );
+      });
 
   static final nextInvoiceByAccountId = StreamProvider.autoDispose
       .family<InstallmentModel?, String>((ref, accountId) {
@@ -417,6 +425,8 @@ class FinanceViewProviders {
         TransactionWizardState,
         TransactionWizardArgs
       >((ref, args) {
+        final today = ref.watch(todayProvider);
+
         return TransactionWizardNotifier(
           TransactionWizardState(
             type: args.type,
@@ -424,6 +434,7 @@ class FinanceViewProviders {
             accountIdSource: args.accountIdSource,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
+          now: () => today,
         );
       });
 
@@ -433,7 +444,7 @@ class FinanceViewProviders {
         args,
       ) {
         final service = ref.watch(FinanceDomainProviders.service);
-        final today = DateTime.now();
+        final today = ref.watch(todayProvider);
         return service.watchInstallments(
           type: args.type,
           categoryId: args.categoryId,

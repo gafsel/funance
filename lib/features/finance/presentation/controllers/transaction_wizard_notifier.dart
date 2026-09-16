@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -8,7 +9,16 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 class TransactionWizardNotifier extends StateNotifier<TransactionWizardState> {
   final FinanceService financeService;
 
-  TransactionWizardNotifier(super.state, {required this.financeService}) {
+  /// Fonte do "hoje". O wizard vive aberto enquanto o usuário navega, então a
+  /// janela precisa ser recalculada a cada consulta — e ser testável na
+  /// virada do mês.
+  final Clock now;
+
+  TransactionWizardNotifier(
+    super.state, {
+    required this.financeService,
+    Clock? now,
+  }) : now = now ?? DateTime.now {
     if (state.type == OrderType.transfer) {
       if (state.skipTransactions) {
         state = state.copyWith(step: TransactionWizardStep.form);
@@ -23,13 +33,14 @@ class TransactionWizardNotifier extends StateNotifier<TransactionWizardState> {
   /// Início e fim do mês corrente. O fim precisa cobrir o dia inteiro:
   /// `DateTime(y, m+1, 0)` seria meia-noite do último dia e excluiria os
   /// lançamentos desse dia (normalizados às 12:00).
-  ({DateTime start, DateTime end}) _currentMonthRange() {
-    final today = DateTime.now();
+  static ({DateTime start, DateTime end}) monthRange(DateTime today) {
     return (
       start: DateTime(today.year, today.month, 1),
       end: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
     );
   }
+
+  ({DateTime start, DateTime end}) _currentMonthRange() => monthRange(now());
 
   void _checkPendingTransfer() async {
     if (state.skipTransactions) return;

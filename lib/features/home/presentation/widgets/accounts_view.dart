@@ -69,7 +69,8 @@ class AccountsView extends ConsumerWidget {
         }
       }
     } else {
-      total = ref.watch(AccountViewProviders.latestBalanceByType(type));
+      total =
+          ref.watch(AccountViewProviders.latestBalanceByType(type)).value ?? 0;
     }
 
     final List<String> sortedMonthKeys = totalsByMonth.keys.toList()
