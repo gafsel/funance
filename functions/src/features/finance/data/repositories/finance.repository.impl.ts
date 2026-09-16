@@ -106,10 +106,16 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
-        // `accounts` é um MAPA {accountId: 'debt'|'credit'}, não um array: o
-        // filtro correto é o campo espelho `accountIds` (array de ids).
+        // `accounts` é um MAPA {accountId: 'debt'|'credit'}, portanto
+        // "array-contains" nunca casa. E o campo espelho `accountIds` NÃO serve
+        // para orders: o cliente Flutter não o serializa (order_model.g.dart só
+        // grava `accounts`) — apenas faturas e saldo inicial, criados pelo
+        // servidor, o possuem. Consultamos a chave do mapa diretamente, que é
+        // exatamente a semântica desejada: accounts.{accountId} IN ['debt','credit'].
+        // Chaves de mapa entram no índice single-field automático do Firestore,
+        // então esta query não exige índice composto.
         const query = this.getOrdersCollection(workspaceId)
-            .where("accountIds", "array-contains", accountId);
+            .where(`accounts.${accountId}`, "in", ["debt", "credit"]);
 
         const deleted = await deleteByQueryInChunks(this.firestore, query);
         console.log(`deleteOrdersByAccountId: ${deleted} orders removidas da conta ${accountId} no workspace ${workspaceId}.`);

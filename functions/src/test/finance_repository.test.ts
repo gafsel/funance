@@ -63,14 +63,31 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
         });
     });
 
-    it("filtra pelo campo espelho accountIds (array), não pelo mapa accounts", async () => {
+    it("consulta a chave do mapa accounts.{accountId} com o operador 'in'", async () => {
         pages = [[]];
         const repository = new FinanceRepositoryImpl();
 
         await repository.deleteOrdersByAccountId("w1", "acc1");
 
         expect(mockFirestoreState.collection).toHaveBeenCalledWith("workspaces/w1/orders");
-        expect(whereCalls).toEqual([["accountIds", "array-contains", "acc1"]]);
+        expect(whereCalls).toHaveLength(1);
+
+        const [field, operator, value] = whereCalls[0];
+        expect(field).toBe("accounts.acc1");
+        expect(operator).toBe("in");
+        expect(value).toEqual(["debt", "credit"]);
+    });
+
+    it("NÃO usa o campo espelho accountIds (as orders do cliente não o possuem)", async () => {
+        pages = [[]];
+        const repository = new FinanceRepositoryImpl();
+
+        await repository.deleteOrdersByAccountId("w1", "acc1");
+
+        // order_model.g.dart não serializa accountIds: só faturas e saldo
+        // inicial (criados pelo servidor) têm o campo.
+        expect(whereCalls.map(([field]) => field)).not.toContain("accountIds");
+        expect(whereCalls.map(([, operator]) => operator)).not.toContain("array-contains");
     });
 
     it("apaga todas as orders da conta, paginando quando há mais de um lote", async () => {
@@ -85,6 +102,8 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
         expect(deletedIds).toHaveLength(403);
         expect(deletedIds[0]).toBe("a-0");
         expect(deletedIds[402]).toBe("b-2");
+        // Toda página usa o mesmo filtro por chave de mapa.
+        expect(whereCalls).toEqual([["accounts.acc1", "in", ["debt", "credit"]]]);
     });
 });
 
