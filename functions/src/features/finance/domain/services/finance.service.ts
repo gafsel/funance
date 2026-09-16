@@ -370,7 +370,13 @@ export class FinanceService {
         }
     }
 
-    private calculateXp(inst: InstallmentModel): number {
+    /**
+     * XP de uma parcela paga.
+     *
+     * PÚBLICO apenas para que o job de reconstrução (rebuild.service.ts) some
+     * exatamente o mesmo XP que o gatilho — a semântica não mudou.
+     */
+    calculateXp(inst: InstallmentModel): number {
         const baseXP = 15;
         const predictedAmount = inst.amount;
         const actualAmount = inst.paidAmount ?? inst.amount;

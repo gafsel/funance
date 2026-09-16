@@ -1,4 +1,4 @@
-import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel, PeriodSummaryUpdateModel, AccountType } from "../models/finance.models";
+import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel, PeriodSummaryUpdateModel, AccountType, AccountModel } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import {
@@ -51,7 +51,13 @@ export class SummaryService {
         }
     }
 
-    private calculatePlanningImpacts(
+    /**
+     * Impactos de um planejamento de categoria no `generalPlannedAmount`.
+     *
+     * PÚBLICO apenas para que o job de reconstrução (rebuild.service.ts) use
+     * exatamente a mesma aritmética dos gatilhos — a semântica não mudou.
+     */
+    calculatePlanningImpacts(
         planning: CategoryPlanningModel,
         multiplier: number,
         baseDate: Date,
@@ -246,42 +252,65 @@ export class SummaryService {
     }
 
     private async getVirtualCategoryImpact(workspaceId: string, inst: InstallmentModel): Promise<{ category: CategoryModel, type: "income" | "expense" } | null> {
-        const accounts = inst.accounts || {};
-        const accountIds = Object.keys(accounts);
-        if (accountIds.length === 0) return null;
+        const ids = resolveTransferAccountIds(inst);
+        if (!ids) return null;
 
-        const sourceId = inst.type === OrderType.transfer
-            ? accountIds.find(id => accounts[id] === "debt")
-            : null;
-        const targetId = inst.type === OrderType.transfer
-            ? accountIds.find(id => accounts[id] === "credit")
-            : null;
+        const sourceAccount = ids.sourceId ? await this.financeRepository.getAccountById(workspaceId, ids.sourceId) : null;
+        const targetAccount = ids.targetId ? await this.financeRepository.getAccountById(workspaceId, ids.targetId) : null;
 
-        if (!sourceId && !targetId) return null;
+        return resolveVirtualCategory(sourceAccount, targetAccount);
+    }
+}
 
-        const sourceAccount = sourceId ? await this.financeRepository.getAccountById(workspaceId, sourceId) : null;
-        const targetAccount = targetId ? await this.financeRepository.getAccountById(workspaceId, targetId) : null;
+/**
+ * Contas de origem (`debt`) e destino (`credit`) de uma transferência.
+ * Retorna `null` quando não há nenhuma das duas (nada a fazer).
+ *
+ * Extraído de `getVirtualCategoryImpact` sem mudança de semântica, para que o
+ * job de reconstrução (rebuild.service.ts) resolva as categorias virtuais com
+ * um mapa de contas já carregado, em vez de uma leitura por parcela.
+ */
+export function resolveTransferAccountIds(inst: InstallmentModel): { sourceId?: string, targetId?: string } | null {
+    const accounts = inst.accounts || {};
+    const accountIds = Object.keys(accounts);
+    if (accountIds.length === 0) return null;
 
-        if (targetAccount && (targetAccount.runtimeType === AccountType.debt || targetAccount.runtimeType === AccountType.investment)) {
-            return {
-                category: this.getVirtualCategoryForAccountType(targetAccount.runtimeType, "expense"),
-                type: "expense"
-            };
-        }
-        else if (sourceAccount && (sourceAccount.runtimeType === AccountType.debt || sourceAccount.runtimeType === AccountType.investment)) {
-            return {
-                category: this.getVirtualCategoryForAccountType(sourceAccount.runtimeType, "income"),
-                type: "income"
-            };
-        }
+    const sourceId = inst.type === OrderType.transfer
+        ? accountIds.find(id => accounts[id] === "debt")
+        : undefined;
+    const targetId = inst.type === OrderType.transfer
+        ? accountIds.find(id => accounts[id] === "credit")
+        : undefined;
 
-        return null;
+    if (!sourceId && !targetId) return null;
+
+    return { sourceId, targetId };
+}
+
+/** Categoria virtual da transferência a partir das contas de origem/destino. */
+export function resolveVirtualCategory(
+    sourceAccount: AccountModel | null,
+    targetAccount: AccountModel | null
+): { category: CategoryModel, type: "income" | "expense" } | null {
+    if (targetAccount && (targetAccount.runtimeType === AccountType.debt || targetAccount.runtimeType === AccountType.investment)) {
+        return {
+            category: getVirtualCategoryForAccountType(targetAccount.runtimeType, "expense"),
+            type: "expense"
+        };
+    }
+    else if (sourceAccount && (sourceAccount.runtimeType === AccountType.debt || sourceAccount.runtimeType === AccountType.investment)) {
+        return {
+            category: getVirtualCategoryForAccountType(sourceAccount.runtimeType, "income"),
+            type: "income"
+        };
     }
 
-    private getVirtualCategoryForAccountType(type: AccountType, categoryType: "income" | "expense"): CategoryModel {
-        if (type === AccountType.debt) {
-            return categoryType === "expense" ? VIRTUAL_DEBT_EXPENSE_CATEGORY : VIRTUAL_DEBT_INCOME_CATEGORY;
-        }
-        return categoryType === "expense" ? VIRTUAL_INVESTMENT_EXPENSE_CATEGORY : VIRTUAL_INVESTMENT_INCOME_CATEGORY;
+    return null;
+}
+
+function getVirtualCategoryForAccountType(type: AccountType, categoryType: "income" | "expense"): CategoryModel {
+    if (type === AccountType.debt) {
+        return categoryType === "expense" ? VIRTUAL_DEBT_EXPENSE_CATEGORY : VIRTUAL_DEBT_INCOME_CATEGORY;
     }
+    return categoryType === "expense" ? VIRTUAL_INVESTMENT_EXPENSE_CATEGORY : VIRTUAL_INVESTMENT_INCOME_CATEGORY;
 }
