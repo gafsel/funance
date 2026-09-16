@@ -25,6 +25,17 @@ function planningCoversMonth(planning: any, monthKey: string): boolean {
     return start <= monthKey && monthKey <= end;
 }
 
+/**
+ * Converte um campo de data cru do Firestore (Timestamp, string ISO ou Date).
+ */
+function toDate(raw: any): Date | null {
+    if (!raw) {
+        return null;
+    }
+    const date = raw?.toDate ? raw.toDate() : new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
 export function calculateLevel(xp: number): number {
     if (xp <= 0) {
         return 1;
@@ -826,10 +837,16 @@ export class GamificationService {
             await this.unlockBadge(workspaceId, "goal_linked_account");
         }
 
-        if (isLocked("long_term_goal") && data.targetDate) {
-            const target = data.targetDate?.toDate ? data.targetDate.toDate() : new Date(data.targetDate);
-            const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now());
-            const monthsDiff = (target.getFullYear() - createdAt.getFullYear()) * 12 + target.getMonth() - createdAt.getMonth();
+        // O documento de meta tem `startDate` e `deadline` (ver
+        // lib/features/goal/domain/models/goal_model.dart). Os campos
+        // `targetDate`, `createdAt` e `completedAt` NÃO existem: lidos como
+        // antes, caíam em Date.now() e distorciam todos os cálculos abaixo.
+        const startDate = toDate(data.startDate);
+        const deadline = toDate(data.deadline);
+
+        if (isLocked("long_term_goal") && startDate && deadline) {
+            const monthsDiff = (deadline.getFullYear() - startDate.getFullYear()) * 12
+                + deadline.getMonth() - startDate.getMonth();
             if (monthsDiff > 12) {
                 await this.unlockBadge(workspaceId, "long_term_goal");
             }
@@ -873,18 +890,22 @@ export class GamificationService {
 
         const isCompleted = data.status === "completed" || pct >= 1;
         if (isCompleted) {
-            const createdAt = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt || Date.now());
-            const completedAt = data.completedAt?.toDate ? data.completedAt.toDate() : new Date();
-            const daysDiff = (completedAt.getTime() - createdAt.getTime()) / 86400000;
-            if (isLocked("short_term_goal") && daysDiff < 30) {
-                await this.unlockBadge(workspaceId, "short_term_goal");
+            // Não há data de conclusão armazenada; a checagem roda na escrita
+            // que concluiu a meta, então "agora" é o instante da conclusão.
+            const completedAt = new Date();
+
+            // "Sprint Financeiro": a meta foi PLANEJADA para menos de 30 dias.
+            // Antes, createdAt/completedAt inexistentes davam daysDiff = 0 e o
+            // badge era liberado para qualquer meta concluída.
+            if (isLocked("short_term_goal") && startDate && deadline) {
+                const plannedDays = (deadline.getTime() - startDate.getTime()) / 86400000;
+                if (plannedDays > 0 && plannedDays < 30) {
+                    await this.unlockBadge(workspaceId, "short_term_goal");
+                }
             }
 
-            if (isLocked("goal_under_deadline") && data.targetDate) {
-                const targetDate = data.targetDate?.toDate ? data.targetDate.toDate() : new Date(data.targetDate);
-                if (completedAt <= targetDate) {
-                    await this.unlockBadge(workspaceId, "goal_under_deadline");
-                }
+            if (isLocked("goal_under_deadline") && deadline && completedAt <= deadline) {
+                await this.unlockBadge(workspaceId, "goal_under_deadline");
             }
 
             if (isLocked("goal_debt_paid") && resolveGoalType(data) === GoalType.payDebt) {

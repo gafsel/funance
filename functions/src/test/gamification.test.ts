@@ -878,3 +878,99 @@ describe("QA — categorias de sistema ficam fora das avaliações de badge", ()
         expect(granted()).not.toContain("cost_cutter");
     });
 });
+
+describe("QA — badges de meta usam os campos reais do documento (startDate/deadline)", () => {
+    let service: GamificationService;
+    let spy: jest.SpyInstance;
+
+    /** Documento de meta no formato real: sem createdAt/completedAt/targetDate. */
+    const goal = (over: Partial<any> = {}) => ({
+        id: "g1",
+        name: "Meta",
+        runtimeType: "saveMoney",
+        targetAmount: 1000,
+        currentAmount: 1000,
+        accountId: "acc1",
+        startDate: new Date("2026-01-01T12:00:00.000"),
+        deadline: new Date("2026-12-31T12:00:00.000"),
+        isDeleted: false,
+        ...over,
+    });
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        mockRepository.getWorkspaceById.mockResolvedValue({ unlockedBadges: {} });
+        mockRepository.getGoals.mockResolvedValue([]);
+        jest.useFakeTimers({ now: new Date("2026-03-01T15:00:00Z") });
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    const granted = () => spy.mock.calls.map((c) => c[1]);
+
+    it("NÃO concede short_term_goal para uma meta de um ano (bug antigo: concedia a todas)", async () => {
+        await service.checkSimpleGoalBadges("w1", goal());
+
+        expect(granted()).not.toContain("short_term_goal");
+    });
+
+    it("concede short_term_goal quando a janela planejada é menor que 30 dias", async () => {
+        await service.checkSimpleGoalBadges("w1", goal({
+            startDate: new Date("2026-02-10T12:00:00.000"),
+            deadline: new Date("2026-03-05T12:00:00.000"),
+        }));
+
+        expect(granted()).toContain("short_term_goal");
+    });
+
+    it("concede goal_under_deadline usando `deadline` (o campo real)", async () => {
+        await service.checkSimpleGoalBadges("w1", goal());
+
+        // Hoje (01/03/2026) <= deadline (31/12/2026).
+        expect(granted()).toContain("goal_under_deadline");
+    });
+
+    it("NÃO concede goal_under_deadline quando o prazo já passou", async () => {
+        await service.checkSimpleGoalBadges("w1", goal({
+            deadline: new Date("2026-02-01T12:00:00.000"),
+        }));
+
+        expect(granted()).not.toContain("goal_under_deadline");
+    });
+
+    it("concede long_term_goal a partir de startDate/deadline, não de targetDate/createdAt", async () => {
+        await service.checkSimpleGoalBadges("w1", goal({
+            startDate: new Date("2026-01-01T12:00:00.000"),
+            deadline: new Date("2028-01-01T12:00:00.000"),
+        }));
+
+        expect(granted()).toContain("long_term_goal");
+    });
+
+    it("não quebra quando startDate/deadline vêm como Timestamp do Firestore", async () => {
+        const timestamp = (iso: string) => ({ toDate: () => new Date(iso) });
+
+        await service.checkSimpleGoalBadges("w1", goal({
+            startDate: timestamp("2026-02-10T12:00:00.000"),
+            deadline: timestamp("2026-03-05T12:00:00.000"),
+        }));
+
+        expect(granted()).toContain("short_term_goal");
+    });
+
+    it("ignora os badges de data quando os campos estão ausentes", async () => {
+        await service.checkSimpleGoalBadges("w1", goal({ startDate: undefined, deadline: undefined }));
+
+        const badges = granted();
+        expect(badges).not.toContain("short_term_goal");
+        expect(badges).not.toContain("goal_under_deadline");
+        expect(badges).not.toContain("long_term_goal");
+        // Os badges que não dependem de data continuam funcionando.
+        expect(badges).toContain("first_goal");
+        expect(badges).toContain("goal_halfway");
+    });
+});
