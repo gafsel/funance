@@ -10,6 +10,13 @@
  * As fontes da verdade são `installments` (exceto as `removed`, que são
  * exclusões lógicas) e `category_planning`.
  *
+ * ATENÇÃO (conta apagada): quando uma conta é marcada como `isDeleted`, o
+ * gatilho `onAccountUpdated` apaga as orders/parcelas dela
+ * (`deleteOrdersByAccountId`), mas NÃO apaga a subcoleção `balance`. Sem
+ * parcelas, o rebuild não consegue reconstruir aquele histórico e reporta os
+ * documentos de saldo remanescentes como exclusão. Confira o dry-run antes de
+ * aplicar num workspace com contas apagadas.
+ *
  * REGRA DE OURO: os gatilhos são o oráculo. Onde a implementação atual dos
  * gatilhos e a "regra de negócio ideal" divergirem, este serviço reproduz o
  * gatilho — as divergências conhecidas estão comentadas no código e no

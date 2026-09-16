@@ -246,6 +246,12 @@ Características:
   saldo em dia sem movimento cujo valor é o próprio saldo acumulado. Eles são
   reportados à parte e só são apagados com `--prune-residual`.
 
+> ⚠️ **Conta apagada logicamente**: `onAccountUpdated` apaga as orders/parcelas
+> da conta marcada como `isDeleted`, mas não a subcoleção `balance`. Sem
+> parcelas não há como reconstruir aquele histórico, então o rebuild propõe
+> apagar os saldos remanescentes dela. Revise o dry-run antes de aplicar num
+> workspace com contas apagadas.
+
 ```bash
 cd functions
 npm run build
