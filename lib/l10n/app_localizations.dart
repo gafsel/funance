@@ -1292,6 +1292,18 @@ abstract class AppLocalizations {
   /// **'Convites Pendentes'**
   String get invitesTitle;
 
+  /// No description provided for @uploadUnsupportedFormat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato não suportado. Use apenas: {formats}'**
+  String uploadUnsupportedFormat(String formats);
+
+  /// No description provided for @uploadFileTooLarge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este arquivo tem {size} e o limite da análise é {limit} MB. Exporte o extrato em OFX, que é bem menor que o PDF, ou divida em períodos mais curtos.'**
+  String uploadFileTooLarge(String size, int limit);
+
   /// No description provided for @membersTitle.
   ///
   /// In pt, this message translates to:

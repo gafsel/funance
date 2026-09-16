@@ -279,6 +279,25 @@
   "goalRemainingAmount": "Faltam {amount}",
   "continueButton": "CONTINUAR",
   "invitesTitle": "Convites Pendentes",
+  "uploadUnsupportedFormat": "Formato não suportado. Use apenas: {formats}",
+  "@uploadUnsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadFileTooLarge": "Este arquivo tem {size} e o limite da análise é {limit} MB. Exporte o extrato em OFX, que é bem menor que o PDF, ou divida em períodos mais curtos.",
+  "@uploadFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
   "membersTitle": "Membros",
   "membersOwnerRole": "Dono",
   "membersMemberRole": "Membro",

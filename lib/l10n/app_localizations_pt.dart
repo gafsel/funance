@@ -674,6 +674,16 @@ class AppLocalizationsPt extends AppLocalizations {
   String get invitesTitle => 'Convites Pendentes';
 
   @override
+  String uploadUnsupportedFormat(String formats) {
+    return 'Formato não suportado. Use apenas: $formats';
+  }
+
+  @override
+  String uploadFileTooLarge(String size, int limit) {
+    return 'Este arquivo tem $size e o limite da análise é $limit MB. Exporte o extrato em OFX, que é bem menor que o PDF, ou divida em períodos mais curtos.';
+  }
+
+  @override
   String get membersTitle => 'Membros';
 
   @override

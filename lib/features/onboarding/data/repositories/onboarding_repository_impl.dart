@@ -20,6 +20,15 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
       final result = await callable.call({'workspaceId': workspaceId});
 
       return FinanceMapper.toPlanningSuggestions(result.data);
+    } on FirebaseFunctionsException catch (e, s) {
+      // Código e mensagem do servidor precisam sobreviver: é deles que a tela
+      // tira o texto de cota esgotada ou payload recusado.
+      throw BusinessException(
+        ErrorCode.unknown,
+        message: e.message,
+        originalError: e,
+        stackTrace: s,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

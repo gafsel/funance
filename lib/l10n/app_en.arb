@@ -255,6 +255,25 @@
   "goalAiClose": "Got it",
   "continueButton": "CONTINUE",
   "invitesTitle": "Pending Invites",
+  "uploadUnsupportedFormat": "Unsupported format. Use only: {formats}",
+  "@uploadUnsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadFileTooLarge": "This file is {size} and the analysis limit is {limit} MB. Export the statement as OFX, which is far smaller than a PDF, or split it into shorter periods.",
+  "@uploadFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
   "membersTitle": "Members",
   "membersOwnerRole": "Owner",
   "membersMemberRole": "Member",

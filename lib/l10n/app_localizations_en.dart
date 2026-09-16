@@ -669,6 +669,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invitesTitle => 'Pending Invites';
 
   @override
+  String uploadUnsupportedFormat(String formats) {
+    return 'Unsupported format. Use only: $formats';
+  }
+
+  @override
+  String uploadFileTooLarge(String size, int limit) {
+    return 'This file is $size and the analysis limit is $limit MB. Export the statement as OFX, which is far smaller than a PDF, or split it into shorter periods.';
+  }
+
+  @override
   String get membersTitle => 'Members';
 
   @override
