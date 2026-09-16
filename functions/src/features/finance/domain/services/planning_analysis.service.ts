@@ -1,7 +1,8 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { IFinanceRepository } from "../repositories/finance.repository";
 import { ICategoryRepository } from "../../../workspace/domain/repositories/category.repository";
-import { IAIRepository } from "../../../../core/services/ai.service";
+import { IAIRepository, isTransientAiError } from "../../../../core/services/ai.service";
+import { QuotaGuard } from "../../../../core/services/quota.service";
 import { CategoryModel, CategoryType } from "../../../workspace/domain/models/category.model";
 import { CategoryGroupService } from "../../../coaching/domain/services/category_group.service";
 import { CategoryGroup } from "../../../coaching/domain/models/category_group.model";
@@ -17,8 +18,9 @@ import {
     validatePlanningAnalysis,
 } from "./planning_analysis.utils";
 
-// Se a análise do mês tem menos de 3 dias e force!=true, retornamos o cache
-// sem chamar a IA.
+// Se a análise do mês tem menos de 3 dias, retornamos o cache sem chamar a
+// IA. O cliente não pode contornar isso (o campo `force` foi removido em
+// F0.8), e reabrir a análise em cache também NÃO consome cota.
 const CACHE_MAX_AGE_DAYS = 3;
 
 /**
@@ -38,20 +40,22 @@ export class PlanningAnalysisService {
         this.categoryGroupService = new CategoryGroupService(financeRepository, aiRepository);
     }
 
-    async analyze(workspaceId: string, force = false): Promise<any> {
+    /**
+     * @param quota cota diária do chamador. Só é consumida em cache-miss,
+     *              imediatamente antes da chamada à IA.
+     */
+    async analyze(workspaceId: string, quota?: QuotaGuard): Promise<any> {
         const now = new Date();
         const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-        // 0. Cache do mês (menos de 3 dias e sem force)
-        if (!force) {
-            const cached = await this.financeRepository.getPlanningAnalysis(workspaceId, monthKey);
-            const createdAt = this.toDate(cached?.createdAt);
-            if (cached && createdAt) {
-                const ageDays = (now.getTime() - createdAt.getTime()) / (24 * 60 * 60 * 1000);
-                if (ageDays >= 0 && ageDays < CACHE_MAX_AGE_DAYS) {
-                    console.log(`PlanningAnalysis: cache recente (${ageDays.toFixed(1)} dias) para ${workspaceId}/${monthKey}.`);
-                    return this.formatResponse(monthKey, cached, createdAt);
-                }
+        // 0. Cache do mês (menos de 3 dias) — retorna sem IA e sem gastar cota.
+        const cached = await this.financeRepository.getPlanningAnalysis(workspaceId, monthKey);
+        const cachedAt = this.toDate(cached?.createdAt);
+        if (cached && cachedAt) {
+            const ageDays = (now.getTime() - cachedAt.getTime()) / (24 * 60 * 60 * 1000);
+            if (ageDays >= 0 && ageDays < CACHE_MAX_AGE_DAYS) {
+                console.log(`PlanningAnalysis: cache recente (${ageDays.toFixed(1)} dias) para ${workspaceId}/${monthKey}.`);
+                return this.formatResponse(monthKey, cached, cachedAt);
             }
         }
 
@@ -143,8 +147,25 @@ export class PlanningAnalysisService {
             benchmarks: resolveBenchmarksBRL(projectedIncome),
         };
 
-        // 6. IA com responseSchema + validação server-side
-        const raw = await this.aiRepository.analyze503020Ideal(workspaceId, context);
+        // 6. IA com responseSchema + validação server-side.
+        //    A cota é consumida AQUI: é a chamada de IA que a cota mede, e só
+        //    chegamos neste ponto em cache-miss. (O passo 4 pode disparar uma
+        //    chamada acessória ao Gemini para classificar categorias novas —
+        //    ela é cacheada em coaching_meta e não entra nesta cota; o handler
+        //    faz quota.check() antes para não pagar nem isso com cota zerada.)
+        //    Se a falha for de infraestrutura, estorna.
+        await quota?.consume();
+
+        let raw: any;
+        try {
+            raw = await this.aiRepository.analyze503020Ideal(workspaceId, context);
+        }
+        catch (error) {
+            if (isTransientAiError(error)) {
+                await quota?.refund();
+            }
+            throw error;
+        }
 
         const allocationById = new Map<string, PlanningAllocation>(
             categoryContext.map(entry => [entry.categoryId, entry.allocation])

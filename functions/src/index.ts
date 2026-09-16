@@ -8,11 +8,24 @@
  */
 
 import * as admin from "firebase-admin";
+import { setGlobalOptions } from "firebase-functions/v2";
+
+// Padrão para os triggers leves (gatilhos de Firestore, crons de manutenção e
+// callables simples): pouca memória, timeout curto e teto de instâncias baixo
+// para limitar custo em caso de loop de escrita ou pico inesperado.
+// As funções de IA sobrescrevem estes valores individualmente (memória e
+// timeout maiores, maxInstances ainda mais baixo) — ver AI_CALLABLE_OPTIONS.
+// A REGIÃO NÃO É DEFINIDA AQUI de propósito: Firestore e Functions já estão na
+// mesma região padrão e mudá-la exigiria recriar todas as funções.
+setGlobalOptions({
+    maxInstances: 10,
+    memory: "256MiB",
+    timeoutSeconds: 60,
+});
 
 admin.initializeApp();
 admin.firestore().settings({ ignoreUndefinedProperties: true });
 
-export * from "./core/container";
 export * from "./features/finance/presentation/functions/order_handler";
 export * from "./features/finance/presentation/functions/recurring_handler";
 export * from "./features/finance/presentation/functions/account_handler";
