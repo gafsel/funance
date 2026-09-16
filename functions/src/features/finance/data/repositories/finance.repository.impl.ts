@@ -693,10 +693,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         } as AccountBalanceModel;
     }
 
-    async getAllWorkspaces(): Promise<string[]> {
-        const snapshot = await admin.firestore().collection("workspaces").get();
-        return snapshot.docs.map((doc) => doc.id);
-    }
 
     async updateOrderCategory(workspaceId: string, category: CategoryModel) {
         const snapshot = await this.getOrdersCollection(workspaceId)

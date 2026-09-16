@@ -94,8 +94,6 @@ export interface IFinanceRepository {
     date: Date
   ): Promise<AccountBalanceModel | null>;
 
-  // Generic Query
-  getAllWorkspaces(): Promise<string[]>;
 
   updateOrderCategory(workspaceId: string, category: CategoryModel): any;
   updateInstallmentCategory(workspaceId: string, category: CategoryModel): any;

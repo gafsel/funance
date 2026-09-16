@@ -303,16 +303,6 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         });
     }
 
-    async getAllWorkspaceIds(): Promise<string[]> {
-        // select() sem campos: retorna apenas as referências (payload mínimo).
-        const snapshot = await admin.firestore()
-            .collection("workspaces")
-            .select()
-            .get();
-        return snapshot.docs.map((doc) => {
-            return doc.id;
-        });
-    }
 
     async completeMissionAndAwardXp(
         workspaceId: string,

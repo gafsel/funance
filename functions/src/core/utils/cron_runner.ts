@@ -2,9 +2,9 @@
  * Varredura paginada de workspaces para os crons (F5.5).
  *
  * Os três crons que tocam TODOS os workspaces (coaching semanal, gamificação
- * semanal e mensal) faziam `getAllWorkspaces()` — uma leitura da coleção
- * inteira em memória — e depois um `for` sequencial com `await` por workspace,
- * tudo dentro de um timeout de função. Isso tem três problemas que só pioram
+ * semanal e mensal) liam a coleção de workspaces INTEIRA para a memória e
+ * depois faziam um `for` sequencial com `await` por workspace, tudo dentro de
+ * um timeout de função. Isso tem três problemas que só pioram
  * com a base crescendo:
  *
  * 1. a lista inteira na memória da instância;

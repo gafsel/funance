@@ -28,7 +28,6 @@ const mockRepository = {
     getCategoriesCount: jest.fn(),
     getPaidInstallments: jest.fn(),
     getPaidInstallmentsSince: jest.fn(),
-    getAllWorkspaceIds: jest.fn(),
     completeMissionAndAwardXp: jest.fn(),
     getPaidInstallmentsCount: jest.fn(),
     getCompletedMissionsCount: jest.fn(),
