@@ -1,4 +1,4 @@
-import { CategoryModel } from "../../../workspace/domain/models/category.model";
+import { CategoryModel, hasCategoryId } from "../../../workspace/domain/models/category.model";
 import * as admin from "firebase-admin";
 import {
     OrderModel,
@@ -760,6 +760,18 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         },
         week?: number
     ): Promise<void> {
+        // DEFESA FINAL (categoria sem id). `categories.<id>` com id vazio vira
+        // um segmento vazio de FieldPath e o SDK rejeita o documento inteiro
+        // com "Element at index 0 should not be an empty string" — mensagem que
+        // não diz nem qual workspace nem qual período. Quem chama já trata
+        // categoria sem id como "sem categoria" (ver `hasCategoryId`); se algo
+        // chegar aqui assim, é bug de chamador e o erro precisa apontar para
+        // ele.
+        if (!hasCategoryId(category)) {
+            const name = (category as CategoryModel | undefined)?.name ?? "";
+            throw new Error(`[updatePeriodSummary] categoria sem id: workspace=${workspaceId} período=${year}/${month ?? "-"}/W${week ?? "-"} categoria="${name}". Categoria sem id não entra em period_summaries.`);
+        }
+
         const { docRef, runtimeType } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
         const updateData = this.buildPeriodSummaryUpdateData(year, month, week, category, data, runtimeType);
 

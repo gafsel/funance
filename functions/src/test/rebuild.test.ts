@@ -512,6 +512,101 @@ describe("RebuildService", () => {
         });
     });
 
+    describe("categoria sem id (hotfix)", () => {
+        /** O documento encontrado em produção: nome preenchido, id vazio. */
+        const BROKEN_CATEGORY = { ...CATEGORY, id: "" };
+
+        let warn: jest.SpyInstance;
+
+        beforeEach(() => {
+            warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        const brokenInstallment = (id: string) => rawInstallment(id, {
+            amount: 100,
+            paidAmount: 100,
+            status: InstallmentStatus.paid,
+            category: BROKEN_CATEGORY,
+            dueDate: ts(2026, 3, 10),
+            paidDate: ts(2026, 3, 10),
+        });
+
+        it("não quebra o --apply e não cria a chave de categoria vazia", async () => {
+            repository.installments = [brokenInstallment("a-quebrada")];
+
+            const report = await apply();
+
+            // Nenhum period_summaries: a única categoria da parcela não tem id.
+            // Era aqui que o SDK explodia com "Element at index 0 should not be
+            // an empty string" ao montar `categories.""`.
+            expect([...repository.summaries.keys()]).toEqual([]);
+            expect(report.diff.periodSummaries.toCreate).toBe(0);
+
+            // Saldo e XP não dependem de categoria: continuam contando.
+            expect(repository.balances.get(CHECKING.id)!.get("2026-03-10")!.balance).toBeCloseTo(-100, 2);
+            expect(repository.weeklyXp.get("2026-W10")).toMatchObject({ xp: 15 });
+        });
+
+        it("conta a parcela em installmentsWithoutCategory e avisa uma vez", async () => {
+            repository.installments = [brokenInstallment("a-quebrada"), brokenInstallment("b-quebrada")];
+
+            const report = await apply();
+
+            expect(report.scanned.installments).toBe(2);
+            expect(report.scanned.installmentsWithoutCategory).toBe(2);
+            expect(warn).toHaveBeenCalledTimes(2);
+            expect(warn.mock.calls[0][0]).toContain(`workspace=${WORKSPACE}`);
+            expect(warn.mock.calls[0][0]).toContain("parcela=a-quebrada");
+        });
+
+        it("as parcelas boas do mesmo workspace continuam sendo somadas", async () => {
+            repository.installments = [
+                brokenInstallment("a-quebrada"),
+                rawInstallment("b-boa", {
+                    amount: 50, paidAmount: 50, status: InstallmentStatus.paid,
+                    dueDate: ts(2026, 3, 12), paidDate: ts(2026, 3, 12),
+                }),
+            ];
+
+            const report = await apply();
+
+            const month = repository.summaries.get("2026-03")!;
+            expect(Object.keys(month.categories)).toEqual([CATEGORY.id]);
+            expect(month.categories[CATEGORY.id].actualAmount).toBeCloseTo(50, 2);
+            expect(report.scanned.installmentsWithoutCategory).toBe(1);
+
+            // O saldo soma as duas (a quebrada também move dinheiro).
+            expect(repository.balances.get(CHECKING.id)!.get("2026-03-12")!.balance).toBeCloseTo(-150, 2);
+        });
+
+        it("continua idempotente: o segundo dry-run não vê diferença", async () => {
+            repository.installments = [brokenInstallment("a-quebrada")];
+
+            await apply();
+
+            expect((await dryRun()).totalChanges).toBe(0);
+        });
+
+        it("planejamento com categoria sem id também fica fora do generalPlannedAmount", async () => {
+            repository.installments = [];
+            repository.plannings = [{
+                id: "plan-quebrado",
+                category: BROKEN_CATEGORY,
+                amount: 620,
+                startMonth: "2026-03",
+                endMonth: "2026-03",
+            }];
+
+            await applyRebuildingPlanning();
+
+            expect([...repository.summaries.keys()]).toEqual([]);
+        });
+    });
+
     describe("weekly_xp", () => {
         it("soma o calculateXp das parcelas pagas por semana", async () => {
             repository.installments = [

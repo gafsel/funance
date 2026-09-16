@@ -392,6 +392,35 @@ propósito para a cobrança contar como não planejada. É por isso que o total 
 order usa `referenceAmount` nas pagas: é o único campo que vale o realizado nos
 dois casos.
 
+## Categoria sem id: fora dos sumários
+
+Existem em produção parcelas e orders com a categoria embutida **sem id**:
+
+```json
+{ "category": { "id": "", "name": "Supermercado", "type": "expense" } }
+```
+
+Elas vieram da conciliação/transação automática, que gravava o nome sugerido
+pela IA antes de resolver o documento da categoria. O estrago é desproporcional
+ao defeito: o sumário grava `categories.<id>`, e um id vazio vira um **segmento
+vazio de `FieldPath`** — o SDK rejeita o documento inteiro com
+`Error: Element at index 0 should not be an empty string`. O gatilho de sumário
+quebrava, e o `rebuild_workspace --apply` morria no commit (o **dry-run não
+acusa nada**, porque nem chega a montar a referência).
+
+**REGRA ÚNICA** (`hasCategoryId`, em `workspace/domain/models/category.model.ts`):
+categoria sem id é tratada como **sem categoria** para efeito de sumário.
+
+| Onde | O que acontece |
+|------|----------------|
+| `summary.service.ts` (projetado e realizado) | a parcela **não entra** em `period_summaries`, com um `console.warn` **por parcela** citando workspace e parcela |
+| `rebuild.service.ts` (acumulador) | idem, e a parcela é contada em `scanned.installmentsWithoutCategory` no relatório |
+| `finance.repository.impl.ts` (`updatePeriodSummary`) | **defesa final**: lança erro citando workspace, período e nome da categoria, em vez de deixar o SDK explodir com uma mensagem sem contexto |
+
+**Saldo e XP continuam contando normalmente** — nenhum dos dois depende de
+categoria. O que essas parcelas perdem é só a linha no sumário, até serem
+corrigidas pelo script [`fix_empty_category.ts`](#fix_empty_categoryts).
+
 ## Planejamento de categoria: horizonte rolante (F1.5)
 
 O `generalPlannedAmount` dos `period_summaries` vem de `category_planning`. O
@@ -857,6 +886,7 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 | `backfill_last_generated_due_date.ts` | marca onde a série recorrente parou | aqui |
 | `migrate_balance_date_key.ts` | `dateKey`/`delta` nos saldos diários | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
 | `migrate_planning_summaries.ts` | marcadores do planejamento | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `fix_empty_category.ts` | corrige `category.id` vazio em parcelas/orders | aqui |
 | `rebuild_workspace.ts` | reconstrói saldos, sumários e XP | aqui |
 
 **Ordem recomendada quando este pacote for para produção**: as duas migrações
@@ -957,6 +987,67 @@ Coberto por testes com mocks em
 `src/test/backfill_last_generated_due_date.test.ts` (dry-run, idempotência,
 escolha da última parcela, escopo por workspace e contabilização de falhas).
 
+### `fix_empty_category.ts`
+
+Conserta as parcelas e orders com `category.id` vazio (ver
+[Categoria sem id](#categoria-sem-id-fora-dos-sumários)). O código já não quebra
+mais por causa delas, mas elas ficam **fora dos `period_summaries`** até serem
+corrigidas — e é o `installmentsWithoutCategory` do relatório do rebuild que
+diz quantas são.
+
+O script **não adivinha categoria**. Ele grava o `id` da categoria de destino
+(`--category-id`, lida de `workspaces/{wid}/categories/{id}`) **somente** nos
+documentos cujo `category.name` embutido bate com o `name` dela — comparação
+sem diferenciar maiúsculas/minúsculas, ignorando espaços nas pontas. Os demais
+são apenas **listados**, para decisão humana. Por isso a correção é feita uma
+categoria de cada vez.
+
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **`--category-id` é obrigatório com `--apply`** — sem ele o script só lista.
+- **Idempotente**: depois da correção o `category.id` deixa de ser vazio e o
+  documento não é mais encontrado pela consulta.
+- **Preserva** os demais campos da categoria embutida (nome, ícone, cor, tipo):
+  a escrita é um `set({category: {...atual, id}}, {merge: true})`.
+- Varre `installments` **e** `orders`; sem `--workspace`, pelo grupo de coleções
+  (base inteira).
+
+```bash
+cd functions
+npm run build
+
+# 1) Levantamento (padrão — não escreve nada): lista tudo que está quebrado
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/fix_empty_category.js --project=<projectId>
+
+# 2) Simulação da correção de UMA categoria num workspace
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/fix_empty_category.js --project=<projectId> \
+    --workspace=<workspaceId> --category-id=<categoryId>
+
+# 3) Execução real (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/fix_empty_category.js --project=<projectId> \
+    --workspace=<workspaceId> --category-id=<categoryId> --apply
+```
+
+| Flag                | Efeito                                                                  |
+|---------------------|-------------------------------------------------------------------------|
+| _(nenhuma)_         | dry-run: apenas lista os documentos quebrados                            |
+| `--apply`           | executa as escritas (exige `--category-id`)                              |
+| `--project=<id>`    | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)                  |
+| `--workspace=<id>`  | limita a varredura a um workspace (sem ela, base inteira)                |
+| `--category-id=<id>`| categoria de destino em `workspaces/{wid}/categories/{id}`               |
+
+Saída de código: `0` se não houve falhas, `1` caso contrário.
+
+> **Depois de aplicar, rode o `rebuild_workspace`** (dry-run e depois `--apply`)
+> no workspace afetado: é ele quem recoloca essas parcelas nos
+> `period_summaries`. O gatilho só reage a escritas novas.
+
+Coberto por testes com mocks em `src/test/fix_empty_category.test.ts` (flags,
+comparação de nome, dry-run, correção, recusa por nome divergente e
+idempotência).
+
 ### `rebuild_workspace.ts`
 
 Reconstrói, para **um** workspace, tudo o que hoje os gatilhos mantêm de forma
@@ -1006,6 +1097,10 @@ Características:
   são lidas em streaming, página a página — nenhuma lista de parcelas fica
   retida —, mas os **agregados** (saldo por conta/dia, sumários por período e
   XP por semana) ficam em memória e são eles que dimensionam o job.
+- **Parcelas com `category.id` vazio** ficam fora dos `period_summaries` (mas
+  contam em saldo e XP) e aparecem no relatório como
+  `parcelas sem categoria (category.id vazio, ...)`. Conserte-as com
+  [`fix_empty_category.ts`](#fix_empty_categoryts) e refaça o rebuild.
 - **Documentos residuais** não contam como divergência: um `period_summaries`/
   `weekly_xp` zerado (sobra de lançamento estornado/removido) ou um documento de
   saldo em dia sem movimento cujo valor é o próprio saldo acumulado. Eles são

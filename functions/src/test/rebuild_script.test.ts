@@ -13,6 +13,7 @@ jest.mock("ofx-js", () => ({ parse: jest.fn() }));
 import {
     RebuildRunner,
     ScriptOptions,
+    formatReport,
     formatTotals,
     parseArgs,
     runRebuild,
@@ -25,13 +26,18 @@ function emptyDiff() {
     return { toCreate: 0, toUpdate: 0, toDelete: 0, unchanged: 0, residual: 0, generalPlannedChanges: 0, samples: [] };
 }
 
-function report(workspaceId: string, totalChanges: number, writesCommitted = 0): RebuildReport {
+function report(
+    workspaceId: string,
+    totalChanges: number,
+    writesCommitted = 0,
+    installmentsWithoutCategory = 0
+): RebuildReport {
     return {
         workspaceId,
         mode: writesCommitted > 0 ? "apply" : "dryRun",
         rebuildPlanning: false,
         durationMs: 1,
-        scanned: { installments: 0, installmentsRemoved: 0, accounts: 0, categoryPlannings: 0 },
+        scanned: { installments: 0, installmentsRemoved: 0, installmentsWithoutCategory, accounts: 0, categoryPlannings: 0 },
         diff: { balances: emptyDiff(), periodSummaries: emptyDiff(), weeklyXp: emptyDiff() },
         totalChanges,
         writesCommitted,
@@ -90,6 +96,23 @@ describe("rebuild_workspace — parseArgs", () => {
             pruneResidual: true,
             rebuildPlanning: true,
         });
+    });
+});
+
+describe("rebuild_workspace — formatReport", () => {
+    it("sempre imprime a linha das parcelas sem categoria", () => {
+        const text = formatReport(report("w1", 0));
+
+        expect(text).toContain("parcelas sem categoria (category.id vazio, fora dos period_summaries)=0");
+        // Zero não pede ação nenhuma.
+        expect(text).not.toContain("fix_empty_category");
+    });
+
+    it("com parcelas quebradas, aponta o script de correção", () => {
+        const text = formatReport(report("w1", 0, 0, 7));
+
+        expect(text).toContain("parcelas sem categoria (category.id vazio, fora dos period_summaries)=7");
+        expect(text).toContain("rode fix_empty_category e refaça o rebuild");
     });
 });
 
