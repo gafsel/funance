@@ -43,8 +43,6 @@ export interface IGamificationRepository {
     getCategoriesCount(workspaceId: string): Promise<number>;
     getPaidInstallments(workspaceId: string): Promise<any[]>;
     getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<any[]>;
-    /** Lista os IDs de todos os workspaces (para os crons agendados). */
-    getAllWorkspaceIds(): Promise<string[]>;
     /**
      * Marca a missão como concluída e concede o XP na MESMA transação.
      * Retorna false (sem conceder nada) se a missão já estava concluída.

@@ -1,6 +1,7 @@
 import { GeminiAIRepositoryImpl, IAIRepository } from "../core/services/ai.service";
 import { IIdempotencyService, IdempotencyServiceImpl } from "../core/services/idempotency.service";
 import { IQuotaService, QuotaServiceImpl } from "../core/services/quota.service";
+import { AiCacheServiceImpl, IAiCacheService } from "../core/services/ai_cache.service";
 import { IOnboardingService, OnboardingServiceImpl } from "../features/onboarding/domain/services/onboarding.service";
 import { IWorkspaceRepository } from "../features/workspace/domain/repositories/workspace.repository";
 import { IFinanceRepository } from "../features/finance/domain/repositories/finance.repository";
@@ -54,6 +55,7 @@ class Container {
     private static _onboardingService: IOnboardingService;
     private static _idempotencyService: IIdempotencyService;
     private static _quotaService: IQuotaService;
+    private static _aiCacheService: IAiCacheService;
     private static _gamificationRepository: IGamificationRepository;
     private static _gamificationService: GamificationService;
     private static _goalFeasibilityService: GoalFeasibilityService;
@@ -71,6 +73,13 @@ class Container {
             this._quotaService = new QuotaServiceImpl();
         }
         return this._quotaService;
+    }
+
+    static get aiCacheService(): IAiCacheService {
+        if (!this._aiCacheService) {
+            this._aiCacheService = new AiCacheServiceImpl();
+        }
+        return this._aiCacheService;
     }
 
     static get workspaceRepository(): IWorkspaceRepository {
@@ -201,7 +210,8 @@ class Container {
                 this.aiRepository,
                 this.categoryRepository,
                 this.financeRepository,
-                this.workspaceRepository
+                this.workspaceRepository,
+                this.aiCacheService
             );
         }
         return this._onboardingService;
@@ -231,6 +241,7 @@ class Container {
                 this.financeRepository,
                 this.categoryRepository,
                 this.aiRepository,
+                this.aiCacheService,
             );
         }
         return this._goalFeasibilityService;

@@ -1,12 +1,25 @@
-import { GoogleGenerativeAI, ResponseSchema, SchemaType } from "@google/generative-ai";
+import { GenerateContentConfig, GenerateContentResponse, GoogleGenAI, Schema, Type } from "@google/genai";
 import { defineString } from "firebase-functions/params";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
+import { AIConfig, DEFAULT_CONFIG, PINNED_FLASH_MODEL, PINNED_PRO_MODEL } from "../config/ai.config";
 import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../features/finance/domain/models/finance.models";
 import * as ofx from "ofx-js";
 import * as crypto from "crypto";
 import { renderTemplate } from "../utils/prompt_template";
+import {
+    INLINE_DOCUMENT_MAX_BYTES,
+    assertDocumentWithinLimit,
+} from "../utils/document_limits";
+import {
+    ValidatedDocumentAnalysis,
+    validateAutomaticTransaction,
+    validateDocumentAnalysis,
+    validateGoalSuggestions,
+    validateOfxClassification,
+    validateReconciliation,
+    validateWeeklyMissions,
+} from "./ai_validation";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
 
@@ -38,30 +51,30 @@ interface AiLogEntry {
 }
 
 // Schema estruturado da resposta de coaching (força JSON válido no Gemini)
-const COACHING_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const COACHING_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
-        message: { type: SchemaType.STRING },
-        summary: { type: SchemaType.STRING },
-        type: { type: SchemaType.STRING, format: "enum", enum: ["insight", "warning", "tip"] },
+        message: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        type: { type: Type.STRING, format: "enum", enum: ["insight", "warning", "tip"] },
         slides: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    title: { type: SchemaType.STRING },
-                    message: { type: SchemaType.STRING },
-                    icon: { type: SchemaType.STRING },
-                    icons: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                    color: { type: SchemaType.STRING },
-                    secondaryColor: { type: SchemaType.STRING },
+                    title: { type: Type.STRING },
+                    message: { type: Type.STRING },
+                    icon: { type: Type.STRING },
+                    icons: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    color: { type: Type.STRING },
+                    secondaryColor: { type: Type.STRING },
                     animationType: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: ["zoom", "slide", "bounce", "fade", "pulse"],
                     },
-                    actionLabel: { type: SchemaType.STRING, nullable: true },
-                    actionPath: { type: SchemaType.STRING, nullable: true },
+                    actionLabel: { type: Type.STRING, nullable: true },
+                    actionPath: { type: Type.STRING, nullable: true },
                 },
                 required: ["title", "message", "icon", "color"],
             },
@@ -71,17 +84,17 @@ const COACHING_RESPONSE_SCHEMA: ResponseSchema = {
 };
 
 // Schema estruturado da classificação de categorias em grupos macro
-const CATEGORY_GROUPS_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const CATEGORY_GROUPS_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
         assignments: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    id: { type: SchemaType.STRING },
+                    id: { type: Type.STRING },
                     group: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: [
                             "housing", "groceries", "dining_out", "transport", "health_pharmacy",
@@ -99,55 +112,55 @@ const CATEGORY_GROUPS_RESPONSE_SCHEMA: ResponseSchema = {
 };
 
 // Schema estruturado da resposta de viabilidade de meta
-const GOAL_FEASIBILITY_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const GOAL_FEASIBILITY_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
-        status: { type: SchemaType.STRING, format: "enum", enum: ["feasible", "challenging", "unrealistic"] },
-        reason: { type: SchemaType.STRING },
-        suggestion: { type: SchemaType.STRING },
+        status: { type: Type.STRING, format: "enum", enum: ["feasible", "challenging", "unrealistic"] },
+        reason: { type: Type.STRING },
+        suggestion: { type: Type.STRING },
     },
     required: ["status", "reason", "suggestion"],
 };
 
 // Schema estruturado da análise ideal 50-30-20 (força JSON válido no Gemini)
-const PLANNING_503020_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const PLANNING_503020_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
-        summary: { type: SchemaType.STRING },
+        summary: { type: Type.STRING },
         groups: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
                     allocation: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: ["essential", "comfort", "investment"],
                     },
-                    currentPct: { type: SchemaType.NUMBER },
-                    targetPct: { type: SchemaType.NUMBER },
-                    deltaBRL: { type: SchemaType.NUMBER },
+                    currentPct: { type: Type.NUMBER },
+                    targetPct: { type: Type.NUMBER },
+                    deltaBRL: { type: Type.NUMBER },
                 },
                 required: ["allocation", "currentPct", "targetPct", "deltaBRL"],
             },
         },
         categories: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    categoryId: { type: SchemaType.STRING },
-                    idealMonthlyAmount: { type: SchemaType.NUMBER },
-                    idealPctOfIncome: { type: SchemaType.NUMBER },
-                    status: { type: SchemaType.STRING, format: "enum", enum: ["ok", "above", "below"] },
+                    categoryId: { type: Type.STRING },
+                    idealMonthlyAmount: { type: Type.NUMBER },
+                    idealPctOfIncome: { type: Type.NUMBER },
+                    status: { type: Type.STRING, format: "enum", enum: ["ok", "above", "below"] },
                     suggestedAllocation: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: ["essential", "comfort", "investment"],
                     },
-                    shouldReclassify: { type: SchemaType.BOOLEAN },
-                    reason: { type: SchemaType.STRING },
-                    savingTip: { type: SchemaType.STRING, nullable: true },
+                    shouldReclassify: { type: Type.BOOLEAN },
+                    reason: { type: Type.STRING },
+                    savingTip: { type: Type.STRING, nullable: true },
                 },
                 required: [
                     "categoryId", "idealMonthlyAmount", "idealPctOfIncome", "status",
@@ -155,9 +168,182 @@ const PLANNING_503020_RESPONSE_SCHEMA: ResponseSchema = {
                 ],
             },
         },
-        insights: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+        insights: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
     required: ["summary", "groups", "categories", "insights"],
+};
+
+// Categoria sugerida pela IA. Sem "id": os prompts de documento/OFX/conciliação
+// mandam só os NOMES das categorias existentes, então qualquer id que o modelo
+// devolvesse seria invenção (ver ai_validation.ts).
+const CATEGORY_SUGGESTION_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING },
+        icon: { type: Type.STRING },
+        color: { type: Type.STRING },
+        type: { type: Type.STRING, format: "enum", enum: ["income", "expense"] },
+    },
+    required: ["name", "icon", "color", "type"],
+};
+
+// Lançamento extraído de documento (extrato/fatura/OFX).
+const DOCUMENT_ORDER_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        type: { type: Type.STRING, format: "enum", enum: ["expense", "income"] },
+        description: { type: Type.STRING },
+        amount: { type: Type.NUMBER },
+        dueDate: { type: Type.STRING, description: "Data no formato YYYY-MM-DD" },
+        installmentType: {
+            type: Type.STRING,
+            format: "enum",
+            enum: ["single", "installment", "recurring"],
+        },
+        installmentCount: { type: Type.INTEGER },
+        category: CATEGORY_SUGGESTION_SCHEMA,
+    },
+    required: ["type", "description", "amount", "dueDate", "category"],
+};
+
+// Schema da sugestão de metas e planejamentos do onboarding
+const GOAL_SUGGESTIONS_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        goals: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    targetAmount: { type: Type.NUMBER },
+                    type: {
+                        type: Type.STRING,
+                        format: "enum",
+                        enum: ["save_money", "reduce_expense", "reduce_credit_card"],
+                    },
+                    deadlineMonths: { type: Type.INTEGER },
+                    icon: { type: Type.STRING },
+                },
+                required: ["name", "targetAmount", "type", "deadlineMonths", "icon"],
+            },
+        },
+        plannings: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    category: CATEGORY_SUGGESTION_SCHEMA,
+                    amount: { type: Type.NUMBER },
+                },
+                required: ["category", "amount"],
+            },
+        },
+    },
+    required: ["goals", "plannings"],
+};
+
+// Schema da análise de documento (PDF/imagem). "error" NÃO é obrigatório: é a
+// saída de recusa quando o arquivo não é um documento financeiro, e o prompt
+// depende de poder devolver só ela.
+const DOCUMENT_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        error: { type: Type.STRING, nullable: true },
+        account: {
+            type: Type.OBJECT,
+            nullable: true,
+            properties: {
+                name: { type: Type.STRING },
+                runtimeType: {
+                    type: Type.STRING,
+                    format: "enum",
+                    enum: ["checking", "investment", "creditCard", "debt"],
+                },
+                color: { type: Type.STRING },
+                icon: { type: Type.STRING },
+                currentBalance: { type: Type.NUMBER },
+                interestRate: { type: Type.NUMBER, nullable: true },
+                limit: { type: Type.NUMBER, nullable: true },
+                dueDay: { type: Type.INTEGER, nullable: true },
+                closingDay: { type: Type.INTEGER, nullable: true },
+            },
+            required: ["name", "runtimeType", "color", "icon", "currentBalance"],
+        },
+        orders: { type: Type.ARRAY, items: DOCUMENT_ORDER_SCHEMA },
+    },
+};
+
+// Schema da classificação das transações de um arquivo OFX
+const DOCUMENT_OFX_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        orders: { type: Type.ARRAY, items: DOCUMENT_ORDER_SCHEMA },
+    },
+    required: ["orders"],
+};
+
+// Schema da extração de transações para conciliação bancária
+const RECONCILIATION_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        error: { type: Type.STRING, nullable: true },
+        transactions: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    amount: { type: Type.NUMBER },
+                    date: { type: Type.STRING, description: "Data no formato YYYY-MM-DD" },
+                    type: { type: Type.STRING, format: "enum", enum: ["expense", "income"] },
+                    category: CATEGORY_SUGGESTION_SCHEMA,
+                },
+                required: ["description", "amount", "date", "type", "category"],
+            },
+        },
+    },
+};
+
+// Schema do enriquecimento de transação automática. Aqui a categoria PODE ter
+// id: o prompt envia as categorias e contas do workspace com id.
+const AUTOMATIC_TRANSACTION_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        category: {
+            type: Type.OBJECT,
+            properties: {
+                id: { type: Type.STRING, nullable: true },
+                name: { type: Type.STRING },
+                icon: { type: Type.STRING },
+                color: { type: Type.STRING },
+                type: { type: Type.STRING, format: "enum", enum: ["income", "expense"] },
+            },
+            required: ["name", "icon", "color", "type"],
+        },
+        accountId: { type: Type.STRING, nullable: true },
+    },
+    required: ["category"],
+};
+
+// Schema das três missões semanais
+const WEEKLY_MISSION_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING },
+        target: { type: Type.INTEGER },
+    },
+    required: ["name", "target"],
+};
+
+const WEEKLY_MISSIONS_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        consistency: WEEKLY_MISSION_SCHEMA,
+        discipline: WEEKLY_MISSION_SCHEMA,
+        organization: WEEKLY_MISSION_SCHEMA,
+    },
+    required: ["consistency", "discipline", "organization"],
 };
 
 /**
@@ -174,6 +360,30 @@ function parseAIJson(text: string): any {
             return JSON.parse(jsonMatch[0]);
         }
         throw new Error("A resposta da IA não contém JSON válido.");
+    }
+}
+
+/**
+ * Igual a `parseAIJson`, mas devolve null em vez de lançar. Usado onde uma
+ * resposta ilegível deve degradar (lista vazia, sugestão ausente) em vez de
+ * virar erro na cara do usuário.
+ */
+/** Conjunto dos ids que o prompt de fato enviou (para barrar id inventado). */
+function toIdSet(items: any[]): Set<string> {
+    const ids = new Set<string>();
+    for (const item of Array.isArray(items) ? items : []) {
+        if (typeof item?.id === "string" && item.id.length > 0) ids.add(item.id);
+    }
+    return ids;
+}
+
+function parseAIJsonSafe(text: string): any | null {
+    try {
+        return parseAIJson(text);
+    }
+    catch (error) {
+        console.error("Resposta da IA sem JSON válido:", error);
+        return null;
     }
 }
 
@@ -262,16 +472,31 @@ export interface IAIRepository {
     ): Promise<any>;
 }
 
+/**
+ * Par (modelo, config) de uma chamada ao Gemini no SDK `@google/genai`.
+ * Substitui o `getGenerativeModel({model, generationConfig})` do SDK legado:
+ * modelo e configuração agora viajam no mesmo objeto de `generateContent`.
+ */
+interface GenerateParams {
+    model: string;
+    config?: GenerateContentConfig;
+}
+
 export class GeminiAIRepositoryImpl implements IAIRepository {
-    private genAI: GoogleGenerativeAI;
+    private genAI: GoogleGenAI;
 
     // Modelos estáveis usados quando o primário falha por indisponibilidade
-    // (503 "high demand" no alias -latest, 404 de modelo aposentado etc.).
+    // (503 "high demand", 404 de modelo aposentado etc.).
     private static readonly FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
     private static readonly RETRYABLE_STATUS = [429, 500, 503];
 
+    // Espera do upload na Files API (arquivo grande fica PROCESSING antes de
+    // poder ser referenciado num prompt).
+    private static readonly FILE_PROCESSING_TIMEOUT_MS = 60_000;
+    private static readonly FILE_POLL_INTERVAL_MS = 1_000;
+
     constructor() {
-        this.genAI = new GoogleGenerativeAI(geminiApiKey.value());
+        this.genAI = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     }
 
     /**
@@ -281,9 +506,9 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
      * metadados registrar quando houve fallback.
      */
     private async generateResilient(
-        params: Parameters<GoogleGenerativeAI["getGenerativeModel"]>[0],
-        request: any
-    ): Promise<{ result: any; modelUsed: string }> {
+        params: GenerateParams,
+        contents: any
+    ): Promise<{ result: GenerateContentResponse; modelUsed: string }> {
         const candidates = [
             params.model,
             ...GeminiAIRepositoryImpl.FALLBACK_MODELS.filter((m) => m !== params.model),
@@ -296,11 +521,11 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const attempts = c === 0 ? 2 : 1;
             for (let attempt = 0; attempt < attempts; attempt++) {
                 try {
-                    const model = this.genAI.getGenerativeModel({
-                        ...params,
+                    const result = await this.genAI.models.generateContent({
                         model: modelName,
+                        contents,
+                        config: params.config,
                     });
-                    const result = await model.generateContent(request);
                     return { result, modelUsed: modelName };
                 }
                 catch (error: any) {
@@ -324,22 +549,100 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     }
 
     /**
+     * Monta a parte do prompt que carrega o documento (PDF/imagem).
+     *
+     * Até 4 MB vai **inline** em base64: um round-trip a menos e nada para
+     * limpar depois. Acima disso o base64 inflaria o payload em ~33% e
+     * estouraria o limite de request do Gemini, então o arquivo sobe pela
+     * **Files API** e o prompt referencia só a URI (`fileData`).
+     *
+     * Devolve também um `cleanup`: o arquivo remoto é apagado assim que a
+     * resposta chega. O Gemini já expira o upload em 48h sozinho, mas deixar
+     * extrato do usuário parado lá é dado financeiro sem motivo.
+     */
+    private async buildDocumentPart(
+        fileBuffer: Buffer,
+        mimeType: string,
+        fileName: string
+    ): Promise<{ part: any; cleanup: () => Promise<void> }> {
+        // Segunda linha de defesa: o handler já recusou pelo metadado do
+        // Storage, mas o serviço não pode confiar em quem o chama.
+        assertDocumentWithinLimit(fileBuffer.length);
+
+        const noop = async () => undefined;
+
+        if (fileBuffer.length <= INLINE_DOCUMENT_MAX_BYTES) {
+            return {
+                part: { inlineData: { data: fileBuffer.toString("base64"), mimeType } },
+                cleanup: noop,
+            };
+        }
+
+        console.log(
+            `Documento ${fileName} com ${fileBuffer.length} bytes: enviando pela Files API do Gemini.`
+        );
+
+        const uploaded = await this.genAI.files.upload({
+            file: new Blob([new Uint8Array(fileBuffer)], { type: mimeType }),
+            config: { mimeType, displayName: fileName },
+        });
+
+        const ready = await this.waitForFileActive(uploaded);
+
+        return {
+            part: { fileData: { fileUri: ready.uri, mimeType: ready.mimeType || mimeType } },
+            cleanup: async () => {
+                if (!ready.name) return;
+                try {
+                    await this.genAI.files.delete({ name: ready.name });
+                }
+                catch (error) {
+                    // Expira sozinho em 48h; não vale derrubar a análise.
+                    console.warn(`Falha ao apagar o arquivo ${ready.name} da Files API:`, error);
+                }
+            },
+        };
+    }
+
+    /**
+     * Espera o upload sair de PROCESSING. Um PDF grande não fica utilizável
+     * no mesmo instante do upload; usar a URI antes disso devolve 400.
+     */
+    private async waitForFileActive(file: any): Promise<any> {
+        const deadline = Date.now() + GeminiAIRepositoryImpl.FILE_PROCESSING_TIMEOUT_MS;
+        let current = file;
+
+        while (current?.state === "PROCESSING" && Date.now() < deadline) {
+            await new Promise((resolve) => setTimeout(resolve, GeminiAIRepositoryImpl.FILE_POLL_INTERVAL_MS));
+            current = await this.genAI.files.get({ name: current.name });
+        }
+
+        if (current?.state === "FAILED") {
+            throw new Error(`O Gemini não conseguiu processar o arquivo enviado: ${current?.error?.message ?? "motivo desconhecido"}.`);
+        }
+        if (current?.state === "PROCESSING") {
+            throw new Error("O processamento do arquivo pelo Gemini demorou demais. Tente novamente.");
+        }
+        return current;
+    }
+
+    /**
      * Chama o Gemini e grava UM log de metadados, tanto no sucesso quanto no
      * erro. Retorna o texto cru da resposta.
      */
     private async generateWithLogging(
         workspaceId: string,
         functionName: string,
-        params: Parameters<GoogleGenerativeAI["getGenerativeModel"]>[0],
-        request: any,
+        params: GenerateParams,
+        contents: any,
         prompt: string,
         debugExtra?: Record<string, any>
     ): Promise<string> {
         const startedAt = Date.now();
         try {
-            const { result, modelUsed } = await this.generateResilient(params, request);
-            const response = await result.response;
-            const text = response.text();
+            const { result, modelUsed } = await this.generateResilient(params, contents);
+            // No SDK novo `text` é um getter (antes era `response.text()`).
+            const text = result.text ?? "";
 
             await this.logAiCall({
                 workspaceId,
@@ -349,7 +652,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 prompt,
                 status: "ok",
                 responseText: text,
-                usage: response?.usageMetadata,
+                usage: result.usageMetadata,
                 debugExtra,
             });
 
@@ -434,6 +737,34 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         }
     }
 
+    /**
+     * Normaliza o nome de modelo vindo do override em `config/ai`.
+     *
+     * Três casos, todos terminando numa versão PINADA (F5.6):
+     * - nome vazio/inválido (não é string, ou tem caractere fora de
+     *   [A-Za-z0-9._-]): cai no padrão do código;
+     * - família `gemini-1.5-*`: aposentada pelo Google, responde 404 — o
+     *   override antigo quebraria todas as features de IA;
+     * - alias rolante (`*-latest`): muda de modelo sem deploy, que é
+     *   exatamente o que o pinning existe para evitar.
+     *
+     * Um override para um modelo pinado válido (ex.: `gemini-2.5-pro`)
+     * continua valendo — é assim que se troca de modelo sem deploy.
+     */
+    private sanitizeModel(name: unknown, fallback: string): string {
+        if (typeof name !== "string" || !/^[A-Za-z0-9._-]{1,64}$/.test(name)) {
+            return fallback;
+        }
+        const isPro = name.includes("pro");
+        if (name.startsWith("gemini-1.5")) {
+            return isPro ? PINNED_PRO_MODEL : PINNED_FLASH_MODEL;
+        }
+        if (name.endsWith("-latest")) {
+            return isPro ? PINNED_PRO_MODEL : PINNED_FLASH_MODEL;
+        }
+        return name;
+    }
+
     private async getConfig(): Promise<AIConfig> {
         if (configCache && (Date.now() - configCache.fetchedAt) < CONFIG_CACHE_TTL_MS) {
             return configCache.config;
@@ -443,26 +774,18 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const doc = await admin.firestore().collection("config").doc("ai").get();
             if (doc.exists) {
                 const data = doc.data() as any;
-                // A família gemini-1.5-* foi aposentada (404). Se o override
-                // do Firestore ainda apontar para ela, remapeia para o alias
-                // rolante equivalente em vez de quebrar todas as features de IA.
-                const sanitizeModel = (name: string | undefined, fallback: string): string => {
-                    const model = name || fallback;
-                    if (!model.startsWith("gemini-1.5")) return model;
-                    return model.includes("pro") ? "gemini-pro-latest" : "gemini-flash-latest";
-                };
 
                 const config: AIConfig = {
                     debugLogging: data?.debugLogging === true,
                     models: {
-                        goals: sanitizeModel(data?.models?.goals, DEFAULT_CONFIG.models.goals),
-                        document: sanitizeModel(data?.models?.document, DEFAULT_CONFIG.models.document),
-                        coaching: sanitizeModel(data?.models?.coaching, DEFAULT_CONFIG.models.coaching),
-                        automaticTransaction: sanitizeModel(data?.models?.automaticTransaction, DEFAULT_CONFIG.models.automaticTransaction),
-                        weeklyMissions: sanitizeModel(data?.models?.weeklyMissions, DEFAULT_CONFIG.models.weeklyMissions),
-                        goalFeasibility: sanitizeModel(data?.models?.goalFeasibility, DEFAULT_CONFIG.models.goalFeasibility),
-                        categoryGroups: sanitizeModel(data?.models?.categoryGroups, DEFAULT_CONFIG.models.categoryGroups),
-                        planning503020: sanitizeModel(data?.models?.planning503020, DEFAULT_CONFIG.models.planning503020),
+                        goals: this.sanitizeModel(data?.models?.goals, DEFAULT_CONFIG.models.goals),
+                        document: this.sanitizeModel(data?.models?.document, DEFAULT_CONFIG.models.document),
+                        coaching: this.sanitizeModel(data?.models?.coaching, DEFAULT_CONFIG.models.coaching),
+                        automaticTransaction: this.sanitizeModel(data?.models?.automaticTransaction, DEFAULT_CONFIG.models.automaticTransaction),
+                        weeklyMissions: this.sanitizeModel(data?.models?.weeklyMissions, DEFAULT_CONFIG.models.weeklyMissions),
+                        goalFeasibility: this.sanitizeModel(data?.models?.goalFeasibility, DEFAULT_CONFIG.models.goalFeasibility),
+                        categoryGroups: this.sanitizeModel(data?.models?.categoryGroups, DEFAULT_CONFIG.models.categoryGroups),
+                        planning503020: this.sanitizeModel(data?.models?.planning503020, DEFAULT_CONFIG.models.planning503020),
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -505,17 +828,20 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const text = await this.generateWithLogging(
             workspaceId,
             "planning_analysis",
-            { model: config.models.goals },
+            {
+                model: config.models.goals,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: GOAL_SUGGESTIONS_RESPONSE_SCHEMA,
+                },
+            },
             prompt,
             prompt,
         );
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-
-        return { goals: [], plannings: [] };
+        // Resposta ilegível vira {goals: [], plannings: []} — o onboarding
+        // segue sem sugestão em vez de quebrar.
+        return validateGoalSuggestions(parseAIJsonSafe(text));
     }
 
     async enrichAutomaticTransaction(
@@ -539,17 +865,25 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const text = await this.generateWithLogging(
             workspaceId,
             "automatic_transaction_enrichment",
-            { model: config.models.automaticTransaction },
+            {
+                model: config.models.automaticTransaction,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: AUTOMATIC_TRANSACTION_RESPONSE_SCHEMA,
+                },
+            },
             prompt,
             prompt,
         );
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-
-        return null;
+        // Único prompt que recebe IDS no contexto: o resultado é gravado em
+        // categoryId/accountId da transação, então um id inventado apontaria
+        // para nada. O validador só aceita id que veio no prompt.
+        return validateAutomaticTransaction(
+            parseAIJsonSafe(text),
+            toIdSet(existingCategories),
+            toIdSet(existingAccounts),
+        );
     }
 
     async analyzeAccountDocument(
@@ -562,16 +896,19 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     ): Promise<any> {
         const config = await this.getConfig();
 
-        let resultData: any;
+        let analysis: ValidatedDocumentAnalysis;
+        // Conta lida do próprio OFX (não da IA): nome, tipo e saldo vêm do
+        // arquivo, que é estruturado e confiável.
+        let ofxAccount: any = null;
 
         if (fileName.toLowerCase().endsWith(".ofx")) {
             const ofxString = fileBuffer.toString("utf-8");
             const parsedOfx = await ofx.parse(ofxString);
-            
+
             const extractionResult = this.extractOfxData(parsedOfx);
             const transactions = extractionResult.transactions;
-            const accountInfo = extractionResult.account;
-            
+            ofxAccount = extractionResult.account;
+
             // Usar IA apenas para classificação das transações identificadas
             const prompt = renderTemplate(config.prompts.documentOfx, {
                 existingCategories: existingCategories.join(" | "),
@@ -581,18 +918,22 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const text = await this.generateWithLogging(
                 workspaceId,
                 "document_analysis_ofx",
-                { model: config.models.document },
+                {
+                    model: config.models.document,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: DOCUMENT_OFX_RESPONSE_SCHEMA,
+                    },
+                },
                 prompt,
                 prompt,
                 { fileName, storagePath },
             );
 
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            resultData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-            resultData = {
-                account: accountInfo,
-                orders: resultData.orders,
+            analysis = {
+                error: null,
+                account: null,
+                orders: validateOfxClassification(parseAIJsonSafe(text)).orders,
             };
         }
         else {
@@ -602,70 +943,63 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 existingCategories: existingCategories.join(" | "),
             });
 
-            const text = await this.generateWithLogging(
-                workspaceId,
-                isImage ? "document_analysis_image" : "document_analysis_pdf",
-                { model: config.models.document },
-                [
-                    prompt,
+            const document = await this.buildDocumentPart(fileBuffer, mimeType, fileName);
+            let text: string;
+            try {
+                text = await this.generateWithLogging(
+                    workspaceId,
+                    isImage ? "document_analysis_image" : "document_analysis_pdf",
                     {
-                        inlineData: {
-                            data: fileBuffer.toString("base64"),
-                            mimeType: mimeType,
+                        model: config.models.document,
+                        config: {
+                            responseMimeType: "application/json",
+                            responseSchema: DOCUMENT_RESPONSE_SCHEMA,
                         },
                     },
-                ],
-                prompt,
-                { fileName, storagePath },
-            );
+                    [prompt, document.part],
+                    prompt,
+                    { fileName, storagePath },
+                );
+            }
+            finally {
+                await document.cleanup();
+            }
 
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            resultData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            analysis = validateDocumentAnalysis(parseAIJsonSafe(text));
         }
 
-        if (resultData && resultData.error) {
-            throw new Error(resultData.error);
+        // Recusa explícita do modelo ("não é um extrato/fatura válido").
+        if (analysis.error) {
+            throw new Error(analysis.error);
         }
 
-        if (resultData) {
-            return {
-                account: {
-                    id: "temp-id",
-                    name: resultData.account?.name || fileName.split(".")[0],
-                    runtimeType: resultData.account?.runtimeType || "checking",
-                    color: resultData.account?.color || "#4A8C9C",
-                    icon: resultData.account?.icon || "account_balance",
-                    initialBalance: resultData.account?.currentBalance || 0.0,
-                    initialBalanceDate: new Date().toISOString().split("T")[0],
-                    metadata: {},
-                    limit: resultData.account?.limit,
-                    dueDay: resultData.account?.dueDay,
-                    closingDay: resultData.account?.closingDay,
-                    interestRate: resultData.account?.interestRate,
-                },
-                orders: (resultData.orders || []).map((o: any) => ({
-                    ...o,
-                    id: admin.firestore().collection("temp").doc().id,
-                    status: OrderStatus.active,
-                    installmentType: o.installmentType || InstallmentType.single,
-                    startMonth: o.dueDate ? o.dueDate.substring(0, 7) : new Date().toISOString().substring(0, 7),
-                    dueDay: o.dueDate ? parseInt(o.dueDate.substring(8, 10)) : new Date().getDate(),
-                })),
-            };
-        }
+        const account = ofxAccount ?? analysis.account ?? {};
 
         return {
             account: {
                 id: "temp-id",
-                name: fileName.split(".")[0],
-                runtimeType: "checking",
-                color: "#4A8C9C",
-                icon: "account_balance",
-                initialBalance: 0.0,
+                name: account.name || fileName.split(".")[0],
+                runtimeType: account.runtimeType || "checking",
+                color: account.color || "#4A8C9C",
+                icon: account.icon || "account_balance",
+                initialBalance: account.currentBalance || 0.0,
                 initialBalanceDate: new Date().toISOString().split("T")[0],
                 metadata: {},
+                limit: account.limit,
+                dueDay: account.dueDay,
+                closingDay: account.closingDay,
+                interestRate: account.interestRate,
             },
-            orders: [],
+            // Toda order aqui já passou pelo validador: dueDate é YYYY-MM-DD
+            // válido e amount é positivo e finito.
+            orders: analysis.orders.map((o) => ({
+                ...o,
+                id: admin.firestore().collection("temp").doc().id,
+                status: OrderStatus.active,
+                installmentType: o.installmentType || InstallmentType.single,
+                startMonth: o.dueDate.substring(0, 7),
+                dueDay: parseInt(o.dueDate.substring(8, 10)),
+            })),
         };
     }
 
@@ -698,55 +1032,54 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             text = await this.generateWithLogging(
                 workspaceId,
                 "reconciliation_analysis_ofx",
-                { model: config.models.document },
+                {
+                    model: config.models.document,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: DOCUMENT_OFX_RESPONSE_SCHEMA,
+                    },
+                },
                 prompt,
                 prompt,
                 { fileName },
             );
         }
         else {
-            text = await this.generateWithLogging(
-                workspaceId,
-                "reconciliation_analysis",
-                { model: config.models.document },
-                [
-                    prompt,
+            const document = await this.buildDocumentPart(fileBuffer, mimeType, fileName);
+            try {
+                text = await this.generateWithLogging(
+                    workspaceId,
+                    "reconciliation_analysis",
                     {
-                        inlineData: {
-                            data: fileBuffer.toString("base64"),
-                            mimeType: mimeType,
+                        model: config.models.document,
+                        config: {
+                            responseMimeType: "application/json",
+                            responseSchema: RECONCILIATION_RESPONSE_SCHEMA,
                         },
                     },
-                ],
-                prompt,
-                { fileName },
-            );
+                    [prompt, document.part],
+                    prompt,
+                    { fileName },
+                );
+            }
+            finally {
+                await document.cleanup();
+            }
         }
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
+        const parsed = parseAIJsonSafe(text);
+        if (parsed === null) {
             throw new Error("Não foi possível extrair JSON da resposta da IA");
         }
 
-        const data = JSON.parse(jsonMatch[0]);
-
-        if (data.error) {
-            return data;
+        // No fluxo de OFX o prompt é o de classificação (chaves `orders`); o
+        // validador de conciliação já aceita esse alias.
+        const validated = validateReconciliation(parsed);
+        if (validated.error) {
+            return { error: validated.error };
         }
 
-        // Tentar encontrar transações em diferentes campos possíveis do JSON
-        const transactionsRaw = data.transactions || data.orders || data.items || [];
-        const transactions = Array.isArray(transactionsRaw) ? transactionsRaw : [];
-
-        return {
-            transactions: transactions.map((t: any) => ({
-                description: t.description || t.memo || t.text || "Sem descrição",
-                amount: t.amount !== undefined ? t.amount : (t.value !== undefined ? t.value : (t.total !== undefined ? t.total : 0)),
-                date: t.date || t.dueDate || t.timestamp || new Date().toISOString(),
-                type: t.type || (t.amount < 0 ? "expense" : "income"),
-                category: t.category,
-            })),
-        };
+        return { transactions: validated.transactions };
     }
 
     async generateCoachingSlides(
@@ -772,7 +1105,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "coaching_analysis",
             {
                 model: config.models.coaching,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: COACHING_RESPONSE_SCHEMA,
                 },
@@ -809,17 +1142,25 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const text = await this.generateWithLogging(
             workspaceId,
             "weekly_missions_generation",
-            { model: config.models.weeklyMissions },
+            {
+                model: config.models.weeklyMissions,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: WEEKLY_MISSIONS_RESPONSE_SCHEMA,
+                },
+            },
             prompt,
             prompt,
         );
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+        const parsed = parseAIJsonSafe(text);
+        if (parsed === null) {
+            throw new Error("Não foi possível gerar as missões semanais via IA.");
         }
 
-        throw new Error("Não foi possível gerar as missões semanais via IA.");
+        // Missão inválida vira null; o GamificationService cai no texto padrão
+        // daquele tipo, então a semana nunca fica sem missão.
+        return validateWeeklyMissions(parsed);
     }
 
     async classifyCategoryGroups(
@@ -839,7 +1180,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "category_group_classification",
             {
                 model: config.models.categoryGroups,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: CATEGORY_GROUPS_RESPONSE_SCHEMA,
                     temperature: 0,
@@ -874,7 +1215,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "planning_503020_ideal_analysis",
             {
                 model: config.models.planning503020,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: PLANNING_503020_RESPONSE_SCHEMA,
                 },
@@ -909,7 +1250,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "goal_feasibility_analysis",
             {
                 model: config.models.goalFeasibility,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: GOAL_FEASIBILITY_RESPONSE_SCHEMA,
                 },

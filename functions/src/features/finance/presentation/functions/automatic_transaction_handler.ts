@@ -61,8 +61,13 @@ export async function enrichAutomaticTransaction(
         const updateData: any = {};
 
         if (result.category) {
-            updateData.suggestedCategory = result.category;
-            if (result.category.id && !result.category.id.startsWith("id-existente")) {
+            // O validador (F5.2) já garante que `id` é ou um id REAL do
+            // workspace ou null — o placeholder "id-existente-se-houver" do
+            // prompt e qualquer id inventado não chegam mais aqui.
+            // `suggestedCategory` é lido pelo cliente como CategoryModel, cujo
+            // `id` é String não-nula: categoria nova vai com id vazio.
+            updateData.suggestedCategory = { ...result.category, id: result.category.id ?? "" };
+            if (result.category.id) {
                 updateData.categoryId = result.category.id;
             }
         }

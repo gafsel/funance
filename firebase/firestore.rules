@@ -291,6 +291,15 @@ service cloud.firestore {
         allow read, write: if false;
       }
 
+      // Cache de resposta de IA por hash da entrada (F5.6):
+      // workspaces/{id}/ai_cache/{functionName}_{sha256}. O payload é a
+      // resposta já validada, gravada e lida só pelas Cloud Functions.
+      // Leitura negada ao cliente: ele consome a resposta pela callable, e
+      // poder escrever aqui seria envenenar a análise de outro membro.
+      match /ai_cache/{cacheId} {
+        allow read, write: if false;
+      }
+
       // Quotas de IA: contadores diários de uso das funções de IA
       // (workspaces/{id}/quotas/{YYYY-MM-DD}), escritos exclusivamente pelas
       // Cloud Functions (Admin SDK). O membro pode ler para exibir o consumo,

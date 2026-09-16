@@ -283,6 +283,9 @@ export const monthlyGamificationCron = onSchedule(
         // Todo dia 1 às 03:00, horário de São Paulo — avalia o mês anterior.
         schedule: "0 3 1 * *",
         timeZone: GAMIFICATION_TIME_ZONE,
+        // Varre todos os workspaces igual ao semanal: herdar o padrão global
+        // de 60s deixava a varredura morrer no meio do primeiro minuto.
+        ...AI_SCHEDULE_OPTIONS,
     },
     async () => {
         logger.info("[monthlyGamificationCron] Starting monthly gamification cron.");
