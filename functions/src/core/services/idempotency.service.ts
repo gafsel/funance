@@ -80,9 +80,12 @@ export class IdempotencyServiceImpl implements IIdempotencyService {
      *  2. roda a ação;
      *  3. `update({status: "done"})`.
      *
-     * Se a ação lançar, o marcador é APAGADO e o erro é repropagado: assim o
-     * retry automático da Function reexecuta de verdade (com o marcador
-     * `done`/`running` preso, a ação nunca mais rodaria).
+     * Se a ação lançar, o marcador é APAGADO e o erro é repropagado. Isso NÃO
+     * significa que a plataforma vai tentar de novo: nenhum trigger deste
+     * projeto declara `retry: true`, então hoje uma falha só é reexecutada se o
+     * evento for reentregue (a entrega é at-least-once) — ou se o retry for
+     * ligado no futuro. Apagar o marcador é o que mantém essa porta aberta:
+     * preso em `running`/`done`, a ação nunca mais rodaria para aquele evento.
      */
     async runIdempotency<T>(
         eventId: string,
@@ -109,8 +112,9 @@ export class IdempotencyServiceImpl implements IIdempotencyService {
             return result;
         }
         catch (error) {
-            // O marcador não pode sobreviver a uma falha: sem apagá-lo, o
-            // retry da Function encontraria a chave e pularia a ação.
+            // O marcador não pode sobreviver a uma falha: preso na coleção, ele
+            // faria qualquer reentrega (ou um retry futuro, se ativado) pular a
+            // ação que nunca chegou a completar.
             try {
                 await docRef.delete();
             }
