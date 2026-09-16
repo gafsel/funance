@@ -425,6 +425,15 @@ mês. Contar meio mês exigiria exatamente a varredura que estamos evitando.
 Períodos acima de 120 meses são truncados nos meses mais recentes, com aviso no
 log.
 
+**Como os saldos são lidos.** `orderBy(documentId(), "desc")` e
+`limitToLast(1)` são recusados pelo Firestore com
+`FAILED_PRECONDITION: Firestore does not support descending key scans`. A
+leitura usa o mesmo caminho duplo do repositório de finanças: query indexada
+por `dateKey` descendente (uma leitura numa base migrada) e varredura
+ASCENDENTE por id no intervalo aberto `(candidato, limite]`, que recupera os
+documentos legados sem `dateKey`. Enquanto a migração de `dateKey` não rodar,
+é a varredura que responde.
+
 **`payDebt` e o sinal do saldo.** O saldo de uma conta de dívida é **negativo**
 (é o que o app assume, ver `goal_form_provider.dart`), e amortizar aproxima o
 saldo de zero. Daí `amortizado = saldoAtual − saldoNoStartDate`, que é a mesma

@@ -30,6 +30,7 @@ import { CategoryModel, CategoryType } from "../../features/workspace/domain/mod
 const WORKSPACE_ID = `ws-goals-${Date.now()}`;
 const CATEGORY_ID = "cat-mercado";
 const DEBT_ACCOUNT_ID = "acc-emprestimo";
+const MIGRATED_ACCOUNT_ID = "acc-emprestimo-migrado";
 
 const CATEGORY: CategoryModel = {
     id: CATEGORY_ID,
@@ -113,6 +114,16 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         await balances.doc("2025-12-20").set({ balance: -5000, updatedAt: new Date() });
         await balances.doc("2026-01-05").set({ balance: -4500, updatedAt: new Date() });
         await balances.doc("2026-02-10").set({ balance: -3800, updatedAt: new Date() });
+
+        // Conta com os saldos já no formato novo (campo `dateKey` indexado) e
+        // um documento legado no meio, sem o campo: é o estado de uma base
+        // parcialmente migrada, onde a query indexada sozinha responderia
+        // errado.
+        const migrated = firestore
+            .collection(`workspaces/${WORKSPACE_ID}/accounts/${MIGRATED_ACCOUNT_ID}/balance`);
+        await migrated.doc("2026-01-10").set({ balance: -2000, dateKey: "2026-01-10", updatedAt: new Date() });
+        await migrated.doc("2026-02-01").set({ balance: -1500, dateKey: "2026-02-01", updatedAt: new Date() });
+        await migrated.doc("2026-03-01").set({ balance: -900, updatedAt: new Date() });
     });
 
     afterAll(async () => {
@@ -219,6 +230,18 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         );
         expect(balances.startBalance).toBeNull();
         expect(balances.currentBalance).toBe(-3800);
+    });
+
+    it("getBalancesForGoal enxerga o legado sem `dateKey` numa base parcialmente migrada", async () => {
+        const balances = await repository.getBalancesForGoal(
+            WORKSPACE_ID,
+            MIGRATED_ACCOUNT_ID,
+            new Date("2026-02-15T00:00:00.000Z")
+        );
+        // Início: o doc de 2026-02-01 (indexado). Atual: o de 2026-03-01, que
+        // NÃO tem `dateKey` — a query indexada pararia no de fevereiro.
+        expect(balances.startBalance).toBe(-1500);
+        expect(balances.currentBalance).toBe(-900);
     });
 
     it("getBalancesForGoal devolve os dois saldos nulos numa conta sem saldo", async () => {

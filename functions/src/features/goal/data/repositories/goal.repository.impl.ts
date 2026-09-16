@@ -8,6 +8,9 @@ const MAX_SUMMARY_DOCS_PER_BATCH = 100;
 /** Página da varredura de saldos diários. */
 const BALANCE_PAGE_SIZE = 500;
 
+/** Limite superior que casa com qualquer id `YYYY-MM-DD` — "o saldo mais recente". */
+const MAX_DATE_KEY = "9999-12-31";
+
 export class GoalRepositoryImpl implements IGoalRepository {
     private db = admin.firestore();
 
@@ -106,64 +109,95 @@ export class GoalRepositoryImpl implements IGoalRepository {
     }
 
     /**
-     * Saldos de início e atuais numa varredura ASCENDENTE única.
+     * Saldo no início da meta e saldo atual, numa chamada só.
      *
-     * Por que não `orderBy(documentId(), "desc")` nem `limitToLast(1)`: o
-     * Firestore responde `FAILED_PRECONDITION: Firestore does not support
-     * descending key scans` às duas formas (a segunda é implementada como uma
-     * varredura descendente). A saída é percorrer para a frente e ficar com o
-     * último documento visto — como os ids são `YYYY-MM-DD`, a ordem
-     * lexicográfica é a cronológica.
+     * Duas coisas que esta consulta NÃO pode fazer:
      *
-     * Custo: uma leitura por dia de movimento da conta, e só para metas
-     * `payDebt`. `select("balance")` mantém o payload mínimo. Por isso a
-     * varredura resolve os DOIS saldos de uma vez, em vez de uma consulta para
-     * cada.
+     * - `orderBy(documentId(), "desc")` e `limitToLast(1)`: o Firestore recusa
+     *   as duas com `FAILED_PRECONDITION: Firestore does not support descending
+     *   key scans` (a segunda é implementada como varredura descendente).
+     * - confiar só no campo `dateKey`: ele é recente e os documentos legados
+     *   não o têm, então a query indexada simplesmente não casa com eles.
+     *
+     * Daí o caminho duplo, o mesmo que o repositório de finanças usa: a query
+     * indexada por `dateKey` descendente responde em uma leitura numa base já
+     * migrada, e uma varredura ASCENDENTE por id no intervalo aberto
+     * `(candidato, limite]` recupera qualquer documento legado mais novo que o
+     * candidato. Numa base migrada esse intervalo é vazio; numa base legada ele
+     * paga o preço da varredura até a migração de `dateKey` rodar — e é o único
+     * caminho hoje, porque nada nesta base grava `dateKey` ainda.
      */
     async getBalancesForGoal(
         workspaceId: string,
         accountId: string,
         startDate: Date
     ): Promise<GoalBalances> {
-        const startKey = toDateKey(startDate);
         const collection = this.balanceCollection(workspaceId, accountId);
 
-        let startBalance: number | null = null;
-        let currentBalance: number | null = null;
-        let cursor: admin.firestore.QueryDocumentSnapshot | undefined;
+        const [startBalance, currentBalance] = await Promise.all([
+            this.lastBalanceUpTo(collection, toDateKey(startDate)),
+            this.lastBalanceUpTo(collection, MAX_DATE_KEY),
+        ]);
+
+        return { startBalance, currentBalance };
+    }
+
+    /** Saldo do último documento com id/`dateKey` <= `limitKey`. */
+    private async lastBalanceUpTo(
+        collection: admin.firestore.CollectionReference,
+        limitKey: string
+    ): Promise<number | null> {
+        const indexed = await collection
+            .where("dateKey", "<=", limitKey)
+            .orderBy("dateKey", "desc")
+            .limit(1)
+            .get();
+
+        const candidate = indexed.empty ? null : indexed.docs[0];
+        const legacy = await this.lastLegacyBalanceDoc(
+            collection,
+            candidate?.id ?? null,
+            limitKey
+        );
+
+        const chosen = legacy ?? candidate;
+        if (!chosen) return null;
+
+        const value = Number(chosen.data()?.balance ?? 0);
+        return Number.isFinite(value) ? value : null;
+    }
+
+    /** Último documento por id no intervalo `(after, upTo]`, varrendo ascendente. */
+    private async lastLegacyBalanceDoc(
+        collection: admin.firestore.CollectionReference,
+        after: string | null,
+        upTo: string
+    ): Promise<admin.firestore.QueryDocumentSnapshot | null> {
+        const id = admin.firestore.FieldPath.documentId();
+        let last: admin.firestore.QueryDocumentSnapshot | null = null;
+        let cursor: admin.firestore.QueryDocumentSnapshot | null = null;
 
         for (;;) {
-            let query = collection
-                .orderBy(admin.firestore.FieldPath.documentId())
-                .select("balance")
-                .limit(BALANCE_PAGE_SIZE);
+            let query: admin.firestore.Query = collection.where(id, "<=", upTo);
+            if (after !== null) {
+                query = query.where(id, ">", after);
+            }
+            query = query.orderBy(id).select("balance").limit(BALANCE_PAGE_SIZE);
             if (cursor) {
                 query = query.startAfter(cursor);
             }
 
             const snapshot = await query.get();
             if (snapshot.empty) {
-                break;
+                return last;
             }
 
-            for (const doc of snapshot.docs) {
-                const value = Number(doc.data()?.balance ?? 0);
-                if (!Number.isFinite(value)) {
-                    continue;
-                }
-                if (doc.id <= startKey) {
-                    startBalance = value;
-                }
-                currentBalance = value;
-            }
-
+            last = snapshot.docs[snapshot.size - 1];
             if (snapshot.size < BALANCE_PAGE_SIZE) {
-                break;
+                return last;
             }
-            cursor = snapshot.docs[snapshot.docs.length - 1];
+            cursor = last;
         }
-
-        return { startBalance, currentBalance };
     }
 
     async getPaidInstallmentsByAccountSince(
