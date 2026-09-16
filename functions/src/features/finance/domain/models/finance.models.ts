@@ -35,6 +35,10 @@ export interface OrderModel {
     accountIds: string[];
     category?: CategoryModel;
     isInvoice?: boolean;
+    /** Só em order de FATURA — ver `INVOICE_CYCLE_FIELDS`. */
+    cycleStart?: Date;
+    cycleEnd?: Date;
+    closingDate?: Date;
 }
 
 export enum InstallmentStatus {
@@ -71,7 +75,29 @@ export interface InstallmentModel {
     referenceDate: Date;
     referenceAmount: number;
     isInvoice?: boolean;
+    /** Só em parcela de FATURA — ver `INVOICE_CYCLE_FIELDS`. */
+    cycleStart?: Date;
+    cycleEnd?: Date;
+    closingDate?: Date;
 }
+
+/**
+ * F1.8 — a janela do ciclo fica GRAVADA na order e na parcela de fatura.
+ *
+ * Sem isso, a tela de detalhe teria de recalcular o ciclo a partir do
+ * vencimento e do dia de fechamento da conta — que é exatamente a regra
+ * duplicada (e divergente) que este pacote eliminou. Uma fatura ANTIGA, aberta
+ * pelo histórico, também não tem de onde tirar a janela: `nextInvoice` fala só
+ * da próxima.
+ *
+ * Gravar a janela tem um segundo efeito, desejado: ela fica CONGELADA no que
+ * valia quando a fatura foi criada. Mudar o dia de fechamento do cartão hoje
+ * não reescreve o que uma fatura de três meses atrás continha.
+ *
+ * Escritos apenas pelo servidor; o cliente não os envia (`includeToJson: false`
+ * no modelo Dart).
+ */
+export const INVOICE_CYCLE_FIELDS = ["cycleStart", "cycleEnd", "closingDate"] as const;
 
 /**
  * Campos derivados/técnicos da parcela: escritos pelo PRÓPRIO servidor em

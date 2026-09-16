@@ -19,6 +19,8 @@ interface FakeInvoice {
     dueDate: Date;
     orderId: string;
     status?: string;
+    /** Fatura já migrada: a janela do ciclo não é reescrita. */
+    hasCycle?: boolean;
 }
 
 /**
@@ -84,33 +86,49 @@ function createFakeFirestore(
                             };
                         }
 
+                        if (sub === "orders") {
+                            return { doc: (orderId: string) => ({ __id: `order:${orderId}` }) };
+                        }
+
                         if (sub === "installments") {
+                            // Duas consultas usam esta coleção: a das faturas do
+                            // cartão (sem filtro de status, para a janela do
+                            // ciclo) e a da PRÓXIMA fatura em aberto.
                             let accountId = "";
+                            let onlyPending = false;
+
+                            const toDoc = (found: FakeInvoice) => ({
+                                id: found.id,
+                                ref: { __id: found.id },
+                                data: () => ({
+                                    amount: found.amount,
+                                    orderId: found.orderId,
+                                    status: found.status ?? "pending",
+                                    dueDate: { toDate: () => found.dueDate },
+                                    ...(found.hasCycle
+                                        ? { cycleStart: { toDate: () => found.dueDate }, cycleEnd: { toDate: () => found.dueDate } }
+                                        : {}),
+                                }),
+                            });
+
                             const query: any = {
                                 where(field: string, _op: string, value: any) {
                                     if (field === "accountIds") accountId = value;
+                                    if (field === "status") onlyPending = true;
                                     return query;
                                 },
                                 orderBy: () => query,
                                 limit: () => query,
                                 async get() {
-                                    const found = (workspace.invoices ?? [])
+                                    const matches = (workspace.invoices ?? [])
                                         .filter((i) => i.accountId === accountId)
-                                        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[0];
+                                        .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 
-                                    if (!found) return { docs: [] };
+                                    const docs = onlyPending
+                                        ? matches.slice(0, 1)
+                                        : matches;
 
-                                    return {
-                                        docs: [{
-                                            id: found.id,
-                                            data: () => ({
-                                                amount: found.amount,
-                                                orderId: found.orderId,
-                                                status: found.status ?? "pending",
-                                                dueDate: { toDate: () => found.dueDate },
-                                            }),
-                                        }],
-                                    };
+                                    return { docs: docs.map(toDoc) };
                                 },
                             };
                             return query;
@@ -127,6 +145,14 @@ function createFakeFirestore(
 }
 
 const silent = () => undefined;
+
+/** Só as escritas de `nextInvoice` (o backfill grava também a janela do ciclo). */
+const nextInvoiceWrites = (writes: Array<{ accountId: string; data: any }>) =>
+    writes.filter((w) => w.data.nextInvoice !== undefined);
+
+/** Só as escritas da janela do ciclo (parcela de fatura e a order dela). */
+const cycleWrites = (writes: Array<{ accountId: string; data: any }>) =>
+    writes.filter((w) => w.data.cycleStart !== undefined);
 
 const card = (id: string, extra: Record<string, any> = {}): FakeCard => ({
     id,
@@ -160,7 +186,7 @@ describe("backfill_next_invoice", () => {
         );
 
         expect(writes).toHaveLength(0);
-        expect(summary).toEqual({ workspaces: 1, cards: 1, filled: 1, skipped: 0, failed: 0 });
+        expect(summary).toEqual({ workspaces: 1, cards: 1, filled: 1, skipped: 0, cyclesFilled: 0, failed: 0 });
     });
 
     it("preenche a partir da fatura em aberto", async () => {
@@ -184,9 +210,9 @@ describe("backfill_next_invoice", () => {
         );
 
         expect(summary.filled).toBe(1);
-        expect(writes).toHaveLength(1);
+        expect(nextInvoiceWrites(writes)).toHaveLength(1);
 
-        const next = writes[0].data.nextInvoice;
+        const next = nextInvoiceWrites(writes)[0].data.nextInvoice;
         expect(next.amount).toBe(420.75);
         expect(next.installmentId).toBe("inst-1");
         expect(next.orderId).toBe("invoice-c1-2025-03-10");
@@ -201,7 +227,7 @@ describe("backfill_next_invoice", () => {
 
         await backfillNextInvoice(firestore, { dryRun: false, now: spNoon("2025-03-20") }, silent);
 
-        const next = writes[0].data.nextInvoice;
+        const next = nextInvoiceWrites(writes)[0].data.nextInvoice;
         expect(next.amount).toBe(0);
         expect(next.installmentId).toBeNull();
         expect(toDateKey(next.dueDate.toDate())).toBe("2025-04-10");
@@ -219,8 +245,8 @@ describe("backfill_next_invoice", () => {
             silent
         );
 
-        expect(summary).toEqual({ workspaces: 1, cards: 2, filled: 1, skipped: 1, failed: 0 });
-        expect(writes.map((w) => w.accountId)).toEqual(["c2"]);
+        expect(summary).toEqual({ workspaces: 1, cards: 2, filled: 1, skipped: 1, cyclesFilled: 0, failed: 0 });
+        expect(nextInvoiceWrites(writes).map((w) => w.accountId)).toEqual(["c2"]);
     });
 
     it("--force recalcula quem já tem o campo", async () => {
@@ -235,7 +261,7 @@ describe("backfill_next_invoice", () => {
         );
 
         expect(summary.skipped).toBe(0);
-        expect(writes.map((w) => w.accountId)).toEqual(["c1"]);
+        expect(nextInvoiceWrites(writes).map((w) => w.accountId)).toEqual(["c1"]);
     });
 
     it("respeita o escopo por workspace", async () => {
@@ -251,7 +277,7 @@ describe("backfill_next_invoice", () => {
         );
 
         expect(summary.workspaces).toBe(1);
-        expect(writes.map((w) => w.accountId)).toEqual(["c2"]);
+        expect(nextInvoiceWrites(writes).map((w) => w.accountId)).toEqual(["c2"]);
     });
 
     it("contabiliza falha de um workspace sem interromper os outros", async () => {
@@ -268,7 +294,7 @@ describe("backfill_next_invoice", () => {
 
         expect(summary.failed).toBe(1);
         expect(summary.filled).toBe(1);
-        expect(writes.map((w) => w.accountId)).toEqual(["c2"]);
+        expect(nextInvoiceWrites(writes).map((w) => w.accountId)).toEqual(["c2"]);
     });
 
     it("aplica o clamp de fechamento 31 em fevereiro", async () => {
@@ -287,8 +313,62 @@ describe("backfill_next_invoice", () => {
 
         await backfillNextInvoice(firestore, { dryRun: false, now: spNoon("2025-03-15") }, silent);
 
-        const next = writes[0].data.nextInvoice;
+        const next = nextInvoiceWrites(writes)[0].data.nextInvoice;
         expect(toDateKey(next.cycleStart.toDate())).toBe("2025-02-28");
         expect(toDateKey(next.closingDate.toDate())).toBe("2025-03-31");
+    });
+
+    it("preenche a janela do ciclo na parcela de fatura e na order dela", async () => {
+        const { firestore, writes } = createFakeFirestore({
+            w1: {
+                cards: [card("c1")],
+                invoices: [{
+                    id: "inst-1",
+                    accountId: "c1",
+                    amount: 90,
+                    dueDate: spNoon("2025-03-10"),
+                    orderId: "invoice-c1-2025-03-10",
+                }],
+            },
+        });
+
+        const summary = await backfillNextInvoice(
+            firestore,
+            { dryRun: false, now: spNoon("2025-02-20") },
+            silent
+        );
+
+        expect(summary.cyclesFilled).toBe(1);
+
+        const cycles = cycleWrites(writes);
+        expect(cycles.map((w) => w.accountId).sort())
+            .toEqual(["inst-1", "order:invoice-c1-2025-03-10"]);
+        expect(toDateKey(cycles[0].data.cycleStart.toDate())).toBe("2025-02-05");
+        expect(toDateKey(cycles[0].data.cycleEnd.toDate())).toBe("2025-03-04");
+    });
+
+    it("não reescreve a janela de uma fatura que já a tem", async () => {
+        const { firestore, writes } = createFakeFirestore({
+            w1: {
+                cards: [card("c1")],
+                invoices: [{
+                    id: "inst-1",
+                    accountId: "c1",
+                    amount: 90,
+                    dueDate: spNoon("2025-03-10"),
+                    orderId: "invoice-c1-2025-03-10",
+                    hasCycle: true,
+                }],
+            },
+        });
+
+        const summary = await backfillNextInvoice(
+            firestore,
+            { dryRun: false, now: spNoon("2025-02-20") },
+            silent
+        );
+
+        expect(summary.cyclesFilled).toBe(0);
+        expect(cycleWrites(writes)).toHaveLength(0);
     });
 });

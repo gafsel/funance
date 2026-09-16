@@ -8,6 +8,12 @@
  * cartão) ou o cron da madrugada o preencha. Este script antecipa isso para a
  * base inteira, de uma vez.
  *
+ * Ele preenche TAMBÉM a janela do ciclo (`cycleStart`/`cycleEnd`/`closingDate`)
+ * nas orders e parcelas de fatura já existentes. É o que a tela de detalhe usa
+ * para listar as compras de UMA fatura qualquer — inclusive uma antiga, aberta
+ * pelo histórico, de que `nextInvoice` não fala. Sem esse preenchimento, a
+ * fatura antiga abre com a lista vazia até ser tocada de novo.
+ *
  * Características:
  *  - IDEMPOTENTE: pula quem já tem `nextInvoice` (`--force` recalcula).
  *  - DRY-RUN POR PADRÃO: só escreve com `--apply` explícito.
@@ -37,7 +43,7 @@
  *   --apply              executa as escritas (sem ela, dry-run)
  *   --project=<id>       projectId do Firebase (default: GOOGLE_CLOUD_PROJECT)
  *   --workspace=<id>     limita a execução a um único workspace
- *   --force              recalcula também as contas que já têm `nextInvoice`
+ *   --force              recalcula também as contas e faturas que já têm os campos
  */
 
 import * as admin from "firebase-admin";
@@ -63,6 +69,8 @@ export interface BackfillSummary {
     filled: number;
     /** Contas que já tinham o campo e foram ignoradas. */
     skipped: number;
+    /** Faturas (order + parcela) que ganharam a janela do ciclo. */
+    cyclesFilled: number;
     /** Contas que falharam. */
     failed: number;
 }
@@ -76,7 +84,9 @@ export async function backfillNextInvoice(
     options: BackfillOptions,
     log: (message: string) => void = console.log
 ): Promise<BackfillSummary> {
-    const summary: BackfillSummary = { workspaces: 0, cards: 0, filled: 0, skipped: 0, failed: 0 };
+    const summary: BackfillSummary = {
+        workspaces: 0, cards: 0, filled: 0, skipped: 0, cyclesFilled: 0, failed: 0,
+    };
     const now = options.now ?? new Date();
 
     const workspaceIds: string[] = [];
@@ -128,6 +138,16 @@ export async function backfillNextInvoice(
             }
 
             try {
+                summary.cyclesFilled += await backfillInvoiceCycles(
+                    firestore,
+                    workspaceId,
+                    card.id,
+                    account,
+                    options,
+                    operations,
+                    log
+                );
+
                 const pending = await firestore
                     .collection("workspaces")
                     .doc(workspaceId)
@@ -189,18 +209,90 @@ export async function backfillNextInvoice(
                 await commitInChunks(firestore, operations);
             }
             catch (error) {
-                summary.failed += operations.length;
-                summary.filled -= operations.length;
-                log(`[backfill_next_invoice] ${workspaceId}: FALHOU ao gravar o lote — ${error}`);
+                // O lote é do workspace inteiro: uma falha aqui invalida tudo
+                // o que foi contado acima para ele. O relatório diz isso em vez
+                // de tentar reverter os contadores item a item.
+                summary.failed++;
+                log(
+                    `[backfill_next_invoice] ${workspaceId}: FALHOU ao gravar o lote de ` +
+                    `${operations.length} escrita(s) — ${error}. Os números deste workspace ` +
+                    "no resumo não valem; rode de novo."
+                );
             }
         }
     }
 
     log(
         `[backfill_next_invoice] Resumo: workspaces=${summary.workspaces}, cartões=${summary.cards}, ` +
-        `preenchidas=${summary.filled}, ignoradas=${summary.skipped}, falhas=${summary.failed}.`
+        `preenchidas=${summary.filled}, ignoradas=${summary.skipped}, ` +
+        `ciclos=${summary.cyclesFilled}, falhas=${summary.failed}.`
     );
     return summary;
+}
+
+/**
+ * Preenche `cycleStart`/`cycleEnd`/`closingDate` nas faturas do cartão que
+ * ainda não os têm (orders e parcelas criadas antes de F1.8).
+ *
+ * A janela é recalculada a partir do vencimento da própria fatura e da
+ * configuração ATUAL do cartão — é a melhor aproximação disponível: a
+ * configuração de quando a fatura nasceu não foi guardada em lugar nenhum. Daí
+ * em diante ela fica congelada, e este é o último recálculo.
+ */
+async function backfillInvoiceCycles(
+    firestore: admin.firestore.Firestore,
+    workspaceId: string,
+    accountId: string,
+    account: admin.firestore.DocumentData,
+    options: BackfillOptions,
+    operations: BatchOperation[],
+    log: (message: string) => void
+): Promise<number> {
+    const workspace = firestore.collection("workspaces").doc(workspaceId);
+
+    const invoices = await workspace
+        .collection("installments")
+        .where("isInvoice", "==", true)
+        .where("accountIds", "array-contains", accountId)
+        .get();
+
+    let filled = 0;
+
+    for (const doc of invoices.docs) {
+        const data = doc.data();
+        if (data.cycleStart && data.cycleEnd && !options.force) continue;
+
+        const dueDate: Date | null = data.dueDate?.toDate ? data.dueDate.toDate() : null;
+        if (!dueDate) continue;
+
+        const cycle = InvoiceService.calculateInvoiceCycleRange(dueDate, account as any);
+        const payload = {
+            cycleStart: admin.firestore.Timestamp.fromDate(cycle.start),
+            cycleEnd: admin.firestore.Timestamp.fromDate(cycle.end),
+            closingDate: admin.firestore.Timestamp.fromDate(cycle.closingDate),
+        };
+
+        filled++;
+        log(
+            `[backfill_next_invoice] ${workspaceId}/${accountId}: ` +
+            `${options.dryRun ? "GRAVARIA" : "gravando"} ciclo da fatura ${doc.id} ` +
+            `(${toDateKey(cycle.start)}..${toDateKey(cycle.end)}).`
+        );
+
+        if (options.dryRun) continue;
+
+        operations.push({ op: "set", ref: doc.ref, data: payload, options: { merge: true } });
+        if (typeof data.orderId === "string" && data.orderId.length > 0) {
+            operations.push({
+                op: "set",
+                ref: workspace.collection("orders").doc(data.orderId),
+                data: payload,
+                options: { merge: true },
+            });
+        }
+    }
+
+    return filled;
 }
 
 export function parseArgs(argv: string[]): BackfillOptions & { projectId?: string } {

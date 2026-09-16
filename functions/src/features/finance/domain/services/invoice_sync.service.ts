@@ -168,7 +168,19 @@ export class InvoiceSyncServiceImpl implements IInvoiceSyncService {
         const pending = await this.financeRepository.getNextPendingInvoice(workspaceId, accountId);
 
         const dueDate = pending?.dueDate ?? InvoiceService.resolveUpcomingDueDate(now, account);
-        const cycle = InvoiceService.calculateInvoiceCycleRange(dueDate, account);
+
+        // A janela GRAVADA na fatura tem precedência sobre a recalculada: ela é
+        // a que valia quando a fatura foi criada, e é a mesma que o app usa
+        // para listar as compras. Recalcular aqui faria o cabeçalho e a lista
+        // divergirem depois de uma mudança no dia de fechamento do cartão.
+        const computed = InvoiceService.calculateInvoiceCycleRange(dueDate, account);
+        const cycle = pending?.cycleStart && pending?.cycleEnd
+            ? {
+                start: pending.cycleStart,
+                end: pending.cycleEnd,
+                closingDate: pending.closingDate ?? computed.closingDate,
+            }
+            : computed;
 
         return {
             dueDate,

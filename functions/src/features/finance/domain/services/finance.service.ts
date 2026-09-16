@@ -295,6 +295,11 @@ export class FinanceService {
                 paidAmount: isPaid ? installmentAmount : undefined,
                 paidDate: paidDate,
                 isInvoice: after.isInvoice,
+                // Só a order de fatura carrega a janela do ciclo; ela desce
+                // para a parcela porque é ali que o app a lê (F1.8).
+                cycleStart: after.cycleStart,
+                cycleEnd: after.cycleEnd,
+                closingDate: after.closingDate,
             });
 
             lastDueDate = dueDate;

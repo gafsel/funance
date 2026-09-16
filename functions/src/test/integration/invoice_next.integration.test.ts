@@ -204,6 +204,14 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
         const invoice = await propagateInvoiceOrder(orderId, false);
         expect(invoice).not.toBeNull();
 
+        // A janela do ciclo fica GRAVADA na order e na parcela: é dela que a
+        // tela de detalhe lista as compras, inclusive de uma fatura antiga.
+        expect(toDateKey(invoiceOrder!.cycleStart!)).toBe("2025-02-05");
+        expect(toDateKey(invoiceOrder!.cycleEnd!)).toBe("2025-03-04");
+        expect(toDateKey(invoice!.cycleStart!)).toBe("2025-02-05");
+        expect(toDateKey(invoice!.cycleEnd!)).toBe("2025-03-04");
+        expect(toDateKey(invoice!.closingDate!)).toBe("2025-03-05");
+
         const next = await readNextInvoice();
         expect(next!.amount).toBeCloseTo(PURCHASE_AMOUNT, 2);
         expect(next!.installmentId).toBe(invoice!.id);

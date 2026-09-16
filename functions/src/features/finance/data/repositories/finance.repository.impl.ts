@@ -7,6 +7,7 @@ import {
     CategoryPlanningMarks,
     AccountModel,
     AccountBalanceModel,
+    INVOICE_CYCLE_FIELDS,
     NextInvoiceModel,
     PeriodSummaryUpdateModel,
     OrderStatus,
@@ -174,6 +175,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             id: doc.id,
             ...data,
             lastGeneratedDueDate: lastGeneratedDueDate,
+            ...toInvoiceCycle(data),
         } as OrderModel;
     }
 
@@ -385,6 +387,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 ...data,
                 dueDate: dueDate,
                 paidDate: paidDate,
+                ...toInvoiceCycle(data),
             } as InstallmentModel;
         });
     }
@@ -452,6 +455,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 dueDate: dueDate,
                 paidDate: paidDate,
                 referenceDate: referenceDate,
+                ...toInvoiceCycle(data),
             } as InstallmentModel;
         });
     }
@@ -805,6 +809,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             ...data,
             dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : new Date(data.dueDate),
             paidDate: data.paidDate?.toDate ? data.paidDate.toDate() : undefined,
+            ...toInvoiceCycle(data),
         } as InstallmentModel;
     }
 
@@ -1095,6 +1100,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const p = getZonedParts(dueDate);
         const monthKey = `${p.year}-${p.month.toString().padStart(2, "0")}`;
 
+        // A janela do ciclo vai GRAVADA na order (e daí para a parcela): é o
+        // que permite ao app listar as compras desta fatura sem recalcular a
+        // regra — inclusive de uma fatura antiga, aberta pelo histórico.
+        const cycle = InvoiceService.calculateInvoiceCycleRange(dueDate, account);
+
         const orderData = {
             amount: admin.firestore.FieldValue.increment(delta),
             dueDay: p.day,
@@ -1107,6 +1117,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             accountIds: [account.id],
             accounts: { [account.id]: "credit" },
             isInvoice: true,
+            cycleStart: admin.firestore.Timestamp.fromDate(cycle.start),
+            cycleEnd: admin.firestore.Timestamp.fromDate(cycle.end),
+            closingDate: admin.firestore.Timestamp.fromDate(cycle.closingDate),
         };
 
         await orderRef.set(orderData, { merge: true });
@@ -1273,6 +1286,21 @@ function toAccountModel(id: string, data: admin.firestore.DocumentData): Account
     }
 
     return account;
+}
+
+/**
+ * Janela do ciclo da fatura (`cycleStart`/`cycleEnd`/`closingDate`) como
+ * `Date`. Ausente em orders e parcelas anteriores a F1.8 — e em tudo que não é
+ * fatura —, por isso as chaves só entram quando existem: um `undefined`
+ * explícito sobrescreveria o spread anterior.
+ */
+function toInvoiceCycle(data: admin.firestore.DocumentData): Record<string, Date> {
+    const cycle: Record<string, Date> = {};
+    for (const field of INVOICE_CYCLE_FIELDS) {
+        const value = toDateOrNull(data[field]);
+        if (value) cycle[field] = value;
+    }
+    return cycle;
 }
 
 function toDateOrNull(value: any): Date | null {
