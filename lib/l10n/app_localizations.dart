@@ -1208,18 +1208,6 @@ abstract class AppLocalizations {
   /// **'Valor Alvo'**
   String get goalTargetAmountLabel;
 
-  /// No description provided for @goalCurrentAmountLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor Atual'**
-  String get goalCurrentAmountLabel;
-
-  /// No description provided for @goalStartDateLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Data de Início'**
-  String get goalStartDateLabel;
-
   /// No description provided for @goalDeadlineLabel.
   ///
   /// In pt, this message translates to:
@@ -1267,12 +1255,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Cartão de Crédito'**
   String get goalCreditCardLabel;
-
-  /// No description provided for @goalAverageSpendingLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Média de Gastos Mensal'**
-  String get goalAverageSpendingLabel;
 
   /// No description provided for @errorGoalNotFound.
   ///
@@ -3602,18 +3584,6 @@ abstract class AppLocalizations {
   /// **'Suas Insígnias'**
   String get yourBadgesLabel;
 
-  /// No description provided for @advancedBadgesLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conquistas Avançadas'**
-  String get advancedBadgesLabel;
-
-  /// No description provided for @simpleBadgesLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conquistas Simples'**
-  String get simpleBadgesLabel;
-
   /// No description provided for @badgeUnlockedLabel.
   ///
   /// In pt, this message translates to:
@@ -3643,210 +3613,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver Conquistas'**
   String get viewAchievementsButton;
-
-  /// No description provided for @badge_first_step_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Primeiro Passo'**
-  String get badge_first_step_name;
-
-  /// No description provided for @badge_first_step_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'O workspace é criado e o onboarding é concluído com sucesso.'**
-  String get badge_first_step_desc;
-
-  /// No description provided for @badge_first_account_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Primeira Conta'**
-  String get badge_first_account_name;
-
-  /// No description provided for @badge_first_account_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'A primeira conta bancária ou cartão é cadastrado no workspace.'**
-  String get badge_first_account_desc;
-
-  /// No description provided for @badge_first_transaction_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ponto de Partida'**
-  String get badge_first_transaction_name;
-
-  /// No description provided for @badge_first_transaction_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'A primeira transação real (installment) é registrada com status paid.'**
-  String get badge_first_transaction_desc;
-
-  /// No description provided for @badge_planner_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Planejador Estrategista'**
-  String get badge_planner_name;
-
-  /// No description provided for @badge_planner_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Limites de planejamento são criados para pelo menos 5 categorias.'**
-  String get badge_planner_desc;
-
-  /// No description provided for @badge_reconcile_junior_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conciliador Júnior'**
-  String get badge_reconcile_junior_name;
-
-  /// No description provided for @badge_reconcile_junior_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'A primeira conciliação bancária bem-sucedida é concluída (pelo menos 1 match confirmado).'**
-  String get badge_reconcile_junior_desc;
-
-  /// No description provided for @badge_cash_detective_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Detetive de Caixa'**
-  String get badge_cash_detective_name;
-
-  /// No description provided for @badge_cash_detective_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conciliação completa de um arquivo de extrato contendo pelo menos 10 transações.'**
-  String get badge_cash_detective_desc;
-
-  /// No description provided for @badge_reconcile_master_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mestre da Conciliação'**
-  String get badge_reconcile_master_name;
-
-  /// No description provided for @badge_reconcile_master_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'O workspace acumula 10 conciliações de extratos concluídas com sucesso.'**
-  String get badge_reconcile_master_desc;
-
-  /// No description provided for @badge_zero_friction_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Atrito Zero'**
-  String get badge_zero_friction_name;
-
-  /// No description provided for @badge_zero_friction_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conciliar um extrato mensal inteiro sem necessitar criar lançamentos manuais extras.'**
-  String get badge_zero_friction_desc;
-
-  /// No description provided for @badge_savings_seed_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Semente de Poupança'**
-  String get badge_savings_seed_name;
-
-  /// No description provided for @badge_savings_seed_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'A primeira meta (goal) cadastrada no workspace atinge 100% de progresso.'**
-  String get badge_savings_seed_desc;
-
-  /// No description provided for @badge_goal_bronze_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Colecionador de Metas'**
-  String get badge_goal_bronze_name;
-
-  /// No description provided for @badge_goal_bronze_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'O workspace conclui com sucesso 3 metas financeiras diferentes.'**
-  String get badge_goal_bronze_desc;
-
-  /// No description provided for @badge_goal_silver_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Foco Inabalável'**
-  String get badge_goal_silver_name;
-
-  /// No description provided for @badge_goal_silver_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'O workspace conclui com sucesso 5 metas financeiras diferentes.'**
-  String get badge_goal_silver_desc;
-
-  /// No description provided for @badge_under_control_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Tudo Sob Controle'**
-  String get badge_under_control_name;
-
-  /// No description provided for @badge_under_control_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fechar o mês sem estourar nenhuma categoria planejada na regra 50-30-20.'**
-  String get badge_under_control_desc;
-
-  /// No description provided for @badge_golden_rule_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Regra de Ouro'**
-  String get badge_golden_rule_name;
-
-  /// No description provided for @badge_golden_rule_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Alocar limites em todos os 3 pools (Essencial, Conforto, Investimento) no mesmo mês.'**
-  String get badge_golden_rule_desc;
-
-  /// No description provided for @badge_future_focus_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Visão de Futuro'**
-  String get badge_future_focus_name;
-
-  /// No description provided for @badge_future_focus_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Poupar e investir efetivamente pelo menos 20% das receitas totais do workspace no mês.'**
-  String get badge_future_focus_desc;
-
-  /// No description provided for @badge_cost_cutter_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Tesoura de Gastos'**
-  String get badge_cost_cutter_name;
-
-  /// No description provided for @badge_cost_cutter_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.'**
-  String get badge_cost_cutter_desc;
-
-  /// No description provided for @badge_united_front_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Equipe Unida'**
-  String get badge_united_front_name;
-
-  /// No description provided for @badge_united_front_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Workspace com 3 ou mais membros ativos adicionados e aceitos.'**
-  String get badge_united_front_desc;
-
-  /// No description provided for @badge_iron_consistency_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Consistência de Aço'**
-  String get badge_iron_consistency_name;
-
-  /// No description provided for @badge_iron_consistency_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir com sucesso as missões semanais por 4 semanas consecutivas.'**
-  String get badge_iron_consistency_desc;
 
   /// No description provided for @levelIndicatorSemantics.
   ///
@@ -3944,606 +3710,6 @@ abstract class AppLocalizations {
   /// **'Apenas no Sistema'**
   String get reconciliationStatusSystemOnly;
 
-  /// No description provided for @badge_first_category_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Organizador'**
-  String get badge_first_category_name;
-
-  /// No description provided for @badge_first_category_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar a primeira categoria personalizada no workspace.'**
-  String get badge_first_category_desc;
-
-  /// No description provided for @badge_first_planning_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Planejador Novato'**
-  String get badge_first_planning_name;
-
-  /// No description provided for @badge_first_planning_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar o primeiro planejamento de categoria com valor definido.'**
-  String get badge_first_planning_desc;
-
-  /// No description provided for @badge_first_goal_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sonhador'**
-  String get badge_first_goal_name;
-
-  /// No description provided for @badge_first_goal_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar a primeira meta financeira no workspace.'**
-  String get badge_first_goal_desc;
-
-  /// No description provided for @badge_first_invite_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Anfitrião'**
-  String get badge_first_invite_name;
-
-  /// No description provided for @badge_first_invite_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Convidar o primeiro membro para o workspace.'**
-  String get badge_first_invite_desc;
-
-  /// No description provided for @badge_profile_complete_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Perfil Completo'**
-  String get badge_profile_complete_name;
-
-  /// No description provided for @badge_profile_complete_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Definir nome e tipo do workspace.'**
-  String get badge_profile_complete_desc;
-
-  /// No description provided for @badge_first_income_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Receita Registrada'**
-  String get badge_first_income_name;
-
-  /// No description provided for @badge_first_income_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar a primeira receita paga no workspace.'**
-  String get badge_first_income_desc;
-
-  /// No description provided for @badge_first_expense_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Gasto Registrado'**
-  String get badge_first_expense_name;
-
-  /// No description provided for @badge_first_expense_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar o primeiro gasto pago no workspace.'**
-  String get badge_first_expense_desc;
-
-  /// No description provided for @badge_first_transfer_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Transferidor'**
-  String get badge_first_transfer_name;
-
-  /// No description provided for @badge_first_transfer_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar a primeira transferência entre contas.'**
-  String get badge_first_transfer_desc;
-
-  /// No description provided for @badge_workspace_named_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Identidade Própria'**
-  String get badge_workspace_named_name;
-
-  /// No description provided for @badge_workspace_named_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Dar um nome personalizado ao workspace.'**
-  String get badge_workspace_named_desc;
-
-  /// No description provided for @badge_first_month_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Primeiro Mês'**
-  String get badge_first_month_name;
-
-  /// No description provided for @badge_first_month_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ter pelo menos uma transação registrada em um mês completo.'**
-  String get badge_first_month_desc;
-
-  /// No description provided for @badge_five_transactions_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ativo!'**
-  String get badge_five_transactions_name;
-
-  /// No description provided for @badge_five_transactions_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar 5 transações pagas no total.'**
-  String get badge_five_transactions_desc;
-
-  /// No description provided for @badge_twenty_transactions_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Comprometido'**
-  String get badge_twenty_transactions_name;
-
-  /// No description provided for @badge_twenty_transactions_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar 20 transações pagas no total.'**
-  String get badge_twenty_transactions_desc;
-
-  /// No description provided for @badge_fifty_transactions_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Veterano'**
-  String get badge_fifty_transactions_name;
-
-  /// No description provided for @badge_fifty_transactions_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar 50 transações pagas no total.'**
-  String get badge_fifty_transactions_desc;
-
-  /// No description provided for @badge_hundred_transactions_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Centenário'**
-  String get badge_hundred_transactions_name;
-
-  /// No description provided for @badge_hundred_transactions_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar 100 transações pagas no total.'**
-  String get badge_hundred_transactions_desc;
-
-  /// No description provided for @badge_week_complete_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Semana Completa'**
-  String get badge_week_complete_name;
-
-  /// No description provided for @badge_week_complete_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar ao menos uma transação em 7 dias consecutivos.'**
-  String get badge_week_complete_desc;
-
-  /// No description provided for @badge_two_accounts_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Multi-Conta'**
-  String get badge_two_accounts_name;
-
-  /// No description provided for @badge_two_accounts_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cadastrar 2 contas no workspace.'**
-  String get badge_two_accounts_desc;
-
-  /// No description provided for @badge_three_accounts_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Gerenciador'**
-  String get badge_three_accounts_name;
-
-  /// No description provided for @badge_three_accounts_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cadastrar 3 contas no workspace.'**
-  String get badge_three_accounts_desc;
-
-  /// No description provided for @badge_five_accounts_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Portfólio'**
-  String get badge_five_accounts_name;
-
-  /// No description provided for @badge_five_accounts_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cadastrar 5 contas no workspace.'**
-  String get badge_five_accounts_desc;
-
-  /// No description provided for @badge_five_categories_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Categorizado'**
-  String get badge_five_categories_name;
-
-  /// No description provided for @badge_five_categories_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar ao menos 5 categorias.'**
-  String get badge_five_categories_desc;
-
-  /// No description provided for @badge_ten_categories_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mestre Categorizador'**
-  String get badge_ten_categories_name;
-
-  /// No description provided for @badge_ten_categories_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar ao menos 10 categorias.'**
-  String get badge_ten_categories_desc;
-
-  /// No description provided for @badge_round_number_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Número Redondo'**
-  String get badge_round_number_name;
-
-  /// No description provided for @badge_round_number_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar uma transação de valor exato sem centavos.'**
-  String get badge_round_number_desc;
-
-  /// No description provided for @badge_big_transaction_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Grande Negócio'**
-  String get badge_big_transaction_name;
-
-  /// No description provided for @badge_big_transaction_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar uma transação individual acima de R\$ 1.000.'**
-  String get badge_big_transaction_desc;
-
-  /// No description provided for @badge_small_transactions_ten_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Detalhe Minucioso'**
-  String get badge_small_transactions_ten_name;
-
-  /// No description provided for @badge_small_transactions_ten_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar 10 transações de valor inferior a R\$ 10.'**
-  String get badge_small_transactions_ten_desc;
-
-  /// No description provided for @badge_income_registered_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Bem Documentado'**
-  String get badge_income_registered_name;
-
-  /// No description provided for @badge_income_registered_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar ao menos uma receita no workspace.'**
-  String get badge_income_registered_desc;
-
-  /// No description provided for @badge_expense_under_income_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saldo Positivo'**
-  String get badge_expense_under_income_name;
-
-  /// No description provided for @badge_expense_under_income_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fechar o mês com despesas menores que as receitas.'**
-  String get badge_expense_under_income_desc;
-
-  /// No description provided for @badge_three_categories_month_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Diversificado'**
-  String get badge_three_categories_month_name;
-
-  /// No description provided for @badge_three_categories_month_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ter gastos em 3 categorias diferentes no mesmo mês.'**
-  String get badge_three_categories_month_desc;
-
-  /// No description provided for @badge_five_categories_month_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Abrangente'**
-  String get badge_five_categories_month_name;
-
-  /// No description provided for @badge_five_categories_month_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ter gastos em 5 categorias diferentes no mesmo mês.'**
-  String get badge_five_categories_month_desc;
-
-  /// No description provided for @badge_savings_10pct_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Poupador Iniciante'**
-  String get badge_savings_10pct_name;
-
-  /// No description provided for @badge_savings_10pct_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Poupar ao menos 10% da receita total no mês.'**
-  String get badge_savings_10pct_desc;
-
-  /// No description provided for @badge_savings_start_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Primeiro Centavo'**
-  String get badge_savings_start_name;
-
-  /// No description provided for @badge_savings_start_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fazer o primeiro depósito em qualquer meta financeira.'**
-  String get badge_savings_start_desc;
-
-  /// No description provided for @badge_no_credit_debt_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Livre de Juros'**
-  String get badge_no_credit_debt_name;
-
-  /// No description provided for @badge_no_credit_debt_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fechar o mês sem nenhuma fatura de crédito em aberto.'**
-  String get badge_no_credit_debt_desc;
-
-  /// No description provided for @badge_goal_halfway_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Na Metade do Caminho'**
-  String get badge_goal_halfway_name;
-
-  /// No description provided for @badge_goal_halfway_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Uma meta financeira atingir 50% do valor alvo.'**
-  String get badge_goal_halfway_desc;
-
-  /// No description provided for @badge_goal_75pct_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Quase Lá'**
-  String get badge_goal_75pct_name;
-
-  /// No description provided for @badge_goal_75pct_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Uma meta financeira atingir 75% do valor alvo.'**
-  String get badge_goal_75pct_desc;
-
-  /// No description provided for @badge_goal_under_deadline_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'No Prazo'**
-  String get badge_goal_under_deadline_name;
-
-  /// No description provided for @badge_goal_under_deadline_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir uma meta antes da data limite estabelecida.'**
-  String get badge_goal_under_deadline_desc;
-
-  /// No description provided for @badge_two_active_goals_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ambicioso'**
-  String get badge_two_active_goals_name;
-
-  /// No description provided for @badge_two_active_goals_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ter 2 metas ativas ao mesmo tempo.'**
-  String get badge_two_active_goals_desc;
-
-  /// No description provided for @badge_five_active_goals_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Multitarefas'**
-  String get badge_five_active_goals_name;
-
-  /// No description provided for @badge_five_active_goals_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ter 5 metas ativas ao mesmo tempo.'**
-  String get badge_five_active_goals_desc;
-
-  /// No description provided for @badge_long_term_goal_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Visão de Longo Prazo'**
-  String get badge_long_term_goal_name;
-
-  /// No description provided for @badge_long_term_goal_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar uma meta com prazo superior a 12 meses.'**
-  String get badge_long_term_goal_desc;
-
-  /// No description provided for @badge_short_term_goal_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sprint Financeiro'**
-  String get badge_short_term_goal_name;
-
-  /// No description provided for @badge_short_term_goal_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir uma meta em menos de 30 dias.'**
-  String get badge_short_term_goal_desc;
-
-  /// No description provided for @badge_goal_deposit_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Primeiro Depósito'**
-  String get badge_goal_deposit_name;
-
-  /// No description provided for @badge_goal_deposit_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fazer o primeiro depósito em uma meta financeira.'**
-  String get badge_goal_deposit_desc;
-
-  /// No description provided for @badge_goal_debt_paid_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Livre de Dívidas'**
-  String get badge_goal_debt_paid_name;
-
-  /// No description provided for @badge_goal_debt_paid_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir uma meta do tipo \'Quitar Dívida\'.'**
-  String get badge_goal_debt_paid_desc;
-
-  /// No description provided for @badge_goal_linked_account_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Meta Vinculada'**
-  String get badge_goal_linked_account_name;
-
-  /// No description provided for @badge_goal_linked_account_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar uma meta associada a uma conta bancária.'**
-  String get badge_goal_linked_account_desc;
-
-  /// No description provided for @badge_second_member_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Dupla!'**
-  String get badge_second_member_name;
-
-  /// No description provided for @badge_second_member_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Um segundo membro aceitar o convite para o workspace.'**
-  String get badge_second_member_desc;
-
-  /// No description provided for @badge_reconcile_second_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conciliador Frequente'**
-  String get badge_reconcile_second_name;
-
-  /// No description provided for @badge_reconcile_second_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir a segunda conciliação bancária.'**
-  String get badge_reconcile_second_desc;
-
-  /// No description provided for @badge_reconcile_five_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conciliador Hábil'**
-  String get badge_reconcile_five_name;
-
-  /// No description provided for @badge_reconcile_five_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir 5 conciliações bancárias ao total.'**
-  String get badge_reconcile_five_desc;
-
-  /// No description provided for @badge_mission_first_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Primeira Missão'**
-  String get badge_mission_first_name;
-
-  /// No description provided for @badge_mission_first_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Completar a primeira missão semanal.'**
-  String get badge_mission_first_desc;
-
-  /// No description provided for @badge_mission_three_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Triatleta Financeiro'**
-  String get badge_mission_three_name;
-
-  /// No description provided for @badge_mission_three_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Completar 3 missões semanais ao total.'**
-  String get badge_mission_three_desc;
-
-  /// No description provided for @badge_planning_month_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Planejamento do Mês'**
-  String get badge_planning_month_name;
-
-  /// No description provided for @badge_planning_month_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar planejamento para ao menos 5 categorias no mês.'**
-  String get badge_planning_month_desc;
-
-  /// No description provided for @badge_two_months_active_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Constante'**
-  String get badge_two_months_active_name;
-
-  /// No description provided for @badge_two_months_active_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registrar transações em 2 meses diferentes.'**
-  String get badge_two_months_active_desc;
-
-  /// No description provided for @badge_workspace_one_year_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Aniversário!'**
-  String get badge_workspace_one_year_name;
-
-  /// No description provided for @badge_workspace_one_year_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'O workspace completa 1 ano de existência.'**
-  String get badge_workspace_one_year_desc;
-
-  /// No description provided for @badge_invite_accepted_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Bem-vindo ao Time'**
-  String get badge_invite_accepted_name;
-
-  /// No description provided for @badge_invite_accepted_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Aceitar o convite para entrar em um workspace.'**
-  String get badge_invite_accepted_desc;
-
-  /// No description provided for @badge_all_missions_week_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Semana Perfeita'**
-  String get badge_all_missions_week_name;
-
-  /// No description provided for @badge_all_missions_week_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Completar todas as missões semanais disponíveis em uma semana.'**
-  String get badge_all_missions_week_desc;
-
   /// No description provided for @goalDebtTotalLabel.
   ///
   /// In pt, this message translates to:
@@ -4555,18 +3721,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Quanto você deve no total?'**
   String get goalDebtTotalHint;
-
-  /// No description provided for @goalDebtPaidLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor Já Pago'**
-  String get goalDebtPaidLabel;
-
-  /// No description provided for @goalDebtPaidHint.
-  ///
-  /// In pt, this message translates to:
-  /// **'Quanto você já amortizou?'**
-  String get goalDebtPaidHint;
 
   /// No description provided for @goalDebtAccountLabel.
   ///
@@ -4729,6 +3883,156 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Gerar nova análise'**
   String get planningAnalysisGenerateNew;
+
+  /// No description provided for @goalSpendingLimitLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Teto de Gastos'**
+  String get goalSpendingLimitLabel;
+
+  /// No description provided for @goalAmountSavedLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guardado'**
+  String get goalAmountSavedLabel;
+
+  /// No description provided for @goalAmountPaidLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quitado'**
+  String get goalAmountPaidLabel;
+
+  /// No description provided for @goalAmountSpentLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gasto'**
+  String get goalAmountSpentLabel;
+
+  /// No description provided for @goalCompletedAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Concluída em {date}'**
+  String goalCompletedAt(String date);
+
+  /// No description provided for @goalSpentOfLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} de {limit}'**
+  String goalSpentOfLimit(String amount, String limit);
+
+  /// No description provided for @goalRemainingLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda cabem {amount}'**
+  String goalRemainingLimit(String amount);
+
+  /// No description provided for @goalOverLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estourou {amount}'**
+  String goalOverLimit(String amount);
+
+  /// No description provided for @partyEmptyTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua equipe ainda não tem desafios'**
+  String get partyEmptyTitle;
+
+  /// No description provided for @partyEmptyMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cada limite de gastos por categoria vira um desafio da equipe. Crie o primeiro e acompanhe aqui.'**
+  String get partyEmptyMessage;
+
+  /// No description provided for @partyEmptyButton.
+  ///
+  /// In pt, this message translates to:
+  /// **'Criar primeiro limite'**
+  String get partyEmptyButton;
+
+  /// No description provided for @partyErrorMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar o status da equipe.'**
+  String get partyErrorMessage;
+
+  /// No description provided for @badgeCatalogUnavailableTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Catálogo indisponível'**
+  String get badgeCatalogUnavailableTitle;
+
+  /// No description provided for @badgeCatalogUnavailableMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não recebemos a lista de conquistas do servidor. Tente de novo em instantes.'**
+  String get badgeCatalogUnavailableMessage;
+
+  /// No description provided for @badgeCategoryAdvanced.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conquistas Avançadas'**
+  String get badgeCategoryAdvanced;
+
+  /// No description provided for @badgeCategoryFirstSteps.
+  ///
+  /// In pt, this message translates to:
+  /// **'Primeiros Passos'**
+  String get badgeCategoryFirstSteps;
+
+  /// No description provided for @badgeCategoryConsistency.
+  ///
+  /// In pt, this message translates to:
+  /// **'Registro Consistente'**
+  String get badgeCategoryConsistency;
+
+  /// No description provided for @badgeCategorySavings.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gastos e Economias'**
+  String get badgeCategorySavings;
+
+  /// No description provided for @badgeCategoryGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metas'**
+  String get badgeCategoryGoals;
+
+  /// No description provided for @badgeCategoryTeam.
+  ///
+  /// In pt, this message translates to:
+  /// **'Equipe e Consistência'**
+  String get badgeCategoryTeam;
+
+  /// No description provided for @badgeCatalogTotal.
+  ///
+  /// In pt, this message translates to:
+  /// **'{unlocked} de {total}'**
+  String badgeCatalogTotal(int unlocked, int total);
+
+  /// No description provided for @goalLimitBlownAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite estourado em {date}'**
+  String goalLimitBlownAt(String date);
+
+  /// No description provided for @goalDeadlineMissedAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prazo encerrado sem atingir em {date}'**
+  String goalDeadlineMissedAt(String date);
+
+  /// No description provided for @journeyClosedGoalsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metas encerradas'**
+  String get journeyClosedGoalsTitle;
+
+  /// No description provided for @goalAwaitingOutcome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando apuração'**
+  String get goalAwaitingOutcome;
 }
 
 class _AppLocalizationsDelegate

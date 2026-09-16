@@ -1,285 +1,185 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Data model
+// Apresentação
+//
+// O CATÁLOGO (ids, nomes, XP, descrições, categorias) e a tabela de XP por
+// nível vêm do backend, em `config/badges`. Antes eram espelhados à mão neste
+// arquivo — 67 entradas com o XP como string e as descrições nos ARB — e o
+// nível era recalculado aqui com a inversa de `calculateLevel`. Cada badge novo
+// no servidor exigia lembrar de editar este arquivo, e ninguém lembrava.
+//
+// O que sobra aqui é só aparência: qual `IconData` corresponde ao nome do ícone
+// (o Flutter precisa de constantes para o tree-shaking de ícones) e qual cor
+// cada seção usa.
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum BadgeTier { advanced, simple }
 
-enum SimpleBadgeGroup {
-  firstSteps,
-  consistency,
-  savings,
-  goals,
-  team,
-}
+enum SimpleBadgeGroup { firstSteps, consistency, savings, goals, team }
 
-class BadgeItem {
-  final String id;
-  final IconData icon;
-  final String xpReward;
-  final Color themeColor;
-  final BadgeTier tier;
+/// Nome do ícone (como o servidor publica) -> `IconData`.
+///
+/// Não pode ser `IconData(codePoint)` dinâmico: com `--tree-shake-icons` (o
+/// padrão em release) um ícone que não aparece como constante no código é
+/// removido do font e vira um quadrado vazio.
+const Map<String, IconData> _badgeIcons = {
+  'rocket_launch': Icons.rocket_launch,
+  'account_balance': Icons.account_balance,
+  'add_circle': Icons.add_circle,
+  'assignment': Icons.assignment,
+  'point_of_sale': Icons.point_of_sale,
+  'fact_check': Icons.fact_check,
+  'workspace_premium': Icons.workspace_premium,
+  'bolt': Icons.bolt,
+  'savings': Icons.savings,
+  'military_tech': Icons.military_tech,
+  'stars': Icons.stars,
+  'check_circle': Icons.check_circle,
+  'pie_chart': Icons.pie_chart,
+  'trending_up': Icons.trending_up,
+  'content_cut': Icons.content_cut,
+  'groups': Icons.groups,
+  'calendar_month': Icons.calendar_month,
+  'label': Icons.label,
+  'event_note': Icons.event_note,
+  'flag': Icons.flag,
+  'person_add': Icons.person_add,
+  'verified': Icons.verified,
+  'south_east': Icons.south_east,
+  'north_west': Icons.north_west,
+  'swap_horiz': Icons.swap_horiz,
+  'edit': Icons.edit,
+  'calendar_today': Icons.calendar_today,
+  'flash_on': Icons.flash_on,
+  'emoji_events': Icons.emoji_events,
+  'date_range': Icons.date_range,
+  'account_balance_wallet': Icons.account_balance_wallet,
+  'dashboard': Icons.dashboard,
+  'business_center': Icons.business_center,
+  'category': Icons.category,
+  'workspaces': Icons.workspaces,
+  'radio_button_checked': Icons.radio_button_checked,
+  'payments': Icons.payments,
+  'grain': Icons.grain,
+  'receipt_long': Icons.receipt_long,
+  'balance': Icons.balance,
+  'donut_small': Icons.donut_small,
+  'donut_large': Icons.donut_large,
+  'percent': Icons.percent,
+  'monetization_on': Icons.monetization_on,
+  'credit_score': Icons.credit_score,
+  'looks_two': Icons.looks_two,
+  'looks_3': Icons.looks_3,
+  'timer': Icons.timer,
+  'offline_bolt': Icons.offline_bolt,
+  'dynamic_feed': Icons.dynamic_feed,
+  'public': Icons.public,
+  'add_card': Icons.add_card,
+  'free_cancellation': Icons.free_cancellation,
+  'link': Icons.link,
+  'group_add': Icons.group_add,
+  'refresh': Icons.refresh,
+  'sync_alt': Icons.sync_alt,
+  'task_alt': Icons.task_alt,
+  'sports_score': Icons.sports_score,
+  'event_available': Icons.event_available,
+  'repeat': Icons.repeat,
+  'cake': Icons.cake,
+  'waving_hand': Icons.waving_hand,
+  'star': Icons.star,
+};
 
-  const BadgeItem({
-    required this.id,
-    required this.icon,
-    required this.xpReward,
-    required this.themeColor,
-    required this.tier,
-  });
-}
+/// Ícone do badge; um nome desconhecido (badge novo, app antigo) vira um troféu
+/// genérico em vez de sumir da vitrine.
+IconData badgeIconFor(String iconName) =>
+    _badgeIcons[iconName] ?? Icons.emoji_events;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Advanced badges (20) — rich visuals, gold borders when unlocked
-// ─────────────────────────────────────────────────────────────────────────────
+/// Paleta por seção. A cor de cada badge é escolhida de forma determinística
+/// pelo id, para dar variedade sem manter uma lista de 67 cores à mão.
+const Map<BadgeCategory, List<Color>> _categoryPalettes = {
+  BadgeCategory.advanced: [
+    Color(0xFF7E57C2),
+    Color(0xFF1E88E5),
+    Color(0xFF00897B),
+    Color(0xFFF9A825),
+    Color(0xFFD81B60),
+  ],
+  BadgeCategory.firstSteps: [
+    Color(0xFF7C4DFF),
+    Color(0xFF00BCD4),
+    Color(0xFF4CAF50),
+    Color(0xFF2196F3),
+  ],
+  BadgeCategory.consistency: [
+    Color(0xFFFDD835),
+    Color(0xFF66BB6A),
+    Color(0xFFAB47BC),
+    Color(0xFF0288D1),
+  ],
+  BadgeCategory.savings: [
+    Color(0xFFF57C00),
+    Color(0xFF26C6DA),
+    Color(0xFFE91E63),
+    Color(0xFF43A047),
+  ],
+  BadgeCategory.goals: [
+    Color(0xFF5C6BC0),
+    Color(0xFF8E24AA),
+    Color(0xFFE64A19),
+    Color(0xFF0097A7),
+  ],
+  BadgeCategory.team: [
+    Color(0xFF039BE5),
+    Color(0xFF00796B),
+    Color(0xFF558B2F),
+    Color(0xFF7B1FA2),
+  ],
+  BadgeCategory.unknown: [Color(0xFF78909C)],
+};
 
-const List<BadgeItem> advancedBadges = [
-  BadgeItem(id: 'first_step', icon: Icons.rocket_launch, xpReward: '+100 XP', themeColor: Colors.deepPurple, tier: BadgeTier.advanced),
-  BadgeItem(id: 'first_account', icon: Icons.account_balance, xpReward: '+150 XP', themeColor: Colors.blue, tier: BadgeTier.advanced),
-  BadgeItem(id: 'first_transaction', icon: Icons.add_circle, xpReward: '+150 XP', themeColor: Colors.green, tier: BadgeTier.advanced),
-  BadgeItem(id: 'planner', icon: Icons.assignment, xpReward: '+200 XP', themeColor: Colors.orange, tier: BadgeTier.advanced),
-  BadgeItem(id: 'reconcile_junior', icon: Icons.point_of_sale, xpReward: '+300 XP', themeColor: Colors.teal, tier: BadgeTier.advanced),
-  BadgeItem(id: 'cash_detective', icon: Icons.fact_check, xpReward: '+500 XP', themeColor: Colors.indigo, tier: BadgeTier.advanced),
-  BadgeItem(id: 'reconcile_master', icon: Icons.workspace_premium, xpReward: '+1000 XP', themeColor: Colors.amber, tier: BadgeTier.advanced),
-  BadgeItem(id: 'zero_friction', icon: Icons.bolt, xpReward: '+800 XP', themeColor: Colors.yellow, tier: BadgeTier.advanced),
-  BadgeItem(id: 'savings_seed', icon: Icons.savings, xpReward: '+500 XP', themeColor: Colors.pink, tier: BadgeTier.advanced),
-  BadgeItem(id: 'goal_bronze', icon: Icons.military_tech, xpReward: '+1000 XP', themeColor: Colors.brown, tier: BadgeTier.advanced),
-  BadgeItem(id: 'goal_silver', icon: Icons.stars, xpReward: '+2000 XP', themeColor: Colors.purple, tier: BadgeTier.advanced),
-  BadgeItem(id: 'under_control', icon: Icons.check_circle, xpReward: '+1500 XP', themeColor: Colors.cyan, tier: BadgeTier.advanced),
-  BadgeItem(id: 'golden_rule', icon: Icons.pie_chart, xpReward: '+1200 XP', themeColor: Colors.lightGreen, tier: BadgeTier.advanced),
-  BadgeItem(id: 'future_focus', icon: Icons.trending_up, xpReward: '+1000 XP', themeColor: Colors.blueAccent, tier: BadgeTier.advanced),
-  BadgeItem(id: 'cost_cutter', icon: Icons.content_cut, xpReward: '+800 XP', themeColor: Colors.deepOrange, tier: BadgeTier.advanced),
-  BadgeItem(id: 'united_front', icon: Icons.groups, xpReward: '+600 XP', themeColor: Colors.purple, tier: BadgeTier.advanced),
-  BadgeItem(id: 'iron_consistency', icon: Icons.calendar_month, xpReward: '+2500 XP', themeColor: Colors.redAccent, tier: BadgeTier.advanced),
-];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Simple badges (50) — compact sticker-like visuals
-// ─────────────────────────────────────────────────────────────────────────────
-
-const List<BadgeItem> simpleBadges = [
-  // Primeiros Passos
-  BadgeItem(id: 'first_category', icon: Icons.label, xpReward: '+25 XP', themeColor: Color(0xFF7C4DFF), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_planning', icon: Icons.event_note, xpReward: '+50 XP', themeColor: Color(0xFF00BCD4), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_goal', icon: Icons.flag, xpReward: '+50 XP', themeColor: Color(0xFF4CAF50), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_invite', icon: Icons.person_add, xpReward: '+75 XP', themeColor: Color(0xFF2196F3), tier: BadgeTier.simple),
-  BadgeItem(id: 'profile_complete', icon: Icons.verified, xpReward: '+25 XP', themeColor: Color(0xFF009688), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_income', icon: Icons.south_east, xpReward: '+50 XP', themeColor: Color(0xFF43A047), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_expense', icon: Icons.north_west, xpReward: '+50 XP', themeColor: Color(0xFFE53935), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_transfer', icon: Icons.swap_horiz, xpReward: '+50 XP', themeColor: Color(0xFF1976D2), tier: BadgeTier.simple),
-  BadgeItem(id: 'workspace_named', icon: Icons.edit, xpReward: '+25 XP', themeColor: Color(0xFF5E35B1), tier: BadgeTier.simple),
-  BadgeItem(id: 'first_month', icon: Icons.calendar_today, xpReward: '+75 XP', themeColor: Color(0xFF00897B), tier: BadgeTier.simple),
-  // Registro Consistente
-  BadgeItem(id: 'five_transactions', icon: Icons.flash_on, xpReward: '+50 XP', themeColor: Color(0xFFFDD835), tier: BadgeTier.simple),
-  BadgeItem(id: 'twenty_transactions', icon: Icons.trending_up, xpReward: '+75 XP', themeColor: Color(0xFF66BB6A), tier: BadgeTier.simple),
-  BadgeItem(id: 'fifty_transactions', icon: Icons.workspace_premium, xpReward: '+100 XP', themeColor: Color(0xFFAB47BC), tier: BadgeTier.simple),
-  BadgeItem(id: 'hundred_transactions', icon: Icons.emoji_events, xpReward: '+150 XP', themeColor: Color(0xFFFFB300), tier: BadgeTier.simple),
-  BadgeItem(id: 'week_complete', icon: Icons.date_range, xpReward: '+100 XP', themeColor: Color(0xFF0288D1), tier: BadgeTier.simple),
-  BadgeItem(id: 'two_accounts', icon: Icons.account_balance_wallet, xpReward: '+50 XP', themeColor: Color(0xFF00ACC1), tier: BadgeTier.simple),
-  BadgeItem(id: 'three_accounts', icon: Icons.dashboard, xpReward: '+75 XP', themeColor: Color(0xFF7986CB), tier: BadgeTier.simple),
-  BadgeItem(id: 'five_accounts', icon: Icons.business_center, xpReward: '+100 XP', themeColor: Color(0xFF26A69A), tier: BadgeTier.simple),
-  BadgeItem(id: 'five_categories', icon: Icons.category, xpReward: '+50 XP', themeColor: Color(0xFFEC407A), tier: BadgeTier.simple),
-  BadgeItem(id: 'ten_categories', icon: Icons.workspaces, xpReward: '+75 XP', themeColor: Color(0xFF8D6E63), tier: BadgeTier.simple),
-  // Gastos e Economias
-  BadgeItem(id: 'round_number', icon: Icons.radio_button_checked, xpReward: '+25 XP', themeColor: Color(0xFF78909C), tier: BadgeTier.simple),
-  BadgeItem(id: 'big_transaction', icon: Icons.payments, xpReward: '+75 XP', themeColor: Color(0xFFF57C00), tier: BadgeTier.simple),
-  BadgeItem(id: 'small_transactions_ten', icon: Icons.grain, xpReward: '+75 XP', themeColor: Color(0xFF9CCC65), tier: BadgeTier.simple),
-  BadgeItem(id: 'income_registered', icon: Icons.receipt_long, xpReward: '+50 XP', themeColor: Color(0xFF29B6F6), tier: BadgeTier.simple),
-  BadgeItem(id: 'expense_under_income', icon: Icons.balance, xpReward: '+100 XP', themeColor: Color(0xFF26C6DA), tier: BadgeTier.simple),
-  BadgeItem(id: 'three_categories_month', icon: Icons.donut_small, xpReward: '+75 XP', themeColor: Color(0xFFE91E63), tier: BadgeTier.simple),
-  BadgeItem(id: 'five_categories_month', icon: Icons.donut_large, xpReward: '+100 XP', themeColor: Color(0xFF9C27B0), tier: BadgeTier.simple),
-  BadgeItem(id: 'savings_10pct', icon: Icons.percent, xpReward: '+100 XP', themeColor: Color(0xFF43A047), tier: BadgeTier.simple),
-  BadgeItem(id: 'savings_start', icon: Icons.monetization_on, xpReward: '+75 XP', themeColor: Color(0xFFFFCA28), tier: BadgeTier.simple),
-  BadgeItem(id: 'no_credit_debt', icon: Icons.credit_score, xpReward: '+75 XP', themeColor: Color(0xFF00897B), tier: BadgeTier.simple),
-  // Metas
-  BadgeItem(id: 'goal_halfway', icon: Icons.looks_two, xpReward: '+50 XP', themeColor: Color(0xFF5C6BC0), tier: BadgeTier.simple),
-  BadgeItem(id: 'goal_75pct', icon: Icons.looks_3, xpReward: '+75 XP', themeColor: Color(0xFF8E24AA), tier: BadgeTier.simple),
-  BadgeItem(id: 'goal_under_deadline', icon: Icons.timer, xpReward: '+100 XP', themeColor: Color(0xFFE64A19), tier: BadgeTier.simple),
-  BadgeItem(id: 'two_active_goals', icon: Icons.offline_bolt, xpReward: '+50 XP', themeColor: Color(0xFFF9A825), tier: BadgeTier.simple),
-  BadgeItem(id: 'five_active_goals', icon: Icons.dynamic_feed, xpReward: '+100 XP', themeColor: Color(0xFF0097A7), tier: BadgeTier.simple),
-  BadgeItem(id: 'long_term_goal', icon: Icons.public, xpReward: '+75 XP', themeColor: Color(0xFF1E88E5), tier: BadgeTier.simple),
-  BadgeItem(id: 'short_term_goal', icon: Icons.bolt, xpReward: '+75 XP', themeColor: Color(0xFFFF7043), tier: BadgeTier.simple),
-  BadgeItem(id: 'goal_deposit', icon: Icons.add_card, xpReward: '+50 XP', themeColor: Color(0xFF00BFA5), tier: BadgeTier.simple),
-  BadgeItem(id: 'goal_debt_paid', icon: Icons.free_cancellation, xpReward: '+150 XP', themeColor: Color(0xFF388E3C), tier: BadgeTier.simple),
-  BadgeItem(id: 'goal_linked_account', icon: Icons.link, xpReward: '+50 XP', themeColor: Color(0xFF6D4C41), tier: BadgeTier.simple),
-  // Equipe e Consistência
-  BadgeItem(id: 'second_member', icon: Icons.group_add, xpReward: '+50 XP', themeColor: Color(0xFF039BE5), tier: BadgeTier.simple),
-  BadgeItem(id: 'reconcile_second', icon: Icons.refresh, xpReward: '+75 XP', themeColor: Color(0xFF00796B), tier: BadgeTier.simple),
-  BadgeItem(id: 'reconcile_five', icon: Icons.sync_alt, xpReward: '+100 XP', themeColor: Color(0xFF0288D1), tier: BadgeTier.simple),
-  BadgeItem(id: 'mission_first', icon: Icons.task_alt, xpReward: '+75 XP', themeColor: Color(0xFF558B2F), tier: BadgeTier.simple),
-  BadgeItem(id: 'mission_three', icon: Icons.sports_score, xpReward: '+100 XP', themeColor: Color(0xFFD81B60), tier: BadgeTier.simple),
-  BadgeItem(id: 'planning_month', icon: Icons.event_available, xpReward: '+75 XP', themeColor: Color(0xFF7B1FA2), tier: BadgeTier.simple),
-  BadgeItem(id: 'two_months_active', icon: Icons.repeat, xpReward: '+100 XP', themeColor: Color(0xFF00695C), tier: BadgeTier.simple),
-  BadgeItem(id: 'workspace_one_year', icon: Icons.cake, xpReward: '+150 XP', themeColor: Color(0xFFE040FB), tier: BadgeTier.simple),
-  BadgeItem(id: 'invite_accepted', icon: Icons.waving_hand, xpReward: '+50 XP', themeColor: Color(0xFFF4511E), tier: BadgeTier.simple),
-  BadgeItem(id: 'all_missions_week', icon: Icons.star, xpReward: '+100 XP', themeColor: Color(0xFFFFD600), tier: BadgeTier.simple),
-];
-
-const List<BadgeItem> allBadges = [...advancedBadges, ...simpleBadges];
-
-// ─────────────────────────────────────────────────────────────────────────────
-// L10n helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-String getBadgeName(BuildContext context, String id) {
-  final l10n = AppLocalizations.of(context)!;
-  switch (id) {
-    // Advanced
-    case 'first_step': return l10n.badge_first_step_name;
-    case 'first_account': return l10n.badge_first_account_name;
-    case 'first_transaction': return l10n.badge_first_transaction_name;
-    case 'planner': return l10n.badge_planner_name;
-    case 'reconcile_junior': return l10n.badge_reconcile_junior_name;
-    case 'cash_detective': return l10n.badge_cash_detective_name;
-    case 'reconcile_master': return l10n.badge_reconcile_master_name;
-    case 'zero_friction': return l10n.badge_zero_friction_name;
-    case 'savings_seed': return l10n.badge_savings_seed_name;
-    case 'goal_bronze': return l10n.badge_goal_bronze_name;
-    case 'goal_silver': return l10n.badge_goal_silver_name;
-    case 'under_control': return l10n.badge_under_control_name;
-    case 'golden_rule': return l10n.badge_golden_rule_name;
-    case 'future_focus': return l10n.badge_future_focus_name;
-    case 'cost_cutter': return l10n.badge_cost_cutter_name;
-    case 'united_front': return l10n.badge_united_front_name;
-    case 'iron_consistency': return l10n.badge_iron_consistency_name;
-    // Simple — Primeiros Passos
-    case 'first_category': return l10n.badge_first_category_name;
-    case 'first_planning': return l10n.badge_first_planning_name;
-    case 'first_goal': return l10n.badge_first_goal_name;
-    case 'first_invite': return l10n.badge_first_invite_name;
-    case 'profile_complete': return l10n.badge_profile_complete_name;
-    case 'first_income': return l10n.badge_first_income_name;
-    case 'first_expense': return l10n.badge_first_expense_name;
-    case 'first_transfer': return l10n.badge_first_transfer_name;
-    case 'workspace_named': return l10n.badge_workspace_named_name;
-    case 'first_month': return l10n.badge_first_month_name;
-    // Simple — Registro Consistente
-    case 'five_transactions': return l10n.badge_five_transactions_name;
-    case 'twenty_transactions': return l10n.badge_twenty_transactions_name;
-    case 'fifty_transactions': return l10n.badge_fifty_transactions_name;
-    case 'hundred_transactions': return l10n.badge_hundred_transactions_name;
-    case 'week_complete': return l10n.badge_week_complete_name;
-    case 'two_accounts': return l10n.badge_two_accounts_name;
-    case 'three_accounts': return l10n.badge_three_accounts_name;
-    case 'five_accounts': return l10n.badge_five_accounts_name;
-    case 'five_categories': return l10n.badge_five_categories_name;
-    case 'ten_categories': return l10n.badge_ten_categories_name;
-    // Simple — Gastos e Economias
-    case 'round_number': return l10n.badge_round_number_name;
-    case 'big_transaction': return l10n.badge_big_transaction_name;
-    case 'small_transactions_ten': return l10n.badge_small_transactions_ten_name;
-    case 'income_registered': return l10n.badge_income_registered_name;
-    case 'expense_under_income': return l10n.badge_expense_under_income_name;
-    case 'three_categories_month': return l10n.badge_three_categories_month_name;
-    case 'five_categories_month': return l10n.badge_five_categories_month_name;
-    case 'savings_10pct': return l10n.badge_savings_10pct_name;
-    case 'savings_start': return l10n.badge_savings_start_name;
-    case 'no_credit_debt': return l10n.badge_no_credit_debt_name;
-    // Simple — Metas
-    case 'goal_halfway': return l10n.badge_goal_halfway_name;
-    case 'goal_75pct': return l10n.badge_goal_75pct_name;
-    case 'goal_under_deadline': return l10n.badge_goal_under_deadline_name;
-    case 'two_active_goals': return l10n.badge_two_active_goals_name;
-    case 'five_active_goals': return l10n.badge_five_active_goals_name;
-    case 'long_term_goal': return l10n.badge_long_term_goal_name;
-    case 'short_term_goal': return l10n.badge_short_term_goal_name;
-    case 'goal_deposit': return l10n.badge_goal_deposit_name;
-    case 'goal_debt_paid': return l10n.badge_goal_debt_paid_name;
-    case 'goal_linked_account': return l10n.badge_goal_linked_account_name;
-    // Simple — Equipe
-    case 'second_member': return l10n.badge_second_member_name;
-    case 'reconcile_second': return l10n.badge_reconcile_second_name;
-    case 'reconcile_five': return l10n.badge_reconcile_five_name;
-    case 'mission_first': return l10n.badge_mission_first_name;
-    case 'mission_three': return l10n.badge_mission_three_name;
-    case 'planning_month': return l10n.badge_planning_month_name;
-    case 'two_months_active': return l10n.badge_two_months_active_name;
-    case 'workspace_one_year': return l10n.badge_workspace_one_year_name;
-    case 'invite_accepted': return l10n.badge_invite_accepted_name;
-    case 'all_missions_week': return l10n.badge_all_missions_week_name;
-    default: return id;
+Color badgeColorFor(BadgeCatalogItem badge) {
+  final palette =
+      _categoryPalettes[badge.category] ??
+      _categoryPalettes[BadgeCategory.unknown]!;
+  var hash = 0;
+  for (final unit in badge.id.codeUnits) {
+    hash = (hash + unit) % 997;
   }
+  return palette[hash % palette.length];
 }
 
-String getBadgeDescription(BuildContext context, String id) {
-  final l10n = AppLocalizations.of(context)!;
-  switch (id) {
-    case 'first_step': return l10n.badge_first_step_desc;
-    case 'first_account': return l10n.badge_first_account_desc;
-    case 'first_transaction': return l10n.badge_first_transaction_desc;
-    case 'planner': return l10n.badge_planner_desc;
-    case 'reconcile_junior': return l10n.badge_reconcile_junior_desc;
-    case 'cash_detective': return l10n.badge_cash_detective_desc;
-    case 'reconcile_master': return l10n.badge_reconcile_master_desc;
-    case 'zero_friction': return l10n.badge_zero_friction_desc;
-    case 'savings_seed': return l10n.badge_savings_seed_desc;
-    case 'goal_bronze': return l10n.badge_goal_bronze_desc;
-    case 'goal_silver': return l10n.badge_goal_silver_desc;
-    case 'under_control': return l10n.badge_under_control_desc;
-    case 'golden_rule': return l10n.badge_golden_rule_desc;
-    case 'future_focus': return l10n.badge_future_focus_desc;
-    case 'cost_cutter': return l10n.badge_cost_cutter_desc;
-    case 'united_front': return l10n.badge_united_front_desc;
-    case 'iron_consistency': return l10n.badge_iron_consistency_desc;
-    case 'first_category': return l10n.badge_first_category_desc;
-    case 'first_planning': return l10n.badge_first_planning_desc;
-    case 'first_goal': return l10n.badge_first_goal_desc;
-    case 'first_invite': return l10n.badge_first_invite_desc;
-    case 'profile_complete': return l10n.badge_profile_complete_desc;
-    case 'first_income': return l10n.badge_first_income_desc;
-    case 'first_expense': return l10n.badge_first_expense_desc;
-    case 'first_transfer': return l10n.badge_first_transfer_desc;
-    case 'workspace_named': return l10n.badge_workspace_named_desc;
-    case 'first_month': return l10n.badge_first_month_desc;
-    case 'five_transactions': return l10n.badge_five_transactions_desc;
-    case 'twenty_transactions': return l10n.badge_twenty_transactions_desc;
-    case 'fifty_transactions': return l10n.badge_fifty_transactions_desc;
-    case 'hundred_transactions': return l10n.badge_hundred_transactions_desc;
-    case 'week_complete': return l10n.badge_week_complete_desc;
-    case 'two_accounts': return l10n.badge_two_accounts_desc;
-    case 'three_accounts': return l10n.badge_three_accounts_desc;
-    case 'five_accounts': return l10n.badge_five_accounts_desc;
-    case 'five_categories': return l10n.badge_five_categories_desc;
-    case 'ten_categories': return l10n.badge_ten_categories_desc;
-    case 'round_number': return l10n.badge_round_number_desc;
-    case 'big_transaction': return l10n.badge_big_transaction_desc;
-    case 'small_transactions_ten': return l10n.badge_small_transactions_ten_desc;
-    case 'income_registered': return l10n.badge_income_registered_desc;
-    case 'expense_under_income': return l10n.badge_expense_under_income_desc;
-    case 'three_categories_month': return l10n.badge_three_categories_month_desc;
-    case 'five_categories_month': return l10n.badge_five_categories_month_desc;
-    case 'savings_10pct': return l10n.badge_savings_10pct_desc;
-    case 'savings_start': return l10n.badge_savings_start_desc;
-    case 'no_credit_debt': return l10n.badge_no_credit_debt_desc;
-    case 'goal_halfway': return l10n.badge_goal_halfway_desc;
-    case 'goal_75pct': return l10n.badge_goal_75pct_desc;
-    case 'goal_under_deadline': return l10n.badge_goal_under_deadline_desc;
-    case 'two_active_goals': return l10n.badge_two_active_goals_desc;
-    case 'five_active_goals': return l10n.badge_five_active_goals_desc;
-    case 'long_term_goal': return l10n.badge_long_term_goal_desc;
-    case 'short_term_goal': return l10n.badge_short_term_goal_desc;
-    case 'goal_deposit': return l10n.badge_goal_deposit_desc;
-    case 'goal_debt_paid': return l10n.badge_goal_debt_paid_desc;
-    case 'goal_linked_account': return l10n.badge_goal_linked_account_desc;
-    case 'second_member': return l10n.badge_second_member_desc;
-    case 'reconcile_second': return l10n.badge_reconcile_second_desc;
-    case 'reconcile_five': return l10n.badge_reconcile_five_desc;
-    case 'mission_first': return l10n.badge_mission_first_desc;
-    case 'mission_three': return l10n.badge_mission_three_desc;
-    case 'planning_month': return l10n.badge_planning_month_desc;
-    case 'two_months_active': return l10n.badge_two_months_active_desc;
-    case 'workspace_one_year': return l10n.badge_workspace_one_year_desc;
-    case 'invite_accepted': return l10n.badge_invite_accepted_desc;
-    case 'all_missions_week': return l10n.badge_all_missions_week_desc;
-    default: return '';
-  }
-}
+BadgeTier badgeTierFor(BadgeCategory category) =>
+    category == BadgeCategory.advanced ? BadgeTier.advanced : BadgeTier.simple;
+
+SimpleBadgeGroup simpleGroupFor(BadgeCategory category) => switch (category) {
+  BadgeCategory.firstSteps => SimpleBadgeGroup.firstSteps,
+  BadgeCategory.consistency => SimpleBadgeGroup.consistency,
+  BadgeCategory.savings => SimpleBadgeGroup.savings,
+  BadgeCategory.goals => SimpleBadgeGroup.goals,
+  BadgeCategory.team ||
+  BadgeCategory.advanced ||
+  BadgeCategory.unknown => SimpleBadgeGroup.team,
+};
+
+String badgeCategoryLabel(AppLocalizations l10n, BadgeCategory category) =>
+    switch (category) {
+      BadgeCategory.advanced => l10n.badgeCategoryAdvanced,
+      BadgeCategory.firstSteps => l10n.badgeCategoryFirstSteps,
+      BadgeCategory.consistency => l10n.badgeCategoryConsistency,
+      BadgeCategory.savings => l10n.badgeCategorySavings,
+      BadgeCategory.goals => l10n.badgeCategoryGoals,
+      BadgeCategory.team || BadgeCategory.unknown => l10n.badgeCategoryTeam,
+    };
+
+IconData badgeCategoryIcon(BadgeCategory category) =>
+    category == BadgeCategory.advanced ? Icons.workspace_premium : Icons.star;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen
@@ -293,338 +193,150 @@ class BadgesCabinetScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final workspace = workspaceState.currentWorkspace;
+    final catalogAsync = ref.watch(BadgeCatalogProviders.catalog);
 
     if (workspace == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final level = workspace.level;
-    final xp = workspace.xp;
-    final xpAcumuladoPrev = (300 * (pow(2, level - 1) - 1)).toInt();
-    final xpAtual = xp - xpAcumuladoPrev;
-    final xpDegrau = (300 * pow(2, level - 1)).toInt();
-    final progressFraction = xpDegrau > 0 ? (xpAtual / xpDegrau).clamp(0.0, 1.0) : 0.0;
-
-    final unlockedBadges = workspace.unlockedBadges;
-    final unlockedAdvanced = advancedBadges.where((b) => unlockedBadges.containsKey(b.id)).length;
-    final unlockedSimple = simpleBadges.where((b) => unlockedBadges.containsKey(b.id)).length;
+    final catalog = catalogAsync.valueOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.teamAchievementsTitle),
-        elevation: 0,
-      ),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // ── Header Card ───────────────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Theme.of(context).colorScheme.primary,
-                        Theme.of(context).colorScheme.secondary,
-                      ],
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                l10n.workspaceLabel(workspace.name),
-                                style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                l10n.levelLabel(level),
-                                style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.military_tech, color: Colors.white),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${unlockedBadges.length} / ${allBadges.length}',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '$xpAtual / $xpDegrau XP',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          Text(
-                            l10n.totalXpLabel(xp.toString()),
-                            style: const TextStyle(color: Colors.white70, fontSize: 14),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: progressFraction,
-                          backgroundColor: Colors.white24,
-                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                          minHeight: 12,
-                        ),
-                      ),
-                      if (workspace.weeklyStreaks > 0) ...[
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Icon(Icons.local_fire_department, color: Colors.orangeAccent),
-                            const SizedBox(width: 8),
-                            Text(
-                              workspace.weeklyStreaks == 1
-                                  ? l10n.weeklyStreaksLabelSingular
-                                  : l10n.weeklyStreaksLabelPlural(workspace.weeklyStreaks),
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // ── Advanced Badges Section ───────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              icon: Icons.workspace_premium,
-              label: l10n.advancedBadgesLabel,
-              unlocked: unlockedAdvanced,
-              total: advancedBadges.length,
-              color: Colors.amber.shade700,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 130,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.85,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final badge = advancedBadges[index];
-                  final unlockDateStr = unlockedBadges[badge.id];
-                  final isUnlocked = unlockDateStr != null;
-                  return _AdvancedBadgeCard(
-                    badge: badge,
-                    isUnlocked: isUnlocked,
-                    badgeName: getBadgeName(context, badge.id),
-                    onTap: () => _showBadgeDetail(
-                      context,
-                      badge,
-                      unlockDateStr,
-                      getBadgeName(context, badge.id),
-                      getBadgeDescription(context, badge.id),
-                    ),
-                  );
-                },
-                childCount: advancedBadges.length,
-              ),
-            ),
-          ),
-
-          // ── Simple Badges Section ─────────────────────────────────────────
-          SliverToBoxAdapter(
-            child: _SectionHeader(
-              icon: Icons.star,
-              label: l10n.simpleBadgesLabel,
-              unlocked: unlockedSimple,
-              total: simpleBadges.length,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 68,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final badge = simpleBadges[index];
-                  final unlockDateStr = unlockedBadges[badge.id];
-                  final isUnlocked = unlockDateStr != null;
-                  return _SimpleBadgeChip(
-                    badge: badge,
-                    isUnlocked: isUnlocked,
-                    onTap: () => _showBadgeDetail(
-                      context,
-                      badge,
-                      unlockDateStr,
-                      getBadgeName(context, badge.id),
-                      getBadgeDescription(context, badge.id),
-                    ),
-                  );
-                },
-                childCount: simpleBadges.length,
-              ),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
+      appBar: AppBar(title: Text(l10n.teamAchievementsTitle), elevation: 0),
+      body: BadgesCabinetView(
+        catalog: catalog,
+        isLoading: catalogAsync.isLoading,
+        workspaceName: workspace.name,
+        level: workspace.level,
+        xp: workspace.xp,
+        weeklyStreaks: workspace.weeklyStreaks,
+        unlockedBadges: workspace.unlockedBadges,
       ),
     );
   }
+}
 
-  void _showBadgeDetail(
-    BuildContext context,
-    BadgeItem badge,
-    String? unlockDateStr,
-    String badgeName,
-    String badgeDesc,
-  ) {
+/// Corpo da vitrine, separado da tela para poder ser montado num teste de
+/// widget com um catálogo falso, sem Firebase.
+class BadgesCabinetView extends StatelessWidget {
+  const BadgesCabinetView({
+    super.key,
+    required this.catalog,
+    required this.isLoading,
+    required this.workspaceName,
+    required this.level,
+    required this.xp,
+    required this.weeklyStreaks,
+    required this.unlockedBadges,
+  });
+
+  /// `null` enquanto o servidor não publicou `config/badges`.
+  final BadgeCatalog? catalog;
+  final bool isLoading;
+  final String workspaceName;
+  final int level;
+  final int xp;
+  final int weeklyStreaks;
+
+  /// id do badge -> data de desbloqueio (ISO 8601).
+  final Map<String, String> unlockedBadges;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final isUnlocked = unlockDateStr != null;
-    DateTime? unlockDate;
-    if (unlockDateStr != null) {
-      try { unlockDate = DateTime.parse(unlockDateStr); } catch (_) {}
+    final catalog = this.catalog;
+
+    if (catalog == null || catalog.badges.isEmpty) {
+      if (isLoading) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return _CatalogUnavailable(l10n: l10n);
     }
 
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+    final xpInLevel = catalog.xpInLevel(level, xp);
+    final xpForNextLevel = catalog.xpToNextLevel(level);
+    final progressFraction = catalog.levelProgress(level, xp);
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: _LevelHeaderCard(
+              workspaceName: workspaceName,
+              level: level,
+              xp: xp,
+              xpInLevel: xpInLevel,
+              xpForNextLevel: xpForNextLevel,
+              progressFraction: progressFraction,
+              weeklyStreaks: weeklyStreaks,
+              unlockedCount: unlockedBadges.keys
+                  .where((id) => catalog.badges.any((b) => b.id == id))
+                  .length,
+              totalCount: catalog.badges.length,
+            ),
+          ),
+        ),
+        for (final category in catalog.categories) ...[
+          SliverToBoxAdapter(
+            child: _SectionHeader(
+              icon: badgeCategoryIcon(category),
+              label: badgeCategoryLabel(l10n, category),
+              unlocked: catalog
+                  .ofCategory(category)
+                  .where((badge) => unlockedBadges.containsKey(badge.id))
+                  .length,
+              total: catalog.ofCategory(category).length,
+              color: category == BadgeCategory.advanced
+                  ? Colors.amber.shade700
+                  : Theme.of(context).colorScheme.primary,
+            ),
+          ),
+          _BadgeGrid(
+            badges: catalog.ofCategory(category),
+            unlockedBadges: unlockedBadges,
+          ),
+        ],
+        const SliverToBoxAdapter(child: SizedBox(height: 32)),
+      ],
+    );
+  }
+}
+
+class _CatalogUnavailable extends StatelessWidget {
+  const _CatalogUnavailable({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40, height: 4,
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-            ),
-            BadgeShapeWidget(
-              size: 96,
-              tier: badge.tier,
-              group: badge.tier == BadgeTier.simple ? getSimpleBadgeGroup(badge.id) : null,
-              isUnlocked: true,
-              xpRewardValue: getXpRewardValue(badge.xpReward),
-              child: MetallicIcon3D(
-                icon: badge.icon,
-                size: 40,
-                isUnlocked: true,
-                tier: badge.tier,
-                xpRewardValue: getXpRewardValue(badge.xpReward),
-                themeColor: badge.themeColor,
-              ),
+            Icon(
+              Icons.emoji_events_outlined,
+              size: 56,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
-            if (badge.tier == BadgeTier.simple)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: badge.themeColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: badge.themeColor.withValues(alpha: 0.3)),
-                ),
-                child: Text(
-                  l10n.simpleBadgesLabel,
-                  style: TextStyle(fontSize: 10, color: badge.themeColor, fontWeight: FontWeight.w600),
-                ),
-              ),
-            Text(badgeName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: isUnlocked
-                    ? Colors.green.withValues(alpha: 0.15)
-                    : Colors.orange.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                isUnlocked ? l10n.badgeUnlockedLabel : l10n.badgeLockedLabel,
-                style: TextStyle(
-                  color: isUnlocked ? Colors.green : Colors.orange,
-                  fontWeight: FontWeight.bold, fontSize: 12,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(badgeDesc,
+            Text(
+              l10n.badgeCatalogUnavailableTitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: Colors.grey.shade600)),
-            const SizedBox(height: 24),
-            Divider(color: Colors.grey.shade200),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Column(children: [
-                  Text(l10n.badgeRewardLabel, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  const SizedBox(height: 4),
-                  Text(badge.xpReward, style: TextStyle(
-                    color: badge.themeColor, fontWeight: FontWeight.bold, fontSize: 18)),
-                ]),
-                if (isUnlocked && unlockDate != null)
-                  Column(
-                    children: [
-                      Text(
-                        l10n.badgeUnlockedAtLabel,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        DateFormat('dd/MM/yyyy HH:mm').format(unlockDate.toLocal()),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.badgeCatalogUnavailableMessage,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
@@ -633,6 +345,352 @@ class BadgesCabinetScreen extends ConsumerWidget {
   }
 }
 
+class _LevelHeaderCard extends StatelessWidget {
+  const _LevelHeaderCard({
+    required this.workspaceName,
+    required this.level,
+    required this.xp,
+    required this.xpInLevel,
+    required this.xpForNextLevel,
+    required this.progressFraction,
+    required this.weeklyStreaks,
+    required this.unlockedCount,
+    required this.totalCount,
+  });
+
+  final String workspaceName;
+  final int level;
+  final int xp;
+  final int xpInLevel;
+  final int xpForNextLevel;
+  final double progressFraction;
+  final int weeklyStreaks;
+  final int unlockedCount;
+  final int totalCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.secondary,
+            ],
+          ),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.workspaceLabel(workspaceName),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.levelLabel(level),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.military_tech, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        l10n.badgeCatalogTotal(unlockedCount, totalCount),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$xpInLevel / $xpForNextLevel XP',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  l10n.totalXpLabel(xp.toString()),
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progressFraction,
+                backgroundColor: Colors.white24,
+                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                minHeight: 12,
+              ),
+            ),
+            if (weeklyStreaks > 0) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.local_fire_department,
+                    color: Colors.orangeAccent,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    weeklyStreaks == 1
+                        ? l10n.weeklyStreaksLabelSingular
+                        : l10n.weeklyStreaksLabelPlural(weeklyStreaks),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BadgeGrid extends StatelessWidget {
+  const _BadgeGrid({required this.badges, required this.unlockedBadges});
+
+  final List<BadgeCatalogItem> badges;
+  final Map<String, String> unlockedBadges;
+
+  @override
+  Widget build(BuildContext context) {
+    final isAdvanced =
+        badges.isNotEmpty && badges.first.category == BadgeCategory.advanced;
+
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      sliver: SliverGrid(
+        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: isAdvanced ? 130 : 68,
+          mainAxisSpacing: isAdvanced ? 16 : 12,
+          crossAxisSpacing: isAdvanced ? 16 : 12,
+          childAspectRatio: isAdvanced ? 0.85 : 1,
+        ),
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final badge = badges[index];
+          final unlockDateStr = unlockedBadges[badge.id];
+          final isUnlocked = unlockDateStr != null;
+
+          void openDetail() =>
+              showBadgeDetail(context, badge, unlockDateStr);
+
+          return isAdvanced
+              ? _AdvancedBadgeCard(
+                  badge: badge,
+                  isUnlocked: isUnlocked,
+                  onTap: openDetail,
+                )
+              : _SimpleBadgeChip(
+                  badge: badge,
+                  isUnlocked: isUnlocked,
+                  onTap: openDetail,
+                );
+        }, childCount: badges.length),
+      ),
+    );
+  }
+}
+
+void showBadgeDetail(
+  BuildContext context,
+  BadgeCatalogItem badge,
+  String? unlockDateStr,
+) {
+  final l10n = AppLocalizations.of(context)!;
+  final isUnlocked = unlockDateStr != null;
+  final tier = badgeTierFor(badge.category);
+  final color = badgeColorFor(badge);
+  DateTime? unlockDate;
+  if (unlockDateStr != null) {
+    try {
+      unlockDate = DateTime.parse(unlockDateStr);
+    } catch (_) {}
+  }
+
+  showModalBottomSheet(
+    context: context,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) => Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.only(bottom: 24),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          BadgeShapeWidget(
+            size: 96,
+            tier: tier,
+            group: tier == BadgeTier.simple
+                ? simpleGroupFor(badge.category)
+                : null,
+            isUnlocked: true,
+            xpRewardValue: badge.xpReward,
+            child: MetallicIcon3D(
+              icon: badgeIconFor(badge.icon),
+              size: 40,
+              isUnlocked: true,
+              tier: tier,
+              xpRewardValue: badge.xpReward,
+              themeColor: color,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              badgeCategoryLabel(l10n, badge.category),
+              style: TextStyle(
+                fontSize: 10,
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Text(
+            badge.nameIn(l10n.localeName),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: isUnlocked
+                  ? Colors.green.withValues(alpha: 0.15)
+                  : Colors.orange.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              isUnlocked ? l10n.badgeUnlockedLabel : l10n.badgeLockedLabel,
+              style: TextStyle(
+                color: isUnlocked ? Colors.green : Colors.orange,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            badge.descriptionIn(l10n.localeName),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 24),
+          Divider(color: Colors.grey.shade200),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Column(
+                children: [
+                  Text(
+                    l10n.badgeRewardLabel,
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '+${badge.xpReward} XP',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+              if (isUnlocked && unlockDate != null)
+                Column(
+                  children: [
+                    Text(
+                      l10n.badgeUnlockedAtLabel,
+                      style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('dd/MM/yyyy HH:mm').format(unlockDate.toLocal()),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
 class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -688,15 +746,13 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _AdvancedBadgeCard extends StatelessWidget {
-  final BadgeItem badge;
+  final BadgeCatalogItem badge;
   final bool isUnlocked;
-  final String badgeName;
   final VoidCallback onTap;
 
   const _AdvancedBadgeCard({
     required this.badge,
     required this.isUnlocked,
-    required this.badgeName,
     required this.onTap,
   });
 
@@ -711,20 +767,20 @@ class _AdvancedBadgeCard extends StatelessWidget {
             size: 72,
             tier: BadgeTier.advanced,
             isUnlocked: isUnlocked,
-            xpRewardValue: getXpRewardValue(badge.xpReward),
+            xpRewardValue: badge.xpReward,
             child: MetallicIcon3D(
-              icon: badge.icon,
+              icon: badgeIconFor(badge.icon),
               size: 30,
               isUnlocked: isUnlocked,
               tier: BadgeTier.advanced,
-              xpRewardValue: getXpRewardValue(badge.xpReward),
-              themeColor: badge.themeColor,
+              xpRewardValue: badge.xpReward,
+              themeColor: badgeColorFor(badge),
             ),
           ),
           const SizedBox(height: 8),
           Expanded(
             child: Text(
-              badgeName,
+              badge.nameIn(AppLocalizations.of(context)!.localeName),
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
@@ -744,7 +800,7 @@ class _AdvancedBadgeCard extends StatelessWidget {
 }
 
 class _SimpleBadgeChip extends StatelessWidget {
-  final BadgeItem badge;
+  final BadgeCatalogItem badge;
   final bool isUnlocked;
   final VoidCallback onTap;
 
@@ -756,33 +812,29 @@ class _SimpleBadgeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final group = getSimpleBadgeGroup(badge.id);
-    final xpVal = getXpRewardValue(badge.xpReward);
-
     return GestureDetector(
       onTap: onTap,
       child: Tooltip(
-        message: getBadgeName(context, badge.id),
+        message: badge.nameIn(AppLocalizations.of(context)!.localeName),
         child: BadgeShapeWidget(
           size: 48,
           tier: BadgeTier.simple,
-          group: group,
+          group: simpleGroupFor(badge.category),
           isUnlocked: isUnlocked,
-          xpRewardValue: xpVal,
+          xpRewardValue: badge.xpReward,
           child: MetallicIcon3D(
-            icon: badge.icon,
+            icon: badgeIconFor(badge.icon),
             size: 20,
             isUnlocked: isUnlocked,
             tier: BadgeTier.simple,
-            xpRewardValue: xpVal,
-            themeColor: badge.themeColor,
+            xpRewardValue: badge.xpReward,
+            themeColor: badgeColorFor(badge),
           ),
         ),
       ),
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // 3D Metallic Emblem Icon
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1432,72 +1484,4 @@ Path getShapePath(Size size, BadgeTier tier, SimpleBadgeGroup? group, double mar
   }
 
   return path;
-}
-
-SimpleBadgeGroup getSimpleBadgeGroup(String id) {
-  if (const [
-    'first_category',
-    'first_planning',
-    'first_goal',
-    'first_invite',
-    'profile_complete',
-    'first_income',
-    'first_expense',
-    'first_transfer',
-    'workspace_named',
-    'first_month'
-  ].contains(id)) {
-    return SimpleBadgeGroup.firstSteps;
-  }
-  if (const [
-    'five_transactions',
-    'twenty_transactions',
-    'fifty_transactions',
-    'hundred_transactions',
-    'week_complete',
-    'two_accounts',
-    'three_accounts',
-    'five_accounts',
-    'five_categories',
-    'ten_categories'
-  ].contains(id)) {
-    return SimpleBadgeGroup.consistency;
-  }
-  if (const [
-    'round_number',
-    'big_transaction',
-    'small_transactions_ten',
-    'income_registered',
-    'expense_under_income',
-    'three_categories_month',
-    'five_categories_month',
-    'savings_10pct',
-    'savings_start',
-    'no_credit_debt'
-  ].contains(id)) {
-    return SimpleBadgeGroup.savings;
-  }
-  if (const [
-    'goal_halfway',
-    'goal_75pct',
-    'goal_under_deadline',
-    'two_active_goals',
-    'five_active_goals',
-    'long_term_goal',
-    'short_term_goal',
-    'goal_deposit',
-    'goal_debt_paid',
-    'goal_linked_account'
-  ].contains(id)) {
-    return SimpleBadgeGroup.goals;
-  }
-  return SimpleBadgeGroup.team;
-}
-
-int getXpRewardValue(String xpReward) {
-  try {
-    return int.parse(xpReward.replaceAll(RegExp(r'[^0-9]'), ''));
-  } catch (_) {
-    return 50;
-  }
 }

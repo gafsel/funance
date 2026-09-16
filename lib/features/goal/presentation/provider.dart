@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/goal/data/repositories/goal_repository_impl.dart';
 import 'package:funances/features/goal/data/repositories/goal_feasibility_repository_impl.dart';
 import 'package:funances/features/goal/data/repositories/goal_milestone_repository_impl.dart';
@@ -55,7 +54,6 @@ sealed class GoalViewProvider {
   static final form = StateNotifierProvider.autoDispose(
     (ref) => GoalFormNotifier(
       goalService: ref.watch(GoalDomainProvider.service),
-      accountService: ref.watch(AccountDomainProviders.service),
     ),
   );
 

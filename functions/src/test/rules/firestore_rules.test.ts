@@ -42,6 +42,20 @@ const planningDoc = (overrides: Record<string, unknown> = {}) => ({
     ...overrides,
 });
 
+const GOAL_ID = "goal-rules";
+
+const goalDoc = (overrides: Record<string, unknown> = {}) => ({
+    name: "Reserva de emergência",
+    runtimeType: "saveMoney",
+    targetAmount: 10000,
+    currentAmount: 0,
+    accountId: "acc-checking",
+    deadline: Timestamp.fromDate(new Date(2026, 11, 31, 12)),
+    startDate: Timestamp.fromDate(new Date(2026, 0, 1, 12)),
+    isDeleted: false,
+    ...overrides,
+});
+
 const installmentDoc = (overrides: Record<string, unknown> = {}) => ({
     orderId: ORDER_ID,
     amount: 167.47,
@@ -105,6 +119,19 @@ describe("firestore.rules", () => {
                 doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`),
                 planningDoc({ summarizedUntil: "2026-12", appliedAmount: 1200, appliedFrom: "2026-09", appliedUntil: "2026-12" })
             );
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                goalDoc({
+                    outcome: "success",
+                    completedAt: Timestamp.fromDate(new Date(2026, 5, 1, 12)),
+                })
+            );
+            // Catálogo público de badges (F2.7): publicado pelo servidor.
+            await setDoc(doc(db, "config/badges"), {
+                version: "v-teste",
+                badges: [{ id: "first_step", name: "Primeiro Passo", icon: "rocket_launch", xpReward: 100, category: "advanced", description: "..." }],
+                levelThresholds: [0, 300, 900],
+            });
         });
     });
 
@@ -221,6 +248,19 @@ describe("firestore.rules", () => {
         );
     });
 
+    // ── Metas: o DESFECHO é do servidor (F2.5) ────────────────────────────
+
+    it("permite que o membro edite a meta sem tocar no desfecho", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertSucceeds(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { name: "Reserva maior", targetAmount: 12000 }
+            )
+        );
+    });
+
     it("nega que o cliente altere os marcadores de um planejamento existente", async () => {
         const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 
@@ -304,5 +344,131 @@ describe("firestore.rules", () => {
 
             await assertFails(deleteDoc(doc(db, `invites/${INVITE_ID}`)));
         });
+    });
+
+    it("nega que o cliente escreva completedAt numa meta", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { completedAt: Timestamp.fromDate(new Date(2026, 0, 2, 12)) }
+            )
+        );
+    });
+
+    it("nega que o cliente crie uma meta já com completedAt", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova`),
+                goalDoc({ completedAt: Timestamp.fromDate(new Date(2026, 0, 2, 12)) })
+            )
+        );
+    });
+
+    it("nega que o cliente escreva outcome numa meta", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        // A meta semeada já tem `outcome: "success"`; escrever o MESMO valor
+        // não muda chave nenhuma e as rules nem veriam a tentativa. O que
+        // precisa ser negado é a troca do veredito.
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { outcome: "failed" }
+            )
+        );
+    });
+
+    it("nega que o cliente escreva failedAt numa meta", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { failedAt: Timestamp.fromDate(new Date(2026, 0, 2, 12)) }
+            )
+        );
+    });
+
+    it("nega que o cliente crie uma meta já com outcome", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova-outcome`),
+                goalDoc({ outcome: "failed" })
+            )
+        );
+    });
+
+    it("nega meta com targetAmount zero", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-alvo-zero`),
+                goalDoc({ targetAmount: 0 })
+            )
+        );
+    });
+
+    it("nega meta com targetAmount negativo", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-alvo-negativo`),
+                goalDoc({ targetAmount: -100 })
+            )
+        );
+    });
+
+    it("nega EDIÇÃO que zera o targetAmount de uma meta existente", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { targetAmount: 0 }
+            )
+        );
+    });
+
+    it("permite que o cliente crie uma meta normal", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertSucceeds(
+            setDoc(doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova-ok`), goalDoc())
+        );
+    });
+
+    // ── Catálogo de badges (F2.7) ─────────────────────────────────────────
+
+    it("permite que qualquer usuário autenticado leia config/badges", async () => {
+        const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+        await assertSucceeds(getDoc(doc(db, "config/badges")));
+    });
+
+    it("nega leitura de config/badges para quem não está autenticado", async () => {
+        const db = testEnv.unauthenticatedContext().firestore();
+
+        await assertFails(getDoc(doc(db, "config/badges")));
+    });
+
+    it("nega escrita em config/badges mesmo para usuário autenticado", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(updateDoc(doc(db, "config/badges"), { version: "hackeada" }));
+    });
+
+    it("mantém os demais documentos de config fechados", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(getDoc(doc(db, "config/ai")));
+        await assertFails(getDoc(doc(db, "config/cron_checkpoints")));
     });
 });

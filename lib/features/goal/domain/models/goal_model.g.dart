@@ -15,6 +15,17 @@ _GoalModelPayDebt _$GoalModelPayDebtFromJson(Map<String, dynamic> json) =>
       deadline: DateTime.parse(json['deadline'] as String),
       accountId: json['accountId'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
+      outcome: $enumDecodeNullable(
+        _$GoalOutcomeEnumMap,
+        json['outcome'],
+        unknownValue: JsonKey.nullForUndefinedEnumValue,
+      ),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
+      failedAt: json['failedAt'] == null
+          ? null
+          : DateTime.parse(json['failedAt'] as String),
       isDeleted: json['isDeleted'] as bool? ?? false,
       $type: json['runtimeType'] as String?,
     );
@@ -28,9 +39,17 @@ Map<String, dynamic> _$GoalModelPayDebtToJson(_GoalModelPayDebt instance) =>
       'deadline': instance.deadline.toIso8601String(),
       'accountId': instance.accountId,
       'startDate': instance.startDate.toIso8601String(),
+      'outcome': _$GoalOutcomeEnumMap[instance.outcome],
+      'completedAt': instance.completedAt?.toIso8601String(),
+      'failedAt': instance.failedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'runtimeType': instance.$type,
     };
+
+const _$GoalOutcomeEnumMap = {
+  GoalOutcome.success: 'success',
+  GoalOutcome.failed: 'failed',
+};
 
 _GoalModelCreditCard _$GoalModelCreditCardFromJson(Map<String, dynamic> json) =>
     _GoalModelCreditCard(
@@ -38,10 +57,20 @@ _GoalModelCreditCard _$GoalModelCreditCardFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       targetAmount: (json['targetAmount'] as num).toDouble(),
       currentAmount: (json['currentAmount'] as num).toDouble(),
-      averageSpending: (json['averageSpending'] as num).toDouble(),
       deadline: DateTime.parse(json['deadline'] as String),
       accountId: json['accountId'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
+      outcome: $enumDecodeNullable(
+        _$GoalOutcomeEnumMap,
+        json['outcome'],
+        unknownValue: JsonKey.nullForUndefinedEnumValue,
+      ),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
+      failedAt: json['failedAt'] == null
+          ? null
+          : DateTime.parse(json['failedAt'] as String),
       isDeleted: json['isDeleted'] as bool? ?? false,
       $type: json['runtimeType'] as String?,
     );
@@ -53,10 +82,12 @@ Map<String, dynamic> _$GoalModelCreditCardToJson(
   'name': instance.name,
   'targetAmount': instance.targetAmount,
   'currentAmount': instance.currentAmount,
-  'averageSpending': instance.averageSpending,
   'deadline': instance.deadline.toIso8601String(),
   'accountId': instance.accountId,
   'startDate': instance.startDate.toIso8601String(),
+  'outcome': _$GoalOutcomeEnumMap[instance.outcome],
+  'completedAt': instance.completedAt?.toIso8601String(),
+  'failedAt': instance.failedAt?.toIso8601String(),
   'isDeleted': instance.isDeleted,
   'runtimeType': instance.$type,
 };
@@ -68,10 +99,20 @@ _GoalModelReduceExpense _$GoalModelReduceExpenseFromJson(
   name: json['name'] as String,
   targetAmount: (json['targetAmount'] as num).toDouble(),
   currentAmount: (json['currentAmount'] as num).toDouble(),
-  averageSpending: (json['averageSpending'] as num).toDouble(),
   deadline: DateTime.parse(json['deadline'] as String),
   category: CategoryModel.fromJson(json['category'] as Map<String, dynamic>),
   startDate: DateTime.parse(json['startDate'] as String),
+  outcome: $enumDecodeNullable(
+    _$GoalOutcomeEnumMap,
+    json['outcome'],
+    unknownValue: JsonKey.nullForUndefinedEnumValue,
+  ),
+  completedAt: json['completedAt'] == null
+      ? null
+      : DateTime.parse(json['completedAt'] as String),
+  failedAt: json['failedAt'] == null
+      ? null
+      : DateTime.parse(json['failedAt'] as String),
   isDeleted: json['isDeleted'] as bool? ?? false,
   $type: json['runtimeType'] as String?,
 );
@@ -83,10 +124,12 @@ Map<String, dynamic> _$GoalModelReduceExpenseToJson(
   'name': instance.name,
   'targetAmount': instance.targetAmount,
   'currentAmount': instance.currentAmount,
-  'averageSpending': instance.averageSpending,
   'deadline': instance.deadline.toIso8601String(),
   'category': instance.category.toJson(),
   'startDate': instance.startDate.toIso8601String(),
+  'outcome': _$GoalOutcomeEnumMap[instance.outcome],
+  'completedAt': instance.completedAt?.toIso8601String(),
+  'failedAt': instance.failedAt?.toIso8601String(),
   'isDeleted': instance.isDeleted,
   'runtimeType': instance.$type,
 };
@@ -100,6 +143,17 @@ _GoalModelSaveMoney _$GoalModelSaveMoneyFromJson(Map<String, dynamic> json) =>
       deadline: DateTime.parse(json['deadline'] as String),
       accountId: json['accountId'] as String,
       startDate: DateTime.parse(json['startDate'] as String),
+      outcome: $enumDecodeNullable(
+        _$GoalOutcomeEnumMap,
+        json['outcome'],
+        unknownValue: JsonKey.nullForUndefinedEnumValue,
+      ),
+      completedAt: json['completedAt'] == null
+          ? null
+          : DateTime.parse(json['completedAt'] as String),
+      failedAt: json['failedAt'] == null
+          ? null
+          : DateTime.parse(json['failedAt'] as String),
       isDeleted: json['isDeleted'] as bool? ?? false,
       $type: json['runtimeType'] as String?,
     );
@@ -113,6 +167,9 @@ Map<String, dynamic> _$GoalModelSaveMoneyToJson(_GoalModelSaveMoney instance) =>
       'deadline': instance.deadline.toIso8601String(),
       'accountId': instance.accountId,
       'startDate': instance.startDate.toIso8601String(),
+      'outcome': _$GoalOutcomeEnumMap[instance.outcome],
+      'completedAt': instance.completedAt?.toIso8601String(),
+      'failedAt': instance.failedAt?.toIso8601String(),
       'isDeleted': instance.isDeleted,
       'runtimeType': instance.$type,
     };

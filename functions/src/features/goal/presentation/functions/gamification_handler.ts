@@ -2,10 +2,17 @@ import { onDocumentWritten, onDocumentCreated, onDocumentUpdated } from "firebas
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
-import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
+import {
+    AI_SCHEDULE_OPTIONS,
+    CRON_PAGE_SIZE,
+    CRON_SCAN_DEADLINE_MS,
+    CRON_WORKSPACE_CONCURRENCY,
+} from "../../../../core/config/functions.config";
+import { forEachWorkspacePaged } from "../../../../core/utils/cron_runner";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
 import { INSTALLMENT_DERIVED_FIELDS } from "../../../finance/domain/models/finance.models";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
+import { GoalModel, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
 /**
  * Campos do doc do workspace escritos pela própria gamificação
@@ -38,6 +45,7 @@ export const GAMIFICATION_ACTIONS = {
     categoryWritten: "gamification:categoryWritten",
     reconciliationWritten: "gamification:reconciliationWritten",
     goalWritten: "gamification:goalWritten",
+    goalRecompute: "gamification:goalRecompute",
 } as const;
 
 function getChangedTopLevelFields(before: Record<string, any>, after: Record<string, any>): string[] {
@@ -234,11 +242,40 @@ export const onGoalWritten = onDocumentWritten(
     "workspaces/{workspaceId}/goals/{goalId}",
     async (event) => {
         const workspaceId = event.params.workspaceId;
+        const goalId = event.params.goalId;
         const after = event.data?.after.exists ? event.data.after.data() : null;
 
         if (!after) return;
 
         logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
+
+        // Progresso da meta recém-criada/editada.
+        //
+        // Sem isto, uma meta de categoria ou de dívida nasce em zero e só ganha
+        // vida no próximo pagamento — o usuário vê a barra vazia mesmo tendo
+        // histórico. O recálculo só escreve quando o valor MUDA, então a
+        // escrita que ele provoca não reentra: a segunda passada calcula o
+        // mesmo número e não grava nada.
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalRecompute, async () => {
+            if (after.isDeleted === true) return;
+            try {
+                await container.goalService.recomputeGoal(workspaceId, {
+                    ...after,
+                    id: goalId,
+                    startDate: toGoalDate(after.startDate) ?? new Date(),
+                    deadline: toGoalDate(after.deadline) ?? undefined,
+                    // O desfecho já gravado precisa vir junto: é ele que impede
+                    // o recálculo de carimbar um segundo desfecho por cima.
+                    outcome: resolveGoalOutcome(after),
+                    completedAt: toGoalDate(after.completedAt),
+                    failedAt: toGoalDate(after.failedAt),
+                } as GoalModel);
+            }
+            catch (e) {
+                // Recalcular é melhor-esforço: não pode impedir os badges.
+                logger.error(`[onGoalWritten] Falha ao recalcular a meta ${goalId}:`, e);
+            }
+        });
 
         await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalWritten, async () => {
             const gamificationService = container.gamificationService;
@@ -295,6 +332,92 @@ export const monthlyGamificationCron = onSchedule(
         }
         catch (e) {
             logger.error("[monthlyGamificationCron] Error processing monthly cron:", e);
+        }
+    }
+);
+
+/**
+ * Fecha, todo dia, as metas cujo prazo venceu.
+ *
+ * Sem este cron, uma meta de REDUÇÃO que atravessa o prazo dentro do teto
+ * ficaria "em andamento" para sempre: o sucesso dela não é um evento — é a
+ * AUSÊNCIA de estouro até o vencimento, e nada acontece no dia do vencimento
+ * para disparar um gatilho. O mesmo vale para a meta de acúmulo que vence sem
+ * alcançar o alvo: alguém precisa carimbar a derrota.
+ *
+ * 03:15 (America/Sao_Paulo), quinze minutos depois dos crons semanais/mensais,
+ * para não disputar leitura com eles no mesmo minuto. A varredura é a paginada
+ * com checkpoint (`forEachWorkspacePaged`), então um timeout retoma do ponto
+ * exato na execução seguinte.
+ *
+ * Idempotente: só toca metas com `outcome == null` e prazo vencido — na segunda
+ * passada elas já têm desfecho e são puladas.
+ */
+export const closeExpiredGoals = onSchedule(
+    {
+        schedule: "15 3 * * *",
+        timeZone: GAMIFICATION_TIME_ZONE,
+        ...AI_SCHEDULE_OPTIONS,
+    },
+    async () => {
+        let closedTotal = 0;
+
+        const result = await forEachWorkspacePaged(
+            {
+                checkpointKey: "close_expired_goals",
+                pageSize: CRON_PAGE_SIZE,
+                concurrency: CRON_WORKSPACE_CONCURRENCY,
+                deadlineMs: CRON_SCAN_DEADLINE_MS,
+            },
+            async (workspaceId) => {
+                const closed = await container.goalService.closeExpiredGoals(workspaceId);
+                closedTotal += closed.length;
+
+                for (const goal of closed) {
+                    // Só o desfecho de SUCESSO concede alguma coisa; as
+                    // checagens já sabem disso (`isGoalCompleted`). Passar a
+                    // meta falhada por aqui é de propósito: é o que mantém o
+                    // caminho do cron igual ao do gatilho.
+                    await container.gamificationService.checkGoalBadges(workspaceId, goal);
+                    await container.gamificationService.checkSimpleGoalBadges(workspaceId, goal);
+                }
+            }
+        );
+
+        logger.info(
+            `[closeExpiredGoals] ${result.processed} workspaces, ${closedTotal} metas fechadas, ` +
+            `${result.failed} com falha, varredura ${result.completed ? "completa" : `interrompida em ${result.lastWorkspaceId}`}.`
+        );
+    }
+);
+
+/**
+ * Publica o catálogo de badges em `config/badges` (ver
+ * `BadgeCatalogService.publishBadgeCatalog`).
+ *
+ * Por que um cron e não um gatilho: o catálogo é do PROJETO, não de um
+ * workspace — não existe evento natural para publicá-lo, e amarrá-lo à criação
+ * de workspace faria a publicação depender de um usuário novo aparecer. Um cron
+ * diário barato (uma leitura; escreve só quando o hash do catálogo muda) faz o
+ * deploy se propagar sozinho. `maxInstances: 1` porque duas execuções
+ * simultâneas não têm nada a acrescentar uma à outra.
+ *
+ * O PRIMEIRO publish (antes do cron rodar) é feito pelo script
+ * `scripts/publish_badge_catalog.ts`.
+ */
+export const publishBadgeCatalog = onSchedule(
+    {
+        schedule: "0 4 * * *",
+        timeZone: GAMIFICATION_TIME_ZONE,
+        maxInstances: 1,
+    },
+    async () => {
+        try {
+            const result = await container.badgeCatalogService.publishBadgeCatalog();
+            logger.info(`[publishBadgeCatalog] versão=${result.version} publicado=${result.published} badges=${result.badgeCount}`);
+        }
+        catch (e) {
+            logger.error("[publishBadgeCatalog] Erro ao publicar o catálogo de badges:", e);
         }
     }
 );

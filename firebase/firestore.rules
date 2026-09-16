@@ -168,20 +168,35 @@ service cloud.firestore {
       match /goals/{goalId} {
 
         function validGoal(data) {
+          // `targetAmount > 0`: alvo zero (ou negativo) não é meta — divide o
+          // cálculo de progresso e, no servidor, faz o desfecho nunca sair de
+          // "em andamento", porque toda regra de alvo exige `target > 0`.
           return isStr(data.name, 500)
             && isNum(data.targetAmount)
+            && data.targetAmount > 0
             && isNum(data.currentAmount)
             && data.deadline is timestamp
             && data.startDate is timestamp
             && data.isDeleted is bool
             && isOptStr(data, 'runtimeType', 50)
             && isOptStr(data, 'accountId', 128)
-            && isOptNum(data, 'averageSpending')
             && (!('category' in data) || data.category == null || data.category is map);
         }
 
         allow read: if isMember(workspaceId);
-        allow create, update: if isMember(workspaceId) && validGoal(request.resource.data);
+        // `outcome`, `completedAt` e `failedAt` são do SERVIDOR: ele decide se a
+        // meta terminou em sucesso ou em falha (uma meta de redução que estoura
+        // o teto FALHA) e os badges de conclusão confiam nesse veredito. O
+        // cliente não cria os campos nem os altera — o app escreve a meta com
+        // `update`, que só toca os campos enviados, então o desfecho sobrevive
+        // a uma edição.
+        allow create: if isMember(workspaceId)
+          && validGoal(request.resource.data)
+          && !request.resource.data.keys().hasAny(['outcome', 'completedAt', 'failedAt']);
+        allow update: if isMember(workspaceId)
+          && validGoal(request.resource.data)
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['outcome', 'completedAt', 'failedAt']);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }
 
@@ -396,6 +411,17 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Catálogo público de badges (nomes, ícones, XP, descrições e a tabela de
+    // XP por nível). Não é dado de usuário: é a configuração que o app lê para
+    // desenhar a vitrine, publicada pelo cron `publishBadgeCatalog`.
+    // Qualquer usuário autenticado lê; a escrita é só do servidor (Admin SDK).
+    // Os demais documentos de `config` (ai, cron_checkpoints) continuam
+    // fechados pelo `match /{document=**}` do fim do arquivo.
+    match /config/badges {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
 
     // Coleção raiz legada de ai_logs. Os logs novos vão para

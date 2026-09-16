@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
+import 'package:go_router/go_router.dart';
 
 class TeamStatusView extends ConsumerWidget {
   const TeamStatusView({super.key});
@@ -28,7 +30,9 @@ class TeamStatusView extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (mission.planningMissions.isNotEmpty) ...[
+          if (mission.planningMissions.isEmpty)
+            _EmptyParty()
+          else ...[
             _buildPartyStatusBar(context, mission),
             const SizedBox(height: 24),
             LayoutBuilder(
@@ -106,7 +110,24 @@ class TeamStatusView extends ConsumerWidget {
         ],
       ),
       loading: () => const SizedBox.shrink(),
-      error: (e, st) => const SizedBox.shrink(),
+      // Erro visível, com saída: antes o stream quebrado sumia com a seção
+      // inteira e o usuário não tinha nem o que tentar.
+      error: (e, st) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.partyTeamTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ErrorView(
+            message: l10n.partyErrorMessage,
+            onRetry: () => ref.invalidate(MissionViewProviders.mission),
+          ),
+        ],
+      ),
     );
   }
 
@@ -336,6 +357,64 @@ class TeamStatusView extends ConsumerWidget {
               valueColor: AppColors.deepTurquoise,
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Sem nenhum limite de gastos, a equipe não tem desafio para enfrentar.
+///
+/// A seção inteira sumia nesse caso — o usuário via um buraco no lugar do time
+/// e nada indicando o que fazer. Agora o vazio explica de onde vêm os desafios
+/// e leva para a tela de limites.
+class _EmptyParty extends StatelessWidget {
+  const _EmptyParty();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.deepTurquoise.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.shield_outlined,
+            size: 40,
+            color: AppColors.deepTurquoise,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.partyEmptyTitle,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.partyEmptyMessage,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: () => context.push('/planning?type=expense'),
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(l10n.partyEmptyButton),
+          ),
         ],
       ),
     );

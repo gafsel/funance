@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GoalFormState {
 
- String? get id; String get name; double get targetAmount; double get currentAmount; double get averageSpending; DateTime get startDate; DateTime get deadline; GoalType get type; CategoryModel? get category; String? get accountId;
+ String? get id; String get name; double get targetAmount; double get currentAmount; DateTime get startDate; DateTime get deadline; GoalType get type; CategoryModel? get category; String? get accountId;
 /// Create a copy of GoalFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $GoalFormStateCopyWith<GoalFormState> get copyWith => _$GoalFormStateCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GoalFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.averageSpending, averageSpending) || other.averageSpending == averageSpending)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountId, accountId) || other.accountId == accountId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GoalFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountId, accountId) || other.accountId == accountId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,averageSpending,startDate,deadline,type,category,accountId);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,startDate,deadline,type,category,accountId);
 
 @override
 String toString() {
-  return 'GoalFormState(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, averageSpending: $averageSpending, startDate: $startDate, deadline: $deadline, type: $type, category: $category, accountId: $accountId)';
+  return 'GoalFormState(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, startDate: $startDate, deadline: $deadline, type: $type, category: $category, accountId: $accountId)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $GoalFormStateCopyWith<$Res>  {
   factory $GoalFormStateCopyWith(GoalFormState value, $Res Function(GoalFormState) _then) = _$GoalFormStateCopyWithImpl;
 @useResult
 $Res call({
- String? id, String name, double targetAmount, double currentAmount, double averageSpending, DateTime startDate, DateTime deadline, GoalType type, CategoryModel? category, String? accountId
+ String? id, String name, double targetAmount, double currentAmount, DateTime startDate, DateTime deadline, GoalType type, CategoryModel? category, String? accountId
 });
 
 
@@ -62,13 +62,12 @@ class _$GoalFormStateCopyWithImpl<$Res>
 
 /// Create a copy of GoalFormState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? averageSpending = null,Object? startDate = null,Object? deadline = null,Object? type = null,Object? category = freezed,Object? accountId = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = freezed,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? startDate = null,Object? deadline = null,Object? type = null,Object? category = freezed,Object? accountId = freezed,}) {
   return _then(_self.copyWith(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,targetAmount: null == targetAmount ? _self.targetAmount : targetAmount // ignore: cast_nullable_to_non_nullable
 as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAmount // ignore: cast_nullable_to_non_nullable
-as double,averageSpending: null == averageSpending ? _self.averageSpending : averageSpending // ignore: cast_nullable_to_non_nullable
 as double,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as DateTime,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -168,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime startDate,  DateTime deadline,  GoalType type,  CategoryModel? category,  String? accountId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? id,  String name,  double targetAmount,  double currentAmount,  DateTime startDate,  DateTime deadline,  GoalType type,  CategoryModel? category,  String? accountId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GoalFormState() when $default != null:
-return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.startDate,_that.deadline,_that.type,_that.category,_that.accountId);case _:
+return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.startDate,_that.deadline,_that.type,_that.category,_that.accountId);case _:
   return orElse();
 
 }
@@ -189,10 +188,10 @@ return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime startDate,  DateTime deadline,  GoalType type,  CategoryModel? category,  String? accountId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? id,  String name,  double targetAmount,  double currentAmount,  DateTime startDate,  DateTime deadline,  GoalType type,  CategoryModel? category,  String? accountId)  $default,) {final _that = this;
 switch (_that) {
 case _GoalFormState():
-return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.startDate,_that.deadline,_that.type,_that.category,_that.accountId);}
+return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.startDate,_that.deadline,_that.type,_that.category,_that.accountId);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -206,10 +205,10 @@ return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime startDate,  DateTime deadline,  GoalType type,  CategoryModel? category,  String? accountId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? id,  String name,  double targetAmount,  double currentAmount,  DateTime startDate,  DateTime deadline,  GoalType type,  CategoryModel? category,  String? accountId)?  $default,) {final _that = this;
 switch (_that) {
 case _GoalFormState() when $default != null:
-return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.startDate,_that.deadline,_that.type,_that.category,_that.accountId);case _:
+return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.startDate,_that.deadline,_that.type,_that.category,_that.accountId);case _:
   return null;
 
 }
@@ -221,14 +220,13 @@ return $default(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that
 
 
 class _GoalFormState extends GoalFormState {
-  const _GoalFormState({this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.averageSpending, required this.startDate, required this.deadline, required this.type, this.category, this.accountId}): super._();
+  const _GoalFormState({this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.startDate, required this.deadline, required this.type, this.category, this.accountId}): super._();
   
 
 @override final  String? id;
 @override final  String name;
 @override final  double targetAmount;
 @override final  double currentAmount;
-@override final  double averageSpending;
 @override final  DateTime startDate;
 @override final  DateTime deadline;
 @override final  GoalType type;
@@ -245,16 +243,16 @@ _$GoalFormStateCopyWith<_GoalFormState> get copyWith => __$GoalFormStateCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.averageSpending, averageSpending) || other.averageSpending == averageSpending)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountId, accountId) || other.accountId == accountId));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.type, type) || other.type == type)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountId, accountId) || other.accountId == accountId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,averageSpending,startDate,deadline,type,category,accountId);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,startDate,deadline,type,category,accountId);
 
 @override
 String toString() {
-  return 'GoalFormState(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, averageSpending: $averageSpending, startDate: $startDate, deadline: $deadline, type: $type, category: $category, accountId: $accountId)';
+  return 'GoalFormState(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, startDate: $startDate, deadline: $deadline, type: $type, category: $category, accountId: $accountId)';
 }
 
 
@@ -265,7 +263,7 @@ abstract mixin class _$GoalFormStateCopyWith<$Res> implements $GoalFormStateCopy
   factory _$GoalFormStateCopyWith(_GoalFormState value, $Res Function(_GoalFormState) _then) = __$GoalFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- String? id, String name, double targetAmount, double currentAmount, double averageSpending, DateTime startDate, DateTime deadline, GoalType type, CategoryModel? category, String? accountId
+ String? id, String name, double targetAmount, double currentAmount, DateTime startDate, DateTime deadline, GoalType type, CategoryModel? category, String? accountId
 });
 
 
@@ -282,13 +280,12 @@ class __$GoalFormStateCopyWithImpl<$Res>
 
 /// Create a copy of GoalFormState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? averageSpending = null,Object? startDate = null,Object? deadline = null,Object? type = null,Object? category = freezed,Object? accountId = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = freezed,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? startDate = null,Object? deadline = null,Object? type = null,Object? category = freezed,Object? accountId = freezed,}) {
   return _then(_GoalFormState(
 id: freezed == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String?,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,targetAmount: null == targetAmount ? _self.targetAmount : targetAmount // ignore: cast_nullable_to_non_nullable
 as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAmount // ignore: cast_nullable_to_non_nullable
-as double,averageSpending: null == averageSpending ? _self.averageSpending : averageSpending // ignore: cast_nullable_to_non_nullable
 as double,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
 as DateTime,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable

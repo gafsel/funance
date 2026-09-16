@@ -149,12 +149,34 @@ describe("GamificationService", () => {
 
         it("should unlock goal badges", async () => {
             const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
-            mockRepository.getGoals.mockResolvedValue([
-                { runtimeType: "saveMoney", currentAmount: 100, targetAmount: 100 },
-            ]);
+            const concluida = {
+                runtimeType: "saveMoney", currentAmount: 100, targetAmount: 100, outcome: "success",
+            };
+            mockRepository.getGoals.mockResolvedValue([concluida]);
 
-            await service.checkGoalBadges("w1", { runtimeType: "saveMoney", currentAmount: 100, targetAmount: 100 });
+            await service.checkGoalBadges("w1", concluida);
             expect(spy).toHaveBeenCalledWith("w1", "savings_seed");
+        });
+
+        it("não concede badge de conclusão para meta de redução com o teto ESTOURADO", async () => {
+            const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+            // Valor acima do alvo — o que antes bastava para "concluir".
+            const estourada = {
+                runtimeType: "reduceExpense", currentAmount: 5000, targetAmount: 1000, outcome: "failed",
+            };
+            mockRepository.getGoals.mockResolvedValue([estourada]);
+
+            await service.checkGoalBadges("w1", estourada);
+            expect(spy).not.toHaveBeenCalled();
+        });
+
+        it("não concede badge de conclusão para meta sem desfecho, mesmo com o alvo alcançado", async () => {
+            const spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+            const semDesfecho = { runtimeType: "saveMoney", currentAmount: 100, targetAmount: 100 };
+            mockRepository.getGoals.mockResolvedValue([semDesfecho]);
+
+            await service.checkGoalBadges("w1", semDesfecho);
+            expect(spy).not.toHaveBeenCalled();
         });
     });
 
@@ -758,6 +780,7 @@ describe("F2.1 — tipo de meta lido do campo realmente persistido (runtimeType)
             runtimeType: "payDebt",
             currentAmount: 5000,
             targetAmount: 5000,
+            outcome: "success",
         });
 
         expect(spy.mock.calls.map((c) => c[1])).toContain("goal_debt_paid");
@@ -768,6 +791,7 @@ describe("F2.1 — tipo de meta lido do campo realmente persistido (runtimeType)
             type: "payDebt",
             currentAmount: 5000,
             targetAmount: 5000,
+            outcome: "success",
         });
 
         expect(spy.mock.calls.map((c) => c[1])).toContain("goal_debt_paid");
@@ -778,6 +802,7 @@ describe("F2.1 — tipo de meta lido do campo realmente persistido (runtimeType)
             runtimeType: "saveMoney",
             currentAmount: 5000,
             targetAmount: 5000,
+            outcome: "success",
         });
 
         expect(spy.mock.calls.map((c) => c[1])).not.toContain("goal_debt_paid");
@@ -878,17 +903,78 @@ describe("QA — categorias de sistema ficam fora das avaliações de badge", ()
     });
 });
 
+describe("QA — badges de PROGRESSO não premiam gasto de meta de redução", () => {
+    let service: GamificationService;
+    let spy: jest.SpyInstance;
+
+    const granted = () => spy.mock.calls.map((c) => c[1]);
+
+    const goal = (over: Partial<any> = {}) => ({
+        id: "g1",
+        name: "Teto do mercado",
+        runtimeType: "reduceExpense",
+        targetAmount: 1000,
+        currentAmount: 800,
+        category: { id: "cat1" },
+        startDate: new Date("2026-01-01T12:00:00.000"),
+        deadline: new Date("2026-12-31T12:00:00.000"),
+        isDeleted: false,
+        ...over,
+    });
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        mockRepository.getWorkspaceById.mockResolvedValue({ unlockedBadges: {} });
+        mockRepository.getGoals.mockResolvedValue([]);
+    });
+
+    it("meta de redução com 80% do teto consumido não ganha goal_halfway nem goal_75pct", async () => {
+        await service.checkSimpleGoalBadges("w1", goal());
+
+        expect(granted()).not.toContain("goal_halfway");
+        expect(granted()).not.toContain("goal_75pct");
+    });
+
+    it("meta de redução com gasto > 0 não ganha goal_deposit nem savings_start", async () => {
+        await service.checkSimpleGoalBadges("w1", goal({ currentAmount: 1 }));
+
+        expect(granted()).not.toContain("goal_deposit");
+        expect(granted()).not.toContain("savings_start");
+    });
+
+    it("a mesma progressão numa meta de ACÚMULO continua concedendo", async () => {
+        await service.checkSimpleGoalBadges("w1", goal({
+            runtimeType: "saveMoney",
+            accountId: "acc1",
+            category: undefined,
+        }));
+
+        const badges = granted();
+        expect(badges).toContain("goal_halfway");
+        expect(badges).toContain("goal_75pct");
+        expect(badges).toContain("goal_deposit");
+        expect(badges).toContain("savings_start");
+    });
+});
+
 describe("QA — badges de meta usam os campos reais do documento (startDate/deadline)", () => {
     let service: GamificationService;
     let spy: jest.SpyInstance;
 
-    /** Documento de meta no formato real: sem createdAt/completedAt/targetDate. */
+    /**
+     * Documento de meta no formato real: sem createdAt/targetDate. Concluída
+     * COM SUCESSO (`outcome`), que é o que libera os badges de conclusão — o
+     * valor igual ao alvo, sozinho, não conclui nada.
+     */
     const goal = (over: Partial<any> = {}) => ({
         id: "g1",
         name: "Meta",
         runtimeType: "saveMoney",
         targetAmount: 1000,
         currentAmount: 1000,
+        outcome: "success",
         accountId: "acc1",
         startDate: new Date("2026-01-01T12:00:00.000"),
         deadline: new Date("2026-12-31T12:00:00.000"),

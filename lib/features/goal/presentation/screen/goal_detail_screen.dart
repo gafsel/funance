@@ -183,6 +183,25 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                           label: progress.getStatusText(l10n),
                           backgroundColor: progress.getStatusColor(context),
                         ),
+                        // Carimbo do servidor: só existe depois que a meta
+                        // alcançou o alvo pela primeira vez.
+                        if (goal.isClosed)
+                          DetailHeaderChip(
+                            icon: goal.outcomeIcon,
+                            label:
+                                goal.outcomeLabel(
+                                  l10n,
+                                  (date) => DateFormat.yMMMd(
+                                    context.locale,
+                                  ).format(date),
+                                ) ??
+                                '',
+                            backgroundColor: goal.outcome == null
+                                ? AppColors.antiqueGold
+                                : (goal.isCompleted
+                                      ? AppColors.limeGreen
+                                      : AppColors.error),
+                          ),
                       ],
                       actions: [
                         DetailHeaderAction(
@@ -215,7 +234,8 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  l10n.goalCurrentAmountLabel,
+                                  '${goal.amountLabel(l10n)}: '
+                                  '${goal.currentAmount.asCurrency(locale: context.locale)}',
                                   style: theme.textTheme.labelMedium?.copyWith(
                                     color: AppColors.pureWhite
                                         .withValues(alpha: 0.9),

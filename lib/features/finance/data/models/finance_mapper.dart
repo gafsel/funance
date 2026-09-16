@@ -256,7 +256,6 @@ class FinanceMapper {
               : DateTime.now().add(Duration(days: deadlineMonths * 30)),
           accountId: json['accountId']?.toString() ?? "",
           startDate: _toDateTime(json['startDate']),
-          averageSpending: _toDouble(json['averageSpending']),
           isDeleted: json['isDeleted'] == true,
         );
       case GoalType.reduceExpense:
@@ -270,7 +269,6 @@ class FinanceMapper {
               : DateTime.now().add(Duration(days: deadlineMonths * 30)),
           category: _toCategory(json['category']),
           startDate: _toDateTime(json['startDate']),
-          averageSpending: _toDouble(json['averageSpending']),
           isDeleted: json['isDeleted'] == true,
         );
     }
