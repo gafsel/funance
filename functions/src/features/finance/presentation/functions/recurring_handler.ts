@@ -34,6 +34,30 @@ export const generateRecurringInstallments = onSchedule(
     }
 );
 
+/**
+ * F1.9 — reafirma `currentWeekId`/`currentWeekStart` em todos os workspaces.
+ *
+ * Roda no DOMINGO de madrugada, logo depois da virada da semana no fuso do
+ * produto, para que o cliente leia a semana corrente do servidor em vez de
+ * calculá-la. Fora do cron, o marcador também é reafirmado sob demanda por
+ * qualquer handler que mexa em dado semanal (ver `WeekSyncService`).
+ */
+export const syncWorkspaceCurrentWeek = onSchedule(
+    {
+        schedule: "10 0 * * 0",
+        timeZone: FINANCE_CRON_TIME_ZONE,
+    },
+    async () => {
+        try {
+            const result = await container.weekSyncService.syncAllWorkspaces();
+            console.log(`Semana corrente sincronizada: ${result.updated} de ${result.scanned} workspaces atualizados.`);
+        }
+        catch (error) {
+            console.error("Erro ao sincronizar a semana corrente dos workspaces:", error);
+        }
+    }
+);
+
 export const generateCategoryPlanningSummaries = onSchedule(
     {
         // Todo dia 1 do mês, à meia-noite de Brasília.

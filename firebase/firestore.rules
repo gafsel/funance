@@ -67,6 +67,10 @@ service cloud.firestore {
       // via Cloud Function onInviteStatusChanged com Admin SDK, que ignora rules).
       // Campos de gamificação (xp, level, unlockedBadges, weeklyStreaks,
       // lastLevelUpAt) são escritos apenas por Cloud Functions.
+      // F1.9: 'currentWeekId'/'currentWeekStart'/'currentWeekUpdatedAt' também são
+      // exclusivos do servidor (WeekSyncService) — o cliente LÊ a semana corrente
+      // em vez de calculá-la. Como a lista de affectedKeys abaixo é fechada
+      // (hasOnly), qualquer escrita do cliente nesses campos já é negada.
       // 'createdAt' permitido apenas porque o fluxo de onboarding reescreve o doc
       // inteiro com um timestamp gerado no cliente logo após a criação.
       allow update: if request.auth != null

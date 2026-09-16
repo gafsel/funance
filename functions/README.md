@@ -230,12 +230,75 @@ propósito para a cobrança contar como não planejada. É por isso que o total 
 order usa `referenceAmount` nas pagas: é o único campo que vale o realizado nos
 dois casos.
 
+## Semana: uma definição só (F1.9)
+
+O id de semana `YYYY-Www` aparece em três lugares (`weekly_xp`,
+`period_summaries` semanais e `weekly_missions`) e antes era calculado por três
+aritméticas diferentes — duas em UTC (uma cópia privada dentro de
+`finance.service.ts` e `core/utils/week.utils.ts`) e uma em `America/Sao_Paulo`
+(`gamification_time.util.ts`). Um pagamento feito **sábado às 21h em São Paulo**
+já é domingo em UTC: o XP caía numa semana e a missão em outra.
+
+Agora existe **uma** implementação:
+
+| Arquivo | Papel |
+|---------|-------|
+| `core/utils/timezone.utils.ts` | aritmética de calendário no fuso do produto (`PRODUCT_TIME_ZONE = America/Sao_Paulo`) — dia, mês, DST |
+| `core/utils/week.utils.ts` | **única** definição de semana: `getWeekStart`, `getWeekRef`, `getWeekId`, `formatWeekId`, `weekStartFromRef` |
+| `features/goal/domain/services/gamification_time.util.ts` | só reexporta os dois acima (mantido para não quebrar importações) |
+
+Regra: a semana começa no **domingo 00:00 no fuso do produto**; o número é o
+legado (`floor(diaDoAno(domingo) / 7) + 1`) e o ano é o **do domingo** que
+inicia a semana — é isso que decide a virada de ano.
+
+### Vetor de teste compartilhado com o app
+
+`src/test/fixtures/week_vectors.json` lista instantes de borda (sábado 21h em SP
+= domingo 00h UTC, viradas de ano, 1º de janeiro que cai num domingo, 29 de
+fevereiro, entradas/saídas do antigo horário de verão) com o id esperado. Ele foi
+gerado fora do TypeScript, de propósito, para não validar a implementação contra
+ela mesma. `src/test/week_utils.test.ts` lê o arquivo e cobre todos os casos.
+
+> **O cliente Dart deve passar no mesmo vetor.** A parte Dart é de outro pacote
+> de trabalho; o arquivo JSON é o contrato entre os dois.
+
+### Enquanto o app ainda calcula: `currentWeekId` no workspace
+
+Para tirar a decisão do cliente, o servidor grava no documento do workspace:
+
+| Campo | Tipo | Semântica |
+|-------|------|-----------|
+| `currentWeekId` | string | `YYYY-Www` da semana corrente (mesma regra de `weekly_xp`) |
+| `currentWeekStart` | Timestamp | domingo 00:00 no fuso do produto |
+| `currentWeekUpdatedAt` | Timestamp | quando o marcador foi reafirmado |
+
+Quem escreve é `core/services/week_sync.service.ts`, por dois caminhos:
+
+1. o cron `syncWorkspaceCurrentWeek` (**domingo, 00:10 de Brasília**), que
+   varre os workspaces paginando por id e só escreve nos que estão atrasados;
+2. sob demanda: todo handler que mexe em XP semanal chama `ensureCurrentWeek`,
+   que tem memória por instância (uma leitura por workspace por semana) e
+   **nunca cria** o documento do workspace.
+
+Os três campos são exclusivos do servidor — o `allow update` do workspace usa
+`affectedKeys().hasOnly([...])` com uma lista fechada que não os inclui.
+
+### Migração dos ids antigos
+
+Os documentos `period_summaries/{YYYY-Www}` e `weekly_xp/{YYYY-Www}` gravados
+com a regra antiga (UTC) podem estar no id errado quando o movimento caiu no
+sábado à noite. Não há script dedicado: **o `rebuild_workspace.ts` já
+reconstrói as duas coleções com a regra nova** — rode o dry-run, revise o diff
+(ele mostra `criar 2026-W37` / `apagar 2026-W36`, por exemplo) e só então
+aplique. Nada disso foi executado contra o projeto real.
+
 ## Crons de manutenção
 
 | Function                            | Agendamento               | Fuso              |
 |-------------------------------------|---------------------------|-------------------|
 | `generateRecurringInstallments`     | `30 3 * * *` (diário)     | `America/Sao_Paulo` |
 | `generateCategoryPlanningSummaries` | `0 0 1 * *` (dia 1)       | `America/Sao_Paulo` |
+| `syncWorkspaceCurrentWeek`          | `10 0 * * 0` (domingo)    | `America/Sao_Paulo` |
 | `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
 | `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
 

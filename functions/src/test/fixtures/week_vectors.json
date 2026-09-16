@@ -1,0 +1,120 @@
+{
+  "$comment": [
+    "F1.9 - vetor compartilhado da definicao unica de semana.",
+    "Regra: a semana comeca no DOMINGO 00:00 em America/Sao_Paulo; o numero da semana e",
+    "floor(diaDoAno(domingoInicial) / 7) + 1 e o ano e o do domingo inicial.",
+    "O servidor (core/utils/week.utils.ts) e o cliente Dart DEVEM produzir estes mesmos ids.",
+    "Gerado de forma independente (zoneinfo) para nao validar a implementacao contra ela mesma."
+  ],
+  "timeZone": "America/Sao_Paulo",
+  "cases": [
+    {
+      "label": "sabado 21h30 em Sao Paulo ja e domingo em UTC: a semana ainda e a anterior",
+      "utc": "2026-09-13T00:30:00.000Z",
+      "saoPauloLocal": "2026-09-12 21:30:00",
+      "expectedYear": 2026,
+      "expectedWeek": 36,
+      "expectedWeekId": "2026-W36",
+      "expectedWeekStartUtc": "2026-09-06T03:00:00.000Z"
+    },
+    {
+      "label": "domingo 00h30 em Sao Paulo: primeira hora da semana nova",
+      "utc": "2026-09-13T03:30:00.000Z",
+      "saoPauloLocal": "2026-09-13 00:30:00",
+      "expectedYear": 2026,
+      "expectedWeek": 37,
+      "expectedWeekId": "2026-W37",
+      "expectedWeekStartUtc": "2026-09-13T03:00:00.000Z"
+    },
+    {
+      "label": "ultimo instante do sabado em Sao Paulo",
+      "utc": "2026-09-13T02:59:59.000Z",
+      "saoPauloLocal": "2026-09-12 23:59:59",
+      "expectedYear": 2026,
+      "expectedWeek": 36,
+      "expectedWeekId": "2026-W36",
+      "expectedWeekStartUtc": "2026-09-06T03:00:00.000Z"
+    },
+    {
+      "label": "virada exata da semana (domingo 00h00 local)",
+      "utc": "2026-09-13T03:00:00.000Z",
+      "saoPauloLocal": "2026-09-13 00:00:00",
+      "expectedYear": 2026,
+      "expectedWeek": 37,
+      "expectedWeekId": "2026-W37",
+      "expectedWeekStartUtc": "2026-09-13T03:00:00.000Z"
+    },
+    {
+      "label": "1o de janeiro numa quinta: a semana pertence a 2025",
+      "utc": "2026-01-01T12:00:00.000Z",
+      "saoPauloLocal": "2026-01-01 09:00:00",
+      "expectedYear": 2025,
+      "expectedWeek": 52,
+      "expectedWeekId": "2025-W52",
+      "expectedWeekStartUtc": "2025-12-28T03:00:00.000Z"
+    },
+    {
+      "label": "ultimo dia de 2025, mesma semana do 1o de janeiro de 2026",
+      "utc": "2026-01-01T02:00:00.000Z",
+      "saoPauloLocal": "2025-12-31 23:00:00",
+      "expectedYear": 2025,
+      "expectedWeek": 52,
+      "expectedWeekId": "2025-W52",
+      "expectedWeekStartUtc": "2025-12-28T03:00:00.000Z"
+    },
+    {
+      "label": "1o de janeiro que cai num domingo: semana 1 cheia",
+      "utc": "2023-01-01T13:00:00.000Z",
+      "saoPauloLocal": "2023-01-01 10:00:00",
+      "expectedYear": 2023,
+      "expectedWeek": 1,
+      "expectedWeekId": "2023-W01",
+      "expectedWeekStartUtc": "2023-01-01T03:00:00.000Z"
+    },
+    {
+      "label": "sabado 31/12/2022: ultima semana de 2022",
+      "utc": "2023-01-01T01:00:00.000Z",
+      "saoPauloLocal": "2022-12-31 22:00:00",
+      "expectedYear": 2022,
+      "expectedWeek": 52,
+      "expectedWeekId": "2022-W52",
+      "expectedWeekStartUtc": "2022-12-25T03:00:00.000Z"
+    },
+    {
+      "label": "29 de fevereiro de ano bissexto",
+      "utc": "2024-02-29T15:00:00.000Z",
+      "saoPauloLocal": "2024-02-29 12:00:00",
+      "expectedYear": 2024,
+      "expectedWeek": 8,
+      "expectedWeekId": "2024-W08",
+      "expectedWeekStartUtc": "2024-02-25T03:00:00.000Z"
+    },
+    {
+      "label": "sabado 23h30 durante o horario de verao (UTC-2)",
+      "utc": "2018-02-18T01:30:00.000Z",
+      "saoPauloLocal": "2018-02-17 23:30:00",
+      "expectedYear": 2018,
+      "expectedWeek": 6,
+      "expectedWeekId": "2018-W06",
+      "expectedWeekStartUtc": "2018-02-11T02:00:00.000Z"
+    },
+    {
+      "label": "domingo da entrada do horario de verao de 2018",
+      "utc": "2018-11-04T03:00:00.000Z",
+      "saoPauloLocal": "2018-11-04 01:00:00",
+      "expectedYear": 2018,
+      "expectedWeek": 44,
+      "expectedWeekId": "2018-W44",
+      "expectedWeekStartUtc": "2018-11-04T03:00:00.000Z"
+    },
+    {
+      "label": "31/12/2026 a noite: semana ja e a 53a de 2026",
+      "utc": "2027-01-01T00:00:00.000Z",
+      "saoPauloLocal": "2026-12-31 21:00:00",
+      "expectedYear": 2026,
+      "expectedWeek": 52,
+      "expectedWeekId": "2026-W52",
+      "expectedWeekStartUtc": "2026-12-27T03:00:00.000Z"
+    }
+  ]
+}
