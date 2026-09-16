@@ -12,6 +12,7 @@ const mockDb = {
     path: [] as string[],
     setCalls: [] as { data: any; options: any }[],
     transactions: 0,
+    throwOnTransaction: false,
 };
 
 jest.mock("firebase-admin", () => {
@@ -29,6 +30,9 @@ jest.mock("firebase-admin", () => {
         collection: ref.collection,
         runTransaction: async (fn: any) => {
             mockDb.transactions++;
+            if (mockDb.throwOnTransaction) {
+                throw new Error("firestore indisponível");
+            }
             return fn({
                 get: async () => ({
                     exists: mockDb.docData !== undefined,
@@ -44,6 +48,7 @@ jest.mock("firebase-admin", () => {
         increment: (n: number) => ({ __increment: n }),
         serverTimestamp: () => ({ __serverTimestamp: true }),
     };
+    firestore.Timestamp = { fromDate: (d: Date) => ({ __millis: d.getTime() }) };
 
     return { firestore };
 });
@@ -52,11 +57,14 @@ jest.mock("firebase-admin", () => {
 // eslint-disable-next-line import/first
 import { QuotaServiceImpl, quotaDayKey } from "../core/services/quota.service";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 function resetDb() {
     mockDb.docData = undefined;
     mockDb.path = [];
     mockDb.setCalls = [];
     mockDb.transactions = 0;
+    mockDb.throwOnTransaction = false;
 }
 
 describe("quotaDayKey", () => {
@@ -149,10 +157,36 @@ describe("QuotaServiceImpl.assertQuota", () => {
         await expect(service.assertQuota("w1", "analysePlanning", 5)).rejects.toBeInstanceOf(HttpsError);
     });
 
-    it("trata valor não numérico gravado no campo como zero", async () => {
+    it("trata campo ausente/nulo como zero", async () => {
         mockDb.docData = { generateCoaching: null };
 
         await expect(service.assertQuota("w1", "generateCoaching", 3)).resolves.toBeUndefined();
+    });
+
+    it("falha fechado quando o contador está corrompido (NaN não libera a chamada)", async () => {
+        mockDb.docData = { generateCoaching: "muitos" };
+
+        await expect(service.assertQuota("w1", "generateCoaching", 3)).rejects.toMatchObject({
+            code: "resource-exhausted",
+        });
+        expect(mockDb.setCalls).toHaveLength(0);
+    });
+
+    it("grava createdAt e expiresAt (~90 dias) só na criação do documento do dia", async () => {
+        const before = Date.now();
+
+        // Documento ainda não existe: recebe createdAt/expiresAt.
+        await service.assertQuota("w1", "generateCoaching", 3);
+        const created = mockDb.setCalls[0].data;
+        expect(created.createdAt).toEqual({ __serverTimestamp: true });
+        expect(created.expiresAt.__millis - before).toBeGreaterThanOrEqual(90 * DAY_MS - 5000);
+        expect(created.expiresAt.__millis - before).toBeLessThanOrEqual(90 * DAY_MS + 5000);
+
+        // Documento já existe: expiresAt não desliza a cada incremento.
+        mockDb.docData = { generateCoaching: 1 };
+        await service.assertQuota("w1", "generateCoaching", 3);
+        expect(mockDb.setCalls[1].data.expiresAt).toBeUndefined();
+        expect(mockDb.setCalls[1].data.createdAt).toBeUndefined();
     });
 
     it("bloqueia sem gravar quando o limite configurado é zero", async () => {
@@ -167,5 +201,70 @@ describe("QuotaServiceImpl.assertQuota", () => {
         await expect(service.assertQuota("", "generateCoaching", 3)).rejects.toMatchObject({
             code: "invalid-argument",
         });
+    });
+});
+
+describe("QuotaServiceImpl.refundQuota", () => {
+    const service = new QuotaServiceImpl();
+
+    beforeEach(() => {
+        resetDb();
+    });
+
+    it("devolve uma unidade ao contador da função", async () => {
+        mockDb.docData = { generateCoaching: 2 };
+
+        await service.refundQuota("w1", "generateCoaching");
+
+        expect(mockDb.setCalls).toHaveLength(1);
+        expect(mockDb.setCalls[0].data.generateCoaching).toEqual({ __increment: -1 });
+        expect(mockDb.setCalls[0].options).toEqual({ merge: true });
+    });
+
+    it("não grava quando o documento do dia não existe", async () => {
+        await service.refundQuota("w1", "generateCoaching");
+
+        expect(mockDb.setCalls).toHaveLength(0);
+    });
+
+    it("nunca deixa o contador negativo", async () => {
+        mockDb.docData = { generateCoaching: 0 };
+
+        await service.refundQuota("w1", "generateCoaching");
+
+        expect(mockDb.setCalls).toHaveLength(0);
+    });
+
+    it("não lança quando o Firestore falha (não pode mascarar o erro da IA)", async () => {
+        mockDb.docData = { generateCoaching: 1 };
+        mockDb.throwOnTransaction = true;
+
+        await expect(service.refundQuota("w1", "generateCoaching")).resolves.toBeUndefined();
+    });
+});
+
+describe("QuotaServiceImpl.guardFor", () => {
+    const service = new QuotaServiceImpl();
+
+    beforeEach(() => {
+        resetDb();
+    });
+
+    it("consume() incrementa e refund() estorna o mesmo campo", async () => {
+        const guard = service.guardFor("w1", "analyze503020Ideal", 3);
+
+        await guard.consume();
+        expect(mockDb.setCalls[0].data.analyze503020Ideal).toEqual({ __increment: 1 });
+
+        mockDb.docData = { analyze503020Ideal: 1 };
+        await guard.refund();
+        expect(mockDb.setCalls[1].data.analyze503020Ideal).toEqual({ __increment: -1 });
+    });
+
+    it("consume() propaga resource-exhausted quando o limite estourou", async () => {
+        mockDb.docData = { analyze503020Ideal: 3 };
+        const guard = service.guardFor("w1", "analyze503020Ideal", 3);
+
+        await expect(guard.consume()).rejects.toMatchObject({ code: "resource-exhausted" });
     });
 });

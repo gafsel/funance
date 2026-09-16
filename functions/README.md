@@ -36,6 +36,22 @@ cada callable de IA. O contador fica em
 `HttpsError("resource-exhausted")`. Os limites estão em
 `src/core/config/quota.config.ts`.
 
+Duas regras importantes:
+
+- **A cota só é consumida quando a IA é realmente chamada.** Nas funções com
+  cache server-side (`generateCoaching`, 5 dias; `analyze503020Ideal`, 3 dias)
+  o handler não chama `assertQuota`: ele monta um `QuotaGuard` e passa para o
+  serviço, que faz `consume()` imediatamente antes de invocar o Gemini.
+  Reabrir um insight/análise já existente não gasta nada.
+- **Falha de infraestrutura é estornada.** Se o Gemini responder 5xx/429 ou
+  der timeout, o serviço chama `refund()` e a unidade volta. Resposta inválida
+  ou erro de validação **não** gera estorno — ver `isTransientAiError` em
+  `src/core/services/ai.service.ts`.
+
+O documento de quota também recebe `createdAt` e `expiresAt` (criação + 90
+dias) na primeira escrita do dia, para ser recolhido pela mesma política de
+TTL descrita abaixo.
+
 ## Logs de IA (`ai_logs`) e TTL
 
 Cada chamada ao Gemini grava um documento de **metadados** em
@@ -52,12 +68,17 @@ ser `createdAt + 7 dias` em vez de `createdAt + 90 dias`.
 ### Ativar a política de TTL (executar uma vez, manualmente)
 
 O campo `expiresAt` só apaga documentos depois que a política de TTL estiver
-ativa na coleção. Como `ai_logs` é uma subcoleção, a política é criada sobre o
-**grupo de coleções**:
+ativa na coleção. Como `ai_logs` e `quotas` são subcoleções, a política é
+criada sobre o **grupo de coleções** — uma por grupo:
 
 ```bash
 gcloud firestore fields ttls update expiresAt \
   --collection-group=ai_logs \
+  --project=funance-cef1b \
+  --enable-ttl
+
+gcloud firestore fields ttls update expiresAt \
+  --collection-group=quotas \
   --project=funance-cef1b \
   --enable-ttl
 ```

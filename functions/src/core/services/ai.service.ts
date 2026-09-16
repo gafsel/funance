@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, ResponseSchema, SchemaType } from "@google/generative-ai";
 import { defineString } from "firebase-functions/params";
+import { HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
 import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../features/finance/domain/models/finance.models";
@@ -174,6 +175,30 @@ function parseAIJson(text: string): any {
         }
         throw new Error("A resposta da IA não contém JSON válido.");
     }
+}
+
+// Falhas de INFRAESTRUTURA do Gemini: indisponibilidade, throttling e rede.
+// Não incluem 4xx de payload (400/403/404), que são erro nosso ou do dado.
+const TRANSIENT_AI_STATUS = [408, 429, 500, 502, 503, 504];
+const TRANSIENT_AI_CODES = ["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN", "ENOTFOUND", "EPIPE"];
+const TRANSIENT_AI_MESSAGE = /timeout|timed out|socket hang up|network error|fetch failed/i;
+
+/**
+ * Indica se o erro veio de indisponibilidade do Gemini (e não de uma resposta
+ * inválida ou de um payload ruim). Usado para decidir se a cota do usuário
+ * deve ser estornada: ele não pode pagar por um 503 nosso.
+ */
+export function isTransientAiError(error: any): boolean {
+    if (!error) return false;
+    // Erros de negócio/validação já viraram HttpsError — nunca são infra.
+    if (error instanceof HttpsError) return false;
+
+    const status = Number(error?.status);
+    if (Number.isFinite(status) && TRANSIENT_AI_STATUS.includes(status)) return true;
+
+    if (typeof error?.code === "string" && TRANSIENT_AI_CODES.includes(error.code)) return true;
+
+    return TRANSIENT_AI_MESSAGE.test(String(error?.message || ""));
 }
 
 export interface IAIRepository {

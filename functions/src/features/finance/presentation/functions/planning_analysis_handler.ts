@@ -18,10 +18,15 @@ export const analyze503020Ideal = onCall(AI_CALLABLE_OPTIONS_SHORT, async (reque
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
-    await container.quotaService.assertQuota(workspaceId, "analyze503020Ideal", AI_DAILY_QUOTAS.analyze503020Ideal);
+
+    // A cota não é consumida aqui: o serviço tem cache de 3 dias e só gasta
+    // cota quando realmente chama a IA (ver PlanningAnalysisService.analyze).
+    const quota = container.quotaService.guardFor(
+        workspaceId, "analyze503020Ideal", AI_DAILY_QUOTAS.analyze503020Ideal
+    );
 
     try {
-        const analysis = await container.planningAnalysisService.analyze(workspaceId);
+        const analysis = await container.planningAnalysisService.analyze(workspaceId, quota);
         return analysis;
     }
     catch (error: any) {

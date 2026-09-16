@@ -3,7 +3,8 @@ import { IFinanceRepository } from "../../../finance/domain/repositories/finance
 import { IGoalRepository } from "../../../goal/domain/repositories/goal.repository";
 import { ICategoryRepository } from "../../../workspace/domain/repositories/category.repository";
 import { IWorkspaceRepository } from "../../../workspace/domain/repositories/workspace.repository";
-import { IAIRepository } from "../../../../core/services/ai.service";
+import { IAIRepository, isTransientAiError } from "../../../../core/services/ai.service";
+import { QuotaGuard } from "../../../../core/services/quota.service";
 import { InstallmentStatus, InstallmentType, OrderType } from "../../../finance/domain/models/finance.models";
 import {
     CategoryModel,
@@ -42,6 +43,7 @@ const DEFAULT_SLIDE_TITLE = "Insight Financeiro";
 
 // Se já existe um insight com menos de 5 dias, retornamos ele sem chamar a IA
 // (a UI considera deprecated a partir de 7 dias; 5 dias dá margem).
+// Reabrir um insight já existente NÃO consome cota.
 const CACHE_MAX_AGE_DAYS = 5;
 
 // Limite de categorias enviadas no categoryProfile (mantém o custo do prompt razoável)
@@ -60,7 +62,12 @@ export class CoachingService {
         this.categoryGroupService = new CategoryGroupService(financeRepository, aiRepository);
     }
 
-    async generateCoaching(workspaceId: string): Promise<any> {
+    /**
+     * @param quota cota diária do chamador. Só é consumida em cache-miss,
+     *              imediatamente antes da chamada à IA. O cron de coaching
+     *              proativo chama sem cota (é uso server-side, não do usuário).
+     */
+    async generateCoaching(workspaceId: string, quota?: QuotaGuard): Promise<any> {
         const now = new Date();
 
         // 0. Contexto anterior (também usado como cache/rate-limit)
@@ -161,14 +168,27 @@ export class CoachingService {
             ...advancedContext,
         };
 
-        const coachingResponse = await this.aiRepository.generateCoachingSlides(
-            workspaceId,
-            workspaceType,
-            financialData,
-            forecasts,
-            goalsData,
-            previousContext
-        );
+        // A cota é consumida AQUI: é o único ponto em que o Gemini é chamado
+        // de fato. Se a falha for de infraestrutura, estorna.
+        await quota?.consume();
+
+        let coachingResponse: any;
+        try {
+            coachingResponse = await this.aiRepository.generateCoachingSlides(
+                workspaceId,
+                workspaceType,
+                financialData,
+                forecasts,
+                goalsData,
+                previousContext
+            );
+        }
+        catch (error) {
+            if (isTransientAiError(error)) {
+                await quota?.refund();
+            }
+            throw error;
+        }
 
         // 8. Validação server-side do payload gerado pela IA
         const validated = this.validateCoachingResponse(coachingResponse);

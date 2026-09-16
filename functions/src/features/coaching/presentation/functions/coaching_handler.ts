@@ -16,10 +16,15 @@ export const generateCoaching = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
-    await container.quotaService.assertQuota(workspaceId, "generateCoaching", AI_DAILY_QUOTAS.generateCoaching);
+
+    // A cota não é consumida aqui: o serviço tem cache de 5 dias e só gasta
+    // cota quando realmente chama a IA (ver CoachingService.generateCoaching).
+    const quota = container.quotaService.guardFor(
+        workspaceId, "generateCoaching", AI_DAILY_QUOTAS.generateCoaching
+    );
 
     try {
-        const coaching = await container.coachingService.generateCoaching(workspaceId);
+        const coaching = await container.coachingService.generateCoaching(workspaceId, quota);
         return coaching;
     }
     catch (error: any) {
