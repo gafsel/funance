@@ -168,8 +168,11 @@ Regras comuns a todos os validadores:
 - **Texto é truncado** (120 para nomes, 500 para texto livre), não descartado,
   a menos que fique vazio.
 - **Número precisa ser finito.** Valor de lançamento é sempre POSITIVO (o sinal
-  vive no `type`); saldo de conta pode ser negativo (dívida). Sem `type`
-  válido, o sinal do valor cru decide — é o padrão do OFX.
+  vive no `type`); saldo de conta pode ser negativo (dívida).
+- **Lançamento sem `type` válido é descartado**, nunca adivinhado. O caso
+  perigoso é o valor positivo sem `type`: assumir `income` transformaria uma
+  compra em receita no extrato do usuário, calado. `type` é obrigatório nos
+  schemas, então a resposta sem ele já está fora do contrato.
 - **Data é normalizada para `YYYY-MM-DD`**, aceitando ISO completo e
   `DD/MM/YYYY`; data inexistente (2026-02-30) ou ano fora de 1970–2100 descarta
   o item.
@@ -188,7 +191,8 @@ template.
 ### Contrato com o cliente Flutter
 
 - `analyzeReconciliationDocument` devolve `transactions[].date` sempre como
-  `YYYY-MM-DD` (antes podia vir um ISO completo no fallback).
+  `YYYY-MM-DD` (antes podia vir um ISO completo no fallback). Transação sem
+  `type` é omitida da lista em vez de chegar ao app classificada como receita.
 - `automatic_transactions.suggestedCategory.id` é `""` quando a IA sugeriu uma
   categoria NOVA (antes vinha o placeholder do prompt,
   `"id-existente-se-houver"`, ou um id inventado). `categoryId` só é gravado

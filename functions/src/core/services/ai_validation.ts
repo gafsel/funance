@@ -386,10 +386,13 @@ function validateDocumentOrder(
     const dueDate = isoDate(raw.dueDate ?? raw.date);
     if (!dueDate) return discards.drop(`lançamento "${description}" com data inválida`);
 
-    // Sem type explícito, o sinal do valor cru decide (padrão OFX).
-    const rawAmount = finiteNumber(raw.amount);
-    const type = enumValue(raw.type, ORDER_TYPES)
-        ?? (rawAmount !== null && rawAmount < 0 ? "expense" : "income");
+    // Sem `type` válido o item é DESCARTADO. Inferir pelo sinal parecia
+    // esperto, mas o caso perigoso é justamente o valor positivo sem type:
+    // assumir "income" transforma uma compra em receita no extrato do
+    // usuário, calado. `type` é obrigatório nos dois schemas, então uma
+    // resposta sem ele já é resposta fora do contrato.
+    const type = enumValue(raw.type, ORDER_TYPES);
+    if (!type) return discards.drop(`lançamento "${description}" sem type válido`);
 
     const installmentType = enumValue(raw.installmentType, INSTALLMENT_TYPES) ?? "single";
     const installmentCount = installmentType === "single"
@@ -526,9 +529,13 @@ export function validateReconciliation(
             continue;
         }
 
-        const numericAmount = finiteNumber(rawAmount);
-        const type = enumValue(item.type, ORDER_TYPES)
-            ?? (numericAmount !== null && numericAmount < 0 ? "expense" : "income");
+        // Mesma regra do lançamento de documento: sem `type` válido,
+        // descarta. Assumir "income" inverteria o sinal de um gasto.
+        const type = enumValue(item.type, ORDER_TYPES);
+        if (!type) {
+            discards.drop(`transação "${description}" sem type válido`);
+            continue;
+        }
 
         transactions.push({
             description,

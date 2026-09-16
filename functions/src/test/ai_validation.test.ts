@@ -207,15 +207,26 @@ describe("validateDocumentAnalysis", () => {
         expect(result.orders[0].description).toBe(validOrder.description);
     });
 
-    it("cai para os padrões quando os enums vêm inválidos", () => {
+    it("enum inválido na conta vira null; installmentType inválido cai em single", () => {
         const result = validateDocumentAnalysis({
             account: { ...validAccount, runtimeType: "conta_magica" },
-            orders: [{ ...validOrder, type: "transferencia", installmentType: "eterna" }],
+            orders: [{ ...validOrder, installmentType: "eterna" }],
         });
         expect(result.account!.runtimeType).toBeNull();
-        // Sem type válido e com valor positivo, o padrão é income.
-        expect(result.orders[0].type).toBe("income");
         expect(result.orders[0].installmentType).toBe("single");
+    });
+
+    it("descarta lançamento com type inválido ou ausente em vez de adivinhar", () => {
+        const result = validateDocumentAnalysis({
+            orders: [
+                { ...validOrder, description: "Enum ruim", type: "transferencia" },
+                { ...validOrder, description: "Sem type", type: undefined },
+                validOrder,
+            ],
+        });
+        // Assumir "income" num valor positivo inverteria um gasto em receita.
+        expect(result.orders).toHaveLength(1);
+        expect(result.orders[0].description).toBe(validOrder.description);
     });
 
     it("trunca descrição gigante e ignora id de categoria inventado", () => {
@@ -244,17 +255,28 @@ describe("validateDocumentAnalysis", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateOfxClassification", () => {
-    it("classifica pelo sinal quando o type não vem, e descarta o item quebrado", () => {
+    it("normaliza o valor para positivo e mantém o type recebido", () => {
         const result = validateOfxClassification({
             orders: [
-                { description: "Pagamento boleto", amount: -120, dueDate: "2026-01-05", category: null },
-                { description: "Salário", amount: 5000, dueDate: "2026-01-05" },
-                { description: "Sem data", amount: 10 },
+                { description: "Pagamento boleto", amount: -120, dueDate: "2026-01-05", type: "expense", category: null },
+                { description: "Salário", amount: 5000, dueDate: "2026-01-05", type: "income" },
             ],
         });
         expect(result.orders).toHaveLength(2);
         expect(result.orders[0]).toMatchObject({ type: "expense", amount: 120 });
         expect(result.orders[1]).toMatchObject({ type: "income", amount: 5000 });
+    });
+
+    it("descarta o item sem data e o item sem type", () => {
+        const result = validateOfxClassification({
+            orders: [
+                { description: "Sem data", amount: 10, type: "expense" },
+                { description: "Sem type", amount: 10, dueDate: "2026-01-05" },
+                { description: "Bom", amount: 10, dueDate: "2026-01-05", type: "expense" },
+            ],
+        });
+        expect(result.orders).toHaveLength(1);
+        expect(result.orders[0].description).toBe("Bom");
     });
 
     it("nunca lança com resposta nula", () => {
@@ -285,20 +307,23 @@ describe("validateReconciliation", () => {
 
     it("aceita os aliases de chave que o modelo já usou em produção", () => {
         const result = validateReconciliation({
-            orders: [{ memo: "Padaria", value: 18.9, dueDate: "2026-02-03" }],
+            orders: [{ memo: "Padaria", value: 18.9, dueDate: "2026-02-03", type: "expense" }],
         });
         expect(result.transactions[0]).toMatchObject({ description: "Padaria", amount: 18.9, date: "2026-02-03" });
     });
 
-    it("descarta transação com amount NaN e com enum de type inválido cai no sinal", () => {
+    it("descarta transação com amount NaN, com type inválido e sem type", () => {
         const result = validateReconciliation({
             transactions: [
                 { ...valid, description: "Quebrada", amount: NaN },
-                { ...valid, description: "Enum ruim", type: "estorno", amount: -50 },
+                { ...valid, description: "Enum ruim", type: "estorno" },
+                { ...valid, description: "Sem type", type: undefined },
+                { ...valid, description: "Negativa", amount: -50 },
             ],
         });
         expect(result.transactions).toHaveLength(1);
-        expect(result.transactions[0]).toMatchObject({ description: "Enum ruim", type: "expense", amount: 50 });
+        // Valor negativo com type explícito continua valendo, já normalizado.
+        expect(result.transactions[0]).toMatchObject({ description: "Negativa", type: "expense", amount: 50 });
     });
 
     it("trunca descrição gigante e ignora id de categoria inventado", () => {
