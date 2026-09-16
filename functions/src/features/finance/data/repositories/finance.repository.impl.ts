@@ -70,7 +70,18 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async deleteOrder(workspaceId: string, orderId: string): Promise<void> {
-        await this.getOrdersCollection(workspaceId).doc(orderId).delete();
+        const docRef = this.getOrdersCollection(workspaceId).doc(orderId);
+
+        // O Firestore NÃO apaga subcoleções em cascata: sem isto, os documentos
+        // de `orders/{orderId}/history` ficariam órfãos e inacessíveis (as rules
+        // só permitem leitura via workspace). O trigger onOrderWritten não
+        // regrava histórico numa exclusão (só o faz quando `after` existe).
+        const deletedHistory = await deleteByQueryInChunks(this.firestore, docRef.collection("history"));
+        if (deletedHistory > 0) {
+            console.log(`deleteOrder: ${deletedHistory} registros de history removidos da order ${orderId} (workspace ${workspaceId}).`);
+        }
+
+        await docRef.delete();
     }
 
     async getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]> {
@@ -191,6 +202,16 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async deleteInstallment(workspaceId: string, installmentId: string): Promise<void> {
         await this.getInstallmentsCollection(workspaceId).doc(installmentId).delete();
+    }
+
+    async deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void> {
+        const query = this.getInstallmentsCollection(workspaceId)
+            .where("orderId", "==", orderId);
+
+        const deleted = await deleteByQueryInChunks(this.firestore, query);
+        if (deleted > 0) {
+            console.log(`deleteInstallmentsByOrderId: ${deleted} parcelas removidas da order ${orderId} (workspace ${workspaceId}).`);
+        }
     }
 
     async getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]> {

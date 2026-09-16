@@ -177,3 +177,107 @@ describe("FinanceRepositoryImpl.getInstallments", () => {
         expect(whereCalls).toEqual([]);
     });
 });
+
+/**
+ * O Firestore não apaga subcoleções em cascata: ao remover uma order é preciso
+ * limpar `orders/{orderId}/history` explicitamente.
+ */
+describe("FinanceRepositoryImpl.deleteOrder", () => {
+    let deletedRefs: string[];
+    let historyPages: any[][];
+    let orderDeleted: boolean;
+
+    beforeEach(() => {
+        deletedRefs = [];
+        historyPages = [];
+        orderDeleted = false;
+
+        const historyQuery: any = {
+            limit: () => historyQuery,
+            async get() {
+                const docs = historyPages.shift() || [];
+                return { docs, empty: docs.length === 0, size: docs.length };
+            },
+        };
+
+        const docRef: any = {
+            collection: (name: string) => {
+                if (name !== "history") throw new Error(`subcoleção inesperada: ${name}`);
+                return historyQuery;
+            },
+            async delete() {
+                orderDeleted = true;
+            },
+        };
+
+        mockFirestoreState.collection = jest.fn(() => ({ doc: () => docRef }));
+        mockFirestoreState.batch = () => ({
+            delete(ref: any) {
+                deletedRefs.push(ref.id);
+            },
+            update: jest.fn(),
+            set: jest.fn(),
+            async commit() {
+                return undefined;
+            },
+        });
+    });
+
+    it("apaga a subcoleção history antes de apagar a order", async () => {
+        historyPages = [[{ ref: { id: "h1" } }, { ref: { id: "h2" } }]];
+
+        await new FinanceRepositoryImpl().deleteOrder("w1", "o1");
+
+        expect(deletedRefs).toEqual(["h1", "h2"]);
+        expect(orderDeleted).toBe(true);
+    });
+
+    it("apaga a order normalmente quando não há histórico", async () => {
+        historyPages = [[]];
+
+        await new FinanceRepositoryImpl().deleteOrder("w1", "o1");
+
+        expect(deletedRefs).toEqual([]);
+        expect(orderDeleted).toBe(true);
+    });
+});
+
+describe("FinanceRepositoryImpl.deleteInstallmentsByOrderId", () => {
+    it("apaga em lotes, paginando", async () => {
+        const whereCalls: Array<[string, string, any]> = [];
+        const deletedIds: string[] = [];
+        const pages: any[][] = [
+            Array.from({ length: 400 }, (_, i) => ({ ref: { id: `a-${i}` } })),
+            [{ ref: { id: "b-0" } }],
+        ];
+
+        const query: any = {
+            where(field: string, operator: string, value: any) {
+                whereCalls.push([field, operator, value]);
+                return query;
+            },
+            limit: () => query,
+            async get() {
+                const docs = pages.shift() || [];
+                return { docs, empty: docs.length === 0, size: docs.length };
+            },
+        };
+
+        mockFirestoreState.collection = jest.fn(() => query);
+        mockFirestoreState.batch = () => ({
+            delete(ref: any) {
+                deletedIds.push(ref.id);
+            },
+            update: jest.fn(),
+            set: jest.fn(),
+            async commit() {
+                return undefined;
+            },
+        });
+
+        await new FinanceRepositoryImpl().deleteInstallmentsByOrderId("w1", "o1");
+
+        expect(whereCalls).toEqual([["orderId", "==", "o1"]]);
+        expect(deletedIds).toHaveLength(401);
+    });
+});

@@ -42,10 +42,12 @@ export class FinanceService {
         // 1. Buscar installments existentes
         const existingInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, orderId);
 
-        // 2. Se a order foi excluída ou está cancelada, deletamos tudo
+        // 2. Se a order foi excluída ou está cancelada, deletamos tudo.
+        // Em lotes, não uma escrita sequencial por parcela: uma order parcelada
+        // pode ter centenas de parcelas.
         if (!after) {
-            for (const inst of existingInstallments) {
-                await this.financeRepository.deleteInstallment(workspaceId, inst.id);
+            if (existingInstallments.length > 0) {
+                await this.financeRepository.deleteInstallmentsByOrderId(workspaceId, orderId);
             }
             return;
         }

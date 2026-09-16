@@ -25,6 +25,8 @@ export interface IFinanceRepository {
   updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;
   deleteInstallment(workspaceId: string, installmentId: string): Promise<void>;
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;
+  /** Apaga todas as parcelas da order, em lotes (usado quando a order deixa de existir). */
+  deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void>;
   /**
    * Parcelas do workspace. Por padrão EXCLUI as de status 'removed'
    * (exclusão lógica); passe `includeRemoved: true` para trazê-las.
