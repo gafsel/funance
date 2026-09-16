@@ -583,6 +583,262 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "balance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "isInvoice",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "category.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "category.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "installments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "accountIds",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "category.id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "type",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "referenceDate",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "amount",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [
