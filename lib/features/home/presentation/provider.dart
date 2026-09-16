@@ -32,9 +32,11 @@ sealed class MissionViewProviders {
 
 /// Período selecionado nos resumos.
 ///
-/// Segue o dia corrente enquanto o usuário não escolher um mês à mão; a partir
-/// daí a virada do dia (meia-noite ou volta do background) não mexe mais na
-/// escolha dele. `chooseToday()` volta a seguir o relógio.
+/// Segue o dia corrente enquanto o usuário não escolher outro mês; a partir daí
+/// a virada do dia (meia-noite ou volta do background) não mexe mais na escolha
+/// dele. Navegar de volta ao mês corrente religa o acompanhamento automático —
+/// é o único gesto que a UI oferece para isso, e é o que o usuário faz na
+/// prática quando quer voltar ao "agora".
 class PeriodNotifier extends Notifier<DateTime> {
   DateTime? _chosenByUser;
 
@@ -45,13 +47,12 @@ class PeriodNotifier extends Notifier<DateTime> {
   }
 
   void choose(DateTime period) {
-    _chosenByUser = period;
-    state = period;
-  }
+    final today = ref.read(todayProvider);
+    final isCurrentMonth =
+        period.year == today.year && period.month == today.month;
 
-  void chooseToday() {
-    _chosenByUser = null;
-    state = ref.read(todayProvider);
+    _chosenByUser = isCurrentMonth ? null : period;
+    state = isCurrentMonth ? today : period;
   }
 }
 

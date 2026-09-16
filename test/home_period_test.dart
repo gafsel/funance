@@ -38,6 +38,30 @@ void main() {
       });
     });
 
+    test('escolher o mês corrente não congela o período', () {
+      fakeAsync((async) {
+        final clock = _FakeClock(DateTime(2026, 3, 31, 23, 59));
+        final container = ProviderContainer(
+          overrides: [clockProvider.overrideWithValue(clock.call)],
+        );
+        addTearDown(container.dispose);
+
+        container.listen(HomeViewProviders.period, (_, _) {},
+            fireImmediately: true);
+
+        // Escolher explicitamente o mês em que já se está não é "sair do
+        // agora"; o período tem que continuar acompanhando o relógio.
+        container
+            .read(HomeViewProviders.period.notifier)
+            .choose(DateTime(2026, 3));
+
+        clock.now = DateTime(2026, 4, 1);
+        async.elapse(const Duration(minutes: 1));
+
+        expect(container.read(HomeViewProviders.period), DateTime(2026, 4, 1));
+      });
+    });
+
     test('a virada do dia não descarta o mês escolhido à mão', () {
       fakeAsync((async) {
         final clock = _FakeClock(DateTime(2026, 3, 31, 23, 59));
@@ -65,9 +89,17 @@ void main() {
           reason: 'a virada do dia sobrescreveu a escolha do usuário',
         );
 
-        // E ele pode voltar a seguir o relógio.
-        container.read(HomeViewProviders.period.notifier).chooseToday();
+        // Navegar de volta ao mês corrente religa o acompanhamento.
+        container
+            .read(HomeViewProviders.period.notifier)
+            .choose(DateTime(2026, 4));
         expect(container.read(HomeViewProviders.period), DateTime(2026, 4, 1));
+
+        // E a partir daí a virada do dia volta a mexer no período.
+        clock.now = DateTime(2026, 4, 2);
+        async.elapse(const Duration(days: 1));
+
+        expect(container.read(HomeViewProviders.period), DateTime(2026, 4, 2));
       });
     });
   });
