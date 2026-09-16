@@ -218,11 +218,21 @@ service cloud.firestore {
             && data.category is map;
         }
 
+        // F1.5: summarizedUntil/appliedAmount/appliedFrom/appliedUntil (e o
+        // legado lastSummaryMonth) registram o que o SERVIDOR já lançou nos
+        // sumários. Se o cliente pudesse escrevê-los, um estorno passaria a
+        // usar um intervalo forjado e o planejado do workspace ficaria errado.
         allow read: if isMember(workspaceId);
-        allow create: if isMember(workspaceId) && validPlanning(request.resource.data);
+        allow create: if isMember(workspaceId)
+          && validPlanning(request.resource.data)
+          && !request.resource.data.keys().hasAny([
+            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth'
+          ]);
         allow update: if isMember(workspaceId)
           && validPlanning(request.resource.data)
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSummaryMonth']);
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth'
+          ]);
         allow delete: if isMember(workspaceId);
       }
 

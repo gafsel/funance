@@ -230,6 +230,150 @@ propósito para a cobrança contar como não planejada. É por isso que o total 
 order usa `referenceAmount` nas pagas: é o único campo que vale o realizado nos
 dois casos.
 
+## Planejamento de categoria: horizonte rolante (F1.5)
+
+O `generalPlannedAmount` dos `period_summaries` vem de `category_planning`. O
+regime antigo tinha três defeitos que se somavam:
+
+1. **o gatilho reaplicava sem estornar**: cada escrita no planejamento jogava 12
+   meses de impacto por cima do que já estava lá. Editar o valor duas vezes
+   triplicava o planejado;
+2. **o cron mensal era inerte**: procurava `lastSummaryMonth < mês`, um campo
+   que nenhum planejamento criado pelo app tinha. E, se achasse alguém, somaria
+   tudo de novo — sem estorno;
+3. **a semana era contada duas vezes**: a proporção semanal era emitida no dia 1
+   *e* em todos os domingos, então o mês que começa no meio da semana contava a
+   semana da virada duas vezes.
+
+### O que o planejamento guarda agora
+
+| Campo | Tipo | Semântica |
+|-------|------|-----------|
+| `summarizedUntil` | string | último mês já sumarizado (`YYYY-MM`). `"9999-12"` = o planejamento cabe inteiro no horizonte, nada mais a aplicar |
+| `appliedAmount` | number \| null | valor efetivamente lançado |
+| `appliedFrom` | string \| null | primeiro mês lançado (`YYYY-MM`) |
+| `appliedUntil` | string \| null | último mês lançado (`YYYY-MM`) |
+| `lastSummaryMonth` | string | **legado**: ninguém grava mais |
+
+Os cinco são **escritos apenas pelo servidor** — as security rules negam ao
+cliente tanto criar quanto alterar qualquer um deles.
+
+### O gatilho
+
+`onCategoryPlanningWritten` (`processCategoryPlanningChange`):
+
+1. **estorna exatamente o que está marcado** como aplicado
+   (`appliedAmount` no intervalo `appliedFrom..appliedUntil`) — e não um chute
+   baseado no dia de hoje;
+2. **reaplica** de `max(startMonth, mês corrente)` até
+   `min(endMonth, mês corrente + 11)`;
+3. grava os marcadores de volta no planejamento.
+
+Estorno e reaplicação são **somados antes de virar escrita**: alterar só o fim
+do período escreve apenas os meses que mudaram. A escrita dos marcadores gera um
+novo evento, que o handler descarta pela guarda por conteúdo
+(`CATEGORY_PLANNING_DERIVED_FIELDS`) — sem ela, o ciclo estorna e reaplica em
+laço.
+
+> Um planejamento **legado** (sem marcadores) é estornado pela janela que o
+> gatilho antigo teria aplicado — exata se ele foi escrito neste mês, aproximada
+> se foi antes. O conserto definitivo dos valores é o rebuild.
+
+### A semana pertence ao mês do seu domingo
+
+Cada semana (id `YYYY-Www`, pela função única de F1.9) pertence **ao mês em que
+cai o seu domingo inicial**, e recebe `amount / diasNoMês * 7` **uma vez**.
+Consequências:
+
+- nenhuma semana é contada por dois meses;
+- a semana da virada pertence ao mês do domingo, não aos dois;
+- a soma das semanas de um mês fica entre ~93% e ~117% do valor mensal (4 ou 5
+  semanas de 7 dias contra 28-31 dias de mês). É proporção semanal, não rateio
+  exato — e é assim que o app a apresenta.
+
+O documento do **ano** recebe `amount` por mês aplicado (a regra antiga jogava
+`amount * 12` de uma vez em janeiro, contando meses fora do período).
+
+### O cron mensal
+
+`generateCategoryPlanningSummaries` (dia 1, 00:00 de Brasília) faz duas
+passagens, ambas paginadas por cursor — o `GLOBAL_LIMIT = 500` sumiu:
+
+1. `where("summarizedUntil", "<", horizonte)`: aplica **só os meses novos**, de
+   `summarizedUntil + 1` até o horizonte, e atualiza os marcadores. Na virada de
+   mês isso é exatamente um mês;
+2. varredura dos **legados** (o Firestore não consulta "campo que não existe"):
+   quem não tem `summarizedUntil` é **adotado** — o cron grava os marcadores
+   **sem reaplicar impacto nenhum**, porque o gatilho antigo já os aplicou.
+   Reaplicar aqui dobraria o planejado de toda a base. A varredura é limitada a
+   2000 documentos por execução e avisa no log quando trunca; rodar
+   `migrate_planning_summaries.ts` encerra essa passagem de vez.
+
+### `migrate_planning_summaries.ts`
+
+Grava nos planejamentos existentes os marcadores que eles deveriam ter
+(`appliedFrom = max(startMonth, mês corrente)`,
+`appliedUntil = min(endMonth, horizonte)`, `appliedAmount = amount`,
+`summarizedUntil = horizonte` ou `"9999-12"`).
+
+- **Idempotente**: pula quem já tem `summarizedUntil` (`--force` recalcula).
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **Não toca em `period_summaries`**: os VALORES acumulados errados pelo regime
+  antigo são corrigidos pelo rebuild (abaixo).
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_planning_summaries.js --project=<projectId>
+
+# 2) Um workspace só
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_planning_summaries.js --project=<projectId> --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_planning_summaries.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+| `--page-size=<n>` | planejamentos lidos por página (default 200)                    |
+| `--force`         | recalcula os marcadores mesmo de quem já os tem                 |
+
+### Ordem recomendada de execução
+
+Nada disso foi executado contra o projeto real. A ordem é **migrações primeiro,
+rebuild depois**:
+
+```
+1. migrate_balance_date_key.js      (dry-run → revisar → --apply)
+2. migrate_planning_summaries.js    (dry-run → revisar → --apply)
+3. rebuild_workspace.js --workspace=<wid>                 (dry-run → revisar → --apply)
+4. rebuild_workspace.js --workspace=<wid> --rebuild-planning  (idem, por último)
+```
+
+O passo 4 é o que conserta os `generalPlannedAmount` acumulados pelo regime
+antigo e os ids de semana gravados em UTC. Ele é **por workspace**, então numa
+base grande o roteiro é um laço sobre os workspaces, sempre com o dry-run
+revisado imediatamente antes.
+
+### Contrato com o cliente Flutter
+
+- `category_planning` ganhou quatro campos **somente leitura** para o app
+  (`summarizedUntil`, `appliedAmount`, `appliedFrom`, `appliedUntil`). O app
+  **não** deve enviá-los ao criar/editar um planejamento — as rules negam a
+  escrita, e um formulário que reenvie o documento inteiro passa a ser rejeitado;
+- `period_summaries` não mudou de forma: continua
+  `categories.{categoryId}.generalPlannedAmount`. O que mudou é o valor — ele
+  deixa de crescer sozinho a cada edição.
+
 ## Saldo diário: `dateKey` e `delta` (F1.4)
 
 O documento `workspaces/{wid}/accounts/{aid}/balance/{dateKey}` mudou de forma:
@@ -431,6 +575,18 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 > (`funance-cef1b`).** Eles escrevem via Admin SDK e ignoram as security rules.
 > Rode sempre o dry-run primeiro, revise a saída e só então aplique.
 
+| Script | O que faz | Documentado em |
+|--------|-----------|----------------|
+| `migrate_system_categories.ts` | garante as categorias de sistema | aqui |
+| `backfill_last_generated_due_date.ts` | marca onde a série recorrente parou | aqui |
+| `migrate_balance_date_key.ts` | `dateKey`/`delta` nos saldos diários | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
+| `migrate_planning_summaries.ts` | marcadores do planejamento | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `rebuild_workspace.ts` | reconstrói saldos, sumários e XP | aqui |
+
+**Ordem recomendada quando este pacote for para produção**: as duas migrações
+novas (na ordem acima), depois `rebuild_workspace` e, por último, o mesmo
+rebuild com `--rebuild-planning`. O detalhamento está na seção de F1.5.
+
 ### `migrate_system_categories.ts`
 
 Garante as cinco categorias de sistema em todos os workspaces: cria as que
@@ -533,29 +689,30 @@ status `removed`, que são exclusão lógica) e `category_planning`:
 
 | Coleção reconstruída | Semântica reproduzida |
 |----------------------|------------------------|
-| `accounts/{id}/balance/{YYYY-MM-DD}` | `FinanceService.applyInstallmentBalance` + `FinanceRepositoryImpl.updateAccountBalance` (saldo acumulado por dia; `credit` soma, `debt` subtrai; só parcelas pagas/liquidadas com `paidAmount` e `paidDate`) |
+| `accounts/{id}/balance/{dateKey}` | `FinanceService.applyInstallmentBalance` + `FinanceRepositoryImpl.updateAccountBalance` (`dateKey`/`delta`/`balance` — dia no fuso do produto; `credit` soma, `debt` subtrai; só parcelas pagas/liquidadas com `paidAmount` e `paidDate`) |
 | `period_summaries/{YYYY|YYYY-MM|YYYY-Www}` | `SummaryService` (`specificPlannedAmount` por `dueDate`, `actualAmount` por `paidDate` com `paidAmount ?? amount`, categorias virtuais de transferência) |
-| `weekly_xp/{YYYY-Www}` | `FinanceService.updateXpOnInstallmentChange` (soma de `calculateXp` das parcelas pagas, semanas iniciadas no domingo) |
+| `weekly_xp/{YYYY-Www}` | `FinanceService.updateXpOnInstallmentChange` (soma de `calculateXp` das parcelas pagas; semana pela definição única de F1.9, domingo no fuso do produto) |
 
 > Os **gatilhos são o oráculo**: o job não redefine regra de negócio, ele
 > reproduz o que `installment_handler`/`summary.service`/`finance.service`
 > produzem. O saldo inicial entra naturalmente, porque a order sintética
 > `initial-balance-{accountId}` gera uma parcela liquidada como qualquer outra.
 
-> ⚠️ **`generalPlannedAmount` NÃO é reconstruível e por padrão é preservado.**
-> Esse campo vem de `category_planning` através de `calculatePlanningImpacts`,
-> que só projeta da data-base para a frente (12 meses). Recalcular **zera o
-> planejado dos meses passados** e dá um resultado diferente a cada dia em que
-> o job roda (rodar um mês depois come mais um mês de histórico). Por isso o
-> rebuild lê o documento atual e **copia o `generalPlannedAmount` de cada
-> categoria** tal como está; ele só é recalculado com `--rebuild-planning`
-> (`rebuildPlanning: true`), que é destrutivo. O relatório conta à parte, por
-> coleção, quantos documentos teriam o `generalPlannedAmount` alterado
+> ⚠️ **`generalPlannedAmount` por padrão é PRESERVADO.** Esse campo vem de
+> `category_planning`, e o rebuild lê o documento atual e copia o valor de cada
+> categoria tal como está. Ele só é recalculado com `--rebuild-planning`
+> (`rebuildPlanning: true`). O relatório conta à parte, por coleção, quantos
+> documentos teriam o `generalPlannedAmount` alterado
 > (`generalPlannedChanges`), para o dono saber de onde vem cada mudança.
 >
-> Consequência prática: um `generalPlannedAmount` errado **não** é corrigido
-> pelo rebuild. Para refazê-lo, reescreva o planejamento pelo app (o gatilho
-> `onCategoryPlanningWritten` recalcula) ou use a flag, com dry-run revisado.
+> Desde F1.5 esse recálculo é **determinístico**: ele cobre todos os meses de
+> `startMonth` até `min(endMonth, horizonte)`, e a única dependência de "hoje" é
+> o horizonte (mês corrente + 11). Rodar hoje e amanhã dá o mesmo resultado;
+> rodar no mês que vem só acrescenta o mês da ponta. Não é mais verdade que o
+> recálculo "zera o passado" — ao contrário, ele **preenche** os meses passados
+> do período, que o incremental nunca preencheu (o gatilho nunca reescreve o
+> passado). Por isso a flag continua sendo uma escolha consciente, e não o
+> padrão: o dry-run mostra exatamente quais documentos mudam.
 
 > ⚠️ **O job não é transacional.** Ele lê o workspace, calcula em memória e só
 > então commita em lotes: um pagamento feito no app entre a leitura e o commit

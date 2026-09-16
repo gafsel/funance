@@ -458,9 +458,26 @@ describe("RebuildService", () => {
             expect(report.diff.periodSummaries.generalPlannedChanges).toBeGreaterThan(0);
 
             await applyRebuildingPlanning();
-            // Dezembro/2025 é passado: a projeção não o alcança e ele é apagado.
-            expect(repository.summaries.has("2025-12")).toBe(false);
+            // F1.5: o recálculo cobre o PERÍODO INTEIRO do planejamento até o
+            // horizonte (2025-10 a 2026-12), então dezembro/2025 não some — ele
+            // passa a valer o `amount` do mês, sem a acumulação do regime antigo.
+            expect(repository.summaries.get("2025-12")!.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(1000, 2);
             expect(repository.summaries.get("2026-03")!.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(1000, 2);
+            // E o ano recebe a soma dos meses aplicados (out/nov/dez de 2025).
+            expect(repository.summaries.get("2025")!.categories[CATEGORY.id].generalPlannedAmount).toBeCloseTo(3000, 2);
+        });
+
+        it("com rebuildPlanning o resultado independe do dia em que o job roda", async () => {
+            seedAccumulatedPlanning();
+
+            const hoje = await service.rebuildWorkspace(WORKSPACE, { now: NOW, rebuildPlanning: true });
+            const amanha = await service.rebuildWorkspace(WORKSPACE, {
+                now: new Date(NOW.getTime() + 24 * 60 * 60 * 1000),
+                rebuildPlanning: true,
+            });
+
+            expect(amanha.diff.periodSummaries.samples).toEqual(hoje.diff.periodSummaries.samples);
+            expect(amanha.totalChanges).toBe(hoje.totalChanges);
         });
 
         it("não toca em documento com id fora do padrão", async () => {

@@ -4,6 +4,7 @@ import {
     OrderModel,
     InstallmentModel,
     CategoryPlanningModel,
+    CategoryPlanningMarks,
     AccountModel,
     AccountBalanceModel,
     PeriodSummaryUpdateModel,
@@ -11,7 +12,7 @@ import {
     InstallmentType,
     OrderType, InstallmentStatus,
 } from "../../domain/models/finance.models";
-import { IFinanceRepository } from "../../domain/repositories/finance.repository";
+import { CategoryPlanningPage, CategoryPlanningRef, IFinanceRepository } from "../../domain/repositories/finance.repository";
 import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 
@@ -37,6 +38,56 @@ const BALANCE_PROPAGATION_PAGE_SIZE = DEFAULT_CHUNK_SIZE;
 /** Dinheiro em centavos inteiros: evita que o saldo acumule erro de ponto flutuante. */
 function roundCents(value: number): number {
     return Math.round(value * 100) / 100;
+}
+
+/** Abaixo disso o delta de planejamento é ruído de ponto flutuante. */
+const PLANNING_DELTA_EPSILON = 1e-9;
+
+interface PlanningCategoryBucket {
+    category: CategoryModel;
+    delta: number;
+}
+
+interface PlanningSummaryGroup {
+    year: number;
+    month?: number;
+    week?: number;
+    runtimeType: string;
+    categories: Map<string, PlanningCategoryBucket>;
+}
+
+/** Agrupa os impactos por documento de sumário, somando os deltas por categoria. */
+function groupPlanningUpdates(updates: PeriodSummaryUpdateModel[]): Map<string, PlanningSummaryGroup> {
+    const groups = new Map<string, PlanningSummaryGroup>();
+
+    for (const update of updates) {
+        const docId = update.week !== undefined
+            ? `${update.year}-W${String(update.week).padStart(2, "0")}`
+            : update.month !== undefined
+                ? `${update.year}-${String(update.month).padStart(2, "0")}`
+                : `${update.year}`;
+
+        let group = groups.get(docId);
+        if (!group) {
+            group = {
+                year: update.year,
+                month: update.month,
+                week: update.week,
+                runtimeType: update.week !== undefined ? "week" : update.month !== undefined ? "month" : "year",
+                categories: new Map(),
+            };
+            groups.set(docId, group);
+        }
+
+        let bucket = group.categories.get(update.category.id);
+        if (!bucket) {
+            bucket = { category: update.category, delta: 0 };
+            group.categories.set(update.category.id, bucket);
+        }
+        bucket.delta += update.generalPlannedDelta ?? 0;
+    }
+
+    return groups;
 }
 
 /** Número tolerante a campo ausente/sujo (documentos legados). */
@@ -504,30 +555,118 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CategoryPlanningModel));
     }
 
-    async getCategoryPlanningsByLastSummaryMonthGroup(nowStr: string, limit: number): Promise<(CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference })[]> {
-        let snapshot = await this.firestore.collectionGroup("category_planning")
-            .where("lastSummaryMonth", "<", nowStr)
-            .limit(limit)
-            .get();
+    getCategoryPlanningRef(workspaceId: string, planningId: string): admin.firestore.DocumentReference {
+        return this.getCategoryPlanningCollection(workspaceId).doc(planningId);
+    }
 
-        if (snapshot.empty) {
-            snapshot = await this.firestore.collectionGroup("category_planning")
-                .where("lastSummaryMonth", "==", null)
-                .limit(limit)
-                .get();
+    private toCategoryPlanningRef(doc: admin.firestore.QueryDocumentSnapshot): CategoryPlanningRef {
+        return {
+            id: doc.id,
+            workspaceId: doc.ref.parent.parent!.id,
+            ref: doc.ref,
+            ...doc.data(),
+        } as CategoryPlanningRef;
+    }
+
+    /**
+     * Planejamentos atrasados em relação ao horizonte (F1.5).
+     *
+     * A query antiga (`lastSummaryMonth < mês`) buscava um campo que ninguém
+     * gravava: o cron era inerte para todo planejamento criado pelo app. Agora
+     * o campo é `summarizedUntil`, escrito pelo gatilho e por este mesmo cron,
+     * e a leitura é paginada por cursor — sem o GLOBAL_LIMIT de 500 que
+     * silenciosamente ignorava o resto da base.
+     */
+    async getCategoryPlanningsPendingSummary(
+        horizon: string,
+        pageSize: number,
+        cursor?: admin.firestore.QueryDocumentSnapshot | null
+    ): Promise<CategoryPlanningPage> {
+        let query: admin.firestore.Query = this.firestore.collectionGroup("category_planning")
+            .where("summarizedUntil", "<", horizon)
+            .orderBy("summarizedUntil")
+            .limit(pageSize);
+
+        if (cursor) query = query.startAfter(cursor);
+
+        const snapshot = await query.get();
+
+        return {
+            items: snapshot.docs.map((doc) => this.toCategoryPlanningRef(doc)),
+            cursor: snapshot.size < pageSize ? null : snapshot.docs[snapshot.size - 1],
+        };
+    }
+
+    /** Varredura paginada por id — única forma de achar quem NÃO tem o campo. */
+    async scanCategoryPlannings(
+        pageSize: number,
+        cursor?: admin.firestore.QueryDocumentSnapshot | null
+    ): Promise<CategoryPlanningPage> {
+        let query: admin.firestore.Query = this.firestore.collectionGroup("category_planning")
+            .orderBy(admin.firestore.FieldPath.documentId())
+            .limit(pageSize);
+
+        if (cursor) query = query.startAfter(cursor);
+
+        const snapshot = await query.get();
+
+        return {
+            items: snapshot.docs.map((doc) => this.toCategoryPlanningRef(doc)),
+            cursor: snapshot.size < pageSize ? null : snapshot.docs[snapshot.size - 1],
+        };
+    }
+
+    /**
+     * Aplica os impactos de planejamento e grava os marcadores.
+     *
+     * Os deltas são AGRUPADOS por documento de sumário antes de virarem
+     * escrita: um horizonte de 12 meses gera ~70 impactos que caem em ~66
+     * documentos, e o código antigo fazia um `set` sequencial por impacto.
+     * Deltas que se anulam (estorno + reaplicação do mesmo mês) somem — editar
+     * só o fim do período escreve apenas os meses que mudaram.
+     *
+     * Os marcadores vão no FIM da lista: se um lote falhar no meio, o
+     * planejamento não fica marcado como sumarizado sem os impactos.
+     */
+    async applyPlanningImpacts(
+        workspaceId: string,
+        updates: PeriodSummaryUpdateModel[],
+        marks?: { ref: admin.firestore.DocumentReference, data: CategoryPlanningMarks }
+    ): Promise<void> {
+        const operations: BatchOperation[] = [];
+
+        for (const [docId, group] of groupPlanningUpdates(updates)) {
+            const categories: Record<string, any> = {};
+
+            for (const bucket of group.categories.values()) {
+                if (Math.abs(bucket.delta) < PLANNING_DELTA_EPSILON) continue;
+                categories[bucket.category.id] = {
+                    generalPlannedAmount: admin.firestore.FieldValue.increment(bucket.delta),
+                };
+            }
+
+            if (Object.keys(categories).length === 0) continue;
+
+            operations.push({
+                op: "set",
+                ref: this.getPeriodSummariesCollection(workspaceId).doc(docId),
+                data: {
+                    year: group.year,
+                    month: group.month ?? null,
+                    week: group.week ?? null,
+                    categories,
+                    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+                    runtimeType: group.runtimeType,
+                },
+                options: { merge: true },
+            });
         }
 
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            const workspaceId = doc.ref.parent.parent!.id;
+        if (marks) {
+            operations.push({ op: "set", ref: marks.ref, data: { ...marks.data }, options: { merge: true } });
+        }
 
-            return {
-                id: doc.id,
-                workspaceId: workspaceId,
-                ref: doc.ref,
-                ...data,
-            } as CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference };
-        });
+        await commitInChunks(this.firestore, operations);
     }
 
     private getPeriodSummaryDocRef(workspaceId: string, year: number, month?: number, week?: number): { docRef: admin.firestore.DocumentReference, runtimeType: string } {
@@ -579,36 +718,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
             runtimeType: runtimeType,
         };
-    }
-
-    async processCategoryPlanningSummariesChunk(
-        chunk: (CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference })[],
-        nowStr: string,
-        summaryFactory: (workspaceId: string, planning: CategoryPlanningModel) => PeriodSummaryUpdateModel[]
-    ): Promise<void> {
-        await this.firestore.runTransaction(async (transaction) => {
-            for (const item of chunk) {
-                const updates = summaryFactory(item.workspaceId, item);
-
-                for (const update of updates) {
-                    const { docRef, runtimeType } = this.getPeriodSummaryDocRef(item.workspaceId, update.year, update.month, update.week);
-                    const updateData = this.buildPeriodSummaryUpdateData(
-                        update.year,
-                        update.month,
-                        update.week,
-                        update.category,
-                        {
-                            generalPlannedDelta: update.generalPlannedDelta,
-                            specificPlannedDelta: update.specificPlannedDelta,
-                            actualDelta: update.actualDelta
-                        },
-                        runtimeType
-                    );
-                    transaction.set(docRef, updateData, { merge: true });
-                }
-                transaction.update(item.ref, { lastSummaryMonth: nowStr });
-            }
-        });
     }
 
     async updatePeriodSummary(

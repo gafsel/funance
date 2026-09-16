@@ -1,6 +1,26 @@
-import { InstallmentModel, InstallmentStatus, OrderType, CategoryPlanningModel, PeriodSummaryUpdateModel, AccountType, AccountModel } from "../models/finance.models";
-import { IFinanceRepository } from "../repositories/finance.repository";
+import {
+    InstallmentModel,
+    InstallmentStatus,
+    OrderType,
+    CategoryPlanningModel,
+    CategoryPlanningMarks,
+    PeriodSummaryUpdateModel,
+    AccountType,
+    AccountModel,
+} from "../models/finance.models";
+import { CategoryPlanningRef, IFinanceRepository } from "../repositories/finance.repository";
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
+import {
+    daysInMonthKey,
+    isMonthKey,
+    maxMonthKey,
+    minMonthKey,
+    monthKeyParts,
+    monthKeyRange,
+    shiftMonthKey,
+    toMonthKey,
+} from "../../../../core/utils/month_key";
+import { addCalendarDays, localMidnightInstant } from "../../../../core/utils/timezone.utils";
 import {
     CategoryModel,
     VIRTUAL_DEBT_EXPENSE_CATEGORY,
@@ -8,145 +28,311 @@ import {
     VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
     VIRTUAL_INVESTMENT_INCOME_CATEGORY
 } from "../../../workspace/domain/models/category.model";
-import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
+import { WeekRef, getWeekNumber, getWeekRef, getWeekStart, getWeekYear } from "../../../../core/utils/week.utils";
+
+/**
+ * Sentinela de `summarizedUntil`: o planejamento cabe inteiro no horizonte, não
+ * há mais nenhum mês novo a aplicar — nunca mais entra na consulta do cron.
+ */
+export const PLANNING_FULLY_SUMMARIZED = "9999-12";
+
+/** Página do cron e teto da varredura de legados por execução. */
+const PLANNING_PAGE_SIZE = 200;
+const PLANNING_LEGACY_SCAN_LIMIT = 2000;
+
+/** Intervalo fechado de meses `YYYY-MM`. */
+export interface PlanningWindow {
+    from: string;
+    until: string;
+}
+
+/**
+ * Horizonte rolante: o último mês que o produto promete projetar a partir de
+ * `now` (12 meses de previsibilidade = mês corrente + 11).
+ */
+export function planningHorizon(now: Date): string {
+    const months = DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths;
+    return shiftMonthKey(toMonthKey(now), Math.max(1, months) - 1);
+}
+
+/** Interseção do intervalo com o período do planejamento (null = nada a fazer). */
+export function intersectPlanningWindow(
+    startMonth: string,
+    endMonth: string,
+    from: string,
+    until: string
+): PlanningWindow | null {
+    if (!isMonthKey(startMonth) || !isMonthKey(endMonth) || !isMonthKey(from) || !isMonthKey(until)) return null;
+
+    const start = maxMonthKey(startMonth, from);
+    const end = minMonthKey(endMonth, until);
+    return start <= end ? { from: start, until: end } : null;
+}
+
+/**
+ * Semanas que PERTENCEM ao mês: aquelas cujo DOMINGO INICIAL cai nele.
+ *
+ * A regra antiga emitia a semana no dia 1 e em todos os domingos, então um mês
+ * que começava no meio da semana contava a mesma semana duas vezes (uma pelo
+ * dia 1, outra pelo domingo seguinte) — e a semana partilhada entre dois meses
+ * era contada pelos dois. Com o domingo inicial como dono, cada semana tem um
+ * mês só e a proporção semanal entra exatamente uma vez.
+ */
+export function weeksStartingInMonth(monthKey: string): WeekRef[] {
+    const { year, month } = monthKeyParts(monthKey);
+
+    let sunday = getWeekStart(localMidnightInstant(year, month, 1));
+    if (toMonthKey(sunday) < monthKey) {
+        sunday = addCalendarDays(sunday, 7);
+    }
+
+    const refs: WeekRef[] = [];
+    while (toMonthKey(sunday) === monthKey) {
+        refs.push(getWeekRef(sunday));
+        sunday = addCalendarDays(sunday, 7);
+    }
+    return refs;
+}
+
+/**
+ * O que um planejamento tem aplicado hoje nos sumários.
+ *
+ * Preferimos sempre os campos persistidos (`appliedAmount/From/Until`): eles
+ * dizem o que de fato foi lançado, e é isso que precisa ser estornado. Um
+ * planejamento LEGADO (anterior a F1.5) não tem esses campos; nesse caso
+ * reconstruímos a janela que o gatilho antigo teria aplicado — 12 meses a
+ * partir do mês corrente, recortados pelo período — que é exata quando o
+ * planejamento foi escrito neste mês, e aproximada quando foi escrito antes
+ * (o `rebuild --rebuild-planning` é o conserto definitivo).
+ */
+export function resolveAppliedWindow(
+    planning: CategoryPlanningModel,
+    currentMonth: string,
+    horizon: string
+): (PlanningWindow & { amount: number }) | null {
+    const hasMarks = isMonthKey(planning.summarizedUntil) || planning.summarizedUntil === PLANNING_FULLY_SUMMARIZED;
+
+    if (hasMarks) {
+        if (!isMonthKey(planning.appliedFrom) || !isMonthKey(planning.appliedUntil)) return null;
+        const amount = typeof planning.appliedAmount === "number" ? planning.appliedAmount : planning.amount;
+        return { from: planning.appliedFrom, until: planning.appliedUntil, amount };
+    }
+
+    const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, currentMonth, horizon);
+    return window ? { ...window, amount: planning.amount } : null;
+}
+
+/** `summarizedUntil` depois de processar até `horizon`. */
+export function nextSummarizedUntil(endMonth: string, horizon: string): string {
+    return isMonthKey(endMonth) && endMonth <= horizon ? PLANNING_FULLY_SUMMARIZED : horizon;
+}
 
 export class SummaryService {
     constructor(private financeRepository: IFinanceRepository) {}
 
+    /**
+     * Gatilho de criação/alteração/exclusão de planejamento (F1.5).
+     *
+     * ESTORNA exatamente o que está marcado como aplicado e REAPLICA a janela
+     * do horizonte rolante — `max(startMonth, mês corrente)` até
+     * `min(endMonth, mês corrente + 11)`. Estorno e aplicação são somados antes
+     * de virar escrita, então alterar só o fim do período não reescreve os
+     * meses que não mudaram.
+     */
     async processCategoryPlanningChange(
         workspaceId: string,
         before: CategoryPlanningModel | null,
-        after: CategoryPlanningModel | null
+        after: CategoryPlanningModel | null,
+        now: Date = new Date()
     ): Promise<void> {
         if (!before && !after) return;
 
-        // Se houver uma mudança no planejamento, garantimos a previsibilidade configurada
-        const predictabilityMonths = DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths;
-        if (before) {
-            await this.updatePlanningImpactForMonth(workspaceId, before, -1, new Date(), predictabilityMonths);
-        }
-        if (after) {
-            await this.updatePlanningImpactForMonth(workspaceId, after, 1, new Date(), predictabilityMonths);
-        }
-    }
+        const currentMonth = toMonthKey(now);
+        const horizon = planningHorizon(now);
+        const impacts: PeriodSummaryUpdateModel[] = [];
 
-    private async updatePlanningImpactForMonth(
-        workspaceId: string, 
-        planning: CategoryPlanningModel, 
-        multiplier: number,
-        baseDate: Date,
-        monthsAhead = 1
-    ): Promise<void> {
-        const impacts = this.calculatePlanningImpacts(planning, multiplier, baseDate, monthsAhead);
-        
-        for (const impact of impacts) {
-            await this.financeRepository.updatePeriodSummary(
-                workspaceId,
-                impact.year,
-                impact.month,
-                impact.category,
-                { generalPlannedDelta: impact.generalPlannedDelta },
-                impact.week
-            );
+        if (before) {
+            const applied = resolveAppliedWindow(before, currentMonth, horizon);
+            if (applied) {
+                // O planejamento do estorno usa o intervalo APLICADO como
+                // período: se o usuário encurtou o período, o estorno ainda
+                // precisa alcançar os meses que ficaram de fora.
+                impacts.push(...this.calculatePlanningImpacts(
+                    { ...before, amount: applied.amount, startMonth: applied.from, endMonth: applied.until },
+                    -1,
+                    { from: applied.from, until: applied.until }
+                ));
+            }
         }
+
+        let marks: CategoryPlanningMarks | undefined;
+
+        if (after) {
+            const window = intersectPlanningWindow(after.startMonth, after.endMonth, currentMonth, horizon);
+            if (window) {
+                impacts.push(...this.calculatePlanningImpacts(after, 1, window));
+            }
+
+            marks = {
+                summarizedUntil: nextSummarizedUntil(after.endMonth, horizon),
+                appliedAmount: window ? after.amount : null,
+                appliedFrom: window ? window.from : null,
+                appliedUntil: window ? window.until : null,
+            };
+        }
+
+        await this.financeRepository.applyPlanningImpacts(
+            workspaceId,
+            impacts,
+            after && marks
+                ? { ref: this.financeRepository.getCategoryPlanningRef(workspaceId, after.id), data: marks }
+                : undefined
+        );
     }
 
     /**
-     * Impactos de um planejamento de categoria no `generalPlannedAmount`.
+     * Impactos de um planejamento no `generalPlannedAmount`, mês a mês.
      *
-     * PÚBLICO apenas para que o job de reconstrução (rebuild.service.ts) use
-     * exatamente a mesma aritmética dos gatilhos — a semântica não mudou.
+     * Para cada mês do intervalo (já recortado pelo período do planejamento):
+     *  - o documento do MÊS recebe `amount`;
+     *  - o documento do ANO recebe `amount` (a soma dos meses aplicados daquele
+     *    ano — a regra antiga jogava `amount * 12` de uma vez em janeiro, o que
+     *    contava meses fora do período);
+     *  - cada SEMANA que começa naquele mês recebe `amount / diasNoMês * 7`.
+     *
+     * PÚBLICO porque o job de reconstrução (rebuild.service.ts) usa exatamente
+     * a mesma aritmética — é o que torna o `--rebuild-planning` determinístico.
      */
     calculatePlanningImpacts(
         planning: CategoryPlanningModel,
         multiplier: number,
-        baseDate: Date,
-        monthsAhead = 1
+        window: PlanningWindow
     ): PeriodSummaryUpdateModel[] {
         const impacts: PeriodSummaryUpdateModel[] = [];
-        const [startYear, startMonth] = planning.startMonth.split("-").map(Number);
-        const [endYear, endMonth] = planning.endMonth.split("-").map(Number);
-        const startTotalMonths = startYear * 12 + startMonth;
-        const endTotalMonths = endYear * 12 + endMonth;
+        const effective = intersectPlanningWindow(planning.startMonth, planning.endMonth, window.from, window.until);
+        if (!effective) return impacts;
 
-        for (let i = 0; i < monthsAhead; i++) {
-            const date = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, 1);
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const currentTotalMonths = year * 12 + month;
+        for (const monthKey of monthKeyRange(effective.from, effective.until)) {
+            const { year, month } = monthKeyParts(monthKey);
+            const monthlyDelta = planning.amount * multiplier;
 
-            // Verifica se o mês base está dentro do intervalo do planejamento
-            if (currentTotalMonths < startTotalMonths || currentTotalMonths > endTotalMonths) {
-                continue;
-            }
+            impacts.push({ year, month, category: planning.category, generalPlannedDelta: monthlyDelta });
+            impacts.push({ year, category: planning.category, generalPlannedDelta: monthlyDelta });
 
-            // Meta Mensal (Month)
-            impacts.push({
-                year,
-                month,
-                category: planning.category,
-                generalPlannedDelta: planning.amount * multiplier,
-            });
-
-            // Se for Janeiro, aproveita e gera o total do ano (Previsibilidade anual)
-            if (month === 1) {
+            const weeklyDelta = (planning.amount / daysInMonthKey(monthKey)) * 7 * multiplier;
+            for (const week of weeksStartingInMonth(monthKey)) {
                 impacts.push({
-                    year,
+                    year: week.year,
+                    week: week.week,
                     category: planning.category,
-                    generalPlannedDelta: planning.amount * 12 * multiplier,
+                    generalPlannedDelta: weeklyDelta,
                 });
             }
-
-            // Meta Semanal (Week)
-            const lastDayOfMonth = new Date(year, month, 0);
-            const currentDay = new Date(year, month - 1, 1);
-            
-            while (currentDay <= lastDayOfMonth) {
-                if (currentDay.getDay() === 0 || currentDay.getDate() === 1) {
-                    const week = getWeekNumber(currentDay);
-                    const weekYear = getWeekYear(currentDay);
-                    
-                    const daysInMonth = lastDayOfMonth.getDate();
-                    const weeklyProportion = (planning.amount / daysInMonth) * 7;
-
-                    impacts.push({
-                        year: weekYear,
-                        week,
-                        category: planning.category,
-                        generalPlannedDelta: weeklyProportion * multiplier,
-                    });
-                }
-                currentDay.setDate(currentDay.getDate() + 1);
-            }
         }
+
         return impacts;
     }
 
-    async generateCategoryPlanningSummaries(): Promise<void> {
-        const now = new Date();
-        const nowStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-        const GLOBAL_LIMIT = 500;
-        const CHUNK_SIZE = 50;
+    /**
+     * Cron mensal (dia 1): empurra cada planejamento até o horizonte novo.
+     *
+     * Era inerte: procurava `lastSummaryMonth < mês`, campo que nenhum
+     * planejamento criado pelo app tinha, e — se achasse algo — reaplicava os
+     * 12 meses inteiros sem estornar, dobrando o planejado. Agora:
+     *
+     *  1. busca por `summarizedUntil < horizonte`, paginando por cursor (sem
+     *     limite global), e aplica SÓ os meses ainda não sumarizados;
+     *  2. varre os legados (sem o campo) e os ADOTA — grava os marcadores sem
+     *     reaplicar impacto nenhum, porque o gatilho antigo já os aplicou.
+     *     Reaplicar aqui dobraria o planejado de toda a base.
+     */
+    async generateCategoryPlanningSummaries(now: Date = new Date()): Promise<void> {
+        const currentMonth = toMonthKey(now);
+        const horizon = planningHorizon(now);
 
-        console.log("Buscando planejamentos de categoria para processar...");
-        const planningsToProcess = await this.financeRepository.getCategoryPlanningsByLastSummaryMonthGroup(nowStr, GLOBAL_LIMIT);
+        let advanced = 0;
+        let cursor = null as any;
 
-        if (planningsToProcess.length === 0) {
-            console.log("Nenhum planejamento de categoria pendente de processamento.");
-            return;
+        for (;;) {
+            const page = await this.financeRepository.getCategoryPlanningsPendingSummary(horizon, PLANNING_PAGE_SIZE, cursor);
+            for (const planning of page.items) {
+                await this.advancePlanning(planning, horizon);
+                advanced++;
+            }
+            if (!page.cursor) break;
+            cursor = page.cursor;
         }
 
-        console.log(`Processando ${planningsToProcess.length} planejamentos em chunks de ${CHUNK_SIZE}...`);
+        let scanned = 0;
+        let adopted = 0;
+        cursor = null;
 
-        for (let i = 0; i < planningsToProcess.length; i += CHUNK_SIZE) {
-            const chunk = planningsToProcess.slice(i, i + CHUNK_SIZE);
-            console.log(`Processando chunk de ${chunk.length} planejamentos...`);
+        for (;;) {
+            const page = await this.financeRepository.scanCategoryPlannings(PLANNING_PAGE_SIZE, cursor);
+            for (const planning of page.items) {
+                scanned++;
+                const hasMarks = isMonthKey(planning.summarizedUntil) ||
+                    planning.summarizedUntil === PLANNING_FULLY_SUMMARIZED;
+                if (hasMarks) continue;
 
-            const predictabilityMonths = DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths;
-            await this.financeRepository.processCategoryPlanningSummariesChunk(chunk, nowStr, (_, planning) => {
-                return this.calculatePlanningImpacts(planning, 1, new Date(), predictabilityMonths);
-            });
+                await this.adoptLegacyPlanning(planning, currentMonth, horizon);
+                adopted++;
+            }
+            if (!page.cursor || scanned >= PLANNING_LEGACY_SCAN_LIMIT) {
+                if (page.cursor) {
+                    console.warn(`[generateCategoryPlanningSummaries] Varredura de legados interrompida em ${scanned} documentos; o restante entra na próxima execução (ou rode migrate_planning_summaries).`);
+                }
+                break;
+            }
+            cursor = page.cursor;
         }
+
+        console.log(`[generateCategoryPlanningSummaries] horizonte=${horizon}: ${advanced} planejamento(s) avançado(s), ${adopted} legado(s) adotado(s) em ${scanned} inspecionado(s).`);
+    }
+
+    /** Aplica os meses que faltam entre `summarizedUntil + 1` e o horizonte. */
+    private async advancePlanning(planning: CategoryPlanningRef, horizon: string): Promise<void> {
+        const alreadyDone = isMonthKey(planning.summarizedUntil)
+            ? shiftMonthKey(planning.summarizedUntil, 1)
+            : planning.startMonth;
+
+        const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, alreadyDone, horizon);
+        const impacts = window ? this.calculatePlanningImpacts(planning, 1, window) : [];
+
+        const marks: CategoryPlanningMarks = {
+            summarizedUntil: nextSummarizedUntil(planning.endMonth, horizon),
+            appliedAmount: window ? planning.amount : (planning.appliedAmount ?? null),
+            appliedFrom: window
+                ? minMonthKey(isMonthKey(planning.appliedFrom) ? planning.appliedFrom : window.from, window.from)
+                : (planning.appliedFrom ?? null),
+            appliedUntil: window
+                ? maxMonthKey(isMonthKey(planning.appliedUntil) ? planning.appliedUntil : window.until, window.until)
+                : (planning.appliedUntil ?? null),
+        };
+
+        await this.financeRepository.applyPlanningImpacts(
+            planning.workspaceId,
+            impacts,
+            { ref: planning.ref, data: marks }
+        );
+    }
+
+    /** Legado: só registra o que o gatilho antigo já aplicou. Nenhum impacto novo. */
+    private async adoptLegacyPlanning(
+        planning: CategoryPlanningRef,
+        currentMonth: string,
+        horizon: string
+    ): Promise<void> {
+        const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, currentMonth, horizon);
+
+        const marks: CategoryPlanningMarks = {
+            summarizedUntil: nextSummarizedUntil(planning.endMonth, horizon),
+            appliedAmount: window ? planning.amount : null,
+            appliedFrom: window ? window.from : null,
+            appliedUntil: window ? window.until : null,
+        };
+
+        await this.financeRepository.applyPlanningImpacts(planning.workspaceId, [], { ref: planning.ref, data: marks });
     }
 
     async processInstallmentChange(

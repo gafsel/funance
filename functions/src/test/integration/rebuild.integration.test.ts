@@ -580,18 +580,15 @@ describe("rebuildWorkspace — generalPlannedAmount com histórico", () => {
             lastSummaryMonth: monthKey(-1),
         });
 
-        // O planejamento é antigo: além do gatilho de criação, o cron
-        // `generateCategoryPlanningSummaries` já reaplicou os impactos em meses
-        // anteriores. Reproduzimos isso aplicando a partir de meses passados.
-        // `processCategoryPlanningChange` usa `new Date()` internamente, então
-        // para simular as execuções passadas do cron aplicamos os impactos com
-        // a mesma função (`calculatePlanningImpacts`) e o mesmo caminho de
-        // escrita (`updatePeriodSummary`) que o gatilho usa, variando a
-        // data-base de três meses atrás até hoje.
+        // O planejamento é antigo e vem do regime ANTERIOR a F1.5: o gatilho
+        // reaplicava a janela de 12 meses a cada escrita, sem estornar, e o
+        // cron fazia o mesmo. O resultado é um `generalPlannedAmount`
+        // acumulado várias vezes — exatamente o que o rebuild PRESERVA por
+        // padrão. Reproduzimos isso aplicando quatro janelas sobrepostas.
         for (const offset of [-3, -2, -1, 0]) {
-            const baseDate = new Date(NOW.getFullYear(), NOW.getMonth() + offset, 10, 12);
+            const window = { from: monthKey(offset), until: monthKey(offset + 11) };
 
-            for (const impact of summaryService.calculatePlanningImpacts(planning as any, 1, baseDate, 12)) {
+            for (const impact of summaryService.calculatePlanningImpacts(planning as any, 1, window)) {
                 await financeRepository.updatePeriodSummary(
                     WORKSPACE_ID, impact.year, impact.month, impact.category,
                     { generalPlannedDelta: impact.generalPlannedDelta }, impact.week

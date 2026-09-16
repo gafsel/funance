@@ -25,9 +25,15 @@
  * gatilhos e a "regra de negócio ideal" divergirem, este serviço reproduz o
  * gatilho — as divergências conhecidas estão comentadas no código e no
  * relatório do pacote.
+ *
+ * DIVERGÊNCIA CONHECIDA (F1.5, `--rebuild-planning`): o gatilho aplica o
+ * planejamento a partir do MÊS CORRENTE (nunca reescreve o passado), enquanto
+ * o rebuild cobre o período inteiro a partir de `startMonth`. Para um
+ * planejamento que começa no mês corrente ou no futuro os dois coincidem
+ * exatamente; para um que começou no passado, o rebuild PREENCHE os meses
+ * passados — é a correção pretendida, mas aparece como diferença no dry-run.
  */
 
-import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import { toDateKey } from "../../../../core/utils/date_key";
 import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
@@ -40,7 +46,13 @@ import {
 } from "../models/finance.models";
 import { ExistingDoc, IRebuildRepository, RebuildWrite } from "../repositories/rebuild.repository";
 import { FinanceService } from "./finance.service";
-import { resolveTransferAccountIds, resolveVirtualCategory, SummaryService } from "./summary.service";
+import {
+    intersectPlanningWindow,
+    planningHorizon,
+    resolveTransferAccountIds,
+    resolveVirtualCategory,
+    SummaryService,
+} from "./summary.service";
 
 export interface RebuildOptions {
     /** Padrão `true`: só calcula e devolve o diff, sem escrever nada. */
@@ -68,12 +80,20 @@ export interface RebuildOptions {
     /**
      * Recalcula também o `generalPlannedAmount` (padrão `false`).
      *
-     * CUIDADO: esse campo NÃO é reconstruível a partir de `installments` +
-     * `category_planning`. `calculatePlanningImpacts` só projeta da data-base
-     * para a frente (12 meses), então recalcular zera o planejado dos meses
-     * PASSADOS e o resultado muda conforme o dia em que o job roda. Por padrão
-     * o rebuild PRESERVA o valor que já está gravado em cada categoria de cada
-     * documento de `period_summaries`.
+     * F1.5 tornou esse recálculo DETERMINÍSTICO: os impactos cobrem todos os
+     * meses de `startMonth` até `min(endMonth, horizonte)`, e a única
+     * dependência de `now` é o horizonte (mês corrente + 11). Rodar hoje e
+     * amanhã dá o mesmo resultado; rodar no mês que vem só acrescenta o mês
+     * novo da ponta.
+     *
+     * Continua sendo uma flag, e não o padrão, por dois motivos:
+     *  - o valor gravado pode ter vindo do regime antigo (janela que começava
+     *     em `now`), e o recálculo vai MUDÁ-LO — inclusive preenchendo meses
+     *     passados que o incremental nunca preencheu;
+     *  - quem opera precisa ver no dry-run de onde vem cada alteração
+     *    (`generalPlannedChanges` conta os documentos afetados).
+     *
+     * Sem a flag, o `generalPlannedAmount` gravado é PRESERVADO como está.
      */
     rebuildPlanning?: boolean;
 }
@@ -243,14 +263,24 @@ export class RebuildAccumulator {
         this.addXpImpact(installment);
     }
 
-    /** Impactos de `category_planning` no `generalPlannedAmount`. */
+    /**
+     * Impactos de `category_planning` no `generalPlannedAmount` (F1.5).
+     *
+     * DETERMINÍSTICO: cobre todos os meses de `startMonth` até
+     * `min(endMonth, horizonte)`, com `horizonte = mês de baseDate + 11`. A
+     * única dependência de `now` é o horizonte — o passado não muda conforme o
+     * dia em que o job roda, como acontecia quando a janela começava em `now`.
+     */
     addPlanning(planning: CategoryPlanningModel, baseDate: Date): void {
-        const impacts = this.summaryService.calculatePlanningImpacts(
-            planning,
-            1,
-            baseDate,
-            DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths
+        const window = intersectPlanningWindow(
+            planning.startMonth,
+            planning.endMonth,
+            planning.startMonth,
+            planningHorizon(baseDate)
         );
+        if (!window) return;
+
+        const impacts = this.summaryService.calculatePlanningImpacts(planning, 1, window);
 
         for (const impact of impacts) {
             const bucket = this.categoryBucket(impact.year, impact.month, impact.week, impact.category);
