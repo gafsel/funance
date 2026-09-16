@@ -116,12 +116,21 @@ export function shiftDueDateByMonthDay(
 /**
  * Valor de uma parcela para o total da order.
  *
- * Uma parcela PAGA tem `amount` zerado por regra de negócio (o planejado vira
- * zero e o valor efetivo fica em `paidAmount`/`referenceAmount`) — somar
- * `amount` zerava o total da order a cada pagamento. Numa parcela em aberto o
- * valor acurado é o próprio `amount`: o `referenceAmount` acompanha o
- * planejado, mas pode estar defasado na escrita que acabou de chegar do
- * cliente.
+ * `order.amount` significa REALIZADO + PLANEJADO EM ABERTO: parcela paga entra
+ * pelo que de fato custou, parcela em aberto pelo que ainda se espera gastar, e
+ * parcela removida não entra (ver `buildOrderUpdateFromCascade`).
+ *
+ * Na parcela paga o realizado é o `referenceAmount`, que o cliente calcula como
+ * `paidAmount ?? amount` (installment_model.dart) e grava junto do pagamento.
+ * Atenção: pagar pelo app NÃO zera o `amount` — ele continua com o planejado
+ * original, que é justamente o que não queremos no realizado. O `amount` zerado
+ * só acontece nas parcelas que NASCEM pagas (saldo inicial, compra já liquidada
+ * no cartão), onde `syncInstallments` zera o planejado de propósito; somar
+ * `amount` levaria o total dessas orders a zero.
+ *
+ * Na parcela em aberto o valor é o próprio `amount`: o `referenceAmount`
+ * acompanha o planejado, mas pode chegar defasado na escrita que o cliente
+ * acabou de fazer.
  */
 function installmentValueForOrderTotal(installment: InstallmentModel): number {
     const isPaid = installment.status === InstallmentStatus.paid
@@ -420,13 +429,24 @@ export class FinanceService {
 
         const orderUpdate = buildOrderUpdateFromCascade(after, updatedInstallments, changes);
 
-        if (Object.keys(orderUpdate).length === 0) {
+        if (Object.keys(orderUpdate).length > 0) {
+            logger.info(`[processInstallmentCascade] Cascateando alteração de Installment para Order ${after.orderId}: ${JSON.stringify(Object.keys(orderUpdate))}.`);
+            await this.financeRepository.updateOrder(workspaceId, after.orderId, orderUpdate);
+        }
+        else {
             logger.debug(`[processInstallmentCascade] Order ${after.orderId} sem mudanças relevantes; updateOrder ignorado.`);
-            return;
         }
 
-        logger.info(`[processInstallmentCascade] Cascateando alteração de Installment para Order ${after.orderId}: ${JSON.stringify(Object.keys(orderUpdate))}.`);
-        await this.financeRepository.updateOrder(workspaceId, after.orderId, orderUpdate);
+        // A cascata já foi consumida: zerar no documento de ORIGEM, senão ela
+        // fica grudada e a próxima escrita qualquer na parcela replica tudo de
+        // novo. Num pagamento a escrita de xp já faz isso (xp + cascata juntos);
+        // numa cascata sem pagamento — trocar a categoria com `all`, por
+        // exemplo — não há escrita de xp, e é esta que fecha o ciclo. O evento
+        // resultante só mexe num campo derivado, então o handler o ignora pela
+        // guarda por conteúdo.
+        await this.financeRepository.updateInstallment(workspaceId, after.id, {
+            replicationCascade: ReplicationCascade.none,
+        });
     }
 
     /**
@@ -434,6 +454,9 @@ export class FinanceService {
      *
      * Usado no caminho sem cascata: o usuário pode remover parcela a parcela,
      * e só a última remoção encerra a order.
+     *
+     * Grava `amount: 0` junto do cancelamento, igual ao caminho com cascata:
+     * sem nenhuma parcela viva, o total realizado + planejado da order é zero.
      */
     private async cancelOrderIfFullyRemoved(workspaceId: string, after: InstallmentModel): Promise<void> {
         const allInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, after.orderId);
@@ -444,6 +467,7 @@ export class FinanceService {
 
         logger.info(`[processInstallmentCascade] Todas as parcelas da order ${after.orderId} estão removidas: cancelando a order.`);
         await this.financeRepository.updateOrder(workspaceId, after.orderId, {
+            amount: 0,
             status: OrderStatus.cancelled,
         });
     }

@@ -211,6 +211,7 @@ describe("Gatilho de parcela: guarda por conteúdo (integração com emulador)",
         const after = { ...before, description: "Curso de inglês avançado" };
 
         const updateOrderSpy = jest.spyOn(FinanceRepositoryImpl.prototype, "updateOrder");
+        const updateInstallmentSpy = jest.spyOn(FinanceRepositoryImpl.prototype, "updateInstallment");
 
         await handleInstallmentWritten(before, { ...after, replicationCascade: ReplicationCascade.all }, {
             workspaceId: WORKSPACE_ID,
@@ -225,6 +226,15 @@ describe("Gatilho de parcela: guarda por conteúdo (integração com emulador)",
             expect.objectContaining({ description: "Curso de inglês avançado" })
         );
 
+        // E a cascata é zerada no documento de ORIGEM: sem pagamento não há
+        // escrita de xp, então é esta que impede a cascata de ficar grudada.
+        expect(updateInstallmentSpy).toHaveBeenCalledWith(WORKSPACE_ID, installmentId, {
+            replicationCascade: ReplicationCascade.none,
+        });
+        expect((await installmentRef().get()).data()!.replicationCascade)
+            .toBe(ReplicationCascade.none);
+
         updateOrderSpy.mockRestore();
+        updateInstallmentSpy.mockRestore();
     });
 });

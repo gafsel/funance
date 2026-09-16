@@ -79,6 +79,21 @@ function updateFor(repository: any, id: string): any {
     return call ? call[2] : undefined;
 }
 
+/**
+ * Ids das IRMÃS atualizadas. A parcela de origem sempre recebe uma escrita
+ * própria no fim da cascata (o reset de `replicationCascade`), que não é
+ * replicação e por isso fica de fora.
+ */
+function siblingUpdatedIds(repository: any, originId = "i3"): string[] {
+    return updatedIds(repository).filter((id) => id !== originId);
+}
+
+/** A última escrita da cascata: o reset no documento de origem. */
+function lastUpdate(repository: any): any[] {
+    const calls = repository.updateInstallment.mock.calls;
+    return calls[calls.length - 1];
+}
+
 describe("shiftDueDateByMonthDay", () => {
     it("aplica o novo DIA do mês, sem somar milissegundos (31 -> 28)", () => {
         const before = new Date(2025, 0, 31, 12); // 31/01
@@ -242,6 +257,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             expect(repository.updateInstallment).not.toHaveBeenCalled();
             expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, {
+                amount: 0,
                 status: OrderStatus.cancelled,
             });
         });
@@ -257,7 +273,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(updatedIds(repository).sort()).toEqual(["i1", "i2", "i4"]);
+            expect(siblingUpdatedIds(repository).sort()).toEqual(["i1", "i2", "i4"]);
             expect(updateFor(repository, "i1")).toMatchObject({
                 amount: 250,
                 referenceAmount: 250,
@@ -313,7 +329,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(updatedIds(repository).sort()).toEqual(["i1", "i2", "i4"]);
+            expect(siblingUpdatedIds(repository).sort()).toEqual(["i1", "i2", "i4"]);
             expect(updateFor(repository, "i1").status).toBe(InstallmentStatus.removed);
             expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, {
                 amount: 0,
@@ -376,7 +392,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(updatedIds(repository)).toEqual(["i4"]);
+            expect(siblingUpdatedIds(repository)).toEqual(["i4"]);
             // i1 (100) + i2 (100) + i3 (250) + i4 (250)
             expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, { amount: 700 });
         });
@@ -395,7 +411,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(updatedIds(repository).sort()).toEqual(["i2", "i3"]);
+            expect(siblingUpdatedIds(repository, "i1").sort()).toEqual(["i2", "i3"]);
         });
 
         it("remove só as futuras e NÃO cancela a order (restam parcelas vivas)", async () => {
@@ -407,7 +423,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(updatedIds(repository)).toEqual(["i4"]);
+            expect(siblingUpdatedIds(repository)).toEqual(["i4"]);
             const orderUpdate = repository.updateOrder.mock.calls[0][2];
             expect(orderUpdate.status).toBeUndefined();
             expect(orderUpdate.amount).toBe(200); // i1 + i2
@@ -422,7 +438,7 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(updatedIds(repository)).toEqual(["i4"]);
+            expect(siblingUpdatedIds(repository)).toEqual(["i4"]);
             expect(updateFor(repository, "i4").dueDate).toEqual(new Date(2025, 3, 28, 12));
             expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, { dueDay: 28 });
         });
@@ -458,9 +474,145 @@ describe("FinanceService.processInstallmentCascade (tabela none/all/future)", ()
 
             await service.processInstallmentCascade(WORKSPACE_ID, before, after);
 
-            expect(repository.updateInstallment).not.toHaveBeenCalled();
+            expect(siblingUpdatedIds(repository)).toEqual([]);
             // i1 + i2 + i3 (a removida i4 fica de fora)
             expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, { amount: 450 });
+        });
+    });
+
+    describe("reset da cascata no documento de origem", () => {
+        it("zera a cascata na parcela de origem ao fim da cascata, numa escrita própria", async () => {
+            const repository = makeRepository(buildSeries());
+            const service = new FinanceService(repository);
+
+            const before = origin();
+            const after = { ...before, category: OTHER_CATEGORY, replicationCascade: ReplicationCascade.all };
+
+            await service.processInstallmentCascade(WORKSPACE_ID, before, after);
+
+            // Sem pagamento não há escrita de xp: é esta que tira a cascata do
+            // documento de origem. Ela é a última, depois das irmãs e da order.
+            expect(lastUpdate(repository)).toEqual([
+                WORKSPACE_ID,
+                "i3",
+                { replicationCascade: ReplicationCascade.none },
+            ]);
+            expect(updateFor(repository, "i3")).toEqual({ replicationCascade: ReplicationCascade.none });
+        });
+
+        it("zera a cascata mesmo quando a order não precisa de update", async () => {
+            // Uma irmã só, já removida: nada a replicar na order.
+            const series = [
+                makeInstallment("i3", 2025, 3, 31),
+                makeInstallment("i4", 2025, 4, 30, { status: InstallmentStatus.removed }),
+            ];
+            const repository = makeRepository(series);
+            const service = new FinanceService(repository);
+
+            const before = series[0];
+            const after = { ...before, description: "Outro nome", replicationCascade: ReplicationCascade.future };
+
+            await service.processInstallmentCascade(WORKSPACE_ID, before, after);
+
+            expect(siblingUpdatedIds(repository)).toEqual([]);
+            expect(updateFor(repository, "i3")).toEqual({ replicationCascade: ReplicationCascade.none });
+        });
+
+        it("não escreve nada quando a cascata é none", async () => {
+            const repository = makeRepository(buildSeries());
+            const service = new FinanceService(repository);
+
+            const before = origin();
+            const after = { ...before, amount: 250, replicationCascade: ReplicationCascade.none };
+
+            await service.processInstallmentCascade(WORKSPACE_ID, before, after);
+
+            expect(repository.updateInstallment).not.toHaveBeenCalled();
+        });
+
+        it("não escreve nada quando nenhum campo replicável mudou", async () => {
+            const repository = makeRepository(buildSeries());
+            const service = new FinanceService(repository);
+
+            const before = { ...origin(), replicationCascade: ReplicationCascade.all };
+            const after = { ...before, xp: 15 };
+
+            await service.processInstallmentCascade(WORKSPACE_ID, before, after);
+
+            expect(repository.updateInstallment).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("mudança de vencimento em série longa (regra congelada)", () => {
+        /** 12 parcelas mensais vencendo dia 31, de jan/2026 a dez/2026. */
+        const buildYearSeries = (): InstallmentModel[] => {
+            const series: InstallmentModel[] = [];
+            for (let month = 1; month <= 12; month++) {
+                const lastDay = new Date(2026, month, 0).getDate();
+                series.push(makeInstallment(`p${month}`, 2026, month, Math.min(31, lastDay)));
+            }
+            return series;
+        };
+
+        it("31/01 -> 28/02 com future desloca a série inteira em 1 mês, dia 28", async () => {
+            const series = buildYearSeries();
+            const repository = makeRepository(series);
+            const service = new FinanceService(repository);
+
+            const before = series[0]; // 31/01/2026
+            const after = {
+                ...before,
+                dueDate: new Date(2026, 1, 28, 12), // 28/02/2026
+                replicationCascade: ReplicationCascade.future,
+            };
+
+            await service.processInstallmentCascade(WORKSPACE_ID, before, after);
+
+            // Todas as 11 irmãs vencem depois de 28/02/2026, então entram.
+            expect(siblingUpdatedIds(repository, "p1")).toEqual([
+                "p2", "p3", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
+            ]);
+
+            // Regra ATUAL congelada: mudar de 31/01 para 28/02 é lido como
+            // "+1 mês, dia 28" — a série inteira anda um mês para a frente, e a
+            // 12ª parcela sai de 31/12/2026 para 28/01/2027.
+            expect(updateFor(repository, "p2").dueDate).toEqual(new Date(2026, 2, 28, 12));
+            expect(updateFor(repository, "p3").dueDate).toEqual(new Date(2026, 3, 28, 12));
+            expect(updateFor(repository, "p11").dueDate).toEqual(new Date(2026, 11, 28, 12));
+            expect(updateFor(repository, "p12").dueDate).toEqual(new Date(2027, 0, 28, 12));
+
+            expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, { dueDay: 28 });
+        });
+
+        it("mover para TRÁS (31/03 -> 01/01) puxa as irmãs de jan e fev para o future", async () => {
+            const series = buildYearSeries();
+            const repository = makeRepository(series);
+            const service = new FinanceService(repository);
+
+            const before = series[2]; // 31/03/2026
+            const after = {
+                ...before,
+                dueDate: new Date(2026, 0, 1, 12), // 01/01/2026
+                replicationCascade: ReplicationCascade.future,
+            };
+
+            await service.processInstallmentCascade(WORKSPACE_ID, before, after);
+
+            // `future` é por data: com o vencimento recuado para 01/01, as
+            // irmãs de janeiro (31/01) e fevereiro (28/02) passam a ser
+            // "futuras" e também são deslocadas.
+            expect(siblingUpdatedIds(repository, "p3")).toEqual([
+                "p1", "p2", "p4", "p5", "p6", "p7", "p8", "p9", "p10", "p11", "p12",
+            ]);
+
+            // Delta de -2 meses, dia 1: a série anda dois meses para trás e as
+            // duas primeiras parcelas caem no ano anterior.
+            expect(updateFor(repository, "p1").dueDate).toEqual(new Date(2025, 10, 1, 12));
+            expect(updateFor(repository, "p2").dueDate).toEqual(new Date(2025, 11, 1, 12));
+            expect(updateFor(repository, "p4").dueDate).toEqual(new Date(2026, 1, 1, 12));
+            expect(updateFor(repository, "p12").dueDate).toEqual(new Date(2026, 9, 1, 12));
+
+            expect(repository.updateOrder).toHaveBeenCalledWith(WORKSPACE_ID, ORDER_ID, { dueDay: 1 });
         });
     });
 
