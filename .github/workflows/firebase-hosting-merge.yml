@@ -45,7 +45,7 @@ jobs:
           projectId: funance-cef1b
 
   deploy_backend:
-    name: Deploy de Functions, rules e indexes
+    name: Deploy de Functions, rules (Firestore e Storage) e indexes
     needs: verify
     runs-on: ubuntu-latest
     steps:
@@ -84,9 +84,11 @@ jobs:
       - name: Deploy
         working-directory: functions
         run: |
+          # `storage` (e não `storage:rules`) é o alvo válido do CLI para as
+          # rules do Storage; `storage:<nome>` seria um deploy target de bucket.
           npx firebase deploy \
             --project "${FIREBASE_PROJECT_ID}" \
-            --only functions,firestore:rules,firestore:indexes \
+            --only functions,firestore:rules,firestore:indexes,storage \
             --non-interactive \
             --force
 

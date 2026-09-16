@@ -33,12 +33,13 @@ jobs:
         run: flutter gen-l10n
 
       - name: Gerar código (freezed / json_serializable)
-        run: dart run build_runner build --delete-conflicting-outputs
+        run: dart run build_runner build
 
-      # NOTA: `flutter analyze` sem flags é fatal para warnings e hoje o
-      # projeto tem ~161 issues pré-existentes (imports não usados etc.),
-      # o que deixaria o CI vermelho desde o primeiro dia. Por ora só erros
-      # quebram o build; remova os flags depois da limpeza do analyzer.
+      # NOTA: `flutter analyze` sem flags é fatal para warnings, e o projeto
+      # ainda carrega warnings/infos pré-existentes (imports não usados,
+      # use_build_context_synchronously etc.) que deixariam o CI vermelho
+      # desde o primeiro dia. Por ora só erros quebram o build; remova os
+      # flags depois da limpeza do analyzer.
       - name: Analyze
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
