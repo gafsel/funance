@@ -166,7 +166,16 @@ service cloud.firestore {
         }
 
         allow read: if isMember(workspaceId);
-        allow create, update: if isMember(workspaceId) && validGoal(request.resource.data);
+        // `completedAt` é do SERVIDOR: ele carimba a primeira vez que a meta
+        // alcança o alvo e os badges de conclusão confiam nesse instante. O
+        // cliente não cria o campo nem o altera (o app escreve a meta com
+        // `update`, que só toca os campos enviados, então o carimbo sobrevive).
+        allow create: if isMember(workspaceId)
+          && validGoal(request.resource.data)
+          && !('completedAt' in request.resource.data);
+        allow update: if isMember(workspaceId)
+          && validGoal(request.resource.data)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['completedAt']);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }
 
@@ -371,6 +380,17 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Catálogo público de badges (nomes, ícones, XP, descrições e a tabela de
+    // XP por nível). Não é dado de usuário: é a configuração que o app lê para
+    // desenhar a vitrine, publicada pelo cron `publishBadgeCatalog`.
+    // Qualquer usuário autenticado lê; a escrita é só do servidor (Admin SDK).
+    // Os demais documentos de `config` (ai, cron_checkpoints) continuam
+    // fechados pelo `match /{document=**}` do fim do arquivo.
+    match /config/badges {
+      allow read: if request.auth != null;
+      allow write: if false;
     }
 
     // Coleção raiz legada de ai_logs. Os logs novos vão para

@@ -9,7 +9,7 @@ import {
     CRON_WORKSPACE_CONCURRENCY,
 } from "../../../../core/config/functions.config";
 import { IGamificationRepository } from "../repositories/gamification.repository";
-import { GoalType, resolveGoalType } from "../models/goal.model";
+import { GoalType, isGoalActive, isGoalCompleted, resolveGoalType } from "../models/goal.model";
 import {
     addCalendarDays,
     endOfWeekFromStart,
@@ -49,91 +49,311 @@ export function calculateLevel(xp: number): number {
     return Math.floor(Math.log2(xp / 300 + 1)) + 1;
 }
 
+/**
+ * Categorias do catálogo de badges, publicadas em `config/badges` e usadas
+ * pelo app para agrupar as seções da vitrine.
+ */
+export const BADGE_CATEGORIES = [
+    "advanced",
+    "first_steps",
+    "consistency",
+    "savings",
+    "goals",
+    "team",
+] as const;
+
+export type BadgeCategory = typeof BADGE_CATEGORIES[number];
+
 export interface BadgeConfig {
     id: string;
     name: string;
     icon: string;
     xpReward: number;
+    /** Seção da vitrine. Ver `BADGE_CATEGORIES`. */
+    category: BadgeCategory;
+    /** Como se ganha o badge, em português. Servido ao app por `config/badges`. */
+    description: string;
 }
 
 export const BADGES: Record<string, BadgeConfig> = {
-    first_step: { id: "first_step", name: "Primeiro Passo", icon: "rocket_launch", xpReward: 100 },
-    first_account: { id: "first_account", name: "Primeira Conta", icon: "account_balance", xpReward: 150 },
-    first_transaction: { id: "first_transaction", name: "Ponto de Partida", icon: "add_circle", xpReward: 150 },
-    planner: { id: "planner", name: "Planejador Estrategista", icon: "assignment", xpReward: 200 },
-    reconcile_junior: { id: "reconcile_junior", name: "Conciliador Júnior", icon: "point_of_sale", xpReward: 300 },
-    cash_detective: { id: "cash_detective", name: "Detetive de Caixa", icon: "fact_check", xpReward: 500 },
-    reconcile_master: { id: "reconcile_master", name: "Mestre da Conciliação", icon: "workspace_premium", xpReward: 1000 },
-    zero_friction: { id: "zero_friction", name: "Atrito Zero", icon: "bolt", xpReward: 800 },
-    savings_seed: { id: "savings_seed", name: "Semente de Poupança", icon: "savings", xpReward: 500 },
-    goal_bronze: { id: "goal_bronze", name: "Colecionador de Metas", icon: "military_tech", xpReward: 1000 },
-    goal_silver: { id: "goal_silver", name: "Foco Inabalável", icon: "stars", xpReward: 2000 },
-    under_control: { id: "under_control", name: "Tudo Sob Controle", icon: "check_circle", xpReward: 1500 },
-    golden_rule: { id: "golden_rule", name: "Regra de Ouro", icon: "pie_chart", xpReward: 1200 },
-    future_focus: { id: "future_focus", name: "Visão de Futuro", icon: "trending_up", xpReward: 1000 },
-    cost_cutter: { id: "cost_cutter", name: "Tesoura de Gastos", icon: "content_cut", xpReward: 800 },
-    united_front: { id: "united_front", name: "Equipe Unida", icon: "groups", xpReward: 600 },
-    iron_consistency: { id: "iron_consistency", name: "Consistência de Aço", icon: "calendar_month", xpReward: 2500 },
+    first_step: {
+        id: "first_step", name: "Primeiro Passo", icon: "rocket_launch", xpReward: 100, category: "advanced",
+        description: "O workspace é criado e o onboarding é concluído com sucesso.",
+    },
+    first_account: {
+        id: "first_account", name: "Primeira Conta", icon: "account_balance", xpReward: 150, category: "advanced",
+        description: "A primeira conta bancária ou cartão é cadastrado no workspace.",
+    },
+    first_transaction: {
+        id: "first_transaction", name: "Ponto de Partida", icon: "add_circle", xpReward: 150, category: "advanced",
+        description: "A primeira transação real (installment) é registrada com status paid.",
+    },
+    planner: {
+        id: "planner", name: "Planejador Estrategista", icon: "assignment", xpReward: 200, category: "advanced",
+        description: "Limites de planejamento são criados para pelo menos 5 categorias.",
+    },
+    reconcile_junior: {
+        id: "reconcile_junior", name: "Conciliador Júnior", icon: "point_of_sale", xpReward: 300, category: "advanced",
+        description: "A primeira conciliação bancária bem-sucedida é concluída (pelo menos 1 match confirmado).",
+    },
+    cash_detective: {
+        id: "cash_detective", name: "Detetive de Caixa", icon: "fact_check", xpReward: 500, category: "advanced",
+        description: "Conciliação completa de um arquivo de extrato contendo pelo menos 10 transações.",
+    },
+    reconcile_master: {
+        id: "reconcile_master", name: "Mestre da Conciliação", icon: "workspace_premium", xpReward: 1000, category: "advanced",
+        description: "O workspace acumula 10 conciliações de extratos concluídas com sucesso.",
+    },
+    zero_friction: {
+        id: "zero_friction", name: "Atrito Zero", icon: "bolt", xpReward: 800, category: "advanced",
+        description: "Conciliar um extrato mensal inteiro sem necessitar criar lançamentos manuais extras.",
+    },
+    savings_seed: {
+        id: "savings_seed", name: "Semente de Poupança", icon: "savings", xpReward: 500, category: "advanced",
+        description: "A primeira meta (goal) cadastrada no workspace atinge 100% de progresso.",
+    },
+    goal_bronze: {
+        id: "goal_bronze", name: "Colecionador de Metas", icon: "military_tech", xpReward: 1000, category: "advanced",
+        description: "O workspace conclui com sucesso 3 metas financeiras diferentes.",
+    },
+    goal_silver: {
+        id: "goal_silver", name: "Foco Inabalável", icon: "stars", xpReward: 2000, category: "advanced",
+        description: "O workspace conclui com sucesso 5 metas financeiras diferentes.",
+    },
+    under_control: {
+        id: "under_control", name: "Tudo Sob Controle", icon: "check_circle", xpReward: 1500, category: "advanced",
+        description: "Fechar o mês sem estourar nenhuma categoria planejada na regra 50-30-20.",
+    },
+    golden_rule: {
+        id: "golden_rule", name: "Regra de Ouro", icon: "pie_chart", xpReward: 1200, category: "advanced",
+        description: "Alocar limites em todos os 3 pools (Essencial, Conforto, Investimento) no mesmo mês.",
+    },
+    future_focus: {
+        id: "future_focus", name: "Visão de Futuro", icon: "trending_up", xpReward: 1000, category: "advanced",
+        description: "Poupar e investir efetivamente pelo menos 20% das receitas totais do workspace no mês.",
+    },
+    cost_cutter: {
+        id: "cost_cutter", name: "Tesoura de Gastos", icon: "content_cut", xpReward: 800, category: "advanced",
+        description: "Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.",
+    },
+    united_front: {
+        id: "united_front", name: "Equipe Unida", icon: "groups", xpReward: 600, category: "advanced",
+        description: "Workspace com 3 ou mais membros ativos adicionados e aceitos.",
+    },
+    iron_consistency: {
+        id: "iron_consistency", name: "Consistência de Aço", icon: "calendar_month", xpReward: 2500, category: "advanced",
+        description: "Concluir com sucesso as missões semanais por 4 semanas consecutivas.",
+    },
 
     // ── Simple Badges — Primeiros Passos (10) ────────────────────────────────────────
-    first_category: { id: "first_category", name: "Organizador", icon: "label", xpReward: 25 },
-    first_planning: { id: "first_planning", name: "Planejador Novato", icon: "event_note", xpReward: 50 },
-    first_goal: { id: "first_goal", name: "Sonhador", icon: "flag", xpReward: 50 },
-    first_invite: { id: "first_invite", name: "Anfitrião", icon: "person_add", xpReward: 75 },
-    profile_complete: { id: "profile_complete", name: "Perfil Completo", icon: "verified", xpReward: 25 },
-    first_income: { id: "first_income", name: "Receita Registrada", icon: "south_east", xpReward: 50 },
-    first_expense: { id: "first_expense", name: "Gasto Registrado", icon: "north_west", xpReward: 50 },
-    first_transfer: { id: "first_transfer", name: "Transferidor", icon: "swap_horiz", xpReward: 50 },
-    workspace_named: { id: "workspace_named", name: "Identidade Própria", icon: "edit", xpReward: 25 },
-    first_month: { id: "first_month", name: "Primeiro Mês", icon: "calendar_today", xpReward: 75 },
+    first_category: {
+        id: "first_category", name: "Organizador", icon: "label", xpReward: 25, category: "first_steps",
+        description: "Criar a primeira categoria personalizada no workspace.",
+    },
+    first_planning: {
+        id: "first_planning", name: "Planejador Novato", icon: "event_note", xpReward: 50, category: "first_steps",
+        description: "Criar o primeiro planejamento de categoria com valor definido.",
+    },
+    first_goal: {
+        id: "first_goal", name: "Sonhador", icon: "flag", xpReward: 50, category: "first_steps",
+        description: "Criar a primeira meta financeira no workspace.",
+    },
+    first_invite: {
+        id: "first_invite", name: "Anfitrião", icon: "person_add", xpReward: 75, category: "first_steps",
+        description: "Convidar o primeiro membro para o workspace.",
+    },
+    profile_complete: {
+        id: "profile_complete", name: "Perfil Completo", icon: "verified", xpReward: 25, category: "first_steps",
+        description: "Definir nome e tipo do workspace.",
+    },
+    first_income: {
+        id: "first_income", name: "Receita Registrada", icon: "south_east", xpReward: 50, category: "first_steps",
+        description: "Registrar a primeira receita paga no workspace.",
+    },
+    first_expense: {
+        id: "first_expense", name: "Gasto Registrado", icon: "north_west", xpReward: 50, category: "first_steps",
+        description: "Registrar o primeiro gasto pago no workspace.",
+    },
+    first_transfer: {
+        id: "first_transfer", name: "Transferidor", icon: "swap_horiz", xpReward: 50, category: "first_steps",
+        description: "Registrar a primeira transferência entre contas.",
+    },
+    workspace_named: {
+        id: "workspace_named", name: "Identidade Própria", icon: "edit", xpReward: 25, category: "first_steps",
+        description: "Dar um nome personalizado ao workspace.",
+    },
+    first_month: {
+        id: "first_month", name: "Primeiro Mês", icon: "calendar_today", xpReward: 75, category: "first_steps",
+        description: "Ter pelo menos uma transação registrada em um mês completo.",
+    },
 
     // ── Simple Badges — Registro Consistente (10) ────────────────────────────
-    five_transactions: { id: "five_transactions", name: "Ativo!", icon: "flash_on", xpReward: 50 },
-    twenty_transactions: { id: "twenty_transactions", name: "Comprometido", icon: "trending_up", xpReward: 75 },
-    fifty_transactions: { id: "fifty_transactions", name: "Vetarano", icon: "workspace_premium", xpReward: 100 },
-    hundred_transactions: { id: "hundred_transactions", name: "Centenário", icon: "emoji_events", xpReward: 150 },
-    week_complete: { id: "week_complete", name: "Semana Completa", icon: "date_range", xpReward: 100 },
-    two_accounts: { id: "two_accounts", name: "Multi-Conta", icon: "account_balance_wallet", xpReward: 50 },
-    three_accounts: { id: "three_accounts", name: "Gerenciador", icon: "dashboard", xpReward: 75 },
-    five_accounts: { id: "five_accounts", name: "Portfólio", icon: "business_center", xpReward: 100 },
-    five_categories: { id: "five_categories", name: "Categorizado", icon: "category", xpReward: 50 },
-    ten_categories: { id: "ten_categories", name: "Mestre Categorizador", icon: "workspaces", xpReward: 75 },
+    five_transactions: {
+        id: "five_transactions", name: "Ativo!", icon: "flash_on", xpReward: 50, category: "consistency",
+        description: "Registrar 5 transações pagas no total.",
+    },
+    twenty_transactions: {
+        id: "twenty_transactions", name: "Comprometido", icon: "trending_up", xpReward: 75, category: "consistency",
+        description: "Registrar 20 transações pagas no total.",
+    },
+    fifty_transactions: {
+        id: "fifty_transactions", name: "Vetarano", icon: "workspace_premium", xpReward: 100, category: "consistency",
+        description: "Registrar 50 transações pagas no total.",
+    },
+    hundred_transactions: {
+        id: "hundred_transactions", name: "Centenário", icon: "emoji_events", xpReward: 150, category: "consistency",
+        description: "Registrar 100 transações pagas no total.",
+    },
+    week_complete: {
+        id: "week_complete", name: "Semana Completa", icon: "date_range", xpReward: 100, category: "consistency",
+        description: "Registrar ao menos uma transação em 7 dias consecutivos.",
+    },
+    two_accounts: {
+        id: "two_accounts", name: "Multi-Conta", icon: "account_balance_wallet", xpReward: 50, category: "consistency",
+        description: "Cadastrar 2 contas no workspace.",
+    },
+    three_accounts: {
+        id: "three_accounts", name: "Gerenciador", icon: "dashboard", xpReward: 75, category: "consistency",
+        description: "Cadastrar 3 contas no workspace.",
+    },
+    five_accounts: {
+        id: "five_accounts", name: "Portfólio", icon: "business_center", xpReward: 100, category: "consistency",
+        description: "Cadastrar 5 contas no workspace.",
+    },
+    five_categories: {
+        id: "five_categories", name: "Categorizado", icon: "category", xpReward: 50, category: "consistency",
+        description: "Criar ao menos 5 categorias.",
+    },
+    ten_categories: {
+        id: "ten_categories", name: "Mestre Categorizador", icon: "workspaces", xpReward: 75, category: "consistency",
+        description: "Criar ao menos 10 categorias.",
+    },
 
     // ── Simple Badges — Gastos e Economias (10) ──────────────────────────────
-    round_number: { id: "round_number", name: "Número Redondo", icon: "radio_button_checked", xpReward: 25 },
-    big_transaction: { id: "big_transaction", name: "Grande Negócio", icon: "payments", xpReward: 75 },
-    small_transactions_ten: { id: "small_transactions_ten", name: "Detalhe Minucioso", icon: "grain", xpReward: 75 },
-    income_registered: { id: "income_registered", name: "Bem Documentado", icon: "receipt_long", xpReward: 50 },
-    expense_under_income: { id: "expense_under_income", name: "Saldo Positivo", icon: "balance", xpReward: 100 },
-    three_categories_month: { id: "three_categories_month", name: "Diversificado", icon: "donut_small", xpReward: 75 },
-    five_categories_month: { id: "five_categories_month", name: "Abrangente", icon: "donut_large", xpReward: 100 },
-    savings_10pct: { id: "savings_10pct", name: "Poupador Iniciante", icon: "percent", xpReward: 100 },
-    savings_start: { id: "savings_start", name: "Primeiro Centavo", icon: "monetization_on", xpReward: 75 },
-    no_credit_debt: { id: "no_credit_debt", name: "Livre de Juros", icon: "credit_score", xpReward: 75 },
+    round_number: {
+        id: "round_number", name: "Número Redondo", icon: "radio_button_checked", xpReward: 25, category: "savings",
+        description: "Registrar uma transação de valor exato sem centavos.",
+    },
+    big_transaction: {
+        id: "big_transaction", name: "Grande Negócio", icon: "payments", xpReward: 75, category: "savings",
+        description: "Registrar uma transação individual acima de R$ 1.000.",
+    },
+    small_transactions_ten: {
+        id: "small_transactions_ten", name: "Detalhe Minucioso", icon: "grain", xpReward: 75, category: "savings",
+        description: "Registrar 10 transações de valor inferior a R$ 10.",
+    },
+    income_registered: {
+        id: "income_registered", name: "Bem Documentado", icon: "receipt_long", xpReward: 50, category: "savings",
+        description: "Registrar ao menos uma receita no workspace.",
+    },
+    expense_under_income: {
+        id: "expense_under_income", name: "Saldo Positivo", icon: "balance", xpReward: 100, category: "savings",
+        description: "Fechar o mês com despesas menores que as receitas.",
+    },
+    three_categories_month: {
+        id: "three_categories_month", name: "Diversificado", icon: "donut_small", xpReward: 75, category: "savings",
+        description: "Ter gastos em 3 categorias diferentes no mesmo mês.",
+    },
+    five_categories_month: {
+        id: "five_categories_month", name: "Abrangente", icon: "donut_large", xpReward: 100, category: "savings",
+        description: "Ter gastos em 5 categorias diferentes no mesmo mês.",
+    },
+    savings_10pct: {
+        id: "savings_10pct", name: "Poupador Iniciante", icon: "percent", xpReward: 100, category: "savings",
+        description: "Poupar ao menos 10% da receita total no mês.",
+    },
+    savings_start: {
+        id: "savings_start", name: "Primeiro Centavo", icon: "monetization_on", xpReward: 75, category: "savings",
+        description: "Fazer o primeiro depósito em qualquer meta financeira.",
+    },
+    no_credit_debt: {
+        id: "no_credit_debt", name: "Livre de Juros", icon: "credit_score", xpReward: 75, category: "savings",
+        description: "Fechar o mês sem nenhuma fatura de crédito em aberto.",
+    },
 
     // ── Simple Badges — Metas (10) ───────────────────────────────────────────────────
-    goal_halfway: { id: "goal_halfway", name: "Na Metade do Caminho", icon: "looks_two", xpReward: 50 },
-    goal_75pct: { id: "goal_75pct", name: "Quase Lá", icon: "looks_3", xpReward: 75 },
-    goal_under_deadline: { id: "goal_under_deadline", name: "No Prazo", icon: "timer", xpReward: 100 },
-    two_active_goals: { id: "two_active_goals", name: "Ambicioso", icon: "offline_bolt", xpReward: 50 },
-    five_active_goals: { id: "five_active_goals", name: "Multitarefas", icon: "dynamic_feed", xpReward: 100 },
-    long_term_goal: { id: "long_term_goal", name: "Visão de Longo Prazo", icon: "public", xpReward: 75 },
-    short_term_goal: { id: "short_term_goal", name: "Sprint Financeiro", icon: "bolt", xpReward: 75 },
-    goal_deposit: { id: "goal_deposit", name: "Primeiro Depósito", icon: "add_card", xpReward: 50 },
-    goal_debt_paid: { id: "goal_debt_paid", name: "Livre de Dívidas", icon: "free_cancellation", xpReward: 150 },
-    goal_linked_account: { id: "goal_linked_account", name: "Meta Vinculada", icon: "link", xpReward: 50 },
+    goal_halfway: {
+        id: "goal_halfway", name: "Na Metade do Caminho", icon: "looks_two", xpReward: 50, category: "goals",
+        description: "Uma meta financeira atingir 50% do valor alvo.",
+    },
+    goal_75pct: {
+        id: "goal_75pct", name: "Quase Lá", icon: "looks_3", xpReward: 75, category: "goals",
+        description: "Uma meta financeira atingir 75% do valor alvo.",
+    },
+    goal_under_deadline: {
+        id: "goal_under_deadline", name: "No Prazo", icon: "timer", xpReward: 100, category: "goals",
+        description: "Concluir uma meta antes da data limite estabelecida.",
+    },
+    two_active_goals: {
+        id: "two_active_goals", name: "Ambicioso", icon: "offline_bolt", xpReward: 50, category: "goals",
+        description: "Ter 2 metas ativas ao mesmo tempo.",
+    },
+    five_active_goals: {
+        id: "five_active_goals", name: "Multitarefas", icon: "dynamic_feed", xpReward: 100, category: "goals",
+        description: "Ter 5 metas ativas ao mesmo tempo.",
+    },
+    long_term_goal: {
+        id: "long_term_goal", name: "Visão de Longo Prazo", icon: "public", xpReward: 75, category: "goals",
+        description: "Criar uma meta com prazo superior a 12 meses.",
+    },
+    short_term_goal: {
+        id: "short_term_goal", name: "Sprint Financeiro", icon: "bolt", xpReward: 75, category: "goals",
+        description: "Concluir uma meta em menos de 30 dias.",
+    },
+    goal_deposit: {
+        id: "goal_deposit", name: "Primeiro Depósito", icon: "add_card", xpReward: 50, category: "goals",
+        description: "Fazer o primeiro depósito em uma meta financeira.",
+    },
+    goal_debt_paid: {
+        id: "goal_debt_paid", name: "Livre de Dívidas", icon: "free_cancellation", xpReward: 150, category: "goals",
+        description: "Concluir uma meta do tipo 'Quitar Dívida'.",
+    },
+    goal_linked_account: {
+        id: "goal_linked_account", name: "Meta Vinculada", icon: "link", xpReward: 50, category: "goals",
+        description: "Criar uma meta associada a uma conta bancária.",
+    },
 
     // ── Simple Badges — Equipe e Consistência (10) ───────────────────────────
-    second_member: { id: "second_member", name: "Dupla!", icon: "group_add", xpReward: 50 },
-    reconcile_second: { id: "reconcile_second", name: "Conciliador Frequente", icon: "refresh", xpReward: 75 },
-    reconcile_five: { id: "reconcile_five", name: "Conciliador Hábil", icon: "sync_alt", xpReward: 100 },
-    mission_first: { id: "mission_first", name: "Primeira Missão", icon: "task_alt", xpReward: 75 },
-    mission_three: { id: "mission_three", name: "Triatleta Financeiro", icon: "sports_score", xpReward: 100 },
-    planning_month: { id: "planning_month", name: "Planejamento do Mês", icon: "event_available", xpReward: 75 },
-    two_months_active: { id: "two_months_active", name: "Constante", icon: "repeat", xpReward: 100 },
-    workspace_one_year: { id: "workspace_one_year", name: "Aniversário!", icon: "cake", xpReward: 150 },
-    invite_accepted: { id: "invite_accepted", name: "Bem-vindo ao Time", icon: "waving_hand", xpReward: 50 },
-    all_missions_week: { id: "all_missions_week", name: "Semana Perfeita", icon: "star", xpReward: 100 },
+    second_member: {
+        id: "second_member", name: "Dupla!", icon: "group_add", xpReward: 50, category: "team",
+        description: "Um segundo membro aceitar o convite para o workspace.",
+    },
+    reconcile_second: {
+        id: "reconcile_second", name: "Conciliador Frequente", icon: "refresh", xpReward: 75, category: "team",
+        description: "Concluir a segunda conciliação bancária.",
+    },
+    reconcile_five: {
+        id: "reconcile_five", name: "Conciliador Hábil", icon: "sync_alt", xpReward: 100, category: "team",
+        description: "Concluir 5 conciliações bancárias ao total.",
+    },
+    mission_first: {
+        id: "mission_first", name: "Primeira Missão", icon: "task_alt", xpReward: 75, category: "team",
+        description: "Completar a primeira missão semanal.",
+    },
+    mission_three: {
+        id: "mission_three", name: "Triatleta Financeiro", icon: "sports_score", xpReward: 100, category: "team",
+        description: "Completar 3 missões semanais ao total.",
+    },
+    planning_month: {
+        id: "planning_month", name: "Planejamento do Mês", icon: "event_available", xpReward: 75, category: "team",
+        description: "Criar planejamento para ao menos 5 categorias no mês.",
+    },
+    two_months_active: {
+        id: "two_months_active", name: "Constante", icon: "repeat", xpReward: 100, category: "team",
+        description: "Registrar transações em 2 meses diferentes.",
+    },
+    workspace_one_year: {
+        id: "workspace_one_year", name: "Aniversário!", icon: "cake", xpReward: 150, category: "team",
+        description: "O workspace completa 1 ano de existência.",
+    },
+    invite_accepted: {
+        id: "invite_accepted", name: "Bem-vindo ao Time", icon: "waving_hand", xpReward: 50, category: "team",
+        description: "Aceitar o convite para entrar em um workspace.",
+    },
+    all_missions_week: {
+        id: "all_missions_week", name: "Semana Perfeita", icon: "star", xpReward: 100, category: "team",
+        description: "Completar todas as missões semanais disponíveis em uma semana.",
+    },
 };
 
 export class GamificationService {
@@ -253,14 +473,17 @@ export class GamificationService {
     }
 
     async checkGoalBadges(workspaceId: string, goalDoc: any): Promise<void> {
-        const data = goalDoc;
-        const isCompleted = data.status === "completed" || (data.currentAmount >= data.targetAmount);
-
-        if (isCompleted) {
+        // `status` NÃO existe no documento de meta (o cliente nunca gravou um):
+        // a conclusão é o carimbo `completedAt` do servidor, ou o alvo já
+        // alcançado — ver `isGoalCompleted`.
+        if (isGoalCompleted(goalDoc)) {
             const completedSnapshot = await this.gamificationRepository.getGoals(workspaceId);
             let completedCount = 0;
             for (const g of completedSnapshot) {
-                if (g.status === "completed" || (g.currentAmount >= g.targetAmount)) {
+                if (g.isDeleted === true) {
+                    continue;
+                }
+                if (isGoalCompleted(g)) {
                     completedCount++;
                 }
             }
@@ -488,7 +711,7 @@ export class GamificationService {
         try {
             const goalsSnapshot = await this.gamificationRepository.getGoals(workspaceId);
             for (const g of goalsSnapshot) {
-                if (g.status === "active" && g.name) {
+                if (g.name && isGoalActive(g)) {
                     goalsList.push(g.name);
                 }
             }
@@ -881,7 +1104,10 @@ export class GamificationService {
             const allGoals = await this.gamificationRepository.getGoals(workspaceId);
             let activeGoals = 0;
             for (const g of allGoals) {
-                if (g.status === "active") {
+                // `status === "active"` nunca casava: o documento de meta não
+                // tem `status`. A definição única de meta ativa vive em
+                // `isGoalActive` (não deletada, alvo não alcançado, no prazo).
+                if (isGoalActive(g)) {
                     activeGoals++;
                 }
             }
@@ -912,11 +1138,12 @@ export class GamificationService {
             await this.unlockBadge(workspaceId, "goal_75pct");
         }
 
-        const isCompleted = data.status === "completed" || pct >= 1;
-        if (isCompleted) {
-            // Não há data de conclusão armazenada; a checagem roda na escrita
-            // que concluiu a meta, então "agora" é o instante da conclusão.
-            const completedAt = new Date();
+        if (isGoalCompleted(data)) {
+            // `completedAt` é carimbado pelo servidor na primeira vez que a meta
+            // alcança o alvo (`GoalServiceImpl.writeProgress`). Só quando ele
+            // ainda não existe é que "agora" serve de aproximação — é a escrita
+            // que acabou de concluir a meta.
+            const completedAt = toDate(data.completedAt) ?? new Date();
 
             // "Sprint Financeiro": a meta foi PLANEJADA para menos de 30 dias.
             // Antes, createdAt/completedAt inexistentes davam daysDiff = 0 e o

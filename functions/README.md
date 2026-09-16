@@ -392,6 +392,122 @@ propósito para a cobrança contar como não planejada. É por isso que o total 
 order usa `referenceAmount` nas pagas: é o único campo que vale o realizado nos
 dois casos.
 
+## Metas (`goals`): progresso automático nos quatro tipos
+
+Os quatro tipos de meta são `saveMoney`, `reduceExpense`, `reduceCreditCard` e
+`payDebt`. O discriminador gravado é **`runtimeType`** (nome do factory freezed
+do cliente); o campo `type` do modelo Flutter é um getter e **não** é
+serializado — por isso o servidor lê tudo por `resolveGoalType`.
+
+Até aqui só `saveMoney` e `reduceCreditCard` andavam. `reduceExpense` (ligada a
+uma **categoria**) e `payDebt` (ligada a uma **conta de dívida**) nunca
+progrediam, e mesmo assim a Jornada mostrava barra e "Faltam R$ X" — números
+que ninguém atualizava.
+
+### De onde sai o `currentAmount` de cada tipo
+
+| Tipo | Fonte da verdade | Quando é recalculado |
+|---|---|---|
+| `saveMoney` | parcelas pagas da conta desde `startDate`: crédito soma, débito subtrai | **delta** do evento de parcela |
+| `reduceCreditCard` | parcelas pagas da conta desde `startDate`: só os débitos | **delta** do evento de parcela |
+| `reduceExpense` | `actualAmount` da categoria nos `period_summaries` **mensais** do período da meta | **recálculo total** quando uma parcela daquela categoria muda |
+| `payDebt` | `saldo atual da conta − saldo no startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
+
+**Decisão — `reduceExpense` lê os sumários mensais, não as parcelas.** O
+documento mensal já é a consolidação que o próprio servidor mantém
+(`actualAmount` = soma de `paidAmount ?? amount` das parcelas pagas, por
+`paidDate`), então a regra é a mesma; muda o custo. Uma varredura de parcelas
+cresce com o histórico da categoria e seria refeita a cada pagamento; a leitura
+mensal custa um documento por mês do período (com máscara de campo, só a entrada
+daquela categoria) e não cresce com o uso. **Consequência aceita:** os meses
+entram inteiros — uma meta que começa dia 10 conta também os dias 1 a 9 daquele
+mês. Contar meio mês exigiria exatamente a varredura que estamos evitando.
+Períodos acima de 120 meses são truncados nos meses mais recentes, com aviso no
+log.
+
+**`payDebt` e o sinal do saldo.** O saldo de uma conta de dívida é **negativo**
+(é o que o app assume, ver `goal_form_provider.dart`), e amortizar aproxima o
+saldo de zero. Daí `amortizado = saldoAtual − saldoNoStartDate`, que é a mesma
+conta que "dívida no início − dívida hoje" em módulo. Dívida que **cresceu** não
+vira progresso negativo: o piso é zero.
+
+**Ordem dentro do gatilho de parcela.** O bloco `processGoalChange` roda
+**depois** de `processSummaryChange` e de `updateAccountBalance`
+(`installment_handler.ts`): as duas metas recalculadas leem exatamente o que
+esses dois blocos acabaram de escrever. Antes da mudança de ordem elas ficariam
+sempre um evento atrasadas.
+
+Metas também são recalculadas **na escrita da própria meta** (`onGoalWritten`,
+ação de idempotência `gamification:goalRecompute`), para uma meta nova nascer
+com o progresso real do histórico. O recálculo só escreve quando o valor muda,
+então a escrita que ele provoca não reentra.
+
+### Contrato: meta ativa e `completedAt`
+
+O documento de meta **não tem `status`** — o cliente nunca gravou um. Os badges
+liam `status === "active"`/`"completed"` e por isso jamais disparavam. A
+definição única vive em `goal.model.ts`:
+
+```ts
+isGoalActive(goal)    // !isDeleted && currentAmount < targetAmount &&
+                      // (sem deadline || deadline >= hoje)
+isGoalCompleted(goal) // completedAt != null || currentAmount >= targetAmount
+```
+
+`two_active_goals`, `five_active_goals`, as missões semanais e os badges de
+conclusão (`savings_seed`, `goal_bronze`, `goal_silver`, `goal_under_deadline`,
+`goal_debt_paid`) usam essas duas funções.
+
+- **`completedAt`**: `Timestamp`, escrito **só pelo servidor**, na primeira vez
+  que `currentAmount >= targetAmount`. Nunca é reescrito — ele marca a primeira
+  conclusão, não a última. As security rules negam ao cliente criar o campo ou
+  alterá-lo (o app grava a meta com `update`, que só toca os campos enviados,
+  então o carimbo sobrevive a uma edição).
+- Para as metas de **redução** (`reduceExpense`, `reduceCreditCard`), alcançar o
+  alvo é **bater o teto de gastos**. A meta sai do pool de ativas do mesmo
+  jeito, e o app chama isso de "Limite atingido em", não de conquista.
+- **`currentAmount` continua gravável pelo cliente** (a meta nasce em zero pelo
+  formulário), mas o formulário não pede mais esse valor: quem o mantém é o
+  servidor.
+
+## Catálogo de badges (`config/badges`)
+
+O catálogo de badges era espelhado **à mão** no Flutter
+(`badges_cabinet_screen.dart`: ~130 entradas com o XP como string, mais as
+descrições nos ARB), e o nível era recalculado no app com a inversa de
+`calculateLevel`, em dois lugares. O servidor passou a publicar tudo:
+
+```
+config/badges
+  version: string            # hash do conteúdo (16 hex)
+  badges: [{ id, name, icon, xpReward, category, description }]
+  levelThresholds: number[]  # XP mínimo de cada nível, 20 níveis
+  updatedAt: timestamp
+```
+
+- `category` ∈ `advanced | first_steps | consistency | savings | goals | team`.
+- `icon` é o nome do ícone Material (o app mapeia nome → `IconData`).
+- `levelThresholds[n-1]` é o XP que abre o nível `n` — a tabela é a inversa
+  fiel de `calculateLevel` (`300 * (2^(n-1) - 1)`), coberta por teste.
+- `version` é o **hash do conteúdo**: ninguém precisa lembrar de incrementar
+  nada. Mudou um nome, um XP ou um limiar, muda o hash e a próxima execução
+  publica.
+
+**Quem publica:** o cron diário `publishBadgeCatalog` (`maxInstances: 1`), que
+lê a versão publicada e só escreve se ela mudou. É o caminho mais simples que
+não depende de evento de usuário nenhum: um deploy que mexe no catálogo se
+propaga sozinho em até 24 h. O **primeiro** publish (antes da primeira execução
+do cron) é feito pelo script `publish_badge_catalog.ts`.
+
+**Rules:** `config/badges` é legível por **qualquer usuário autenticado** e
+fechado para escrita. Os demais documentos de `config` (`ai`,
+`cron_checkpoints`) continuam negados pelo `match /{document=**}`.
+
+**Pendência de i18n:** `name` e `description` são servidos em **português**. O
+app não tem mais as strings de badge nos ARB — internacionalizar o catálogo
+(campo por locale, ou um documento por idioma) fica para quando houver um
+segundo idioma de verdade.
+
 ## Crons de manutenção
 
 | Function                            | Agendamento               | Fuso              |
@@ -400,6 +516,7 @@ dois casos.
 | `generateCategoryPlanningSummaries` | `0 0 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
 | `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
+| `publishBadgeCatalog`               | `0 4 * * *` (diário)      | `America/Sao_Paulo` |
 
 `generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
 uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha
@@ -560,6 +677,85 @@ Saída de código: `0` se não houve falhas, `1` caso contrário.
 Coberto por testes com mocks em
 `src/test/backfill_last_generated_due_date.test.ts` (dry-run, idempotência,
 escolha da última parcela, escopo por workspace e contabilização de falhas).
+
+### `recompute_goals.ts`
+
+Recalcula o `currentAmount` de **todas** as metas pela regra nova (ver
+"Metas (`goals`): progresso automático nos quatro tipos"), usando a mesma
+função que o gatilho usa (`GoalServiceImpl.computeCurrentAmount`). Serve para a
+base legada, onde `reduceExpense` e `payDebt` estão paradas em zero desde
+sempre e as de conta podem ter derivado por um evento perdido.
+
+- **Idempotente**: pula a meta cujo valor já bate (tolerância de 1 centavo).
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **Carimba `completedAt`** na primeira conclusão; **nunca** reescreve um
+  `completedAt` existente.
+- **Meta de tipo desconhecido é mantida**, não zerada.
+- **Isola falha**: uma meta que lança é contada e não derruba as outras.
+- **Log por meta**, com resumo final
+  (`workspaces/metas/atualizadas/iguais/concluídas/ativas/falhas`).
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_goals.js --project=<projectId>
+
+# 2) Um único workspace, para validar o efeito antes da base inteira
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_goals.js --project=<projectId> --workspace=<workspaceId> --apply
+
+# 3) Execução real na base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_goals.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+
+Saída de código: `0` se não houve falhas, `1` caso contrário.
+
+Coberto por testes com mocks em `src/test/recompute_goals.test.ts` (dry-run,
+idempotência, `completedAt`, escopo por workspace e contabilização de falhas).
+
+> ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
+
+### `publish_badge_catalog.ts`
+
+Publica `config/badges` na hora, para o **primeiro deploy** — depois dele o cron
+diário `publishBadgeCatalog` mantém o documento em dia sozinho. Enquanto o
+documento não existe, a vitrine de badges do app mostra o estado "catálogo
+indisponível" em vez de quebrar.
+
+- **Idempotente**: compara a `version` (hash do conteúdo) e não escreve se ela
+  já é a publicada.
+- **Dry-run por padrão**: só escreve com `--apply`.
+- Não toca em dado de usuário nenhum: `config/badges` é configuração do projeto.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/publish_badge_catalog.js --project=<projectId>
+
+# 2) Publicação real
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/publish_badge_catalog.js --project=<projectId> --apply
+```
+
+Coberto por testes com mocks em `src/test/recompute_goals.test.ts` (dry-run,
+publicação e idempotência) e em `src/test/badge_catalog.test.ts` (o catálogo
+contém todos os ids de `BADGES`; os limiares são a inversa de `calculateLevel`).
+
+> ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
 
 ### `rebuild_workspace.ts`
 

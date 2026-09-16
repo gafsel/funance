@@ -33,6 +33,9 @@ import { GamificationService } from "../features/goal/domain/services/gamificati
 import { GoalFeasibilityService } from "../features/goal/domain/services/goal_feasibility.service";
 import { PlanningAnalysisService } from "../features/finance/domain/services/planning_analysis.service";
 import { IGamificationRepository } from "../features/goal/domain/repositories/gamification.repository";
+import { IBadgeCatalogRepository } from "../features/goal/domain/repositories/badge_catalog.repository";
+import { BadgeCatalogRepositoryImpl } from "../features/goal/data/repositories/badge_catalog.repository.impl";
+import { BadgeCatalogService } from "../features/goal/domain/services/badge_catalog.service";
 import { GamificationRepositoryImpl } from "../features/goal/data/repositories/gamification.repository.impl";
 
 class Container {
@@ -60,6 +63,8 @@ class Container {
     private static _gamificationService: GamificationService;
     private static _goalFeasibilityService: GoalFeasibilityService;
     private static _planningAnalysisService: PlanningAnalysisService;
+    private static _badgeCatalogRepository: IBadgeCatalogRepository;
+    private static _badgeCatalogService: BadgeCatalogService;
 
     static get idempotencyService(): IIdempotencyService {
         if (!this._idempotencyService) {
@@ -233,6 +238,20 @@ class Container {
             );
         }
         return this._gamificationService;
+    }
+
+    static get badgeCatalogRepository(): IBadgeCatalogRepository {
+        if (!this._badgeCatalogRepository) {
+            this._badgeCatalogRepository = new BadgeCatalogRepositoryImpl();
+        }
+        return this._badgeCatalogRepository;
+    }
+
+    static get badgeCatalogService(): BadgeCatalogService {
+        if (!this._badgeCatalogService) {
+            this._badgeCatalogService = new BadgeCatalogService(this.badgeCatalogRepository);
+        }
+        return this._badgeCatalogService;
     }
 
     static get goalFeasibilityService(): GoalFeasibilityService {

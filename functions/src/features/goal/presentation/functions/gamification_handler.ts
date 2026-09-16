@@ -6,6 +6,7 @@ import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
 import { INSTALLMENT_DERIVED_FIELDS } from "../../../finance/domain/models/finance.models";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
+import { GoalModel, toGoalDate } from "../../domain/models/goal.model";
 
 /**
  * Campos do doc do workspace escritos pela própria gamificação
@@ -38,6 +39,7 @@ export const GAMIFICATION_ACTIONS = {
     categoryWritten: "gamification:categoryWritten",
     reconciliationWritten: "gamification:reconciliationWritten",
     goalWritten: "gamification:goalWritten",
+    goalRecompute: "gamification:goalRecompute",
 } as const;
 
 function getChangedTopLevelFields(before: Record<string, any>, after: Record<string, any>): string[] {
@@ -234,11 +236,36 @@ export const onGoalWritten = onDocumentWritten(
     "workspaces/{workspaceId}/goals/{goalId}",
     async (event) => {
         const workspaceId = event.params.workspaceId;
+        const goalId = event.params.goalId;
         const after = event.data?.after.exists ? event.data.after.data() : null;
 
         if (!after) return;
 
         logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
+
+        // Progresso da meta recém-criada/editada.
+        //
+        // Sem isto, uma meta de categoria ou de dívida nasce em zero e só ganha
+        // vida no próximo pagamento — o usuário vê a barra vazia mesmo tendo
+        // histórico. O recálculo só escreve quando o valor MUDA, então a
+        // escrita que ele provoca não reentra: a segunda passada calcula o
+        // mesmo número e não grava nada.
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalRecompute, async () => {
+            if (after.isDeleted === true) return;
+            try {
+                await container.goalService.recomputeGoal(workspaceId, {
+                    ...after,
+                    id: goalId,
+                    startDate: toGoalDate(after.startDate) ?? new Date(),
+                    deadline: toGoalDate(after.deadline) ?? undefined,
+                    completedAt: toGoalDate(after.completedAt),
+                } as GoalModel);
+            }
+            catch (e) {
+                // Recalcular é melhor-esforço: não pode impedir os badges.
+                logger.error(`[onGoalWritten] Falha ao recalcular a meta ${goalId}:`, e);
+            }
+        });
 
         await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalWritten, async () => {
             const gamificationService = container.gamificationService;
@@ -295,6 +322,37 @@ export const monthlyGamificationCron = onSchedule(
         }
         catch (e) {
             logger.error("[monthlyGamificationCron] Error processing monthly cron:", e);
+        }
+    }
+);
+
+/**
+ * Publica o catálogo de badges em `config/badges` (ver
+ * `BadgeCatalogService.publishBadgeCatalog`).
+ *
+ * Por que um cron e não um gatilho: o catálogo é do PROJETO, não de um
+ * workspace — não existe evento natural para publicá-lo, e amarrá-lo à criação
+ * de workspace faria a publicação depender de um usuário novo aparecer. Um cron
+ * diário barato (uma leitura; escreve só quando o hash do catálogo muda) faz o
+ * deploy se propagar sozinho. `maxInstances: 1` porque duas execuções
+ * simultâneas não têm nada a acrescentar uma à outra.
+ *
+ * O PRIMEIRO publish (antes do cron rodar) é feito pelo script
+ * `scripts/publish_badge_catalog.ts`.
+ */
+export const publishBadgeCatalog = onSchedule(
+    {
+        schedule: "0 4 * * *",
+        timeZone: GAMIFICATION_TIME_ZONE,
+        maxInstances: 1,
+    },
+    async () => {
+        try {
+            const result = await container.badgeCatalogService.publishBadgeCatalog();
+            logger.info(`[publishBadgeCatalog] versão=${result.version} publicado=${result.published} badges=${result.badgeCount}`);
+        }
+        catch (e) {
+            logger.error("[publishBadgeCatalog] Erro ao publicar o catálogo de badges:", e);
         }
     }
 );
