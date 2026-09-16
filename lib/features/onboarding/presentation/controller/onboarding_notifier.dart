@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
@@ -20,12 +21,14 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final IAccountRepository accountRepository;
   final WorkspaceNotifier workspaceNotifier;
   final CategoryService categoryService;
+  final AnalyticsService analytics;
 
   OnboardingNotifier({
     required this.onboardingService,
     required this.accountRepository,
     required this.workspaceNotifier,
     required this.categoryService,
+    required this.analytics,
   }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
 
   void load(WorkspaceModel workspace) {
@@ -79,6 +82,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
           state.workspace.copyWith(lastOnboardingStep: nextStep),
         );
       }
+
+      // Registra a etapa alcançada, inclusive a final, para fechar o funil.
+      try {
+        await analytics.logOnboardingStep(nextStep.name);
+      } catch (_) {}
 
       if (nextStep == OnboardingSteps.done) {
         await workspaceNotifier.loadWorkspaces(

@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -16,6 +17,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
   final AccountService accountService;
   final CategoryService categoryService;
   final FinanceService financeService;
+  final AnalyticsService analytics;
 
   AccountFormNotifier({
     AccountModel? account,
@@ -23,6 +25,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     required this.accountService,
     required this.categoryService,
     required this.financeService,
+    required this.analytics,
   }) : super(AccountFormState.initial(account: account, type: type));
 
   void updateName(String value) => state = state.copyWith(name: value);
@@ -118,6 +121,11 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
       account = await accountService.create(account);
 
       state = state.copyWith(originalAccount: account);
+
+      // Analytics nunca derruba a criação da conta.
+      try {
+        await analytics.logAccountCreated(account.type.name);
+      } catch (_) {}
     } else {
       accountService.update(account);
     }

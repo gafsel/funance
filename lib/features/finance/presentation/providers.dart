@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
@@ -203,6 +204,7 @@ class AccountViewProviders {
           accountService: ref.watch(AccountDomainProviders.service),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
           account: args.account,
           type: args.type,
         );
@@ -279,6 +281,7 @@ class FinanceViewProviders {
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
         );
       });
 
@@ -291,6 +294,7 @@ class FinanceViewProviders {
           TransactionFormState.updateOrder(order),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
         );
       });
 
@@ -303,6 +307,7 @@ class FinanceViewProviders {
           TransactionFormState.updateInstallment(installment),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
         );
       });
 
@@ -318,6 +323,7 @@ class FinanceViewProviders {
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
         );
       });
 
@@ -331,6 +337,7 @@ class FinanceViewProviders {
           initialState,
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
         );
       });
 
@@ -461,6 +468,7 @@ class FinanceViewProviders {
         return CategoryPlanningNotifier(
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
+          analytics: ref.watch(analyticsServiceProvider),
           type: args.type,
         );
       });
@@ -473,6 +481,7 @@ class FinanceViewProviders {
         return ReconciliationNotifier(
           reconciliationService: ref.watch(ReconciliationDomainProviders.service),
           account: account,
+          analytics: ref.watch(analyticsServiceProvider),
         );
       });
 

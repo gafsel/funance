@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
@@ -9,10 +10,12 @@ import 'package:funances/features/finance/presentation/model/reconciliation_view
 class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
   final ReconciliationService reconciliationService;
   final AccountModel account;
+  final AnalyticsService analytics;
 
   ReconciliationNotifier({
     required this.reconciliationService,
     required this.account,
+    required this.analytics,
   }) : super(ReconciliationState(selectedAccount: account));
 
   void back() {
@@ -147,5 +150,10 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
       selectedAccount: state.selectedAccount,
       matches: state.matches,
     );
+
+    // Analytics não pode derrubar a conciliação já confirmada no servidor.
+    try {
+      await analytics.logReconciliationDone();
+    } catch (_) {}
   }
 }

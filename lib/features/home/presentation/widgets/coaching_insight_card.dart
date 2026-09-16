@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
@@ -191,6 +194,7 @@ class CoachingInsightCard extends ConsumerWidget {
                             );
 
                             if (context.mounted) {
+                              _logCoachingOpened(ref);
                               context.push('/coaching', extra: coaching);
                             }
                           } catch (e) {
@@ -304,20 +308,31 @@ class CoachingInsightCard extends ConsumerWidget {
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
-          InkWell(
-            onTap: () {
-              context.push('/coaching', extra: lastCoaching);
-            },
-            child: Text(
-              l10n.coachingViewLast,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: AppColors.deepTurquoise,
-                fontWeight: FontWeight.bold,
+          Consumer(
+            builder: (context, ref, _) => InkWell(
+              onTap: () {
+                _logCoachingOpened(ref);
+                context.push('/coaching', extra: lastCoaching);
+              },
+              child: Text(
+                l10n.coachingViewLast,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: AppColors.deepTurquoise,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Dispara o evento de funil sem bloquear a navegação nem deixar uma falha
+  /// de analytics impedir o usuário de abrir o coaching.
+  static void _logCoachingOpened(WidgetRef ref) {
+    unawaited(
+      ref.read(analyticsServiceProvider).logCoachingOpened().catchError((_) {}),
     );
   }
 }

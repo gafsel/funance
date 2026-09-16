@@ -1,4 +1,6 @@
+import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/form/form_notifier.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -12,11 +14,13 @@ class TransactionFormNotifier
     extends FormNotifier<TransactionFormState, dynamic> {
   final FinanceService financeService;
   final CategoryService categoryService;
+  final AnalyticsService analytics;
 
   TransactionFormNotifier(
     super.initialState, {
     required this.financeService,
     required this.categoryService,
+    required this.analytics,
   }) : super();
 
   void updateDescription(String value) =>
@@ -161,6 +165,11 @@ class TransactionFormNotifier
 
   @override
   Future<dynamic> submit() async {
+    // Captura o status anterior antes de salvar: é o que diz se esta submissão
+    // foi a que quitou a parcela.
+    final wasAlreadyPaid = _isPaid(state.status);
+
+    final dynamic result;
     if (state.formType == TransactionFormType.order) {
       final order = state.asOrderModel();
 
@@ -169,19 +178,86 @@ class TransactionFormNotifier
 
         state = state.copyWith(orderId: saved.id);
 
-        return saved;
+        result = saved;
       } else {
         await financeService.updateOrder(order);
 
-        return order;
+        result = order;
       }
     } else {
       final installment = state.asInstallmentModel();
 
       await financeService.updateInstallment(installment);
 
-      return installment;
+      result = installment;
     }
+
+    await _logSaved(wasAlreadyPaid: wasAlreadyPaid);
+
+    return result;
+  }
+
+  static bool _isPaid(InstallmentStatus status) =>
+      status == InstallmentStatus.paid || status == InstallmentStatus.settled;
+
+  /// Emite os eventos do funil. Nunca propaga erro: analytics não pode
+  /// derrubar o salvamento de um lançamento.
+  Future<void> _logSaved({required bool wasAlreadyPaid}) async {
+    try {
+      await analytics.logTransactionSaved(
+        status: state.status.name,
+        hadPlanning: await _hadPlanning(),
+        type: state.type.name,
+      );
+
+      // Só conta como pagamento quando a parcela já existia e ainda não estava
+      // quitada — evita contar duas vezes ao reeditar algo já pago.
+      final isInstallment = state.formType == TransactionFormType.installment;
+      if (isInstallment && _isPaid(state.status)) {
+        await analytics.logInstallmentPaid();
+
+        // Uma missão semanal é exatamente uma parcela da semana corrente que
+        // passou a paga/quitada.
+        if (!wasAlreadyPaid && _isInCurrentWeek(state.dueDate)) {
+          await analytics.logMissionCompleted();
+        }
+      }
+    } catch (_) {
+      // Silencioso de propósito.
+    }
+  }
+
+  /// true se a categoria já tinha planejamento vigente no mês OU se o
+  /// lançamento casou com uma parcela pendente já existente.
+  Future<bool> _hadPlanning() async {
+    if (state.formType == TransactionFormType.installment) return true;
+
+    final category = state.category;
+    if (category == null) return false;
+
+    try {
+      final month = state.dueDate.formated("yyyy-MM");
+      final plannings = await financeService.getCategoryPlannings(
+        startMonth: month,
+        endMonth: month,
+      );
+
+      return plannings.any((p) => p.category.id == category.id);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static bool _isInCurrentWeek(DateTime date) {
+    final now = DateTime.now();
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
+    return !date.isBefore(startOfWeek) && date.isBefore(endOfWeek);
   }
 
   bool get shouldAskCascade {
