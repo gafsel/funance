@@ -336,13 +336,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             );
           }
 
-          final skipTransactions =
-              state.uri.queryParameters['skipTransactions'] == 'true';
-
           return TransactionWizardScreen(
             type: type,
             initialStatus: status,
-            skipTransactions: skipTransactions,
             accountIdSource: state.uri.queryParameters['accountIdSource'],
           );
         },

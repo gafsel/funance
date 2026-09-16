@@ -861,12 +861,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionWizardSelectCategory => 'Select Category';
 
   @override
-  String get transactionWizardSelectPending => 'Pending Transactions';
-
-  @override
-  String get transactionWizardNewTransaction => 'New transaction';
-
-  @override
   String get historyFilterApply => 'Apply Filters';
 
   @override
@@ -1155,18 +1149,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionCategoriesSection => 'Categories';
 
   @override
-  String get transactionRealizedSection => 'Realized Transactions';
+  String get transactionRealizedSection => 'It happened';
 
   @override
   String get transactionRealizedSubtitle =>
-      'Transactions that have already happened and impacted your balance.';
+      'Already happened and already moved your balance.';
 
   @override
-  String get transactionPlannedSection => 'Schedules';
+  String get transactionPlannedSection => 'Schedule it';
 
   @override
   String get transactionPlannedSubtitle =>
-      'Keep track of your upcoming bills and earnings.';
+      'Still to come: bills to pay and money to receive.';
 
   @override
   String get planningSectionTitle => 'Strategy';
@@ -1209,16 +1203,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionStatusPending => 'Pending';
 
   @override
-  String get transactionStatusPlanning => 'Planning';
-
-  @override
-  String get transactionStatusRealized => 'Realized';
-
-  @override
   String get transactionStatusLabel => 'Status';
-
-  @override
-  String get transactionStatusTypeLabel => 'Registration Type';
 
   @override
   String get transactionSettledAlert =>
@@ -1470,6 +1455,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionTransfer => 'Transfer';
+
+  @override
+  String get transactionTransferCountsAsInvestment =>
+      'Will count as Investments';
+
+  @override
+  String get transactionTransferCountsAsDebt => 'Will count as Debts';
 
   @override
   String get transactionSelectSourceAccount => 'Select Source Account';
@@ -2405,10 +2397,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSuccess => 'Saved successfully!';
-
-  @override
-  String get wizardPendingIntro =>
-      'We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?';
 
   @override
   String get planningAnalysisAction => 'Ideal analysis (AI)';

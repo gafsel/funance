@@ -1622,18 +1622,6 @@ abstract class AppLocalizations {
   /// **'Selecione a Categoria'**
   String get transactionWizardSelectCategory;
 
-  /// No description provided for @transactionWizardSelectPending.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lançamentos Pendentes'**
-  String get transactionWizardSelectPending;
-
-  /// No description provided for @transactionWizardNewTransaction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Novo lançamento'**
-  String get transactionWizardNewTransaction;
-
   /// No description provided for @historyFilterApply.
   ///
   /// In pt, this message translates to:
@@ -2171,25 +2159,25 @@ abstract class AppLocalizations {
   /// No description provided for @transactionRealizedSection.
   ///
   /// In pt, this message translates to:
-  /// **'Lançamentos Realizados'**
+  /// **'Registrei'**
   String get transactionRealizedSection;
 
   /// No description provided for @transactionRealizedSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Transações que já aconteceram e impactaram seu saldo.'**
+  /// **'Já aconteceu e já mexeu no seu saldo.'**
   String get transactionRealizedSubtitle;
 
   /// No description provided for @transactionPlannedSection.
   ///
   /// In pt, this message translates to:
-  /// **'Agendamentos'**
+  /// **'Agendar'**
   String get transactionPlannedSection;
 
   /// No description provided for @transactionPlannedSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Controle suas contas a pagar e a receber que estão por vir.'**
+  /// **'Ainda vai acontecer: contas a pagar e a receber.'**
   String get transactionPlannedSubtitle;
 
   /// No description provided for @planningSectionTitle.
@@ -2270,29 +2258,11 @@ abstract class AppLocalizations {
   /// **'Pendente'**
   String get transactionStatusPending;
 
-  /// No description provided for @transactionStatusPlanning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Planejamento'**
-  String get transactionStatusPlanning;
-
-  /// No description provided for @transactionStatusRealized.
-  ///
-  /// In pt, this message translates to:
-  /// **'Realizado'**
-  String get transactionStatusRealized;
-
   /// No description provided for @transactionStatusLabel.
   ///
   /// In pt, this message translates to:
   /// **'Status'**
   String get transactionStatusLabel;
-
-  /// No description provided for @transactionStatusTypeLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Tipo de Cadastro'**
-  String get transactionStatusTypeLabel;
 
   /// No description provided for @transactionSettledAlert.
   ///
@@ -2743,6 +2713,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Transferência'**
   String get transactionTransfer;
+
+  /// No description provided for @transactionTransferCountsAsInvestment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vai contar como Investimentos'**
+  String get transactionTransferCountsAsInvestment;
+
+  /// No description provided for @transactionTransferCountsAsDebt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vai contar como Dívidas'**
+  String get transactionTransferCountsAsDebt;
 
   /// No description provided for @transactionSelectSourceAccount.
   ///
@@ -4393,12 +4375,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Salvo com sucesso!'**
   String get savedSuccess;
-
-  /// No description provided for @wizardPendingIntro.
-  ///
-  /// In pt, this message translates to:
-  /// **'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?'**
-  String get wizardPendingIntro;
 
   /// No description provided for @planningAnalysisAction.
   ///

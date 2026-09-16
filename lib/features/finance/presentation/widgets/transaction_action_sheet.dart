@@ -140,7 +140,7 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
   }
 
   Widget _buildActionGrid(BuildContext context, InstallmentStatus status) {
-    final isPlanning = status == InstallmentStatus.pending;
+    final isScheduled = status == InstallmentStatus.pending;
     final l10n = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
     final maxGridWidth = screenWidth > 600 ? 480.0 : screenWidth;
@@ -159,23 +159,23 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
           children: [
             _buildActionItem(
               context,
-              icon: isPlanning ? Icons.savings_outlined : Icons.add_circle_outline,
+              icon: isScheduled ? Icons.savings_outlined : Icons.add_circle_outline,
               color: AppColors.limeGreen,
-              label: isPlanning ? l10n.transactionPlanIncome : l10n.transactionAddIncome,
+              label: isScheduled ? l10n.transactionPlanIncome : l10n.transactionAddIncome,
               onTap: () => _navigateToForm(context, OrderType.income, status),
             ),
             _buildActionItem(
               context,
-              icon: isPlanning ? Icons.event_note_outlined : Icons.remove_circle_outline,
+              icon: isScheduled ? Icons.event_note_outlined : Icons.remove_circle_outline,
               color: AppColors.error,
-              label: isPlanning ? l10n.transactionPlanExpense : l10n.transactionAddExpense,
+              label: isScheduled ? l10n.transactionPlanExpense : l10n.transactionAddExpense,
               onTap: () => _navigateToForm(context, OrderType.expense, status),
             ),
             _buildActionItem(
               context,
-              icon: isPlanning ? Icons.pending_actions_outlined : Icons.swap_horiz,
+              icon: isScheduled ? Icons.pending_actions_outlined : Icons.swap_horiz,
               color: AppColors.vibrantTeal,
-              label: isPlanning ? l10n.transactionPlanTransfer : l10n.transactionTransfer,
+              label: isScheduled ? l10n.transactionPlanTransfer : l10n.transactionTransfer,
               onTap: () => _navigateToForm(context, OrderType.transfer, status),
             ),
           ],
@@ -295,9 +295,11 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     );
   }
 
+  /// O ponto de entrada decide o status: "Registrei" abre o lançamento como
+  /// pago e "Agendar" como pendente. Não há mais seletor de status no
+  /// formulário.
   void _navigateToForm(BuildContext context, OrderType type, InstallmentStatus status) {
     Navigator.pop(context);
-    final skipTransactions = status == InstallmentStatus.pending;
-    context.push('/transactions/form?type=${type.name}&status=${status.name}&skipTransactions=$skipTransactions');
+    context.push('/transactions/form?type=${type.name}&status=${status.name}');
   }
 }

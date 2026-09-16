@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/utils/date_extension.dart';
@@ -8,20 +10,30 @@ import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/home/domain/services/mission_service.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/domain/services/category_service.dart';
 
 class TransactionFormNotifier
     extends FormNotifier<TransactionFormState, dynamic> {
   final FinanceService financeService;
-  final CategoryService categoryService;
   final AnalyticsService analytics;
 
   TransactionFormNotifier(
     super.initialState, {
     required this.financeService,
-    required this.categoryService,
     required this.analytics,
-  }) : super();
+  }) : super() {
+    if (state.creation) {
+      // A conta é obrigatória também em agendamentos, então o formulário
+      // tenta resolver um default antes de pedir ao usuário.
+      state = state.copyWith(resolvingAccount: true);
+      unawaited(_resolveDefaultAccount());
+    }
+
+    // A transferência pode chegar com as contas já preenchidas (extrato da
+    // conta, fatura); o aviso de pool precisa aparecer sem esperar um toque.
+    if (state.type == OrderType.transfer) {
+      unawaited(_resolveTransferAccounting());
+    }
+  }
 
   void updateDescription(String value) =>
       state = state.copyWith(description: value);
@@ -36,8 +48,16 @@ class TransactionFormNotifier
 
   void updateDueDate(DateTime value) => state = state.copyWith(dueDate: value);
 
-  void updateCategory(CategoryModel? value) =>
-      state = state.copyWith(category: value);
+  void updateCategory(CategoryModel? value) {
+    state = state.copyWith(category: value);
+
+    // Trocar a categoria muda qual é a "última conta usada": só vale a pena
+    // reagir enquanto o usuário ainda não escolheu conta nenhuma.
+    if (state.creation && state.accountIdSource == null && value != null) {
+      state = state.copyWith(resolvingAccount: true);
+      unawaited(_resolveDefaultAccount());
+    }
+  }
 
   void updateAccountIdTarget(String? value) {
     state = state.copyWith(
@@ -46,7 +66,7 @@ class TransactionFormNotifier
           ? null
           : state.accountIdSource,
     );
-    _checkVirtualCategory();
+    unawaited(_resolveTransferAccounting());
   }
 
   void updateAccountIdSource(String? value) {
@@ -56,55 +76,87 @@ class TransactionFormNotifier
           ? null
           : state.accountIdTarget,
     );
-    _checkVirtualCategory();
+    unawaited(_resolveTransferAccounting());
   }
 
-  void _checkVirtualCategory() async {
+  /// Conta padrão do lançamento: a última que o usuário usou na categoria
+  /// escolhida e, na falta dela, a única conta do workspace.
+  ///
+  /// Silencioso de propósito: não achar um default não é erro, só significa
+  /// que o campo continua vazio e o usuário escolhe.
+  Future<void> _resolveDefaultAccount() async {
+    String? resolved;
+
+    try {
+      final categoryId = state.category?.id;
+
+      if (categoryId != null) {
+        final chunk = await financeService.queryInstallments(
+          limit: 10,
+          categoryId: categoryId,
+          type: state.type,
+        );
+
+        resolved = chunk.items
+            .map((installment) => installment.accountIdSource)
+            .nonNulls
+            .firstOrNull;
+      }
+
+      if (resolved == null) {
+        final accounts = await financeService.getAccounts();
+        if (accounts.length == 1) {
+          resolved = accounts.first.id;
+        }
+      }
+    } catch (_) {
+      // Silencioso de propósito.
+    }
+
+    if (!mounted) return;
+
+    state = state.copyWith(
+      resolvingAccount: false,
+      // Se o usuário escolheu uma conta enquanto a busca corria, ela ganha.
+      accountIdSource: state.accountIdSource ?? resolved,
+    );
+  }
+
+  /// Descobre em qual pool a transferência vai cair para o formulário avisar.
+  ///
+  /// Quem grava a categoria virtual é `FinanceService._processVirtualCategory`
+  /// (e o `SummaryService` recalcula no servidor); aqui é só informação.
+  Future<void> _resolveTransferAccounting() async {
     if (state.type != OrderType.transfer) return;
 
     final sourceId = state.accountIdSource;
     final targetId = state.accountIdTarget;
 
-    if (sourceId == null && targetId == null) return;
+    TransferAccounting? accounting;
 
-    CategoryModel? virtualCategory;
+    try {
+      if (targetId != null) {
+        accounting = _accountingOf(await financeService.getAccount(targetId));
+      }
 
-    if (targetId != null) {
-      try {
-        final targetAccount = await financeService.getAccount(targetId);
-        if (targetAccount.type == AccountType.debt ||
-            targetAccount.type == AccountType.investment) {
-          virtualCategory = targetAccount.type == AccountType.debt
-              ? await categoryService.getCategory(
-                  CategoryModel.virtualDebtExpenseId,
-                )
-              : await categoryService.getCategory(
-                  CategoryModel.virtualInvestmentExpenseId,
-                );
-        }
-      } catch (_) {}
+      if (accounting == null && sourceId != null) {
+        accounting = _accountingOf(await financeService.getAccount(sourceId));
+      }
+    } catch (_) {
+      accounting = null;
     }
 
-    if (virtualCategory == null && sourceId != null) {
-      try {
-        final sourceAccount = await financeService.getAccount(sourceId);
-        if (sourceAccount.type == AccountType.debt ||
-            sourceAccount.type == AccountType.investment) {
-          virtualCategory = sourceAccount.type == AccountType.debt
-              ? await categoryService.getCategory(
-                  CategoryModel.virtualDebtIncomeId,
-                )
-              : await categoryService.getCategory(
-                  CategoryModel.virtualInvestmentIncomeId,
-                );
-        }
-      } catch (_) {}
-    }
+    if (!mounted) return;
 
-    if (virtualCategory != null) {
-      state = state.copyWith(category: virtualCategory);
-    }
+    state = state.copyWith(transferAccounting: accounting);
   }
+
+  static TransferAccounting? _accountingOf(AccountModel account) =>
+      switch (account.type) {
+        AccountType.debt => TransferAccounting.debt,
+        AccountType.investment => TransferAccounting.investment,
+        _ => null,
+      };
 
   void updateInstallmentType(InstallmentType value) {
     if (state.creation) {
@@ -268,18 +320,21 @@ class TransactionFormNotifier
     return !date.isBefore(week.start) && !date.isAfter(week.end);
   }
 
+  /// Perguntar sobre replicação só faz sentido quando há para onde replicar e
+  /// algo replicável de fato mudou.
+  ///
+  /// Antes esta propriedade devolvia `true` para toda edição de parcela de uma
+  /// série, e a comparação com o original ficava espalhada na tela — o
+  /// diálogo aparecia até para quem só marcou a parcela como paga.
   bool get shouldAskCascade {
     if (state.creation || state.formType != TransactionFormType.installment) {
       return false;
     }
 
-    // Se for uma parcela única, não faz sentido perguntar cascade
-    if (state.installmentType == InstallmentType.single) {
+    if (!state.hasSiblings) {
       return false;
     }
 
-    // A lógica de "não se aplica pra alterações de status, data de pagamento ou valor de pagamento"
-    // será tratada no momento da submissão na UI para decidir se abre a modal ou não.
-    return true;
+    return state.replicableFieldsChanged;
   }
 }

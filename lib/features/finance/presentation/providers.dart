@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
-import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
@@ -292,7 +291,6 @@ class FinanceViewProviders {
             date: args.date,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
         );
       });
@@ -305,7 +303,6 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.updateOrder(order),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
         );
       });
@@ -318,7 +315,6 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.updateInstallment(installment),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
         );
       });
@@ -334,7 +330,6 @@ class FinanceViewProviders {
             status: InstallmentStatus.paid,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
         );
       });
@@ -441,35 +436,11 @@ class FinanceViewProviders {
         TransactionWizardState,
         TransactionWizardArgs
       >((ref, args) {
-        final today = ref.watch(todayProvider);
-
         return TransactionWizardNotifier(
           TransactionWizardState(
             type: args.type,
-            skipTransactions: args.skipTransactions,
             accountIdSource: args.accountIdSource,
           ),
-          financeService: ref.watch(FinanceDomainProviders.service),
-          now: () => today,
-        );
-      });
-
-  static final pendingInstallments = StreamProvider.autoDispose
-      .family<List<InstallmentModel>, ({OrderType type, String? categoryId, String? accountId})>((
-        ref,
-        args,
-      ) {
-        final service = ref.watch(FinanceDomainProviders.service);
-        final today = ref.watch(todayProvider);
-        return service.watchInstallments(
-          type: args.type,
-          categoryId: args.categoryId,
-          accountId: args.accountId,
-          status: InstallmentStatus.pending,
-          startDate: DateTime(today.year, today.month, 1),
-          // Fim do dia para incluir os lançamentos do último dia do mês
-          // (referenceDate é normalizado às 12:00).
-          endDate: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
         );
       });
 

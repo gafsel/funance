@@ -42,6 +42,15 @@ class FinanceService {
     return await accountRepository.getAccount(workspaceId, accountId);
   }
 
+  /// Contas do workspace, numa leitura única.
+  ///
+  /// O formulário de lançamento precisa saber quantas contas existem para
+  /// escolher a conta padrão quando só há uma; um stream aberto seria
+  /// desperdício para uma pergunta que se responde uma vez.
+  Future<List<AccountModel>> getAccounts() async {
+    return await accountRepository.getAccounts(workspaceId).first;
+  }
+
   Future<OrderModel> _processVirtualCategory(OrderModel order) async {
     if (order.type != OrderType.transfer) return order;
 

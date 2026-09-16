@@ -79,13 +79,16 @@ sealed class Planning503020Distribution with _$Planning503020Distribution {
   }) = _Planning503020Distribution;
 }
 
-enum TransactionWizardStep { category, transactions, form }
+/// O lançamento tem duas telas antes de salvar: escolher a categoria e
+/// preencher o formulário. Transferências não têm categoria escolhível (o
+/// servidor deriva a categoria virtual das contas), então começam no
+/// formulário.
+enum TransactionWizardStep { category, form }
 
 @freezed
 sealed class TransactionWizardArgs with _$TransactionWizardArgs {
   factory TransactionWizardArgs({
     required OrderType type,
-    @Default(false) bool skipTransactions,
     String? accountIdSource,
   }) = _TransactionWizardArgs;
 }
@@ -95,9 +98,7 @@ sealed class TransactionWizardState with _$TransactionWizardState {
   const factory TransactionWizardState({
     required OrderType type,
     CategoryModel? selectedCategory,
-    InstallmentModel? selectedInstallment,
     @Default(TransactionWizardStep.category) TransactionWizardStep step,
-    @Default(false) bool skipTransactions,
     String? accountIdSource,
   }) = _TransactionWizardState;
 }
@@ -119,6 +120,14 @@ sealed class TransactionCreationArgs with _$TransactionCreationArgs {
 enum TransactionFormType { order, installment }
 
 enum TransactionAmountType { total, installment }
+
+/// Como uma transferência vai aparecer nos relatórios.
+///
+/// `FinanceService._processVirtualCategory` (e o `SummaryService` no
+/// servidor) derivam a categoria virtual dos tipos das contas envolvidas. O
+/// formulário não troca a categoria escondido: só avisa o usuário em qual
+/// pool a transferência vai cair.
+enum TransferAccounting { investment, debt }
 
 @freezed
 sealed class TransactionFormState with _$TransactionFormState {
@@ -148,10 +157,48 @@ sealed class TransactionFormState with _$TransactionFormState {
     // `status` acompanha a edição do usuário, então só este campo responde
     // "como estava antes deste save". Nulo quando não há parcela persistida.
     InstallmentStatus? originalStatus,
+    // A parcela como está persistida. É ela que responde "o que mudou neste
+    // save" — `status`/`amount`/`dueDate` do estado já são os valores novos.
+    InstallmentModel? original,
+    // Pool em que a transferência vai cair, para o aviso no formulário.
+    TransferAccounting? transferAccounting,
+    // Verdadeiro enquanto o formulário procura a conta padrão da categoria.
+    // Enquanto isso o campo de conta não abre sozinho: abrir o seletor e
+    // depois preencher o default por baixo seria pior que esperar.
+    @Default(false) bool resolvingAccount,
   }) = _TransactionFormState;
 
   bool get creation => formType == TransactionFormType.order && orderId == null;
-  bool get isPlanning => amount > 0.0;
+
+  /// Há um valor preenchido. Não tem relação com planejamento: distingue o
+  /// lançamento com valor (campos de pagamento fazem sentido) do que ainda
+  /// está zerado.
+  bool get hasAmount => amount > 0.0;
+
+  /// A parcela tem irmãs — só então faz sentido perguntar sobre replicação.
+  bool get hasSiblings => switch (installmentType) {
+    InstallmentType.single => false,
+    InstallmentType.recurring => true,
+    InstallmentType.installment => (installmentCount ?? 1) > 1,
+  };
+
+  /// Algum campo replicável mudou em relação à parcela persistida.
+  ///
+  /// Status, data e valor de pagamento ficam de fora de propósito: quitar uma
+  /// parcela é um evento dela, não da série.
+  bool get replicableFieldsChanged {
+    final persisted = original;
+    if (persisted == null) {
+      return false;
+    }
+
+    return amount != persisted.amount ||
+        dueDate != persisted.dueDate ||
+        description != persisted.description ||
+        category?.id != persisted.category?.id ||
+        accountIdSource != persisted.accountIdSource ||
+        accountIdTarget != persisted.accountIdTarget;
+  }
 
   factory TransactionFormState.creation({
     required OrderType type,
@@ -227,6 +274,7 @@ sealed class TransactionFormState with _$TransactionFormState {
     return TransactionFormState(
       formType: TransactionFormType.installment,
       originalStatus: installment.status,
+      original: installment,
       installmentId: installment.id,
       orderId: installment.orderId,
       type: installment.type,

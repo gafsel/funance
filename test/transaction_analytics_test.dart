@@ -10,7 +10,6 @@ import 'package:funances/features/finance/presentation/controllers/transaction_f
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
-import 'package:funances/features/workspace/domain/services/category_service.dart';
 
 /// Registro de chamadas do analytics, para verificar o que o formulário emite.
 class FakeAnalyticsService implements AnalyticsService {
@@ -132,10 +131,6 @@ TransactionFormNotifier _notifier({
       date: DateTime(2026, 3, 10),
     ),
     financeService: financeService,
-    categoryService: CategoryService(
-      workspaceId: 'ws-test',
-      repository: _UnusedCategoryRepository(),
-    ),
     analytics: analytics,
   );
 }
@@ -178,10 +173,6 @@ TransactionFormNotifier _installmentNotifier({
       status: newStatus,
     ),
     financeService: financeService,
-    categoryService: CategoryService(
-      workspaceId: 'ws-test',
-      repository: _UnusedCategoryRepository(),
-    ),
     analytics: analytics,
   );
 }

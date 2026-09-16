@@ -23,6 +23,7 @@ import 'package:funances/features/finance/presentation/widgets/account_logo.dart
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/replication_cascade_dialog.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
 class TransactionFormScreen extends StatelessWidget {
   final OrderType type;
@@ -122,7 +123,7 @@ class TransactionFormScreen extends StatelessWidget {
         title: Text(
           updateOrder || updateInstallment
               ? l10n.historyEdit
-              : l10n.transactionAddExpense,
+              : _creationTitle(l10n),
         ),
         actions: [
           if (updateOrder || updateInstallment)
@@ -139,29 +140,19 @@ class TransactionFormScreen extends StatelessWidget {
         onSubmit: (snapshot, loading) async {
           if (!snapshot.validate()) return;
 
-          final state = snapshot.model;
           final notifier = snapshot.notifier;
 
           ReplicationCascade cascade = ReplicationCascade.none;
 
+          // `shouldAskCascade` já compara o estado com a parcela persistida:
+          // só chega aqui quem mexeu em algo que faz sentido replicar.
           if (notifier.shouldAskCascade) {
-            final original = installment!;
-            final changedFieldsOtherThanStatusOrPayment =
-                state.description != original.description ||
-                state.amount != original.amount ||
-                state.dueDate != original.dueDate ||
-                state.category?.id != original.category?.id ||
-                state.accountIdSource != original.accountIdSource ||
-                state.accountIdTarget != original.accountIdTarget;
+            final selectedCascade = await ReplicationCascadeDialog.showUpdate(
+              context,
+            );
 
-            if (changedFieldsOtherThanStatusOrPayment) {
-              final selectedCascade = await ReplicationCascadeDialog.showUpdate(
-                context,
-              );
-
-              if (selectedCascade == null) return;
-              cascade = selectedCascade;
-            }
+            if (selectedCascade == null) return;
+            cascade = selectedCascade;
           }
 
           notifier.updateReplicationCascade(cascade);
@@ -200,7 +191,6 @@ class TransactionFormScreen extends StatelessWidget {
           final theme = Theme.of(context);
           final l10n = context.l10n;
           final v = context.validations;
-          final isPending = state.status == InstallmentStatus.pending;
           final isSettled = state.status == InstallmentStatus.settled;
           final isPaid = state.status == InstallmentStatus.paid;
 
@@ -247,7 +237,7 @@ class TransactionFormScreen extends StatelessWidget {
               ),
 
             // 2. Campo de Valor (MoneyFormField ou Texto Estático)
-            if (state.creation || state.isPlanning)
+            if (state.creation || state.hasAmount)
               if (isEditable)
                 FullWidthItem(
                   MoneyFormField(
@@ -349,13 +339,37 @@ class TransactionFormScreen extends StatelessWidget {
                     labelText: l10n.transactionCategoriesSection,
                   ),
                 )
-              else if (state.type == OrderType.transfer)
+              else if (state.type == OrderType.transfer) ...[
                 CategoryFormField.transfer(
                   decoration: InputDecoration(
                     labelText: l10n.transactionCategoriesSection,
                   ),
-                )
-              else
+                ),
+                // A transferência não escolhe categoria: o servidor deriva
+                // uma categoria virtual dos tipos das contas. O chip conta
+                // isso em vez de trocar a categoria por baixo dos panos.
+                if (state.transferAccounting != null)
+                  FullWidthItem(
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Chip(
+                        avatar: Icon(
+                          state.transferAccounting == TransferAccounting.debt
+                              ? Icons.trending_down
+                              : Icons.savings_outlined,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: Text(
+                          state.transferAccounting == TransferAccounting.debt
+                              ? l10n.transactionTransferCountsAsDebt
+                              : l10n.transactionTransferCountsAsInvestment,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+              ] else
                 CategoryFormField(
                   initialValue: state.category,
                   categoryType: state.type.categoryType,
@@ -368,6 +382,10 @@ class TransactionFormScreen extends StatelessWidget {
                 ),
 
               AccountFormField(
+                // O FormField semeia o valor no primeiro build; a conta
+                // padrão chega depois, de uma consulta. A key faz o campo
+                // renascer com o default já preenchido.
+                key: ValueKey('account-source-${state.accountIdSource}'),
                 initialValue: state.accountIdSource,
                 decoration: InputDecoration(
                   labelText: state.type == OrderType.transfer
@@ -375,9 +393,13 @@ class TransactionFormScreen extends StatelessWidget {
                       : l10n.transactionAccountLabel,
                 ),
                 onChanged: notifier.updateAccountIdSource,
-                validator: isPending ? null : v.all([v.notEmpty()]),
+                // Conta é obrigatória também em agendamento: um lançamento
+                // futuro sem conta não entra em projeção de saldo nenhuma.
+                validator: v.all([v.notEmpty()]),
                 autoOpen:
-                    state.creation && state.status != InstallmentStatus.pending,
+                    state.creation &&
+                    !state.resolvingAccount &&
+                    state.accountIdSource == null,
               ),
               if (state.type == OrderType.transfer)
                 AccountFormField(
@@ -511,7 +533,7 @@ class TransactionFormScreen extends StatelessWidget {
             ],
 
             // 5. Data de Vencimento / Transação (Editável ou Metadado)
-            if (state.creation || state.isPlanning)
+            if (state.creation || state.hasAmount)
               if (isEditable)
                 DateFormField(
                   initialValue: state.dueDate,
@@ -597,7 +619,6 @@ class TransactionFormScreen extends StatelessWidget {
                             },
                             validator: v.all([v.notNull()]),
                           ),
-                        _buildStatusField(context, state, notifier),
                         if (state.type != OrderType.transfer) ...[
                           ChipFormField<InstallmentType>(
                             initialValue: state.installmentType,
@@ -673,7 +694,7 @@ class TransactionFormScreen extends StatelessWidget {
             ),
 
             // 7. Informações de Pagamento (Se não for Criação e estiver Pago/Liquidado ou sem planejamento)
-            if (!state.creation && (isPaid || isSettled || !state.isPlanning)) ...[
+            if (!state.creation && (isPaid || isSettled || !state.hasAmount)) ...[
               FullWidthItem(const Divider()),
               FullWidthItem(
                 Text(l10n.paymentInfo, style: theme.textTheme.titleMedium),
@@ -707,55 +728,25 @@ class TransactionFormScreen extends StatelessWidget {
     );
   }
 
-  ChipFormField<InstallmentStatus> _buildStatusField(
-    BuildContext context,
-    TransactionFormState state,
-    TransactionFormNotifier notifier,
-  ) {
-    final l10n = context.l10n;
-    final isSettled = state.status == InstallmentStatus.settled;
+  /// Título do formulário de criação.
+  ///
+  /// O status vem do ponto de entrada e não é mais editável aqui, então o
+  /// título é o que diz ao usuário se ele está registrando algo que já
+  /// aconteceu ou agendando algo que ainda vai acontecer.
+  String _creationTitle(AppLocalizations l10n) {
+    final scheduled = status == InstallmentStatus.pending;
 
-    return ChipFormField<InstallmentStatus>(
-      initialValue: isSettled ? InstallmentStatus.paid : state.status,
-      decoration: InputDecoration(
-        labelText: state.creation
-            ? l10n.transactionStatusTypeLabel
-            : l10n.transactionStatusLabel,
-      ),
-      options: state.creation
-          ? [
-              ChipFormFieldOption(
-                value: InstallmentStatus.pending,
-                label: l10n.transactionStatusPlanning,
-              ),
-              ChipFormFieldOption(
-                value: InstallmentStatus.paid,
-                label: l10n.transactionStatusRealized,
-              ),
-            ]
-          : [
-              ChipFormFieldOption(
-                value: InstallmentStatus.pending,
-                label: l10n.transactionStatusPending,
-              ),
-              ChipFormFieldOption(
-                value: InstallmentStatus.paid,
-                label: l10n.transactionStatusPaid,
-              ),
-              if (isSettled)
-                ChipFormFieldOption(
-                  value: InstallmentStatus.settled,
-                  label: l10n.transactionStatusSettled,
-                ),
-            ],
-      onChanged: (!isSettled && state.amount > 0) || state.creation
-          ? (v) {
-              if (v != null) {
-                notifier.updateStatus(v);
-              }
-            }
-          : null,
-    );
+    return switch (type) {
+      OrderType.income => scheduled
+          ? l10n.transactionPlanIncome
+          : l10n.transactionAddIncome,
+      OrderType.expense => scheduled
+          ? l10n.transactionPlanExpense
+          : l10n.transactionAddExpense,
+      OrderType.transfer => scheduled
+          ? l10n.transactionPlanTransfer
+          : l10n.transactionTransfer,
+    };
   }
 
   void _confirmDelete(

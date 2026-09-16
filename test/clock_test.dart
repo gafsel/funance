@@ -10,8 +10,6 @@ import 'package:funances/features/finance/domain/repositories/finance_repository
 import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
-import 'package:funances/features/finance/presentation/controllers/transaction_wizard_notifier.dart';
-import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/home/domain/services/mission_service.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
@@ -177,65 +175,6 @@ void main() {
     expect(summaryRepository.weekCalls.single.year, 2026);
   });
 
-  group('janela mensal do wizard', () {
-    test('no último dia do mês cobre o mês inteiro', () {
-      final range = TransactionWizardNotifier.monthRange(
-        DateTime(2026, 1, 31, 23, 58),
-      );
-
-      expect(range.start, DateTime(2026, 1, 1));
-      expect(range.end, DateTime(2026, 1, 31, 23, 59, 59));
-    });
-
-    test('um minuto depois já é o mês seguinte', () {
-      final range = TransactionWizardNotifier.monthRange(DateTime(2026, 2, 1));
-
-      expect(range.start, DateTime(2026, 2, 1));
-      // 2026 não é bissexto.
-      expect(range.end, DateTime(2026, 2, 28, 23, 59, 59));
-    });
-
-    test('dezembro vira para janeiro sem estourar o ano', () {
-      final range = TransactionWizardNotifier.monthRange(
-        DateTime(2026, 12, 15),
-      );
-
-      expect(range.start, DateTime(2026, 12, 1));
-      expect(range.end, DateTime(2026, 12, 31, 23, 59, 59));
-    });
-  });
-
-  test('o wizard consulta o mês do clock injetado', () async {
-    final financeRepository = _FakeFinanceRepository();
-    final notifier = TransactionWizardNotifier(
-      const TransactionWizardState(type: OrderType.expense),
-      financeService: FinanceService(
-        workspaceId: 'ws-1',
-        repository: financeRepository,
-        accountRepository: _FakeAccountRepository(),
-        categoryRepository: _FakeCategoryRepository(),
-      ),
-      now: () => DateTime(2026, 1, 31, 23, 58),
-    );
-    addTearDown(notifier.dispose);
-
-    notifier.selectCategory(
-      const CategoryModel(
-        id: 'cat-1',
-        name: 'Mercado',
-        icon: 'shopping_cart',
-        color: '#FF0000',
-      ),
-    );
-    await Future<void>.delayed(Duration.zero);
-
-    expect(financeRepository.queryCalls, hasLength(1));
-    expect(financeRepository.queryCalls.single.startDate, DateTime(2026, 1, 1));
-    expect(
-      financeRepository.queryCalls.single.endDate,
-      DateTime(2026, 1, 31, 23, 59, 59),
-    );
-  });
 
   group('todayProvider', () {
     setUp(TestWidgetsFlutterBinding.ensureInitialized);
