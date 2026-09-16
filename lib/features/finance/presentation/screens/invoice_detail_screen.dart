@@ -25,12 +25,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final l10n = context.l10n;
     // A conta da fatura é o cartão (lado credit/target). Depois que a fatura é
     // paga, accountIdSource passa a ser a conta corrente que pagou — usá-la
-    // aqui deixaria header e FAB apontando para a conta errada.
-    final accountId =
-        invoice.accountIdTarget ??
-        invoice.accountIdSource ??
-        invoice.accounts.keys.firstOrNull ??
-        "";
+    // aqui deixaria header e FAB apontando para a conta errada. A mesma
+    // cadeia alimenta a chave das famílias da fatura (`invoiceKey`).
+    final accountId = invoice.resolvedAccountId ?? "";
     final accountAsync = ref.watch(AccountViewProviders.byId(accountId));
 
     final locale = context.locale;
@@ -150,7 +147,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     provider: FinanceViewProviders.invoiceInstallmentsList(
                       invoice.invoiceKey,
                     ),
-                    accountId: invoice.accountIdTarget,
+                    accountId: invoice.resolvedAccountId,
                   ),
                 ),
               ],

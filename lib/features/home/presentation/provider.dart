@@ -30,11 +30,37 @@ sealed class MissionViewProviders {
   });
 }
 
+/// Período selecionado nos resumos.
+///
+/// Segue o dia corrente enquanto o usuário não escolher um mês à mão; a partir
+/// daí a virada do dia (meia-noite ou volta do background) não mexe mais na
+/// escolha dele. `chooseToday()` volta a seguir o relógio.
+class PeriodNotifier extends Notifier<DateTime> {
+  DateTime? _chosenByUser;
+
+  @override
+  DateTime build() {
+    final today = ref.watch(todayProvider);
+    return _chosenByUser ?? today;
+  }
+
+  void choose(DateTime period) {
+    _chosenByUser = period;
+    state = period;
+  }
+
+  void chooseToday() {
+    _chosenByUser = null;
+    state = ref.read(todayProvider);
+  }
+}
+
 class HomeViewProviders {
-  /// Período selecionado no filtro. O valor inicial vem do `todayProvider`
-  /// (e não de `DateTime.now()` no corpo do provider, que congelaria a data
-  /// no instante da criação).
-  static final period = StateProvider((ref) => ref.watch(todayProvider));
+  /// O valor inicial vem do `todayProvider` (e não de `DateTime.now()` no
+  /// corpo do provider, que congelaria a data no instante da criação).
+  static final period = NotifierProvider<PeriodNotifier, DateTime>(
+    PeriodNotifier.new,
+  );
 
   static final viewType = StateProvider((ref) => SummaryViewType.effective);
 

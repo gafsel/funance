@@ -166,8 +166,14 @@ class ReconciliationDomainProviders {
 typedef InvoiceKey = ({String invoiceId, String accountId, DateTime dueDate});
 
 extension InvoiceKeyExtension on InstallmentModel {
-  InvoiceKey get invoiceKey =>
-      (invoiceId: id, accountId: accountIdTarget ?? "", dueDate: dueDate);
+  /// Usa a mesma cadeia de resolução de conta da tela de detalhe
+  /// (`resolvedAccountId`): cair em string vazia aqui faria o provider
+  /// consultar sem filtro de conta e listar o extrato inteiro.
+  InvoiceKey get invoiceKey => (
+    invoiceId: id,
+    accountId: resolvedAccountId ?? "",
+    dueDate: dueDate,
+  );
 }
 
 class AccountViewProviders {
@@ -220,8 +226,11 @@ class AccountViewProviders {
   ///
   /// Os saldos são combinados num único stream em vez de um `ref.watch` por
   /// conta dentro do `map`: o `watch` em loop registrava uma dependência nova
-  /// a cada rebuild e devolvia 0 para toda conta cujo saldo ainda não tivesse
-  /// chegado, fazendo o total piscar enquanto os streams carregavam.
+  /// a cada rebuild e somava 0 para toda conta cujo saldo ainda não tivesse
+  /// chegado, mostrando um total errado como se fosse definitivo. Agora o
+  /// provider só emite quando todas as contas já responderam — enquanto isso
+  /// fica em `AsyncLoading`, e a tela deve mostrar carregamento em vez de
+  /// zero.
   static final latestBalanceByType = StreamProvider.autoDispose
       .family<double, AccountType>((ref, type) {
         final List<AccountModel> accounts = ref.watch(
@@ -336,11 +345,18 @@ class FinanceViewProviders {
         TransactionFilterState,
         TransactionQuery
       >((ref, query) {
-        final category = query.categoryId != null
-            ? ref
-                  .read(CategoryViewProviders.byId(query.categoryId!))
-                  .valueOrNull
-            : null;
+        // `read` numa família autoDispose devolve sempre AsyncLoading na
+        // primeira leitura (e ainda agenda o dispose do provider), então o
+        // filtro de categoria vindo do detalhe de fatura era descartado em
+        // silêncio. Com `watch` + `select` o notifier é reconstruído uma vez,
+        // quando a categoria resolve, e não a cada emissão da lista.
+        final category = query.categoryId == null
+            ? null
+            : ref.watch(
+                CategoryViewProviders.byId(
+                  query.categoryId!,
+                ).select((async) => async.valueOrNull),
+              );
 
         return TransactionFilterNotifier(
           TransactionFilterState.fromQuery(query, category: category),

@@ -86,6 +86,16 @@ sealed class InstallmentModel with _$InstallmentModel {
     }
   }
 
+  /// Conta a que a parcela pertence, na ordem em que as telas a resolvem.
+  ///
+  /// Numa fatura o lado credit é o cartão; depois de paga, `accountIdSource`
+  /// passa a ser a conta corrente que pagou, e `accountIdTarget` fica null
+  /// (só transferências têm target). O último recurso é a primeira conta
+  /// impactada — sem ele a chave da fatura cairia em string vazia e a tela
+  /// listaria tudo.
+  String? get resolvedAccountId =>
+      accountIdTarget ?? accountIdSource ?? accounts.keys.firstOrNull;
+
   factory InstallmentModel.fromJson(Map<String, dynamic> json) =>
       _$InstallmentModelFromJson(json);
 }
