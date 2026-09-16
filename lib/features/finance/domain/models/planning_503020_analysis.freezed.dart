@@ -571,7 +571,9 @@ as double,
 /// @nodoc
 mixin _$Planning503020Analysis {
 
- String get id; String get month; String get summary; double get projectedIncome; List<Planning503020AnalysisGroup> get groups; List<Planning503020AnalysisCategory> get categories; List<String> get insights;
+ String get id; String get month; String get summary; double get projectedIncome; List<Planning503020AnalysisGroup> get groups; List<Planning503020AnalysisCategory> get categories; List<String> get insights;// Quando o servidor gerou esta análise (ISO-8601). Análises antigas,
+// persistidas antes deste campo existir, vêm nulas.
+ DateTime? get createdAt;
 /// Create a copy of Planning503020Analysis
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -584,16 +586,16 @@ $Planning503020AnalysisCopyWith<Planning503020Analysis> get copyWith => _$Planni
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Planning503020Analysis&&(identical(other.id, id) || other.id == id)&&(identical(other.month, month) || other.month == month)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.projectedIncome, projectedIncome) || other.projectedIncome == projectedIncome)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.categories, categories)&&const DeepCollectionEquality().equals(other.insights, insights));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Planning503020Analysis&&(identical(other.id, id) || other.id == id)&&(identical(other.month, month) || other.month == month)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.projectedIncome, projectedIncome) || other.projectedIncome == projectedIncome)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.categories, categories)&&const DeepCollectionEquality().equals(other.insights, insights)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,month,summary,projectedIncome,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(categories),const DeepCollectionEquality().hash(insights));
+int get hashCode => Object.hash(runtimeType,id,month,summary,projectedIncome,const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(categories),const DeepCollectionEquality().hash(insights),createdAt);
 
 @override
 String toString() {
-  return 'Planning503020Analysis(id: $id, month: $month, summary: $summary, projectedIncome: $projectedIncome, groups: $groups, categories: $categories, insights: $insights)';
+  return 'Planning503020Analysis(id: $id, month: $month, summary: $summary, projectedIncome: $projectedIncome, groups: $groups, categories: $categories, insights: $insights, createdAt: $createdAt)';
 }
 
 
@@ -604,7 +606,7 @@ abstract mixin class $Planning503020AnalysisCopyWith<$Res>  {
   factory $Planning503020AnalysisCopyWith(Planning503020Analysis value, $Res Function(Planning503020Analysis) _then) = _$Planning503020AnalysisCopyWithImpl;
 @useResult
 $Res call({
- String id, String month, String summary, double projectedIncome, List<Planning503020AnalysisGroup> groups, List<Planning503020AnalysisCategory> categories, List<String> insights
+ String id, String month, String summary, double projectedIncome, List<Planning503020AnalysisGroup> groups, List<Planning503020AnalysisCategory> categories, List<String> insights, DateTime? createdAt
 });
 
 
@@ -621,7 +623,7 @@ class _$Planning503020AnalysisCopyWithImpl<$Res>
 
 /// Create a copy of Planning503020Analysis
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? month = null,Object? summary = null,Object? projectedIncome = null,Object? groups = null,Object? categories = null,Object? insights = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? month = null,Object? summary = null,Object? projectedIncome = null,Object? groups = null,Object? categories = null,Object? insights = null,Object? createdAt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,month: null == month ? _self.month : month // ignore: cast_nullable_to_non_nullable
@@ -630,7 +632,8 @@ as String,projectedIncome: null == projectedIncome ? _self.projectedIncome : pro
 as double,groups: null == groups ? _self.groups : groups // ignore: cast_nullable_to_non_nullable
 as List<Planning503020AnalysisGroup>,categories: null == categories ? _self.categories : categories // ignore: cast_nullable_to_non_nullable
 as List<Planning503020AnalysisCategory>,insights: null == insights ? _self.insights : insights // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 
@@ -712,10 +715,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String month,  String summary,  double projectedIncome,  List<Planning503020AnalysisGroup> groups,  List<Planning503020AnalysisCategory> categories,  List<String> insights)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String month,  String summary,  double projectedIncome,  List<Planning503020AnalysisGroup> groups,  List<Planning503020AnalysisCategory> categories,  List<String> insights,  DateTime? createdAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Planning503020Analysis() when $default != null:
-return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.groups,_that.categories,_that.insights);case _:
+return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.groups,_that.categories,_that.insights,_that.createdAt);case _:
   return orElse();
 
 }
@@ -733,10 +736,10 @@ return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.g
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String month,  String summary,  double projectedIncome,  List<Planning503020AnalysisGroup> groups,  List<Planning503020AnalysisCategory> categories,  List<String> insights)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String month,  String summary,  double projectedIncome,  List<Planning503020AnalysisGroup> groups,  List<Planning503020AnalysisCategory> categories,  List<String> insights,  DateTime? createdAt)  $default,) {final _that = this;
 switch (_that) {
 case _Planning503020Analysis():
-return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.groups,_that.categories,_that.insights);}
+return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.groups,_that.categories,_that.insights,_that.createdAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -750,10 +753,10 @@ return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.g
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String month,  String summary,  double projectedIncome,  List<Planning503020AnalysisGroup> groups,  List<Planning503020AnalysisCategory> categories,  List<String> insights)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String month,  String summary,  double projectedIncome,  List<Planning503020AnalysisGroup> groups,  List<Planning503020AnalysisCategory> categories,  List<String> insights,  DateTime? createdAt)?  $default,) {final _that = this;
 switch (_that) {
 case _Planning503020Analysis() when $default != null:
-return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.groups,_that.categories,_that.insights);case _:
+return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.groups,_that.categories,_that.insights,_that.createdAt);case _:
   return null;
 
 }
@@ -765,7 +768,7 @@ return $default(_that.id,_that.month,_that.summary,_that.projectedIncome,_that.g
 @JsonSerializable()
 
 class _Planning503020Analysis extends Planning503020Analysis {
-  const _Planning503020Analysis({required this.id, this.month = '', this.summary = '', this.projectedIncome = 0.0, final  List<Planning503020AnalysisGroup> groups = const [], final  List<Planning503020AnalysisCategory> categories = const [], final  List<String> insights = const []}): _groups = groups,_categories = categories,_insights = insights,super._();
+  const _Planning503020Analysis({required this.id, this.month = '', this.summary = '', this.projectedIncome = 0.0, final  List<Planning503020AnalysisGroup> groups = const [], final  List<Planning503020AnalysisCategory> categories = const [], final  List<String> insights = const [], this.createdAt}): _groups = groups,_categories = categories,_insights = insights,super._();
   factory _Planning503020Analysis.fromJson(Map<String, dynamic> json) => _$Planning503020AnalysisFromJson(json);
 
 @override final  String id;
@@ -793,6 +796,9 @@ class _Planning503020Analysis extends Planning503020Analysis {
   return EqualUnmodifiableListView(_insights);
 }
 
+// Quando o servidor gerou esta análise (ISO-8601). Análises antigas,
+// persistidas antes deste campo existir, vêm nulas.
+@override final  DateTime? createdAt;
 
 /// Create a copy of Planning503020Analysis
 /// with the given fields replaced by the non-null parameter values.
@@ -807,16 +813,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Planning503020Analysis&&(identical(other.id, id) || other.id == id)&&(identical(other.month, month) || other.month == month)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.projectedIncome, projectedIncome) || other.projectedIncome == projectedIncome)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._categories, _categories)&&const DeepCollectionEquality().equals(other._insights, _insights));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Planning503020Analysis&&(identical(other.id, id) || other.id == id)&&(identical(other.month, month) || other.month == month)&&(identical(other.summary, summary) || other.summary == summary)&&(identical(other.projectedIncome, projectedIncome) || other.projectedIncome == projectedIncome)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._categories, _categories)&&const DeepCollectionEquality().equals(other._insights, _insights)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,month,summary,projectedIncome,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_categories),const DeepCollectionEquality().hash(_insights));
+int get hashCode => Object.hash(runtimeType,id,month,summary,projectedIncome,const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_categories),const DeepCollectionEquality().hash(_insights),createdAt);
 
 @override
 String toString() {
-  return 'Planning503020Analysis(id: $id, month: $month, summary: $summary, projectedIncome: $projectedIncome, groups: $groups, categories: $categories, insights: $insights)';
+  return 'Planning503020Analysis(id: $id, month: $month, summary: $summary, projectedIncome: $projectedIncome, groups: $groups, categories: $categories, insights: $insights, createdAt: $createdAt)';
 }
 
 
@@ -827,7 +833,7 @@ abstract mixin class _$Planning503020AnalysisCopyWith<$Res> implements $Planning
   factory _$Planning503020AnalysisCopyWith(_Planning503020Analysis value, $Res Function(_Planning503020Analysis) _then) = __$Planning503020AnalysisCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String month, String summary, double projectedIncome, List<Planning503020AnalysisGroup> groups, List<Planning503020AnalysisCategory> categories, List<String> insights
+ String id, String month, String summary, double projectedIncome, List<Planning503020AnalysisGroup> groups, List<Planning503020AnalysisCategory> categories, List<String> insights, DateTime? createdAt
 });
 
 
@@ -844,7 +850,7 @@ class __$Planning503020AnalysisCopyWithImpl<$Res>
 
 /// Create a copy of Planning503020Analysis
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? month = null,Object? summary = null,Object? projectedIncome = null,Object? groups = null,Object? categories = null,Object? insights = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? month = null,Object? summary = null,Object? projectedIncome = null,Object? groups = null,Object? categories = null,Object? insights = null,Object? createdAt = freezed,}) {
   return _then(_Planning503020Analysis(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,month: null == month ? _self.month : month // ignore: cast_nullable_to_non_nullable
@@ -853,7 +859,8 @@ as String,projectedIncome: null == projectedIncome ? _self.projectedIncome : pro
 as double,groups: null == groups ? _self._groups : groups // ignore: cast_nullable_to_non_nullable
 as List<Planning503020AnalysisGroup>,categories: null == categories ? _self._categories : categories // ignore: cast_nullable_to_non_nullable
 as List<Planning503020AnalysisCategory>,insights: null == insights ? _self._insights : insights // ignore: cast_nullable_to_non_nullable
-as List<String>,
+as List<String>,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,
   ));
 }
 

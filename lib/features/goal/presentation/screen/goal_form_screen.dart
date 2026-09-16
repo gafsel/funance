@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
@@ -237,20 +238,32 @@ class _GoalAiAnalyzeButton extends ConsumerWidget {
       ),
       onPressed: isReady
           ? () async {
-              final result = await showLoadingModal(
-                context,
-                ref
-                    .read(GoalViewProvider.feasibility.notifier)
-                    .analyze(formState),
-                child: AnalysisLoadingView(
-                  title: l10n.goalAiAnalyzing,
-                  description: l10n.goalAiAnalyzingDesc,
-                  firstPhaseDuration: const Duration(seconds: 15),
-                  totalDuration: const Duration(seconds: 60),
-                ),
-              );
-              if (context.mounted) {
-                _showResultBottomSheet(context, l10n, result);
+              final messenger = ScaffoldMessenger.of(context);
+
+              try {
+                final result = await showLoadingModal(
+                  context,
+                  ref
+                      .read(GoalViewProvider.feasibility.notifier)
+                      .analyze(formState),
+                  child: AnalysisLoadingView(
+                    title: l10n.goalAiAnalyzing,
+                    description: l10n.goalAiAnalyzingDesc,
+                    firstPhaseDuration: const Duration(seconds: 15),
+                    totalDuration: const Duration(seconds: 60),
+                  ),
+                );
+                if (context.mounted) {
+                  _showResultBottomSheet(context, l10n, result);
+                }
+              } catch (e) {
+                // Limite diário de IA precisa chegar ao usuário; antes o erro
+                // subia sem nenhum aviso na tela.
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(callableErrorMessage(e, l10n.goalAiError)),
+                  ),
+                );
               }
             }
           : null,

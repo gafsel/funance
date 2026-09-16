@@ -782,6 +782,18 @@ abstract class AppLocalizations {
   /// **'Analisar com IA'**
   String get goalAnalyzeWithAi;
 
+  /// No description provided for @goalAiError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível analisar a meta. Tente novamente.'**
+  String get goalAiError;
+
+  /// No description provided for @reconciliationError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível analisar o extrato. Tente novamente.'**
+  String get reconciliationError;
+
   /// No description provided for @goalAiAnalyzing.
   ///
   /// In pt, this message translates to:
@@ -4543,6 +4555,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Insights'**
   String get planningAnalysisInsightsTitle;
+
+  /// No description provided for @planningAnalysisGeneratedAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise gerada em {date}'**
+  String planningAnalysisGeneratedAt(String date);
+
+  /// No description provided for @planningAnalysisNextAvailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'{days, plural, one{Nova análise disponível em {days} dia} other{Nova análise disponível em {days} dias}}'**
+  String planningAnalysisNextAvailable(int days);
+
+  /// No description provided for @planningAnalysisGenerateNew.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gerar nova análise'**
+  String get planningAnalysisGenerateNew;
 
   /// No description provided for @planningAnalysisRefresh.
   ///

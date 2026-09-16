@@ -142,6 +142,8 @@
   "goalMilestone75": "75%",
   "goalMilestone100": "100%",
   "goalAnalyzeWithAi": "Analisar com IA",
+  "goalAiError": "Não foi possível analisar a meta. Tente novamente.",
+  "reconciliationError": "Não foi possível analisar o extrato. Tente novamente.",
   "goalAiAnalyzing": "Analisando sua meta...",
   "goalAiAnalyzingDesc": "Nossa IA está examinando seu histórico financeiro para avaliar a viabilidade desta meta.",
   "goalAiFeasible": "Viável",
@@ -1042,6 +1044,15 @@
   "planningAnalysisApplied": "Categoria atualizada com sucesso!",
   "planningAnalysisApplyError": "Não foi possível atualizar a categoria.",
   "planningAnalysisInsightsTitle": "Insights",
+  "planningAnalysisGeneratedAt": "Análise gerada em {date}",
+  "@planningAnalysisGeneratedAt": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "planningAnalysisNextAvailable": "{days, plural, one{Nova análise disponível em {days} dia} other{Nova análise disponível em {days} dias}}",
+  "@planningAnalysisNextAvailable": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "planningAnalysisGenerateNew": "Gerar nova análise",
   "planningAnalysisRefresh": "Atualizar análise",
   "planningAnalysisRefreshHint": "Uma análise recente é reaproveitada por alguns dias; o servidor decide quando vale gerar uma nova."
 }

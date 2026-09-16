@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:funances/core/analytics/analytics_service.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -103,11 +104,15 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
       } catch (e) {
         log(e.toString());
 
+        final rawMessage = e.toString().contains('BusinessException')
+            ? e.toString().split(':').last.trim()
+            : e.toString();
+
         state = state.copyWith(
           processingStatus: AccountProcessingStatus.failed,
-          errorMessage: e.toString().contains('BusinessException')
-            ? e.toString().split(':').last.trim()
-            : e.toString(),
+          // Limite diário de IA tem mensagem própria do servidor, já pronta
+          // para o usuário.
+          errorMessage: callableErrorMessage(e, rawMessage),
         );
       }
     }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -203,7 +204,11 @@ class CoachingInsightCard extends ConsumerWidget {
                             // Sem isso a falha era silenciosa: o modal fechava
                             // e nada acontecia após minutos de espera.
                             messenger.showSnackBar(
-                              SnackBar(content: Text(l10n.coachingError)),
+                              SnackBar(
+                                content: Text(
+                                  callableErrorMessage(e, l10n.coachingError),
+                                ),
+                              ),
                             );
                           }
                         },

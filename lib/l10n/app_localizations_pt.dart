@@ -387,6 +387,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String get goalAnalyzeWithAi => 'Analisar com IA';
 
   @override
+  String get goalAiError =>
+      'Não foi possível analisar a meta. Tente novamente.';
+
+  @override
+  String get reconciliationError =>
+      'Não foi possível analisar o extrato. Tente novamente.';
+
+  @override
   String get goalAiAnalyzing => 'Analisando sua meta...';
 
   @override
@@ -2510,6 +2518,25 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get planningAnalysisInsightsTitle => 'Insights';
+
+  @override
+  String planningAnalysisGeneratedAt(String date) {
+    return 'Análise gerada em $date';
+  }
+
+  @override
+  String planningAnalysisNextAvailable(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Nova análise disponível em $days dias',
+      one: 'Nova análise disponível em $days dia',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get planningAnalysisGenerateNew => 'Gerar nova análise';
 
   @override
   String get planningAnalysisRefresh => 'Atualizar análise';

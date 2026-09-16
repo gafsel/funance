@@ -385,6 +385,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goalAnalyzeWithAi => 'Analyze with AI';
 
   @override
+  String get goalAiError => 'We could not analyze the goal. Please try again.';
+
+  @override
+  String get reconciliationError =>
+      'We could not analyze the statement. Please try again.';
+
+  @override
   String get goalAiAnalyzing => 'Analyzing your goal...';
 
   @override
@@ -2497,6 +2504,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planningAnalysisInsightsTitle => 'Insights';
+
+  @override
+  String planningAnalysisGeneratedAt(String date) {
+    return 'Analysis generated on $date';
+  }
+
+  @override
+  String planningAnalysisNextAvailable(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'New analysis available in $days days',
+      one: 'New analysis available in $days day',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get planningAnalysisGenerateNew => 'Generate new analysis';
 
   @override
   String get planningAnalysisRefresh => 'Refresh analysis';

@@ -1,5 +1,5 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -191,13 +191,11 @@ class Planning503020Screen extends ConsumerWidget {
           }
         },
       );
-    } on FirebaseFunctionsException catch (e) {
+    } catch (e) {
       messenger.showSnackBar(
-        SnackBar(content: Text(e.message ?? l10n.planningAnalysisError)),
-      );
-    } catch (_) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.planningAnalysisError)),
+        SnackBar(
+          content: Text(callableErrorMessage(e, l10n.planningAnalysisError)),
+        ),
       );
     }
   }

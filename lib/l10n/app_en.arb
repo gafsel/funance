@@ -242,6 +242,8 @@
   "goalMilestone75": "75%",
   "goalMilestone100": "100%",
   "goalAnalyzeWithAi": "Analyze with AI",
+  "goalAiError": "We could not analyze the goal. Please try again.",
+  "reconciliationError": "We could not analyze the statement. Please try again.",
   "goalAiAnalyzing": "Analyzing your goal...",
   "goalAiAnalyzingDesc": "Our AI is examining your financial history to evaluate the feasibility of this goal.",
   "goalAiFeasible": "Feasible",
@@ -1035,6 +1037,15 @@
   "planningAnalysisApplied": "Category updated successfully!",
   "planningAnalysisApplyError": "Could not update the category.",
   "planningAnalysisInsightsTitle": "Insights",
+  "planningAnalysisGeneratedAt": "Analysis generated on {date}",
+  "@planningAnalysisGeneratedAt": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "planningAnalysisNextAvailable": "{days, plural, one{New analysis available in {days} day} other{New analysis available in {days} days}}",
+  "@planningAnalysisNextAvailable": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "planningAnalysisGenerateNew": "Generate new analysis",
   "planningAnalysisRefresh": "Refresh analysis",
   "planningAnalysisRefreshHint": "A recent analysis is reused for a few days; the server decides when a new one is worth generating."
 }
