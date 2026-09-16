@@ -30,7 +30,8 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
   late AnimationController _progressController;
   double _currentProgress = 0.0;
   Timer? _secondPhaseTimer;
-  StreamSubscription? _progressSubscription;
+  // Só usamos a assinatura para cancelar, então o tipo do elemento é irrelevante.
+  StreamSubscription<void>? _progressSubscription;
   String? _currentMessage;
 
   @override

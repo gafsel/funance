@@ -31,6 +31,10 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
       imageQuality: 80,
     );
 
+    // O cropper na web recebe o context; se a tela saiu durante a escolha da
+    // imagem, não há mais o que abrir.
+    if (!context.mounted) return;
+
     if (pickedFile != null) {
       // O plugin image_cropper não suporta macOS.
       // Suporta Android, iOS e Web.

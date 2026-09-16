@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
@@ -389,7 +390,7 @@ class FinanceViewProviders {
               endDate: end,
             );
           },
-          error: (_, __) => TransactionQuery(),
+          error: (_, _) => TransactionQuery(),
           loading: () => TransactionQuery(),
         );
 
@@ -522,7 +523,12 @@ class FinanceViewProviders {
                 );
           },
           error: (e, s) {
-            print(e.toString());
+            developer.log(
+              'Falha ao resolver o período das parcelas da conta',
+              name: 'funances.providers',
+              error: e,
+              stackTrace: s,
+            );
 
             return Stream.error(e, s);
           },
@@ -742,7 +748,7 @@ class PeriodSummaryViewProviders {
             .watch(CategoryViewProviders.allStream)
             .when(
               data: (data) => data,
-              error: (_, __) => [],
+              error: (_, _) => [],
               loading: () => [],
             );
 
@@ -761,7 +767,7 @@ class PeriodSummaryViewProviders {
             .watch(CategoryViewProviders.allStream)
             .when(
               data: (data) => data,
-              error: (_, __) => [],
+              error: (_, _) => [],
               loading: () => [],
             );
 

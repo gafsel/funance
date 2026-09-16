@@ -71,7 +71,7 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
   }
 
   void linkManual(int index, InstallmentModel installment) {
-    var matches = List<ReconciliationMatch>.from(state.matches);
+    final matches = List<ReconciliationMatch>.from(state.matches);
 
     // 1. Desassociar esta parcela de qualquer outra transação de extrato para garantir 1:1
     for (int i = 0; i < matches.length; i++) {
@@ -118,7 +118,7 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
   }
 
   void unlinkMatch(int index) {
-    var matches = List<ReconciliationMatch>.from(state.matches);
+    final matches = List<ReconciliationMatch>.from(state.matches);
     final match = matches[index];
     final unlinkedInstallment = match.systemInstallment;
 

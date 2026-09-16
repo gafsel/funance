@@ -16,7 +16,6 @@ import 'package:funances/features/goal/presentation/model/goal_view_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/providers/goal_form_provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../../../core/validation/validation.dart';

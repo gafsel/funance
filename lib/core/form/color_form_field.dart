@@ -34,7 +34,7 @@ class ColorFormField extends StatelessWidget {
             runSpacing: 8,
             children: AppColors.selectionColors.map((color) {
               final colorHex =
-                  '#${color.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                  '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
               final isSelected = field.value?.toUpperCase() == colorHex;
               return GestureDetector(
                 onTap: () {

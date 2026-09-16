@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -343,7 +344,7 @@ class _PendingTransactionsStep extends ConsumerWidget {
     WidgetRef ref,
     int index,
     List<InstallmentModel> installments,
-    dynamic l10n,
+    AppLocalizations l10n,
     String locale,
   ) {
     final theme = Theme.of(context);

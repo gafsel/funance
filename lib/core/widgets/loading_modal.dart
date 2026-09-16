@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/utils/error_messages.dart';
@@ -26,7 +28,9 @@ Future<T> showLoadingModal<T>(
   // Capturamos o Navigator antes de começar qualquer operação assíncrona
   // para garantir que ainda temos acesso a ele mesmo se o contexto mudar.
   final NavigatorState navigator = Navigator.of(context);
-  ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+  final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(
+    context,
+  );
 
   _activeFutures.add(future);
 
@@ -35,51 +39,53 @@ Future<T> showLoadingModal<T>(
 
     // Não aguardamos o showDialog aqui para permitir que o código continue
     // e chegue no `await future`.
-    showDialog(
-      context: context,
-      barrierDismissible: barrierDismissible,
-      fullscreenDialog: child != null,
-      builder: (dialogContext) {
-        return PopScope(
-          canPop: canPop,
-          onPopInvokedWithResult: (didPop, result) {
-            if (didPop) {
-              _isDialogOpen = false;
-              _activeFutures.clear();
-            }
-          },
-          child:
-              child ??
-              Dialog(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).canvasColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          "Aguarde...",
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ],
+    unawaited(
+      showDialog(
+        context: context,
+        barrierDismissible: barrierDismissible,
+        fullscreenDialog: child != null,
+        builder: (dialogContext) {
+          return PopScope(
+            canPop: canPop,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) {
+                _isDialogOpen = false;
+                _activeFutures.clear();
+              }
+            },
+            child:
+                child ??
+                Dialog(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).canvasColor,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 16),
+                          Text(
+                            "Aguarde...",
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-        );
-      },
-    ).then((_) {
-      _isDialogOpen = false;
-      _activeFutures.clear();
-    });
+          );
+        },
+      ).then((_) {
+        _isDialogOpen = false;
+        _activeFutures.clear();
+      }),
+    );
   }
 
   try {
@@ -92,11 +98,11 @@ Future<T> showLoadingModal<T>(
     );
     rethrow;
   } catch (ex, stack) {
-    print(
-      "[MAIN CLASS] ERRO NÃO TRATADO: " +
-          ex.toString() +
-          "\n" +
-          stack.toString(),
+    developer.log(
+      'Erro não tratado no showLoadingModal',
+      name: 'funances.LoadingModal',
+      error: ex,
+      stackTrace: stack,
     );
     rethrow;
   } finally {

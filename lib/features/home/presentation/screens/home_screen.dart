@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
@@ -10,7 +11,6 @@ import 'package:funances/features/finance/presentation/widgets/transaction_actio
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
-import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
@@ -215,7 +215,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildNavigationRail(BuildContext context, dynamic authUser) {
+  Widget _buildNavigationRail(BuildContext context, UserModel? authUser) {
     final l10n = AppLocalizations.of(context)!;
     return NavigationRail(
       extended: _isNavigationRailExtended,
@@ -368,7 +368,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _showWorkspacePicker(
     BuildContext context,
     WidgetRef ref,
-    dynamic workspaceState,
+    WorkspaceState workspaceState,
   ) {
     final l10n = AppLocalizations.of(context)!;
     showModalBottomSheet(

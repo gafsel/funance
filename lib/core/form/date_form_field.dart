@@ -16,7 +16,7 @@ class DateFormField extends StatefulWidget {
   final bool enabled;
 
   const DateFormField({
-    Key? key,
+    super.key,
     this.onSaved,
     this.onChanged,
     this.validator,
@@ -24,10 +24,10 @@ class DateFormField extends StatefulWidget {
     this.initialValue,
     this.autovalidateMode = AutovalidateMode.disabled,
     this.enabled = true,
-  }) : super(key: key);
+  });
 
   @override
-  _DateFormFieldState createState() => _DateFormFieldState();
+  State<DateFormField> createState() => _DateFormFieldState();
 }
 
 class _DateFormFieldState extends State<DateFormField> {
@@ -76,7 +76,7 @@ class _DateFormFieldState extends State<DateFormField> {
       autovalidateMode: widget.autovalidateMode,
       enabled: widget.enabled,
       builder: (field) {
-        InputDecoration effectiveDecoration = (widget.decoration)
+        final InputDecoration effectiveDecoration = (widget.decoration)
             .applyDefaults(Theme.of(field.context).inputDecorationTheme)
             .copyWith(
               errorText: field.errorText,
@@ -84,7 +84,7 @@ class _DateFormFieldState extends State<DateFormField> {
                 onTap: !widget.enabled
                     ? null
                     : () {
-                        DateTime initialDate = field.value ?? DateTime.now();
+                        final DateTime initialDate = field.value ?? DateTime.now();
 
                         showDatePicker(
                           context: field.context,
@@ -122,7 +122,7 @@ class _DateFormFieldState extends State<DateFormField> {
           onChanged: widget.enabled
               ? (value) {
                   if (dateRegExp.hasMatch(value)) {
-                    var dateTime = dateFormat.parse(value);
+                    final dateTime = dateFormat.parse(value);
 
                     field.didChange(dateTime);
 
@@ -144,9 +144,9 @@ class _DateFormFieldState extends State<DateFormField> {
   }
 
   TextEditingValue _formatData(TextEditingValue antigo, TextEditingValue novo) {
-    String mark = dateFormat.pattern!.replaceAll(RegExp("[dMy]"), "#");
+    final String mark = dateFormat.pattern!.replaceAll(RegExp("[dMy]"), "#");
 
-    String formatado = novo.text.getFormated(mark);
+    final String formatado = novo.text.getFormated(mark);
 
     int offset = formatado.length;
 

@@ -6,7 +6,6 @@ import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
-import 'package:funances/features/finance/presentation/screens/account_form_screen.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
@@ -127,7 +126,7 @@ class AccountsStep extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     return ListView.separated(
       itemCount: accounts.length + 1,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index == accounts.length) {
           return OutlinedButton.icon(

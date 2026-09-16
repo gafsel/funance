@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:async';
 import 'dart:io';
 import 'package:uuid/uuid.dart';
@@ -32,13 +33,15 @@ class NotificationListenerService implements INotificationListenerService {
       return;
     }
 
-    bool hasPermission = await isPermissionGranted();
+    final bool hasPermission = await isPermissionGranted();
     if (!hasPermission) {
       return;
     }
 
-    NotificationsListener.initialize(callbackHandle: _onNotificationEvent);
-    NotificationsListener.startService(
+    await NotificationsListener.initialize(
+      callbackHandle: _onNotificationEvent,
+    );
+    await NotificationsListener.startService(
       title: "Funances",
       description: "Monitorando notificações bancárias",
       showWhen: true,
@@ -52,7 +55,7 @@ class NotificationListenerService implements INotificationListenerService {
       return;
     }
 
-    NotificationsListener.stopService();
+    await NotificationsListener.stopService();
   }
 
   @override
@@ -81,7 +84,10 @@ class NotificationListenerService implements INotificationListenerService {
 
   @pragma('vm:entry-point')
   static Future<void> _handleNotificationStatic(NotificationEvent event) async {
-    print("Notification received in background: ${event.title} - ${event.text}");
+    developer.log(
+      'Notificação recebida em background',
+      name: 'funances.NotificationListener',
+    );
     
     // Filtra notificações de sistema irrelevantes antes de enviar para o stream
     if (event.packageName == 'com.android.systemui' || 

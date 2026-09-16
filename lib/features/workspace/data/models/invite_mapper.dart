@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/features/workspace/domain/models/invite_model.dart';
-import 'package:funances/features/workspace/data/models/workspace_mapper.dart';
 
 extension InviteFirestoreX on DocumentSnapshot {
   InviteModel toInviteModel() {

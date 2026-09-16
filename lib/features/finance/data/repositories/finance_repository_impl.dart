@@ -96,7 +96,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         query = query.startAfterDocument(chunkRef);
       }
 
-      var snapshot = await query.get();
+      final snapshot = await query.get();
 
       var items = snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
 
@@ -416,7 +416,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     String workspaceId,
     String accountId,
   ) {
-    Query query = _getWorkspaceDoc(workspaceId)
+    final Query query = _getWorkspaceDoc(workspaceId)
         .collection('installments')
         .where('isInvoice', isEqualTo: true)
         .where('accountIds', arrayContains: accountId)

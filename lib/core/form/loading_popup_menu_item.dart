@@ -64,7 +64,7 @@ class _LoadingPopupMenuItemState<T> extends State<LoadingPopupMenuItem<T>> {
   }
 
   Future<R?> _interceptor<R>(Future<R?> future) async {
-    ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+    final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       setState(() {
         _loading = true;
@@ -78,9 +78,13 @@ class _LoadingPopupMenuItemState<T> extends State<LoadingPopupMenuItem<T>> {
       
       return result;
     } on BusinessException catch (ex) {
-      scaffoldMessenger.showSnackBar(
-        SnackBar(content: Text(ex.code.message(context))),
-      );
+      // A mensagem é localizada via context, que pode ter sido desmontado
+      // durante o await.
+      if (mounted) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text(ex.code.message(context))),
+        );
+      }
       rethrow;
     } catch (ex, stack) {
       debugPrint("[LoadingPopupMenuItem] ERRO NÃO TRATADO: $ex\n$stack");

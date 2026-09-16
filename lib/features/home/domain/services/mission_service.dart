@@ -177,8 +177,9 @@ class MissionService {
       final completedMissions = <InstallmentMission>[];
 
       for (final inst in weekInsts) {
-        if (inst.status == InstallmentStatus.removed || inst.amount <= 0)
+        if (inst.status == InstallmentStatus.removed || inst.amount <= 0) {
           continue;
+        }
         final isCompleted =
             inst.status == InstallmentStatus.settled ||
             inst.status == InstallmentStatus.paid;

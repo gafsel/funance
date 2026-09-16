@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
-import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';

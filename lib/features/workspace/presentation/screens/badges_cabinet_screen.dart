@@ -1219,10 +1219,10 @@ class _BadgeShapePainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
 
-    Color activeRingColor = tier == BadgeTier.advanced
+    final Color activeRingColor = tier == BadgeTier.advanced
         ? const Color(0xFFFFE082)
         : Colors.white;
-    double ringAlpha = tier == BadgeTier.advanced ? 0.35 : 0.18;
+    final double ringAlpha = tier == BadgeTier.advanced ? 0.35 : 0.18;
 
     ringPaint.color = isUnlocked
         ? activeRingColor.withValues(alpha: ringAlpha)

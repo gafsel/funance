@@ -103,7 +103,7 @@ class AccountLogo extends ConsumerWidget {
                 },
                 loading: () =>
                     SizedBox(width: memberAvatarSize, height: memberAvatarSize),
-                error: (_, __) =>
+                error: (_, _) =>
                     SizedBox(width: memberAvatarSize, height: memberAvatarSize),
               ),
             );

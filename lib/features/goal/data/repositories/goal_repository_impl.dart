@@ -45,7 +45,7 @@ class GoalRepositoryImpl implements IGoalRepository {
       data.remove('id');
       data['deadline'] = Timestamp.fromDate(goal.deadline);
       data['startDate'] = Timestamp.fromDate(goal.startDate);
-      final doc = await _getCollection(workspaceId).add(data);
+      await _getCollection(workspaceId).add(data);
       return goal.copyWith(id: goal.id);
     } catch (e, s) {
       throw BusinessException(

@@ -70,7 +70,11 @@ class InviteNotifier extends StateNotifier<InviteState> {
     );
 
     if (status == InviteStatus.accepted) {
-      workspaceNotifier.loadWorkspaces(user.id, invite.workspace.id, true);
+      await workspaceNotifier.loadWorkspaces(
+        user.id,
+        invite.workspace.id,
+        true,
+      );
     }
   }
 
@@ -96,7 +100,7 @@ final inviteNotifierProvider =
             }
           },
           loading: () {},
-          error: (_, __) {},
+          error: (_, _) {},
         );
       });
 

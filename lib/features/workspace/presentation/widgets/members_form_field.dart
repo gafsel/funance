@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
@@ -21,7 +20,6 @@ class MembersFormField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(WorkspaceViewProviders.members);
-    final theme = Theme.of(context);
 
     return membersAsync.when(
       data: (members) {

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/features/user/domain/models/user_model.dart';
-import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 
 class DetailHeaderAction {
   final IconData icon;
@@ -303,41 +301,6 @@ class SliverDetailHeader extends StatelessWidget {
             return const SizedBox.shrink();
           },
         ),
-      ),
-    );
-  }
-
-  Widget _buildMembersList(
-    BuildContext context,
-    List<UserModel> members,
-    bool isDarkBg,
-  ) {
-    const double avatarRadius = 14;
-    const double overlap = 8.0;
-
-    return SizedBox(
-      height: avatarRadius * 2,
-      child: Stack(
-        children: [
-          for (int i = 0; i < members.length; i++)
-            Positioned(
-              left: i * (avatarRadius * 2 - overlap),
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDarkBg ? AppColors.darkNavy : AppColors.pureWhite,
-                    width: 2,
-                  ),
-                ),
-                child: UserAvatar(
-                  displayName: members[i].displayName,
-                  photoUrl: members[i].photoUrl,
-                  radius: avatarRadius,
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }

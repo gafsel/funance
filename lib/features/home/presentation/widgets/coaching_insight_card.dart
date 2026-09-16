@@ -41,7 +41,7 @@ class CoachingInsightCard extends ConsumerWidget {
         ),
         child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, __) => Container(
+      error: (_, _) => Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 24),
         padding: const EdgeInsets.all(16),
@@ -195,7 +195,9 @@ class CoachingInsightCard extends ConsumerWidget {
 
                             if (context.mounted) {
                               _logCoachingOpened(ref);
-                              context.push('/coaching', extra: coaching);
+                              unawaited(
+                                context.push('/coaching', extra: coaching),
+                              );
                             }
                           } catch (e) {
                             // Sem isso a falha era silenciosa: o modal fechava

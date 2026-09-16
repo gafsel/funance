@@ -64,8 +64,8 @@ class CategoryPickerSheet extends ConsumerWidget {
                     (!c.isSystem || !excludeSystem),
               )
               .toList(),
-          error: (error, stack) => [],
-          loading: () => [],
+          error: (error, stack) => <CategoryModel>[],
+          loading: () => <CategoryModel>[],
         );
 
     return SafeArea(
@@ -90,7 +90,7 @@ class CategoryPickerSheet extends ConsumerWidget {
                   (showClearOption ? 2 : 0),
               itemBuilder: (context, index) {
                 if (index < categories.length) {
-                  CategoryModel category = categories[index];
+                  final CategoryModel category = categories[index];
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor:

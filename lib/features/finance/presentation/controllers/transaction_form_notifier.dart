@@ -7,7 +7,6 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 
 class TransactionFormNotifier
@@ -269,11 +268,6 @@ class TransactionFormNotifier
     if (state.installmentType == InstallmentType.single) {
       return false;
     }
-
-    final original = state.installmentId != null
-        ? state
-              .asInstallmentModel() // Na verdade precisaria do original pra comparar, mas vamos assumir que se mudou algo além desses 3, pergunta.
-        : null;
 
     // A lógica de "não se aplica pra alterações de status, data de pagamento ou valor de pagamento"
     // será tratada no momento da submissão na UI para decidir se abre a modal ou não.

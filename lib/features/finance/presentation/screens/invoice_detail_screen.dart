@@ -51,7 +51,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     data: (account) =>
                         account?.color.asColor() ?? AppColors.deepTurquoise,
                     loading: () => AppColors.deepTurquoise,
-                    error: (_, __) => AppColors.deepTurquoise,
+                    error: (_, _) => AppColors.deepTurquoise,
                   ),
                   logo: accountAsync.when(
                     data: (account) => account != null
@@ -62,7 +62,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                           )
                         : null,
                     loading: () => null,
-                    error: (_, __) => null,
+                    error: (_, _) => null,
                   ),
                   expandedHeight: isSmallWidth ? 480 : 320,
                   chips: [
@@ -258,8 +258,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
                   width: size + 2,
                   child: pieChartAsync.when(
                     data: (categoryTotals) {
-                      if (categoryTotals.isEmpty)
+                      if (categoryTotals.isEmpty) {
                         return const SizedBox.shrink();
+                      }
 
                       final sections = categoryTotals.map((entry) {
                         return PieChartSectionData(
@@ -281,7 +282,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -320,7 +321,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     );
                   },
                   loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
               ],
             );

@@ -2,7 +2,7 @@
 extension StringExtension on String {
   String get formatedAsTelefone {
     String formatado = "";
-    String tel = unformated;
+    final String tel = unformated;
 
     if (tel.length > 11) {
       formatado =
@@ -15,8 +15,8 @@ extension StringExtension on String {
           "${tel.substring(0, 2)} ${tel.substring(2, 6)} ${tel.substring(6)}";
     } else if (tel.length > 2) {
       formatado = "${tel.substring(0, 2)} ${tel.substring(2)}";
-    } else if (tel.length > 0) {
-      formatado = "$tel";
+    } else if (tel.isNotEmpty) {
+      formatado = tel;
     }
 
     return formatado;
@@ -24,7 +24,7 @@ extension StringExtension on String {
 
   String get formatedAsCpfCnpj {
     String formatado = "";
-    String cc = unformated;
+    final String cc = unformated;
 
     if (cc.length > 12) {
       formatado =
@@ -50,7 +50,7 @@ extension StringExtension on String {
   /// Use # para representar placeholder de números
   String getFormated(String format) {
     String formatado = "";
-    String cc = unformated;
+    final String cc = unformated;
 
     for (int idxValue = 0, idxFormat = 0; idxValue < cc.length && idxFormat < format.length; idxFormat++) {
       if (format[idxFormat] == '#') {
@@ -70,7 +70,7 @@ extension StringExtension on String {
 
   String get formatedAsCEP {
     String formatado = "";
-    String cepUnformatted = unformated;
+    final String cepUnformatted = unformated;
 
     if (cepUnformatted.length > 5) {
       formatado =
@@ -78,8 +78,8 @@ extension StringExtension on String {
     } else if (cepUnformatted.length > 2) {
       formatado =
           "${cepUnformatted.substring(0, 2)}.${cepUnformatted.substring(2)}";
-    } else if (cepUnformatted.length > 0) {
-      formatado = "$cepUnformatted";
+    } else if (cepUnformatted.isNotEmpty) {
+      formatado = cepUnformatted;
     }
 
     return formatado;

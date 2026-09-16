@@ -127,7 +127,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
         await analytics.logAccountCreated(account.type.name);
       } catch (_) {}
     } else {
-      accountService.update(account);
+      await accountService.update(account);
     }
 
     // 1. Garantir que as categorias existam
@@ -166,7 +166,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     List<CategoryModel> categories,
     CategoryModel category,
   ) async {
-    CategoryModel? found = categories
+    final CategoryModel? found = categories
         .where(
           (c) =>
               c.type == category.type &&

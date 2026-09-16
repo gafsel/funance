@@ -36,9 +36,7 @@ class ChipFormField<T> extends FormField<T> {
                         ? (bool selected) {
                             final newValue = selected ? option.value : null;
                             field.didChange(newValue);
-                            if (onChanged != null) {
-                              onChanged(newValue);
-                            }
+                            onChanged(newValue);
                           }
                         : null,
                   );

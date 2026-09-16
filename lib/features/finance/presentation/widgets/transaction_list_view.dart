@@ -217,7 +217,7 @@ class TransactionListView extends ConsumerWidget {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 );
               },
             ),
@@ -279,7 +279,7 @@ class TransactionListView extends ConsumerWidget {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    error: (_, __) => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
                   );
                 },
               ),

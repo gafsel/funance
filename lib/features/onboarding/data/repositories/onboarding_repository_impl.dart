@@ -3,7 +3,6 @@ import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/features/finance/data/models/finance_mapper.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/domain/repositories/onboarding_repository.dart';
-import 'package:uuid/uuid.dart';
 
 class OnboardingRepositoryImpl implements OnboardingRepository {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;

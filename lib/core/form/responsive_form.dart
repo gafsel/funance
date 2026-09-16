@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/form_notifier.dart';
@@ -166,7 +165,6 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
 
 class _ResponsiveGrid extends StatelessWidget {
   const _ResponsiveGrid({
-    super.key,
     required this.children,
     this.spacing = 0.0,
   });

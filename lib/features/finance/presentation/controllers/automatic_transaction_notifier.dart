@@ -30,7 +30,8 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
   final AutomaticTransactionService _service;
   final FinanceService _financeService;
   final INotificationListenerService _notificationService;
-  StreamSubscription? _notificationSubscription;
+  // Só usamos a assinatura para cancelar, então o tipo do elemento é irrelevante.
+  StreamSubscription<void>? _notificationSubscription;
 
   AutomaticTransactionNotifier({
     required AutomaticTransactionService service,
@@ -49,7 +50,7 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
     _notificationSubscription?.cancel();
     _notificationSubscription = NotificationListenerService.notificationStream.listen((event) {
       if (_notificationService is NotificationListenerService) {
-        (_notificationService as NotificationListenerService).onNotificationReceived(
+        (_notificationService).onNotificationReceived(
           notificationId: event.id?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
           title: event.title ?? "",
           body: event.text ?? "",

@@ -17,6 +17,7 @@ import '../../../../core/theme/app_theme.dart';
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
+  @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final size = MediaQuery.of(context).size;

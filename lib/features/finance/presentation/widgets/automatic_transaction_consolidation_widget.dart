@@ -12,7 +12,6 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
-import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 
 class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
   const AutomaticTransactionConsolidationWidget({super.key});
@@ -143,7 +142,7 @@ class _PermissionRequestCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.all(16),
-      color: AppColors.deepTurquoise.withOpacity(0.1),
+      color: AppColors.deepTurquoise.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: AppColors.deepTurquoise, width: 1),

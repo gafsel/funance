@@ -458,8 +458,9 @@ class CategorySummaryView extends ConsumerWidget {
                 sideTitles: SideTitles(
                   showTitles: true,
                   getTitlesWidget: (value, meta) {
-                    if (value < 0 || value >= chartSummaries.length)
+                    if (value < 0 || value >= chartSummaries.length) {
                       return const SizedBox.shrink();
+                    }
                     return Padding(
                       padding: const EdgeInsets.only(top: 8.0),
                       child: RotatedBox(

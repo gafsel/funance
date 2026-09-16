@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../providers.dart';
@@ -115,7 +113,6 @@ class _CategoryManagementScreenState
 
 class _CategoryList extends ConsumerWidget {
   const _CategoryList({
-    super.key,
     required this.type,
     required this.onUpdate,
     required this.onDelete,

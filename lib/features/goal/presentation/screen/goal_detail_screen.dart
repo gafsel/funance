@@ -115,14 +115,14 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           data: (account) =>
               account != null ? AccountLogo(account: account, size: 40) : null,
           loading: () => null,
-          error: (_, __) => null,
+          error: (_, _) => null,
         );
 
         final accountColor = accountAsync.when(
           data: (account) =>
               account?.color.asColor() ?? AppColors.deepTurquoise,
           loading: () => AppColors.deepTurquoise,
-          error: (_, __) => AppColors.deepTurquoise,
+          error: (_, _) => AppColors.deepTurquoise,
         );
 
         // Milestones só fazem sentido para metas de acúmulo (guardar/quitar):
@@ -319,7 +319,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           ),
         );
       },
-      error: (e, __) => Scaffold(
+      error: (e, _) => Scaffold(
         appBar: AppBar(title: Text(l10n.goalDetailsTitle)),
         body: Center(child: Text(e.toString())),
       ),

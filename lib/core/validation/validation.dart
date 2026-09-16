@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 FormFieldValidator<T> _validate<T>(List<FormFieldValidator<T>> validators) {
   return (T? valor) {
     for (FormFieldValidator<T> val in validators) {
-      var msg = val(valor);
+      final msg = val(valor);
       if (msg != null) {
         return msg;
       }

@@ -71,7 +71,7 @@ sealed class OrderModel with _$OrderModel {
       _$OrderModelFromJson(json);
 
   DateTime get firstDueDate {
-    var parts = startMonth.split(RegExp("-"));
+    final parts = startMonth.split(RegExp("-"));
     return DateTime(int.parse(parts.first), int.parse(parts.last), dueDay);
   }
 

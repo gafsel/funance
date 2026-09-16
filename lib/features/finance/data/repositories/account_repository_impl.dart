@@ -5,7 +5,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
-import 'package:uuid/uuid.dart';
 import '../../domain/models/reconciliation_model.dart';
 import '../../domain/models/account_model.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
@@ -175,7 +174,7 @@ class AccountRepositoryImpl implements IAccountRepository {
     File file,
   ) async {
     try {
-      String name = file.path.split("/").last;
+      final String name = file.path.split("/").last;
 
       // 1. Upload para o Storage
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -211,7 +210,7 @@ class AccountRepositoryImpl implements IAccountRepository {
     String? uploadId,
   }) async {
     try {
-      String name = file.path.split("/").last;
+      final String name = file.path.split("/").last;
 
       // 1. Upload para o Storage
       final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -228,13 +227,12 @@ class AccountRepositoryImpl implements IAccountRepository {
       final result = await callable.call({
         'workspaceId': workspaceId,
         'storagePath': storagePath,
-        if (uploadId != null) 'uploadId': uploadId,
+        'uploadId': ?uploadId,
       });
 
-      final Map<String, dynamic> data = Map<String, dynamic>.from(result.data);
-      final List<dynamic> transactions = data['transactions'] is List
-          ? data['transactions']
-          : [];
+      final data = Map<String, dynamic>.from(result.data as Map);
+      final rawTransactions = data['transactions'];
+      final transactions = rawTransactions is List ? rawTransactions : const [];
       return transactions
           .map((t) => FinanceMapper.toReconciliationTransaction(t))
           .toList();

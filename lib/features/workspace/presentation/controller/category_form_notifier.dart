@@ -1,11 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
-import 'package:funances/features/workspace/presentation/providers.dart';
-import 'package:uuid/uuid.dart';
-import 'package:freezed_annotation/freezed_annotation.dart';
 
 class CategoryFormNotifier extends FormNotifier<CategoryFormState, void> {
   final CategoryService service;

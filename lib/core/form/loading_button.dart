@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/utils/error_messages.dart';
@@ -5,7 +6,7 @@ import 'package:funances/core/utils/error_messages.dart';
 typedef LoadingWrapper = Future<T?> Function<T>(Future<T?> future);
 typedef LoadingCallback = Function(LoadingWrapper wrapper);
 
-typedef _LoadingButtonBuilder =
+typedef LoadingButtonBuilder =
     Widget Function(
       BuildContext context,
       Widget child,
@@ -13,7 +14,7 @@ typedef _LoadingButtonBuilder =
     );
 
 class LoadingButton extends StatefulWidget {
-  final _LoadingButtonBuilder builder;
+  final LoadingButtonBuilder builder;
   final Widget? child;
   final LoadingCallback? onPressed;
   final ButtonStyle? style;
@@ -102,7 +103,7 @@ class LoadingButton extends StatefulWidget {
   }
 
   @override
-  _LoadingButtonState createState() => _LoadingButtonState();
+  State<LoadingButton> createState() => _LoadingButtonState();
 }
 
 class _LoadingButtonState extends State<LoadingButton> {
@@ -163,12 +164,12 @@ class _LoadingButtonState extends State<LoadingButton> {
     );
   }
 
-  _act() {
+  void _act() {
     widget.onPressed!(_interceptor);
   }
 
   Future<T?> _interceptor<T>(Future<T?> future) async {
-    ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+    final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
     try {
       FocusScope.of(context).requestFocus(FocusNode());
 
@@ -183,11 +184,11 @@ class _LoadingButtonState extends State<LoadingButton> {
       );
       rethrow;
     } catch (ex, stack) {
-      print(
-        "[MAIN CLASS] ERRO NÃO TRATADO: " +
-            ex.toString() +
-            "\n" +
-            stack.toString(),
+      developer.log(
+        'Erro não tratado no LoadingButton',
+        name: 'funances.LoadingButton',
+        error: ex,
+        stackTrace: stack,
       );
       rethrow;
     } finally {

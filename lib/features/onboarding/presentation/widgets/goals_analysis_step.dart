@@ -9,7 +9,6 @@ import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
 import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
-import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
@@ -119,7 +118,7 @@ class GoalsAnalysisStep extends ConsumerWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: goals.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final goal = goals[index];
         return Card(
@@ -172,7 +171,7 @@ class GoalsAnalysisStep extends ConsumerWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: plannings.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final planning = plannings[index];
         return Card(

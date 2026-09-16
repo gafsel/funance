@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/domain/services/mission_service.dart';
