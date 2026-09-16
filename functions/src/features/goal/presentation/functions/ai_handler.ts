@@ -4,6 +4,7 @@ import { assertWorkspaceMember } from "../../../../core/services/workspace_acces
 import { AI_CALLABLE_OPTIONS, AI_CALLABLE_OPTIONS_SHORT } from "../../../../core/config/functions.config";
 import { AI_DAILY_QUOTAS } from "../../../../core/config/quota.config";
 import { isTransientAiError } from "../../../../core/services/ai.service";
+import { validateGoalFeasibilityPayload } from "../../../../core/services/ai_validation";
 
 export const analysePlanning = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
@@ -116,13 +117,18 @@ export const analyzeGoalFeasibility = onCall(AI_CALLABLE_OPTIONS_SHORT, async (r
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
 
-    const { workspaceId, goalPayload } = request.data;
+    const { workspaceId, goalPayload } = request.data ?? {};
 
     if (!workspaceId || !goalPayload) {
         throw new HttpsError("invalid-argument", "workspaceId e goalPayload são obrigatórios.");
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
+
+    // O payload vira prompt: valida tipos, tamanhos e campos obrigatórios
+    // ANTES de consumir cota. Campos extras do cliente são descartados — nada
+    // que não esteja no contrato entra no template.
+    const validatedPayload = validateGoalFeasibilityPayload(goalPayload);
 
     // Sem cache server-side: a cota é consumida já aqui. O estorno em
     // falha de infraestrutura mantém a simetria com coaching/50-30-20.
@@ -132,7 +138,7 @@ export const analyzeGoalFeasibility = onCall(AI_CALLABLE_OPTIONS_SHORT, async (r
     await quota.consume();
 
     try {
-        const result = await container.goalFeasibilityService.analyze(workspaceId, goalPayload);
+        const result = await container.goalFeasibilityService.analyze(workspaceId, validatedPayload);
         return result;
     }
     catch (error: any) {

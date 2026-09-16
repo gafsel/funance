@@ -106,6 +106,53 @@ O documento de quota também recebe `createdAt` e `expiresAt` (criação + 90
 dias) na primeira escrita do dia, para ser recolhido pela mesma política de
 TTL descrita abaixo.
 
+## Validação das saídas de IA
+
+Toda chamada ao Gemini usa **`responseSchema`** (JSON estruturado) e passa por
+um **validador server-side** em `src/core/services/ai_validation.ts` antes de
+virar escrita no Firestore ou resposta para o cliente. O schema garante a
+*forma*; o validador garante o *conteúdo* — o modelo continua podendo inventar
+um id, mandar `NaN`, uma data que não existe ou uma string de 40 mil caracteres.
+
+Regras comuns a todos os validadores:
+
+- **Item ruim é descartado, nunca derruba a resposta.** Uma fatura com 80
+  lançamentos não se perde porque o modelo errou a data de um deles. Os
+  descartes saem em UM `console.warn` por chamada (`[ai_validation:<escopo>]`).
+- **Id só é aceito se o prompt o enviou.** Dos seis prompts, só
+  `automaticTransaction` recebe ids (categorias e contas do workspace); nos
+  outros o prompt manda apenas nomes, então qualquer id na resposta é
+  alucinação e vira `null` — semântica de "categoria nova". Um `accountId`
+  desconhecido também vira `null`.
+- **Texto é truncado** (120 para nomes, 500 para texto livre), não descartado,
+  a menos que fique vazio.
+- **Número precisa ser finito.** Valor de lançamento é sempre POSITIVO (o sinal
+  vive no `type`); saldo de conta pode ser negativo (dívida). Sem `type`
+  válido, o sinal do valor cru decide — é o padrão do OFX.
+- **Data é normalizada para `YYYY-MM-DD`**, aceitando ISO completo e
+  `DD/MM/YYYY`; data inexistente (2026-02-30) ou ano fora de 1970–2100 descarta
+  o item.
+- **Enum fora da lista** cai no padrão do campo ou descarta o item, conforme o
+  campo ser opcional ou definir a semântica.
+
+### Entrada do cliente
+
+`analyzeGoalFeasibility` valida o `goalPayload` **antes** de montar o prompt e
+antes de consumir cota (`validateGoalFeasibilityPayload`). Este é o único
+validador que **lança** — `invalid-argument` — porque é entrada do usuário, não
+saída do modelo. Campos fora do contrato são descartados: só
+`name`, `targetAmount`, `deadlineDays`, `monthlyRequired` e `type` entram no
+template.
+
+### Contrato com o cliente Flutter
+
+- `analyzeReconciliationDocument` devolve `transactions[].date` sempre como
+  `YYYY-MM-DD` (antes podia vir um ISO completo no fallback).
+- `automatic_transactions.suggestedCategory.id` é `""` quando a IA sugeriu uma
+  categoria NOVA (antes vinha o placeholder do prompt,
+  `"id-existente-se-houver"`, ou um id inventado). `categoryId` só é gravado
+  quando o id existe de fato no workspace.
+
 ## Logs de IA (`ai_logs`) e TTL
 
 Cada chamada ao Gemini grava um documento de **metadados** em

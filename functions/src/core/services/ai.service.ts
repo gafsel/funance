@@ -7,6 +7,15 @@ import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../featu
 import * as ofx from "ofx-js";
 import * as crypto from "crypto";
 import { renderTemplate } from "../utils/prompt_template";
+import {
+    ValidatedDocumentAnalysis,
+    validateAutomaticTransaction,
+    validateDocumentAnalysis,
+    validateGoalSuggestions,
+    validateOfxClassification,
+    validateReconciliation,
+    validateWeeklyMissions,
+} from "./ai_validation";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
 
@@ -160,6 +169,179 @@ const PLANNING_503020_RESPONSE_SCHEMA: Schema = {
     required: ["summary", "groups", "categories", "insights"],
 };
 
+// Categoria sugerida pela IA. Sem "id": os prompts de documento/OFX/conciliação
+// mandam só os NOMES das categorias existentes, então qualquer id que o modelo
+// devolvesse seria invenção (ver ai_validation.ts).
+const CATEGORY_SUGGESTION_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING },
+        icon: { type: Type.STRING },
+        color: { type: Type.STRING },
+        type: { type: Type.STRING, format: "enum", enum: ["income", "expense"] },
+    },
+    required: ["name", "icon", "color", "type"],
+};
+
+// Lançamento extraído de documento (extrato/fatura/OFX).
+const DOCUMENT_ORDER_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        type: { type: Type.STRING, format: "enum", enum: ["expense", "income"] },
+        description: { type: Type.STRING },
+        amount: { type: Type.NUMBER },
+        dueDate: { type: Type.STRING, description: "Data no formato YYYY-MM-DD" },
+        installmentType: {
+            type: Type.STRING,
+            format: "enum",
+            enum: ["single", "installment", "recurring"],
+        },
+        installmentCount: { type: Type.INTEGER },
+        category: CATEGORY_SUGGESTION_SCHEMA,
+    },
+    required: ["type", "description", "amount", "dueDate", "category"],
+};
+
+// Schema da sugestão de metas e planejamentos do onboarding
+const GOAL_SUGGESTIONS_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        goals: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: { type: Type.STRING },
+                    targetAmount: { type: Type.NUMBER },
+                    type: {
+                        type: Type.STRING,
+                        format: "enum",
+                        enum: ["save_money", "reduce_expense", "reduce_credit_card"],
+                    },
+                    deadlineMonths: { type: Type.INTEGER },
+                    icon: { type: Type.STRING },
+                },
+                required: ["name", "targetAmount", "type", "deadlineMonths", "icon"],
+            },
+        },
+        plannings: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    category: CATEGORY_SUGGESTION_SCHEMA,
+                    amount: { type: Type.NUMBER },
+                },
+                required: ["category", "amount"],
+            },
+        },
+    },
+    required: ["goals", "plannings"],
+};
+
+// Schema da análise de documento (PDF/imagem). "error" NÃO é obrigatório: é a
+// saída de recusa quando o arquivo não é um documento financeiro, e o prompt
+// depende de poder devolver só ela.
+const DOCUMENT_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        error: { type: Type.STRING, nullable: true },
+        account: {
+            type: Type.OBJECT,
+            nullable: true,
+            properties: {
+                name: { type: Type.STRING },
+                runtimeType: {
+                    type: Type.STRING,
+                    format: "enum",
+                    enum: ["checking", "investment", "creditCard", "debt"],
+                },
+                color: { type: Type.STRING },
+                icon: { type: Type.STRING },
+                currentBalance: { type: Type.NUMBER },
+                interestRate: { type: Type.NUMBER, nullable: true },
+                limit: { type: Type.NUMBER, nullable: true },
+                dueDay: { type: Type.INTEGER, nullable: true },
+                closingDay: { type: Type.INTEGER, nullable: true },
+            },
+            required: ["name", "runtimeType", "color", "icon", "currentBalance"],
+        },
+        orders: { type: Type.ARRAY, items: DOCUMENT_ORDER_SCHEMA },
+    },
+};
+
+// Schema da classificação das transações de um arquivo OFX
+const DOCUMENT_OFX_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        orders: { type: Type.ARRAY, items: DOCUMENT_ORDER_SCHEMA },
+    },
+    required: ["orders"],
+};
+
+// Schema da extração de transações para conciliação bancária
+const RECONCILIATION_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        error: { type: Type.STRING, nullable: true },
+        transactions: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    amount: { type: Type.NUMBER },
+                    date: { type: Type.STRING, description: "Data no formato YYYY-MM-DD" },
+                    type: { type: Type.STRING, format: "enum", enum: ["expense", "income"] },
+                    category: CATEGORY_SUGGESTION_SCHEMA,
+                },
+                required: ["description", "amount", "date", "type", "category"],
+            },
+        },
+    },
+};
+
+// Schema do enriquecimento de transação automática. Aqui a categoria PODE ter
+// id: o prompt envia as categorias e contas do workspace com id.
+const AUTOMATIC_TRANSACTION_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        category: {
+            type: Type.OBJECT,
+            properties: {
+                id: { type: Type.STRING, nullable: true },
+                name: { type: Type.STRING },
+                icon: { type: Type.STRING },
+                color: { type: Type.STRING },
+                type: { type: Type.STRING, format: "enum", enum: ["income", "expense"] },
+            },
+            required: ["name", "icon", "color", "type"],
+        },
+        accountId: { type: Type.STRING, nullable: true },
+    },
+    required: ["category"],
+};
+
+// Schema das três missões semanais
+const WEEKLY_MISSION_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING },
+        target: { type: Type.INTEGER },
+    },
+    required: ["name", "target"],
+};
+
+const WEEKLY_MISSIONS_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
+    properties: {
+        consistency: WEEKLY_MISSION_SCHEMA,
+        discipline: WEEKLY_MISSION_SCHEMA,
+        organization: WEEKLY_MISSION_SCHEMA,
+    },
+    required: ["consistency", "discipline", "organization"],
+};
+
 /**
  * Faz o parse do texto retornado pela IA. Com responseMimeType "application/json"
  * o texto já é JSON puro; mantemos o fallback por regex para robustez.
@@ -174,6 +356,30 @@ function parseAIJson(text: string): any {
             return JSON.parse(jsonMatch[0]);
         }
         throw new Error("A resposta da IA não contém JSON válido.");
+    }
+}
+
+/**
+ * Igual a `parseAIJson`, mas devolve null em vez de lançar. Usado onde uma
+ * resposta ilegível deve degradar (lista vazia, sugestão ausente) em vez de
+ * virar erro na cara do usuário.
+ */
+/** Conjunto dos ids que o prompt de fato enviou (para barrar id inventado). */
+function toIdSet(items: any[]): Set<string> {
+    const ids = new Set<string>();
+    for (const item of Array.isArray(items) ? items : []) {
+        if (typeof item?.id === "string" && item.id.length > 0) ids.add(item.id);
+    }
+    return ids;
+}
+
+function parseAIJsonSafe(text: string): any | null {
+    try {
+        return parseAIJson(text);
+    }
+    catch (error) {
+        console.error("Resposta da IA sem JSON válido:", error);
+        return null;
     }
 }
 
@@ -535,17 +741,20 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const text = await this.generateWithLogging(
             workspaceId,
             "planning_analysis",
-            { model: config.models.goals },
+            {
+                model: config.models.goals,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: GOAL_SUGGESTIONS_RESPONSE_SCHEMA,
+                },
+            },
             prompt,
             prompt,
         );
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-
-        return { goals: [], plannings: [] };
+        // Resposta ilegível vira {goals: [], plannings: []} — o onboarding
+        // segue sem sugestão em vez de quebrar.
+        return validateGoalSuggestions(parseAIJsonSafe(text));
     }
 
     async enrichAutomaticTransaction(
@@ -569,17 +778,25 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const text = await this.generateWithLogging(
             workspaceId,
             "automatic_transaction_enrichment",
-            { model: config.models.automaticTransaction },
+            {
+                model: config.models.automaticTransaction,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: AUTOMATIC_TRANSACTION_RESPONSE_SCHEMA,
+                },
+            },
             prompt,
             prompt,
         );
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
-        }
-
-        return null;
+        // Único prompt que recebe IDS no contexto: o resultado é gravado em
+        // categoryId/accountId da transação, então um id inventado apontaria
+        // para nada. O validador só aceita id que veio no prompt.
+        return validateAutomaticTransaction(
+            parseAIJsonSafe(text),
+            toIdSet(existingCategories),
+            toIdSet(existingAccounts),
+        );
     }
 
     async analyzeAccountDocument(
@@ -592,16 +809,19 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     ): Promise<any> {
         const config = await this.getConfig();
 
-        let resultData: any;
+        let analysis: ValidatedDocumentAnalysis;
+        // Conta lida do próprio OFX (não da IA): nome, tipo e saldo vêm do
+        // arquivo, que é estruturado e confiável.
+        let ofxAccount: any = null;
 
         if (fileName.toLowerCase().endsWith(".ofx")) {
             const ofxString = fileBuffer.toString("utf-8");
             const parsedOfx = await ofx.parse(ofxString);
-            
+
             const extractionResult = this.extractOfxData(parsedOfx);
             const transactions = extractionResult.transactions;
-            const accountInfo = extractionResult.account;
-            
+            ofxAccount = extractionResult.account;
+
             // Usar IA apenas para classificação das transações identificadas
             const prompt = renderTemplate(config.prompts.documentOfx, {
                 existingCategories: existingCategories.join(" | "),
@@ -611,18 +831,22 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const text = await this.generateWithLogging(
                 workspaceId,
                 "document_analysis_ofx",
-                { model: config.models.document },
+                {
+                    model: config.models.document,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: DOCUMENT_OFX_RESPONSE_SCHEMA,
+                    },
+                },
                 prompt,
                 prompt,
                 { fileName, storagePath },
             );
 
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            resultData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-
-            resultData = {
-                account: accountInfo,
-                orders: resultData.orders,
+            analysis = {
+                error: null,
+                account: null,
+                orders: validateOfxClassification(parseAIJsonSafe(text)).orders,
             };
         }
         else {
@@ -635,7 +859,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const text = await this.generateWithLogging(
                 workspaceId,
                 isImage ? "document_analysis_image" : "document_analysis_pdf",
-                { model: config.models.document },
+                {
+                    model: config.models.document,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: DOCUMENT_RESPONSE_SCHEMA,
+                    },
+                },
                 [
                     prompt,
                     {
@@ -649,53 +879,41 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 { fileName, storagePath },
             );
 
-            const jsonMatch = text.match(/\{[\s\S]*\}/);
-            resultData = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+            analysis = validateDocumentAnalysis(parseAIJsonSafe(text));
         }
 
-        if (resultData && resultData.error) {
-            throw new Error(resultData.error);
+        // Recusa explícita do modelo ("não é um extrato/fatura válido").
+        if (analysis.error) {
+            throw new Error(analysis.error);
         }
 
-        if (resultData) {
-            return {
-                account: {
-                    id: "temp-id",
-                    name: resultData.account?.name || fileName.split(".")[0],
-                    runtimeType: resultData.account?.runtimeType || "checking",
-                    color: resultData.account?.color || "#4A8C9C",
-                    icon: resultData.account?.icon || "account_balance",
-                    initialBalance: resultData.account?.currentBalance || 0.0,
-                    initialBalanceDate: new Date().toISOString().split("T")[0],
-                    metadata: {},
-                    limit: resultData.account?.limit,
-                    dueDay: resultData.account?.dueDay,
-                    closingDay: resultData.account?.closingDay,
-                    interestRate: resultData.account?.interestRate,
-                },
-                orders: (resultData.orders || []).map((o: any) => ({
-                    ...o,
-                    id: admin.firestore().collection("temp").doc().id,
-                    status: OrderStatus.active,
-                    installmentType: o.installmentType || InstallmentType.single,
-                    startMonth: o.dueDate ? o.dueDate.substring(0, 7) : new Date().toISOString().substring(0, 7),
-                    dueDay: o.dueDate ? parseInt(o.dueDate.substring(8, 10)) : new Date().getDate(),
-                })),
-            };
-        }
+        const account = ofxAccount ?? analysis.account ?? {};
 
         return {
             account: {
                 id: "temp-id",
-                name: fileName.split(".")[0],
-                runtimeType: "checking",
-                color: "#4A8C9C",
-                icon: "account_balance",
-                initialBalance: 0.0,
+                name: account.name || fileName.split(".")[0],
+                runtimeType: account.runtimeType || "checking",
+                color: account.color || "#4A8C9C",
+                icon: account.icon || "account_balance",
+                initialBalance: account.currentBalance || 0.0,
                 initialBalanceDate: new Date().toISOString().split("T")[0],
                 metadata: {},
+                limit: account.limit,
+                dueDay: account.dueDay,
+                closingDay: account.closingDay,
+                interestRate: account.interestRate,
             },
-            orders: [],
+            // Toda order aqui já passou pelo validador: dueDate é YYYY-MM-DD
+            // válido e amount é positivo e finito.
+            orders: analysis.orders.map((o) => ({
+                ...o,
+                id: admin.firestore().collection("temp").doc().id,
+                status: OrderStatus.active,
+                installmentType: o.installmentType || InstallmentType.single,
+                startMonth: o.dueDate.substring(0, 7),
+                dueDay: parseInt(o.dueDate.substring(8, 10)),
+            })),
         };
     }
 
@@ -728,7 +946,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             text = await this.generateWithLogging(
                 workspaceId,
                 "reconciliation_analysis_ofx",
-                { model: config.models.document },
+                {
+                    model: config.models.document,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: DOCUMENT_OFX_RESPONSE_SCHEMA,
+                    },
+                },
                 prompt,
                 prompt,
                 { fileName },
@@ -738,7 +962,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             text = await this.generateWithLogging(
                 workspaceId,
                 "reconciliation_analysis",
-                { model: config.models.document },
+                {
+                    model: config.models.document,
+                    config: {
+                        responseMimeType: "application/json",
+                        responseSchema: RECONCILIATION_RESPONSE_SCHEMA,
+                    },
+                },
                 [
                     prompt,
                     {
@@ -753,30 +983,19 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             );
         }
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
+        const parsed = parseAIJsonSafe(text);
+        if (parsed === null) {
             throw new Error("Não foi possível extrair JSON da resposta da IA");
         }
 
-        const data = JSON.parse(jsonMatch[0]);
-
-        if (data.error) {
-            return data;
+        // No fluxo de OFX o prompt é o de classificação (chaves `orders`); o
+        // validador de conciliação já aceita esse alias.
+        const validated = validateReconciliation(parsed);
+        if (validated.error) {
+            return { error: validated.error };
         }
 
-        // Tentar encontrar transações em diferentes campos possíveis do JSON
-        const transactionsRaw = data.transactions || data.orders || data.items || [];
-        const transactions = Array.isArray(transactionsRaw) ? transactionsRaw : [];
-
-        return {
-            transactions: transactions.map((t: any) => ({
-                description: t.description || t.memo || t.text || "Sem descrição",
-                amount: t.amount !== undefined ? t.amount : (t.value !== undefined ? t.value : (t.total !== undefined ? t.total : 0)),
-                date: t.date || t.dueDate || t.timestamp || new Date().toISOString(),
-                type: t.type || (t.amount < 0 ? "expense" : "income"),
-                category: t.category,
-            })),
-        };
+        return { transactions: validated.transactions };
     }
 
     async generateCoachingSlides(
@@ -839,17 +1058,25 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const text = await this.generateWithLogging(
             workspaceId,
             "weekly_missions_generation",
-            { model: config.models.weeklyMissions },
+            {
+                model: config.models.weeklyMissions,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: WEEKLY_MISSIONS_RESPONSE_SCHEMA,
+                },
+            },
             prompt,
             prompt,
         );
 
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            return JSON.parse(jsonMatch[0]);
+        const parsed = parseAIJsonSafe(text);
+        if (parsed === null) {
+            throw new Error("Não foi possível gerar as missões semanais via IA.");
         }
 
-        throw new Error("Não foi possível gerar as missões semanais via IA.");
+        // Missão inválida vira null; o GamificationService cai no texto padrão
+        // daquele tipo, então a semana nunca fica sem missão.
+        return validateWeeklyMissions(parsed);
     }
 
     async classifyCategoryGroups(
