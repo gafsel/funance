@@ -168,8 +168,13 @@ O marcador é escrito **antes** da ação:
 2. roda a ação;
 3. `update({status: "done", finishedAt})`.
 
-Se a ação **lançar**, o marcador é apagado e o erro é repropagado — sem isso o
-retry automático da Function encontraria a chave e pularia a ação para sempre.
+Se a ação **lançar**, o marcador é apagado e o erro é repropagado. Isso não
+quer dizer que a plataforma vá tentar de novo: **nenhum trigger deste projeto
+declara `retry: true`**, então hoje uma falha só é reexecutada se o evento for
+reentregue (a entrega é at-least-once) — ou se o retry for ligado no futuro.
+Apagar o marcador é o que mantém essa porta aberta: preso em `running`/`done`,
+a ação nunca mais rodaria para aquele evento.
+
 Um marcador `running` parado há mais de 10 minutos é considerado abandonado
 (a instância morreu no meio): ele é apagado e a ação roda de novo.
 
@@ -203,6 +208,27 @@ Contrato com o cliente Flutter:
 - `isDeleted`: booleano, **ausente == false**.
 - As security rules impedem o cliente de criar uma categoria com
   `isSystem: true` e de editar/apagar uma categoria de sistema já existente.
+
+## Contratos de `orders` e `installments`
+
+Campos que o servidor mantém e o cliente Flutter lê:
+
+| Campo                              | Semântica |
+|------------------------------------|-----------|
+| `order.amount`                     | **Realizado + planejado em aberto**: parcela paga entra pelo que de fato custou (`referenceAmount`), parcela em aberto pelo `amount`, parcela `removed` **não entra**. |
+| `order.dueDay`                     | Só é reescrito quando o **vencimento** de uma parcela muda. Um pagamento não mexe nele. |
+| `order.status = cancelled`         | Só quando **todas** as parcelas estão `removed` (inclusive removidas uma a uma). Junto vai `amount: 0`. |
+| `installment.referenceAmount`      | Valor acurado da parcela: `paidAmount ?? amount` (o cliente já calcula assim em `installment_model.dart`). |
+| `installment.replicationCascade`    | Zerado (`none`) pelo servidor assim que a cascata é consumida — pela escrita de xp num pagamento, ou por uma escrita própria no fim da cascata. **Nunca assuma o campo ausente.** |
+| `installment.paidDate`             | `null` explícito quando não paga, em toda parcela criada pelo servidor (fluxo normal e cron de recorrência). |
+
+Atenção a um detalhe que confunde: **pagar pelo app não zera o `amount`** — o
+cliente preenche `paidAmount` e mantém o planejado (`finance_view_models.dart`).
+O `amount` zerado só aparece nas parcelas que **nascem** pagas (saldo inicial,
+compra já liquidada no cartão), onde `syncInstallments` zera o planejado de
+propósito para a cobrança contar como não planejada. É por isso que o total da
+order usa `referenceAmount` nas pagas: é o único campo que vale o realizado nos
+dois casos.
 
 ## Crons de manutenção
 
