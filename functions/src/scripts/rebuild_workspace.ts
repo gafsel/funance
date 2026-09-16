@@ -13,6 +13,13 @@
  *
  * Características:
  *  - DRY-RUN POR PADRÃO: só escreve com `--apply` explícito.
+ *  - NÃO É TRANSACIONAL: lê o workspace, calcula e depois commita em lotes. Um
+ *    pagamento feito no app entre a leitura e o commit é SOBRESCRITO. Rode numa
+ *    janela sem uso e refaça o dry-run imediatamente antes do `--apply`.
+ *  - `generalPlannedAmount` é PRESERVADO por padrão: esse campo não é
+ *    reconstruível (a projeção de `category_planning` só olha para a frente,
+ *    então recalcular zera o planejado dos meses passados). Só com
+ *    `--rebuild-planning`.
  *  - IDEMPOTENTE: aplicar duas vezes seguidas não muda nada (a segunda
  *    execução reporta zero diferenças).
  *  - Escritas em lotes de no máximo 400 operações; leituras paginadas.
@@ -36,9 +43,14 @@
  *   --apply              executa as escritas (sem ela, dry-run)
  *   --project=<id>       projectId do Firebase (default: GOOGLE_CLOUD_PROJECT)
  *   --page-size=<n>      tamanho da página nas leituras (default 500)
- *   --chunk-size=<n>     operações por batch (default 400, máximo 500)
+ *   --chunk-size=<n>     operações por batch (default e máximo 400)
+ *   --sample-limit=<n>   caminhos listados por coleção no relatório (default 50)
  *   --prune-residual     apaga também os documentos residuais (zerados/sem
  *                        movimento). Sem a flag eles são apenas reportados.
+ *   --rebuild-planning   RECALCULA o `generalPlannedAmount` a partir de
+ *                        `category_planning`. DESTRUTIVO: zera o planejado dos
+ *                        meses passados e o resultado depende do dia em que o
+ *                        job roda. Use só com dry-run revisado.
  */
 
 import * as admin from "firebase-admin";
@@ -54,7 +66,9 @@ export interface ScriptOptions {
     projectId?: string;
     pageSize?: number;
     chunkSize?: number;
+    sampleLimit?: number;
     pruneResidual: boolean;
+    rebuildPlanning: boolean;
 }
 
 export function parseArgs(argv: string[]): ScriptOptions {
@@ -76,13 +90,15 @@ export function parseArgs(argv: string[]): ScriptOptions {
         projectId: getValue("--project=") || process.env.GOOGLE_CLOUD_PROJECT,
         pageSize: toNumber(getValue("--page-size=")),
         chunkSize: toNumber(getValue("--chunk-size=")),
+        sampleLimit: toNumber(getValue("--sample-limit=")),
         pruneResidual: argv.includes("--prune-residual"),
+        rebuildPlanning: argv.includes("--rebuild-planning"),
     };
 }
 
 export function formatReport(report: RebuildReport): string {
     const line = (name: string, diff: CollectionDiff) =>
-        `  ${name.padEnd(18)} criar=${diff.toCreate} alterar=${diff.toUpdate} apagar=${diff.toDelete} iguais=${diff.unchanged} residuais=${diff.residual}`;
+        `  ${name.padEnd(18)} criar=${diff.toCreate} alterar=${diff.toUpdate} apagar=${diff.toDelete} iguais=${diff.unchanged} residuais=${diff.residual} (destes, mexendo em generalPlannedAmount=${diff.generalPlannedChanges})`;
 
     const samples = [
         ...report.diff.balances.samples,
@@ -91,7 +107,7 @@ export function formatReport(report: RebuildReport): string {
     ];
 
     return [
-        `[rebuild_workspace] workspace=${report.workspaceId} modo=${report.mode} duração=${report.durationMs}ms`,
+        `[rebuild_workspace] workspace=${report.workspaceId} modo=${report.mode} planejamento=${report.rebuildPlanning ? "RECALCULADO" : "preservado"} duração=${report.durationMs}ms`,
         `  lidos: parcelas=${report.scanned.installments} (removidas ignoradas=${report.scanned.installmentsRemoved}), contas=${report.scanned.accounts}, planejamentos=${report.scanned.categoryPlannings}`,
         line("balance", report.diff.balances),
         line("period_summaries", report.diff.periodSummaries),
@@ -128,10 +144,20 @@ async function main(): Promise<void> {
         dryRun: options.dryRun,
         pageSize: options.pageSize,
         chunkSize: options.chunkSize,
+        sampleLimit: options.sampleLimit,
         pruneResidual: options.pruneResidual,
+        rebuildPlanning: options.rebuildPlanning,
     });
 
     console.log(formatReport(report));
+
+    if (options.rebuildPlanning) {
+        console.log("[rebuild_workspace] ATENÇÃO: --rebuild-planning recalcula o generalPlannedAmount e zera o planejado dos meses passados.");
+    }
+
+    if (!options.dryRun) {
+        console.log("[rebuild_workspace] O job NÃO é transacional: qualquer escrita feita pelo app durante a execução pode ter sido sobrescrita.");
+    }
 
     if (options.dryRun) {
         console.log("[rebuild_workspace] Nada foi escrito (dry-run). Rode novamente com --apply para aplicar.");
