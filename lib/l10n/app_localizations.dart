@@ -3835,6 +3835,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Metas encerradas'**
   String get journeyClosedGoalsTitle;
+
+  /// No description provided for @goalAwaitingOutcome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aguardando apuração'**
+  String get goalAwaitingOutcome;
 }
 
 class _AppLocalizationsDelegate

@@ -992,5 +992,6 @@
       }
     }
   },
-  "journeyClosedGoalsTitle": "Metas encerradas"
+  "journeyClosedGoalsTitle": "Metas encerradas",
+  "goalAwaitingOutcome": "Aguardando apuração"
 }

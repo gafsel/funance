@@ -41,6 +41,17 @@ GoalModel _estourada() => GoalModel.reduceExpense(
   failedAt: DateTime(2026, 6, 10),
 );
 
+/// Prazo vencido ontem e ainda sem desfecho: a janela até o cron das 03:15.
+GoalModel _aguardandoApuracao() => GoalModel.reduceExpense(
+  id: 'g-aguardando',
+  name: 'Teto de dezembro',
+  targetAmount: 1000,
+  currentAmount: 400,
+  deadline: DateTime.now().subtract(const Duration(days: 1)),
+  category: _categoria,
+  startDate: DateTime(2026, 1, 1),
+);
+
 GoalModel _vencedora() => GoalModel.payDebt(
   id: 'g-quitada',
   name: 'Quitar empréstimo',
@@ -120,6 +131,33 @@ void main() {
     expect(find.byIcon(Icons.emoji_events), findsOneWidget);
   });
 
+  testWidgets('meta com prazo vencido e sem desfecho vai para as encerradas', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app([_emAndamento(), _aguardandoApuracao()]));
+    await tester.pump();
+
+    expect(find.text(l10n.journeyClosedGoalsTitle), findsOneWidget);
+    expect(find.text(l10n.goalAwaitingOutcome), findsOneWidget);
+    // Não pode ser anunciada nem como conquista nem como fracasso: ninguém
+    // apurou ainda.
+    expect(find.byIcon(Icons.hourglass_bottom), findsOneWidget);
+    expect(find.byIcon(Icons.emoji_events), findsNothing);
+    expect(find.byIcon(Icons.report_gmailerrorred), findsNothing);
+  });
+
+  testWidgets('sozinha, a meta aguardando apuração não fica entre as ativas', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_app([_aguardandoApuracao()]));
+    await tester.pump();
+
+    // A seção das encerradas existe mesmo sem nenhuma meta desfechada: a meta
+    // vencida já não está mais correndo.
+    expect(find.text(l10n.journeyClosedGoalsTitle), findsOneWidget);
+    expect(find.text('Teto de dezembro'), findsOneWidget);
+  });
+
   testWidgets('meta em andamento não mostra rótulo de desfecho', (
     tester,
   ) async {
@@ -128,5 +166,7 @@ void main() {
 
     expect(find.byIcon(Icons.emoji_events), findsNothing);
     expect(find.byIcon(Icons.report_gmailerrorred), findsNothing);
+    expect(find.byIcon(Icons.hourglass_bottom), findsNothing);
+    expect(find.text(l10n.goalAwaitingOutcome), findsNothing);
   });
 }

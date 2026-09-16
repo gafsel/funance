@@ -89,19 +89,36 @@ extension GoalLabelsUi on GoalModel {
         : l10n.goalOverLimit(format(-slack));
   }
 
+  /// Prazo vencido, mas o servidor ainda não carimbou o desfecho.
+  ///
+  /// É a janela entre o vencimento e o cron `closeExpiredGoals` das 03:15.
+  /// Nessa janela a meta não está mais correndo — não há nada que o usuário
+  /// possa fazer por ela — mas também ainda não se sabe se ela terminou dentro
+  /// ou fora do alvo. Mostrá-la entre as ativas seria mentir nos dois sentidos.
+  bool get isAwaitingOutcome {
+    if (isDeleted || outcome != null) return false;
+    final today = DateTime.now();
+    return deadline.isBefore(DateTime(today.year, today.month, today.day));
+  }
+
+  /// Meta que já saiu do pool das que estão correndo: desfechada ou aguardando
+  /// a apuração do desfecho.
+  bool get isClosed => outcome != null || isAwaitingOutcome;
+
   /// Rótulo do DESFECHO da meta, ou `null` enquanto ela ainda corre.
   ///
   /// Sucesso é sempre "Concluída em". A falha tem duas caras, e são mesmo
   /// diferentes: numa meta de redução, falhar é ter ESTOURADO o teto (o prazo
   /// nem precisa ter chegado); numa de acúmulo, é o prazo ter acabado sem
-  /// alcançar o alvo.
+  /// alcançar o alvo. Sem desfecho e com o prazo vencido, o rótulo diz
+  /// exatamente isso: ainda não se sabe.
   String? outcomeLabel(
     AppLocalizations l10n,
     String Function(DateTime) format,
   ) {
     switch (outcome) {
       case null:
-        return null;
+        return isAwaitingOutcome ? l10n.goalAwaitingOutcome : null;
       case GoalOutcome.success:
         final date = completedAt;
         return date == null ? null : l10n.goalCompletedAt(format(date));
@@ -114,11 +131,18 @@ extension GoalLabelsUi on GoalModel {
     }
   }
 
-  /// Ícone do desfecho: troféu para sucesso, alerta para falha.
-  IconData get outcomeIcon =>
-      isCompleted ? Icons.emoji_events : Icons.report_gmailerrorred;
+  /// Ícone do desfecho: troféu para sucesso, alerta para falha, ampulheta
+  /// enquanto a apuração não sai.
+  IconData get outcomeIcon {
+    if (outcome == null) return Icons.hourglass_bottom;
+    return isCompleted ? Icons.emoji_events : Icons.report_gmailerrorred;
+  }
 
-  /// Cor do desfecho — o mesmo par de cores que o resto do app usa para
-  /// sucesso e erro.
-  Color get outcomeColor => isCompleted ? AppColors.success : AppColors.error;
+  /// Cor do desfecho — o mesmo par de cores que o resto do app usa para sucesso
+  /// e erro, e o tom de espera para a apuração pendente (não é erro: a meta
+  /// pode muito bem ter terminado bem).
+  Color get outcomeColor {
+    if (outcome == null) return AppColors.antiqueGold;
+    return isCompleted ? AppColors.success : AppColors.error;
+  }
 }

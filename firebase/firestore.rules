@@ -153,8 +153,12 @@ service cloud.firestore {
       match /goals/{goalId} {
 
         function validGoal(data) {
+          // `targetAmount > 0`: alvo zero (ou negativo) não é meta — divide o
+          // cálculo de progresso e, no servidor, faz o desfecho nunca sair de
+          // "em andamento", porque toda regra de alvo exige `target > 0`.
           return isStr(data.name, 500)
             && isNum(data.targetAmount)
+            && data.targetAmount > 0
             && isNum(data.currentAmount)
             && data.deadline is timestamp
             && data.startDate is timestamp

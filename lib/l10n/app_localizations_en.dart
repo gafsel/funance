@@ -2106,4 +2106,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get journeyClosedGoalsTitle => 'Closed goals';
+
+  @override
+  String get goalAwaitingOutcome => 'Awaiting assessment';
 }

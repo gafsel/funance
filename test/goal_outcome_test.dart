@@ -117,6 +117,43 @@ void main() {
       expect(teto(outcome: GoalOutcome.failed).outcomeLabel(pt, fmt), isNull);
     });
 
+    test('prazo vencido sem desfecho: aguardando apuração, fora das ativas', () {
+      final vencida = GoalModel.reduceExpense(
+        id: 'g-vencida',
+        name: 'Teto vencido',
+        targetAmount: 1000,
+        currentAmount: 400,
+        deadline: DateTime.now().subtract(const Duration(days: 1)),
+        category: const CategoryModel(
+          id: 'cat1',
+          name: 'Mercado',
+          icon: 'shopping_cart',
+          color: '#EF5350',
+          type: CategoryType.expense,
+        ),
+        startDate: DateTime(2026, 1, 1),
+      );
+
+      expect(vencida.isAwaitingOutcome, isTrue);
+      expect(vencida.isClosed, isTrue);
+      expect(vencida.outcomeLabel(pt, fmt), pt.goalAwaitingOutcome);
+      expect(vencida.outcomeIcon, Icons.hourglass_bottom);
+      // Nem conquista nem fracasso enquanto o servidor não apura.
+      expect(vencida.isCompleted, isFalse);
+      expect(vencida.isFailed, isFalse);
+    });
+
+    test('meta no prazo e sem desfecho não está aguardando apuração', () {
+      expect(poupanca().isAwaitingOutcome, isFalse);
+      expect(poupanca().isClosed, isFalse);
+    });
+
+    test('meta já desfechada não conta como aguardando apuração', () {
+      final falhada = teto(outcome: GoalOutcome.failed, failedAt: quando);
+      expect(falhada.isAwaitingOutcome, isFalse);
+      expect(falhada.isClosed, isTrue);
+    });
+
     test('meta encerrada não é ativa', () {
       expect(poupanca(outcome: GoalOutcome.success, completedAt: quando).isActive, isFalse);
       expect(teto(outcome: GoalOutcome.failed, failedAt: quando).isActive, isFalse);

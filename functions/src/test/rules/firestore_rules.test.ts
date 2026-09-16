@@ -226,6 +226,39 @@ describe("firestore.rules", () => {
         );
     });
 
+    it("nega meta com targetAmount zero", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-alvo-zero`),
+                goalDoc({ targetAmount: 0 })
+            )
+        );
+    });
+
+    it("nega meta com targetAmount negativo", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-alvo-negativo`),
+                goalDoc({ targetAmount: -100 })
+            )
+        );
+    });
+
+    it("nega EDIÇÃO que zera o targetAmount de uma meta existente", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { targetAmount: 0 }
+            )
+        );
+    });
+
     it("permite que o cliente crie uma meta normal", async () => {
         const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 

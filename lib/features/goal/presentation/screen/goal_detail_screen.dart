@@ -185,7 +185,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                         ),
                         // Carimbo do servidor: só existe depois que a meta
                         // alcançou o alvo pela primeira vez.
-                        if (goal.outcome != null)
+                        if (goal.isClosed)
                           DetailHeaderChip(
                             icon: goal.outcomeIcon,
                             label:
@@ -196,9 +196,11 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                                   ).format(date),
                                 ) ??
                                 '',
-                            backgroundColor: goal.isCompleted
-                                ? AppColors.limeGreen
-                                : AppColors.error,
+                            backgroundColor: goal.outcome == null
+                                ? AppColors.antiqueGold
+                                : (goal.isCompleted
+                                      ? AppColors.limeGreen
+                                      : AppColors.error),
                           ),
                       ],
                       actions: [

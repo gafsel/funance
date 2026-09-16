@@ -58,13 +58,15 @@ class GoalsSection extends ConsumerWidget {
                     // Metas encerradas saem da lista das que estão correndo:
                     // uma meta que estourou o limite lado a lado com as ativas
                     // sugere que ainda dá tempo de fazer alguma coisa por ela.
+                    // O mesmo vale para a meta cujo prazo venceu e que ainda
+                    // espera a apuração do servidor — ela também não corre mais.
                     final running = [
                       for (final goal in goals)
-                        if (goal.outcome == null) goal,
+                        if (!goal.isClosed) goal,
                     ];
                     final closed = [
                       for (final goal in goals)
-                        if (goal.outcome != null) goal,
+                        if (goal.isClosed) goal,
                     ];
 
                     return Column(
@@ -337,7 +339,7 @@ class GoalsSection extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (goal.outcome != null) ...[
+              if (goal.isClosed) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [

@@ -985,5 +985,6 @@
       }
     }
   },
-  "journeyClosedGoalsTitle": "Closed goals"
+  "journeyClosedGoalsTitle": "Closed goals",
+  "goalAwaitingOutcome": "Awaiting assessment"
 }

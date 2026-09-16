@@ -2122,4 +2122,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get journeyClosedGoalsTitle => 'Metas encerradas';
+
+  @override
+  String get goalAwaitingOutcome => 'Aguardando apuração';
 }
