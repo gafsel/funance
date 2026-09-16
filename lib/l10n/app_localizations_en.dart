@@ -1941,13 +1941,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'The workspace successfully completes 5 different financial goals.';
 
   @override
-  String get badge_emergency_shield_name => 'Emergency Shield';
-
-  @override
-  String get badge_emergency_shield_desc =>
-      'Reach 100% progress on a goal created with the \"Emergency\" category/tag.';
-
-  @override
   String get badge_under_control_name => 'All Under Control';
 
   @override
@@ -1976,25 +1969,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Reduce total expenses of the Comfort pool (discretionary) by 20% compared to the previous month.';
 
   @override
-  String get badge_dynamic_duo_name => 'Dynamic Duo';
-
-  @override
-  String get badge_dynamic_duo_desc =>
-      'Workspace with 2 active members recording paid transactions in the same month.';
-
-  @override
   String get badge_united_front_name => 'United Front';
 
   @override
   String get badge_united_front_desc =>
       'Workspace with 3 or more active members added and accepted.';
-
-  @override
-  String get badge_financial_synapsis_name => 'Financial Synergy';
-
-  @override
-  String get badge_financial_synapsis_desc =>
-      'Complete a weekly mission where all active members recorded at least 1 transaction.';
 
   @override
   String get badge_iron_consistency_name => 'Iron Consistency';

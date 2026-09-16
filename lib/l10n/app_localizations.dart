@@ -3578,18 +3578,6 @@ abstract class AppLocalizations {
   /// **'O workspace conclui com sucesso 5 metas financeiras diferentes.'**
   String get badge_goal_silver_desc;
 
-  /// No description provided for @badge_emergency_shield_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Escudo de Emergência'**
-  String get badge_emergency_shield_name;
-
-  /// No description provided for @badge_emergency_shield_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Atingir 100% de progresso em uma meta criada com a categoria/tag \"Emergência\".'**
-  String get badge_emergency_shield_desc;
-
   /// No description provided for @badge_under_control_name.
   ///
   /// In pt, this message translates to:
@@ -3638,18 +3626,6 @@ abstract class AppLocalizations {
   /// **'Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.'**
   String get badge_cost_cutter_desc;
 
-  /// No description provided for @badge_dynamic_duo_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Dupla Dinâmica'**
-  String get badge_dynamic_duo_name;
-
-  /// No description provided for @badge_dynamic_duo_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Workspace com 2 membros ativos registrando transações pagas no mesmo mês.'**
-  String get badge_dynamic_duo_desc;
-
   /// No description provided for @badge_united_front_name.
   ///
   /// In pt, this message translates to:
@@ -3661,18 +3637,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Workspace com 3 ou mais membros ativos adicionados e aceitos.'**
   String get badge_united_front_desc;
-
-  /// No description provided for @badge_financial_synapsis_name.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sinergia Financeira'**
-  String get badge_financial_synapsis_name;
-
-  /// No description provided for @badge_financial_synapsis_desc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Concluir uma missão semanal onde todos os membros ativos registraram ao menos 1 transação.'**
-  String get badge_financial_synapsis_desc;
 
   /// No description provided for @badge_iron_consistency_name.
   ///

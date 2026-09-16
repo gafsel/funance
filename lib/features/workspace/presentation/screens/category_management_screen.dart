@@ -146,8 +146,12 @@ class _CategoryList extends ConsumerWidget {
                 separatorBuilder: (context, index) => Divider(),
                 itemBuilder: (context, index) {
                   final category = categories[index];
-                  final isVirtual = category.isVirtual;
-                  
+                  // Defesa dupla: a lista já exclui categorias de sistema, mas
+                  // se alguma escapar ela não pode oferecer editar/excluir —
+                  // as rules do Firestore negam a escrita e o toque daria
+                  // permission-denied.
+                  final isManaged = category.isVirtual || category.isSystem;
+
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Color(
@@ -161,7 +165,7 @@ class _CategoryList extends ConsumerWidget {
                     ),
                     title: Text(category.name),
                     subtitle: Text(category.type.name.toUpperCase()),
-                    trailing: isVirtual ? null : Row(
+                    trailing: isManaged ? null : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(

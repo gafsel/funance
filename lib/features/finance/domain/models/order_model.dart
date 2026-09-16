@@ -11,6 +11,14 @@ enum OrderStatus {
   active,
   @JsonValue('cancelled')
   cancelled,
+  // O servidor grava `settled` em orders que já nasceram concluídas (ex.: a
+  // order de saldo inicial). Sem este valor o $enumDecode gerado lançava
+  // ArgumentError ao ler o documento.
+  @JsonValue('settled')
+  settled;
+
+  /// Uma order concluída ou cancelada não é mais editável pelo usuário.
+  bool get isEditable => this == OrderStatus.active;
 }
 
 enum OrderType {

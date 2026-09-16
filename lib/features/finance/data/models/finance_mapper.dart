@@ -335,6 +335,7 @@ class FinanceMapper {
 
   static OrderStatus _toOrderStatus(dynamic value) {
     if (value == 'cancelled') return OrderStatus.cancelled;
+    if (value == 'settled') return OrderStatus.settled;
     return OrderStatus.active;
   }
 
