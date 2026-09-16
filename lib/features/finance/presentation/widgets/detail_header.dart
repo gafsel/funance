@@ -68,8 +68,16 @@ class SliverDetailHeader extends StatelessWidget {
     final isDarkBg = effectiveBgColor.computeLuminance() < 0.5;
     final contentColor = isDarkBg ? AppColors.pureWhite : AppColors.darkNavy;
 
+    // A altura pedida pelas telas é a do CONTEÚDO. O widget soma o que varia
+    // por dispositivo — status bar/notch e escala de fonte do sistema — e
+    // limita ao tamanho da tela (ex.: landscape em celulares pequenos), para
+    // o header não estourar em telas pequenas nem sobrar em desktop.
+    final textScale = mq.textScaler.scale(1.0).clamp(1.0, 1.3);
+    final effectiveExpandedHeight = (expandedHeight * textScale + mq.padding.top)
+        .clamp(0.0, mq.size.height * 0.85);
+
     return SliverAppBar(
-      expandedHeight: expandedHeight,
+      expandedHeight: effectiveExpandedHeight,
       pinned: true,
       backgroundColor: effectiveBgColor,
       elevation: 0,
@@ -121,7 +129,12 @@ class SliverDetailHeader extends StatelessWidget {
               padding: EdgeInsetsGeometry.only(
                 top: mq.padding.top + kToolbarHeight,
               ),
-              child: Column(
+              // Guarda contra overflow: se em algum dispositivo extremo o
+              // conteúdo ainda exceder a altura, ele é cortado graciosamente
+              // em vez de renderizar as listras de erro de RenderFlex.
+              child: SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -180,15 +193,23 @@ class SliverDetailHeader extends StatelessWidget {
                               ),
                               if (subtitle != null) ...[
                                 const SizedBox(height: 4),
-                                Text(
-                                  subtitle!,
-                                  style: theme.textTheme.headlineSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w900,
-                                        color: subtitleColor ?? contentColor,
-                                        letterSpacing: -0.5,
-                                        fontSize: 60,
-                                      ),
+                                // FittedBox encolhe valores longos (ex.:
+                                // "R$ 123.456,78") em telas estreitas em vez
+                                // de quebrar linha ou estourar.
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    subtitle!,
+                                    maxLines: 1,
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w900,
+                                          color: subtitleColor ?? contentColor,
+                                          letterSpacing: -0.5,
+                                          fontSize: isSmallWidth ? 42 : 60,
+                                        ),
+                                  ),
                                 ),
                               ],
                             ],
@@ -196,20 +217,25 @@ class SliverDetailHeader extends StatelessWidget {
                         ),
                         if (!isSmallWidth && sideContent != null) ...[
                           const SizedBox(width: 32),
-                          SizedBox(width: 300, child: sideContent!),
+                          SizedBox(
+                            // Encolhe o painel lateral em larguras
+                            // intermediárias (tablets/janela estreita).
+                            width: (mq.size.width * 0.3).clamp(220.0, 300.0),
+                            child: sideContent!,
+                          ),
                         ],
                       ],
                     ),
                   ),
                   if (isSmallWidth && sideContent != null) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: sideContent!,
                     ),
                   ],
                   if (isSmallWidth && actions.isNotEmpty) ...[
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -234,6 +260,7 @@ class SliverDetailHeader extends StatelessWidget {
                     bottomContent!,
                   ],
                 ],
+                ),
               ),
             ),
           ),

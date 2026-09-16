@@ -255,6 +255,13 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Planning Analysis: análise ideal 50-30-20 gerada e gravada
+      // exclusivamente pelo servidor (Admin SDK); o cliente apenas lê.
+      match /planning_analysis/{docId} {
+        allow read: if isMember(workspaceId);
+        allow write: if false;
+      }
+
       // Finance Hacks: Membros podem apenas ler
       match /finance_hacks/{hackId} {
         allow read: if isMember(workspaceId);

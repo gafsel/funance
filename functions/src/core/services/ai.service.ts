@@ -83,6 +83,57 @@ const GOAL_FEASIBILITY_RESPONSE_SCHEMA: ResponseSchema = {
     required: ["status", "reason", "suggestion"],
 };
 
+// Schema estruturado da análise ideal 50-30-20 (força JSON válido no Gemini)
+const PLANNING_503020_RESPONSE_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+        summary: { type: SchemaType.STRING },
+        groups: {
+            type: SchemaType.ARRAY,
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    allocation: {
+                        type: SchemaType.STRING,
+                        format: "enum",
+                        enum: ["essential", "comfort", "investment"],
+                    },
+                    currentPct: { type: SchemaType.NUMBER },
+                    targetPct: { type: SchemaType.NUMBER },
+                    deltaBRL: { type: SchemaType.NUMBER },
+                },
+                required: ["allocation", "currentPct", "targetPct", "deltaBRL"],
+            },
+        },
+        categories: {
+            type: SchemaType.ARRAY,
+            items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                    categoryId: { type: SchemaType.STRING },
+                    idealMonthlyAmount: { type: SchemaType.NUMBER },
+                    idealPctOfIncome: { type: SchemaType.NUMBER },
+                    status: { type: SchemaType.STRING, format: "enum", enum: ["ok", "above", "below"] },
+                    suggestedAllocation: {
+                        type: SchemaType.STRING,
+                        format: "enum",
+                        enum: ["essential", "comfort", "investment"],
+                    },
+                    shouldReclassify: { type: SchemaType.BOOLEAN },
+                    reason: { type: SchemaType.STRING },
+                    savingTip: { type: SchemaType.STRING, nullable: true },
+                },
+                required: [
+                    "categoryId", "idealMonthlyAmount", "idealPctOfIncome", "status",
+                    "suggestedAllocation", "shouldReclassify", "reason",
+                ],
+            },
+        },
+        insights: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    },
+    required: ["summary", "groups", "categories", "insights"],
+};
+
 /**
  * Faz o parse do texto retornado pela IA. Com responseMimeType "application/json"
  * o texto já é JSON puro; mantemos o fallback por regex para robustez.
@@ -155,13 +206,72 @@ export interface IAIRepository {
         workspaceId: string,
         categories: { id: string; name: string; type: string }[]
     ): Promise<Record<string, string>>;
+    analyze503020Ideal(
+        workspaceId: string,
+        context: object
+    ): Promise<any>;
 }
 
 export class GeminiAIRepositoryImpl implements IAIRepository {
     private genAI: GoogleGenerativeAI;
 
+    // Modelos estáveis usados quando o primário falha por indisponibilidade
+    // (503 "high demand" no alias -latest, 404 de modelo aposentado etc.).
+    private static readonly FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+    private static readonly RETRYABLE_STATUS = [429, 500, 503];
+
     constructor() {
         this.genAI = new GoogleGenerativeAI(geminiApiKey.value());
+    }
+
+    /**
+     * Mesma interface de getGenerativeModel().generateContent, com retry +
+     * backoff para erros transitórios e fallback de modelo. Sem isso, um 503
+     * temporário do Gemini vira erro na cara do usuário.
+     */
+    private getResilientModel(
+        params: Parameters<GoogleGenerativeAI["getGenerativeModel"]>[0]
+    ): { generateContent: (request: any) => Promise<any> } {
+        return {
+            generateContent: async (request: any) => {
+                const candidates = [
+                    params.model,
+                    ...GeminiAIRepositoryImpl.FALLBACK_MODELS.filter((m) => m !== params.model),
+                ];
+                let lastError: any;
+                for (let c = 0; c < candidates.length; c++) {
+                    const modelName = candidates[c];
+                    // 2 tentativas no modelo primário; 1 nos fallbacks para
+                    // não estourar o timeout da function.
+                    const attempts = c === 0 ? 2 : 1;
+                    for (let attempt = 0; attempt < attempts; attempt++) {
+                        try {
+                            const model = this.genAI.getGenerativeModel({
+                                ...params,
+                                model: modelName,
+                            });
+                            return await model.generateContent(request);
+                        }
+                        catch (error: any) {
+                            lastError = error;
+                            const status = error?.status;
+                            // Modelo inexistente/aposentado: pula direto para o próximo.
+                            if (status === 404) break;
+                            if (!GeminiAIRepositoryImpl.RETRYABLE_STATUS.includes(status)) {
+                                throw error;
+                            }
+                            await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+                        }
+                    }
+                    if (c < candidates.length - 1) {
+                        console.warn(
+                            `Modelo ${modelName} indisponível (${lastError?.status}); tentando ${candidates[c + 1]}...`
+                        );
+                    }
+                }
+                throw lastError;
+            },
+        };
     }
 
     private async getConfig(): Promise<AIConfig> {
@@ -173,15 +283,25 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const doc = await admin.firestore().collection("config").doc("ai").get();
             if (doc.exists) {
                 const data = doc.data() as any;
+                // A família gemini-1.5-* foi aposentada (404). Se o override
+                // do Firestore ainda apontar para ela, remapeia para o alias
+                // rolante equivalente em vez de quebrar todas as features de IA.
+                const sanitizeModel = (name: string | undefined, fallback: string): string => {
+                    const model = name || fallback;
+                    if (!model.startsWith("gemini-1.5")) return model;
+                    return model.includes("pro") ? "gemini-pro-latest" : "gemini-flash-latest";
+                };
+
                 const config: AIConfig = {
                     models: {
-                        goals: data?.models?.goals || DEFAULT_CONFIG.models.goals,
-                        document: data?.models?.document || DEFAULT_CONFIG.models.document,
-                        coaching: data?.models?.coaching || DEFAULT_CONFIG.models.coaching,
-                        automaticTransaction: data?.models?.automaticTransaction || DEFAULT_CONFIG.models.automaticTransaction,
-                        weeklyMissions: data?.models?.weeklyMissions || DEFAULT_CONFIG.models.weeklyMissions,
-                        goalFeasibility: data?.models?.goalFeasibility || DEFAULT_CONFIG.models.goalFeasibility,
-                        categoryGroups: data?.models?.categoryGroups || DEFAULT_CONFIG.models.categoryGroups,
+                        goals: sanitizeModel(data?.models?.goals, DEFAULT_CONFIG.models.goals),
+                        document: sanitizeModel(data?.models?.document, DEFAULT_CONFIG.models.document),
+                        coaching: sanitizeModel(data?.models?.coaching, DEFAULT_CONFIG.models.coaching),
+                        automaticTransaction: sanitizeModel(data?.models?.automaticTransaction, DEFAULT_CONFIG.models.automaticTransaction),
+                        weeklyMissions: sanitizeModel(data?.models?.weeklyMissions, DEFAULT_CONFIG.models.weeklyMissions),
+                        goalFeasibility: sanitizeModel(data?.models?.goalFeasibility, DEFAULT_CONFIG.models.goalFeasibility),
+                        categoryGroups: sanitizeModel(data?.models?.categoryGroups, DEFAULT_CONFIG.models.categoryGroups),
+                        planning503020: sanitizeModel(data?.models?.planning503020, DEFAULT_CONFIG.models.planning503020),
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -193,6 +313,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                         weeklyMissions: data?.prompts?.weeklyMissions || DEFAULT_CONFIG.prompts.weeklyMissions,
                         goalFeasibility: data?.prompts?.goalFeasibility || DEFAULT_CONFIG.prompts.goalFeasibility,
                         categoryGroups: data?.prompts?.categoryGroups || DEFAULT_CONFIG.prompts.categoryGroups,
+                        planning503020: data?.prompts?.planning503020 || DEFAULT_CONFIG.prompts.planning503020,
                     },
                 };
                 configCache = { config, fetchedAt: Date.now() };
@@ -213,7 +334,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         orders: OrderModel[],
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.goals });
+        const model = this.getResilientModel({ model: config.models.goals });
 
         const prompt = config.prompts.goals
             .replace("{{workspaceType}}", workspaceType)
@@ -250,7 +371,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         existingAccounts: any[]
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.automaticTransaction });
+        const model = this.getResilientModel({ model: config.models.automaticTransaction });
 
         const prompt = config.prompts.automaticTransaction
             .replace("{{description}}", description)
@@ -289,7 +410,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         storagePath?: string,
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.document });
+        const model = this.getResilientModel({ model: config.models.document });
 
         let resultData: any;
 
@@ -416,7 +537,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         existingCategories: string[],
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.document });
+        const model = this.getResilientModel({ model: config.models.document });
 
         let prompt = config.prompts.reconciliation
             .replace("{{fileName}}", fileName)
@@ -483,7 +604,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         previousContext?: any[]
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({
+        const model = this.getResilientModel({
             model: config.models.coaching,
             generationConfig: {
                 responseMimeType: "application/json",
@@ -528,7 +649,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         maxCategory: string,
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({ model: config.models.weeklyMissions });
+        const model = this.getResilientModel({ model: config.models.weeklyMissions });
 
         const prompt = config.prompts.weeklyMissions
             .replace("{{workspaceType}}", workspaceType)
@@ -564,7 +685,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         if (categories.length === 0) return {};
 
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({
+        const model = this.getResilientModel({
             model: config.models.categoryGroups,
             generationConfig: {
                 responseMimeType: "application/json",
@@ -599,13 +720,51 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         return assignments;
     }
 
+    async analyze503020Ideal(
+        workspaceId: string,
+        context: object
+    ): Promise<any> {
+        const config = await this.getConfig();
+        const model = this.getResilientModel({
+            model: config.models.planning503020,
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: PLANNING_503020_RESPONSE_SCHEMA,
+            },
+        });
+
+        const prompt = config.prompts.planning503020
+            .replace("{{context}}", JSON.stringify(context));
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // Log no Firestore
+        await admin.firestore().collection("ai_logs").add({
+            workspaceId,
+            prompt,
+            response: text,
+            type: "planning_503020_ideal_analysis",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        try {
+            return parseAIJson(text);
+        }
+        catch (error) {
+            console.error("Falha ao parsear resposta da análise 50-30-20:", error);
+            throw new Error("Não foi possível gerar a análise ideal 50-30-20.");
+        }
+    }
+
     async analyzeGoalFeasibility(
         workspaceId: string,
         goalPayload: object,
         monthlyBreakdown: object[]
     ): Promise<any> {
         const config = await this.getConfig();
-        const model = this.genAI.getGenerativeModel({
+        const model = this.getResilientModel({
             model: config.models.goalFeasibility,
             generationConfig: {
                 responseMimeType: "application/json",

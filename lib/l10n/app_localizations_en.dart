@@ -2416,4 +2416,81 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get wizardPendingIntro =>
       'We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?';
+
+  @override
+  String get planningAnalysisAction => 'Ideal analysis (AI)';
+
+  @override
+  String get planningAnalysisLoadingTitle => 'Analyzing your plan';
+
+  @override
+  String get planningAnalysisLoadingDesc =>
+      'The AI is calculating the ideal spend for each category based on your projected income and the 50-30-20 rule.';
+
+  @override
+  String get planningAnalysisError =>
+      'Could not generate the analysis. Please try again.';
+
+  @override
+  String get planningAnalysisTitle => 'Ideal 50-30-20 Analysis';
+
+  @override
+  String planningAnalysisProjectedIncome(String amount) {
+    return 'Projected income: $amount';
+  }
+
+  @override
+  String planningAnalysisCurrentPct(String percent) {
+    return 'Current: $percent';
+  }
+
+  @override
+  String planningAnalysisTargetPct(String percent) {
+    return 'Target: $percent';
+  }
+
+  @override
+  String planningAnalysisAboveBy(String amount) {
+    return '$amount above target';
+  }
+
+  @override
+  String planningAnalysisBelowBy(String amount) {
+    return '$amount below target';
+  }
+
+  @override
+  String get planningAnalysisCategoriesTitle => 'Ideal per category';
+
+  @override
+  String planningAnalysisIdealValue(String amount, String percent) {
+    return 'Ideal: $amount ($percent of income)';
+  }
+
+  @override
+  String get planningAnalysisStatusOk => 'OK';
+
+  @override
+  String get planningAnalysisStatusAbove => 'Above';
+
+  @override
+  String get planningAnalysisStatusBelow => 'Below';
+
+  @override
+  String get planningAnalysisReclassTitle => 'Suggested reclassifications';
+
+  @override
+  String get planningAnalysisApply => 'Apply';
+
+  @override
+  String get planningAnalysisApplied => 'Category updated successfully!';
+
+  @override
+  String get planningAnalysisApplyError => 'Could not update the category.';
+
+  @override
+  String get planningAnalysisInsightsTitle => 'Insights';
+
+  @override
+  String get planningAnalysisRefresh => 'Refresh analysis';
 }

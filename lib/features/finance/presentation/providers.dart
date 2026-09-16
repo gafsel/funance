@@ -17,7 +17,10 @@ import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/domain/services/invoice_service.dart';
 import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
+import 'package:funances/features/finance/data/repositories/planning_analysis_repository_impl.dart';
+import 'package:funances/features/finance/domain/repositories/planning_analysis_repository.dart';
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
+import 'package:funances/features/finance/domain/services/planning_analysis_service.dart';
 import 'package:funances/features/finance/domain/services/planning_service.dart';
 import 'package:funances/features/finance/domain/repositories/reconciliation_repository.dart';
 import 'package:funances/features/finance/data/repositories/reconciliation_repository_impl.dart';
@@ -121,6 +124,23 @@ class FinanceDomainProviders {
       categoryRepository: ref.watch(CategoryDomainProviders.repository),
     ),
   );
+}
+
+class PlanningAnalysisDomainProviders {
+  static final repository = Provider.autoDispose<IPlanningAnalysisRepository>((
+    ref,
+  ) {
+    return PlanningAnalysisRepositoryImpl();
+  });
+
+  static final service = Provider.autoDispose<PlanningAnalysisService>((ref) {
+    return PlanningAnalysisService(
+      workspaceId:
+          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
+          "",
+      repository: ref.watch(repository),
+    );
+  });
 }
 
 class ReconciliationDomainProviders {

@@ -4411,6 +4411,132 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?'**
   String get wizardPendingIntro;
+
+  /// No description provided for @planningAnalysisAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise ideal (IA)'**
+  String get planningAnalysisAction;
+
+  /// No description provided for @planningAnalysisLoadingTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Analisando seu planejamento'**
+  String get planningAnalysisLoadingTitle;
+
+  /// No description provided for @planningAnalysisLoadingDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'A IA está calculando o gasto ideal de cada categoria com base na sua receita prevista e na regra 50-30-20.'**
+  String get planningAnalysisLoadingDesc;
+
+  /// No description provided for @planningAnalysisError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível gerar a análise. Tente novamente.'**
+  String get planningAnalysisError;
+
+  /// No description provided for @planningAnalysisTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Análise Ideal 50-30-20'**
+  String get planningAnalysisTitle;
+
+  /// No description provided for @planningAnalysisProjectedIncome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Receita prevista: {amount}'**
+  String planningAnalysisProjectedIncome(String amount);
+
+  /// No description provided for @planningAnalysisCurrentPct.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atual: {percent}'**
+  String planningAnalysisCurrentPct(String percent);
+
+  /// No description provided for @planningAnalysisTargetPct.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alvo: {percent}'**
+  String planningAnalysisTargetPct(String percent);
+
+  /// No description provided for @planningAnalysisAboveBy.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} acima do alvo'**
+  String planningAnalysisAboveBy(String amount);
+
+  /// No description provided for @planningAnalysisBelowBy.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} abaixo do alvo'**
+  String planningAnalysisBelowBy(String amount);
+
+  /// No description provided for @planningAnalysisCategoriesTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ideal por categoria'**
+  String get planningAnalysisCategoriesTitle;
+
+  /// No description provided for @planningAnalysisIdealValue.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ideal: {amount} ({percent} da renda)'**
+  String planningAnalysisIdealValue(String amount, String percent);
+
+  /// No description provided for @planningAnalysisStatusOk.
+  ///
+  /// In pt, this message translates to:
+  /// **'OK'**
+  String get planningAnalysisStatusOk;
+
+  /// No description provided for @planningAnalysisStatusAbove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Acima'**
+  String get planningAnalysisStatusAbove;
+
+  /// No description provided for @planningAnalysisStatusBelow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abaixo'**
+  String get planningAnalysisStatusBelow;
+
+  /// No description provided for @planningAnalysisReclassTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reclassificações sugeridas'**
+  String get planningAnalysisReclassTitle;
+
+  /// No description provided for @planningAnalysisApply.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aplicar'**
+  String get planningAnalysisApply;
+
+  /// No description provided for @planningAnalysisApplied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categoria atualizada com sucesso!'**
+  String get planningAnalysisApplied;
+
+  /// No description provided for @planningAnalysisApplyError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível atualizar a categoria.'**
+  String get planningAnalysisApplyError;
+
+  /// No description provided for @planningAnalysisInsightsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Insights'**
+  String get planningAnalysisInsightsTitle;
+
+  /// No description provided for @planningAnalysisRefresh.
+  ///
+  /// In pt, this message translates to:
+  /// **'Atualizar análise'**
+  String get planningAnalysisRefresh;
 }
 
 class _AppLocalizationsDelegate

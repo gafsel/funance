@@ -26,6 +26,7 @@ import { SummaryService } from "../features/finance/domain/services/summary.serv
 import { CoachingService } from "../features/coaching/domain/services/coaching.service";
 import { GamificationService } from "../features/goal/domain/services/gamification.service";
 import { GoalFeasibilityService } from "../features/goal/domain/services/goal_feasibility.service";
+import { PlanningAnalysisService } from "../features/finance/domain/services/planning_analysis.service";
 import { IGamificationRepository } from "../features/goal/domain/repositories/gamification.repository";
 import { GamificationRepositoryImpl } from "../features/goal/data/repositories/gamification.repository.impl";
 
@@ -49,6 +50,7 @@ class Container {
     private static _gamificationRepository: IGamificationRepository;
     private static _gamificationService: GamificationService;
     private static _goalFeasibilityService: GoalFeasibilityService;
+    private static _planningAnalysisService: PlanningAnalysisService;
 
     static get idempotencyService(): IIdempotencyService {
         if (!this._idempotencyService) {
@@ -200,6 +202,17 @@ class Container {
             );
         }
         return this._goalFeasibilityService;
+    }
+
+    static get planningAnalysisService(): PlanningAnalysisService {
+        if (!this._planningAnalysisService) {
+            this._planningAnalysisService = new PlanningAnalysisService(
+                this.financeRepository,
+                this.categoryRepository,
+                this.aiRepository,
+            );
+        }
+        return this._planningAnalysisService;
     }
 }
 

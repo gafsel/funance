@@ -731,6 +731,29 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         }, { merge: true });
     }
 
+    private getPlanningAnalysisDocRef(workspaceId: string, monthKey: string) {
+        return this.firestore
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("planning_analysis")
+            .doc(monthKey);
+    }
+
+    async getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<any | null> {
+        const doc = await this.getPlanningAnalysisDocRef(workspaceId, monthKey).get();
+        if (!doc.exists) return null;
+        return { id: doc.id, ...doc.data() };
+    }
+
+    async savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: any): Promise<void> {
+        await this.getPlanningAnalysisDocRef(workspaceId, monthKey).set({
+            ...analysis,
+            createdAt: analysis.createdAt instanceof Date
+                ? admin.firestore.Timestamp.fromDate(analysis.createdAt)
+                : admin.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+
     async hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean> {
         const snapshot = await this.getInstallmentsCollection(workspaceId)
             .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))

@@ -2428,4 +2428,82 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get wizardPendingIntro =>
       'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?';
+
+  @override
+  String get planningAnalysisAction => 'Análise ideal (IA)';
+
+  @override
+  String get planningAnalysisLoadingTitle => 'Analisando seu planejamento';
+
+  @override
+  String get planningAnalysisLoadingDesc =>
+      'A IA está calculando o gasto ideal de cada categoria com base na sua receita prevista e na regra 50-30-20.';
+
+  @override
+  String get planningAnalysisError =>
+      'Não foi possível gerar a análise. Tente novamente.';
+
+  @override
+  String get planningAnalysisTitle => 'Análise Ideal 50-30-20';
+
+  @override
+  String planningAnalysisProjectedIncome(String amount) {
+    return 'Receita prevista: $amount';
+  }
+
+  @override
+  String planningAnalysisCurrentPct(String percent) {
+    return 'Atual: $percent';
+  }
+
+  @override
+  String planningAnalysisTargetPct(String percent) {
+    return 'Alvo: $percent';
+  }
+
+  @override
+  String planningAnalysisAboveBy(String amount) {
+    return '$amount acima do alvo';
+  }
+
+  @override
+  String planningAnalysisBelowBy(String amount) {
+    return '$amount abaixo do alvo';
+  }
+
+  @override
+  String get planningAnalysisCategoriesTitle => 'Ideal por categoria';
+
+  @override
+  String planningAnalysisIdealValue(String amount, String percent) {
+    return 'Ideal: $amount ($percent da renda)';
+  }
+
+  @override
+  String get planningAnalysisStatusOk => 'OK';
+
+  @override
+  String get planningAnalysisStatusAbove => 'Acima';
+
+  @override
+  String get planningAnalysisStatusBelow => 'Abaixo';
+
+  @override
+  String get planningAnalysisReclassTitle => 'Reclassificações sugeridas';
+
+  @override
+  String get planningAnalysisApply => 'Aplicar';
+
+  @override
+  String get planningAnalysisApplied => 'Categoria atualizada com sucesso!';
+
+  @override
+  String get planningAnalysisApplyError =>
+      'Não foi possível atualizar a categoria.';
+
+  @override
+  String get planningAnalysisInsightsTitle => 'Insights';
+
+  @override
+  String get planningAnalysisRefresh => 'Atualizar análise';
 }

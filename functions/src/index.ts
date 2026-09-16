@@ -19,6 +19,7 @@ export * from "./features/finance/presentation/functions/account_handler";
 export * from "./features/finance/presentation/functions/automatic_transaction_handler";
 export * from "./features/finance/presentation/functions/installment_handler";
 export * from "./features/finance/presentation/functions/category_planning_handler";
+export * from "./features/finance/presentation/functions/planning_analysis_handler";
 export * from "./features/goal/presentation/functions/ai_handler";
 export * from "./features/workspace/presentation/functions/invite_handler";
 export * from "./features/workspace/presentation/functions/category_handler";

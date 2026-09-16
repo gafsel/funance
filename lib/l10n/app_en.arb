@@ -967,5 +967,71 @@
   "goalSpendingLimitHint": "E.g.: 500.00 (spending limit)",
   "accountNotFound": "Account not found.",
   "savedSuccess": "Saved successfully!",
-  "wizardPendingIntro": "We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?"
+  "wizardPendingIntro": "We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?",
+  "planningAnalysisAction": "Ideal analysis (AI)",
+  "planningAnalysisLoadingTitle": "Analyzing your plan",
+  "planningAnalysisLoadingDesc": "The AI is calculating the ideal spend for each category based on your projected income and the 50-30-20 rule.",
+  "planningAnalysisError": "Could not generate the analysis. Please try again.",
+  "planningAnalysisTitle": "Ideal 50-30-20 Analysis",
+  "planningAnalysisProjectedIncome": "Projected income: {amount}",
+  "@planningAnalysisProjectedIncome": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "planningAnalysisCurrentPct": "Current: {percent}",
+  "@planningAnalysisCurrentPct": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "planningAnalysisTargetPct": "Target: {percent}",
+  "@planningAnalysisTargetPct": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "planningAnalysisAboveBy": "{amount} above target",
+  "@planningAnalysisAboveBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "planningAnalysisBelowBy": "{amount} below target",
+  "@planningAnalysisBelowBy": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "planningAnalysisCategoriesTitle": "Ideal per category",
+  "planningAnalysisIdealValue": "Ideal: {amount} ({percent} of income)",
+  "@planningAnalysisIdealValue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "planningAnalysisStatusOk": "OK",
+  "planningAnalysisStatusAbove": "Above",
+  "planningAnalysisStatusBelow": "Below",
+  "planningAnalysisReclassTitle": "Suggested reclassifications",
+  "planningAnalysisApply": "Apply",
+  "planningAnalysisApplied": "Category updated successfully!",
+  "planningAnalysisApplyError": "Could not update the category.",
+  "planningAnalysisInsightsTitle": "Insights",
+  "planningAnalysisRefresh": "Refresh analysis"
 }

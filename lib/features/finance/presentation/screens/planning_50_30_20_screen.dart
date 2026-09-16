@@ -1,7 +1,11 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
+import 'package:funances/features/finance/presentation/widgets/planning_503020_analysis_sheet.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
@@ -66,6 +70,11 @@ class Planning503020Screen extends ConsumerWidget {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: context.l10n.planningAnalysisAction,
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: () => _openAnalysis(context, ref),
+          ),
           LoadingButton.icon(
             const Icon(Icons.save),
             onPressed: (loading) async {
@@ -151,6 +160,49 @@ class Planning503020Screen extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  Future<void> _openAnalysis(
+    BuildContext context,
+    WidgetRef ref, {
+    bool force = false,
+  }) async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final analysis = await showLoadingModal(
+        context,
+        ref
+            .read(PlanningAnalysisDomainProviders.service)
+            .analyze(force: force),
+        child: AnalysisLoadingView(
+          title: l10n.planningAnalysisLoadingTitle,
+          description: l10n.planningAnalysisLoadingDesc,
+          firstPhaseDuration: const Duration(seconds: 45),
+          totalDuration: const Duration(minutes: 2),
+        ),
+      );
+
+      if (!context.mounted) return;
+      await showPlanning503020AnalysisSheet(
+        context,
+        analysis,
+        onRefresh: () {
+          if (context.mounted) {
+            _openAnalysis(context, ref, force: true);
+          }
+        },
+      );
+    } on FirebaseFunctionsException catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(e.message ?? l10n.planningAnalysisError)),
+      );
+    } catch (_) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.planningAnalysisError)),
+      );
+    }
   }
 
   Row _buildHeader(AppLocalizations l10n, BuildContext context, bool isMobile) {

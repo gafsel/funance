@@ -108,6 +108,11 @@ export interface IFinanceRepository {
   // Atividade recente (usado pelo coaching proativo)
   hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean>;
 
+  // Análise ideal 50-30-20 (workspaces/{wid}/planning_analysis/{yyyy-MM} —
+  // escrita apenas via Admin SDK; o cliente só lê)
+  getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<any | null>;
+  savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: any): Promise<void>;
+
   // Accounts
   getAccounts(workspaceId: string): Promise<AccountModel[]>;
 }
