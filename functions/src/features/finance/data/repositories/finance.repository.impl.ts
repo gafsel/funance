@@ -12,7 +12,7 @@ import {
     OrderType, InstallmentStatus,
 } from "../../domain/models/finance.models";
 import { IFinanceRepository } from "../../domain/repositories/finance.repository";
-import { BatchOperation, commitInChunks, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
+import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
 
 export class FinanceRepositoryImpl implements IFinanceRepository {
     private firestore = admin.firestore();
@@ -69,18 +69,24 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.getOrdersCollection(workspaceId).doc(orderId).update(order);
     }
 
+    /**
+     * O Firestore NÃO apaga subcoleções em cascata: sem isto, os documentos de
+     * `orders/{orderId}/history` ficariam órfãos e inacessíveis (as rules só
+     * permitem leitura via workspace). O trigger onOrderWritten não regrava
+     * histórico numa exclusão (só o faz quando `after` existe).
+     */
+    private async deleteOrderHistory(orderRef: admin.firestore.DocumentReference): Promise<number> {
+        const deleted = await deleteByQueryInChunks(this.firestore, orderRef.collection("history"));
+        if (deleted > 0) {
+            console.log(`deleteOrderHistory: ${deleted} registros removidos da order ${orderRef.id}.`);
+        }
+        return deleted;
+    }
+
     async deleteOrder(workspaceId: string, orderId: string): Promise<void> {
         const docRef = this.getOrdersCollection(workspaceId).doc(orderId);
 
-        // O Firestore NÃO apaga subcoleções em cascata: sem isto, os documentos
-        // de `orders/{orderId}/history` ficariam órfãos e inacessíveis (as rules
-        // só permitem leitura via workspace). O trigger onOrderWritten não
-        // regrava histórico numa exclusão (só o faz quando `after` existe).
-        const deletedHistory = await deleteByQueryInChunks(this.firestore, docRef.collection("history"));
-        if (deletedHistory > 0) {
-            console.log(`deleteOrder: ${deletedHistory} registros de history removidos da order ${orderId} (workspace ${workspaceId}).`);
-        }
-
+        await this.deleteOrderHistory(docRef);
         await docRef.delete();
     }
 
@@ -123,12 +129,34 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         // grava `accounts`) — apenas faturas e saldo inicial, criados pelo
         // servidor, o possuem. Consultamos a chave do mapa diretamente, que é
         // exatamente a semântica desejada: accounts.{accountId} IN ['debt','credit'].
+        // FieldPath (em vez de interpolar "accounts.${accountId}") evita que um
+        // id com ponto, crase ou asterisco seja interpretado como caminho.
         // Chaves de mapa entram no índice single-field automático do Firestore,
         // então esta query não exige índice composto.
         const query = this.getOrdersCollection(workspaceId)
-            .where(`accounts.${accountId}`, "in", ["debt", "credit"]);
+            .where(new admin.firestore.FieldPath("accounts", accountId), "in", ["debt", "credit"]);
 
-        const deleted = await deleteByQueryInChunks(this.firestore, query);
+        // Paginamos aqui em vez de usar deleteByQueryInChunks direto porque cada
+        // order precisa ter a subcoleção `history` apagada antes do documento.
+        let deleted = 0;
+        for (;;) {
+            const snapshot = await query.limit(DEFAULT_CHUNK_SIZE).get();
+            if (snapshot.empty) {
+                break;
+            }
+
+            for (const doc of snapshot.docs) {
+                await this.deleteOrderHistory(doc.ref);
+            }
+
+            await commitInChunks(this.firestore, snapshot.docs.map((doc) => doc.ref));
+            deleted += snapshot.size;
+
+            if (snapshot.size < DEFAULT_CHUNK_SIZE) {
+                break;
+            }
+        }
+
         console.log(`deleteOrdersByAccountId: ${deleted} orders removidas da conta ${accountId} no workspace ${workspaceId}.`);
     }
 

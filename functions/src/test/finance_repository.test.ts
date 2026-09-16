@@ -19,7 +19,15 @@ jest.mock("firebase-admin", () => {
         increment: (value: number) => ({ __increment: value }),
         serverTimestamp: () => ({ __serverTimestamp: true }),
     };
-    firestore.FieldPath = { documentId: () => "__name__" };
+    // FieldPath real o bastante para o teste inspecionar os segmentos.
+    class FakeFieldPath {
+        segments: string[];
+        constructor(...segments: string[]) {
+            this.segments = segments;
+        }
+    }
+    firestore.FieldPath = FakeFieldPath;
+    firestore.FieldPath.documentId = () => "__name__";
     return { firestore };
 });
 
@@ -27,17 +35,38 @@ import { FinanceRepositoryImpl } from "../features/finance/data/repositories/fin
 import { InstallmentStatus } from "../features/finance/domain/models/finance.models";
 
 describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
-    let whereCalls: Array<[string, string, any]>;
+    let whereCalls: Array<[any, string, any]>;
     let deletedIds: string[];
     let pages: any[][];
+    /** Documentos de history por order, consumidos página a página. */
+    let historyByOrder: Record<string, any[][]>;
+
+    /** Order com a subcoleção `history` ligada ao mock. */
+    const orderDoc = (id: string) => ({
+        ref: {
+            id,
+            collection: (name: string) => {
+                if (name !== "history") throw new Error(`subcoleção inesperada: ${name}`);
+                const historyQuery: any = {
+                    limit: () => historyQuery,
+                    async get() {
+                        const docs = (historyByOrder[id] || []).shift() || [];
+                        return { docs, empty: docs.length === 0, size: docs.length };
+                    },
+                };
+                return historyQuery;
+            },
+        },
+    });
 
     beforeEach(() => {
         whereCalls = [];
         deletedIds = [];
         pages = [];
+        historyByOrder = {};
 
         const query: any = {
-            where(field: string, operator: string, value: any) {
+            where(field: any, operator: string, value: any) {
                 whereCalls.push([field, operator, value]);
                 return query;
             },
@@ -63,7 +92,7 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
         });
     });
 
-    it("consulta a chave do mapa accounts.{accountId} com o operador 'in'", async () => {
+    it("consulta a chave do mapa via FieldPath('accounts', accountId) com o operador 'in'", async () => {
         pages = [[]];
         const repository = new FinanceRepositoryImpl();
 
@@ -73,9 +102,20 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
         expect(whereCalls).toHaveLength(1);
 
         const [field, operator, value] = whereCalls[0];
-        expect(field).toBe("accounts.acc1");
+        // FieldPath, não string interpolada: ids com ponto/crase não viram caminho.
+        expect(typeof field).not.toBe("string");
+        expect(field.segments).toEqual(["accounts", "acc1"]);
         expect(operator).toBe("in");
         expect(value).toEqual(["debt", "credit"]);
+    });
+
+    it("preserva ids de conta com ponto nos segmentos do FieldPath", async () => {
+        pages = [[]];
+        const repository = new FinanceRepositoryImpl();
+
+        await repository.deleteOrdersByAccountId("w1", "acc.1");
+
+        expect(whereCalls[0][0].segments).toEqual(["accounts", "acc.1"]);
     });
 
     it("NÃO usa o campo espelho accountIds (as orders do cliente não o possuem)", async () => {
@@ -92,7 +132,7 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
 
     it("apaga todas as orders da conta, paginando quando há mais de um lote", async () => {
         const docs = (prefix: string, count: number) =>
-            Array.from({ length: count }, (_, i) => ({ ref: { id: `${prefix}-${i}` } }));
+            Array.from({ length: count }, (_, i) => orderDoc(`${prefix}-${i}`));
 
         pages = [docs("a", 400), docs("b", 3)];
         const repository = new FinanceRepositoryImpl();
@@ -103,7 +143,28 @@ describe("FinanceRepositoryImpl.deleteOrdersByAccountId", () => {
         expect(deletedIds[0]).toBe("a-0");
         expect(deletedIds[402]).toBe("b-2");
         // Toda página usa o mesmo filtro por chave de mapa.
-        expect(whereCalls).toEqual([["accounts.acc1", "in", ["debt", "credit"]]]);
+        expect(whereCalls).toHaveLength(1);
+    });
+
+    it("apaga a subcoleção history de cada order removida", async () => {
+        pages = [[orderDoc("o1"), orderDoc("o2")]];
+        historyByOrder = {
+            o1: [[{ ref: { id: "o1-h1" } }, { ref: { id: "o1-h2" } }]],
+            o2: [[{ ref: { id: "o2-h1" } }]],
+        };
+
+        await new FinanceRepositoryImpl().deleteOrdersByAccountId("w1", "acc1");
+
+        // Histórico primeiro (subcoleções não caem em cascata), orders depois.
+        expect(deletedIds).toEqual(["o1-h1", "o1-h2", "o2-h1", "o1", "o2"]);
+    });
+
+    it("apaga as orders normalmente quando não há histórico", async () => {
+        pages = [[orderDoc("o1")]];
+
+        await new FinanceRepositoryImpl().deleteOrdersByAccountId("w1", "acc1");
+
+        expect(deletedIds).toEqual(["o1"]);
     });
 });
 
@@ -201,6 +262,7 @@ describe("FinanceRepositoryImpl.deleteOrder", () => {
         };
 
         const docRef: any = {
+            id: "o1",
             collection: (name: string) => {
                 if (name !== "history") throw new Error(`subcoleção inesperada: ${name}`);
                 return historyQuery;
