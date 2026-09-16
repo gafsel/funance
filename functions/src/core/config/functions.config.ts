@@ -27,6 +27,21 @@ export const AI_CALLABLE_OPTIONS_SHORT: CallableOptions = {
 };
 
 /**
+ * Job de reconstrução de saldos/sumários (`rebuildWorkspace`).
+ *
+ * Mesma forma de `AI_CALLABLE_OPTIONS_SHORT` (mais memória e timeout que o
+ * padrão global), mas NÃO é uma função de IA: não consome cota. O custo aqui é
+ * Firestore — a varredura do workspace inteiro e a reescrita em lotes.
+ * `maxInstances: 1` é proposital: duas reconstruções simultâneas do mesmo
+ * workspace escreveriam uma por cima da outra.
+ */
+export const REBUILD_CALLABLE_OPTIONS: CallableOptions = {
+    memory: "512MiB",
+    timeoutSeconds: 300,
+    maxInstances: 1,
+};
+
+/**
  * Cron de coaching: varre todos os workspaces com atividade recente e chama a
  * IA para cada um, por isso o timeout máximo do agendador e instância única.
  */

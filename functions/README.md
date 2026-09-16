@@ -353,3 +353,105 @@ Saída de código: `0` se não houve falhas, `1` caso contrário.
 Coberto por testes com mocks em
 `src/test/backfill_last_generated_due_date.test.ts` (dry-run, idempotência,
 escolha da última parcela, escopo por workspace e contabilização de falhas).
+
+### `rebuild_workspace.ts`
+
+Reconstrói, para **um** workspace, tudo o que hoje os gatilhos mantêm de forma
+incremental, recalculando do zero a partir de `installments` (ignorando as de
+status `removed`, que são exclusão lógica) e `category_planning`:
+
+| Coleção reconstruída | Semântica reproduzida |
+|----------------------|------------------------|
+| `accounts/{id}/balance/{YYYY-MM-DD}` | `FinanceService.applyInstallmentBalance` + `FinanceRepositoryImpl.updateAccountBalance` (saldo acumulado por dia; `credit` soma, `debt` subtrai; só parcelas pagas/liquidadas com `paidAmount` e `paidDate`) |
+| `period_summaries/{YYYY|YYYY-MM|YYYY-Www}` | `SummaryService` (`specificPlannedAmount` por `dueDate`, `actualAmount` por `paidDate` com `paidAmount ?? amount`, categorias virtuais de transferência) |
+| `weekly_xp/{YYYY-Www}` | `FinanceService.updateXpOnInstallmentChange` (soma de `calculateXp` das parcelas pagas, semanas iniciadas no domingo) |
+
+> Os **gatilhos são o oráculo**: o job não redefine regra de negócio, ele
+> reproduz o que `installment_handler`/`summary.service`/`finance.service`
+> produzem. O saldo inicial entra naturalmente, porque a order sintética
+> `initial-balance-{accountId}` gera uma parcela liquidada como qualquer outra.
+
+> ⚠️ **`generalPlannedAmount` NÃO é reconstruível e por padrão é preservado.**
+> Esse campo vem de `category_planning` através de `calculatePlanningImpacts`,
+> que só projeta da data-base para a frente (12 meses). Recalcular **zera o
+> planejado dos meses passados** e dá um resultado diferente a cada dia em que
+> o job roda (rodar um mês depois come mais um mês de histórico). Por isso o
+> rebuild lê o documento atual e **copia o `generalPlannedAmount` de cada
+> categoria** tal como está; ele só é recalculado com `--rebuild-planning`
+> (`rebuildPlanning: true`), que é destrutivo. O relatório conta à parte, por
+> coleção, quantos documentos teriam o `generalPlannedAmount` alterado
+> (`generalPlannedChanges`), para o dono saber de onde vem cada mudança.
+>
+> Consequência prática: um `generalPlannedAmount` errado **não** é corrigido
+> pelo rebuild. Para refazê-lo, reescreva o planejamento pelo app (o gatilho
+> `onCategoryPlanningWritten` recalcula) ou use a flag, com dry-run revisado.
+
+> ⚠️ **O job não é transacional.** Ele lê o workspace, calcula em memória e só
+> então commita em lotes: um pagamento feito no app entre a leitura e o commit
+> é **sobrescrito**. Rode numa janela sem uso (ou com o app parado) e refaça o
+> dry-run imediatamente antes do `--apply`.
+
+Características:
+
+- **Dry-run por padrão**: sem `--apply` nada é escrito, só o diff é impresso.
+- **Idempotente**: aplicar duas vezes seguidas não muda nada; a segunda
+  execução reporta zero diferenças.
+- **Determinístico**: dinheiro é somado em centavos inteiros e os planejamentos
+  são processados em ordem fixa de id.
+- Escritas em lotes de no máximo 400 operações (`commitInChunks`). As parcelas
+  são lidas em streaming, página a página — nenhuma lista de parcelas fica
+  retida —, mas os **agregados** (saldo por conta/dia, sumários por período e
+  XP por semana) ficam em memória e são eles que dimensionam o job.
+- **Documentos residuais** não contam como divergência: um `period_summaries`/
+  `weekly_xp` zerado (sobra de lançamento estornado/removido) ou um documento de
+  saldo em dia sem movimento cujo valor é o próprio saldo acumulado. Eles são
+  reportados à parte e só são apagados com `--prune-residual`.
+
+> ⚠️ **Conta apagada logicamente**: `onAccountUpdated` apaga as orders/parcelas
+> da conta marcada como `isDeleted`, mas não a subcoleção `balance`. Sem
+> parcelas não há como reconstruir aquele histórico, então o rebuild propõe
+> apagar os saldos remanescentes dela. Revise o dry-run antes de aplicar num
+> workspace com contas apagadas.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/rebuild_workspace.js --project=<projectId> --workspace=<workspaceId>
+
+# 2) Execução real (somente após revisar a saída do dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/rebuild_workspace.js --project=<projectId> --workspace=<workspaceId> --apply
+```
+
+| Flag                | Efeito                                                              |
+|---------------------|---------------------------------------------------------------------|
+| _(nenhuma)_         | dry-run: só relata o que mudaria                                     |
+| `--workspace=<id>`  | **obrigatória**: workspace a reconstruir                             |
+| `--apply`           | executa as escritas                                                  |
+| `--project=<id>`    | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)              |
+| `--page-size=<n>`   | tamanho da página nas leituras (default 500)                         |
+| `--chunk-size=<n>`  | operações por batch (default e máximo 400)                            |
+| `--sample-limit=<n>`| caminhos listados por coleção no relatório (default 50)               |
+| `--prune-residual`  | apaga também os documentos residuais descritos acima                 |
+| `--rebuild-planning`| **destrutivo**: recalcula o `generalPlannedAmount` (zera o passado)   |
+
+A mesma lógica está exposta no callable **`rebuildWorkspace`**
+(`src/features/finance/presentation/functions/rebuild_handler.ts`), que é
+**somente simulação**: aceita `{ workspaceId, rebuildPlanning? }` e **rejeita
+`apply`/`pruneResidual` com `invalid-argument`**. Aplicar é exclusividade do
+script operacional, que roda com service account, sob supervisão e depois de um
+dry-run revisado. É restrito ao **dono do workspace** (`members[0]`, ver
+`assertWorkspaceOwner` em `core/services/workspace_access.service.ts`) e **não
+consome cota de IA** — não há chamada ao Gemini. Usa
+`REBUILD_CALLABLE_OPTIONS` (512MiB/300s) com `maxInstances: 1`.
+
+Testes: `src/test/rebuild.test.ts` (unitários com fixtures no formato real) e
+`src/test/integration/rebuild.integration.test.ts` (emulador: cenário
+determinístico com zero diferenças, planejamento antigo já acumulado, correção
+de saldo/sumário corrompidos e teste de propriedade com 20 sequências
+aleatórias de seed fixa — criar/pagar/estornar/remover, transferências para
+conta de investimento e de dívida, `paidAmount` zerado e planejamentos —
+comparando incremental × rebuild).
