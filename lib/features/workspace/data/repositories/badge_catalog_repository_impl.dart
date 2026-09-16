@@ -22,10 +22,12 @@ class BadgeCatalogRepositoryImpl implements IBadgeCatalogRepository {
 
       return BadgeCatalog(
         version: data['version'] as String? ?? '',
+        // Uma entrada malformada é descartada, não derruba o catálogo inteiro:
+        // a vitrine com 66 badges é melhor do que a tela de erro por causa de
+        // um documento que alguém publicou torto.
         badges: [
           for (final raw in (data['badges'] as List<dynamic>? ?? const []))
-            if (raw is Map)
-              BadgeCatalogItem.fromJson(Map<String, dynamic>.from(raw)),
+            if (raw is Map) ?_tryParse(raw),
         ],
         levelThresholds: [
           for (final raw
@@ -34,5 +36,13 @@ class BadgeCatalogRepositoryImpl implements IBadgeCatalogRepository {
         ],
       );
     });
+  }
+}
+
+BadgeCatalogItem? _tryParse(Map<dynamic, dynamic> raw) {
+  try {
+    return BadgeCatalogItem.fromJson(Map<String, dynamic>.from(raw));
+  } catch (_) {
+    return null;
   }
 }
