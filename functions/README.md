@@ -383,6 +383,7 @@ Campos que o servidor mantém e o cliente Flutter lê:
 | `installment.referenceAmount`      | Valor acurado da parcela: `paidAmount ?? amount` (o cliente já calcula assim em `installment_model.dart`). |
 | `installment.replicationCascade`    | Zerado (`none`) pelo servidor assim que a cascata é consumida — pela escrita de xp num pagamento, ou por uma escrita própria no fim da cascata. **Nunca assuma o campo ausente.** |
 | `installment.paidDate`             | `null` explícito quando não paga, em toda parcela criada pelo servidor (fluxo normal e cron de recorrência). |
+| `cycleStart`/`cycleEnd`/`closingDate` | **Só em fatura** (order e parcela com `isInvoice`): a janela de compras daquela fatura, escrita pelo servidor (F1.8). Ausente em tudo que não é fatura e nas faturas anteriores ao pacote. |
 
 Atenção a um detalhe que confunde: **pagar pelo app não zera o `amount`** — o
 cliente preenche `paidAmount` e mantém o planejado (`finance_view_models.dart`).
@@ -710,11 +711,200 @@ de 31/10 contabilizado em novembro). Não há script dedicado: **o
 o dry-run, revise o diff (ele mostra `criar 2026-10` / `alterar 2026-11`, por
 exemplo) e só então aplique. Nada disso foi executado contra o projeto real.
 
+## Fatura: uma implementação, no servidor (F1.8)
+
+A regra de fatura existia **duas vezes**: em `invoice.service.ts` e numa cópia
+Dart (`lib/features/finance/domain/services/invoice_service.dart`). As duas já
+divergiam — a Dart não clampava o dia em `calculateInvoiceDueDate`, só em
+`calculateInvoiceCycleRange` —, e como o **id da order de fatura deriva da
+data** (`invoice-{accountId}-{YYYY-MM-DD}`), cliente e servidor podiam apontar
+para faturas diferentes. Com vencimento 31, o app calculava 03/03 e o servidor
+28/02: duas faturas, uma para cada lado.
+
+A cópia Dart foi **removida**. O servidor é a única fonte de vencimento,
+fechamento e janela de ciclo; o app lê.
+
+### O que mudou em `invoice.service.ts`
+
+| Antes | Agora |
+|-------|-------|
+| 8 feriados fixos, com um comentário dizendo que os móveis "exigiriam cálculo mais complexo" | os móveis saem da Páscoa (Meeus/Gauss): Carnaval (terça, −47), Sexta-feira Santa (−2), Corpus Christi (+60), memoizados por ano |
+| `getDay()`/`getDate()`/`toISOString()` — UTC no servidor | `getZonedParts`/`toDateKey` (`America/Sao_Paulo`) |
+| clamp só no VENCIMENTO | clamp no vencimento **e** no fechamento |
+| sem `calculateInvoiceCycleRange` | a janela do ciclo vive aqui |
+
+O clamp do fechamento é o que conserta fevereiro: com fechamento 31, o cartão
+fecha no dia 28 (ou 29). Antes, `refDay < closingDay` era sempre verdadeiro em
+fevereiro e a compra do dia 28 — o próprio dia do fechamento efetivo — caía na
+fatura errada.
+
+> **O feriado adia a compra, nunca o vencimento.** O dia útil seguinte é
+> aplicado à data de REFERÊNCIA da compra. Mover o vencimento mudaria o id da
+> order e o mês do ciclo (que é derivado do mês do vencimento), criando uma
+> fatura nova a cada recálculo. Uma fatura que vence em Corpus Christi continua
+> vencendo em Corpus Christi.
+
+Coberto por `src/test/invoice.test.ts` — feriados móveis de 2025 a 2027 com
+datas conhecidas, clamp nos dois lados, virada de ano, o teste de que a janela
+é o inverso do vencimento para toda compra em dia útil, e os casos de fuso
+(compra às 22h em São Paulo, que em UTC já é o dia seguinte).
+
+### `accounts/{accountId}.nextInvoice`
+
+Resumo da próxima fatura, denormalizado no documento da conta de cartão:
+
+| Campo | Tipo | Semântica |
+|-------|------|-----------|
+| `dueDate` | Timestamp | vencimento (meio-dia no fuso do produto) |
+| `closingDate` | Timestamp | fechamento que gerou esta fatura (00:00) |
+| `cycleStart` | Timestamp | primeira compra da fatura — 00:00, **inclusive** |
+| `cycleEnd` | Timestamp | última compra da fatura — 23:59:59.999, **inclusive** |
+| `amount` | number | valor em aberto; `0` quando o ciclo ainda não acumulou nada |
+| `orderId` | string | `invoice-{accountId}-{YYYY-MM-DD}` |
+| `installmentId` | string \| null | parcela da fatura, `null` enquanto ela não existe |
+| `status` | string | status da parcela (`pending` quando não existe) |
+| `updatedAt` | Timestamp | carimbo da última sincronização |
+
+A fonte é a **fatura em aberto mais próxima** (`isInvoice` + `accountIds` +
+`status: pending`, ordenada por `dueDate`) — a mesma consulta que o app fazia em
+`watchNextInvoice`, agora feita de um lado só. Uma fatura **vencida e não paga**
+continua sendo a próxima: é justamente a que o usuário precisa ver. Sem fatura
+em aberto (cartão novo, ou fatura zerada e apagada), o ciclo corrente é
+calculado e o valor vai zero, para o app ter a janela e a data certas.
+
+Quem escreve é `InvoiceSyncService`, por três caminhos:
+
+1. **`processInvoiceUpdate`**, para os cartões que o evento de fato tocou — a
+   parcela de fatura em si, ou um cartão que recebeu delta. Uma parcela pendente
+   de cartão não mexe em fatura e não custa leitura nenhuma;
+2. **`onAccountCreated`/`onAccountUpdated`**, quando `closingDay`, `dueDay` ou
+   `runtimeType` mudam, e quando a conta é apagada logicamente (aí o resumo é
+   REMOVIDO — um cartão apagado não cobra mais nada);
+3. **o cron diário `syncNextInvoices`** (03:45 de Brasília), que cobre o único
+   caso sem evento: o vencimento chega e o ciclo vira num cartão parado. Usa
+   `forEachWorkspacePaged` (checkpoint `next_invoice_sync`) e só toca em cartão
+   sem resumo ou com o vencimento já vencido.
+
+> ⚠️ **Escrever só quando MUDA é obrigatório, não otimização.** A escrita
+> acontece no documento da conta, que é exatamente o que dispara
+> `onAccountUpdated`. Sem a comparação (`isSameNextInvoice`, que ignora
+> `updatedAt`) e sem a guarda estreita no handler, o gatilho se realimentaria em
+> laço.
+
+**Convergência.** `updateInvoiceWithDelta` escreve a ORDER; a parcela da fatura
+só ganha o novo valor quando `onOrderWritten` roda. A sincronização feita logo
+depois do delta enxerga a parcela anterior — mas a escrita da parcela dispara
+`onInstallmentWritten` → `processInvoiceUpdate` de novo, e é essa passagem que
+grava o valor certo. O cron é a terceira rede. Falhar na sincronização nunca
+derruba o pagamento que disparou o gatilho.
+
+### A janela do ciclo também fica na fatura
+
+`nextInvoice` fala de UMA fatura — a próxima. A tela de detalhe abre qualquer
+uma, inclusive antigas vindas do histórico. Por isso a **order e a parcela de
+fatura** carregam `cycleStart`/`cycleEnd`/`closingDate`, escritos por
+`updateInvoiceWithDelta` e copiados para a parcela por `syncInstallments`.
+
+Efeito colateral desejado: a janela fica **congelada** no que valia quando a
+fatura nasceu. Mudar o dia de fechamento do cartão hoje não reescreve o que uma
+fatura de três meses atrás continha. É também por isso que a janela GRAVADA tem
+precedência sobre a recalculada ao montar `nextInvoice`: cabeçalho e lista de
+compras não podem divergir.
+
+### Id da order: dois formatos válidos
+
+O id canônico passou a usar `toDateKey` (dia no **fuso do produto**); o antigo
+usava `toISOString()` (dia em **UTC**). Enquanto o servidor rodou em UTC com o
+vencimento ao meio-dia os dois coincidiam, mas nem toda order da base nasceu
+assim.
+
+`resolveInvoiceOrderRef` reconhece os dois: quando os ids **diferem** e só o
+antigo existe, o delta continua sendo somado nele. Criar a order canônica ao
+lado **duplicaria** a fatura daquele mês. Quando os ids coincidem — o caso da
+base atual — não há leitura extra nenhuma.
+
+O `rebuild_workspace.ts` **não é afetado**: ele reconstrói saldo, sumário e XP a
+partir das `installments` e nunca resolve uma order de fatura por id.
+
+### Security rules
+
+`accounts.nextInvoice` é negado ao cliente no **create** (`!('nextInvoice' in
+request.resource.data)`) e no **update** (por diferença de valor, via
+`affectedKeys().hasAny`). Reenviar exatamente o que o servidor gravou é um
+no-op e passa; apagar o campo num `setDoc` que serialize a conta inteira é
+barrado. Coberto em `src/test/rules/firestore_rules.test.ts`.
+
+### Contrato com o cliente Flutter
+
+- `AccountModel.creditCard` ganhou `nextInvoice` (nullable). O app **lê**;
+  `includeToJson: false` garante que ele nunca reenvie o campo;
+- `nextInvoice` ausente significa **"ainda não sei"** — conta anterior ao
+  backfill. A lista de contas mostra *"calculando…"* no lugar do valor, e o
+  total do grupo entra em carregamento. R$ 0,00 ali seria um valor errado com
+  cara de definitivo;
+- as parcelas de fatura ganharam `cycleStart`/`cycleEnd` (nullable, somente
+  leitura). Sem eles a tela de detalhe mostra *"fatura em fechamento"* em vez de
+  listar o extrato de um intervalo chutado;
+- `watchNextInvoice` continua existindo no app, num provider usado **só para
+  navegar** até a tela de detalhe (que recebe o `InstallmentModel` inteiro).
+  Fallback temporário e documentado: o que saiu do cliente foi o CÁLCULO da
+  fatura, não a leitura. Quando a rota passar a receber só o id, ele sai.
+
+### `backfill_next_invoice.ts`
+
+Preenche `accounts/{id}.nextInvoice` nas contas de cartão existentes e a janela
+do ciclo (`cycleStart`/`cycleEnd`/`closingDate`) nas orders e parcelas de fatura
+já gravadas.
+
+- **Idempotente**: pula quem já tem os campos (`--force` recalcula).
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **Sem regra própria**: usa a mesma consulta e o mesmo `InvoiceService` do
+  caminho em tempo real.
+- Escritas em lotes de no máximo 400 operações (`commitInChunks`). Uma falha de
+  lote invalida os números daquele workspace no resumo — o log diz isso e a
+  execução seguinte refaz.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/backfill_next_invoice.js --project=<projectId>
+
+# 2) Um workspace só, para conferir o efeito
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/backfill_next_invoice.js --project=<projectId> --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/backfill_next_invoice.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+| `--force`         | recalcula também contas e faturas que já têm os campos          |
+
+Saída de código: `0` se não houve falhas, `1` caso contrário. Coberto por
+`src/test/backfill_next_invoice.test.ts`. **NÃO foi executado contra nenhum
+projeto.**
+
+### Índices
+
+Nenhum índice novo: a consulta da próxima fatura
+(`accountIds` CONTAINS + `isInvoice` + `status` + `dueDate` ASC) já existia em
+`firebase/firestore.indexes.json`, porque era a mesma que o app fazia.
+
 ## Crons de manutenção
 
 | Function                            | Agendamento               | Fuso              |
 |-------------------------------------|---------------------------|-------------------|
 | `generateRecurringInstallments`     | `30 3 * * *` (diário)     | `America/Sao_Paulo` |
+| `syncNextInvoices`                  | `45 3 * * *` (diário)     | `America/Sao_Paulo` |
 | `generateCategoryPlanningSummaries` | `0 0 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `syncWorkspaceCurrentWeek`          | `10 0 * * 0` (domingo)    | `America/Sao_Paulo` |
 | `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
@@ -779,8 +969,8 @@ minuto.
 
 ## Ordem de rollout
 
-Os pacotes F1.4/F1.5/F1.9 mudam formato de documento, consultas e ids. A ordem
-abaixo é a que evita janela quebrada — **nada disso foi executado contra o
+Os pacotes F1.4/F1.5/F1.8/F1.9 mudam formato de documento, consultas e ids. A
+ordem abaixo é a que evita janela quebrada — **nada disso foi executado contra o
 projeto real**.
 
 ```
@@ -789,8 +979,9 @@ projeto real**.
 2. functions         firebase deploy --only functions
 3. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
 4. migração          node lib/scripts/migrate_planning_summaries.js    (dry-run → --apply)
-5. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
-6. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
+5. backfill          node lib/scripts/backfill_next_invoice.js                                  (dry-run → --apply)
+6. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
+7. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
 ```
 
 **1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
@@ -804,8 +995,17 @@ gcloud firestore indexes fields list --project=funance-cef1b
 ```
 
 As rules podem ir junto: elas só **negam** campos novos ao cliente
-(`currentWeekId`, `currentWeekStart` e os quatro marcadores do planejamento), e
-o app ainda não os envia.
+(`currentWeekId`, `currentWeekStart`, os quatro marcadores do planejamento e o
+`nextInvoice` da conta), e o app ainda não os envia. F1.8 **não acrescenta
+índice**: a consulta da próxima fatura já existia, porque era a que o app
+fazia.
+
+> ⚠️ **As rules de conta e o app andam juntos.** A partir deste deploy, um
+> `setDoc` que serialize a conta inteira sem `nextInvoice` é rejeitado (apagar o
+> campo conta como alteração). O app atual usa `update` com `toJson()`, e
+> `nextInvoice` não é serializado — mas uma build antiga que reescreva o
+> documento inteiro quebraria. Se houver clientes antigos em campo, suba as
+> rules junto com a versão nova do app.
 
 **2. Depois as functions.** Elas convivem com os documentos no formato antigo
 (ver "Compatibilidade com o formato antigo"), então não há janela de indisponi-
@@ -818,13 +1018,21 @@ dos planejamentos. Ambas são idempotentes, dry-run por padrão e não mexem em
 `period_summaries`. Rodar a segunda também encerra a varredura de legados do
 cron mensal.
 
-**5. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
+**5. Backfill da fatura.** `backfill_next_invoice` preenche
+`accounts/{id}.nextInvoice` e a janela do ciclo das faturas já existentes. Pode
+rodar a qualquer momento depois do passo 2 — nada depende dele para funcionar,
+mas até ele rodar (ou até o cron das 03:45 passar) o app mostra "calculando" no
+lugar do valor da fatura e a tela de detalhe de uma fatura antiga não lista as
+compras. Ele não toca em saldo, sumário nem XP, então a ordem em relação ao
+rebuild é indiferente.
+
+**6. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
 em UTC (pagamento perto da meia-noite de Brasília), ids de semana antigos e
 saldos acumulados divergentes. `--all-workspaces` percorre a base um workspace
 de cada vez, com um relatório por workspace e um resumo final; um workspace que
 falha não interrompe os demais.
 
-**6. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
+**7. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
 único passo que reescreve o `generalPlannedAmount`. O motivo do prazo: o valor
 gravado hoje carrega a acumulação do regime antigo (aplicação repetida sem
 estorno), e **cada execução do cron mensal soma mais um mês por cima desse
@@ -857,6 +1065,7 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 | `backfill_last_generated_due_date.ts` | marca onde a série recorrente parou | aqui |
 | `migrate_balance_date_key.ts` | `dateKey`/`delta` nos saldos diários | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
 | `migrate_planning_summaries.ts` | marcadores do planejamento | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `backfill_next_invoice.ts` | `nextInvoice` nas contas de cartão e a janela do ciclo nas faturas | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
 | `rebuild_workspace.ts` | reconstrói saldos, sumários e XP | aqui |
 
 **Ordem recomendada quando este pacote for para produção**: as duas migrações
