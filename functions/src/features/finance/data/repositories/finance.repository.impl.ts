@@ -12,7 +12,12 @@ import {
     InstallmentType,
     OrderType, InstallmentStatus,
 } from "../../domain/models/finance.models";
-import { CategoryPlanningPage, CategoryPlanningRef, IFinanceRepository } from "../../domain/repositories/finance.repository";
+import {
+    CategoryPlanningPage,
+    CategoryPlanningRef,
+    CategoryPlanningScanPage,
+    IFinanceRepository,
+} from "../../domain/repositories/finance.repository";
 import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 
@@ -597,23 +602,46 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         };
     }
 
-    /** Varredura paginada por id — única forma de achar quem NÃO tem o campo. */
-    async scanCategoryPlannings(
-        pageSize: number,
-        cursor?: admin.firestore.QueryDocumentSnapshot | null
-    ): Promise<CategoryPlanningPage> {
+    /**
+     * Varredura paginada por id — única forma de achar quem NÃO tem o campo.
+     *
+     * O cursor entra e sai como CAMINHO de documento para poder ser guardado no
+     * checkpoint entre execuções do cron. Num `collectionGroup` ordenado por
+     * `documentId()` o cursor é o caminho completo, por isso ele é reconstruído
+     * como `DocumentReference`.
+     */
+    async scanCategoryPlannings(pageSize: number, afterPath?: string | null): Promise<CategoryPlanningScanPage> {
         let query: admin.firestore.Query = this.firestore.collectionGroup("category_planning")
             .orderBy(admin.firestore.FieldPath.documentId())
             .limit(pageSize);
 
-        if (cursor) query = query.startAfter(cursor);
+        if (afterPath) query = query.startAfter(this.firestore.doc(afterPath));
 
         const snapshot = await query.get();
 
         return {
             items: snapshot.docs.map((doc) => this.toCategoryPlanningRef(doc)),
-            cursor: snapshot.size < pageSize ? null : snapshot.docs[snapshot.size - 1],
+            // Página incompleta = fim da coleção; o checkpoint é zerado e a
+            // próxima execução recomeça do início.
+            nextPath: snapshot.size < pageSize ? null : snapshot.docs[snapshot.size - 1].ref.path,
         };
+    }
+
+    private getCronCheckpointsDocRef() {
+        return this.firestore.collection("config").doc("cron_checkpoints");
+    }
+
+    async getCronCheckpoint(field: string): Promise<string | null> {
+        const doc = await this.getCronCheckpointsDocRef().get();
+        const value = doc.exists ? doc.data()?.[field] : null;
+        return typeof value === "string" && value.length > 0 ? value : null;
+    }
+
+    async setCronCheckpoint(field: string, value: string | null): Promise<void> {
+        await this.getCronCheckpointsDocRef().set({
+            [field]: value,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
     }
 
     /**

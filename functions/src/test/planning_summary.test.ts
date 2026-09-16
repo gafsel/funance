@@ -8,6 +8,7 @@
 
 import {
     PLANNING_FULLY_SUMMARIZED,
+    PLANNING_LEGACY_CURSOR_FIELD,
     SummaryService,
     intersectPlanningWindow,
     planningHorizon,
@@ -44,7 +45,11 @@ interface AppliedCall {
 class FakeRepository {
     calls: AppliedCall[] = [];
     pending: any[][] = [];
-    scanned: any[][] = [];
+    /** Documentos da varredura completa, em ordem de caminho. */
+    scanDocs: any[] = [];
+    /** Cursor recebido em cada chamada da varredura (null = do início). */
+    scanCalls: Array<string | null> = [];
+    checkpoints = new Map<string, string | null>();
 
     getCategoryPlanningRef(workspaceId: string, planningId: string): any {
         return { __workspaceId: workspaceId, id: planningId };
@@ -65,11 +70,37 @@ class FakeRepository {
         return { items, cursor: index + 1 < this.pending.length ? index + 1 : null };
     }
 
-    async scanCategoryPlannings(_pageSize: number, cursor?: any): Promise<any> {
-        const index = cursor ?? 0;
-        const items = this.scanned[index] ?? [];
-        return { items, cursor: index + 1 < this.scanned.length ? index + 1 : null };
+    async scanCategoryPlannings(pageSize: number, afterPath?: string | null): Promise<any> {
+        this.scanCalls.push(afterPath ?? null);
+
+        const start = afterPath
+            ? this.scanDocs.findIndex((doc) => doc.ref.path === afterPath) + 1
+            : 0;
+        const items = this.scanDocs.slice(start, start + pageSize);
+
+        return {
+            items,
+            nextPath: items.length < pageSize ? null : items[items.length - 1].ref.path,
+        };
     }
+
+    async getCronCheckpoint(field: string): Promise<string | null> {
+        return this.checkpoints.get(field) ?? null;
+    }
+
+    async setCronCheckpoint(field: string, value: string | null): Promise<void> {
+        this.checkpoints.set(field, value);
+    }
+}
+
+/** Planejamento legado (sem marcadores) pronto para a varredura. */
+function scanDoc(id: string, overrides: Record<string, any> = {}): any {
+    return {
+        ...planning({ id, amount: 1000, startMonth: "2026-01", endMonth: "2030-12" }),
+        workspaceId: "w1",
+        ref: { id, path: `workspaces/w1/category_planning/${id}` },
+        ...overrides,
+    };
 }
 
 function buildService(): { service: SummaryService, repository: FakeRepository } {
@@ -455,11 +486,7 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
     it("adota o legado (sem summarizedUntil) sem reaplicar impacto nenhum", async () => {
         const { service, repository } = buildService();
 
-        repository.scanned = [[{
-            ...planning({ amount: 1000, startMonth: "2026-01", endMonth: "2030-12" }),
-            workspaceId: "w1",
-            ref: { id: "plan-legado" },
-        }]];
+        repository.scanDocs = [scanDoc("plan-legado")];
 
         await service.generateCategoryPlanningSummaries(NOW);
 
@@ -478,10 +505,10 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
     it("ignora na varredura quem já tem marcador", async () => {
         const { service, repository } = buildService();
 
-        repository.scanned = [[
-            { ...planning({ id: "ok" }), summarizedUntil: "2027-09", workspaceId: "w1", ref: { id: "ok" } },
-            { ...planning({ id: "concluido" }), summarizedUntil: PLANNING_FULLY_SUMMARIZED, workspaceId: "w1", ref: { id: "concluido" } },
-        ]];
+        repository.scanDocs = [
+            scanDoc("ok", { summarizedUntil: "2027-09" }),
+            scanDoc("concluido", { summarizedUntil: PLANNING_FULLY_SUMMARIZED }),
+        ];
 
         await service.generateCategoryPlanningSummaries(NOW);
 
@@ -508,6 +535,70 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
             summarizedUntil: PLANNING_FULLY_SUMMARIZED,
             appliedUntil: "2027-02",
         });
+    });
+
+    it("varre mais de uma página e zera o checkpoint ao chegar ao fim", async () => {
+        const { service, repository } = buildService();
+        repository.scanDocs = Array.from({ length: 250 }, (_, i) => scanDoc(`p${String(i).padStart(4, "0")}`));
+
+        await service.generateCategoryPlanningSummaries(NOW);
+
+        expect(repository.calls).toHaveLength(250);
+        // Três consultas: do início, depois do doc 200 e a página final vazia.
+        expect(repository.scanCalls[0]).toBeNull();
+        expect(repository.scanCalls[1]).toBe("workspaces/w1/category_planning/p0199");
+        // Coleção acabou: o checkpoint volta a null e a próxima execução
+        // recomeça do início.
+        expect(repository.checkpoints.get(PLANNING_LEGACY_CURSOR_FIELD)).toBeNull();
+    });
+
+    it("retoma do checkpoint gravado na execução anterior", async () => {
+        const { service, repository } = buildService();
+        repository.scanDocs = Array.from({ length: 10 }, (_, i) => scanDoc(`p${String(i).padStart(4, "0")}`));
+        repository.checkpoints.set(PLANNING_LEGACY_CURSOR_FIELD, "workspaces/w1/category_planning/p0006");
+
+        await service.generateCategoryPlanningSummaries(NOW);
+
+        expect(repository.scanCalls[0]).toBe("workspaces/w1/category_planning/p0006");
+        // Só os três últimos foram adotados: os sete primeiros ficaram na
+        // execução anterior.
+        expect(repository.calls.map((call) => call.planningId)).toEqual(["p0007", "p0008", "p0009"]);
+    });
+
+    it("o teto por execução conta só as ADOÇÕES e a próxima execução continua dali", async () => {
+        const { service, repository } = buildService();
+        // 2000 legados: exatamente o teto de adoções por execução.
+        repository.scanDocs = Array.from({ length: 2000 }, (_, i) => scanDoc(`p${String(i).padStart(4, "0")}`));
+
+        await service.generateCategoryPlanningSummaries(NOW);
+
+        expect(repository.calls).toHaveLength(2000);
+        const checkpoint = repository.checkpoints.get(PLANNING_LEGACY_CURSOR_FIELD);
+        expect(checkpoint).toBe("workspaces/w1/category_planning/p1999");
+
+        // Segunda execução: retoma do checkpoint, não do começo.
+        repository.calls = [];
+        repository.scanCalls = [];
+        await service.generateCategoryPlanningSummaries(NOW);
+
+        expect(repository.scanCalls[0]).toBe(checkpoint);
+        expect(repository.calls).toHaveLength(0);
+        expect(repository.checkpoints.get(PLANNING_LEGACY_CURSOR_FIELD)).toBeNull();
+    });
+
+    it("documento já marcado não consome o teto de adoções", async () => {
+        const { service, repository } = buildService();
+        // 2000 já marcados + 5 legados no fim: sem o teto contar só as
+        // adoções, os cinco do fim nunca seriam alcançados.
+        repository.scanDocs = [
+            ...Array.from({ length: 2000 }, (_, i) => scanDoc(`a${String(i).padStart(4, "0")}`, { summarizedUntil: "2027-09" })),
+            ...Array.from({ length: 5 }, (_, i) => scanDoc(`b${i}`)),
+        ];
+
+        await service.generateCategoryPlanningSummaries(NOW);
+
+        expect(repository.calls.map((call) => call.planningId)).toEqual(["b0", "b1", "b2", "b3", "b4"]);
+        expect(repository.checkpoints.get(PLANNING_LEGACY_CURSOR_FIELD)).toBeNull();
     });
 
     it("mês a mês, doze execuções aplicam doze meses novos — nunca dois", async () => {

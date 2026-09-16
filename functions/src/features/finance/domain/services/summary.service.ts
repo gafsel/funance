@@ -20,7 +20,7 @@ import {
     shiftMonthKey,
     toMonthKey,
 } from "../../../../core/utils/month_key";
-import { addCalendarDays, localMidnightInstant } from "../../../../core/utils/timezone.utils";
+import { addCalendarDays, getZonedParts, localMidnightInstant } from "../../../../core/utils/timezone.utils";
 import {
     CategoryModel,
     VIRTUAL_DEBT_EXPENSE_CATEGORY,
@@ -36,9 +36,25 @@ import { WeekRef, getWeekNumber, getWeekRef, getWeekStart, getWeekYear } from ".
  */
 export const PLANNING_FULLY_SUMMARIZED = "9999-12";
 
-/** Página do cron e teto da varredura de legados por execução. */
+/** Página do cron. */
 const PLANNING_PAGE_SIZE = 200;
-const PLANNING_LEGACY_SCAN_LIMIT = 2000;
+
+/**
+ * Tetos da varredura de legados POR EXECUÇÃO. O que não couber continua na
+ * execução seguinte, a partir do checkpoint — e não do começo da coleção.
+ *
+ *  - adoções: são as ESCRITAS, e é o que o teto precisa limitar de fato;
+ *  - leituras: teto separado, para o cron não varrer a base inteira quando
+ *    quase todo mundo já está marcado.
+ */
+const PLANNING_LEGACY_ADOPT_LIMIT = 2000;
+const PLANNING_LEGACY_READ_LIMIT = 10000;
+
+/**
+ * Campo do checkpoint em `config/cron_checkpoints`: caminho do último
+ * planejamento inspecionado pela varredura de legados.
+ */
+export const PLANNING_LEGACY_CURSOR_FIELD = "planningLegacyScanPath";
 
 /** Intervalo fechado de meses `YYYY-MM`. */
 export interface PlanningWindow {
@@ -244,7 +260,9 @@ export class SummaryService {
      *     limite global), e aplica SÓ os meses ainda não sumarizados;
      *  2. varre os legados (sem o campo) e os ADOTA — grava os marcadores sem
      *     reaplicar impacto nenhum, porque o gatilho antigo já os aplicou.
-     *     Reaplicar aqui dobraria o planejado de toda a base.
+     *     Reaplicar aqui dobraria o planejado de toda a base. A varredura tem
+     *     teto por execução e guarda onde parou em `config/cron_checkpoints`,
+     *     retomando dali na execução seguinte.
      */
     async generateCategoryPlanningSummaries(now: Date = new Date()): Promise<void> {
         const currentMonth = toMonthKey(now);
@@ -263,14 +281,19 @@ export class SummaryService {
             cursor = page.cursor;
         }
 
-        let scanned = 0;
+        // Varredura de legados: retoma do checkpoint da execução anterior. Sem
+        // isso a varredura recomeçava do início do grupo de coleções todo mês e
+        // nada além dos primeiros documentos era adotado.
+        let afterPath = await this.financeRepository.getCronCheckpoint(PLANNING_LEGACY_CURSOR_FIELD);
+        const resumedFrom = afterPath;
+        let inspected = 0;
         let adopted = 0;
-        cursor = null;
 
         for (;;) {
-            const page = await this.financeRepository.scanCategoryPlannings(PLANNING_PAGE_SIZE, cursor);
+            const page = await this.financeRepository.scanCategoryPlannings(PLANNING_PAGE_SIZE, afterPath);
+
             for (const planning of page.items) {
-                scanned++;
+                inspected++;
                 const hasMarks = isMonthKey(planning.summarizedUntil) ||
                     planning.summarizedUntil === PLANNING_FULLY_SUMMARIZED;
                 if (hasMarks) continue;
@@ -278,16 +301,22 @@ export class SummaryService {
                 await this.adoptLegacyPlanning(planning, currentMonth, horizon);
                 adopted++;
             }
-            if (!page.cursor || scanned >= PLANNING_LEGACY_SCAN_LIMIT) {
-                if (page.cursor) {
-                    console.warn(`[generateCategoryPlanningSummaries] Varredura de legados interrompida em ${scanned} documentos; o restante entra na próxima execução (ou rode migrate_planning_summaries).`);
-                }
+
+            afterPath = page.nextPath;
+
+            // Fim da coleção: o checkpoint é zerado e a próxima execução
+            // recomeça do início (já não haverá mais legados a adotar).
+            if (!afterPath) break;
+
+            if (adopted >= PLANNING_LEGACY_ADOPT_LIMIT || inspected >= PLANNING_LEGACY_READ_LIMIT) {
+                console.warn(`[generateCategoryPlanningSummaries] Varredura de legados interrompida após ${inspected} documento(s) (${adopted} adotado(s)); a próxima execução retoma de ${afterPath}. Rode migrate_planning_summaries para encerrar de vez.`);
                 break;
             }
-            cursor = page.cursor;
         }
 
-        console.log(`[generateCategoryPlanningSummaries] horizonte=${horizon}: ${advanced} planejamento(s) avançado(s), ${adopted} legado(s) adotado(s) em ${scanned} inspecionado(s).`);
+        await this.financeRepository.setCronCheckpoint(PLANNING_LEGACY_CURSOR_FIELD, afterPath);
+
+        console.log(`[generateCategoryPlanningSummaries] horizonte=${horizon}: ${advanced} planejamento(s) avançado(s), ${adopted} legado(s) adotado(s) em ${inspected} inspecionado(s) (varredura de ${resumedFrom ?? "o início"} até ${afterPath ?? "o fim"}).`);
     }
 
     /** Aplica os meses que faltam entre `summarizedUntil + 1` e o horizonte. */
@@ -381,8 +410,8 @@ export class SummaryService {
 
         if (!category) return;
 
-        const year = inst.dueDate.getFullYear();
-        const month = inst.dueDate.getMonth() + 1;
+        // Mês e ano no FUSO DO PRODUTO, igual ao dia (`toDateKey`) e à semana.
+        const { year, month } = getZonedParts(inst.dueDate);
 
         // Month
         await this.financeRepository.updatePeriodSummary(workspaceId, year, month, category, {
@@ -416,8 +445,9 @@ export class SummaryService {
 
         if (!category) return;
 
-        const year = inst.paidDate.getFullYear();
-        const month = inst.paidDate.getMonth() + 1;
+        // Mês e ano no FUSO DO PRODUTO: um pagamento às 23h30 de 31/10 em São
+        // Paulo é 01/11 em UTC e ia parar no sumário de novembro.
+        const { year, month } = getZonedParts(inst.paidDate);
 
         // Month
         await this.financeRepository.updatePeriodSummary(workspaceId, year, month, category, {

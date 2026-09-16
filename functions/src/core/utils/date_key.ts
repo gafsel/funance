@@ -14,6 +14,20 @@
 
 import { PRODUCT_TIME_ZONE, getZonedParts, localMidnightInstant } from "./timezone.utils";
 
+/**
+ * Ponto único de entrada da "data do produto": além do dia (`toDateKey`),
+ * reexporta o MÊS (`toMonthKey`, de `month_key.ts`) e os componentes de
+ * calendário (`getZonedParts`, de `timezone.utils.ts`).
+ *
+ * Existe porque dia, mês, semana e ano precisam ser o MESMO fuso: enquanto o
+ * dia e a semana já eram `America/Sao_Paulo` e o mês do sumário ainda vinha de
+ * `getFullYear()/getMonth()` (UTC no servidor), um pagamento às 23h30 de 31/10
+ * caía no dia certo e no mês errado.
+ */
+export { getZonedParts } from "./timezone.utils";
+export type { ZonedParts } from "./timezone.utils";
+export { toMonthKey, monthKeyParts } from "./month_key";
+
 const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 const pad2 = (value: number) => String(value).padStart(2, "0");

@@ -22,6 +22,18 @@ export interface CategoryPlanningPage {
     cursor: admin.firestore.QueryDocumentSnapshot | null;
 }
 
+/**
+ * Página da varredura completa. O cursor é o CAMINHO do último documento lido
+ * (`workspaces/{wid}/category_planning/{id}`), e não um snapshot, porque ele
+ * precisa sobreviver ao fim da execução: o cron guarda esse caminho num
+ * checkpoint e retoma dali no mês seguinte. `nextPath: null` significa que a
+ * coleção acabou.
+ */
+export interface CategoryPlanningScanPage {
+    items: CategoryPlanningRef[];
+    nextPath: string | null;
+}
+
 export interface IFinanceRepository {
   // Orders
   createOrder(workspaceId: string, order: Omit<OrderModel, "id">, id?: string): Promise<string>;
@@ -85,8 +97,8 @@ export interface IFinanceRepository {
    */
   scanCategoryPlannings(
     pageSize: number,
-    cursor?: admin.firestore.QueryDocumentSnapshot | null
-  ): Promise<CategoryPlanningPage>;
+    afterPath?: string | null
+  ): Promise<CategoryPlanningScanPage>;
   /**
    * Aplica os deltas de `generalPlannedAmount` nos sumários (agrupados por
    * documento, um `increment` por categoria) e, por último, grava os
@@ -99,6 +111,13 @@ export interface IFinanceRepository {
   ): Promise<void>;
   /** Referência do documento de planejamento (para montar `marks`). */
   getCategoryPlanningRef(workspaceId: string, planningId: string): admin.firestore.DocumentReference;
+
+  // Checkpoints de cron (`config/cron_checkpoints`) — coleção raiz, negada ao
+  // cliente pela regra final `match /{document=**}`.
+  /** Valor do checkpoint, ou `null` se nunca foi gravado. */
+  getCronCheckpoint(field: string): Promise<string | null>;
+  /** Grava (ou apaga, com `null`) o checkpoint. */
+  setCronCheckpoint(field: string, value: string | null): Promise<void>;
 
   // Period Summaries
   updatePeriodSummary(

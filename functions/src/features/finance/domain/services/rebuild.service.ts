@@ -34,7 +34,7 @@
  * passados — é a correção pretendida, mas aparece como diferença no dry-run.
  */
 
-import { toDateKey } from "../../../../core/utils/date_key";
+import { getZonedParts, toDateKey } from "../../../../core/utils/date_key";
 import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
@@ -379,8 +379,8 @@ export class RebuildAccumulator {
         field: "specificCents" | "actualCents",
         cents: number
     ): void {
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
+        // Mês e ano no FUSO DO PRODUTO, como o gatilho (`SummaryService`).
+        const { year, month } = getZonedParts(date);
 
         this.categoryBucket(year, month, undefined, category)[field] += cents;
         this.categoryBucket(year, undefined, undefined, category)[field] += cents;
