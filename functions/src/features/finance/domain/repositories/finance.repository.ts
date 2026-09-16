@@ -1,3 +1,4 @@
+import * as admin from "firebase-admin";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
     OrderModel,
@@ -21,7 +22,15 @@ export interface IFinanceRepository {
   createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void>;
 
   // Installments
-  createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void>;
+  /**
+   * Único ponto de criação de parcela. Com `transaction`, as escritas entram na
+   * transação do chamador (usado pelo cron de recorrência) em vez de um batch.
+   */
+  createInstallments(
+    workspaceId: string,
+    installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[],
+    transaction?: admin.firestore.Transaction
+  ): Promise<void>;
   updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;
   deleteInstallment(workspaceId: string, installmentId: string): Promise<void>;
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;

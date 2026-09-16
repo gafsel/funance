@@ -911,11 +911,31 @@ export class FinanceService {
         }
     }
 
+    /**
+     * Parcelas que faltam gerar para uma order recorrente, do mês seguinte ao
+     * último vencimento já gerado até o horizonte de previsibilidade.
+     *
+     * NÃO muta `order`: o `setHours` antigo escrevia dentro de
+     * `order.lastGeneratedDueDate`, e o mesmo objeto é reaproveitado pelo
+     * repositório na hora de gravar o novo `lastGeneratedDueDate`.
+     */
     private createInstallmentsForOrder(
         order: OrderModel,
         thresholdDate: Date
     ): Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[] {
-        const lastGenerated = order.lastGeneratedDueDate || new Date(); // Fallback de segurança
+        // Sem `lastGeneratedDueDate` não há como saber onde a série parou:
+        // assumir "hoje" (o fallback antigo) inventava parcelas a partir do mês
+        // corrente, duplicando ou furando a série. A query do repositório já
+        // exclui estas orders (o Firestore não casa documentos sem o campo);
+        // esta guarda cobre qualquer outro caminho de chamada.
+        // Use scripts/backfill_last_generated_due_date.ts para preencher a base
+        // legada.
+        if (!order.lastGeneratedDueDate) {
+            logger.warn(`[generateRecurringInstallments] Order ${order.id} é recorrente e não tem lastGeneratedDueDate: nada será gerado.`);
+            return [];
+        }
+
+        const lastGenerated = new Date(order.lastGeneratedDueDate);
         lastGenerated.setHours(12, 0, 0, 0);
 
         let currentYear = lastGenerated.getFullYear();
@@ -945,6 +965,8 @@ export class FinanceService {
             const day = Math.min(order.dueDay, lastDayOfMonth);
             const dueDate = new Date(currentYear, currentMonth, day, 12);
 
+            // Mesmos campos que `syncInstallments` monta para a criação normal
+            // — as parcelas do cron não podem ter um schema próprio.
             expectedInstallments.push({
                 orderId: order.id,
                 amount: order.amount,
@@ -954,8 +976,9 @@ export class FinanceService {
                 type: order.type,
                 installmentType: order.installmentType,
                 accounts: order.accounts,
-                accountIds: order.accountIds,
+                accountIds: Object.keys(order.accounts || {}),
                 category: order.category,
+                isInvoice: order.isInvoice,
             });
         }
 
