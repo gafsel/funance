@@ -92,7 +92,10 @@ class _CategorySelectionStep extends ConsumerWidget {
       appBar: AppBar(title: Text(l10n.transactionWizardSelectCategory)),
       body: categoriesAsync.when(
         data: (categories) {
-          final filtered = categories.where((c) => c.type == type.categoryType).toList();
+          // Categorias de sistema e excluídas não são escolhíveis no wizard.
+          final filtered = categories
+              .where((c) => c.type == type.categoryType && c.isSelectable)
+              .toList();
 
           return summariesAsync.when(
             data: (summaries) {

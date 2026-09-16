@@ -25,7 +25,8 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
     try {
       final categories = await categoryService.getCategories().first;
       final filteredCategories = categories.where((c) {
-        return type == c.type;
+        // Não faz sentido planejar categoria de sistema ou já excluída.
+        return type == c.type && c.isSelectable;
       }).toList();
 
       final currentMonth = DateTime.now().formated("yyyy-MM");

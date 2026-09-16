@@ -37,6 +37,12 @@ sealed class CategoryModel with _$CategoryModel {
     required String color, // Hex color string
     @Default(CategoryType.expense) CategoryType type,
     @Default(CategoryAllocation.comfort) CategoryAllocation allocation,
+    // Categoria criada e mantida pelo backend (ex.: saldo inicial). O usuário
+    // não escolhe nem edita; ela só aparece em relatórios/extrato.
+    @Default(false) bool isSystem,
+    // Exclusão lógica feita pelo backend: some dos seletores, mas continua
+    // resolvível por id para nomear lançamentos antigos.
+    @Default(false) bool isDeleted,
   }) = _CategoryModel;
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) =>
@@ -52,4 +58,8 @@ sealed class CategoryModel with _$CategoryModel {
       id == virtualDebtIncomeId ||
       id == virtualInvestmentExpenseId ||
       id == virtualInvestmentIncomeId;
+
+  /// Categoria que o usuário pode escolher ou editar num seletor da UI.
+  /// Categorias de sistema e excluídas logicamente ficam de fora.
+  bool get isSelectable => !isSystem && !isDeleted;
 }

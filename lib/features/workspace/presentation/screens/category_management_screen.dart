@@ -132,10 +132,15 @@ class _CategoryList extends ConsumerWidget {
 
     return categoriesAsync.when(
       data: (rawCategories) {
+        // A gestão só lista o que o usuário pode manter: categorias de
+        // sistema e excluídas logicamente ficam fora.
         final categories =
-            [...rawCategories].where((c) => c.type == type).toList()..sort(
-              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-            );
+            [...rawCategories]
+                .where((c) => c.type == type && c.isSelectable)
+                .toList()
+              ..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              );
 
         return categories.isEmpty
             ? Center(child: Text(l10n.categoryManagementEmpty))

@@ -21,6 +21,8 @@ _CategoryModel _$CategoryModelFromJson(Map<String, dynamic> json) =>
             json['allocation'],
           ) ??
           CategoryAllocation.comfort,
+      isSystem: json['isSystem'] as bool? ?? false,
+      isDeleted: json['isDeleted'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$CategoryModelToJson(_CategoryModel instance) =>
@@ -31,6 +33,8 @@ Map<String, dynamic> _$CategoryModelToJson(_CategoryModel instance) =>
       'color': instance.color,
       'type': _$CategoryTypeEnumMap[instance.type]!,
       'allocation': _$CategoryAllocationEnumMap[instance.allocation]!,
+      'isSystem': instance.isSystem,
+      'isDeleted': instance.isDeleted,
     };
 
 const _$CategoryTypeEnumMap = {

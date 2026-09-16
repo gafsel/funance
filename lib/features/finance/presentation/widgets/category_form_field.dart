@@ -222,7 +222,11 @@ class CategoryFormField extends ConsumerWidget {
     return CategoryPickerSheet.show(
       context,
       categoryType: categoryType,
+      // `emptyMeansAll` marca o uso como filtro de extrato/relatório: ali as
+      // categorias virtuais e de sistema precisam aparecer para o usuário
+      // conseguir filtrar lançamentos que já existem nelas.
       excludeVirtual: !emptyMeansAll,
+      excludeSystem: !emptyMeansAll,
       showAddOption: showNewOption,
     );
   }
