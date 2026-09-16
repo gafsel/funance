@@ -42,6 +42,35 @@ As funções de IA sobrescrevem esses padrões com os presets de
 porém `maxInstances` baixo, já que cada instância simultânea é uma chamada paga
 ao Gemini.
 
+## SDK do Gemini e modelos
+
+O backend usa o SDK **`@google/genai`** (o pacote atual do Google). O anterior,
+`@google/generative-ai`, está descontinuado e foi removido. Diferenças que
+aparecem no código e nos mocks de teste:
+
+| `@google/generative-ai` (removido)            | `@google/genai` (atual)                      |
+|-----------------------------------------------|----------------------------------------------|
+| `new GoogleGenerativeAI(apiKey)`              | `new GoogleGenAI({ apiKey })`                |
+| `getGenerativeModel({model, generationConfig})` + `model.generateContent(req)` | `ai.models.generateContent({model, contents, config})` |
+| `(await result.response).text()` (método)     | `result.text` (**getter**, pode ser `undefined`) |
+| `SchemaType.OBJECT`                           | `Type.OBJECT`                                |
+| `ResponseSchema`                              | `Schema`                                     |
+
+Os modelos padrão são **versões pinadas** (`src/core/config/ai.config.ts`):
+`gemini-2.5-flash` para tudo, `gemini-2.5-pro` para análise de documento. Alias
+rolante (`-latest`) foi abandonado de propósito: ele troca o modelo por baixo do
+código, mudando resposta, custo e latência sem nenhum deploy.
+
+O override por `config/ai.models.*` continua valendo, mas passa por
+`sanitizeModel` (`ai.service.ts`), que remapeia para o modelo pinado
+equivalente: nomes inválidos, a família aposentada `gemini-1.5-*` (responde 404)
+e qualquer alias `*-latest`. Para trocar de modelo sem deploy, use um nome
+pinado (ex.: `gemini-2.5-pro`).
+
+Quando o modelo primário responde 503/429/500, `generateResilient` tenta de novo
+e depois cai para `gemini-2.5-flash` → `gemini-2.5-flash-lite`. O `ai_log`
+registra o modelo que **de fato** respondeu.
+
 ## Quotas de IA
 
 `src/core/services/quota.service.ts` aplica um limite diário por workspace em

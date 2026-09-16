@@ -52,34 +52,33 @@ jest.mock("firebase-admin", () => {
 // ofx-js é ESM e não passa pelo transform do ts-jest; nenhum teste aqui usa OFX.
 jest.mock("ofx-js", () => ({ parse: async () => ({}) }));
 
-jest.mock("@google/generative-ai", () => ({
-    SchemaType: {
-        OBJECT: "object",
-        ARRAY: "array",
-        STRING: "string",
-        NUMBER: "number",
-        BOOLEAN: "boolean",
+jest.mock("@google/genai", () => ({
+    Type: {
+        OBJECT: "OBJECT",
+        ARRAY: "ARRAY",
+        STRING: "STRING",
+        NUMBER: "NUMBER",
+        INTEGER: "INTEGER",
+        BOOLEAN: "BOOLEAN",
     },
-    GoogleGenerativeAI: class {
-        getGenerativeModel(params: any) {
-            return {
-                generateContent: async () => {
-                    mockGemini.modelsTried.push(params.model);
-                    if (mockGemini.failingModels.includes(params.model)) {
-                        throw Object.assign(new Error(`${params.model} indisponível`), { status: 503 });
-                    }
-                    if (mockGemini.error) {
-                        throw mockGemini.error;
-                    }
-                    return {
-                        response: {
-                            text: () => mockGemini.text,
-                            usageMetadata: mockGemini.usageMetadata,
-                        },
-                    };
-                },
-            };
-        }
+    // SDK novo: `ai.models.generateContent({model, contents, config})` e
+    // `response.text` como GETTER (antes era `response.text()`).
+    GoogleGenAI: class {
+        models = {
+            generateContent: async (params: any) => {
+                mockGemini.modelsTried.push(params.model);
+                if (mockGemini.failingModels.includes(params.model)) {
+                    throw Object.assign(new Error(`${params.model} indisponível`), { status: 503 });
+                }
+                if (mockGemini.error) {
+                    throw mockGemini.error;
+                }
+                return {
+                    text: mockGemini.text,
+                    usageMetadata: mockGemini.usageMetadata,
+                };
+            },
+        };
     },
 }));
 
@@ -140,7 +139,7 @@ describe("logAiCall", () => {
 
         const doc = mockFs.added[0].data;
         expect(doc.functionName).toBe("category_group_classification");
-        expect(doc.model).toBe("gemini-flash-latest");
+        expect(doc.model).toBe("gemini-2.5-flash");
         expect(doc.status).toBe("ok");
         expect(doc.latencyMs).toBeGreaterThanOrEqual(0);
         expect(doc.promptSha256).toMatch(/^[0-9a-f]{64}$/);
@@ -186,29 +185,29 @@ describe("logAiCall", () => {
     });
 
     it("loga o modelo que de fato respondeu quando há fallback", async () => {
-        // O primário (gemini-flash-latest) responde 503 nas 2 tentativas;
-        // o primeiro fallback (gemini-2.5-flash) responde.
-        mockGemini.failingModels = ["gemini-flash-latest"];
+        // O primário (gemini-2.5-flash, pinado) responde 503 nas 2 tentativas;
+        // o fallback (gemini-2.5-flash-lite) responde.
+        mockGemini.failingModels = ["gemini-2.5-flash"];
 
         await loadRepository().classifyCategoryGroups("w1", CATEGORIES);
 
         expect(mockGemini.modelsTried).toEqual([
-            "gemini-flash-latest",
-            "gemini-flash-latest",
             "gemini-2.5-flash",
+            "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
         ]);
         expect(mockFs.added).toHaveLength(1);
-        expect(mockFs.added[0].data.model).toBe("gemini-2.5-flash");
+        expect(mockFs.added[0].data.model).toBe("gemini-2.5-flash-lite");
         expect(mockFs.added[0].data.status).toBe("ok");
     });
 
     it("no erro final, loga o modelo primário e o código do último erro", async () => {
-        mockGemini.failingModels = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+        mockGemini.failingModels = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 
         await expect(loadRepository().classifyCategoryGroups("w1", CATEGORIES)).rejects.toThrow(/indispon/);
 
         expect(mockFs.added).toHaveLength(1);
-        expect(mockFs.added[0].data.model).toBe("gemini-flash-latest");
+        expect(mockFs.added[0].data.model).toBe("gemini-2.5-flash");
         expect(mockFs.added[0].data.status).toBe("erro");
         expect(mockFs.added[0].data.errorCode).toBe("503");
     });

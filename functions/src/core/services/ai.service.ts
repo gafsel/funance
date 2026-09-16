@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI, ResponseSchema, SchemaType } from "@google/generative-ai";
+import { GenerateContentConfig, GenerateContentResponse, GoogleGenAI, Schema, Type } from "@google/genai";
 import { defineString } from "firebase-functions/params";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
+import { AIConfig, DEFAULT_CONFIG, PINNED_FLASH_MODEL, PINNED_PRO_MODEL } from "../config/ai.config";
 import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../features/finance/domain/models/finance.models";
 import * as ofx from "ofx-js";
 import * as crypto from "crypto";
@@ -38,30 +38,30 @@ interface AiLogEntry {
 }
 
 // Schema estruturado da resposta de coaching (força JSON válido no Gemini)
-const COACHING_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const COACHING_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
-        message: { type: SchemaType.STRING },
-        summary: { type: SchemaType.STRING },
-        type: { type: SchemaType.STRING, format: "enum", enum: ["insight", "warning", "tip"] },
+        message: { type: Type.STRING },
+        summary: { type: Type.STRING },
+        type: { type: Type.STRING, format: "enum", enum: ["insight", "warning", "tip"] },
         slides: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    title: { type: SchemaType.STRING },
-                    message: { type: SchemaType.STRING },
-                    icon: { type: SchemaType.STRING },
-                    icons: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                    color: { type: SchemaType.STRING },
-                    secondaryColor: { type: SchemaType.STRING },
+                    title: { type: Type.STRING },
+                    message: { type: Type.STRING },
+                    icon: { type: Type.STRING },
+                    icons: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    color: { type: Type.STRING },
+                    secondaryColor: { type: Type.STRING },
                     animationType: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: ["zoom", "slide", "bounce", "fade", "pulse"],
                     },
-                    actionLabel: { type: SchemaType.STRING, nullable: true },
-                    actionPath: { type: SchemaType.STRING, nullable: true },
+                    actionLabel: { type: Type.STRING, nullable: true },
+                    actionPath: { type: Type.STRING, nullable: true },
                 },
                 required: ["title", "message", "icon", "color"],
             },
@@ -71,17 +71,17 @@ const COACHING_RESPONSE_SCHEMA: ResponseSchema = {
 };
 
 // Schema estruturado da classificação de categorias em grupos macro
-const CATEGORY_GROUPS_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const CATEGORY_GROUPS_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
         assignments: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    id: { type: SchemaType.STRING },
+                    id: { type: Type.STRING },
                     group: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: [
                             "housing", "groceries", "dining_out", "transport", "health_pharmacy",
@@ -99,55 +99,55 @@ const CATEGORY_GROUPS_RESPONSE_SCHEMA: ResponseSchema = {
 };
 
 // Schema estruturado da resposta de viabilidade de meta
-const GOAL_FEASIBILITY_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const GOAL_FEASIBILITY_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
-        status: { type: SchemaType.STRING, format: "enum", enum: ["feasible", "challenging", "unrealistic"] },
-        reason: { type: SchemaType.STRING },
-        suggestion: { type: SchemaType.STRING },
+        status: { type: Type.STRING, format: "enum", enum: ["feasible", "challenging", "unrealistic"] },
+        reason: { type: Type.STRING },
+        suggestion: { type: Type.STRING },
     },
     required: ["status", "reason", "suggestion"],
 };
 
 // Schema estruturado da análise ideal 50-30-20 (força JSON válido no Gemini)
-const PLANNING_503020_RESPONSE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
+const PLANNING_503020_RESPONSE_SCHEMA: Schema = {
+    type: Type.OBJECT,
     properties: {
-        summary: { type: SchemaType.STRING },
+        summary: { type: Type.STRING },
         groups: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
                     allocation: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: ["essential", "comfort", "investment"],
                     },
-                    currentPct: { type: SchemaType.NUMBER },
-                    targetPct: { type: SchemaType.NUMBER },
-                    deltaBRL: { type: SchemaType.NUMBER },
+                    currentPct: { type: Type.NUMBER },
+                    targetPct: { type: Type.NUMBER },
+                    deltaBRL: { type: Type.NUMBER },
                 },
                 required: ["allocation", "currentPct", "targetPct", "deltaBRL"],
             },
         },
         categories: {
-            type: SchemaType.ARRAY,
+            type: Type.ARRAY,
             items: {
-                type: SchemaType.OBJECT,
+                type: Type.OBJECT,
                 properties: {
-                    categoryId: { type: SchemaType.STRING },
-                    idealMonthlyAmount: { type: SchemaType.NUMBER },
-                    idealPctOfIncome: { type: SchemaType.NUMBER },
-                    status: { type: SchemaType.STRING, format: "enum", enum: ["ok", "above", "below"] },
+                    categoryId: { type: Type.STRING },
+                    idealMonthlyAmount: { type: Type.NUMBER },
+                    idealPctOfIncome: { type: Type.NUMBER },
+                    status: { type: Type.STRING, format: "enum", enum: ["ok", "above", "below"] },
                     suggestedAllocation: {
-                        type: SchemaType.STRING,
+                        type: Type.STRING,
                         format: "enum",
                         enum: ["essential", "comfort", "investment"],
                     },
-                    shouldReclassify: { type: SchemaType.BOOLEAN },
-                    reason: { type: SchemaType.STRING },
-                    savingTip: { type: SchemaType.STRING, nullable: true },
+                    shouldReclassify: { type: Type.BOOLEAN },
+                    reason: { type: Type.STRING },
+                    savingTip: { type: Type.STRING, nullable: true },
                 },
                 required: [
                     "categoryId", "idealMonthlyAmount", "idealPctOfIncome", "status",
@@ -155,7 +155,7 @@ const PLANNING_503020_RESPONSE_SCHEMA: ResponseSchema = {
                 ],
             },
         },
-        insights: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+        insights: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
     required: ["summary", "groups", "categories", "insights"],
 };
@@ -262,16 +262,26 @@ export interface IAIRepository {
     ): Promise<any>;
 }
 
+/**
+ * Par (modelo, config) de uma chamada ao Gemini no SDK `@google/genai`.
+ * Substitui o `getGenerativeModel({model, generationConfig})` do SDK legado:
+ * modelo e configuração agora viajam no mesmo objeto de `generateContent`.
+ */
+interface GenerateParams {
+    model: string;
+    config?: GenerateContentConfig;
+}
+
 export class GeminiAIRepositoryImpl implements IAIRepository {
-    private genAI: GoogleGenerativeAI;
+    private genAI: GoogleGenAI;
 
     // Modelos estáveis usados quando o primário falha por indisponibilidade
-    // (503 "high demand" no alias -latest, 404 de modelo aposentado etc.).
+    // (503 "high demand", 404 de modelo aposentado etc.).
     private static readonly FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
     private static readonly RETRYABLE_STATUS = [429, 500, 503];
 
     constructor() {
-        this.genAI = new GoogleGenerativeAI(geminiApiKey.value());
+        this.genAI = new GoogleGenAI({ apiKey: geminiApiKey.value() });
     }
 
     /**
@@ -281,9 +291,9 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
      * metadados registrar quando houve fallback.
      */
     private async generateResilient(
-        params: Parameters<GoogleGenerativeAI["getGenerativeModel"]>[0],
-        request: any
-    ): Promise<{ result: any; modelUsed: string }> {
+        params: GenerateParams,
+        contents: any
+    ): Promise<{ result: GenerateContentResponse; modelUsed: string }> {
         const candidates = [
             params.model,
             ...GeminiAIRepositoryImpl.FALLBACK_MODELS.filter((m) => m !== params.model),
@@ -296,11 +306,11 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const attempts = c === 0 ? 2 : 1;
             for (let attempt = 0; attempt < attempts; attempt++) {
                 try {
-                    const model = this.genAI.getGenerativeModel({
-                        ...params,
+                    const result = await this.genAI.models.generateContent({
                         model: modelName,
+                        contents,
+                        config: params.config,
                     });
-                    const result = await model.generateContent(request);
                     return { result, modelUsed: modelName };
                 }
                 catch (error: any) {
@@ -330,16 +340,16 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
     private async generateWithLogging(
         workspaceId: string,
         functionName: string,
-        params: Parameters<GoogleGenerativeAI["getGenerativeModel"]>[0],
-        request: any,
+        params: GenerateParams,
+        contents: any,
         prompt: string,
         debugExtra?: Record<string, any>
     ): Promise<string> {
         const startedAt = Date.now();
         try {
-            const { result, modelUsed } = await this.generateResilient(params, request);
-            const response = await result.response;
-            const text = response.text();
+            const { result, modelUsed } = await this.generateResilient(params, contents);
+            // No SDK novo `text` é um getter (antes era `response.text()`).
+            const text = result.text ?? "";
 
             await this.logAiCall({
                 workspaceId,
@@ -349,7 +359,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
                 prompt,
                 status: "ok",
                 responseText: text,
-                usage: response?.usageMetadata,
+                usage: result.usageMetadata,
                 debugExtra,
             });
 
@@ -434,6 +444,34 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         }
     }
 
+    /**
+     * Normaliza o nome de modelo vindo do override em `config/ai`.
+     *
+     * Três casos, todos terminando numa versão PINADA (F5.6):
+     * - nome vazio/inválido (não é string, ou tem caractere fora de
+     *   [A-Za-z0-9._-]): cai no padrão do código;
+     * - família `gemini-1.5-*`: aposentada pelo Google, responde 404 — o
+     *   override antigo quebraria todas as features de IA;
+     * - alias rolante (`*-latest`): muda de modelo sem deploy, que é
+     *   exatamente o que o pinning existe para evitar.
+     *
+     * Um override para um modelo pinado válido (ex.: `gemini-2.5-pro`)
+     * continua valendo — é assim que se troca de modelo sem deploy.
+     */
+    private sanitizeModel(name: unknown, fallback: string): string {
+        if (typeof name !== "string" || !/^[A-Za-z0-9._-]{1,64}$/.test(name)) {
+            return fallback;
+        }
+        const isPro = name.includes("pro");
+        if (name.startsWith("gemini-1.5")) {
+            return isPro ? PINNED_PRO_MODEL : PINNED_FLASH_MODEL;
+        }
+        if (name.endsWith("-latest")) {
+            return isPro ? PINNED_PRO_MODEL : PINNED_FLASH_MODEL;
+        }
+        return name;
+    }
+
     private async getConfig(): Promise<AIConfig> {
         if (configCache && (Date.now() - configCache.fetchedAt) < CONFIG_CACHE_TTL_MS) {
             return configCache.config;
@@ -443,26 +481,18 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const doc = await admin.firestore().collection("config").doc("ai").get();
             if (doc.exists) {
                 const data = doc.data() as any;
-                // A família gemini-1.5-* foi aposentada (404). Se o override
-                // do Firestore ainda apontar para ela, remapeia para o alias
-                // rolante equivalente em vez de quebrar todas as features de IA.
-                const sanitizeModel = (name: string | undefined, fallback: string): string => {
-                    const model = name || fallback;
-                    if (!model.startsWith("gemini-1.5")) return model;
-                    return model.includes("pro") ? "gemini-pro-latest" : "gemini-flash-latest";
-                };
 
                 const config: AIConfig = {
                     debugLogging: data?.debugLogging === true,
                     models: {
-                        goals: sanitizeModel(data?.models?.goals, DEFAULT_CONFIG.models.goals),
-                        document: sanitizeModel(data?.models?.document, DEFAULT_CONFIG.models.document),
-                        coaching: sanitizeModel(data?.models?.coaching, DEFAULT_CONFIG.models.coaching),
-                        automaticTransaction: sanitizeModel(data?.models?.automaticTransaction, DEFAULT_CONFIG.models.automaticTransaction),
-                        weeklyMissions: sanitizeModel(data?.models?.weeklyMissions, DEFAULT_CONFIG.models.weeklyMissions),
-                        goalFeasibility: sanitizeModel(data?.models?.goalFeasibility, DEFAULT_CONFIG.models.goalFeasibility),
-                        categoryGroups: sanitizeModel(data?.models?.categoryGroups, DEFAULT_CONFIG.models.categoryGroups),
-                        planning503020: sanitizeModel(data?.models?.planning503020, DEFAULT_CONFIG.models.planning503020),
+                        goals: this.sanitizeModel(data?.models?.goals, DEFAULT_CONFIG.models.goals),
+                        document: this.sanitizeModel(data?.models?.document, DEFAULT_CONFIG.models.document),
+                        coaching: this.sanitizeModel(data?.models?.coaching, DEFAULT_CONFIG.models.coaching),
+                        automaticTransaction: this.sanitizeModel(data?.models?.automaticTransaction, DEFAULT_CONFIG.models.automaticTransaction),
+                        weeklyMissions: this.sanitizeModel(data?.models?.weeklyMissions, DEFAULT_CONFIG.models.weeklyMissions),
+                        goalFeasibility: this.sanitizeModel(data?.models?.goalFeasibility, DEFAULT_CONFIG.models.goalFeasibility),
+                        categoryGroups: this.sanitizeModel(data?.models?.categoryGroups, DEFAULT_CONFIG.models.categoryGroups),
+                        planning503020: this.sanitizeModel(data?.models?.planning503020, DEFAULT_CONFIG.models.planning503020),
                     },
                     prompts: {
                         goals: data?.prompts?.goals || DEFAULT_CONFIG.prompts.goals,
@@ -772,7 +802,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "coaching_analysis",
             {
                 model: config.models.coaching,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: COACHING_RESPONSE_SCHEMA,
                 },
@@ -839,7 +869,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "category_group_classification",
             {
                 model: config.models.categoryGroups,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: CATEGORY_GROUPS_RESPONSE_SCHEMA,
                     temperature: 0,
@@ -874,7 +904,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "planning_503020_ideal_analysis",
             {
                 model: config.models.planning503020,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: PLANNING_503020_RESPONSE_SCHEMA,
                 },
@@ -909,7 +939,7 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             "goal_feasibility_analysis",
             {
                 model: config.models.goalFeasibility,
-                generationConfig: {
+                config: {
                     responseMimeType: "application/json",
                     responseSchema: GOAL_FEASIBILITY_RESPONSE_SCHEMA,
                 },

@@ -29,21 +29,32 @@ export interface AIConfig {
   };
 }
 
+/**
+ * Modelos pinados usados como padrão e como destino da sanitização de nomes
+ * aposentados/rolantes. Trocar de geração é uma alteração de código
+ * deliberada, não um efeito colateral de um alias do Google.
+ */
+export const PINNED_FLASH_MODEL = "gemini-2.5-flash";
+export const PINNED_PRO_MODEL = "gemini-2.5-pro";
+
 export const DEFAULT_CONFIG: AIConfig = {
     // Logs de IA sem PII por padrão: só metadados (ver ai.service.ts#logAiCall).
     debugLogging: false,
-    // Aliases rolantes ("-latest") em vez de versões pinadas: a família
-    // gemini-1.5-* foi aposentada pelo Google e passou a responder 404.
-    // Modelos específicos podem ser pinados via Firestore config/ai.
+    // Versões PINADAS (F5.6). Aliases rolantes ("-latest") mudam de modelo sob
+    // os nossos pés: o mesmo prompt passa a responder outra coisa sem nenhum
+    // deploy, e o custo/latência mudam junto. Aqui o modelo só muda por commit
+    // ou por override explícito em `config/ai`.
+    // A sanitização em ai.service.ts#getConfig remapeia nomes aposentados
+    // (família gemini-1.5-*) e aliases rolantes para estes valores.
     models: {
-        goals: "gemini-flash-latest",
-        document: "gemini-pro-latest",
-        coaching: "gemini-flash-latest",
-        automaticTransaction: "gemini-flash-latest",
-        weeklyMissions: "gemini-flash-latest",
-        goalFeasibility: "gemini-flash-latest",
-        categoryGroups: "gemini-flash-latest",
-        planning503020: "gemini-flash-latest",
+        goals: PINNED_FLASH_MODEL,
+        document: PINNED_PRO_MODEL,
+        coaching: PINNED_FLASH_MODEL,
+        automaticTransaction: PINNED_FLASH_MODEL,
+        weeklyMissions: PINNED_FLASH_MODEL,
+        goalFeasibility: PINNED_FLASH_MODEL,
+        categoryGroups: PINNED_FLASH_MODEL,
+        planning503020: PINNED_FLASH_MODEL,
     },
     prompts: {
         goals: `
