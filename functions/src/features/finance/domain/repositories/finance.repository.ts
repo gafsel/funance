@@ -24,14 +24,19 @@ export interface IFinanceRepository {
   createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void>;
   updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void>;
   deleteInstallment(workspaceId: string, installmentId: string): Promise<void>;
-  getInstallmentById(workspaceId: string, installmentId: string): Promise<InstallmentModel | null>;
   getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]>;
+  /** Apaga todas as parcelas da order, em lotes (usado quando a order deixa de existir). */
   deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void>;
-  getInstallments(workspaceId: string, filters: { 
-    accountId?: string, 
-    startDate?: Date, 
-    endDate?: Date, 
-    status?: InstallmentStatus[] 
+  /**
+   * Parcelas do workspace. Por padrão EXCLUI as de status 'removed'
+   * (exclusão lógica); passe `includeRemoved: true` para trazê-las.
+   */
+  getInstallments(workspaceId: string, filters: {
+    accountId?: string,
+    startDate?: Date,
+    endDate?: Date,
+    status?: InstallmentStatus[],
+    includeRemoved?: boolean
   }): Promise<InstallmentModel[]>;
   getOrdersByRecurringNextGenerationGroup(dateThreshold: Date, limit: number): Promise<(OrderModel & { workspaceId: string })[]>;
   processRecurringInstallmentsChunk(
@@ -40,10 +45,6 @@ export interface IFinanceRepository {
   ): Promise<void>;
 
   // Category Planning
-  getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null>;
-  createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string>;
-  updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void>;
-  deleteCategoryPlanning(workspaceId: string, id: string): Promise<void>;
   deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void>;
   getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
   getCategoryPlanningsByLastSummaryMonthGroup(nowStr: string, limit: number): Promise<(CategoryPlanningModel & { workspaceId: string, ref: any })[]>;

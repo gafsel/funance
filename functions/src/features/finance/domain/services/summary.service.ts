@@ -185,9 +185,6 @@ export class SummaryService {
             // Se a regra é "origem => receita", e estamos numa categoria "virtual", 
             // precisamos decidir como o PeriodSummary armazena isso.
             // Normalmente PeriodSummaryCategoryModel tem actualAmount.
-            if (virtualData.type === "income") {
-                // amount = -amount; // Removido: agora usamos categorias separadas para income/expense
-            }
         }
 
         if (!category) return;
@@ -223,9 +220,6 @@ export class SummaryService {
             const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);
             if (!virtualData) return;
             category = virtualData.category;
-            if (virtualData.type === "income") {
-                // amount = -amount; // Removido: agora usamos categorias separadas para income/expense
-            }
         }
 
         if (!category) return;

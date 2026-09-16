@@ -12,6 +12,7 @@ import {
     OrderType, InstallmentStatus,
 } from "../../domain/models/finance.models";
 import { IFinanceRepository } from "../../domain/repositories/finance.repository";
+import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
 
 export class FinanceRepositoryImpl implements IFinanceRepository {
     private firestore = admin.firestore();
@@ -68,8 +69,25 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.getOrdersCollection(workspaceId).doc(orderId).update(order);
     }
 
+    /**
+     * O Firestore NÃO apaga subcoleções em cascata: sem isto, os documentos de
+     * `orders/{orderId}/history` ficariam órfãos e inacessíveis (as rules só
+     * permitem leitura via workspace). O trigger onOrderWritten não regrava
+     * histórico numa exclusão (só o faz quando `after` existe).
+     */
+    private async deleteOrderHistory(orderRef: admin.firestore.DocumentReference): Promise<number> {
+        const deleted = await deleteByQueryInChunks(this.firestore, orderRef.collection("history"));
+        if (deleted > 0) {
+            console.log(`deleteOrderHistory: ${deleted} registros removidos da order ${orderRef.id}.`);
+        }
+        return deleted;
+    }
+
     async deleteOrder(workspaceId: string, orderId: string): Promise<void> {
-        await this.getOrdersCollection(workspaceId).doc(orderId).delete();
+        const docRef = this.getOrdersCollection(workspaceId).doc(orderId);
+
+        await this.deleteOrderHistory(docRef);
+        await docRef.delete();
     }
 
     async getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]> {
@@ -105,39 +123,68 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async deleteOrdersByAccountId(workspaceId: string, accountId: string): Promise<void> {
-        const ordersCollection = this.getOrdersCollection(workspaceId);
+        // `accounts` é um MAPA {accountId: 'debt'|'credit'}, portanto
+        // "array-contains" nunca casa. E o campo espelho `accountIds` NÃO serve
+        // para orders: o cliente Flutter não o serializa (order_model.g.dart só
+        // grava `accounts`) — apenas faturas e saldo inicial, criados pelo
+        // servidor, o possuem. Consultamos a chave do mapa diretamente, que é
+        // exatamente a semântica desejada: accounts.{accountId} IN ['debt','credit'].
+        // FieldPath (em vez de interpolar "accounts.${accountId}") evita que um
+        // id com ponto, crase ou asterisco seja interpretado como caminho.
+        // Chaves de mapa entram no índice single-field automático do Firestore,
+        // então esta query não exige índice composto.
+        const query = this.getOrdersCollection(workspaceId)
+            .where(new admin.firestore.FieldPath("accounts", accountId), "in", ["debt", "credit"]);
 
-        const snapshot = await ordersCollection.where("accounts", "array-contains", accountId).get();
-        const batch = this.firestore.batch();
+        // Paginamos aqui em vez de usar deleteByQueryInChunks direto porque cada
+        // order precisa ter a subcoleção `history` apagada antes do documento.
+        let deleted = 0;
+        for (;;) {
+            const snapshot = await query.limit(DEFAULT_CHUNK_SIZE).get();
+            if (snapshot.empty) {
+                break;
+            }
 
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
+            for (const doc of snapshot.docs) {
+                await this.deleteOrderHistory(doc.ref);
+            }
 
-        await batch.commit();
+            await commitInChunks(this.firestore, snapshot.docs.map((doc) => doc.ref));
+            deleted += snapshot.size;
+
+            if (snapshot.size < DEFAULT_CHUNK_SIZE) {
+                break;
+            }
+        }
+
+        console.log(`deleteOrdersByAccountId: ${deleted} orders removidas da conta ${accountId} no workspace ${workspaceId}.`);
     }
 
     async createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void> {
-        const batch = this.firestore.batch();
         const collection = this.getInstallmentsCollection(workspaceId);
 
-        installments.forEach((installment) => {
-            const docRef = collection.doc();
+        // Uma order parcelada pode ter até 1200 parcelas (limite das rules):
+        // sem chunking o batch estoura o limite de 500 e nada é criado.
+        const operations: BatchOperation[] = installments.map((installment) => {
             const referenceDate = installment.paidDate || installment.dueDate;
             const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null
                 ? installment.paidAmount
                 : installment.amount;
 
-            batch.set(docRef, {
-                ...installment,
-                dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
-                paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
-                referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
-                referenceAmount: referenceAmount,
-            });
+            return {
+                op: "set",
+                ref: collection.doc(),
+                data: {
+                    ...installment,
+                    dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
+                    paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
+                    referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
+                    referenceAmount: referenceAmount,
+                },
+            };
         });
 
-        await batch.commit();
+        await commitInChunks(this.firestore, operations);
     }
 
     async updateInstallment(workspaceId: string, installmentId: string, installment: Partial<InstallmentModel>): Promise<void> {
@@ -185,22 +232,14 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.getInstallmentsCollection(workspaceId).doc(installmentId).delete();
     }
 
-    async getInstallmentById(workspaceId: string, installmentId: string): Promise<InstallmentModel | null> {
-        const doc = await this.getInstallmentsCollection(workspaceId).doc(installmentId).get();
-        if (!doc.exists) return null;
-        const data = doc.data() as any;
-        const dueDate = data.dueDate.toDate();
-        dueDate.setHours(12, 0, 0, 0);
+    async deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void> {
+        const query = this.getInstallmentsCollection(workspaceId)
+            .where("orderId", "==", orderId);
 
-        const paidDate = data.paidDate?.toDate();
-        if (paidDate) paidDate.setHours(12, 0, 0, 0);
-
-        return {
-            id: doc.id,
-            ...data,
-            dueDate: dueDate,
-            paidDate: paidDate,
-        } as InstallmentModel;
+        const deleted = await deleteByQueryInChunks(this.firestore, query);
+        if (deleted > 0) {
+            console.log(`deleteInstallmentsByOrderId: ${deleted} parcelas removidas da order ${orderId} (workspace ${workspaceId}).`);
+        }
     }
 
     async getInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<InstallmentModel[]> {
@@ -225,23 +264,12 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         });
     }
 
-    async deleteInstallmentsByOrderId(workspaceId: string, orderId: string): Promise<void> {
-        const snapshot = await this.getInstallmentsCollection(workspaceId)
-            .where("orderId", "==", orderId)
-            .get();
-
-        const batch = this.firestore.batch();
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
-    }
-
     async getInstallments(workspaceId: string, filters: {
         accountId?: string,
         startDate?: Date,
         endDate?: Date,
-        status?: InstallmentStatus[]
+        status?: InstallmentStatus[],
+        includeRemoved?: boolean
     }): Promise<InstallmentModel[]> {
         let query: admin.firestore.Query = this.getInstallmentsCollection(workspaceId);
 
@@ -258,7 +286,26 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         }
 
         if (filters.status && filters.status.length > 0) {
-            query = query.where("status", "in", filters.status);
+            const status = filters.includeRemoved
+                ? filters.status
+                : filters.status.filter((s) => s !== InstallmentStatus.removed);
+
+            // Filtro explícito que só pedia 'removed' com includeRemoved=false:
+            // nada pode ser retornado (um `in` vazio é inválido no Firestore).
+            if (status.length === 0) {
+                return [];
+            }
+
+            query = query.where("status", "in", status);
+        }
+        else if (!filters.includeRemoved) {
+            // Parcelas 'removed' são exclusões lógicas: por padrão nunca entram
+            // em relatórios/agregações. Use includeRemoved para incluí-las.
+            query = query.where("status", "in", [
+                InstallmentStatus.pending,
+                InstallmentStatus.paid,
+                InstallmentStatus.settled,
+            ]);
         }
 
         const snapshot = await query.get();
@@ -281,26 +328,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 paidDate: paidDate,
                 referenceDate: referenceDate,
             } as InstallmentModel;
-        });
-    }
-
-    async getOrdersByRecurringNextGeneration(workspaceId: string, dateThreshold: Date): Promise<OrderModel[]> {
-        const snapshot = await this.getOrdersCollection(workspaceId)
-            .where("installmentType", "==", "recurring")
-            .where("status", "==", "active")
-            .where("lastGeneratedDueDate", "<", dateThreshold)
-            .get();
-
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            const lastGeneratedDueDate = data.lastGeneratedDueDate?.toDate();
-            if (lastGeneratedDueDate) lastGeneratedDueDate.setHours(12, 0, 0, 0);
-
-            return {
-                id: doc.id,
-                ...data,
-                lastGeneratedDueDate: lastGeneratedDueDate,
-            } as OrderModel;
         });
     }
 
@@ -359,37 +386,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         });
     }
 
-    async getCategoryPlanningById(workspaceId: string, id: string): Promise<CategoryPlanningModel | null> {
-        const doc = await this.getCategoryPlanningCollection(workspaceId).doc(id).get();
-        if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() } as CategoryPlanningModel;
-    }
-
-    async createCategoryPlanning(workspaceId: string, planning: Omit<CategoryPlanningModel, "id">): Promise<string> {
-        const docRef = await this.getCategoryPlanningCollection(workspaceId).add(planning);
-        return docRef.id;
-    }
-
-    async updateCategoryPlanning(workspaceId: string, id: string, planning: Partial<CategoryPlanningModel>): Promise<void> {
-        await this.getCategoryPlanningCollection(workspaceId).doc(id).update(planning);
-    }
-
-    async deleteCategoryPlanning(workspaceId: string, id: string): Promise<void> {
-        await this.getCategoryPlanningCollection(workspaceId).doc(id).delete();
-    }
-
     async deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void> {
-        const snapshot = await this.getCategoryPlanningCollection(workspaceId)
-            .where("category.id", "==", categoryId)
-            .get();
+        const query = this.getCategoryPlanningCollection(workspaceId)
+            .where("category.id", "==", categoryId);
 
-        if (snapshot.empty) return;
-
-        const batch = this.firestore.batch();
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
-        await batch.commit();
+        await deleteByQueryInChunks(this.firestore, query);
     }
 
     async getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]> {
@@ -611,31 +612,33 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async updateOrderCategory(workspaceId: string, category: CategoryModel) {
-        const db = admin.firestore();
-        const ordersSnapshot = await db.collection("workspaces").doc(workspaceId)
-            .collection("orders").where("category.id", "==", category.id).get();
+        const snapshot = await this.getOrdersCollection(workspaceId)
+            .where("category.id", "==", category.id)
+            .get();
 
-        if (ordersSnapshot.empty) return;
+        if (snapshot.empty) return;
 
-        const batch = db.batch();
-        ordersSnapshot.docs.forEach((doc) => {
-            batch.update(doc.ref, { category: category });
-        });
-        await batch.commit();
+        const operations: BatchOperation[] = snapshot.docs.map((doc) => ({
+            op: "update",
+            ref: doc.ref,
+            data: { category: category },
+        }));
+        await commitInChunks(this.firestore, operations);
     }
 
     async updateInstallmentCategory(workspaceId: string, category: CategoryModel) {
-        const db = admin.firestore();
-        const ordersSnapshot = await db.collection("workspaces").doc(workspaceId)
-            .collection("installments").where("category.id", "==", category.id).get();
+        const snapshot = await this.getInstallmentsCollection(workspaceId)
+            .where("category.id", "==", category.id)
+            .get();
 
-        if (ordersSnapshot.empty) return;
+        if (snapshot.empty) return;
 
-        const batch = db.batch();
-        ordersSnapshot.docs.forEach((doc) => {
-            batch.update(doc.ref, { category: category });
-        });
-        await batch.commit();
+        const operations: BatchOperation[] = snapshot.docs.map((doc) => ({
+            op: "update",
+            ref: doc.ref,
+            data: { category: category },
+        }));
+        await commitInChunks(this.firestore, operations);
     }
 
     async updateInvoiceWithDelta(

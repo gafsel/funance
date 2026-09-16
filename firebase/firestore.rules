@@ -89,7 +89,10 @@ service cloud.firestore {
             && data.dueDay is int && data.dueDay >= 1 && data.dueDay <= 31
             && isStr(data.startMonth, 10)
             && data.installmentType in ['single', 'installment', 'recurring']
-            && data.status in ['active', 'cancelled']
+            // 'settled' é usado pelas orders de saldo inicial criadas pelo
+            // servidor (finance.service.syncInitialBalance) e já existe em dados
+            // de produção — sem ele, qualquer update do cliente nessas orders é negado.
+            && data.status in ['active', 'cancelled', 'settled']
             && data.type in ['expense', 'income', 'transfer']
             && isOptInt(data, 'installmentCount', 1, 1200)
             && (!('isInvoice' in data) || data.isInvoice is bool)
@@ -167,7 +170,9 @@ service cloud.firestore {
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }
 
-      // Categories: Membros podem ler e escrever (delete é usado pelo app)
+      // Categories: Membros podem ler e escrever (delete é usado pelo app),
+      // exceto categorias de sistema (isSystem == true), que são criadas e
+      // mantidas apenas pelas Cloud Functions (Admin SDK).
       match /categories/{categoryId} {
 
         function validCategory(data) {
@@ -175,12 +180,27 @@ service cloud.firestore {
             && isStr(data.icon, 100)
             && isStr(data.color, 50)
             && data.type in ['income', 'expense']
-            && data.allocation in ['essential', 'comfort', 'investment'];
+            && data.allocation in ['essential', 'comfort', 'investment']
+            && (!('isSystem' in data) || data.isSystem is bool)
+            && (!('isDeleted' in data) || data.isDeleted is bool);
+        }
+
+        // Contrato com o cliente: isSystem é booleano e ausente == false.
+        function isNotSystem(data) {
+          return !('isSystem' in data) || data.isSystem == false;
         }
 
         allow read: if isMember(workspaceId);
-        allow create, update: if isMember(workspaceId) && validCategory(request.resource.data);
-        allow delete: if isMember(workspaceId);
+        // O cliente nunca pode marcar uma categoria como de sistema...
+        allow create: if isMember(workspaceId)
+          && validCategory(request.resource.data)
+          && isNotSystem(request.resource.data);
+        // ...nem editar/apagar uma categoria de sistema já existente.
+        allow update: if isMember(workspaceId)
+          && validCategory(request.resource.data)
+          && isNotSystem(request.resource.data)
+          && isNotSystem(resource.data);
+        allow delete: if isMember(workspaceId) && isNotSystem(resource.data);
       }
 
       // Planning: Membros podem ler e escrever (delete é usado pelo app).

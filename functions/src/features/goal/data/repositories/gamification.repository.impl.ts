@@ -1,13 +1,8 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import { IGamificationRepository } from "../../domain/repositories/gamification.repository";
-
-export function calculateLevel(xp: number): number {
-    if (xp <= 0) {
-        return 1;
-    }
-    return Math.floor(Math.log2(xp / 300 + 1)) + 1;
-}
+import { IGamificationRepository, PeriodSummaryRow } from "../../domain/repositories/gamification.repository";
+import { calculateLevel } from "../../domain/services/gamification.service";
+import { isSystemCategory } from "../../../workspace/domain/models/category.model";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
     async getWorkspaceById(workspaceId: string): Promise<any | null> {
@@ -126,8 +121,13 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
     }
 
     async getCategoryPlannings(workspaceId: string): Promise<any[]> {
+        // A coleção real é `category_planning` (singular) — é o nome usado pelo
+        // cliente, pelo category_planning_handler, pelas rules e pelos índices.
+        // Enquanto isto lia `category_plannings`, os badges planner,
+        // golden_rule, first_planning e planning_month nunca disparavam e a
+        // missão semanal de consistência sempre via zero planejamentos.
         const snapshot = await admin.firestore()
-            .collection(`workspaces/${workspaceId}/category_plannings`)
+            .collection(`workspaces/${workspaceId}/category_planning`)
             .get();
         return snapshot.docs.map((doc) => {
             return doc.data();
@@ -203,17 +203,6 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             .update(data);
     }
 
-    async getInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<any[]> {
-        const snapshot = await admin.firestore()
-            .collection(`workspaces/${workspaceId}/installments`)
-            .where("dueDate", ">=", start)
-            .where("dueDate", "<=", end)
-            .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
-    }
-
     async getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/weekly_missions`)
@@ -231,15 +220,59 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             .update({ weeklyStreaks: streaks });
     }
 
-    async getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<any[]> {
-        const snapshot = await admin.firestore()
-            .collection(`workspaces/${workspaceId}/period_summaries`)
-            .where("year", "==", year)
-            .where("month", "==", month)
-            .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+    async getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<PeriodSummaryRow[]> {
+        // O documento de period_summary tem a forma
+        // {year, month, week, categories: {categoryId: {generalPlannedAmount,
+        // specificPlannedAmount, actualAmount}}, runtimeType} — há um único
+        // documento por mês. Antes devolvíamos o documento inteiro e o serviço
+        // lia `summary.actualAmount`/`summary.category.type`, sempre undefined.
+        // Aqui achatamos em uma linha por categoria, com join em `categories`
+        // para recuperar `type` e `allocation`.
+        const firestore = admin.firestore();
+
+        const [snapshot, categoriesSnapshot] = await Promise.all([
+            firestore
+                .collection(`workspaces/${workspaceId}/period_summaries`)
+                .where("year", "==", year)
+                .where("month", "==", month)
+                .get(),
+            firestore.collection(`workspaces/${workspaceId}/categories`).get(),
+        ]);
+
+        const categoriesById = new Map<string, any>();
+        for (const doc of categoriesSnapshot.docs) {
+            const data = doc.data();
+            if (data.isDeleted === true) {
+                // Categorias excluídas não entram nas checagens de badge.
+                continue;
+            }
+            categoriesById.set(doc.id, data);
+        }
+
+        const rows: PeriodSummaryRow[] = [];
+        for (const doc of snapshot.docs) {
+            const categories = doc.data().categories || {};
+            for (const [categoryId, raw] of Object.entries<any>(categories)) {
+                const category = categoriesById.get(categoryId);
+                if (!category) {
+                    // Sem o documento da categoria não há como classificar a
+                    // linha (income/expense, allocation): ignoramos.
+                    continue;
+                }
+
+                rows.push({
+                    categoryId,
+                    type: category.type,
+                    allocation: category.allocation,
+                    isSystem: isSystemCategory(categoryId, category),
+                    actualAmount: raw?.actualAmount || 0,
+                    generalPlannedAmount: raw?.generalPlannedAmount || 0,
+                    specificPlannedAmount: raw?.specificPlannedAmount || 0,
+                });
+            }
+        }
+
+        return rows;
     }
 
     async getCategoriesCount(workspaceId: string): Promise<number> {
