@@ -214,3 +214,72 @@ Saída de código: `0` se não houve falhas, `1` caso contrário.
 A lógica do script é coberta por testes com mocks em
 `src/test/migrate_system_categories.test.ts` (dry-run, idempotência, escopo por
 workspace e contabilização de falhas).
+
+### `rebuild_workspace.ts`
+
+Reconstrói, para **um** workspace, tudo o que hoje os gatilhos mantêm de forma
+incremental, recalculando do zero a partir de `installments` (ignorando as de
+status `removed`, que são exclusão lógica) e `category_planning`:
+
+| Coleção reconstruída | Semântica reproduzida |
+|----------------------|------------------------|
+| `accounts/{id}/balance/{YYYY-MM-DD}` | `FinanceService.applyInstallmentBalance` + `FinanceRepositoryImpl.updateAccountBalance` (saldo acumulado por dia; `credit` soma, `debt` subtrai; só parcelas pagas/liquidadas com `paidAmount` e `paidDate`) |
+| `period_summaries/{YYYY|YYYY-MM|YYYY-Www}` | `SummaryService` (`specificPlannedAmount` por `dueDate`, `actualAmount` por `paidDate` com `paidAmount ?? amount`, categorias virtuais de transferência e `generalPlannedAmount` vindo de `category_planning`) |
+| `weekly_xp/{YYYY-Www}` | `FinanceService.updateXpOnInstallmentChange` (soma de `calculateXp` das parcelas pagas, semanas iniciadas no domingo) |
+
+> Os **gatilhos são o oráculo**: o job não redefine regra de negócio, ele
+> reproduz o que `installment_handler`/`summary.service`/`finance.service`
+> produzem. O saldo inicial entra naturalmente, porque a order sintética
+> `initial-balance-{accountId}` gera uma parcela liquidada como qualquer outra.
+
+Características:
+
+- **Dry-run por padrão**: sem `--apply` nada é escrito, só o diff é impresso.
+- **Idempotente**: aplicar duas vezes seguidas não muda nada; a segunda
+  execução reporta zero diferenças.
+- **Determinístico**: dinheiro é somado em centavos inteiros e os planejamentos
+  são processados em ordem fixa de id.
+- Escritas em lotes de no máximo 400 operações (`commitInChunks`); leituras
+  paginadas (o workspace inteiro nunca fica em memória).
+- **Documentos residuais** não contam como divergência: um `period_summaries`/
+  `weekly_xp` zerado (sobra de lançamento estornado/removido) ou um documento de
+  saldo em dia sem movimento cujo valor é o próprio saldo acumulado. Eles são
+  reportados à parte e só são apagados com `--prune-residual`.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/rebuild_workspace.js --project=<projectId> --workspace=<workspaceId>
+
+# 2) Execução real (somente após revisar a saída do dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/rebuild_workspace.js --project=<projectId> --workspace=<workspaceId> --apply
+```
+
+| Flag                | Efeito                                                              |
+|---------------------|---------------------------------------------------------------------|
+| _(nenhuma)_         | dry-run: só relata o que mudaria                                     |
+| `--workspace=<id>`  | **obrigatória**: workspace a reconstruir                             |
+| `--apply`           | executa as escritas                                                  |
+| `--project=<id>`    | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)              |
+| `--page-size=<n>`   | tamanho da página nas leituras (default 500)                         |
+| `--chunk-size=<n>`  | operações por batch (default 400, máximo 500)                        |
+| `--prune-residual`  | apaga também os documentos residuais descritos acima                 |
+
+A mesma lógica está exposta no callable **`rebuildWorkspace`**
+(`src/features/finance/presentation/functions/rebuild_handler.ts`):
+`{ workspaceId, apply?, pruneResidual? }`, dry-run por padrão, restrito ao
+**dono do workspace** (`members[0]`, ver `assertWorkspaceOwner` em
+`core/services/workspace_access.service.ts`) e **sem cota de IA** — não há
+chamada ao Gemini. Usa `REBUILD_CALLABLE_OPTIONS` (512MiB/300s) com
+`maxInstances: 1`, para que duas reconstruções não escrevam uma por cima da
+outra.
+
+Testes: `src/test/rebuild.test.ts` (unitários com fixtures no formato real) e
+`src/test/integration/rebuild.integration.test.ts` (emulador: cenário
+determinístico com zero diferenças, correção de saldo/sumário corrompidos e
+teste de propriedade com 20 sequências aleatórias de seed fixa comparando
+incremental × rebuild).
