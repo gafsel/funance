@@ -20,20 +20,22 @@ export const analysePlanning = onCall(AI_CALLABLE_OPTIONS, async (request) => {
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
 
-    // Sem cache server-side: a cota é consumida já aqui. O estorno em
-    // falha de infraestrutura mantém a simetria com coaching/50-30-20.
+    // A cota não é CONSUMIDA aqui: o serviço tem cache por hash da entrada
+    // (F5.6) e só gasta cota quando realmente chama a IA — o mesmo padrão de
+    // generateCoaching/analyze503020Ideal. A pré-checagem somente-leitura fica
+    // aqui para não montar contexto nenhum com a cota já esgotada.
     const quota = container.quotaService.guardFor(
         workspaceId, "analysePlanning", AI_DAILY_QUOTAS.analysePlanning
     );
-    await quota.consume();
+    await quota.check();
 
     try {
-        const suggestions = await container.onboardingService.analyzePlanning(workspaceId);
+        const suggestions = await container.onboardingService.analyzePlanning(workspaceId, quota);
         return suggestions;
     }
     catch (error: any) {
-        if (isTransientAiError(error)) {
-            await quota.refund();
+        if (error instanceof HttpsError) {
+            throw error;
         }
         console.error("Erro na análise da IA:", error);
         throw new HttpsError("internal", error.message || "Erro ao processar análise de IA.");
@@ -139,20 +141,20 @@ export const analyzeGoalFeasibility = onCall(AI_CALLABLE_OPTIONS_SHORT, async (r
     // que não esteja no contrato entra no template.
     const validatedPayload = validateGoalFeasibilityPayload(goalPayload);
 
-    // Sem cache server-side: a cota é consumida já aqui. O estorno em
-    // falha de infraestrutura mantém a simetria com coaching/50-30-20.
+    // Mesma regra do analysePlanning: cache por hash da entrada, então a cota
+    // é consumida dentro do serviço, só no cache-miss.
     const quota = container.quotaService.guardFor(
         workspaceId, "analyzeGoalFeasibility", AI_DAILY_QUOTAS.analyzeGoalFeasibility
     );
-    await quota.consume();
+    await quota.check();
 
     try {
-        const result = await container.goalFeasibilityService.analyze(workspaceId, validatedPayload);
+        const result = await container.goalFeasibilityService.analyze(workspaceId, validatedPayload, quota);
         return result;
     }
     catch (error: any) {
-        if (isTransientAiError(error)) {
-            await quota.refund();
+        if (error instanceof HttpsError) {
+            throw error;
         }
         console.error("Erro na análise de viabilidade da meta:", error);
         throw new HttpsError("internal", error.message || "Erro ao analisar viabilidade da meta.");

@@ -1,4 +1,6 @@
-import { IAIRepository } from "../../../../core/services/ai.service";
+import { IAIRepository, isTransientAiError } from "../../../../core/services/ai.service";
+import { AI_CACHE_FUNCTIONS, IAiCacheService } from "../../../../core/services/ai_cache.service";
+import { QuotaGuard } from "../../../../core/services/quota.service";
 import { OrderModel, CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
 import { ICategoryRepository } from "../../../workspace/domain/repositories/category.repository";
 import { IFinanceRepository } from "../../../finance/domain/repositories/finance.repository";
@@ -6,7 +8,11 @@ import { IWorkspaceRepository } from "../../../workspace/domain/repositories/wor
 import * as admin from "firebase-admin";
 
 export interface IOnboardingService {
-    analyzePlanning(workspaceId: string): Promise<{
+    /**
+     * @param quota cota diária do chamador. Só é consumida em cache-miss,
+     *              imediatamente antes da chamada à IA.
+     */
+    analyzePlanning(workspaceId: string, quota?: QuotaGuard): Promise<{
         goals: any[],
         plannings: CategoryPlanningModel[]
     }>;
@@ -26,11 +32,12 @@ export class OnboardingServiceImpl implements IOnboardingService {
         private aiRepository: IAIRepository,
         private categoryRepository: ICategoryRepository,
         private financeRepository: IFinanceRepository,
-        private workspaceRepository: IWorkspaceRepository
+        private workspaceRepository: IWorkspaceRepository,
+        private aiCacheService: IAiCacheService
     ) {
     }
 
-    async analyzePlanning(workspaceId: string): Promise<any> {
+    async analyzePlanning(workspaceId: string, quota?: QuotaGuard): Promise<any> {
         const workspace = await this.workspaceRepository.getWorkspaceById(workspaceId);
         if (!workspace) throw new Error("Workspace não encontrado");
 
@@ -39,12 +46,39 @@ export class OnboardingServiceImpl implements IOnboardingService {
 
         const categoryNames = categories.map((c) => c.name);
 
-        return await this.aiRepository.analyzePlanningAndSuggestGoals(
-            workspaceId,
-            workspace.type,
-            categoryNames,
-            orders,
+        // Cache por hash da ENTRADA (F5.6): o usuário volta uma tela e avança
+        // de novo com exatamente os mesmos dados. Cache-hit não gasta cota.
+        const cacheInput = { workspaceType: workspace.type, categories: categoryNames, orders };
+        const cached = await this.aiCacheService.get(
+            workspaceId, AI_CACHE_FUNCTIONS.analysePlanning, cacheInput
         );
+        if (cached) return cached;
+
+        // A cota é consumida AQUI: é a chamada de IA que ela mede, e só
+        // chegamos neste ponto em cache-miss.
+        await quota?.consume();
+
+        let result: any;
+        try {
+            result = await this.aiRepository.analyzePlanningAndSuggestGoals(
+                workspaceId,
+                workspace.type,
+                categoryNames,
+                orders,
+            );
+        }
+        catch (error) {
+            if (isTransientAiError(error)) {
+                await quota?.refund();
+            }
+            throw error;
+        }
+
+        // Só a resposta já validada pelo ai.service entra no cache.
+        await this.aiCacheService.set(
+            workspaceId, AI_CACHE_FUNCTIONS.analysePlanning, cacheInput, result
+        );
+        return result;
     }
 
     async analyzeAccountDocument(workspaceId: string, storagePath: string): Promise<{

@@ -117,10 +117,12 @@ cada callable de IA. O contador fica em
 Duas regras importantes:
 
 - **A cota só é consumida quando a IA é realmente chamada.** Nas funções com
-  cache server-side (`generateCoaching`, 5 dias; `analyze503020Ideal`, 3 dias)
-  o handler não chama `assertQuota`: ele monta um `QuotaGuard` e passa para o
-  serviço, que faz `consume()` imediatamente antes de invocar o Gemini.
-  Reabrir um insight/análise já existente não gasta nada.
+  cache server-side — `generateCoaching` (5 dias), `analyze503020Ideal`
+  (3 dias), `analysePlanning` e `analyzeGoalFeasibility` (cache por hash da
+  entrada, 7 dias; ver abaixo) — o handler não chama `assertQuota`: ele monta
+  um `QuotaGuard` e passa para o serviço, que faz `consume()` imediatamente
+  antes de invocar o Gemini. Reabrir um insight/análise já existente não gasta
+  nada.
 - **Com a cota esgotada, nada de caro roda.** Esses dois handlers chamam
   `guard.check()` logo depois de `assertWorkspaceMember`: é uma leitura
   somente-leitura do contador, que já responde `resource-exhausted` sem
@@ -131,9 +133,10 @@ Duas regras importantes:
 - **Falha de infraestrutura é estornada.** Se o Gemini responder 5xx/429 ou
   der timeout, quem invocou chama `refund()` e a unidade volta. Resposta
   inválida ou erro de validação **não** gera estorno — ver `isTransientAiError`
-  em `src/core/services/ai.service.ts`. Vale para os seis callables: os quatro
-  sem cache (`analysePlanning`, os dois de documento e `analyzeGoalFeasibility`)
-  fazem `consume()` no próprio handler e estornam no `catch`.
+  em `src/core/services/ai.service.ts`. Nas quatro funções com cache o
+  `consume()`/`refund()` vive no serviço; nas **duas de documento**, que não
+  têm cache, o handler consome depois de checar o tamanho do arquivo e estorna
+  no `catch`.
 
 O documento de quota também recebe `createdAt` e `expiresAt` (criação + 90
 dias) na primeira escrita do dia, para ser recolhido pela mesma política de
@@ -186,6 +189,41 @@ template.
   `"id-existente-se-houver"`, ou um id inventado). `categoryId` só é gravado
   quando o id existe de fato no workspace.
 
+## Cache de IA por hash da entrada (`ai_cache`)
+
+`analysePlanning` (sugestão de metas no onboarding) e `analyzeGoalFeasibility`
+(viabilidade de meta) eram chamadas repetidamente com a **mesma entrada**: o
+usuário volta uma tela e avança de novo, mexe no prazo e desfaz, o app reabre a
+sugestão. Cada repetição era uma chamada paga ao Gemini e uma unidade de cota.
+
+`src/core/services/ai_cache.service.ts` grava a resposta **já validada** em:
+
+```
+workspaces/{workspaceId}/ai_cache/{functionName}_{sha256(entrada normalizada)}
+  functionName, payload, createdAt, expiresAt   # createdAt + 7 dias
+```
+
+- A entrada é normalizada antes do hash (`stableStringify`): chaves de objeto
+  em ordem alfabética, `Date`/`Timestamp` em ISO. A ordem dos **arrays** conta
+  (a ordem dos lançamentos é informação).
+- Mudou qualquer coisa na entrada, muda o hash: não existe servir análise velha
+  para dado novo. Só o tempo invalida uma entrada — `expiresAt` é conferido na
+  **leitura**, então a validade vale mesmo sem a política de TTL ativa.
+- **Cache-hit não consome cota**: o `QuotaGuard.consume()` fica imediatamente
+  antes da chamada real ao Gemini, dentro do serviço.
+- Falha do Firestore no cache vira cache-miss; o cache nunca derruba a chamada.
+- As security rules negam leitura e escrita do cliente (`ai_cache`).
+
+Para ativar a política de TTL desta coleção (uma vez, manualmente — mesmo
+formato dos comandos da seção seguinte):
+
+```bash
+gcloud firestore fields ttls update expiresAt \
+  --collection-group=ai_cache \
+  --project=funance-cef1b \
+  --enable-ttl
+```
+
 ## Logs de IA (`ai_logs`) e TTL
 
 Cada chamada ao Gemini grava um documento de **metadados** em
@@ -213,6 +251,12 @@ gcloud firestore fields ttls update expiresAt \
 
 gcloud firestore fields ttls update expiresAt \
   --collection-group=quotas \
+  --project=funance-cef1b \
+  --enable-ttl
+
+# Cache de IA por hash da entrada (TTL de 7 dias). NÃO EXECUTADO.
+gcloud firestore fields ttls update expiresAt \
+  --collection-group=ai_cache \
   --project=funance-cef1b \
   --enable-ttl
 
