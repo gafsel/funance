@@ -7,7 +7,15 @@ import {
     initializeTestEnvironment,
     RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, setLogLevel, Timestamp } from "firebase/firestore";
+import {
+    doc,
+    deleteDoc,
+    getDoc,
+    setDoc,
+    updateDoc,
+    setLogLevel,
+    Timestamp,
+} from "firebase/firestore";
 
 /**
  * Testes das security rules do Firestore (firebase/firestore.rules) contra o
@@ -17,8 +25,11 @@ import { doc, getDoc, setDoc, updateDoc, setLogLevel, Timestamp } from "firebase
 const RULES_PATH = resolve(__dirname, "../../../../firebase/firestore.rules");
 
 const MEMBER_UID = "user-membro";
+const GUEST_UID = "user-convidado";
 const OUTSIDER_UID = "user-de-fora";
 const WORKSPACE_ID = "ws-rules";
+const INVITE_ID = "invite-rules";
+const GUEST_EMAIL = "convidado@funances.test";
 const ORDER_ID = "order-rules";
 const INSTALLMENT_ID = "installment-rules";
 
@@ -37,6 +48,16 @@ const installmentDoc = (overrides: Record<string, unknown> = {}) => ({
     installmentCount: 3,
     accounts: { "acc-checking": "debt" },
     accountIds: ["acc-checking"],
+    ...overrides,
+});
+
+const inviteDoc = (overrides: Record<string, unknown> = {}) => ({
+    workspace: { id: WORKSPACE_ID, name: "Casa", type: "personal" },
+    senderId: MEMBER_UID,
+    senderName: "Dono",
+    receiverEmail: GUEST_EMAIL,
+    status: "pending",
+    createdAt: Timestamp.fromDate(new Date(2026, 8, 10, 12)),
     ...overrides,
 });
 
@@ -63,8 +84,10 @@ describe("firestore.rules", () => {
             await setDoc(doc(db, `workspaces/${WORKSPACE_ID}`), {
                 name: "Casa",
                 type: "personal",
-                members: [MEMBER_UID],
+                // MEMBER_UID é members[0], ou seja, o dono.
+                members: [MEMBER_UID, GUEST_UID],
             });
+            await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
                 installmentDoc()
@@ -127,5 +150,84 @@ describe("firestore.rules", () => {
                 installmentDoc()
             )
         );
+    });
+
+    it("nega que o cliente altere members do workspace", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), {
+                members: [MEMBER_UID],
+            })
+        );
+    });
+
+    describe("convites", () => {
+        beforeEach(async () => {
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                await setDoc(
+                    doc(context.firestore(), `invites/${INVITE_ID}`),
+                    inviteDoc()
+                );
+            });
+        });
+
+        it("um membro do workspace lê os convites do próprio workspace", async () => {
+            const db = testEnv.authenticatedContext(GUEST_UID).firestore();
+
+            await assertSucceeds(getDoc(doc(db, `invites/${INVITE_ID}`)));
+        });
+
+        it("quem não é membro nem destinatário não lê o convite", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            await assertFails(getDoc(doc(db, `invites/${INVITE_ID}`)));
+        });
+
+        it("o dono renova o convite pendente (só createdAt)", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                updateDoc(doc(db, `invites/${INVITE_ID}`), {
+                    createdAt: Timestamp.fromDate(new Date(2026, 8, 20, 12)),
+                })
+            );
+        });
+
+        it("renovar não pode mudar o destinatário", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, `invites/${INVITE_ID}`), {
+                    createdAt: Timestamp.fromDate(new Date(2026, 8, 20, 12)),
+                    receiverEmail: "outro@funances.test",
+                })
+            );
+        });
+
+        it("o dono cancela o convite pendente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(deleteDoc(doc(db, `invites/${INVITE_ID}`)));
+        });
+
+        it("quem não é dono nem remetente não cancela", async () => {
+            const db = testEnv.authenticatedContext(GUEST_UID).firestore();
+
+            await assertFails(deleteDoc(doc(db, `invites/${INVITE_ID}`)));
+        });
+
+        it("convite já aceito não pode ser apagado", async () => {
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                await setDoc(
+                    doc(context.firestore(), `invites/${INVITE_ID}`),
+                    inviteDoc({ status: "accepted" })
+                );
+            });
+
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(deleteDoc(doc(db, `invites/${INVITE_ID}`)));
+        });
     });
 });

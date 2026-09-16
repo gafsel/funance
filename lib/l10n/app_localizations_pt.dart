@@ -674,6 +674,91 @@ class AppLocalizationsPt extends AppLocalizations {
   String get invitesTitle => 'Convites Pendentes';
 
   @override
+  String get membersTitle => 'Membros';
+
+  @override
+  String get membersOwnerRole => 'Dono';
+
+  @override
+  String get membersMemberRole => 'Membro';
+
+  @override
+  String get membersYou => 'você';
+
+  @override
+  String get membersSectionActive => 'No workspace';
+
+  @override
+  String get membersSectionPending => 'Convites aguardando resposta';
+
+  @override
+  String get membersEmptyPending => 'Nenhum convite aguardando resposta.';
+
+  @override
+  String get membersLoadError => 'Não foi possível carregar os membros.';
+
+  @override
+  String get membersInvitesLoadError =>
+      'Não foi possível carregar os convites.';
+
+  @override
+  String get membersRetry => 'Tentar de novo';
+
+  @override
+  String get membersRemoveAction => 'Remover do workspace';
+
+  @override
+  String membersRemoveTitle(String name) {
+    return 'Remover $name?';
+  }
+
+  @override
+  String get membersRemoveConfirm =>
+      'Essa pessoa perde o acesso a este workspace. Os lançamentos, contas e categorias continuam onde estão — eles são do workspace, não de quem os criou.';
+
+  @override
+  String get membersRemoveSuccess => 'Membro removido.';
+
+  @override
+  String get membersRemoveError => 'Não foi possível remover o membro.';
+
+  @override
+  String membersInviteSentAt(String date) {
+    return 'Convidado em $date';
+  }
+
+  @override
+  String get membersResendAction => 'Reenviar';
+
+  @override
+  String get membersResendSuccess => 'Convite renovado.';
+
+  @override
+  String get membersResendError => 'Não foi possível renovar o convite.';
+
+  @override
+  String get membersCancelInviteAction => 'Cancelar convite';
+
+  @override
+  String membersCancelInviteTitle(String email) {
+    return 'Cancelar o convite de $email?';
+  }
+
+  @override
+  String get membersCancelInviteConfirm =>
+      'O convite deixa de aparecer para quem foi convidado.';
+
+  @override
+  String get membersCancelInviteSuccess => 'Convite cancelado.';
+
+  @override
+  String get membersCancelInviteError => 'Não foi possível cancelar o convite.';
+
+  @override
+  String get membersOnlyOwnerCanRemove =>
+      'Apenas o dono do workspace pode remover membros.';
+
+  @override
   String get invitesSubtitle =>
       'Você foi convidado para participar dos seguintes workspaces:';
 

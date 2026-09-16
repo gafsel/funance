@@ -255,6 +255,52 @@
   "goalAiClose": "Got it",
   "continueButton": "CONTINUE",
   "invitesTitle": "Pending Invites",
+  "membersTitle": "Members",
+  "membersOwnerRole": "Owner",
+  "membersMemberRole": "Member",
+  "membersYou": "you",
+  "membersSectionActive": "In this workspace",
+  "membersSectionPending": "Invitations awaiting a reply",
+  "membersEmptyPending": "No invitations awaiting a reply.",
+  "membersLoadError": "Could not load the members.",
+  "membersInvitesLoadError": "Could not load the invitations.",
+  "membersRetry": "Try again",
+  "membersRemoveAction": "Remove from workspace",
+  "membersRemoveTitle": "Remove {name}?",
+  "@membersRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "membersRemoveConfirm": "This person loses access to this workspace. Transactions, accounts and categories stay where they are — they belong to the workspace, not to whoever created them.",
+  "membersRemoveSuccess": "Member removed.",
+  "membersRemoveError": "Could not remove the member.",
+  "membersInviteSentAt": "Invited on {date}",
+  "@membersInviteSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "membersResendAction": "Resend",
+  "membersResendSuccess": "Invitation renewed.",
+  "membersResendError": "Could not renew the invitation.",
+  "membersCancelInviteAction": "Cancel invitation",
+  "membersCancelInviteTitle": "Cancel the invitation to {email}?",
+  "@membersCancelInviteTitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "membersCancelInviteConfirm": "The invitation stops showing up for the person you invited.",
+  "membersCancelInviteSuccess": "Invitation cancelled.",
+  "membersCancelInviteError": "Could not cancel the invitation.",
+  "membersOnlyOwnerCanRemove": "Only the workspace owner can remove members.",
   "invitesSubtitle": "You have been invited to participate in the following workspaces:",
   "inviteFrom": "Sent by: {sender}",
   "@inviteFrom": {

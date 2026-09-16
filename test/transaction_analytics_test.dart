@@ -52,6 +52,9 @@ class FakeAnalyticsService implements AnalyticsService {
   @override
   Future<void> logReconciliationDone() async {}
 
+  @override
+  Future<void> logMemberRemoved() async {}
+
   ({String name, Map<String, Object> params})? find(String name) =>
       events.where((e) => e.name == name).firstOrNull;
 }

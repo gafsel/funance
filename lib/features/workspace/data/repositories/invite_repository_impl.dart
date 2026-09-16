@@ -28,9 +28,35 @@ class InviteRepositoryImpl implements IInviteRepository {
   }
 
   @override
+  Stream<List<InviteModel>> watchWorkspacePendingInvites(String workspaceId) {
+    return _firestore
+        .collection(_collection)
+        .where('workspace.id', isEqualTo: workspaceId)
+        .where('status', isEqualTo: InviteStatus.pending.name)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InviteModel.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
+  @override
   Future<void> respondToInvite(String inviteId, InviteStatus status) async {
     await _firestore.collection(_collection).doc(inviteId).update({
       'status': status.name,
     });
+  }
+
+  @override
+  Future<void> resendInvite(String inviteId) async {
+    await _firestore.collection(_collection).doc(inviteId).update({
+      'createdAt': Timestamp.now(),
+    });
+  }
+
+  @override
+  Future<void> cancelInvite(String inviteId) async {
+    await _firestore.collection(_collection).doc(inviteId).delete();
   }
 }

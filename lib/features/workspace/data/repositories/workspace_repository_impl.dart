@@ -33,6 +33,34 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   }
 
   @override
+  Future<void> removeWorkspaceMember(
+    String workspaceId,
+    String memberId,
+  ) async {
+    try {
+      await _functions.httpsCallable('removeWorkspaceMember').call({
+        'workspaceId': workspaceId,
+        'memberId': memberId,
+      });
+    } on FirebaseFunctionsException catch (e, s) {
+      // A callable responde com mensagem pronta para o usuário (não é dono,
+      // não pode remover a si mesmo); embrulhar em `unknown` a perderia.
+      throw BusinessException(
+        ErrorCode.unknown,
+        message: e.message,
+        originalError: e,
+        stackTrace: s,
+      );
+    } catch (e, s) {
+      throw BusinessException(
+        ErrorCode.unknown,
+        originalError: e,
+        stackTrace: s,
+      );
+    }
+  }
+
+  @override
   Future<List<WorkspaceModel>> getUserWorkspaces(String userUid) async {
     try {
       final snapshot = await _firestore

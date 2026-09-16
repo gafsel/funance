@@ -669,6 +669,90 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invitesTitle => 'Pending Invites';
 
   @override
+  String get membersTitle => 'Members';
+
+  @override
+  String get membersOwnerRole => 'Owner';
+
+  @override
+  String get membersMemberRole => 'Member';
+
+  @override
+  String get membersYou => 'you';
+
+  @override
+  String get membersSectionActive => 'In this workspace';
+
+  @override
+  String get membersSectionPending => 'Invitations awaiting a reply';
+
+  @override
+  String get membersEmptyPending => 'No invitations awaiting a reply.';
+
+  @override
+  String get membersLoadError => 'Could not load the members.';
+
+  @override
+  String get membersInvitesLoadError => 'Could not load the invitations.';
+
+  @override
+  String get membersRetry => 'Try again';
+
+  @override
+  String get membersRemoveAction => 'Remove from workspace';
+
+  @override
+  String membersRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get membersRemoveConfirm =>
+      'This person loses access to this workspace. Transactions, accounts and categories stay where they are — they belong to the workspace, not to whoever created them.';
+
+  @override
+  String get membersRemoveSuccess => 'Member removed.';
+
+  @override
+  String get membersRemoveError => 'Could not remove the member.';
+
+  @override
+  String membersInviteSentAt(String date) {
+    return 'Invited on $date';
+  }
+
+  @override
+  String get membersResendAction => 'Resend';
+
+  @override
+  String get membersResendSuccess => 'Invitation renewed.';
+
+  @override
+  String get membersResendError => 'Could not renew the invitation.';
+
+  @override
+  String get membersCancelInviteAction => 'Cancel invitation';
+
+  @override
+  String membersCancelInviteTitle(String email) {
+    return 'Cancel the invitation to $email?';
+  }
+
+  @override
+  String get membersCancelInviteConfirm =>
+      'The invitation stops showing up for the person you invited.';
+
+  @override
+  String get membersCancelInviteSuccess => 'Invitation cancelled.';
+
+  @override
+  String get membersCancelInviteError => 'Could not cancel the invitation.';
+
+  @override
+  String get membersOnlyOwnerCanRemove =>
+      'Only the workspace owner can remove members.';
+
+  @override
   String get invitesSubtitle =>
       'You have been invited to participate in the following workspaces:';
 

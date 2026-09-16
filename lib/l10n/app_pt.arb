@@ -279,6 +279,52 @@
   "goalRemainingAmount": "Faltam {amount}",
   "continueButton": "CONTINUAR",
   "invitesTitle": "Convites Pendentes",
+  "membersTitle": "Membros",
+  "membersOwnerRole": "Dono",
+  "membersMemberRole": "Membro",
+  "membersYou": "você",
+  "membersSectionActive": "No workspace",
+  "membersSectionPending": "Convites aguardando resposta",
+  "membersEmptyPending": "Nenhum convite aguardando resposta.",
+  "membersLoadError": "Não foi possível carregar os membros.",
+  "membersInvitesLoadError": "Não foi possível carregar os convites.",
+  "membersRetry": "Tentar de novo",
+  "membersRemoveAction": "Remover do workspace",
+  "membersRemoveTitle": "Remover {name}?",
+  "@membersRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "membersRemoveConfirm": "Essa pessoa perde o acesso a este workspace. Os lançamentos, contas e categorias continuam onde estão — eles são do workspace, não de quem os criou.",
+  "membersRemoveSuccess": "Membro removido.",
+  "membersRemoveError": "Não foi possível remover o membro.",
+  "membersInviteSentAt": "Convidado em {date}",
+  "@membersInviteSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "membersResendAction": "Reenviar",
+  "membersResendSuccess": "Convite renovado.",
+  "membersResendError": "Não foi possível renovar o convite.",
+  "membersCancelInviteAction": "Cancelar convite",
+  "membersCancelInviteTitle": "Cancelar o convite de {email}?",
+  "@membersCancelInviteTitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "membersCancelInviteConfirm": "O convite deixa de aparecer para quem foi convidado.",
+  "membersCancelInviteSuccess": "Convite cancelado.",
+  "membersCancelInviteError": "Não foi possível cancelar o convite.",
+  "membersOnlyOwnerCanRemove": "Apenas o dono do workspace pode remover membros.",
   "invitesSubtitle": "Você foi convidado para participar dos seguintes workspaces:",
   "inviteFrom": "Enviado por: {sender}",
   "@inviteFrom": {

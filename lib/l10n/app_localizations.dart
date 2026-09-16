@@ -1292,6 +1292,156 @@ abstract class AppLocalizations {
   /// **'Convites Pendentes'**
   String get invitesTitle;
 
+  /// No description provided for @membersTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Membros'**
+  String get membersTitle;
+
+  /// No description provided for @membersOwnerRole.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dono'**
+  String get membersOwnerRole;
+
+  /// No description provided for @membersMemberRole.
+  ///
+  /// In pt, this message translates to:
+  /// **'Membro'**
+  String get membersMemberRole;
+
+  /// No description provided for @membersYou.
+  ///
+  /// In pt, this message translates to:
+  /// **'você'**
+  String get membersYou;
+
+  /// No description provided for @membersSectionActive.
+  ///
+  /// In pt, this message translates to:
+  /// **'No workspace'**
+  String get membersSectionActive;
+
+  /// No description provided for @membersSectionPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convites aguardando resposta'**
+  String get membersSectionPending;
+
+  /// No description provided for @membersEmptyPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum convite aguardando resposta.'**
+  String get membersEmptyPending;
+
+  /// No description provided for @membersLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os membros.'**
+  String get membersLoadError;
+
+  /// No description provided for @membersInvitesLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os convites.'**
+  String get membersInvitesLoadError;
+
+  /// No description provided for @membersRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get membersRetry;
+
+  /// No description provided for @membersRemoveAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover do workspace'**
+  String get membersRemoveAction;
+
+  /// No description provided for @membersRemoveTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover {name}?'**
+  String membersRemoveTitle(String name);
+
+  /// No description provided for @membersRemoveConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Essa pessoa perde o acesso a este workspace. Os lançamentos, contas e categorias continuam onde estão — eles são do workspace, não de quem os criou.'**
+  String get membersRemoveConfirm;
+
+  /// No description provided for @membersRemoveSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Membro removido.'**
+  String get membersRemoveSuccess;
+
+  /// No description provided for @membersRemoveError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível remover o membro.'**
+  String get membersRemoveError;
+
+  /// No description provided for @membersInviteSentAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convidado em {date}'**
+  String membersInviteSentAt(String date);
+
+  /// No description provided for @membersResendAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reenviar'**
+  String get membersResendAction;
+
+  /// No description provided for @membersResendSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convite renovado.'**
+  String get membersResendSuccess;
+
+  /// No description provided for @membersResendError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível renovar o convite.'**
+  String get membersResendError;
+
+  /// No description provided for @membersCancelInviteAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar convite'**
+  String get membersCancelInviteAction;
+
+  /// No description provided for @membersCancelInviteTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar o convite de {email}?'**
+  String membersCancelInviteTitle(String email);
+
+  /// No description provided for @membersCancelInviteConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'O convite deixa de aparecer para quem foi convidado.'**
+  String get membersCancelInviteConfirm;
+
+  /// No description provided for @membersCancelInviteSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convite cancelado.'**
+  String get membersCancelInviteSuccess;
+
+  /// No description provided for @membersCancelInviteError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível cancelar o convite.'**
+  String get membersCancelInviteError;
+
+  /// No description provided for @membersOnlyOwnerCanRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apenas o dono do workspace pode remover membros.'**
+  String get membersOnlyOwnerCanRemove;
+
   /// No description provided for @invitesSubtitle.
   ///
   /// In pt, this message translates to:
