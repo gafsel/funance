@@ -220,7 +220,7 @@ class _StatementList extends ConsumerWidget {
   Widget _buildFilterBar(
     BuildContext context,
     WidgetRef ref,
-    StateNotifierProvider<
+    AutoDisposeStateNotifierProvider<
       AccountStatementNotifier,
       InfiniteListState<TransactionQuery, InstallmentModel>
     >

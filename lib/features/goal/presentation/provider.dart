@@ -64,14 +64,16 @@ sealed class GoalViewProvider {
     return service.watchGoals();
   });
 
-  static final goalById = StreamProvider.family<GoalModel?, String>((ref, id) {
-    final goals = ref.watch(goalsStream);
-    return goals.when(
-      data: (data) => Stream.value(data.where((g) => g.id == id).firstOrNull),
-      error: (error, stack) => Stream.error(error, stack),
-      loading: () => const Stream.empty(),
-    );
-  });
+  static final goalById = StreamProvider.autoDispose
+      .family<GoalModel?, String>((ref, id) {
+        final goals = ref.watch(goalsStream);
+        return goals.when(
+          data: (data) =>
+              Stream.value(data.where((g) => g.id == id).firstOrNull),
+          error: (error, stack) => Stream.error(error, stack),
+          loading: () => const Stream.empty(),
+        );
+      });
 
   static final feasibility =
       AsyncNotifierProvider.autoDispose<

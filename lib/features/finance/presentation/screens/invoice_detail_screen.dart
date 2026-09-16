@@ -148,7 +148,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 Expanded(
                   child: TransactionListView(
                     provider: FinanceViewProviders.invoiceInstallmentsList(
-                      invoice,
+                      invoice.invoiceKey,
                     ),
                     accountId: invoice.accountIdTarget,
                   ),
@@ -176,7 +176,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     InstallmentModel invoice,
   ) {
-    final provider = FinanceViewProviders.invoiceInstallmentsList(invoice);
+    final provider = FinanceViewProviders.invoiceInstallmentsList(
+      invoice.invoiceKey,
+    );
     final state = ref.watch(provider);
     final hasFilter =
         state.query.categoryId != null ||
@@ -240,7 +242,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
         return Consumer(
           builder: (context, ref, _) {
             final pieChartAsync = ref.watch(
-              FinanceViewProviders.invoicePieChart(invoice),
+              FinanceViewProviders.invoicePieChart(invoice.invoiceKey),
             );
 
             return Column(

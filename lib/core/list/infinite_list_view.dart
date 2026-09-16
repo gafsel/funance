@@ -19,7 +19,7 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
     this.footerBuilder,
   });
 
-  final StateNotifierProvider<
+  final AutoDisposeStateNotifierProvider<
     InfiniteListNotifier<Q, T>,
     InfiniteListState<Q, T>
   >
@@ -31,7 +31,10 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
   final WidgetBuilder? footerBuilder;
 
   factory InfiniteListView.builder(
-    StateNotifierProvider<InfiniteListNotifier<Q, T>, InfiniteListState<Q, T>>
+    AutoDisposeStateNotifierProvider<
+      InfiniteListNotifier<Q, T>,
+      InfiniteListState<Q, T>
+    >
     provider, {
     EdgeInsets? padding,
     required ItemBuilder<T> itemBuilder,
@@ -48,7 +51,10 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
   }
 
   factory InfiniteListView.separator(
-    StateNotifierProvider<InfiniteListNotifier<Q, T>, InfiniteListState<Q, T>>
+    AutoDisposeStateNotifierProvider<
+      InfiniteListNotifier<Q, T>,
+      InfiniteListState<Q, T>
+    >
     provider, {
     EdgeInsets? padding,
     required ItemBuilder<T> itemBuilder,

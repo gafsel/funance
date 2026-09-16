@@ -23,8 +23,10 @@ import 'package:intl/intl.dart';
 typedef TransactionListViewNotifier =
     InfiniteListNotifier<TransactionQuery, InstallmentModel>;
 
+/// Todas as listas de transações são `autoDispose`; as que precisam manter
+/// cache entre navegações chamam `ref.keepAlive()` explicitamente.
 typedef TransactionListViewProvider =
-    StateNotifierProvider<
+    AutoDisposeStateNotifierProvider<
       TransactionListViewNotifier,
       InfiniteListState<TransactionQuery, InstallmentModel>
     >;
