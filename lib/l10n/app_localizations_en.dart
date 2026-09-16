@@ -682,6 +682,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invitesTitle => 'Pending Invites';
 
   @override
+  String get uploadFileUnreadable => 'Could not read the file.';
+
+  @override
   String uploadUnsupportedFormat(String formats) {
     return 'Unsupported format. Use only: $formats';
   }

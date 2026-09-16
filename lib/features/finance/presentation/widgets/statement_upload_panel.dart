@@ -27,10 +27,10 @@ class StatementUploadPanel extends StatefulWidget {
   });
 
   @override
-  State<StatementUploadPanel> createState() => _StatementUploadPanelState();
+  State<StatementUploadPanel> createState() => StatementUploadPanelState();
 }
 
-class _StatementUploadPanelState extends State<StatementUploadPanel>
+class StatementUploadPanelState extends State<StatementUploadPanel>
     with SingleTickerProviderStateMixin {
   bool _dragging = false;
   late AnimationController _borderAnimationController;
@@ -68,21 +68,8 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
     if (files.isEmpty) return;
 
     final dropped = files.first;
-    final name = dropped.name as String;
 
-    if (!StatementUploadLimits.isAllowedExtension(
-      name,
-      widget.allowedExtensions,
-    )) {
-      _warn(
-        context.l10n.uploadUnsupportedFormat(
-          widget.allowedExtensions.join(", ").toUpperCase(),
-        ),
-      );
-      return;
-    }
-
-    _accept(File(dropped.path as String), name);
+    _accept(File(dropped.path as String), dropped.name as String);
   }
 
   Future<void> _pickFile() async {
@@ -96,15 +83,43 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
     _accept(File(result.files.single.path!), result.files.single.name);
   }
 
-  /// Só entrega o arquivo para quem vai enviá-lo se ele couber no limite da
-  /// análise. Mandar para o Storage um arquivo que o servidor vai recusar
-  /// gasta a banda do usuário para terminar em erro.
+  /// Porta única do painel, para o teste exercitar a mesma barreira que o
+  /// seletor de arquivos e o arrastar-e-soltar atravessam.
+  @visibleForTesting
+  void acceptForTest(File file, String name) => _accept(file, name);
+
+  /// Só entrega o arquivo para quem vai enviá-lo se ele existir, for de um
+  /// formato aceito e couber no limite da análise. Mandar para o Storage um
+  /// arquivo que o servidor vai recusar gasta a banda do usuário para
+  /// terminar em erro.
   void _accept(File file, String name) {
-    final bytes = file.existsSync() ? file.lengthSync() : 0;
+    final l10n = context.l10n;
+
+    if (!StatementUploadLimits.isAllowedExtension(
+      name,
+      widget.allowedExtensions,
+    )) {
+      _warn(
+        l10n.uploadUnsupportedFormat(
+          widget.allowedExtensions.join(", ").toUpperCase(),
+        ),
+      );
+      return;
+    }
+
+    // Arquivo que sumiu entre a escolha e o envio (pasta temporária limpa,
+    // download cancelado) não pode virar "0 byte", que passaria no limite e
+    // subiria um arquivo vazio para a análise.
+    if (!file.existsSync()) {
+      _warn(l10n.uploadFileUnreadable);
+      return;
+    }
+
+    final bytes = file.lengthSync();
 
     if (!StatementUploadLimits.isWithinLimit(bytes)) {
       _warn(
-        context.l10n.uploadFileTooLarge(
+        l10n.uploadFileTooLarge(
           _humanSize(bytes),
           StatementUploadLimits.maxMegabytes,
         ),

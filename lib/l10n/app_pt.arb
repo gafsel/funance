@@ -283,6 +283,7 @@
   "goalRemainingAmount": "Faltam {amount}",
   "continueButton": "CONTINUAR",
   "invitesTitle": "Convites Pendentes",
+  "uploadFileUnreadable": "Não foi possível ler o arquivo.",
   "uploadUnsupportedFormat": "Formato não suportado. Use apenas: {formats}",
   "@uploadUnsupportedFormat": {
     "placeholders": {

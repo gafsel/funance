@@ -259,6 +259,7 @@
   "goalAiClose": "Got it",
   "continueButton": "CONTINUE",
   "invitesTitle": "Pending Invites",
+  "uploadFileUnreadable": "Could not read the file.",
   "uploadUnsupportedFormat": "Unsupported format. Use only: {formats}",
   "@uploadUnsupportedFormat": {
     "placeholders": {

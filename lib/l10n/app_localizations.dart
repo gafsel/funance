@@ -1316,6 +1316,12 @@ abstract class AppLocalizations {
   /// **'Convites Pendentes'**
   String get invitesTitle;
 
+  /// No description provided for @uploadFileUnreadable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível ler o arquivo.'**
+  String get uploadFileUnreadable;
+
   /// No description provided for @uploadUnsupportedFormat.
   ///
   /// In pt, this message translates to:
