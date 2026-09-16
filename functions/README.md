@@ -230,6 +230,114 @@ propósito para a cobrança contar como não planejada. É por isso que o total 
 order usa `referenceAmount` nas pagas: é o único campo que vale o realizado nos
 dois casos.
 
+## Saldo diário: `dateKey` e `delta` (F1.4)
+
+O documento `workspaces/{wid}/accounts/{aid}/balance/{dateKey}` mudou de forma:
+
+| Campo | Tipo | Semântica |
+|-------|------|-----------|
+| _id do documento_ | string | **igual ao `dateKey`** — contrato preservado: o app lê os últimos saldos por `orderBy(documentId, desc)` |
+| `dateKey` | string | `YYYY-MM-DD` no **fuso do produto** (`core/utils/date_key.ts#toDateKey`). Campo indexado |
+| `delta` | number | soma dos movimentos **do dia** |
+| `balance` | number | saldo **acumulado** ao fim do dia (inalterado) |
+| `updatedAt` | Timestamp | carimbo da última escrita |
+
+Três defeitos foram corrigidos de uma vez:
+
+1. **o dia era em UTC** (`date.toISOString()`): um pagamento às 23h30 de
+   Brasília entrava no dia seguinte;
+2. **a transação estourava**: ela lia o dia, lia TODOS os saldos futuros e
+   atualizava cada um lá dentro. Um pagamento retroativo de três anos passa de
+   500 escritas e o commit falha por inteiro;
+3. **a busca do dia anterior usava `orderBy(documentId(), "desc")`**, que o
+   emulador rejeita (`does not support descending key scans`) e que em produção
+   dependia do índice `balance __name__ DESC`.
+
+O fluxo novo:
+
+```
+transação pequena  ──►  lê o doc do dia + o último doc anterior
+                        grava delta += x e balance = anterior.balance + delta
+propagação (fora)  ──►  pagina os dias seguintes e soma x ao balance,
+                        em lotes de no máximo 400 escritas (commitInChunks)
+```
+
+- a busca do dia anterior é `where("dateKey", "<", key).orderBy("dateKey", "desc").limit(1)`
+  — descendente por **campo**, não por chave. O índice de campo único está em
+  `firebase/firestore.indexes.json` (`fieldOverrides` de `balance.dateKey`);
+- a propagação pagina por **documentId ascendente**. O id É o `dateKey`, então a
+  ordem é a mesma — e assim a varredura enxerga também os documentos legados,
+  que ainda não têm o campo (e aproveita para preenchê-lo);
+- a idempotência por evento continua vindo do `runIdempotency` do handler.
+
+> **Concorrência.** O `delta` do dia é sempre exato (a transação serializa o
+> dia) e a propagação usa `FieldValue.increment`, que é atômico. Resta uma
+> janela de milissegundos: um segundo evento que **crie** um dia posterior
+> entre o commit da transação e a consulta de propagação faz esse dia nascer já
+> com o efeito do primeiro evento e receber o incremento outra vez. Só o
+> acumulado é afetado, nunca o `delta`, e o `rebuild_workspace.ts` é o conserto.
+
+### Compatibilidade com o formato antigo
+
+Enquanto a migração não roda, convivem documentos com e sem `dateKey`/`delta`:
+
+- **dia anterior**: depois da consulta indexada, o código faz uma sonda
+  ascendente por id no intervalo `(candidato, dia)`. Numa base migrada o
+  intervalo é vazio e custa uma leitura; numa base legada ele acha o documento
+  sem `dateKey` que a consulta indexada não casaria;
+- **dia atual sem `delta`**: o movimento do dia é inferido como
+  `balance - saldo do dia anterior` — a mesma conta do script de migração;
+- **propagação**: preenche o `dateKey` dos documentos por onde passa.
+
+### `migrate_balance_date_key.ts`
+
+Preenche `dateKey` (= id) e `delta` (= `balance` − `balance` do dia anterior)
+nos documentos de saldo já existentes.
+
+- **Idempotente**: pula o que já está correto e corrige `delta` divergente.
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **Não move documento de dia**: ids gravados em UTC que deveriam estar no dia
+  anterior continuam onde estão — corrigir isso é papel do
+  `rebuild_workspace.ts`, que recalcula a série a partir das parcelas.
+- **Não recalcula `balance`**: o acumulado gravado é a verdade para o script.
+- Lê em páginas (`--page-size`, default 500) e escreve em lotes de 400.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_balance_date_key.js --project=<projectId>
+
+# 2) Um workspace só, para conferir o efeito
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_balance_date_key.js --project=<projectId> --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_balance_date_key.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+| `--page-size=<n>` | documentos de saldo lidos por página (default 500)              |
+
+Saída de código: `0` se não houve falhas, `1` caso contrário. Coberto por
+`src/test/migrate_balance_date_key.test.ts`.
+
+### Contrato com o cliente Flutter
+
+O **id continua sendo `YYYY-MM-DD`**, então o app não quebra: ele pode seguir
+lendo os últimos saldos por `documentId` descendente. Quando quiser, pode migrar
+para `orderBy("dateKey", desc)`, que é equivalente e não depende de varredura
+por chave. O campo `delta` é novo e opcional para o app — ele responde "quanto
+se movimentou neste dia" sem precisar subtrair dois documentos.
+
 ## Semana: uma definição só (F1.9)
 
 O id de semana `YYYY-Www` aparece em três lugares (`weekly_xp`,

@@ -18,6 +18,7 @@ import {
     OrderType,
 } from "../../features/finance/domain/models/finance.models";
 import { CategoryModel, CategoryType } from "../../features/workspace/domain/models/category.model";
+import { toDateKey } from "../../core/utils/date_key";
 
 /**
  * Teste de fumaça de integração contra o emulador do Firestore.
@@ -50,7 +51,8 @@ const CATEGORY: CategoryModel = {
 const ORDER_AMOUNT = 502.40;
 const EXPECTED_INSTALLMENT_AMOUNTS = [167.47, 167.47, 167.46];
 
-const toDateId = (date: Date) => date.toISOString().split("T")[0];
+// F1.4: o id do documento de saldo é o dia no fuso do produto, não em UTC.
+const toDateId = (date: Date) => toDateKey(date);
 const toMonthId = (date: Date) =>
     `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
@@ -157,17 +159,6 @@ describe("Fluxo financeiro (integração com emulador do Firestore)", () => {
             paidDate,
         };
 
-        // O emulador do Firestore (cloud-firestore-emulator v1.21.0) rejeita o
-        // `orderBy(documentId(), "desc")` usado em
-        // FinanceRepositoryImpl.getLastBalanceBefore (ver o teste skipado
-        // abaixo). Esse caminho só é acionado quando ainda NÃO existe saldo no
-        // dia; semeando o documento do dia (situação real sempre que já houve
-        // outra movimentação na mesma data) o fluxo segue pelo branch de
-        // `FieldValue.increment`, que é o que queremos verificar aqui.
-        await firestore
-            .doc(`workspaces/${WORKSPACE_ID}/accounts/${ACCOUNT_ID}/balance/${toDateId(paidDate)}`)
-            .set({ balance: 0, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-
         await repository.updateInstallment(WORKSPACE_ID, before.id, {
             status: InstallmentStatus.paid,
             paidAmount: after.paidAmount,
@@ -187,6 +178,8 @@ describe("Fluxo financeiro (integração com emulador do Firestore)", () => {
         expect(balanceId).toMatch(/^\d{4}-\d{2}-\d{2}$/);
         // Conta com papel "debt" em uma despesa: o saldo é debitado.
         expect(balanceSnap.data()!.balance).toBeCloseTo(-EXPECTED_INSTALLMENT_AMOUNTS[0], 2);
+        expect(balanceSnap.data()!.dateKey).toBe(balanceId);
+        expect(balanceSnap.data()!.delta).toBeCloseTo(-EXPECTED_INSTALLMENT_AMOUNTS[0], 2);
         expect(balanceSnap.data()!.updatedAt).toBeInstanceOf(admin.firestore.Timestamp);
 
         // --- period_summaries/{YYYY-MM} -----------------------------------
@@ -228,31 +221,19 @@ describe("Fluxo financeiro (integração com emulador do Firestore)", () => {
     });
 
     /**
-     * BUG ENCONTRADO (não corrigido aqui — pertence a outro pacote de trabalho).
+     * F1.4 — este teste era `it.skip`.
      *
-     * FinanceRepositoryImpl.updateAccountBalance, quando ainda não existe
-     * documento de saldo para o dia, chama getLastBalanceBefore, que monta:
+     * `FinanceRepositoryImpl.updateAccountBalance` chamava
+     * `getLastBalanceBefore`, que montava
+     * `.where(documentId(), "<", id).orderBy(documentId(), "desc")`. O emulador
+     * responde `9 FAILED_PRECONDITION: Firestore does not support descending key
+     * scans`, então o PRIMEIRO pagamento de um dia sem saldo prévio sempre
+     * estourava — e em produção o caminho dependia de um índice `__name__ DESC`.
      *
-     *     .where(FieldPath.documentId(), "<", dateId)
-     *     .orderBy(FieldPath.documentId(), "desc")
-     *     .limit(1)
-     *
-     * O emulador do Firestore (cloud-firestore-emulator v1.21.0) rejeita
-     * qualquer ordenação descendente por chave com:
-     *
-     *     9 FAILED_PRECONDITION: Firestore does not support descending key scans
-     *
-     * Verificado isoladamente: `orderBy(documentId(), "desc")` falha mesmo
-     * sozinho, enquanto a variante ascendente funciona. Ou seja, no emulador o
-     * primeiro pagamento de um dia sem saldo prévio SEMPRE estoura — o que
-     * impede qualquer teste automatizado desse caminho e, se a mesma restrição
-     * valer no Firestore real, quebra o fluxo de pagamento em produção.
-     *
-     * Reativar este teste depois que getLastBalanceBefore for reescrito (por
-     * exemplo, lendo em ordem ascendente e pegando o último resultado, ou
-     * usando um campo de data explícito em vez do documentId).
+     * Agora a busca do dia anterior usa o campo `dateKey` (descendente por
+     * CAMPO, não por chave) e o teste voltou a rodar.
      */
-    it.skip("cria o documento de saldo do dia quando ainda não existe saldo anterior", async () => {
+    it("cria o documento de saldo do dia quando ainda não existe saldo anterior", async () => {
         const installments = await repository.getInstallmentsByOrderId(WORKSPACE_ID, ORDER_ID);
         const target = installments.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())[1];
 
@@ -273,6 +254,13 @@ describe("Fluxo financeiro (integração com emulador do Firestore)", () => {
             .get();
 
         expect(snap.exists).toBe(true);
-        expect(snap.data()!.balance).toBeCloseTo(-EXPECTED_INSTALLMENT_AMOUNTS[1], 2);
+        // O dia herda o saldo acumulado do último dia anterior (o pagamento da
+        // 1ª parcela) e desconta a 2ª.
+        expect(snap.data()!.balance).toBeCloseTo(
+            -(EXPECTED_INSTALLMENT_AMOUNTS[0] + EXPECTED_INSTALLMENT_AMOUNTS[1]),
+            2
+        );
+        expect(snap.data()!.dateKey).toBe(toDateId(paidDate));
+        expect(snap.data()!.delta).toBeCloseTo(-EXPECTED_INSTALLMENT_AMOUNTS[1], 2);
     });
 });

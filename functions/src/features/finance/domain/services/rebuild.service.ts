@@ -28,6 +28,7 @@
  */
 
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
+import { toDateKey } from "../../../../core/utils/date_key";
 import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
@@ -135,9 +136,17 @@ export interface TargetSummaryDoc {
     categories: Record<string, SummaryCategoryTotals>;
 }
 
+/** Documento de saldo diário reconstruído. */
+export interface TargetBalanceDoc {
+    /** Soma dos movimentos do dia. */
+    delta: number;
+    /** Saldo acumulado ao fim do dia. */
+    balance: number;
+}
+
 export interface TargetState {
-    /** accountId -> (YYYY-MM-DD -> saldo acumulado). */
-    balances: Map<string, Map<string, number>>;
+    /** accountId -> (dateKey -> saldo do dia). */
+    balances: Map<string, Map<string, TargetBalanceDoc>>;
     /** id do período -> documento. */
     summaries: Map<string, TargetSummaryDoc>;
     /** YYYY-Www -> documento. */
@@ -154,9 +163,14 @@ const toCents = (value: number) => Math.round(value * 100);
 const fromCents = (cents: number) => cents / 100;
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
-/** Id do documento de saldo — idêntico a `FinanceRepositoryImpl.updateAccountBalance`. */
+/**
+ * Id do documento de saldo — idêntico a `FinanceRepositoryImpl.updateAccountBalance`.
+ *
+ * F1.4: o dia é o dia de calendário no FUSO DO PRODUTO (antes era UTC). O id
+ * continua sendo igual ao campo `dateKey`, que é o contrato com o app.
+ */
 export function balanceDocId(date: Date): string {
-    return date.toISOString().split("T")[0];
+    return toDateKey(date);
 }
 
 /** Id do documento de período — idêntico a `FinanceRepositoryImpl.getPeriodSummaryDocRef`. */
@@ -376,16 +390,17 @@ export class RebuildAccumulator {
 
     /** Fecha os agregados: acumula os saldos dia a dia e materializa os documentos. */
     build(): TargetState {
-        const balances = new Map<string, Map<string, number>>();
+        const balances = new Map<string, Map<string, TargetBalanceDoc>>();
 
         for (const [accountId, perDay] of this.balanceDeltaCents) {
             const days = [...perDay.keys()].sort();
-            const running = new Map<string, number>();
+            const running = new Map<string, TargetBalanceDoc>();
             let accumulated = 0;
 
             for (const day of days) {
-                accumulated += perDay.get(day)!;
-                running.set(day, fromCents(accumulated));
+                const deltaCents = perDay.get(day)!;
+                accumulated += deltaCents;
+                running.set(day, { delta: fromCents(deltaCents), balance: fromCents(accumulated) });
             }
             balances.set(accountId, running);
         }
@@ -568,18 +583,31 @@ export class RebuildService {
         for (const accountId of accountIds) {
             const existing = await this.rebuildRepository.getExistingBalances(workspaceId, accountId, pageSize);
             const existingById = new Map(existing.map((doc) => [doc.id, doc]));
-            const expected = target.balances.get(accountId) ?? new Map<string, number>();
+            const expected = target.balances.get(accountId) ?? new Map<string, TargetBalanceDoc>();
 
             for (const docId of [...expected.keys()].sort()) {
-                const balance = expected.get(docId)!;
+                const day = expected.get(docId)!;
                 const path = `accounts/${accountId}/balance/${docId}`;
                 const current = existingById.get(docId);
-                const write: RebuildWrite = { kind: "balance", accountId, docId, op: "set", data: { balance } };
+                const write: RebuildWrite = {
+                    kind: "balance",
+                    accountId,
+                    docId,
+                    op: "set",
+                    data: { dateKey: docId, delta: day.delta, balance: day.balance },
+                };
 
                 if (!current) {
                     collector.create(path, write);
                 }
-                else if (!numbersEqual(current.data.balance, balance, epsilon)) {
+                else if (
+                    !numbersEqual(current.data.balance, day.balance, epsilon) ||
+                    !numbersEqual(current.data.delta, day.delta, epsilon) ||
+                    current.data.dateKey !== docId
+                ) {
+                    // O `delta`/`dateKey` ausente é o documento anterior a F1.4:
+                    // o valor acumulado pode até estar certo, mas o documento
+                    // ainda não está no formato novo.
                     collector.update(path, write);
                 }
                 else {
@@ -728,11 +756,11 @@ export class RebuildService {
 }
 
 /** Saldo acumulado que o rebuild enxerga no dia (último dia-alvo <= `dayId`). */
-function impliedBalance(expected: Map<string, number>, sortedDays: string[], dayId: string): number {
+function impliedBalance(expected: Map<string, TargetBalanceDoc>, sortedDays: string[], dayId: string): number {
     let value = 0;
     for (const day of sortedDays) {
         if (day > dayId) break;
-        value = expected.get(day)!;
+        value = expected.get(day)!.balance;
     }
     return value;
 }

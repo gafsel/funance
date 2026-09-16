@@ -32,14 +32,11 @@ import { CategoryModel, CategoryType } from "../../features/workspace/domain/mod
  * `FinanceService.updateXpOnInstallmentChange`) e o rebuild tem que chegar
  * exatamente no mesmo lugar.
  *
- * LIMITAÇÃO DO EMULADOR (já documentada em finance_flow.integration.test.ts):
- * `FinanceRepositoryImpl.getLastBalanceBefore` usa
- * `orderBy(documentId(), "desc")`, que o emulador rejeita
- * ("Firestore does not support descending key scans"). Esse caminho só é
- * acionado quando ainda NÃO existe documento de saldo no dia, então aqui o
- * documento do dia é semeado antes de cada pagamento — com o saldo do último
- * dia anterior (o valor que `getLastBalanceBefore` devolveria), e não com 0,
- * para que a série acumulada continue coerente com vários dias de movimento.
+ * F1.4: até a reescrita do saldo diário, o documento do dia precisava ser
+ * semeado à mão antes de cada pagamento — `getLastBalanceBefore` usava
+ * `orderBy(documentId(), "desc")` e o emulador rejeita varredura descendente
+ * por chave. Agora o caminho real (transação pequena + propagação em lotes)
+ * roda direto, sem muleta.
  */
 
 const OWNER_UID = "uid-dono";
@@ -84,7 +81,6 @@ let financeService: FinanceService;
 let summaryService: SummaryService;
 let rebuildService: RebuildService;
 
-const toDateId = (date: Date) => date.toISOString().split("T")[0];
 const dateAt = (year: number, month: number, day: number) => new Date(year, month - 1, day, 12);
 
 /** Decodifica a parcela como o gatilho `onInstallmentWritten` decodifica (Timestamp cru). */
@@ -114,35 +110,6 @@ async function readInstallmentsOfOrder(workspaceId: string, orderId: string): Pr
         .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 }
 
-/**
- * Garante o documento de saldo do dia, com o saldo do último dia anterior.
- * Contorna a limitação do emulador descrita no topo do arquivo.
- */
-async function seedBalanceDay(workspaceId: string, accountId: string, date: Date): Promise<void> {
-    const collection = firestore.collection(`workspaces/${workspaceId}/accounts/${accountId}/balance`);
-    const dayId = toDateId(date);
-    const existing = await collection.doc(dayId).get();
-    if (existing.exists) return;
-
-    const all = await collection.orderBy(admin.firestore.FieldPath.documentId()).get();
-    const previous = all.docs.filter((doc) => doc.id < dayId).pop();
-
-    await collection.doc(dayId).set({
-        balance: previous ? previous.data().balance : 0,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-}
-
-async function seedBalancesFor(workspaceId: string, installment: InstallmentModel | null): Promise<void> {
-    if (!installment) return;
-    const isPaid = installment.status === InstallmentStatus.paid || installment.status === InstallmentStatus.settled;
-    if (!isPaid || !installment.accounts || !installment.paidAmount || !installment.paidDate) return;
-
-    for (const accountId of Object.keys(installment.accounts)) {
-        await seedBalanceDay(workspaceId, accountId, installment.paidDate);
-    }
-}
-
 /** Reproduz o que `onInstallmentWritten` executa (na mesma ordem). */
 async function runInstallmentTriggers(
     workspaceId: string,
@@ -151,8 +118,6 @@ async function runInstallmentTriggers(
 ): Promise<void> {
     await summaryService.processInstallmentChange(workspaceId, before, after);
 
-    await seedBalancesFor(workspaceId, before);
-    await seedBalancesFor(workspaceId, after);
     await financeService.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
 
     await financeService.updateXpOnInstallmentChange(workspaceId, before, after);

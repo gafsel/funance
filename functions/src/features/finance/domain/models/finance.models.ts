@@ -152,8 +152,22 @@ export interface AccountModel {
     ownerIds?: string[];
 }
 
+/**
+ * Saldo diário: `accounts/{accountId}/balance/{dateKey}`.
+ *
+ * O id do documento é SEMPRE igual ao `dateKey` — é assim que o cliente Flutter
+ * lê os últimos saldos (`orderBy(documentId, desc)`), e por isso o contrato do
+ * id não mudou em F1.4. O que mudou é o significado: o dia agora é o dia de
+ * calendário no fuso do produto (antes era UTC) e o documento passou a guardar
+ * também o movimento do dia.
+ */
 export interface AccountBalanceModel {
-    id: string; // YYYY-MM-DD
+    id: string; // YYYY-MM-DD (igual ao dateKey)
+    /** YYYY-MM-DD no fuso do produto. Ausente nos documentos anteriores a F1.4. */
+    dateKey?: string;
+    /** Soma dos movimentos DO DIA. Ausente nos documentos anteriores a F1.4. */
+    delta?: number;
+    /** Saldo acumulado ao FIM do dia. */
     balance: number;
     updatedAt: Date;
 }

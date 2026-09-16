@@ -141,6 +141,8 @@ export class RebuildRepositoryImpl implements IRebuildRepository {
                     op: "set",
                     ref,
                     data: {
+                        dateKey: write.data!.dateKey,
+                        delta: write.data!.delta,
                         balance: write.data!.balance,
                         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                     },
