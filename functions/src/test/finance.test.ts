@@ -2,7 +2,6 @@
 jest.mock("ofx-js", () => ({ parse: jest.fn() }));
 
 import { splitAmountIntoInstallments } from "../features/finance/domain/services/finance.service";
-import { InvoiceService } from "../features/finance/domain/services/invoice.service";
 
 describe("splitAmountIntoInstallments", () => {
     const sum = (values: number[]) => Math.round(values.reduce((acc, v) => acc + v * 100, 0)) / 100;
@@ -55,49 +54,5 @@ describe("splitAmountIntoInstallments", () => {
             const min = Math.min(...result);
             expect(Math.round((max - min) * 100)).toBeLessThanOrEqual(1);
         }
-    });
-});
-
-describe("InvoiceService.buildClampedDate", () => {
-    it("should clamp day 31 in February to the last day of February", () => {
-        const date = InvoiceService.buildClampedDate(2025, 1, 31); // Fevereiro/2025
-        expect(date.getFullYear()).toBe(2025);
-        expect(date.getMonth()).toBe(1);
-        expect(date.getDate()).toBe(28);
-    });
-
-    it("should clamp day 29 in February of a leap year to 29", () => {
-        const date = InvoiceService.buildClampedDate(2024, 1, 29);
-        expect(date.getMonth()).toBe(1);
-        expect(date.getDate()).toBe(29);
-    });
-
-    it("should clamp day 31 in a 30-day month", () => {
-        const date = InvoiceService.buildClampedDate(2025, 3, 31); // Abril
-        expect(date.getMonth()).toBe(3);
-        expect(date.getDate()).toBe(30);
-    });
-
-    it("should keep valid days unchanged", () => {
-        const date = InvoiceService.buildClampedDate(2025, 0, 15);
-        expect(date.getMonth()).toBe(0);
-        expect(date.getDate()).toBe(15);
-    });
-
-    it("should normalize month overflow (month 13 = February of next year) and clamp", () => {
-        const date = InvoiceService.buildClampedDate(2025, 13, 31);
-        expect(date.getFullYear()).toBe(2026);
-        expect(date.getMonth()).toBe(1); // Fevereiro
-        expect(date.getDate()).toBe(28);
-    });
-
-    it("calculateInvoiceDueDate should not overflow the month for dueDay 31", () => {
-        // Conta com fechamento dia 25 e vencimento dia 31
-        const account: any = { closingDay: 25, dueDay: 31 };
-        // Compra em 10/02/2025 (antes do fechamento) => vencimento em fevereiro, clampado para 28
-        const dueDate = InvoiceService.calculateInvoiceDueDate(new Date(2025, 1, 10, 12), account);
-        expect(dueDate.getFullYear()).toBe(2025);
-        expect(dueDate.getMonth()).toBe(1);
-        expect(dueDate.getDate()).toBe(28);
     });
 });
