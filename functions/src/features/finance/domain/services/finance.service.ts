@@ -39,25 +39,24 @@ export class FinanceService {
     }
 
     async syncInstallments(workspaceId: string, orderId: string, before: OrderModel | null, after: OrderModel | null): Promise<void> {
-        // 1. Buscar installments existentes
-        const existingInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, orderId);
-
-        // 2. Se a order foi excluída ou está cancelada, deletamos tudo.
+        // 1. Se a order foi excluída ou está cancelada, deletamos tudo.
         // Em lotes, não uma escrita sequencial por parcela: uma order parcelada
-        // pode ter centenas de parcelas.
+        // pode ter centenas de parcelas. O repositório já resolve a query, então
+        // não há leitura prévia aqui.
         if (!after) {
-            if (existingInstallments.length > 0) {
-                await this.financeRepository.deleteInstallmentsByOrderId(workspaceId, orderId);
-            }
+            await this.financeRepository.deleteInstallmentsByOrderId(workspaceId, orderId);
             return;
         }
 
-        // 2.1 Se a order já existia, não fazemos cascateamento de edição para as installments.
+        // 2. Se a order já existia, não fazemos cascateamento de edição para as installments.
         // A criação da order cria as installments, mas uma alteração na order não deve mexer nas installments.
         if (before && !before.isInvoice) {
             console.log(`SyncInstallments: Order ${orderId} atualizada. Pulando cascateamento para installments conforme regra de negócio.`);
             return;
         }
+
+        // 2.1 Installments existentes: só interessam ao fluxo de fatura (passo 4).
+        const existingInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, orderId);
 
         // 3. Gerar o que deveria existir
         const expectedInstallments: Omit<InstallmentModel, "id">[] = [];
