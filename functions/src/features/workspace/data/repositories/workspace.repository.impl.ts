@@ -44,6 +44,20 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         });
     }
 
+    /**
+     * Tira o usuário de `members`.
+     *
+     * `arrayRemove` é idempotente e não depende de ler a lista antes: dois
+     * cliques no botão de remover não se atrapalham, e nenhuma escrita
+     * concorrente (aceite de convite, gamificação) é perdida como aconteceria
+     * com um `update` da lista inteira.
+     */
+    async removeMember(workspaceId: string, userId: string): Promise<void> {
+        await this.collection.doc(workspaceId).update({
+            members: admin.firestore.FieldValue.arrayRemove(userId),
+        });
+    }
+
     async getMembersByIds(userIds: string[]): Promise<any[]> {
         if (userIds.length === 0) return [];
 

@@ -8,7 +8,11 @@ import 'package:funances/features/workspace/domain/services/category_service.dar
 import 'package:funances/features/workspace/presentation/controller/category_form_notifier.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
 import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
+import 'package:funances/features/workspace/presentation/model/workspace_members_view_models.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
+import 'package:funances/features/workspace/presentation/controller/workspace_members_notifier.dart';
+import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
+import 'package:funances/core/analytics/analytics_providers.dart';
 
 import '../data/repositories/category_repository_impl.dart';
 import '../domain/models/category_model.dart';
@@ -72,6 +76,28 @@ sealed class WorkspaceViewProviders {
             state.currentWorkspace?.gamification ??
             const WorkspaceGamification(),
       ),
+    );
+  });
+
+  /// Tela de gestão de membros.
+  ///
+  /// `autoDispose` de propósito: o stream de convites só precisa existir
+  /// enquanto a tela está aberta.
+  static final membersManagement = StateNotifierProvider.autoDispose<
+    WorkspaceMembersNotifier,
+    WorkspaceMembersState
+  >((ref) {
+    final state = ref.watch(workspace);
+
+    return WorkspaceMembersNotifier(
+      workspaceService: ref.watch(WorkspaceDomainProviders.service),
+      inviteRepository: ref.watch(inviteRepositoryProvider),
+      analytics: ref.watch(analyticsServiceProvider),
+      workspaceId: state.currentWorkspace?.id ?? "",
+      // O dono é o criador, que é members[0] — mesma definição do
+      // `assertWorkspaceOwner` no backend.
+      ownerId: state.currentWorkspace?.members.firstOrNull,
+      currentUserId: ref.watch(AuthDomainProviders.currentUser)?.id,
     );
   });
 

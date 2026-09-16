@@ -5,6 +5,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/features/finance/domain/services/statement_upload_limits.dart';
 
 class StatementUploadPanel extends StatefulWidget {
   final List<String> allowedExtensions;
@@ -63,25 +65,11 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
   }
 
   Future<void> _handleDroppedFiles(List<dynamic> files) async {
-    if (files.isNotEmpty) {
-      final file = files.first;
-      final name = file.name as String;
-      final extension = name.split('.').last.toLowerCase();
+    if (files.isEmpty) return;
 
-      if (widget.allowedExtensions.contains(extension)) {
-        widget.onFileSelected(File(file.path as String), name);
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Formato não suportado. Use apenas: ${widget.allowedExtensions.join(", ").toUpperCase()}',
-              ),
-            ),
-          );
-        }
-      }
-    }
+    final dropped = files.first;
+
+    _accept(File(dropped.path as String), dropped.name as String);
   }
 
   Future<void> _pickFile() async {
@@ -90,11 +78,67 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
       allowedExtensions: widget.allowedExtensions,
     );
 
-    if (result != null && result.files.single.path != null) {
-      final path = result.files.single.path!;
-      final name = result.files.single.name;
-      widget.onFileSelected(File(path), name);
+    if (result == null || result.files.single.path == null) return;
+
+    _accept(File(result.files.single.path!), result.files.single.name);
+  }
+
+  /// Só entrega o arquivo para quem vai enviá-lo se ele existir, for de um
+  /// formato aceito e couber no limite da análise. Mandar para o Storage um
+  /// arquivo que o servidor vai recusar gasta a banda do usuário para
+  /// terminar em erro.
+  void _accept(File file, String name) {
+    final l10n = context.l10n;
+
+    if (!StatementUploadLimits.isAllowedExtension(
+      name,
+      widget.allowedExtensions,
+    )) {
+      _warn(
+        l10n.uploadUnsupportedFormat(
+          widget.allowedExtensions.join(", ").toUpperCase(),
+        ),
+      );
+      return;
     }
+
+    // Arquivo que sumiu entre a escolha e o envio (pasta temporária limpa,
+    // download cancelado) não pode virar "0 byte", que passaria no limite e
+    // subiria um arquivo vazio para a análise.
+    if (!file.existsSync()) {
+      _warn(l10n.uploadFileUnreadable);
+      return;
+    }
+
+    final bytes = file.lengthSync();
+
+    if (!StatementUploadLimits.isWithinLimit(bytes)) {
+      _warn(
+        l10n.uploadFileTooLarge(
+          _humanSize(bytes),
+          StatementUploadLimits.maxMegabytes,
+        ),
+      );
+      return;
+    }
+
+    widget.onFileSelected(file, name);
+  }
+
+  void _warn(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  static String _humanSize(int bytes) {
+    final megabytes = bytes / (1024 * 1024);
+
+    return megabytes >= 1
+        ? '${megabytes.toStringAsFixed(1)} MB'
+        : '${(bytes / 1024).round()} KB';
   }
 
   @override

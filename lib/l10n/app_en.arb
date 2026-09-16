@@ -27,6 +27,13 @@
   "badgeUnlockedView": "View",
   "workspacePickerTitle": "Workspaces",
   "transactionMoreOptions": "More Options",
+  "transactionMatchTitle": "There is a scheduled entry in this category. Settle it?",
+  "transactionMatchSettle": "Settle",
+  "transactionMatchDismiss": "It is a new expense",
+  "transactionMatchDismissIncome": "It is new income",
+  "transactionMatchSearching": "Looking for scheduled entries…",
+  "transactionMatchUndo": "Not this one",
+  "transactionMatchSameAmount": "same amount",
   "onboardingConceptXpTitle": "Earn XP and level up",
   "onboardingConceptXpDesc": "Every transaction earns XP — and spending within your plan earns even more. Your workspace levels up like in a game.",
   "onboardingConceptMissionsTitle": "Missions and achievements",
@@ -91,7 +98,7 @@
   "onboardingStepConceptsDesc": "To get the most out of Funances, let's understand how we organize information.",
   "onboardingConceptLimitsTitle": "Limits and Expectations",
   "onboardingConceptLimitsDesc": "Define how much you expect to earn and the maximum you want to spend per category. This is your financial ceiling.",
-  "onboardingConceptPlanningTitle": "Planning",
+  "onboardingConceptPlanningTitle": "Schedules",
   "onboardingConceptPlanningDesc": "Works as a scheduled transaction: counts towards the category ceiling but doesn't affect the account balance until cleared. Ideal for recurring or installment payments.",
   "onboardingConceptFeaturesTitle": "Features and Where to Find",
   "onboardingConceptFeaturesDesc": "Explore the Dashboard for an overview, Statements for reconciliation, and Goals to track your dreams.",
@@ -255,6 +262,72 @@
   "goalAiClose": "Got it",
   "continueButton": "CONTINUE",
   "invitesTitle": "Pending Invites",
+  "uploadFileUnreadable": "Could not read the file.",
+  "uploadUnsupportedFormat": "Unsupported format. Use only: {formats}",
+  "@uploadUnsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadFileTooLarge": "This file is {size} and the analysis limit is {limit} MB. Export the statement as OFX, which is far smaller than a PDF, or split it into shorter periods.",
+  "@uploadFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "membersTitle": "Members",
+  "membersOwnerRole": "Owner",
+  "membersMemberRole": "Member",
+  "membersYou": "you",
+  "membersSectionActive": "In this workspace",
+  "membersSectionPending": "Invitations awaiting a reply",
+  "membersEmptyPending": "No invitations awaiting a reply.",
+  "membersLoadError": "Could not load the members.",
+  "membersInvitesLoadError": "Could not load the invitations.",
+  "membersRetry": "Try again",
+  "membersRemoveAction": "Remove from workspace",
+  "membersRemoveTitle": "Remove {name}?",
+  "@membersRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "membersRemoveConfirm": "This person loses access to this workspace. Transactions, accounts and categories stay where they are — they belong to the workspace, not to whoever created them.",
+  "membersRemoveSuccess": "Member removed.",
+  "membersRemoveError": "Could not remove the member.",
+  "membersInviteSentAt": "Invited on {date}",
+  "@membersInviteSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "membersResendAction": "Resend",
+  "membersResendSuccess": "Invitation renewed.",
+  "membersResendError": "Could not renew the invitation.",
+  "membersCancelInviteAction": "Cancel invitation",
+  "membersCancelInviteTitle": "Cancel the invitation to {email}?",
+  "@membersCancelInviteTitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "membersCancelInviteConfirm": "The invitation stops showing up for the person you invited.",
+  "membersCancelInviteSuccess": "Invitation cancelled.",
+  "membersCancelInviteError": "Could not cancel the invitation.",
+  "membersOnlyOwnerCanRemove": "Only the workspace owner can remove members.",
   "invitesSubtitle": "You have been invited to participate in the following workspaces:",
   "inviteFrom": "Sent by: {sender}",
   "@inviteFrom": {
@@ -306,8 +379,6 @@
   "historyFilterMinAmountLabel": "Min Amount",
   "historyFilterMaxAmountLabel": "Max Amount",
   "transactionWizardSelectCategory": "Select Category",
-  "transactionWizardSelectPending": "Pending Transactions",
-  "transactionWizardNewTransaction": "New transaction",
   "historyFilterApply": "Apply Filters",
   "historyFilterClear": "Clear",
   "homeSettings": "Settings",
@@ -413,15 +484,15 @@
   "goalAccountLabel": "Associated Account",
   "transactionAddExpense": "Log Expense",
   "transactionAddIncome": "Log Income",
-  "transactionPlanExpense": "Plan Expense",
-  "transactionPlanIncome": "Plan Income",
-  "transactionPlanTransfer": "Plan Transfer",
+  "transactionPlanExpense": "Schedule Expense",
+  "transactionPlanIncome": "Schedule Income",
+  "transactionPlanTransfer": "Schedule Transfer",
   "transactionActionTransfer": "Transfer",
   "transactionCategoriesSection": "Categories",
-  "transactionRealizedSection": "Realized Transactions",
-  "transactionRealizedSubtitle": "Transactions that have already happened and impacted your balance.",
-  "transactionPlannedSection": "Schedules",
-  "transactionPlannedSubtitle": "Keep track of your upcoming bills and earnings.",
+  "transactionRealizedSection": "It happened",
+  "transactionRealizedSubtitle": "Already happened and already moved your balance.",
+  "transactionPlannedSection": "Schedule it",
+  "transactionPlannedSubtitle": "Still to come: bills to pay and money to receive.",
   "planningSectionTitle": "Strategy",
   "planningSectionSubtitle": "Set limits and track your ideal spending distribution.",
   "transactionDescriptionLabel": "Description",
@@ -435,10 +506,7 @@
   "transactionStatusSettled": "Settled",
   "transactionStatusPaid": "Paid",
   "transactionStatusPending": "Pending",
-  "transactionStatusPlanning": "Planning",
-  "transactionStatusRealized": "Realized",
   "transactionStatusLabel": "Status",
-  "transactionStatusTypeLabel": "Registration Type",
   "transactionSettledAlert": "This transaction cannot be modified because it has already been settled.",
   "transactionUnsettleAction": "Undo reconciliation",
   "transactionTypeExpense": "Expense",
@@ -503,6 +571,8 @@
   "homeOverviewShowDetails": "View Details",
   "categoryReportDetails": "Category Details",
   "transactionTransfer": "Transfer",
+  "transactionTransferCountsAsInvestment": "Will count as Investments",
+  "transactionTransferCountsAsDebt": "Will count as Debts",
   "transactionSelectSourceAccount": "Select Source Account",
   "transactionSelectDestinationAccount": "Select Destination Account",
   "transactionAddExpenseDesc": "Record a single expense that happened today or in the past.",
@@ -523,7 +593,8 @@
   "retry": "Try again",
   "planningExpenseLimits": "Expense Limits",
   "planningIncomeLimits": "Income Expectations",
-  "planningLimitDefined": "Expectation defined",
+  "planningLimitDefined": "Limit set",
+  "planningExpectationDefined": "Expectation set",
   "planningSave": "SAVE",
   "expenses": "Expenses",
   "incomes": "Incomes",
@@ -965,7 +1036,6 @@
   "goalSpendingLimitHint": "E.g.: 500.00 (spending limit)",
   "accountNotFound": "Account not found.",
   "savedSuccess": "Saved successfully!",
-  "wizardPendingIntro": "We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?",
   "planningAnalysisAction": "Ideal analysis (AI)",
   "planningAnalysisLoadingTitle": "Analyzing your plan",
   "planningAnalysisLoadingDesc": "The AI is calculating the ideal spend for each category based on your projected income and the 50-30-20 rule.",

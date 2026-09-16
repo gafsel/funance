@@ -42,6 +42,15 @@ class FinanceService {
     return await accountRepository.getAccount(workspaceId, accountId);
   }
 
+  /// Contas do workspace, numa leitura única.
+  ///
+  /// O formulário de lançamento precisa saber quantas contas existem para
+  /// escolher a conta padrão quando só há uma; um stream aberto seria
+  /// desperdício para uma pergunta que se responde uma vez.
+  Future<List<AccountModel>> getAccounts() async {
+    return await accountRepository.getAccounts(workspaceId).first;
+  }
+
   Future<OrderModel> _processVirtualCategory(OrderModel order) async {
     if (order.type != OrderType.transfer) return order;
 
@@ -207,14 +216,10 @@ class FinanceService {
     );
   }
 
-  Future<void> addCategoryPlanning(CategoryPlanningModel planning) async {
-    await repository.addCategoryPlanning(workspaceId, planning);
-  }
-
-  Future<void> updateCategoryPlanning(CategoryPlanningModel planning) async {
-    await repository.updateCategoryPlanning(workspaceId, planning);
-  }
-
+  /// Leitura dos planejamentos vigentes, usada pelo funil de analytics do
+  /// formulário. A ESCRITA não mora aqui: quem grava limite e expectativa é o
+  /// `CategoryPlanningService`, que é o caminho único com a regra de
+  /// versionamento mensal.
   Future<List<CategoryPlanningModel>> getCategoryPlannings({
     String? startMonth,
     String? endMonth,

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/utils/date_extension.dart';
@@ -8,20 +10,41 @@ import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/home/domain/services/mission_service.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/domain/services/category_service.dart';
 
 class TransactionFormNotifier
     extends FormNotifier<TransactionFormState, dynamic> {
   final FinanceService financeService;
-  final CategoryService categoryService;
   final AnalyticsService analytics;
+
+  /// Dia corrente, do relógio injetado. Define a janela de busca dos
+  /// agendamentos e a data de quitação quando um deles é escolhido.
+  final DateTime today;
+
+  /// Quantos agendamentos a oferta mostra. Mais que isso vira uma lista para
+  /// ler em vez de uma pergunta para responder.
+  static const int maxPendingMatches = 5;
 
   TransactionFormNotifier(
     super.initialState, {
     required this.financeService,
-    required this.categoryService,
     required this.analytics,
-  }) : super();
+    DateTime? today,
+  }) : today = today ?? DateTime.now(),
+       super() {
+    if (state.creation) {
+      // A conta é obrigatória também em agendamentos, então o formulário
+      // tenta resolver um default antes de pedir ao usuário.
+      state = state.copyWith(resolvingAccount: true);
+      unawaited(_resolveDefaultAccount());
+      _lookForPendingMatches();
+    }
+
+    // A transferência pode chegar com as contas já preenchidas (extrato da
+    // conta, fatura); o aviso de pool precisa aparecer sem esperar um toque.
+    if (state.type == OrderType.transfer) {
+      unawaited(_resolveTransferAccounting());
+    }
+  }
 
   void updateDescription(String value) =>
       state = state.copyWith(description: value);
@@ -36,8 +59,29 @@ class TransactionFormNotifier
 
   void updateDueDate(DateTime value) => state = state.copyWith(dueDate: value);
 
-  void updateCategory(CategoryModel? value) =>
-      state = state.copyWith(category: value);
+  void updateCategory(CategoryModel? value) {
+    final changed = state.category?.id != value?.id;
+    state = state.copyWith(category: value);
+
+    if (!state.creation || value == null) return;
+
+    // Trocar a categoria muda qual é a "última conta usada": só vale a pena
+    // reagir enquanto o usuário ainda não escolheu conta nenhuma.
+    if (state.accountIdSource == null) {
+      state = state.copyWith(resolvingAccount: true);
+      unawaited(_resolveDefaultAccount());
+    }
+
+    // E muda quais agendamentos podem ser este lançamento. Recusar a oferta
+    // de uma categoria não vale para a próxima.
+    if (changed) {
+      state = state.copyWith(
+        pendingMatches: const [],
+        dismissedMatch: false,
+      );
+      _lookForPendingMatches();
+    }
+  }
 
   void updateAccountIdTarget(String? value) {
     state = state.copyWith(
@@ -46,7 +90,7 @@ class TransactionFormNotifier
           ? null
           : state.accountIdSource,
     );
-    _checkVirtualCategory();
+    unawaited(_resolveTransferAccounting());
   }
 
   void updateAccountIdSource(String? value) {
@@ -56,55 +100,184 @@ class TransactionFormNotifier
           ? null
           : state.accountIdTarget,
     );
-    _checkVirtualCategory();
+    unawaited(_resolveTransferAccounting());
   }
 
-  void _checkVirtualCategory() async {
+  /// Procura agendamentos que este lançamento pode estar quitando.
+  ///
+  /// Só no caminho "Registrei": agendar em cima de um agendamento não é
+  /// casamento, é outra intenção. Transferência não tem categoria escolhível
+  /// e fica de fora.
+  void _lookForPendingMatches() {
+    if (state.type == OrderType.transfer ||
+        state.category == null ||
+        !_isPaid(state.status)) {
+      return;
+    }
+
+    state = state.copyWith(loadingMatches: true);
+    unawaited(_loadPendingMatches());
+  }
+
+  /// Parcelas pendentes da categoria no mês corrente e no anterior.
+  ///
+  /// A janela cobre o mês passado porque a conta que vence dia 5 costuma ser
+  /// paga com atraso, e é exatamente essa que o usuário está registrando.
+  Future<void> _loadPendingMatches() async {
+    final category = state.category;
+
+    try {
+      final chunk = await financeService.queryInstallments(
+        limit: maxPendingMatches,
+        categoryId: category!.id,
+        type: state.type,
+        status: InstallmentStatus.pending,
+        startDate: DateTime(today.year, today.month - 1, 1),
+        // Fim do dia para incluir o que vence no último dia do mês
+        // (referenceDate é normalizado às 12:00).
+        endDate: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
+      );
+
+      if (!mounted) return;
+      // Resposta atrasada de uma categoria que não é mais a escolhida não
+      // pode oferecer os agendamentos da categoria errada.
+      if (state.category?.id != category.id) return;
+
+      // Mais antigo primeiro: o agendamento atrasado é o candidato mais
+      // provável e é o que vira missão vencida se ficar para trás. A ordem
+      // do servidor não garante isso, e o corte em [maxPendingMatches] já
+      // aconteceu — esta ordenação arruma o que veio, não escolhe o que vem.
+      final matches = [...chunk.items]
+        ..sort((a, b) => a.referenceDate.compareTo(b.referenceDate));
+
+      state = state.copyWith(
+        pendingMatches: matches,
+        loadingMatches: false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      // Silencioso de propósito: sem a oferta, o lançamento segue como novo.
+      state = state.copyWith(loadingMatches: false);
+    }
+  }
+
+  /// O usuário escolheu quitar um agendamento em vez de criar um lançamento.
+  ///
+  /// O valor e a descrição que ele já tinha digitado continuam no estado: a
+  /// tela troca o formulário à frente, mas este notifier segue vivo, e é por
+  /// isso que [clearMatch] consegue devolver o que estava preenchido.
+  void selectMatch(InstallmentModel installment) {
+    state = state.copyWith(matchedInstallment: installment);
+  }
+
+  /// "Não era esse": desfaz o casamento e volta ao formulário de criação.
+  ///
+  /// A oferta continua de pé — tocar no agendamento errado não é dizer que o
+  /// lançamento é novo, e cobrar essa segunda resposta do usuário só para
+  /// corrigir um toque seria trocar um engano por um beco sem saída.
+  void clearMatch() {
+    state = state.copyWith(matchedInstallment: null);
+  }
+
+  /// "É um gasto novo": a oferta some e não volta nesta categoria.
+  void dismissMatches() {
+    state = state.copyWith(dismissedMatch: true, loadingMatches: false);
+  }
+
+  // Onde vive o sinal do casamento, para quem for construir o nudge de F3.2:
+  //
+  // `matchedInstallmentId` e `dismissedMatch` são estado DESTE notifier, o de
+  // criação, e morrem com ele — são a memória de uma sessão do formulário
+  // ("já perguntei, e ele respondeu isto"), não um dado do lançamento.
+  //
+  // Depois que o usuário casa, este notifier nem chega a salvar: a tela passa
+  // a editar a parcela, e quem persiste é o formulário de quitação. O sinal
+  // duradouro de que o agendamento foi quitado é, portanto, a própria parcela
+  // com status `paid` — é ela que F3.2 deve ler, não um campo daqui.
+
+  /// Conta padrão do lançamento: a última que o usuário usou na categoria
+  /// escolhida e, na falta dela, a única conta do workspace.
+  ///
+  /// Silencioso de propósito: não achar um default não é erro, só significa
+  /// que o campo continua vazio e o usuário escolhe.
+  Future<void> _resolveDefaultAccount() async {
+    String? resolved;
+
+    try {
+      final categoryId = state.category?.id;
+
+      if (categoryId != null) {
+        // Sem filtro de status na consulta porque o repositório aceita um só
+        // e "conta já usada" é paga OU liquidada; agendamento ainda não saiu
+        // de conta nenhuma e `removed` é lixo. O filtro vem depois, num lote
+        // maior para sobrar histórico real.
+        final chunk = await financeService.queryInstallments(
+          limit: 20,
+          categoryId: categoryId,
+          type: state.type,
+        );
+
+        resolved = chunk.items
+            .where((installment) => _isPaid(installment.status))
+            .map((installment) => installment.accountIdSource)
+            .nonNulls
+            .firstOrNull;
+      }
+
+      if (resolved == null) {
+        final accounts = await financeService.getAccounts();
+        if (accounts.length == 1) {
+          resolved = accounts.first.id;
+        }
+      }
+    } catch (_) {
+      // Silencioso de propósito.
+    }
+
+    if (!mounted) return;
+
+    state = state.copyWith(
+      resolvingAccount: false,
+      // Se o usuário escolheu uma conta enquanto a busca corria, ela ganha.
+      accountIdSource: state.accountIdSource ?? resolved,
+    );
+  }
+
+  /// Descobre em qual pool a transferência vai cair para o formulário avisar.
+  ///
+  /// Quem grava a categoria virtual é `FinanceService._processVirtualCategory`
+  /// (e o `SummaryService` recalcula no servidor); aqui é só informação.
+  Future<void> _resolveTransferAccounting() async {
     if (state.type != OrderType.transfer) return;
 
     final sourceId = state.accountIdSource;
     final targetId = state.accountIdTarget;
 
-    if (sourceId == null && targetId == null) return;
+    TransferAccounting? accounting;
 
-    CategoryModel? virtualCategory;
+    try {
+      if (targetId != null) {
+        accounting = _accountingOf(await financeService.getAccount(targetId));
+      }
 
-    if (targetId != null) {
-      try {
-        final targetAccount = await financeService.getAccount(targetId);
-        if (targetAccount.type == AccountType.debt ||
-            targetAccount.type == AccountType.investment) {
-          virtualCategory = targetAccount.type == AccountType.debt
-              ? await categoryService.getCategory(
-                  CategoryModel.virtualDebtExpenseId,
-                )
-              : await categoryService.getCategory(
-                  CategoryModel.virtualInvestmentExpenseId,
-                );
-        }
-      } catch (_) {}
+      if (accounting == null && sourceId != null) {
+        accounting = _accountingOf(await financeService.getAccount(sourceId));
+      }
+    } catch (_) {
+      accounting = null;
     }
 
-    if (virtualCategory == null && sourceId != null) {
-      try {
-        final sourceAccount = await financeService.getAccount(sourceId);
-        if (sourceAccount.type == AccountType.debt ||
-            sourceAccount.type == AccountType.investment) {
-          virtualCategory = sourceAccount.type == AccountType.debt
-              ? await categoryService.getCategory(
-                  CategoryModel.virtualDebtIncomeId,
-                )
-              : await categoryService.getCategory(
-                  CategoryModel.virtualInvestmentIncomeId,
-                );
-        }
-      } catch (_) {}
-    }
+    if (!mounted) return;
 
-    if (virtualCategory != null) {
-      state = state.copyWith(category: virtualCategory);
-    }
+    state = state.copyWith(transferAccounting: accounting);
   }
+
+  static TransferAccounting? _accountingOf(AccountModel account) =>
+      switch (account.type) {
+        AccountType.debt => TransferAccounting.debt,
+        AccountType.investment => TransferAccounting.investment,
+        _ => null,
+      };
 
   void updateInstallmentType(InstallmentType value) {
     if (state.creation) {
@@ -268,18 +441,21 @@ class TransactionFormNotifier
     return !date.isBefore(week.start) && !date.isAfter(week.end);
   }
 
+  /// Perguntar sobre replicação só faz sentido quando há para onde replicar e
+  /// algo replicável de fato mudou.
+  ///
+  /// Antes esta propriedade devolvia `true` para toda edição de parcela de uma
+  /// série, e a comparação com o original ficava espalhada na tela — o
+  /// diálogo aparecia até para quem só marcou a parcela como paga.
   bool get shouldAskCascade {
     if (state.creation || state.formType != TransactionFormType.installment) {
       return false;
     }
 
-    // Se for uma parcela única, não faz sentido perguntar cascade
-    if (state.installmentType == InstallmentType.single) {
+    if (!state.hasSiblings) {
       return false;
     }
 
-    // A lógica de "não se aplica pra alterações de status, data de pagamento ou valor de pagamento"
-    // será tratada no momento da submissão na UI para decidir se abre a modal ou não.
-    return true;
+    return state.replicableFieldsChanged;
   }
 }

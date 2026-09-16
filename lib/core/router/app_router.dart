@@ -33,6 +33,7 @@ import 'package:funances/features/workspace/presentation/controller/invite_provi
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/screens/badges_cabinet_screen.dart';
 import 'package:funances/features/workspace/presentation/screens/category_management_screen.dart';
+import 'package:funances/features/workspace/presentation/screens/workspace_members_screen.dart';
 import 'package:funances/features/workspace/presentation/screens/invite_list_screen.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
@@ -226,6 +227,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const AccountManagementScreen(),
       ),
       GoRoute(
+        path: '/workspace/members',
+        builder: (context, state) => const WorkspaceMembersScreen(),
+      ),
+      GoRoute(
         path: '/accounts/form',
         builder: (context, state) {
           final account = _extraAs(state.extra, AccountModel.fromJson);
@@ -336,13 +341,9 @@ final routerProvider = Provider<GoRouter>((ref) {
             );
           }
 
-          final skipTransactions =
-              state.uri.queryParameters['skipTransactions'] == 'true';
-
           return TransactionWizardScreen(
             type: type,
             initialStatus: status,
-            skipTransactions: skipTransactions,
             accountIdSource: state.uri.queryParameters['accountIdSource'],
           );
         },

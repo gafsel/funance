@@ -33,7 +33,11 @@ class TransactionPaymentSheet extends StatelessWidget {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
-    final provider = FinanceViewProviders.transactionPaymentForm(installment);
+    // Sem `paidOn`: quitar pela folha de pagamento mantém a regra antiga, que
+    // assume a data do vencimento quando ela já passou.
+    final provider = FinanceViewProviders.transactionPaymentForm(
+      TransactionPaymentArgs(installment: installment),
+    );
 
     final mq = MediaQuery.of(context);
     return Column(

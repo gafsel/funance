@@ -92,6 +92,28 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionMoreOptions => 'Mais Opções';
 
   @override
+  String get transactionMatchTitle =>
+      'Existe um agendamento nesta categoria. Quitar este?';
+
+  @override
+  String get transactionMatchSettle => 'Quitar';
+
+  @override
+  String get transactionMatchDismiss => 'É um gasto novo';
+
+  @override
+  String get transactionMatchDismissIncome => 'É uma receita nova';
+
+  @override
+  String get transactionMatchSearching => 'Procurando agendamentos…';
+
+  @override
+  String get transactionMatchUndo => 'Não era esse';
+
+  @override
+  String get transactionMatchSameAmount => 'mesmo valor';
+
+  @override
   String get onboardingConceptXpTitle => 'Ganhe XP e suba de nível';
 
   @override
@@ -286,7 +308,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Defina quanto você espera ganhar e o limite máximo que deseja gastar por categoria. É o seu teto financeiro.';
 
   @override
-  String get onboardingConceptPlanningTitle => 'Planejamentos';
+  String get onboardingConceptPlanningTitle => 'Agendamentos';
 
   @override
   String get onboardingConceptPlanningDesc =>
@@ -674,6 +696,104 @@ class AppLocalizationsPt extends AppLocalizations {
   String get invitesTitle => 'Convites Pendentes';
 
   @override
+  String get uploadFileUnreadable => 'Não foi possível ler o arquivo.';
+
+  @override
+  String uploadUnsupportedFormat(String formats) {
+    return 'Formato não suportado. Use apenas: $formats';
+  }
+
+  @override
+  String uploadFileTooLarge(String size, int limit) {
+    return 'Este arquivo tem $size e o limite da análise é $limit MB. Exporte o extrato em OFX, que é bem menor que o PDF, ou divida em períodos mais curtos.';
+  }
+
+  @override
+  String get membersTitle => 'Membros';
+
+  @override
+  String get membersOwnerRole => 'Dono';
+
+  @override
+  String get membersMemberRole => 'Membro';
+
+  @override
+  String get membersYou => 'você';
+
+  @override
+  String get membersSectionActive => 'No workspace';
+
+  @override
+  String get membersSectionPending => 'Convites aguardando resposta';
+
+  @override
+  String get membersEmptyPending => 'Nenhum convite aguardando resposta.';
+
+  @override
+  String get membersLoadError => 'Não foi possível carregar os membros.';
+
+  @override
+  String get membersInvitesLoadError =>
+      'Não foi possível carregar os convites.';
+
+  @override
+  String get membersRetry => 'Tentar de novo';
+
+  @override
+  String get membersRemoveAction => 'Remover do workspace';
+
+  @override
+  String membersRemoveTitle(String name) {
+    return 'Remover $name?';
+  }
+
+  @override
+  String get membersRemoveConfirm =>
+      'Essa pessoa perde o acesso a este workspace. Os lançamentos, contas e categorias continuam onde estão — eles são do workspace, não de quem os criou.';
+
+  @override
+  String get membersRemoveSuccess => 'Membro removido.';
+
+  @override
+  String get membersRemoveError => 'Não foi possível remover o membro.';
+
+  @override
+  String membersInviteSentAt(String date) {
+    return 'Convidado em $date';
+  }
+
+  @override
+  String get membersResendAction => 'Reenviar';
+
+  @override
+  String get membersResendSuccess => 'Convite renovado.';
+
+  @override
+  String get membersResendError => 'Não foi possível renovar o convite.';
+
+  @override
+  String get membersCancelInviteAction => 'Cancelar convite';
+
+  @override
+  String membersCancelInviteTitle(String email) {
+    return 'Cancelar o convite de $email?';
+  }
+
+  @override
+  String get membersCancelInviteConfirm =>
+      'O convite deixa de aparecer para quem foi convidado.';
+
+  @override
+  String get membersCancelInviteSuccess => 'Convite cancelado.';
+
+  @override
+  String get membersCancelInviteError => 'Não foi possível cancelar o convite.';
+
+  @override
+  String get membersOnlyOwnerCanRemove =>
+      'Apenas o dono do workspace pode remover membros.';
+
+  @override
   String get invitesSubtitle =>
       'Você foi convidado para participar dos seguintes workspaces:';
 
@@ -865,12 +985,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactionWizardSelectCategory => 'Selecione a Categoria';
-
-  @override
-  String get transactionWizardSelectPending => 'Lançamentos Pendentes';
-
-  @override
-  String get transactionWizardNewTransaction => 'Novo lançamento';
 
   @override
   String get historyFilterApply => 'Aplicar Filtros';
@@ -1148,13 +1262,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionAddIncome => 'Lançar Receita';
 
   @override
-  String get transactionPlanExpense => 'Planejar Despesa';
+  String get transactionPlanExpense => 'Agendar Despesa';
 
   @override
-  String get transactionPlanIncome => 'Planejar Receita';
+  String get transactionPlanIncome => 'Agendar Receita';
 
   @override
-  String get transactionPlanTransfer => 'Planejar Transferência';
+  String get transactionPlanTransfer => 'Agendar Transferência';
 
   @override
   String get transactionActionTransfer => 'Transferência';
@@ -1163,18 +1277,18 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionCategoriesSection => 'Categorias';
 
   @override
-  String get transactionRealizedSection => 'Lançamentos Realizados';
+  String get transactionRealizedSection => 'Registrei';
 
   @override
   String get transactionRealizedSubtitle =>
-      'Transações que já aconteceram e impactaram seu saldo.';
+      'Já aconteceu e já mexeu no seu saldo.';
 
   @override
-  String get transactionPlannedSection => 'Agendamentos';
+  String get transactionPlannedSection => 'Agendar';
 
   @override
   String get transactionPlannedSubtitle =>
-      'Controle suas contas a pagar e a receber que estão por vir.';
+      'Ainda vai acontecer: contas a pagar e a receber.';
 
   @override
   String get planningSectionTitle => 'Estratégia';
@@ -1217,16 +1331,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionStatusPending => 'Pendente';
 
   @override
-  String get transactionStatusPlanning => 'Planejamento';
-
-  @override
-  String get transactionStatusRealized => 'Realizado';
-
-  @override
   String get transactionStatusLabel => 'Status';
-
-  @override
-  String get transactionStatusTypeLabel => 'Tipo de Cadastro';
 
   @override
   String get transactionSettledAlert =>
@@ -1483,6 +1588,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionTransfer => 'Transferência';
 
   @override
+  String get transactionTransferCountsAsInvestment =>
+      'Vai contar como Investimentos';
+
+  @override
+  String get transactionTransferCountsAsDebt => 'Vai contar como Dívidas';
+
+  @override
   String get transactionSelectSourceAccount => 'Selecionar Conta de Origem';
 
   @override
@@ -1553,7 +1665,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planningIncomeLimits => 'Expectativa de Receitas';
 
   @override
-  String get planningLimitDefined => 'Expectativa definida';
+  String get planningLimitDefined => 'Limite definido';
+
+  @override
+  String get planningExpectationDefined => 'Expectativa definida';
 
   @override
   String get planningSave => 'SALVAR';
@@ -2418,10 +2533,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get savedSuccess => 'Salvo com sucesso!';
-
-  @override
-  String get wizardPendingIntro =>
-      'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?';
 
   @override
   String get planningAnalysisAction => 'Análise ideal (IA)';

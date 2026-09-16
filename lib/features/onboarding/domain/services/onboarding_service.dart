@@ -1,5 +1,6 @@
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/auth/domain/repositories/auth_repository.dart';
-import 'package:funances/features/finance/domain/repositories/planning_repository.dart';
+import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:uuid/uuid.dart';
@@ -21,7 +22,6 @@ class OnboardingService {
   final ICategoryRepository categoryRepository;
   final IFinanceRepository financeRepository;
   final IInviteRepository inviteRepository;
-  final IPlanningRepository planningRepository;
   final IGoalRepository goalRepository;
 
   final IAuthRepository authRepository;
@@ -37,7 +37,6 @@ class OnboardingService {
     required this.onboardingRepository,
     required this.workspaceRepository,
     required this.inviteRepository,
-    required this.planningRepository,
     required this.goalRepository,
   });
 
@@ -85,17 +84,37 @@ class OnboardingService {
     );
   }
 
+  /// Grava os planejamentos e metas sugeridos no onboarding.
+  ///
+  /// Os limites passam pelo `CategoryPlanningService` — o mesmo caminho das
+  /// telas de planejamento —, então o documento nasce com a janela que o
+  /// resto do app espera (`startMonth` = mês corrente, `endMonth` aberto) em
+  /// vez do intervalo que a sugestão trouxe.
+  ///
+  /// O serviço é montado aqui com o id do workspace recém-criado: ele ainda
+  /// não é o workspace corrente do app quando o onboarding chega neste passo.
   Future<void> savePlanning(
     WorkspaceModel workspace,
-    PlanningSuggestions suggestions,
-  ) async {
-    await Future.wait([
-      ...suggestions.plannings.map(
-        (planning) => planningRepository.addPlanning(workspace.id, planning),
-      ),
-      ...suggestions.goals.map(
-        (goal) => goalRepository.addGoal(workspace.id, goal),
-      ),
-    ]);
+    PlanningSuggestions suggestions, {
+    required DateTime today,
+  }) async {
+    final planningService = CategoryPlanningService(
+      workspaceId: workspace.id,
+      repository: financeRepository,
+    );
+
+    await planningService.setLimits(
+      month: today.monthKey,
+      limits: suggestions.plannings
+          .map((planning) => (
+                category: planning.category,
+                amount: planning.amount,
+              ))
+          .toList(),
+    );
+
+    await Future.wait(
+      suggestions.goals.map((goal) => goalRepository.addGoal(workspace.id, goal)),
+    );
   }
 }

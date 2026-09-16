@@ -79,13 +79,16 @@ sealed class Planning503020Distribution with _$Planning503020Distribution {
   }) = _Planning503020Distribution;
 }
 
-enum TransactionWizardStep { category, transactions, form }
+/// O lançamento tem duas telas antes de salvar: escolher a categoria e
+/// preencher o formulário. Transferências não têm categoria escolhível (o
+/// servidor deriva a categoria virtual das contas), então começam no
+/// formulário.
+enum TransactionWizardStep { category, form }
 
 @freezed
 sealed class TransactionWizardArgs with _$TransactionWizardArgs {
   factory TransactionWizardArgs({
     required OrderType type,
-    @Default(false) bool skipTransactions,
     String? accountIdSource,
   }) = _TransactionWizardArgs;
 }
@@ -95,11 +98,21 @@ sealed class TransactionWizardState with _$TransactionWizardState {
   const factory TransactionWizardState({
     required OrderType type,
     CategoryModel? selectedCategory,
-    InstallmentModel? selectedInstallment,
     @Default(TransactionWizardStep.category) TransactionWizardStep step,
-    @Default(false) bool skipTransactions,
     String? accountIdSource,
   }) = _TransactionWizardState;
+}
+
+/// Chave do formulário de pagamento de uma parcela.
+///
+/// [paidOn] entra na chave porque é ele que distingue "quitar esta parcela"
+/// (data do vencimento) de "registrei hoje e isto era o agendamento" (hoje).
+@freezed
+sealed class TransactionPaymentArgs with _$TransactionPaymentArgs {
+  const factory TransactionPaymentArgs({
+    required InstallmentModel installment,
+    DateTime? paidOn,
+  }) = _TransactionPaymentArgs;
 }
 
 @freezed
@@ -119,6 +132,14 @@ sealed class TransactionCreationArgs with _$TransactionCreationArgs {
 enum TransactionFormType { order, installment }
 
 enum TransactionAmountType { total, installment }
+
+/// Como uma transferência vai aparecer nos relatórios.
+///
+/// `FinanceService._processVirtualCategory` (e o `SummaryService` no
+/// servidor) derivam a categoria virtual dos tipos das contas envolvidas. O
+/// formulário não troca a categoria escondido: só avisa o usuário em qual
+/// pool a transferência vai cair.
+enum TransferAccounting { investment, debt }
 
 @freezed
 sealed class TransactionFormState with _$TransactionFormState {
@@ -148,11 +169,120 @@ sealed class TransactionFormState with _$TransactionFormState {
     // `status` acompanha a edição do usuário, então só este campo responde
     // "como estava antes deste save". Nulo quando não há parcela persistida.
     InstallmentStatus? originalStatus,
+    // A parcela como está persistida. É ela que responde "o que mudou neste
+    // save" — `status`/`amount`/`dueDate` do estado já são os valores novos.
+    InstallmentModel? original,
+    // Pool em que a transferência vai cair, para o aviso no formulário.
+    TransferAccounting? transferAccounting,
+    // Verdadeiro enquanto o formulário procura a conta padrão da categoria.
+    // Enquanto isso o campo de conta não abre sozinho: abrir o seletor e
+    // depois preencher o default por baixo seria pior que esperar.
+    @Default(false) bool resolvingAccount,
+    // Agendamentos pendentes da categoria que este lançamento pode estar
+    // quitando. Sem esta busca, registrar um gasto que já estava agendado
+    // cria uma order nova e deixa a parcela pendente para trás: o planejado
+    // conta duas vezes no 50-30-20 e a parcela vira uma missão atrasada que
+    // nunca fecha.
+    @Default([]) List<InstallmentModel> pendingMatches,
+    // Verdadeiro enquanto a busca corre. O formulário reserva o espaço do
+    // banner enquanto isso: deixar a oferta aparecer depois empurraria os
+    // campos para baixo bem quando o usuário já está tocando no valor.
+    @Default(false) bool loadingMatches,
+    // O usuário disse que é lançamento novo. A marca fica no estado para o
+    // nudge de F3.2 saber que a pergunta já foi feita e recusada.
+    @Default(false) bool dismissedMatch,
+    // Agendamento escolhido: a tela passa a editar esta parcela em vez de
+    // criar uma order.
+    InstallmentModel? matchedInstallment,
   }) = _TransactionFormState;
 
   bool get creation => formType == TransactionFormType.order && orderId == null;
-  bool get isPlanning => amount > 0.0;
 
+  /// Id do agendamento que este lançamento está quitando, quando há um.
+  String? get matchedInstallmentId => matchedInstallment?.id;
+
+  /// Há agendamento para oferecer e o usuário ainda não recusou a oferta.
+  bool get hasPendingMatches => !dismissedMatch && pendingMatches.isNotEmpty;
+
+  /// A busca por agendamentos está correndo e ainda pode virar oferta.
+  ///
+  /// Depois de recusada, a oferta não volta nesta categoria: uma resposta
+  /// atrasada não pode reabrir o espaço que o usuário acabou de fechar.
+  bool get searchingMatches => !dismissedMatch && loadingMatches;
+
+  /// Agendamento cujo valor bate com o que o usuário já digitou, quando há
+  /// um só candidato.
+  ///
+  /// Quem paga a conta de luz de R$ 187,40 digita o valor antes de olhar a
+  /// oferta: entre três pendentes da categoria, o de mesmo valor é quase
+  /// certamente o que ele está quitando. A tolerância de 1% do valor
+  /// pendente (com piso de um centavo) absorve juros e arredondamento.
+  ///
+  /// Empate não destaca ninguém: duas parcelas de R$ 100 na mesma categoria
+  /// não dizem qual das duas é esta, e apontar uma seria um chute com cara
+  /// de resposta.
+  String? get likelyMatchId {
+    if (amount <= 0 || pendingMatches.isEmpty) return null;
+
+    double? closest;
+    String? closestId;
+    var tied = false;
+
+    for (final match in pendingMatches) {
+      final tolerance = match.amount * 0.01;
+      final distance = (match.amount - amount).abs();
+
+      if (distance > (tolerance < 0.01 ? 0.01 : tolerance)) continue;
+
+      if (closest == null || distance < closest) {
+        closest = distance;
+        closestId = match.id;
+        tied = false;
+      } else if (distance == closest) {
+        tied = true;
+      }
+    }
+
+    return tied ? null : closestId;
+  }
+
+  /// Há um valor preenchido. Não tem relação com planejamento: distingue o
+  /// lançamento com valor (campos de pagamento fazem sentido) do que ainda
+  /// está zerado.
+  bool get hasAmount => amount > 0.0;
+
+  /// A parcela tem irmãs — só então faz sentido perguntar sobre replicação.
+  bool get hasSiblings => switch (installmentType) {
+    InstallmentType.single => false,
+    InstallmentType.recurring => true,
+    InstallmentType.installment => (installmentCount ?? 1) > 1,
+  };
+
+  /// Algum campo replicável mudou em relação à parcela persistida.
+  ///
+  /// Status, data e valor de pagamento ficam de fora de propósito: quitar uma
+  /// parcela é um evento dela, não da série.
+  bool get replicableFieldsChanged {
+    final persisted = original;
+    if (persisted == null) {
+      return false;
+    }
+
+    return amount != persisted.amount ||
+        dueDate != persisted.dueDate ||
+        description != persisted.description ||
+        category?.id != persisted.category?.id ||
+        accountIdSource != persisted.accountIdSource ||
+        accountIdTarget != persisted.accountIdTarget;
+  }
+
+  /// Formulário de um lançamento novo.
+  ///
+  /// Sem status explícito vale `paid`: quem abre o formulário sem dizer nada
+  /// está registrando algo que já aconteceu ("acabei de gastar"). Agendar é a
+  /// escolha consciente, feita no ponto de entrada. O default anterior era
+  /// `pending`, e a consolidação de uma transação bancária — que por
+  /// definição já aconteceu — nascia como agendamento.
   factory TransactionFormState.creation({
     required OrderType type,
     InstallmentStatus? status,
@@ -163,27 +293,24 @@ sealed class TransactionFormState with _$TransactionFormState {
     DateTime? date,
     double? amount,
   }) {
+    final effectiveStatus = status ?? InstallmentStatus.paid;
+    final isPaid =
+        effectiveStatus == InstallmentStatus.paid ||
+        effectiveStatus == InstallmentStatus.settled;
+
     return TransactionFormState(
       formType: TransactionFormType.order,
       type: type,
       category: category,
       dueDate: date ?? DateTime.now(),
-      paidDate:
-          status == InstallmentStatus.paid ||
-              status == InstallmentStatus.settled
-          ? date ?? DateTime.now()
-          : null,
-      status: status ?? InstallmentStatus.pending,
+      paidDate: isPaid ? date ?? DateTime.now() : null,
+      status: effectiveStatus,
       installmentType: InstallmentType.single,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
       description: description ?? "",
       amount: amount ?? 0.0,
-      paidAmount:
-          status == InstallmentStatus.paid ||
-              status == InstallmentStatus.settled
-          ? amount ?? 0.0
-          : null,
+      paidAmount: isPaid ? amount ?? 0.0 : null,
     );
   }
 
@@ -204,9 +331,17 @@ sealed class TransactionFormState with _$TransactionFormState {
     );
   }
 
+  /// Formulário de uma parcela existente.
+  ///
+  /// [paidOn] força a data de pagamento. Serve ao casamento com agendamento:
+  /// o usuário está registrando o que gastou HOJE, então a parcela vencida no
+  /// mês passado é quitada com a data de hoje, não com o vencimento dela.
+  /// Sem [paidOn] vale a regra do fluxo de pagamento comum — quitar uma
+  /// parcela vencida assume a data do vencimento.
   factory TransactionFormState.updateInstallment(
     InstallmentModel installment, {
     InstallmentStatus? status,
+    DateTime? paidOn,
   }) {
     final effectiveStatus = status ?? installment.status;
 
@@ -216,9 +351,11 @@ sealed class TransactionFormState with _$TransactionFormState {
     if (status == InstallmentStatus.paid ||
         status == InstallmentStatus.settled) {
       paidAmount = installment.amount;
-      paidDate = installment.dueDate.isAfter(DateTime.now())
-          ? DateTime.now()
-          : installment.dueDate;
+      paidDate =
+          paidOn ??
+          (installment.dueDate.isAfter(DateTime.now())
+              ? DateTime.now()
+              : installment.dueDate);
     } else if (status == InstallmentStatus.pending) {
       paidAmount = null;
       paidDate = null;
@@ -227,6 +364,7 @@ sealed class TransactionFormState with _$TransactionFormState {
     return TransactionFormState(
       formType: TransactionFormType.installment,
       originalStatus: installment.status,
+      original: installment,
       installmentId: installment.id,
       orderId: installment.orderId,
       type: installment.type,

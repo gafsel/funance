@@ -10,6 +10,17 @@ service cloud.firestore {
       );
     }
 
+    // Dono do workspace. Não há campo `ownerId`: o dono é o criador, e o
+    // criador é members[0] — a criação exige `members == [request.auth.uid]`,
+    // o cliente não escreve `members` e o aceite de convite só faz
+    // `arrayUnion` (que insere no fim). Mesma definição de
+    // `assertWorkspaceOwner` no backend.
+    function isWorkspaceOwner(workspaceId) {
+      return request.auth != null && (
+        get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.members[0] == request.auth.uid
+      );
+    }
+
     // ===== Auxiliares de validação de payload =====
 
     function isStr(value, maxLen) {
@@ -403,11 +414,13 @@ service cloud.firestore {
     }
 
     match /invites/{inviteId} {
-      // O destinatário lê convites enviados para seu e-mail;
-      // o remetente lê os convites que enviou (query por senderId no app)
+      // O destinatário lê convites enviados para seu e-mail; o remetente lê
+      // os que enviou; e qualquer membro lê os convites do próprio workspace,
+      // para a tela de membros mostrar os pendentes enviados por outros.
       allow read: if request.auth != null && (
         request.auth.token.email == resource.data.receiverEmail ||
-        request.auth.uid == resource.data.senderId
+        request.auth.uid == resource.data.senderId ||
+        isMember(resource.data.workspace.id)
       );
 
       // Apenas membros do workspace podem criar convites, sempre em nome próprio
@@ -426,6 +439,27 @@ service cloud.firestore {
         && resource.data.status == 'pending'
         && request.resource.data.status in ['accepted', 'declined']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+      // Reenviar: quem convidou (ou o dono do workspace) renova o convite
+      // pendente. Só `createdAt` muda — o destinatário e o workspace não.
+      allow update: if request.auth != null
+        && resource.data.status == 'pending'
+        && (
+          request.auth.uid == resource.data.senderId ||
+          isWorkspaceOwner(resource.data.workspace.id)
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['createdAt'])
+        && request.resource.data.createdAt is timestamp;
+
+      // Cancelar: quem convidou (ou o dono) apaga um convite ainda pendente.
+      // Um convite já aceito não pode ser apagado — quem já entrou sai pela
+      // callable removeWorkspaceMember, que é auditada e valida o dono.
+      allow delete: if request.auth != null
+        && resource.data.status == 'pending'
+        && (
+          request.auth.uid == resource.data.senderId ||
+          isWorkspaceOwner(resource.data.workspace.id)
+        );
     }
 
     match /{document=**} {

@@ -260,6 +260,48 @@ abstract class AppLocalizations {
   /// **'Mais Opções'**
   String get transactionMoreOptions;
 
+  /// No description provided for @transactionMatchTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Existe um agendamento nesta categoria. Quitar este?'**
+  String get transactionMatchTitle;
+
+  /// No description provided for @transactionMatchSettle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quitar'**
+  String get transactionMatchSettle;
+
+  /// No description provided for @transactionMatchDismiss.
+  ///
+  /// In pt, this message translates to:
+  /// **'É um gasto novo'**
+  String get transactionMatchDismiss;
+
+  /// No description provided for @transactionMatchDismissIncome.
+  ///
+  /// In pt, this message translates to:
+  /// **'É uma receita nova'**
+  String get transactionMatchDismissIncome;
+
+  /// No description provided for @transactionMatchSearching.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurando agendamentos…'**
+  String get transactionMatchSearching;
+
+  /// No description provided for @transactionMatchUndo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não era esse'**
+  String get transactionMatchUndo;
+
+  /// No description provided for @transactionMatchSameAmount.
+  ///
+  /// In pt, this message translates to:
+  /// **'mesmo valor'**
+  String get transactionMatchSameAmount;
+
   /// No description provided for @onboardingConceptXpTitle.
   ///
   /// In pt, this message translates to:
@@ -605,7 +647,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingConceptPlanningTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Planejamentos'**
+  /// **'Agendamentos'**
   String get onboardingConceptPlanningTitle;
 
   /// No description provided for @onboardingConceptPlanningDesc.
@@ -1292,6 +1334,174 @@ abstract class AppLocalizations {
   /// **'Convites Pendentes'**
   String get invitesTitle;
 
+  /// No description provided for @uploadFileUnreadable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível ler o arquivo.'**
+  String get uploadFileUnreadable;
+
+  /// No description provided for @uploadUnsupportedFormat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Formato não suportado. Use apenas: {formats}'**
+  String uploadUnsupportedFormat(String formats);
+
+  /// No description provided for @uploadFileTooLarge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este arquivo tem {size} e o limite da análise é {limit} MB. Exporte o extrato em OFX, que é bem menor que o PDF, ou divida em períodos mais curtos.'**
+  String uploadFileTooLarge(String size, int limit);
+
+  /// No description provided for @membersTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Membros'**
+  String get membersTitle;
+
+  /// No description provided for @membersOwnerRole.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dono'**
+  String get membersOwnerRole;
+
+  /// No description provided for @membersMemberRole.
+  ///
+  /// In pt, this message translates to:
+  /// **'Membro'**
+  String get membersMemberRole;
+
+  /// No description provided for @membersYou.
+  ///
+  /// In pt, this message translates to:
+  /// **'você'**
+  String get membersYou;
+
+  /// No description provided for @membersSectionActive.
+  ///
+  /// In pt, this message translates to:
+  /// **'No workspace'**
+  String get membersSectionActive;
+
+  /// No description provided for @membersSectionPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convites aguardando resposta'**
+  String get membersSectionPending;
+
+  /// No description provided for @membersEmptyPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum convite aguardando resposta.'**
+  String get membersEmptyPending;
+
+  /// No description provided for @membersLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os membros.'**
+  String get membersLoadError;
+
+  /// No description provided for @membersInvitesLoadError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível carregar os convites.'**
+  String get membersInvitesLoadError;
+
+  /// No description provided for @membersRetry.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tentar de novo'**
+  String get membersRetry;
+
+  /// No description provided for @membersRemoveAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover do workspace'**
+  String get membersRemoveAction;
+
+  /// No description provided for @membersRemoveTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Remover {name}?'**
+  String membersRemoveTitle(String name);
+
+  /// No description provided for @membersRemoveConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Essa pessoa perde o acesso a este workspace. Os lançamentos, contas e categorias continuam onde estão — eles são do workspace, não de quem os criou.'**
+  String get membersRemoveConfirm;
+
+  /// No description provided for @membersRemoveSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Membro removido.'**
+  String get membersRemoveSuccess;
+
+  /// No description provided for @membersRemoveError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível remover o membro.'**
+  String get membersRemoveError;
+
+  /// No description provided for @membersInviteSentAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convidado em {date}'**
+  String membersInviteSentAt(String date);
+
+  /// No description provided for @membersResendAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Reenviar'**
+  String get membersResendAction;
+
+  /// No description provided for @membersResendSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convite renovado.'**
+  String get membersResendSuccess;
+
+  /// No description provided for @membersResendError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível renovar o convite.'**
+  String get membersResendError;
+
+  /// No description provided for @membersCancelInviteAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar convite'**
+  String get membersCancelInviteAction;
+
+  /// No description provided for @membersCancelInviteTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cancelar o convite de {email}?'**
+  String membersCancelInviteTitle(String email);
+
+  /// No description provided for @membersCancelInviteConfirm.
+  ///
+  /// In pt, this message translates to:
+  /// **'O convite deixa de aparecer para quem foi convidado.'**
+  String get membersCancelInviteConfirm;
+
+  /// No description provided for @membersCancelInviteSuccess.
+  ///
+  /// In pt, this message translates to:
+  /// **'Convite cancelado.'**
+  String get membersCancelInviteSuccess;
+
+  /// No description provided for @membersCancelInviteError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível cancelar o convite.'**
+  String get membersCancelInviteError;
+
+  /// No description provided for @membersOnlyOwnerCanRemove.
+  ///
+  /// In pt, this message translates to:
+  /// **'Apenas o dono do workspace pode remover membros.'**
+  String get membersOnlyOwnerCanRemove;
+
   /// No description provided for @invitesSubtitle.
   ///
   /// In pt, this message translates to:
@@ -1621,18 +1831,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Selecione a Categoria'**
   String get transactionWizardSelectCategory;
-
-  /// No description provided for @transactionWizardSelectPending.
-  ///
-  /// In pt, this message translates to:
-  /// **'Lançamentos Pendentes'**
-  String get transactionWizardSelectPending;
-
-  /// No description provided for @transactionWizardNewTransaction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Novo lançamento'**
-  String get transactionWizardNewTransaction;
 
   /// No description provided for @historyFilterApply.
   ///
@@ -2141,19 +2339,19 @@ abstract class AppLocalizations {
   /// No description provided for @transactionPlanExpense.
   ///
   /// In pt, this message translates to:
-  /// **'Planejar Despesa'**
+  /// **'Agendar Despesa'**
   String get transactionPlanExpense;
 
   /// No description provided for @transactionPlanIncome.
   ///
   /// In pt, this message translates to:
-  /// **'Planejar Receita'**
+  /// **'Agendar Receita'**
   String get transactionPlanIncome;
 
   /// No description provided for @transactionPlanTransfer.
   ///
   /// In pt, this message translates to:
-  /// **'Planejar Transferência'**
+  /// **'Agendar Transferência'**
   String get transactionPlanTransfer;
 
   /// No description provided for @transactionActionTransfer.
@@ -2171,25 +2369,25 @@ abstract class AppLocalizations {
   /// No description provided for @transactionRealizedSection.
   ///
   /// In pt, this message translates to:
-  /// **'Lançamentos Realizados'**
+  /// **'Registrei'**
   String get transactionRealizedSection;
 
   /// No description provided for @transactionRealizedSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Transações que já aconteceram e impactaram seu saldo.'**
+  /// **'Já aconteceu e já mexeu no seu saldo.'**
   String get transactionRealizedSubtitle;
 
   /// No description provided for @transactionPlannedSection.
   ///
   /// In pt, this message translates to:
-  /// **'Agendamentos'**
+  /// **'Agendar'**
   String get transactionPlannedSection;
 
   /// No description provided for @transactionPlannedSubtitle.
   ///
   /// In pt, this message translates to:
-  /// **'Controle suas contas a pagar e a receber que estão por vir.'**
+  /// **'Ainda vai acontecer: contas a pagar e a receber.'**
   String get transactionPlannedSubtitle;
 
   /// No description provided for @planningSectionTitle.
@@ -2270,29 +2468,11 @@ abstract class AppLocalizations {
   /// **'Pendente'**
   String get transactionStatusPending;
 
-  /// No description provided for @transactionStatusPlanning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Planejamento'**
-  String get transactionStatusPlanning;
-
-  /// No description provided for @transactionStatusRealized.
-  ///
-  /// In pt, this message translates to:
-  /// **'Realizado'**
-  String get transactionStatusRealized;
-
   /// No description provided for @transactionStatusLabel.
   ///
   /// In pt, this message translates to:
   /// **'Status'**
   String get transactionStatusLabel;
-
-  /// No description provided for @transactionStatusTypeLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Tipo de Cadastro'**
-  String get transactionStatusTypeLabel;
 
   /// No description provided for @transactionSettledAlert.
   ///
@@ -2744,6 +2924,18 @@ abstract class AppLocalizations {
   /// **'Transferência'**
   String get transactionTransfer;
 
+  /// No description provided for @transactionTransferCountsAsInvestment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vai contar como Investimentos'**
+  String get transactionTransferCountsAsInvestment;
+
+  /// No description provided for @transactionTransferCountsAsDebt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vai contar como Dívidas'**
+  String get transactionTransferCountsAsDebt;
+
   /// No description provided for @transactionSelectSourceAccount.
   ///
   /// In pt, this message translates to:
@@ -2867,8 +3059,14 @@ abstract class AppLocalizations {
   /// No description provided for @planningLimitDefined.
   ///
   /// In pt, this message translates to:
-  /// **'Expectativa definida'**
+  /// **'Limite definido'**
   String get planningLimitDefined;
+
+  /// No description provided for @planningExpectationDefined.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expectativa definida'**
+  String get planningExpectationDefined;
 
   /// No description provided for @planningSave.
   ///
@@ -4393,12 +4591,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Salvo com sucesso!'**
   String get savedSuccess;
-
-  /// No description provided for @wizardPendingIntro.
-  ///
-  /// In pt, this message translates to:
-  /// **'Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?'**
-  String get wizardPendingIntro;
 
   /// No description provided for @planningAnalysisAction.
   ///

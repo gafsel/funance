@@ -9,4 +9,8 @@ class WorkspaceService {
   Future<List<UserModel>> getWorkspaceMembers(String workspaceId) {
     return _repository.getWorkspaceMembers(workspaceId);
   }
+
+  Future<void> removeWorkspaceMember(String workspaceId, String memberId) {
+    return _repository.removeWorkspaceMember(workspaceId, memberId);
+  }
 }

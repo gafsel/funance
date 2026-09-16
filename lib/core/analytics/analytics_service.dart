@@ -40,6 +40,10 @@ abstract class AnalyticsService {
 
   /// Conciliação de extrato confirmada.
   Future<void> logReconciliationDone();
+
+  /// Um membro foi removido do workspace. Sem ids: o evento conta que a
+  /// gestão de membros é usada, não quem removeu quem.
+  Future<void> logMemberRemoved();
 }
 
 /// Nomes dos eventos, em snake_case, centralizados para não divergirem entre
@@ -53,6 +57,7 @@ abstract final class AnalyticsEvents {
   static const coachingOpened = 'coaching_opened';
   static const missionCompleted = 'mission_completed';
   static const reconciliationDone = 'reconciliation_done';
+  static const memberRemoved = 'member_removed';
 }
 
 class FirebaseAnalyticsService implements AnalyticsService {
@@ -96,6 +101,9 @@ class FirebaseAnalyticsService implements AnalyticsService {
   @override
   Future<void> logReconciliationDone() =>
       _log(AnalyticsEvents.reconciliationDone);
+
+  @override
+  Future<void> logMemberRemoved() => _log(AnalyticsEvents.memberRemoved);
 
   /// Analytics nunca pode derrubar um fluxo de negócio: qualquer falha de
   /// envio é engolida e apenas registrada localmente.
@@ -144,4 +152,7 @@ class NoopAnalyticsService implements AnalyticsService {
 
   @override
   Future<void> logReconciliationDone() async {}
+
+  @override
+  Future<void> logMemberRemoved() async {}
 }

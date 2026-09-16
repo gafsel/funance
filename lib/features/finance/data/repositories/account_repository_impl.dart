@@ -194,6 +194,8 @@ class AccountRepositoryImpl implements IAccountRepository {
       });
 
       return FinanceMapper.toAnalysisResult(result.data);
+    } on FirebaseFunctionsException catch (e, s) {
+      throw _fromCallable(e, s);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -236,6 +238,10 @@ class AccountRepositoryImpl implements IAccountRepository {
       return transactions
           .map((t) => FinanceMapper.toReconciliationTransaction(t))
           .toList();
+    } on FirebaseFunctionsException catch (e, s) {
+      log("Failed to analyze reconciliation document", error: e, stackTrace: s);
+
+      throw _fromCallable(e, s);
     } catch (e, s) {
       log("Failed to analyze reconciliation document", error: e, stackTrace: s);
 
@@ -246,4 +252,21 @@ class AccountRepositoryImpl implements IAccountRepository {
       );
     }
   }
+
+  /// Converte a falha do callable preservando código e mensagem do servidor.
+  ///
+  /// Colapsar tudo em `BusinessException(ErrorCode.unknown)` sem `message`
+  /// fazia a tela mostrar "ErrorCode.unknown" no lugar do texto que o servidor
+  /// tinha acabado de escrever ("arquivo maior que 10 MB", "cota diária
+  /// esgotada"). Quem decide qual mensagem chega ao usuário é
+  /// `callableErrorMessage`, que lê o erro original.
+  static BusinessException _fromCallable(
+    FirebaseFunctionsException error,
+    StackTrace stackTrace,
+  ) => BusinessException(
+    ErrorCode.unknown,
+    message: error.message,
+    originalError: error,
+    stackTrace: stackTrace,
+  );
 }

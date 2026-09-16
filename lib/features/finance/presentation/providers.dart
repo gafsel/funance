@@ -9,7 +9,6 @@ import 'package:funances/features/finance/data/repositories/account_repository_i
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/finance_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/period_summary_repository_impl.dart';
-import 'package:funances/features/finance/data/repositories/planning_repository_impl.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -18,9 +17,9 @@ import 'package:funances/features/finance/domain/repositories/account_repository
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
 import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
 import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
-import 'package:funances/features/finance/domain/repositories/planning_repository.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
+import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/domain/services/invoice_service.dart';
 import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
@@ -86,13 +85,16 @@ class AutomaticTransactionViewProviders {
       });
 }
 
-/// O único consumidor restante é o onboarding, que grava os planejamentos
-/// sugeridos direto pelo repositório. O `PlanningService` e o
-/// `PlanningViewProviders.currentList` que existiam aqui eram um slice morto,
-/// paralelo a `FinanceService.getCategoryPlannings`.
-class PlanningDomainProviders {
-  static final repository = Provider<IPlanningRepository>(
-    (ref) => PlanningRepositoryImpl(),
+/// Caminho único para limites e expectativas de categoria.
+///
+/// A tela simples `/planning`, a 50-30-20 e o onboarding passam todos por
+/// aqui: eram três regras diferentes gravando na mesma coleção.
+class CategoryPlanningDomainProviders {
+  static final service = Provider<CategoryPlanningService>(
+    (ref) => CategoryPlanningService(
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
+      repository: ref.read(FinanceDomainProviders.repository),
+    ),
   );
 }
 
@@ -292,8 +294,8 @@ class FinanceViewProviders {
             date: args.date,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
+          today: ref.watch(todayProvider),
         );
       });
 
@@ -305,7 +307,6 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.updateOrder(order),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
         );
       });
@@ -318,24 +319,30 @@ class FinanceViewProviders {
         return TransactionFormNotifier(
           TransactionFormState.updateInstallment(installment),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
         );
       });
 
+  /// Formulário de quitação de uma parcela.
+  ///
+  /// `args.paidOn` distingue quitar na data do vencimento (o fluxo comum, com
+  /// `paidOn` nulo) de "registrei hoje e isto era o agendamento", que vem do
+  /// casamento dentro do formulário de criação e paga com a data de hoje.
   static final transactionPaymentForm = StateNotifierProvider.autoDispose
-      .family<TransactionFormNotifier, TransactionFormState, InstallmentModel>((
-        ref,
-        installment,
-      ) {
+      .family<
+        TransactionFormNotifier,
+        TransactionFormState,
+        TransactionPaymentArgs
+      >((ref, args) {
         return TransactionFormNotifier(
           TransactionFormState.updateInstallment(
-            installment,
+            args.installment,
             status: InstallmentStatus.paid,
+            paidOn: args.paidOn,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
+          today: ref.watch(todayProvider),
         );
       });
 
@@ -441,35 +448,11 @@ class FinanceViewProviders {
         TransactionWizardState,
         TransactionWizardArgs
       >((ref, args) {
-        final today = ref.watch(todayProvider);
-
         return TransactionWizardNotifier(
           TransactionWizardState(
             type: args.type,
-            skipTransactions: args.skipTransactions,
             accountIdSource: args.accountIdSource,
           ),
-          financeService: ref.watch(FinanceDomainProviders.service),
-          now: () => today,
-        );
-      });
-
-  static final pendingInstallments = StreamProvider.autoDispose
-      .family<List<InstallmentModel>, ({OrderType type, String? categoryId, String? accountId})>((
-        ref,
-        args,
-      ) {
-        final service = ref.watch(FinanceDomainProviders.service);
-        final today = ref.watch(todayProvider);
-        return service.watchInstallments(
-          type: args.type,
-          categoryId: args.categoryId,
-          accountId: args.accountId,
-          status: InstallmentStatus.pending,
-          startDate: DateTime(today.year, today.month, 1),
-          // Fim do dia para incluir os lançamentos do último dia do mês
-          // (referenceDate é normalizado às 12:00).
-          endDate: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
         );
       });
 
@@ -480,10 +463,11 @@ class FinanceViewProviders {
         CategoryPlanningArgs
       >((ref, args) {
         return CategoryPlanningNotifier(
-          financeService: ref.watch(FinanceDomainProviders.service),
+          planningService: ref.watch(CategoryPlanningDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
           type: args.type,
+          date: ref.watch(todayProvider),
         );
       });
 
@@ -602,7 +586,7 @@ class FinanceViewProviders {
 
   static final planning503020Service = Provider<Planning503020Service>((ref) {
     return Planning503020Service(
-      financeService: ref.watch(FinanceDomainProviders.service),
+      planningService: ref.watch(CategoryPlanningDomainProviders.service),
       categoryService: ref.watch(CategoryDomainProviders.service),
       periodSummaryService: ref.watch(PeriodSummaryDomainProviders.service),
     );

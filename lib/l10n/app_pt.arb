@@ -27,6 +27,13 @@
   "badgeUnlockedView": "Ver",
   "workspacePickerTitle": "Workspaces",
   "transactionMoreOptions": "Mais Opções",
+  "transactionMatchTitle": "Existe um agendamento nesta categoria. Quitar este?",
+  "transactionMatchSettle": "Quitar",
+  "transactionMatchDismiss": "É um gasto novo",
+  "transactionMatchDismissIncome": "É uma receita nova",
+  "transactionMatchSearching": "Procurando agendamentos…",
+  "transactionMatchUndo": "Não era esse",
+  "transactionMatchSameAmount": "mesmo valor",
   "onboardingConceptXpTitle": "Ganhe XP e suba de nível",
   "onboardingConceptXpDesc": "Cada lançamento vale XP — e gastar dentro do planejado vale ainda mais. Seu workspace evolui de nível como num jogo.",
   "onboardingConceptMissionsTitle": "Missões e conquistas",
@@ -98,7 +105,7 @@
   "onboardingStepConceptsDesc": "Para tirar o máximo proveito do Funances, vamos entender como organizamos as informações.",
   "onboardingConceptLimitsTitle": "Limites e Expectativas",
   "onboardingConceptLimitsDesc": "Defina quanto você espera ganhar e o limite máximo que deseja gastar por categoria. É o seu teto financeiro.",
-  "onboardingConceptPlanningTitle": "Planejamentos",
+  "onboardingConceptPlanningTitle": "Agendamentos",
   "onboardingConceptPlanningDesc": "Funciona como um lançamento agendado: contabiliza no teto da categoria mas não interfere no saldo da conta até ser efetivado. Ideal para pagamentos recorrentes ou parcelados.",
   "onboardingConceptFeaturesTitle": "Funcionalidades e Onde Encontrar",
   "onboardingConceptFeaturesDesc": "Explore o Dashboard para visão geral, Extratos para conciliação e Metas para acompanhar seus sonhos.",
@@ -279,6 +286,72 @@
   "goalRemainingAmount": "Faltam {amount}",
   "continueButton": "CONTINUAR",
   "invitesTitle": "Convites Pendentes",
+  "uploadFileUnreadable": "Não foi possível ler o arquivo.",
+  "uploadUnsupportedFormat": "Formato não suportado. Use apenas: {formats}",
+  "@uploadUnsupportedFormat": {
+    "placeholders": {
+      "formats": {
+        "type": "String"
+      }
+    }
+  },
+  "uploadFileTooLarge": "Este arquivo tem {size} e o limite da análise é {limit} MB. Exporte o extrato em OFX, que é bem menor que o PDF, ou divida em períodos mais curtos.",
+  "@uploadFileTooLarge": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "membersTitle": "Membros",
+  "membersOwnerRole": "Dono",
+  "membersMemberRole": "Membro",
+  "membersYou": "você",
+  "membersSectionActive": "No workspace",
+  "membersSectionPending": "Convites aguardando resposta",
+  "membersEmptyPending": "Nenhum convite aguardando resposta.",
+  "membersLoadError": "Não foi possível carregar os membros.",
+  "membersInvitesLoadError": "Não foi possível carregar os convites.",
+  "membersRetry": "Tentar de novo",
+  "membersRemoveAction": "Remover do workspace",
+  "membersRemoveTitle": "Remover {name}?",
+  "@membersRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "membersRemoveConfirm": "Essa pessoa perde o acesso a este workspace. Os lançamentos, contas e categorias continuam onde estão — eles são do workspace, não de quem os criou.",
+  "membersRemoveSuccess": "Membro removido.",
+  "membersRemoveError": "Não foi possível remover o membro.",
+  "membersInviteSentAt": "Convidado em {date}",
+  "@membersInviteSentAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "membersResendAction": "Reenviar",
+  "membersResendSuccess": "Convite renovado.",
+  "membersResendError": "Não foi possível renovar o convite.",
+  "membersCancelInviteAction": "Cancelar convite",
+  "membersCancelInviteTitle": "Cancelar o convite de {email}?",
+  "@membersCancelInviteTitle": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "membersCancelInviteConfirm": "O convite deixa de aparecer para quem foi convidado.",
+  "membersCancelInviteSuccess": "Convite cancelado.",
+  "membersCancelInviteError": "Não foi possível cancelar o convite.",
+  "membersOnlyOwnerCanRemove": "Apenas o dono do workspace pode remover membros.",
   "invitesSubtitle": "Você foi convidado para participar dos seguintes workspaces:",
   "inviteFrom": "Enviado por: {sender}",
   "@inviteFrom": {
@@ -409,8 +482,6 @@
   "historyFilterMinAmountLabel": "Valor Mínimo",
   "historyFilterMaxAmountLabel": "Valor Máximo",
   "transactionWizardSelectCategory": "Selecione a Categoria",
-  "transactionWizardSelectPending": "Lançamentos Pendentes",
-  "transactionWizardNewTransaction": "Novo lançamento",
   "historyFilterApply": "Aplicar Filtros",
   "historyFilterClear": "Limpar",
   "homeSettings": "Configurações",
@@ -516,15 +587,15 @@
   "goalAccountLabel": "Conta associada",
   "transactionAddExpense": "Lançar Despesa",
   "transactionAddIncome": "Lançar Receita",
-  "transactionPlanExpense": "Planejar Despesa",
-  "transactionPlanIncome": "Planejar Receita",
-  "transactionPlanTransfer": "Planejar Transferência",
+  "transactionPlanExpense": "Agendar Despesa",
+  "transactionPlanIncome": "Agendar Receita",
+  "transactionPlanTransfer": "Agendar Transferência",
   "transactionActionTransfer": "Transferência",
   "transactionCategoriesSection": "Categorias",
-  "transactionRealizedSection": "Lançamentos Realizados",
-  "transactionRealizedSubtitle": "Transações que já aconteceram e impactaram seu saldo.",
-  "transactionPlannedSection": "Agendamentos",
-  "transactionPlannedSubtitle": "Controle suas contas a pagar e a receber que estão por vir.",
+  "transactionRealizedSection": "Registrei",
+  "transactionRealizedSubtitle": "Já aconteceu e já mexeu no seu saldo.",
+  "transactionPlannedSection": "Agendar",
+  "transactionPlannedSubtitle": "Ainda vai acontecer: contas a pagar e a receber.",
   "planningSectionTitle": "Estratégia",
   "planningSectionSubtitle": "Defina limites e acompanhe sua distribuição de gastos ideal.",
   "transactionDescriptionLabel": "Descrição",
@@ -538,10 +609,7 @@
   "transactionStatusSettled": "Consolidado",
   "transactionStatusPaid": "Pago",
   "transactionStatusPending": "Pendente",
-  "transactionStatusPlanning": "Planejamento",
-  "transactionStatusRealized": "Realizado",
   "transactionStatusLabel": "Status",
-  "transactionStatusTypeLabel": "Tipo de Cadastro",
   "transactionSettledAlert": "Este lançamento não pode ser modificado pois já foi consolidado.",
   "transactionUnsettleAction": "Desfazer conciliação",
   "transactionTypeExpense": "Despesa",
@@ -617,6 +685,8 @@
   "homeOverviewShowDetails": "Ver Detalhes",
   "categoryReportDetails": "Detalhes por Categoria",
   "transactionTransfer": "Transferência",
+  "transactionTransferCountsAsInvestment": "Vai contar como Investimentos",
+  "transactionTransferCountsAsDebt": "Vai contar como Dívidas",
   "transactionSelectSourceAccount": "Selecionar Conta de Origem",
   "transactionSelectDestinationAccount": "Selecione a Conta de Destino",
   "transactionAddExpenseDesc": "Registre uma despesa pontual que ocorreu hoje ou no passado.",
@@ -637,7 +707,8 @@
   "retry": "Tentar novamente",
   "planningExpenseLimits": "Limites de Despesas",
   "planningIncomeLimits": "Expectativa de Receitas",
-  "planningLimitDefined": "Expectativa definida",
+  "planningLimitDefined": "Limite definido",
+  "planningExpectationDefined": "Expectativa definida",
   "planningSave": "SALVAR",
   "expenses": "Despesas",
   "incomes": "Receitas",
@@ -972,7 +1043,6 @@
   "goalSpendingLimitHint": "Ex: 500,00 (limite de gasto)",
   "accountNotFound": "Conta não encontrada.",
   "savedSuccess": "Salvo com sucesso!",
-  "wizardPendingIntro": "Encontramos lançamentos agendados para esta categoria. Deseja confirmar o pagamento de algum deles ou criar um novo lançamento?",
   "planningAnalysisAction": "Análise ideal (IA)",
   "planningAnalysisLoadingTitle": "Analisando seu planejamento",
   "planningAnalysisLoadingDesc": "A IA está calculando o gasto ideal de cada categoria com base na sua receita prevista e na regra 50-30-20.",

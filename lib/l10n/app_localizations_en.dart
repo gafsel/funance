@@ -91,6 +91,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionMoreOptions => 'More Options';
 
   @override
+  String get transactionMatchTitle =>
+      'There is a scheduled entry in this category. Settle it?';
+
+  @override
+  String get transactionMatchSettle => 'Settle';
+
+  @override
+  String get transactionMatchDismiss => 'It is a new expense';
+
+  @override
+  String get transactionMatchDismissIncome => 'It is new income';
+
+  @override
+  String get transactionMatchSearching => 'Looking for scheduled entries…';
+
+  @override
+  String get transactionMatchUndo => 'Not this one';
+
+  @override
+  String get transactionMatchSameAmount => 'same amount';
+
+  @override
   String get onboardingConceptXpTitle => 'Earn XP and level up';
 
   @override
@@ -285,7 +307,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Define how much you expect to earn and the maximum you want to spend per category. This is your financial ceiling.';
 
   @override
-  String get onboardingConceptPlanningTitle => 'Planning';
+  String get onboardingConceptPlanningTitle => 'Schedules';
 
   @override
   String get onboardingConceptPlanningDesc =>
@@ -669,6 +691,103 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invitesTitle => 'Pending Invites';
 
   @override
+  String get uploadFileUnreadable => 'Could not read the file.';
+
+  @override
+  String uploadUnsupportedFormat(String formats) {
+    return 'Unsupported format. Use only: $formats';
+  }
+
+  @override
+  String uploadFileTooLarge(String size, int limit) {
+    return 'This file is $size and the analysis limit is $limit MB. Export the statement as OFX, which is far smaller than a PDF, or split it into shorter periods.';
+  }
+
+  @override
+  String get membersTitle => 'Members';
+
+  @override
+  String get membersOwnerRole => 'Owner';
+
+  @override
+  String get membersMemberRole => 'Member';
+
+  @override
+  String get membersYou => 'you';
+
+  @override
+  String get membersSectionActive => 'In this workspace';
+
+  @override
+  String get membersSectionPending => 'Invitations awaiting a reply';
+
+  @override
+  String get membersEmptyPending => 'No invitations awaiting a reply.';
+
+  @override
+  String get membersLoadError => 'Could not load the members.';
+
+  @override
+  String get membersInvitesLoadError => 'Could not load the invitations.';
+
+  @override
+  String get membersRetry => 'Try again';
+
+  @override
+  String get membersRemoveAction => 'Remove from workspace';
+
+  @override
+  String membersRemoveTitle(String name) {
+    return 'Remove $name?';
+  }
+
+  @override
+  String get membersRemoveConfirm =>
+      'This person loses access to this workspace. Transactions, accounts and categories stay where they are — they belong to the workspace, not to whoever created them.';
+
+  @override
+  String get membersRemoveSuccess => 'Member removed.';
+
+  @override
+  String get membersRemoveError => 'Could not remove the member.';
+
+  @override
+  String membersInviteSentAt(String date) {
+    return 'Invited on $date';
+  }
+
+  @override
+  String get membersResendAction => 'Resend';
+
+  @override
+  String get membersResendSuccess => 'Invitation renewed.';
+
+  @override
+  String get membersResendError => 'Could not renew the invitation.';
+
+  @override
+  String get membersCancelInviteAction => 'Cancel invitation';
+
+  @override
+  String membersCancelInviteTitle(String email) {
+    return 'Cancel the invitation to $email?';
+  }
+
+  @override
+  String get membersCancelInviteConfirm =>
+      'The invitation stops showing up for the person you invited.';
+
+  @override
+  String get membersCancelInviteSuccess => 'Invitation cancelled.';
+
+  @override
+  String get membersCancelInviteError => 'Could not cancel the invitation.';
+
+  @override
+  String get membersOnlyOwnerCanRemove =>
+      'Only the workspace owner can remove members.';
+
+  @override
   String get invitesSubtitle =>
       'You have been invited to participate in the following workspaces:';
 
@@ -859,12 +978,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionWizardSelectCategory => 'Select Category';
-
-  @override
-  String get transactionWizardSelectPending => 'Pending Transactions';
-
-  @override
-  String get transactionWizardNewTransaction => 'New transaction';
 
   @override
   String get historyFilterApply => 'Apply Filters';
@@ -1140,13 +1253,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionAddIncome => 'Log Income';
 
   @override
-  String get transactionPlanExpense => 'Plan Expense';
+  String get transactionPlanExpense => 'Schedule Expense';
 
   @override
-  String get transactionPlanIncome => 'Plan Income';
+  String get transactionPlanIncome => 'Schedule Income';
 
   @override
-  String get transactionPlanTransfer => 'Plan Transfer';
+  String get transactionPlanTransfer => 'Schedule Transfer';
 
   @override
   String get transactionActionTransfer => 'Transfer';
@@ -1155,18 +1268,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionCategoriesSection => 'Categories';
 
   @override
-  String get transactionRealizedSection => 'Realized Transactions';
+  String get transactionRealizedSection => 'It happened';
 
   @override
   String get transactionRealizedSubtitle =>
-      'Transactions that have already happened and impacted your balance.';
+      'Already happened and already moved your balance.';
 
   @override
-  String get transactionPlannedSection => 'Schedules';
+  String get transactionPlannedSection => 'Schedule it';
 
   @override
   String get transactionPlannedSubtitle =>
-      'Keep track of your upcoming bills and earnings.';
+      'Still to come: bills to pay and money to receive.';
 
   @override
   String get planningSectionTitle => 'Strategy';
@@ -1209,16 +1322,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionStatusPending => 'Pending';
 
   @override
-  String get transactionStatusPlanning => 'Planning';
-
-  @override
-  String get transactionStatusRealized => 'Realized';
-
-  @override
   String get transactionStatusLabel => 'Status';
-
-  @override
-  String get transactionStatusTypeLabel => 'Registration Type';
 
   @override
   String get transactionSettledAlert =>
@@ -1472,6 +1576,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionTransfer => 'Transfer';
 
   @override
+  String get transactionTransferCountsAsInvestment =>
+      'Will count as Investments';
+
+  @override
+  String get transactionTransferCountsAsDebt => 'Will count as Debts';
+
+  @override
   String get transactionSelectSourceAccount => 'Select Source Account';
 
   @override
@@ -1542,7 +1653,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planningIncomeLimits => 'Income Expectations';
 
   @override
-  String get planningLimitDefined => 'Expectation defined';
+  String get planningLimitDefined => 'Limit set';
+
+  @override
+  String get planningExpectationDefined => 'Expectation set';
 
   @override
   String get planningSave => 'SAVE';
@@ -2405,10 +2519,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get savedSuccess => 'Saved successfully!';
-
-  @override
-  String get wizardPendingIntro =>
-      'We found scheduled transactions for this category. Do you want to confirm one of them as paid or create a new transaction?';
 
   @override
   String get planningAnalysisAction => 'Ideal analysis (AI)';

@@ -7,6 +7,7 @@ import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
@@ -23,8 +24,9 @@ import 'package:funances/features/finance/presentation/widgets/account_logo.dart
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/replication_cascade_dialog.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
-class TransactionFormScreen extends StatelessWidget {
+class TransactionFormScreen extends ConsumerWidget {
   final OrderType type;
   final OrderModel? order;
   final InstallmentModel? installment;
@@ -35,6 +37,16 @@ class TransactionFormScreen extends StatelessWidget {
   final String? description;
   final DateTime? dueDate;
   final double? amount;
+
+  /// Data de quitação forçada. Só o casamento com agendamento usa: o usuário
+  /// está registrando o que gastou hoje, então a parcela é paga hoje.
+  final DateTime? paidOn;
+
+  /// Desfaz o casamento com um agendamento. Só a quitação aberta pelo banner
+  /// recebe: é a única tela em que o usuário chegou por um toque que pode ter
+  /// sido no agendamento errado, e sem esta saída ele fica editando a parcela
+  /// de outra conta sem entender como voltar.
+  final VoidCallback? onUnmatch;
 
   const TransactionFormScreen._({
     required this.type,
@@ -47,6 +59,8 @@ class TransactionFormScreen extends StatelessWidget {
     this.description,
     this.dueDate,
     this.amount,
+    this.paidOn,
+    this.onUnmatch,
   });
 
   factory TransactionFormScreen.creation({
@@ -74,11 +88,15 @@ class TransactionFormScreen extends StatelessWidget {
   factory TransactionFormScreen.updateInstallment({
     required InstallmentModel installment,
     InstallmentStatus? status,
+    DateTime? paidOn,
+    VoidCallback? onUnmatch,
   }) {
     return TransactionFormScreen._(
       type: installment.type,
       installment: installment,
       status: status,
+      paidOn: paidOn,
+      onUnmatch: onUnmatch,
     );
   }
 
@@ -91,40 +109,79 @@ class TransactionFormScreen extends StatelessWidget {
   bool get updateInstallment => installment != null;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+
+    final creationArgs = TransactionCreationArgs(
+      type: type,
+      status: status,
+      category: category,
+      accountIdSource: accountIdSource,
+      accountIdTarget: accountIdTarget,
+      description: description,
+      amount: amount,
+      date: dueDate,
+    );
+
+    // O usuário escolheu um agendamento no banner: a tela deixa de criar uma
+    // order e passa a quitar aquela parcela. Sem isso o lançamento novo
+    // conviveria com o agendamento pendente, e o planejado contaria em dobro.
+    if (!updateOrder && !updateInstallment) {
+      final creationProvider = FinanceViewProviders.creationForm(creationArgs);
+      final matched = ref.watch(
+        creationProvider.select((state) => state.matchedInstallment),
+      );
+
+      if (matched != null) {
+        return TransactionFormScreen.updateInstallment(
+          installment: matched,
+          status: InstallmentStatus.paid,
+          paidOn: ref.watch(todayProvider),
+          // O notifier de criação segue vivo enquanto esta tela está à
+          // frente (o `watch` acima o segura), então desfazer o casamento
+          // devolve o formulário com o valor e a descrição já digitados.
+          onUnmatch: ref.read(creationProvider.notifier).clearMatch,
+        );
+      }
+    }
 
     final provider = updateOrder
         ? FinanceViewProviders.updateOrderForm(order!)
         : updateInstallment && status == InstallmentStatus.paid
         // Confirmação de pagamento (ex.: vindo do wizard): abre o formulário
         // já como pago, com os campos de pagamento visíveis e preenchidos.
-        ? FinanceViewProviders.transactionPaymentForm(installment!)
+        ? FinanceViewProviders.transactionPaymentForm(
+            TransactionPaymentArgs(installment: installment!, paidOn: paidOn),
+          )
         : updateInstallment
         ? FinanceViewProviders.updateInstallmentForm(installment!)
-        : FinanceViewProviders.creationForm(
-            TransactionCreationArgs(
-              type: type,
-              status: status,
-              category: category,
-              accountIdSource: accountIdSource,
-              accountIdTarget: accountIdTarget,
-              description: description,
-              amount: amount,
-              date: dueDate,
-            ),
-          );
+        : FinanceViewProviders.creationForm(creationArgs);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          updateOrder || updateInstallment
-              ? l10n.historyEdit
-              : l10n.transactionAddExpense,
+        title: Consumer(
+          builder: (context, ref, _) {
+            if (updateOrder || updateInstallment) {
+              return Text(l10n.historyEdit);
+            }
+
+            // O título lê o MESMO campo que decide o status do lançamento:
+            // ler o parâmetro da rota fazia a tela dizer "Lançar" enquanto o
+            // estado nascia como agendamento.
+            final formState = ref.watch(provider);
+
+            return Text(_creationTitle(l10n, formState));
+          },
         ),
         actions: [
+          if (onUnmatch != null)
+            TextButton(
+              key: const ValueKey('unmatch-action'),
+              onPressed: onUnmatch,
+              child: Text(l10n.transactionMatchUndo),
+            ),
           if (updateOrder || updateInstallment)
             IconButton(
               icon: const Icon(Icons.delete_outline, color: Colors.red),
@@ -139,29 +196,19 @@ class TransactionFormScreen extends StatelessWidget {
         onSubmit: (snapshot, loading) async {
           if (!snapshot.validate()) return;
 
-          final state = snapshot.model;
           final notifier = snapshot.notifier;
 
           ReplicationCascade cascade = ReplicationCascade.none;
 
+          // `shouldAskCascade` já compara o estado com a parcela persistida:
+          // só chega aqui quem mexeu em algo que faz sentido replicar.
           if (notifier.shouldAskCascade) {
-            final original = installment!;
-            final changedFieldsOtherThanStatusOrPayment =
-                state.description != original.description ||
-                state.amount != original.amount ||
-                state.dueDate != original.dueDate ||
-                state.category?.id != original.category?.id ||
-                state.accountIdSource != original.accountIdSource ||
-                state.accountIdTarget != original.accountIdTarget;
+            final selectedCascade = await ReplicationCascadeDialog.showUpdate(
+              context,
+            );
 
-            if (changedFieldsOtherThanStatusOrPayment) {
-              final selectedCascade = await ReplicationCascadeDialog.showUpdate(
-                context,
-              );
-
-              if (selectedCascade == null) return;
-              cascade = selectedCascade;
-            }
+            if (selectedCascade == null) return;
+            cascade = selectedCascade;
           }
 
           notifier.updateReplicationCascade(cascade);
@@ -192,6 +239,15 @@ class TransactionFormScreen extends StatelessWidget {
               ],
             );
           }
+
+          if (state.hasPendingMatches) {
+            return _pendingMatchesBanner(context, state, notifier);
+          }
+
+          if (state.searchingMatches) {
+            return _searchingMatchesBanner(context, state, notifier);
+          }
+
           return null;
         },
         fieldsBuilder: (context, snapshot) {
@@ -200,7 +256,6 @@ class TransactionFormScreen extends StatelessWidget {
           final theme = Theme.of(context);
           final l10n = context.l10n;
           final v = context.validations;
-          final isPending = state.status == InstallmentStatus.pending;
           final isSettled = state.status == InstallmentStatus.settled;
           final isPaid = state.status == InstallmentStatus.paid;
 
@@ -247,7 +302,7 @@ class TransactionFormScreen extends StatelessWidget {
               ),
 
             // 2. Campo de Valor (MoneyFormField ou Texto Estático)
-            if (state.creation || state.isPlanning)
+            if (state.creation || state.hasAmount)
               if (isEditable)
                 FullWidthItem(
                   MoneyFormField(
@@ -349,13 +404,37 @@ class TransactionFormScreen extends StatelessWidget {
                     labelText: l10n.transactionCategoriesSection,
                   ),
                 )
-              else if (state.type == OrderType.transfer)
+              else if (state.type == OrderType.transfer) ...[
                 CategoryFormField.transfer(
                   decoration: InputDecoration(
                     labelText: l10n.transactionCategoriesSection,
                   ),
-                )
-              else
+                ),
+                // A transferência não escolhe categoria: o servidor deriva
+                // uma categoria virtual dos tipos das contas. O chip conta
+                // isso em vez de trocar a categoria por baixo dos panos.
+                if (state.transferAccounting != null)
+                  FullWidthItem(
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Chip(
+                        avatar: Icon(
+                          state.transferAccounting == TransferAccounting.debt
+                              ? Icons.trending_down
+                              : Icons.savings_outlined,
+                          size: 18,
+                          color: theme.colorScheme.primary,
+                        ),
+                        label: Text(
+                          state.transferAccounting == TransferAccounting.debt
+                              ? l10n.transactionTransferCountsAsDebt
+                              : l10n.transactionTransferCountsAsInvestment,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ),
+              ] else
                 CategoryFormField(
                   initialValue: state.category,
                   categoryType: state.type.categoryType,
@@ -368,6 +447,10 @@ class TransactionFormScreen extends StatelessWidget {
                 ),
 
               AccountFormField(
+                // O FormField semeia o valor no primeiro build; a conta
+                // padrão chega depois, de uma consulta. A key faz o campo
+                // renascer com o default já preenchido.
+                key: ValueKey('account-source-${state.accountIdSource}'),
                 initialValue: state.accountIdSource,
                 decoration: InputDecoration(
                   labelText: state.type == OrderType.transfer
@@ -375,9 +458,13 @@ class TransactionFormScreen extends StatelessWidget {
                       : l10n.transactionAccountLabel,
                 ),
                 onChanged: notifier.updateAccountIdSource,
-                validator: isPending ? null : v.all([v.notEmpty()]),
+                // Conta é obrigatória também em agendamento: um lançamento
+                // futuro sem conta não entra em projeção de saldo nenhuma.
+                validator: v.all([v.notEmpty()]),
                 autoOpen:
-                    state.creation && state.status != InstallmentStatus.pending,
+                    state.creation &&
+                    !state.resolvingAccount &&
+                    state.accountIdSource == null,
               ),
               if (state.type == OrderType.transfer)
                 AccountFormField(
@@ -511,7 +598,7 @@ class TransactionFormScreen extends StatelessWidget {
             ],
 
             // 5. Data de Vencimento / Transação (Editável ou Metadado)
-            if (state.creation || state.isPlanning)
+            if (state.creation || state.hasAmount)
               if (isEditable)
                 DateFormField(
                   initialValue: state.dueDate,
@@ -597,7 +684,6 @@ class TransactionFormScreen extends StatelessWidget {
                             },
                             validator: v.all([v.notNull()]),
                           ),
-                        _buildStatusField(context, state, notifier),
                         if (state.type != OrderType.transfer) ...[
                           ChipFormField<InstallmentType>(
                             initialValue: state.installmentType,
@@ -627,9 +713,11 @@ class TransactionFormScreen extends StatelessWidget {
                                 : null,
                           ),
                         ],
-                        if (state.installmentType == InstallmentType.installment)
+                        if (state.installmentType ==
+                            InstallmentType.installment)
                           TextFormField(
-                            initialValue: (state.installmentCount ?? 1).toString(),
+                            initialValue: (state.installmentCount ?? 1)
+                                .toString(),
                             onChanged: (installment) =>
                                 notifier.updateInstallmentCount(
                                   int.tryParse(installment) ?? 1,
@@ -641,7 +729,8 @@ class TransactionFormScreen extends StatelessWidget {
                             validator: v.all([v.notEmpty()]),
                             enabled: state.creation,
                           ),
-                        if (state.installmentType == InstallmentType.installment &&
+                        if (state.installmentType ==
+                                InstallmentType.installment &&
                             state.creation &&
                             !isSettled)
                           ChipFormField<TransactionAmountType>(
@@ -673,7 +762,8 @@ class TransactionFormScreen extends StatelessWidget {
             ),
 
             // 7. Informações de Pagamento (Se não for Criação e estiver Pago/Liquidado ou sem planejamento)
-            if (!state.creation && (isPaid || isSettled || !state.isPlanning)) ...[
+            if (!state.creation &&
+                (isPaid || isSettled || !state.hasAmount)) ...[
               FullWidthItem(const Divider()),
               FullWidthItem(
                 Text(l10n.paymentInfo, style: theme.textTheme.titleMedium),
@@ -707,55 +797,193 @@ class TransactionFormScreen extends StatelessWidget {
     );
   }
 
-  ChipFormField<InstallmentStatus> _buildStatusField(
+  /// Oferta de casamento com um agendamento já existente.
+  ///
+  /// Aparece antes dos campos porque a pergunta muda o que o save vai fazer:
+  /// quitar a parcela agendada ou criar um lançamento novo. Sem a pergunta, o
+  /// usuário criava o lançamento novo sem perceber e o agendamento ficava
+  /// pendente para sempre — planejado em dobro no 50-30-20, missão atrasada
+  /// que nunca fecha e saldo projetado errado.
+  /// Altura reservada para a oferta de agendamentos, em pixels lógicos.
+  ///
+  /// É a altura do conteúdo da oferta com um agendamento: título em duas
+  /// linhas mais uma linha de agendamento. O banner ocupa esse espaço já
+  /// durante a busca para que os campos nasçam na posição final — a oferta
+  /// chegando depois empurraria o campo de valor para baixo bem quando o dedo
+  /// do usuário está descendo nele, e o toque que era do valor viraria toque
+  /// no agendamento.
+  ///
+  /// O número é medido, não deduzido, e o teste "o espaço da oferta é
+  /// reservado enquanto a busca corre" o mantém honesto: se o banner mudar de
+  /// tamanho, é ele que quebra. A reserva é exata no caso comum — um
+  /// agendamento, tamanho de texto padrão; com dois ou mais o banner ainda
+  /// cresce, e aí o usuário já está lendo uma lista, não digitando.
+  static const double _reservedMatchesHeight = 100;
+
+  /// Espaço reservado enquanto a busca por agendamentos corre.
+  ///
+  /// O indicador é discreto de propósito: explica o vão no topo sem competir
+  /// com o formulário, que já está utilizável. Quem já sabe que o lançamento
+  /// é novo pode recusar a oferta antes mesmo dela chegar.
+  MaterialBanner _searchingMatchesBanner(
     BuildContext context,
     TransactionFormState state,
     TransactionFormNotifier notifier,
   ) {
     final l10n = context.l10n;
-    final isSettled = state.status == InstallmentStatus.settled;
+    final theme = Theme.of(context);
 
-    return ChipFormField<InstallmentStatus>(
-      initialValue: isSettled ? InstallmentStatus.paid : state.status,
-      decoration: InputDecoration(
-        labelText: state.creation
-            ? l10n.transactionStatusTypeLabel
-            : l10n.transactionStatusLabel,
+    return MaterialBanner(
+      backgroundColor: theme.colorScheme.secondaryContainer,
+      content: SizedBox(
+        height: _reservedMatchesHeight,
+        child: Row(
+          spacing: 12,
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+            Expanded(
+              child: Text(
+                l10n.transactionMatchSearching,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+          ],
+        ),
       ),
-      options: state.creation
-          ? [
-              ChipFormFieldOption(
-                value: InstallmentStatus.pending,
-                label: l10n.transactionStatusPlanning,
-              ),
-              ChipFormFieldOption(
-                value: InstallmentStatus.paid,
-                label: l10n.transactionStatusRealized,
-              ),
-            ]
-          : [
-              ChipFormFieldOption(
-                value: InstallmentStatus.pending,
-                label: l10n.transactionStatusPending,
-              ),
-              ChipFormFieldOption(
-                value: InstallmentStatus.paid,
-                label: l10n.transactionStatusPaid,
-              ),
-              if (isSettled)
-                ChipFormFieldOption(
-                  value: InstallmentStatus.settled,
-                  label: l10n.transactionStatusSettled,
-                ),
-            ],
-      onChanged: (!isSettled && state.amount > 0) || state.creation
-          ? (v) {
-              if (v != null) {
-                notifier.updateStatus(v);
-              }
-            }
-          : null,
+      actions: [
+        TextButton(
+          onPressed: notifier.dismissMatches,
+          child: Text(
+            state.type == OrderType.income
+                ? l10n.transactionMatchDismissIncome
+                : l10n.transactionMatchDismiss,
+          ),
+        ),
+      ],
     );
+  }
+
+  MaterialBanner _pendingMatchesBanner(
+    BuildContext context,
+    TransactionFormState state,
+    TransactionFormNotifier notifier,
+  ) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final locale = context.locale;
+    final likelyId = state.likelyMatchId;
+
+    return MaterialBanner(
+      backgroundColor: theme.colorScheme.secondaryContainer,
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.transactionMatchTitle,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ...state.pendingMatches.map((match) {
+            final likely = match.id == likelyId;
+
+            return InkWell(
+              key: ValueKey('pending-match-${match.id}'),
+              onTap: () => notifier.selectMatch(match),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                // O destaque é do valor que bate com o digitado. A cor
+                // sozinha não serve a quem não a distingue, então o rótulo
+                // "mesmo valor" diz em texto por que esta linha é diferente.
+                decoration: likely
+                    ? BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(
+                          alpha: 0.12,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      )
+                    : null,
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                child: Row(
+                  spacing: 8,
+                  children: [
+                    const Icon(Icons.event_available_outlined, size: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            match.description,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            '${match.amount.asCurrency(locale: locale)} · '
+                            '${match.dueDate.formated(l10n.formatSimpleDate)}'
+                            '${likely ? ' · ${l10n.transactionMatchSameAmount}' : ''}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              fontWeight: likely
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      l10n.transactionMatchSettle,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: notifier.dismissMatches,
+          child: Text(
+            state.type == OrderType.income
+                ? l10n.transactionMatchDismissIncome
+                : l10n.transactionMatchDismiss,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Título do formulário de criação.
+  ///
+  /// O status vem do ponto de entrada e não é mais editável aqui, então o
+  /// título é o que diz ao usuário se ele está registrando algo que já
+  /// aconteceu ou agendando algo que ainda vai acontecer.
+  String _creationTitle(AppLocalizations l10n, TransactionFormState state) {
+    final scheduled = state.status == InstallmentStatus.pending;
+
+    return switch (state.type) {
+      OrderType.income =>
+        scheduled ? l10n.transactionPlanIncome : l10n.transactionAddIncome,
+      OrderType.expense =>
+        scheduled ? l10n.transactionPlanExpense : l10n.transactionAddExpense,
+      OrderType.transfer =>
+        scheduled ? l10n.transactionPlanTransfer : l10n.transactionTransfer,
+    };
   }
 
   void _confirmDelete(

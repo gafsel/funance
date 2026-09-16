@@ -127,7 +127,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       title: l10n.workspaceSettingsMembers,
                       description: l10n.workspaceSettingsMembersDesc,
                       onTap: () {
-                        // TODO: Implementar gestão de membros
+                        context.push('/workspace/members');
                       },
                     ),
                     _buildGridItem(
@@ -199,7 +199,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     title: Text(l10n.workspaceSettingsMembers),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      // TODO: Implementar gestão de membros
+                      context.push('/workspace/members');
                     },
                   ),
                   const Divider(),

@@ -10,4 +10,10 @@ abstract class IWorkspaceRepository {
   Future<void> updateWorkspace(WorkspaceModel workspace);
   Future<void> deleteWorkspace(String workspaceId);
   Future<List<UserModel>> getWorkspaceMembers(String workspaceId);
+
+  /// Tira um membro do workspace.
+  ///
+  /// Vai por callable: `members` é a base de toda permissão do workspace e as
+  /// rules não deixam o cliente escrever nessa lista.
+  Future<void> removeWorkspaceMember(String workspaceId, String memberId);
 }

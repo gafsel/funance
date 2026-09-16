@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:funances/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -17,17 +16,24 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
+/// Lançamento em duas telas: escolher a categoria e preencher o formulário.
+///
+/// O status vem do ponto de entrada ("Registrei" abre como pago, "Agendar"
+/// como pendente) e não é mais uma escolha dentro do formulário. Sem status,
+/// vale o caminho mais comum: registrar algo que já aconteceu.
+///
+/// No caminho "Registrei", o formulário ainda oferece os agendamentos
+/// pendentes da categoria, para o usuário quitar o que já tinha planejado em
+/// vez de criar um lançamento paralelo.
 class TransactionWizardScreen extends ConsumerWidget {
   final OrderType type;
   final InstallmentStatus? initialStatus;
-  final bool skipTransactions;
   final String? accountIdSource;
 
   const TransactionWizardScreen({
     super.key,
     required this.type,
     this.initialStatus,
-    this.skipTransactions = false,
     this.accountIdSource,
   });
 
@@ -35,7 +41,6 @@ class TransactionWizardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final args = TransactionWizardArgs(
       type: type,
-      skipTransactions: skipTransactions,
       accountIdSource: accountIdSource,
     );
     final state = ref.watch(FinanceViewProviders.wizard(args));
@@ -46,25 +51,14 @@ class TransactionWizardScreen extends ConsumerWidget {
         type: type,
         onCategorySelected: notifier.selectCategory,
       ),
-      TransactionWizardStep.transactions => _PendingTransactionsStep(
+      TransactionWizardStep.form => TransactionFormScreen.creation(
         type: type,
         category: state.selectedCategory,
-        onInstallmentSelected: notifier.selectInstallment,
-        onBack: notifier.back,
+        // Sem status no ponto de entrada quem decide é
+        // `TransactionFormState.creation`, que assume realizado.
+        status: initialStatus,
         accountIdSource: state.accountIdSource,
       ),
-      _ =>
-        state.selectedInstallment != null
-            ? TransactionFormScreen.updateInstallment(
-                installment: state.selectedInstallment!,
-                status: InstallmentStatus.paid,
-              )
-            : TransactionFormScreen.creation(
-                type: type,
-                category: state.selectedCategory,
-                status: initialStatus,
-                accountIdSource: state.accountIdSource,
-              ),
     };
   }
 }
@@ -244,251 +238,6 @@ class _CategorySelectionStep extends ConsumerWidget {
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text(err.toString())),
-      ),
-    );
-  }
-}
-
-class _PendingTransactionsStep extends ConsumerWidget {
-  final OrderType type;
-  final CategoryModel? category;
-  final ValueChanged<InstallmentModel?> onInstallmentSelected;
-  final VoidCallback onBack;
-  final String? accountIdSource;
-
-  const _PendingTransactionsStep({
-    required this.type,
-    this.category,
-    required this.onInstallmentSelected,
-    required this.onBack,
-    this.accountIdSource,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final locale = context.locale;
-
-    final installmentsAsync = ref.watch(
-      FinanceViewProviders.pendingInstallments((
-        type: type,
-        categoryId: category?.id,
-        accountId: accountIdSource,
-      )),
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.transactionWizardSelectPending),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: onBack,
-        ),
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final isLargeScreen = constraints.maxWidth > 600;
-
-          return installmentsAsync.when(
-            data: (installments) {
-              final itemCount = installments.length + 1;
-
-              final content = Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      context.l10n.wizardPendingIntro,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: itemCount,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemBuilder: (context, index) => _buildTransactionItem(
-                        context,
-                        ref,
-                        index,
-                        installments,
-                        l10n,
-                        locale,
-                      ),
-                    ),
-                  ),
-                ],
-              );
-
-              if (isLargeScreen) {
-                return Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 800),
-                    child: content,
-                  ),
-                );
-              }
-
-              return content;
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text(err.toString())),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTransactionItem(
-    BuildContext context,
-    WidgetRef ref,
-    int index,
-    List<InstallmentModel> installments,
-    AppLocalizations l10n,
-    String locale,
-  ) {
-    final theme = Theme.of(context);
-
-    if (index == installments.length) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: InkWell(
-          onTap: () => onInstallmentSelected(null),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: theme.dividerColor.withValues(alpha: 0.1),
-              ),
-              borderRadius: BorderRadius.circular(12),
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.add,
-                    color: theme.colorScheme.primary,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  l10n.transactionWizardNewTransaction,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    final installment = installments[index];
-    final isExpense = installment.type == OrderType.expense;
-    final isTransfer = installment.type == OrderType.transfer;
-
-    Color amountColor;
-    if (isTransfer) {
-      amountColor = theme.colorScheme.primary;
-    } else if (isExpense) {
-      amountColor = AppColors.error;
-    } else {
-      amountColor = AppColors.limeGreen;
-    }
-
-    final sourceAccount = installment.accountIdSource != null
-        ? ref.watch(AccountViewProviders.byId(installment.accountIdSource!)).valueOrNull
-        : null;
-
-    final targetAccount = isTransfer && installment.accountIdTarget != null
-        ? ref.watch(AccountViewProviders.byId(installment.accountIdTarget!)).valueOrNull
-        : null;
-
-    final categoryColor = category?.color.asColor() ?? theme.colorScheme.primary;
-    final categoryIcon = category?.icon.asIcon() ?? Icons.help_outline;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: InkWell(
-        onTap: () => onInstallmentSelected(installment),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.1),
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            spacing: 12,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: categoryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  isTransfer ? Icons.swap_horiz : categoryIcon,
-                  color: categoryColor,
-                  size: 20,
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      installment.description,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      isTransfer
-                          ? '${sourceAccount?.name ?? '...'} ➡ ${targetAccount?.name ?? '...'}'
-                          : sourceAccount?.name ?? '...',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      installment.dueDate.formated(l10n.formatSimpleDate),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                installment.amount.asCurrency(locale: locale),
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: amountColor,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
