@@ -15,6 +15,7 @@ analyzer:
     # devem ser analisados como código do projeto.
     - build/**
     - example/**
+    - functions/**
 
   language:
     strict-casts: true
