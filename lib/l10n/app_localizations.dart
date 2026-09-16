@@ -284,6 +284,24 @@ abstract class AppLocalizations {
   /// **'É uma receita nova'**
   String get transactionMatchDismissIncome;
 
+  /// No description provided for @transactionMatchSearching.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurando agendamentos…'**
+  String get transactionMatchSearching;
+
+  /// No description provided for @transactionMatchUndo.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não era esse'**
+  String get transactionMatchUndo;
+
+  /// No description provided for @transactionMatchSameAmount.
+  ///
+  /// In pt, this message translates to:
+  /// **'mesmo valor'**
+  String get transactionMatchSameAmount;
+
   /// No description provided for @onboardingConceptXpTitle.
   ///
   /// In pt, this message translates to:

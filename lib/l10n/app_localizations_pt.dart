@@ -105,6 +105,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionMatchDismissIncome => 'É uma receita nova';
 
   @override
+  String get transactionMatchSearching => 'Procurando agendamentos…';
+
+  @override
+  String get transactionMatchUndo => 'Não era esse';
+
+  @override
+  String get transactionMatchSameAmount => 'mesmo valor';
+
+  @override
   String get onboardingConceptXpTitle => 'Ganhe XP e suba de nível';
 
   @override

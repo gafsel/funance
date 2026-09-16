@@ -143,8 +143,15 @@ class TransactionFormNotifier
       // pode oferecer os agendamentos da categoria errada.
       if (state.category?.id != category.id) return;
 
+      // Mais antigo primeiro: o agendamento atrasado é o candidato mais
+      // provável e é o que vira missão vencida se ficar para trás. A ordem
+      // do servidor não garante isso, e o corte em [maxPendingMatches] já
+      // aconteceu — esta ordenação arruma o que veio, não escolhe o que vem.
+      final matches = [...chunk.items]
+        ..sort((a, b) => a.referenceDate.compareTo(b.referenceDate));
+
       state = state.copyWith(
-        pendingMatches: chunk.items,
+        pendingMatches: matches,
         loadingMatches: false,
       );
     } catch (_) {
@@ -155,14 +162,38 @@ class TransactionFormNotifier
   }
 
   /// O usuário escolheu quitar um agendamento em vez de criar um lançamento.
+  ///
+  /// O valor e a descrição que ele já tinha digitado continuam no estado: a
+  /// tela troca o formulário à frente, mas este notifier segue vivo, e é por
+  /// isso que [clearMatch] consegue devolver o que estava preenchido.
   void selectMatch(InstallmentModel installment) {
     state = state.copyWith(matchedInstallment: installment);
+  }
+
+  /// "Não era esse": desfaz o casamento e volta ao formulário de criação.
+  ///
+  /// A oferta continua de pé — tocar no agendamento errado não é dizer que o
+  /// lançamento é novo, e cobrar essa segunda resposta do usuário só para
+  /// corrigir um toque seria trocar um engano por um beco sem saída.
+  void clearMatch() {
+    state = state.copyWith(matchedInstallment: null);
   }
 
   /// "É um gasto novo": a oferta some e não volta nesta categoria.
   void dismissMatches() {
     state = state.copyWith(dismissedMatch: true, loadingMatches: false);
   }
+
+  // Onde vive o sinal do casamento, para quem for construir o nudge de F3.2:
+  //
+  // `matchedInstallmentId` e `dismissedMatch` são estado DESTE notifier, o de
+  // criação, e morrem com ele — são a memória de uma sessão do formulário
+  // ("já perguntei, e ele respondeu isto"), não um dado do lançamento.
+  //
+  // Depois que o usuário casa, este notifier nem chega a salvar: a tela passa
+  // a editar a parcela, e quem persiste é o formulário de quitação. O sinal
+  // duradouro de que o agendamento foi quitado é, portanto, a própria parcela
+  // com status `paid` — é ela que F3.2 deve ler, não um campo daqui.
 
   /// Conta padrão do lançamento: a última que o usuário usou na categoria
   /// escolhida e, na falta dela, a única conta do workspace.

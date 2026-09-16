@@ -184,6 +184,9 @@ sealed class TransactionFormState with _$TransactionFormState {
     // conta duas vezes no 50-30-20 e a parcela vira uma missão atrasada que
     // nunca fecha.
     @Default([]) List<InstallmentModel> pendingMatches,
+    // Verdadeiro enquanto a busca corre. O formulário reserva o espaço do
+    // banner enquanto isso: deixar a oferta aparecer depois empurraria os
+    // campos para baixo bem quando o usuário já está tocando no valor.
     @Default(false) bool loadingMatches,
     // O usuário disse que é lançamento novo. A marca fica no estado para o
     // nudge de F3.2 saber que a pergunta já foi feita e recusada.
@@ -200,6 +203,48 @@ sealed class TransactionFormState with _$TransactionFormState {
 
   /// Há agendamento para oferecer e o usuário ainda não recusou a oferta.
   bool get hasPendingMatches => !dismissedMatch && pendingMatches.isNotEmpty;
+
+  /// A busca por agendamentos está correndo e ainda pode virar oferta.
+  ///
+  /// Depois de recusada, a oferta não volta nesta categoria: uma resposta
+  /// atrasada não pode reabrir o espaço que o usuário acabou de fechar.
+  bool get searchingMatches => !dismissedMatch && loadingMatches;
+
+  /// Agendamento cujo valor bate com o que o usuário já digitou, quando há
+  /// um só candidato.
+  ///
+  /// Quem paga a conta de luz de R$ 187,40 digita o valor antes de olhar a
+  /// oferta: entre três pendentes da categoria, o de mesmo valor é quase
+  /// certamente o que ele está quitando. A tolerância de 1% do valor
+  /// pendente (com piso de um centavo) absorve juros e arredondamento.
+  ///
+  /// Empate não destaca ninguém: duas parcelas de R$ 100 na mesma categoria
+  /// não dizem qual das duas é esta, e apontar uma seria um chute com cara
+  /// de resposta.
+  String? get likelyMatchId {
+    if (amount <= 0 || pendingMatches.isEmpty) return null;
+
+    double? closest;
+    String? closestId;
+    var tied = false;
+
+    for (final match in pendingMatches) {
+      final tolerance = match.amount * 0.01;
+      final distance = (match.amount - amount).abs();
+
+      if (distance > (tolerance < 0.01 ? 0.01 : tolerance)) continue;
+
+      if (closest == null || distance < closest) {
+        closest = distance;
+        closestId = match.id;
+        tied = false;
+      } else if (distance == closest) {
+        tied = true;
+      }
+    }
+
+    return tied ? null : closestId;
+  }
 
   /// Há um valor preenchido. Não tem relação com planejamento: distingue o
   /// lançamento com valor (campos de pagamento fazem sentido) do que ainda

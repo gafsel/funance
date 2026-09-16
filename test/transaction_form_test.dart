@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/core/time/clock.dart';
@@ -56,9 +59,13 @@ class _RecordingAnalytics implements AnalyticsService {
 /// Só os métodos que o formulário toca; qualquer outro grita em vez de
 /// devolver null silencioso.
 class _FakeFinanceRepository implements IFinanceRepository {
-  _FakeFinanceRepository({this.installments = const []});
+  _FakeFinanceRepository({this.installments = const [], this.gate});
 
   final List<InstallmentModel> installments;
+
+  /// Segura a resposta da busca até o teste liberar, para observar o
+  /// formulário no intervalo em que a oferta ainda não chegou.
+  final Completer<void>? gate;
   final List<
     ({
       String? categoryId,
@@ -87,6 +94,8 @@ class _FakeFinanceRepository implements IFinanceRepository {
     bool descending = true,
     dynamic chunkRef,
   }) async {
+    if (gate != null) await gate!.future;
+
     queryCalls.add((
       categoryId: categoryId,
       type: type,
@@ -306,6 +315,7 @@ List<Override> _overrides({
   List<AccountModel> accounts = const [],
   List<CategoryModel> categories = const [],
   List<InstallmentModel> installments = const [],
+  Completer<void>? gate,
 }) => [
   WorkspaceViewProviders.currentWorkspaceId.overrideWithValue('ws-test'),
   analyticsServiceProvider.overrideWithValue(_StubAnalyticsService()),
@@ -317,7 +327,7 @@ List<Override> _overrides({
   // quando o teste roda.
   clockProvider.overrideWithValue(() => _hoje),
   FinanceDomainProviders.repository.overrideWithValue(
-    _FakeFinanceRepository(installments: installments),
+    _FakeFinanceRepository(installments: installments, gate: gate),
   ),
   AccountDomainProviders.repository.overrideWithValue(
     _FakeAccountRepository(accounts: accounts),
@@ -724,6 +734,128 @@ void main() {
       expect(notifier.state.matchedInstallmentId, 'inst-agendada');
     });
 
+    test('a oferta vem do mais antigo para o mais novo', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(
+          installments: [
+            agendamento(id: 'inst-marco', dueDate: DateTime(2026, 3, 5)),
+            agendamento(id: 'inst-fevereiro', dueDate: DateTime(2026, 2, 5)),
+          ],
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      // O atrasado vem primeiro: é o candidato mais provável e é o que vira
+      // missão vencida se ficar para trás.
+      expect(
+        notifier.state.pendingMatches.map((match) => match.id),
+        ['inst-fevereiro', 'inst-marco'],
+      );
+    });
+
+    test('desfazer o casamento devolve o que já estava digitado', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(installments: [agendamento()]),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      notifier.updateAmount(187.4);
+      notifier.updateDescription('Luz de março');
+      notifier.selectMatch(notifier.state.pendingMatches.single);
+
+      notifier.clearMatch();
+
+      expect(notifier.state.matchedInstallment, isNull);
+      expect(notifier.state.amount, 187.4);
+      expect(notifier.state.description, 'Luz de março');
+      expect(
+        notifier.state.hasPendingMatches,
+        isTrue,
+        reason: 'tocar no agendamento errado não é dizer que o gasto é novo',
+      );
+    });
+
+    test('valor digitado destaca o pendente de mesmo valor', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(
+          installments: [
+            agendamento(id: 'inst-luz').copyWith(amount: 187.4),
+            agendamento(
+              id: 'inst-aluguel',
+              dueDate: DateTime(2026, 3, 8),
+            ).copyWith(amount: 2000),
+          ],
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.likelyMatchId, isNull, reason: 'nada digitado');
+
+      notifier.updateAmount(187.4);
+      expect(notifier.state.likelyMatchId, 'inst-luz');
+
+      // Um centavo de diferença continua sendo a mesma conta.
+      notifier.updateAmount(187.41);
+      expect(notifier.state.likelyMatchId, 'inst-luz');
+
+      notifier.updateAmount(45);
+      expect(
+        notifier.state.likelyMatchId,
+        isNull,
+        reason: 'valor que não bate com nenhum pendente não destaca nada',
+      );
+    });
+
+    test('dois pendentes de mesmo valor não destacam nenhum', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(
+          installments: [
+            agendamento(id: 'inst-a').copyWith(amount: 100),
+            agendamento(
+              id: 'inst-b',
+              dueDate: DateTime(2026, 3, 8),
+            ).copyWith(amount: 100),
+          ],
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+      notifier.updateAmount(100);
+
+      expect(
+        notifier.state.likelyMatchId,
+        isNull,
+        reason: 'apontar uma das duas seria chute com cara de resposta',
+      );
+    });
+
     test('dispensar deixa o lançamento seguir como novo', () async {
       final notifier = _notifierFor(
         TransactionFormState.creation(
@@ -948,6 +1080,138 @@ void main() {
         find.text('Existe um agendamento nesta categoria. Quitar este?'),
         findsNothing,
       );
+    });
+
+    testWidgets('"Não era esse" volta ao formulário com o que foi digitado', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.creation(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+            installments: [_agendamentoDeMarco()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.ancestor(
+          of: find.text('Descrição'),
+          matching: find.byType(TextFormField),
+        ),
+        'Aluguel pago hoje',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('pending-match-inst-agendada')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Editar'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('unmatch-action')));
+      await tester.pumpAndSettle();
+
+      // Voltou a criar uma order, e o que o usuário já tinha digitado
+      // continua lá: desfazer um toque errado não pode custar o formulário.
+      expect(find.text('Lançar Despesa'), findsOneWidget);
+      expect(find.text('Aluguel pago hoje'), findsOneWidget);
+      // E a oferta continua de pé, para ele escolher o agendamento certo.
+      expect(
+        find.byKey(const ValueKey('pending-match-inst-agendada')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a quitação normal não oferece "Não era esse"', (tester) async {
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.updateInstallment(
+            installment: _installment(status: InstallmentStatus.pending),
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('unmatch-action')),
+        findsNothing,
+        reason: 'quem abriu a parcela pela lista não casou nada para desfazer',
+      );
+    });
+
+    testWidgets('o espaço da oferta é reservado enquanto a busca corre', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.creation(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+            installments: [_agendamentoDeMarco()],
+            gate: gate,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // O banner já ocupa o espaço, então o campo de valor nasce onde vai
+      // ficar: a oferta não vai empurrá-lo quando a resposta chegar.
+      expect(find.text('Procurando agendamentos…'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsWidgets);
+      final antes = tester.getTopLeft(find.byType(MoneyFormField)).dy;
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Procurando agendamentos…'), findsNothing);
+      expect(find.text('Aluguel de março'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(MoneyFormField)).dy,
+        antes,
+        reason: 'a oferta não pode empurrar o campo sob o dedo do usuário',
+      );
+    });
+
+    testWidgets('o pendente de mesmo valor vem destacado', (tester) async {
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.creation(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+            amount: 2000,
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+            installments: [_agendamentoDeMarco()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // O rótulo diz em texto por que a linha está destacada: a cor sozinha
+      // não serve a quem não a distingue.
+      expect(find.textContaining('mesmo valor'), findsOneWidget);
     });
 
     testWidgets('consolidação de transação automática abre como realizada', (

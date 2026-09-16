@@ -104,6 +104,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionMatchDismissIncome => 'It is new income';
 
   @override
+  String get transactionMatchSearching => 'Looking for scheduled entries…';
+
+  @override
+  String get transactionMatchUndo => 'Not this one';
+
+  @override
+  String get transactionMatchSameAmount => 'same amount';
+
+  @override
   String get onboardingConceptXpTitle => 'Earn XP and level up';
 
   @override
