@@ -168,8 +168,12 @@ export class CoachingService {
             ...advancedContext,
         };
 
-        // A cota é consumida AQUI: é o único ponto em que o Gemini é chamado
-        // de fato. Se a falha for de infraestrutura, estorna.
+        // A cota é consumida AQUI: é a chamada de IA que a cota mede, e só
+        // chegamos neste ponto em cache-miss. (buildAdvancedContext pode
+        // disparar uma chamada acessória ao Gemini para classificar categorias
+        // novas — ela é cacheada em coaching_meta e não entra nesta cota; o
+        // handler faz quota.check() antes para não pagar nem isso com a cota
+        // zerada.) Se a falha for de infraestrutura, estorna.
         await quota?.consume();
 
         let coachingResponse: any;

@@ -17,11 +17,15 @@ export const generateCoaching = onCall(AI_CALLABLE_OPTIONS, async (request) => {
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
 
-    // A cota não é consumida aqui: o serviço tem cache de 5 dias e só gasta
+    // A cota não é CONSUMIDA aqui: o serviço tem cache de 5 dias e só gasta
     // cota quando realmente chama a IA (ver CoachingService.generateCoaching).
+    // Mas fazemos a pré-checagem somente-leitura já: com a cota esgotada não
+    // vale a pena montar o contexto financeiro nem classificar grupos de
+    // categoria (que pode chamar o Gemini) para descartar tudo depois.
     const quota = container.quotaService.guardFor(
         workspaceId, "generateCoaching", AI_DAILY_QUOTAS.generateCoaching
     );
+    await quota.check();
 
     try {
         const coaching = await container.coachingService.generateCoaching(workspaceId, quota);

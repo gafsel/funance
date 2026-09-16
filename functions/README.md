@@ -43,10 +43,19 @@ Duas regras importantes:
   o handler não chama `assertQuota`: ele monta um `QuotaGuard` e passa para o
   serviço, que faz `consume()` imediatamente antes de invocar o Gemini.
   Reabrir um insight/análise já existente não gasta nada.
+- **Com a cota esgotada, nada de caro roda.** Esses dois handlers chamam
+  `guard.check()` logo depois de `assertWorkspaceMember`: é uma leitura
+  somente-leitura do contador, que já responde `resource-exhausted` sem
+  incrementar. Sem isso, o servidor montaria todo o contexto financeiro — e
+  possivelmente chamaria o Gemini para classificar categorias novas
+  (`CategoryGroupService.resolveCategoryGroups`, cacheado em `coaching_meta`)
+  — para depois descartar tudo no `consume()`.
 - **Falha de infraestrutura é estornada.** Se o Gemini responder 5xx/429 ou
-  der timeout, o serviço chama `refund()` e a unidade volta. Resposta inválida
-  ou erro de validação **não** gera estorno — ver `isTransientAiError` em
-  `src/core/services/ai.service.ts`.
+  der timeout, quem invocou chama `refund()` e a unidade volta. Resposta
+  inválida ou erro de validação **não** gera estorno — ver `isTransientAiError`
+  em `src/core/services/ai.service.ts`. Vale para os seis callables: os quatro
+  sem cache (`analysePlanning`, os dois de documento e `analyzeGoalFeasibility`)
+  fazem `consume()` no próprio handler e estornam no `catch`.
 
 O documento de quota também recebe `createdAt` e `expiresAt` (criação + 90
 dias) na primeira escrita do dia, para ser recolhido pela mesma política de

@@ -19,11 +19,15 @@ export const analyze503020Ideal = onCall(AI_CALLABLE_OPTIONS_SHORT, async (reque
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
 
-    // A cota não é consumida aqui: o serviço tem cache de 3 dias e só gasta
+    // A cota não é CONSUMIDA aqui: o serviço tem cache de 3 dias e só gasta
     // cota quando realmente chama a IA (ver PlanningAnalysisService.analyze).
+    // Mas fazemos a pré-checagem somente-leitura já: com a cota esgotada não
+    // vale a pena montar o contexto nem classificar grupos de categoria (que
+    // pode chamar o Gemini) para descartar tudo depois.
     const quota = container.quotaService.guardFor(
         workspaceId, "analyze503020Ideal", AI_DAILY_QUOTAS.analyze503020Ideal
     );
+    await quota.check();
 
     try {
         const analysis = await container.planningAnalysisService.analyze(workspaceId, quota);

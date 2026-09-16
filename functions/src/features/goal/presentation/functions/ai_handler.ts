@@ -3,6 +3,7 @@ import { container } from "../../../../core/container";
 import { assertWorkspaceMember } from "../../../../core/services/workspace_access.service";
 import { AI_CALLABLE_OPTIONS, AI_CALLABLE_OPTIONS_SHORT } from "../../../../core/config/functions.config";
 import { AI_DAILY_QUOTAS } from "../../../../core/config/quota.config";
+import { isTransientAiError } from "../../../../core/services/ai.service";
 
 export const analysePlanning = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
@@ -16,13 +17,22 @@ export const analysePlanning = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
-    await container.quotaService.assertQuota(workspaceId, "analysePlanning", AI_DAILY_QUOTAS.analysePlanning);
+
+    // Sem cache server-side: a cota é consumida já aqui. O estorno em
+    // falha de infraestrutura mantém a simetria com coaching/50-30-20.
+    const quota = container.quotaService.guardFor(
+        workspaceId, "analysePlanning", AI_DAILY_QUOTAS.analysePlanning
+    );
+    await quota.consume();
 
     try {
         const suggestions = await container.onboardingService.analyzePlanning(workspaceId);
         return suggestions;
     }
     catch (error: any) {
+        if (isTransientAiError(error)) {
+            await quota.refund();
+        }
         console.error("Erro na análise da IA:", error);
         throw new HttpsError("internal", error.message || "Erro ao processar análise de IA.");
     }
@@ -40,7 +50,13 @@ export const analyzeAccountDocument = onCall(AI_CALLABLE_OPTIONS, async (request
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
-    await container.quotaService.assertQuota(workspaceId, "analyzeAccountDocument", AI_DAILY_QUOTAS.analyzeAccountDocument);
+
+    // Sem cache server-side: a cota é consumida já aqui. O estorno em
+    // falha de infraestrutura mantém a simetria com coaching/50-30-20.
+    const quota = container.quotaService.guardFor(
+        workspaceId, "analyzeAccountDocument", AI_DAILY_QUOTAS.analyzeAccountDocument
+    );
+    await quota.consume();
 
     try {
         const analysis = await container.onboardingService.analyzeAccountDocument(
@@ -50,6 +66,9 @@ export const analyzeAccountDocument = onCall(AI_CALLABLE_OPTIONS, async (request
         return analysis;
     }
     catch (error: any) {
+        if (isTransientAiError(error)) {
+            await quota.refund();
+        }
         console.error("Erro na análise do documento:", error);
         throw new HttpsError("internal", error.message || "Erro ao processar análise do documento.");
     }
@@ -67,7 +86,13 @@ export const analyzeReconciliationDocument = onCall(AI_CALLABLE_OPTIONS, async (
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
-    await container.quotaService.assertQuota(workspaceId, "analyzeReconciliationDocument", AI_DAILY_QUOTAS.analyzeReconciliationDocument);
+
+    // Sem cache server-side: a cota é consumida já aqui. O estorno em
+    // falha de infraestrutura mantém a simetria com coaching/50-30-20.
+    const quota = container.quotaService.guardFor(
+        workspaceId, "analyzeReconciliationDocument", AI_DAILY_QUOTAS.analyzeReconciliationDocument
+    );
+    await quota.consume();
 
     try {
         const analysis = await container.onboardingService.analyzeReconciliationDocument(
@@ -78,6 +103,9 @@ export const analyzeReconciliationDocument = onCall(AI_CALLABLE_OPTIONS, async (
         return analysis;
     }
     catch (error: any) {
+        if (isTransientAiError(error)) {
+            await quota.refund();
+        }
         console.error("Erro na análise de conciliação:", error);
         throw new HttpsError("internal", error.message || "Erro ao processar análise de conciliação.");
     }
@@ -95,13 +123,22 @@ export const analyzeGoalFeasibility = onCall(AI_CALLABLE_OPTIONS_SHORT, async (r
     }
 
     await assertWorkspaceMember(workspaceId, request.auth.uid);
-    await container.quotaService.assertQuota(workspaceId, "analyzeGoalFeasibility", AI_DAILY_QUOTAS.analyzeGoalFeasibility);
+
+    // Sem cache server-side: a cota é consumida já aqui. O estorno em
+    // falha de infraestrutura mantém a simetria com coaching/50-30-20.
+    const quota = container.quotaService.guardFor(
+        workspaceId, "analyzeGoalFeasibility", AI_DAILY_QUOTAS.analyzeGoalFeasibility
+    );
+    await quota.consume();
 
     try {
         const result = await container.goalFeasibilityService.analyze(workspaceId, goalPayload);
         return result;
     }
     catch (error: any) {
+        if (isTransientAiError(error)) {
+            await quota.refund();
+        }
         console.error("Erro na análise de viabilidade da meta:", error);
         throw new HttpsError("internal", error.message || "Erro ao analisar viabilidade da meta.");
     }

@@ -34,11 +34,26 @@ export function quotaDayKey(date: Date = new Date(), timeZone: string = QUOTA_TI
  * servida pelo cache do serviço não gasta cota nenhuma.
  */
 export interface QuotaGuard {
+    /**
+     * Pré-checagem SOMENTE LEITURA: lança resource-exhausted se a cota já
+     * está no limite, sem incrementar nada. O handler chama isto antes de
+     * qualquer trabalho caro, para não pagar montagem de contexto nem a
+     * classificação de grupos de categoria (que pode chamar o Gemini) quando
+     * o usuário já esgotou a cota do dia.
+     */
+    check(): Promise<void>;
     consume(): Promise<void>;
     refund(): Promise<void>;
 }
 
 export interface IQuotaService {
+    /**
+     * Lê o contador e lança HttpsError("resource-exhausted") se o limite já
+     * foi atingido, SEM incrementar. Não substitui o assertQuota: é só uma
+     * porta de entrada barata, para evitar trabalho que seria descartado.
+     */
+    checkQuota(workspaceId: string, functionName: string, dailyLimit: number): Promise<void>;
+
     /**
      * Consome uma unidade da quota diária de `functionName` no workspace.
      * Lança HttpsError("resource-exhausted") quando o limite já foi atingido.
@@ -67,6 +82,24 @@ export interface IQuotaService {
  * política de TTL do Firestore, igual aos ai_logs (ver functions/README.md).
  */
 export class QuotaServiceImpl implements IQuotaService {
+    async checkQuota(workspaceId: string, functionName: string, dailyLimit: number): Promise<void> {
+        if (!workspaceId) {
+            throw new HttpsError("invalid-argument", "Workspace ID é obrigatório.");
+        }
+        if (!(dailyLimit > 0)) {
+            throw new HttpsError("resource-exhausted", this.buildMessage(functionName, dailyLimit));
+        }
+
+        // Leitura simples, fora de transação: é uma checagem otimista. A
+        // garantia real continua sendo o assertQuota transacional do consume().
+        const snapshot = await this.quotaDocRef(workspaceId).get();
+        if (!snapshot.exists) return;
+
+        if (this.usedFrom(snapshot.data(), functionName, dailyLimit) >= dailyLimit) {
+            throw new HttpsError("resource-exhausted", this.buildMessage(functionName, dailyLimit));
+        }
+    }
+
     async assertQuota(workspaceId: string, functionName: string, dailyLimit: number): Promise<void> {
         if (!workspaceId) {
             throw new HttpsError("invalid-argument", "Workspace ID é obrigatório.");
@@ -81,10 +114,7 @@ export class QuotaServiceImpl implements IQuotaService {
 
         await db.runTransaction(async (transaction) => {
             const snapshot = await transaction.get(docRef);
-            const raw = Number(snapshot.data()?.[functionName] ?? 0);
-            // Campo corrompido (NaN/Infinity) não pode LIBERAR a chamada:
-            // qualquer comparação com NaN é falsa, então falhamos fechado.
-            const used = Number.isFinite(raw) ? raw : dailyLimit;
+            const used = this.usedFrom(snapshot.data(), functionName, dailyLimit);
 
             if (used >= dailyLimit) {
                 throw new HttpsError("resource-exhausted", this.buildMessage(functionName, dailyLimit));
@@ -148,9 +178,20 @@ export class QuotaServiceImpl implements IQuotaService {
 
     guardFor(workspaceId: string, functionName: string, dailyLimit: number): QuotaGuard {
         return {
+            check: () => this.checkQuota(workspaceId, functionName, dailyLimit),
             consume: () => this.assertQuota(workspaceId, functionName, dailyLimit),
             refund: () => this.refundQuota(workspaceId, functionName),
         };
+    }
+
+    /**
+     * Consumo atual do campo. Campo ausente/nulo vale zero; campo corrompido
+     * (NaN/Infinity) NÃO pode liberar a chamada — qualquer comparação com NaN
+     * é falsa, então falhamos fechado devolvendo o próprio limite.
+     */
+    private usedFrom(data: any, functionName: string, dailyLimit: number): number {
+        const raw = Number(data?.[functionName] ?? 0);
+        return Number.isFinite(raw) ? raw : dailyLimit;
     }
 
     private quotaDocRef(workspaceId: string): admin.firestore.DocumentReference {

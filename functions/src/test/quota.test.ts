@@ -12,6 +12,7 @@ const mockDb = {
     path: [] as string[],
     setCalls: [] as { data: any; options: any }[],
     transactions: 0,
+    reads: 0,
     throwOnTransaction: false,
 };
 
@@ -24,6 +25,14 @@ jest.mock("firebase-admin", () => {
     ref.doc = (id: string) => {
         mockDb.path.push(id);
         return ref;
+    };
+    // Leitura direta, fora de transação (usada por checkQuota).
+    ref.get = async () => {
+        mockDb.reads++;
+        return {
+            exists: mockDb.docData !== undefined,
+            data: () => mockDb.docData,
+        };
     };
 
     const firestore: any = () => ({
@@ -64,6 +73,7 @@ function resetDb() {
     mockDb.path = [];
     mockDb.setCalls = [];
     mockDb.transactions = 0;
+    mockDb.reads = 0;
     mockDb.throwOnTransaction = false;
 }
 
@@ -266,5 +276,70 @@ describe("QuotaServiceImpl.guardFor", () => {
         const guard = service.guardFor("w1", "analyze503020Ideal", 3);
 
         await expect(guard.consume()).rejects.toMatchObject({ code: "resource-exhausted" });
+    });
+});
+
+describe("QuotaServiceImpl.checkQuota", () => {
+    const service = new QuotaServiceImpl();
+
+    beforeEach(() => {
+        resetDb();
+    });
+
+    it("passa sem incrementar nada quando ainda há saldo", async () => {
+        mockDb.docData = { generateCoaching: 2 };
+
+        await expect(service.checkQuota("w1", "generateCoaching", 3)).resolves.toBeUndefined();
+
+        expect(mockDb.setCalls).toHaveLength(0);
+        expect(mockDb.transactions).toBe(0);
+        expect(mockDb.reads).toBe(1);
+    });
+
+    it("passa quando o documento do dia ainda não existe", async () => {
+        await expect(service.checkQuota("w1", "generateCoaching", 3)).resolves.toBeUndefined();
+        expect(mockDb.setCalls).toHaveLength(0);
+    });
+
+    it("lança resource-exhausted quando o limite já foi atingido, sem gravar", async () => {
+        mockDb.docData = { generateCoaching: 3 };
+
+        await expect(service.checkQuota("w1", "generateCoaching", 3)).rejects.toMatchObject({
+            code: "resource-exhausted",
+        });
+        expect(mockDb.setCalls).toHaveLength(0);
+        expect(mockDb.transactions).toBe(0);
+    });
+
+    it("falha fechado com contador corrompido", async () => {
+        mockDb.docData = { generateCoaching: "muitos" };
+
+        await expect(service.checkQuota("w1", "generateCoaching", 3)).rejects.toMatchObject({
+            code: "resource-exhausted",
+        });
+    });
+
+    it("bloqueia sem ler quando o limite configurado é zero", async () => {
+        await expect(service.checkQuota("w1", "generateCoaching", 0)).rejects.toMatchObject({
+            code: "resource-exhausted",
+        });
+        expect(mockDb.reads).toBe(0);
+    });
+
+    it("exige workspaceId", async () => {
+        await expect(service.checkQuota("", "generateCoaching", 3)).rejects.toMatchObject({
+            code: "invalid-argument",
+        });
+    });
+
+    it("guardFor().check() não consome: um check seguido de consume gasta 1", async () => {
+        const guard = service.guardFor("w1", "generateCoaching", 3);
+
+        await guard.check();
+        expect(mockDb.setCalls).toHaveLength(0);
+
+        await guard.consume();
+        expect(mockDb.setCalls).toHaveLength(1);
+        expect(mockDb.setCalls[0].data.generateCoaching).toEqual({ __increment: 1 });
     });
 });

@@ -17,8 +17,11 @@ import { CategoryGroup } from "../features/coaching/domain/models/category_group
  */
 
 function makeQuota() {
-    const calls = { consume: 0, refund: 0 };
+    const calls = { check: 0, consume: 0, refund: 0 };
     const guard: QuotaGuard = {
+        check: async () => {
+            calls.check++;
+        },
         consume: async () => {
             calls.consume++;
         },
@@ -128,6 +131,9 @@ describe("PlanningAnalysisService + cota", () => {
     it("consome a cota ANTES de chamar a IA", async () => {
         const order: string[] = [];
         const guard: QuotaGuard = {
+            check: async () => {
+                order.push("check");
+            },
             consume: async () => {
                 order.push("consume");
             },
