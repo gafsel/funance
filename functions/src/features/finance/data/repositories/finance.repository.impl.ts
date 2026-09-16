@@ -14,6 +14,40 @@ import {
 import { IFinanceRepository } from "../../domain/repositories/finance.repository";
 import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
 
+/**
+ * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
+ * de várias orders numa transação só; deixamos folga para os `update` das
+ * orders do mesmo grupo.
+ */
+const MAX_WRITES_PER_TRANSACTION = 450;
+
+/**
+ * Teto de parcelas de UMA order por transação: sobra uma escrita para o
+ * `update` da própria order.
+ */
+const MAX_INSTALLMENTS_PER_UNIT = MAX_WRITES_PER_TRANSACTION - 1;
+
+/**
+ * Formato canônico do documento de parcela. Extraído para que exista UMA
+ * definição do schema, usada por toda criação de parcela.
+ */
+export function buildInstallmentDocument(
+    installment: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">
+): Record<string, any> {
+    const referenceDate = installment.paidDate || installment.dueDate;
+    const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null
+        ? installment.paidAmount
+        : installment.amount;
+
+    return {
+        ...installment,
+        dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
+        paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
+        referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
+        referenceAmount: referenceAmount,
+    };
+}
+
 export class FinanceRepositoryImpl implements IFinanceRepository {
     private firestore = admin.firestore();
 
@@ -160,29 +194,42 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         console.log(`deleteOrdersByAccountId: ${deleted} orders removidas da conta ${accountId} no workspace ${workspaceId}.`);
     }
 
-    async createInstallments(workspaceId: string, installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]): Promise<void> {
+    /**
+     * ÚNICO ponto de criação de parcela do backend — tanto o fluxo normal
+     * (`syncInstallments`) quanto o cron de recorrência passam por aqui, para
+     * que o documento gravado tenha sempre o mesmo formato (Timestamp em todas
+     * as datas, `paidDate: null` explícito, `referenceDate`/`referenceAmount`).
+     *
+     * Com `transaction`, as escritas entram na transação do chamador em vez de
+     * um batch próprio (é o caso do cron, que cria as parcelas e avança o
+     * `lastGeneratedDueDate` da order atomicamente).
+     */
+    async createInstallments(
+        workspaceId: string,
+        installments: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[],
+        transaction?: admin.firestore.Transaction
+    ): Promise<void> {
         const collection = this.getInstallmentsCollection(workspaceId);
 
         // Uma order parcelada pode ter até 1200 parcelas (limite das rules):
         // sem chunking o batch estoura o limite de 500 e nada é criado.
-        const operations: BatchOperation[] = installments.map((installment) => {
-            const referenceDate = installment.paidDate || installment.dueDate;
-            const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null
-                ? installment.paidAmount
-                : installment.amount;
+        const documents = installments.map((installment) => ({
+            ref: collection.doc(),
+            data: buildInstallmentDocument(installment),
+        }));
 
-            return {
-                op: "set",
-                ref: collection.doc(),
-                data: {
-                    ...installment,
-                    dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
-                    paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
-                    referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
-                    referenceAmount: referenceAmount,
-                },
-            };
-        });
+        if (transaction) {
+            for (const document of documents) {
+                transaction.set(document.ref, document.data);
+            }
+            return;
+        }
+
+        const operations: BatchOperation[] = documents.map((document) => ({
+            op: "set",
+            ref: document.ref,
+            data: document.data,
+        }));
 
         await commitInChunks(this.firestore, operations);
     }
@@ -358,32 +405,72 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         chunk: (OrderModel & { workspaceId: string })[],
         installmentFactory: (order: OrderModel) => Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">[]
     ): Promise<void> {
-        await this.firestore.runTransaction(async (transaction) => {
-            for (const order of chunk) {
-                const installments = installmentFactory(order);
-                if (installments.length === 0) continue;
+        // A fábrica é pura (depende só da order e do horizonte), então roda
+        // FORA da transação: assim sabemos quantas escritas cada order custa e
+        // podemos fechar a transação antes do limite de 500.
+        const planned = chunk
+            .map((order) => ({ order, installments: installmentFactory(order) }))
+            .filter((entry) => entry.installments.length > 0);
 
-                const workspaceId = order.workspaceId;
-                const installmentsCollection = this.getInstallmentsCollection(workspaceId);
+        if (planned.length === 0) return;
 
-                // Criar parcelas
-                installments.forEach((installment) => {
-                    const docRef = installmentsCollection.doc();
-                    transaction.set(docRef, {
-                        ...installment,
-                        referenceDate: installment.dueDate,
-                        referenceAmount: installment.amount,
-                    });
-                });
+        // Uma order sozinha pode estourar o teto (série muito atrasada). Nesse
+        // caso ela é dividida em várias transações, cada uma avançando o
+        // `lastGeneratedDueDate` até a última parcela que ELA criou: se uma
+        // falhar no meio, a marca da order continua batendo com o que existe, e
+        // a execução seguinte retoma de onde parou sem duplicar nada.
+        const units: typeof planned = [];
+        for (const entry of planned) {
+            if (entry.installments.length <= MAX_INSTALLMENTS_PER_UNIT) {
+                units.push(entry);
+                continue;
+            }
 
-                // Atualizar order
-                const lastGeneratedDueDate = installments[installments.length - 1].dueDate;
-                const orderRef = this.getOrdersCollection(workspaceId).doc(order.id);
-                transaction.update(orderRef, {
-                    lastGeneratedDueDate: lastGeneratedDueDate,
+            console.warn(`processRecurringInstallmentsChunk: order ${entry.order.id} (workspace ${entry.order.workspaceId}) precisa de ${entry.installments.length} parcelas, acima do teto de ${MAX_INSTALLMENTS_PER_UNIT} por transação: será dividida.`);
+
+            for (let i = 0; i < entry.installments.length; i += MAX_INSTALLMENTS_PER_UNIT) {
+                units.push({
+                    order: entry.order,
+                    installments: entry.installments.slice(i, i + MAX_INSTALLMENTS_PER_UNIT),
                 });
             }
-        });
+        }
+
+        let batch: typeof planned = [];
+        let writes = 0;
+
+        const flush = async () => {
+            if (batch.length === 0) return;
+            const current = batch;
+            batch = [];
+            writes = 0;
+
+            await this.firestore.runTransaction(async (transaction) => {
+                for (const { order, installments } of current) {
+                    // Mesma função de criação do fluxo normal: schema idêntico.
+                    await this.createInstallments(order.workspaceId, installments, transaction);
+
+                    // Avança a order: o último vencimento gerado vira a marca
+                    // de onde a próxima execução continua.
+                    const lastGeneratedDueDate = installments[installments.length - 1].dueDate;
+                    const orderRef = this.getOrdersCollection(order.workspaceId).doc(order.id);
+                    transaction.update(orderRef, {
+                        lastGeneratedDueDate: admin.firestore.Timestamp.fromDate(lastGeneratedDueDate),
+                    });
+                }
+            });
+        };
+
+        for (const entry of units) {
+            const cost = entry.installments.length + 1; // parcelas + update da order
+            if (writes > 0 && writes + cost > MAX_WRITES_PER_TRANSACTION) {
+                await flush();
+            }
+            batch.push(entry);
+            writes += cost;
+        }
+
+        await flush();
     }
 
     async deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void> {
