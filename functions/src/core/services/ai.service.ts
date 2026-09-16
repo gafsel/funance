@@ -4,6 +4,7 @@ import * as admin from "firebase-admin";
 import { AIConfig, DEFAULT_CONFIG } from "../config/ai.config";
 import { InstallmentType, OrderModel, OrderStatus, OrderType } from "../../features/finance/domain/models/finance.models";
 import * as ofx from "ofx-js";
+import { renderTemplate } from "../utils/prompt_template";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
 
@@ -336,10 +337,11 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const config = await this.getConfig();
         const model = this.getResilientModel({ model: config.models.goals });
 
-        const prompt = config.prompts.goals
-            .replace("{{workspaceType}}", workspaceType)
-            .replace("{{categories}}", categories.join(" | "))
-            .replace("{{orders}}", JSON.stringify(orders));
+        const prompt = renderTemplate(config.prompts.goals, {
+            workspaceType,
+            categories: categories.join(" | "),
+            orders: JSON.stringify(orders),
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -373,12 +375,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const config = await this.getConfig();
         const model = this.getResilientModel({ model: config.models.automaticTransaction });
 
-        const prompt = config.prompts.automaticTransaction
-            .replace("{{description}}", description)
-            .replace("{{packageName}}", packageName || "N/A")
-            .replace("{{type}}", type)
-            .replace("{{existingCategories}}", existingCategories.map(c => `${c.name} (${c.id})`).join(" | "))
-            .replace("{{existingAccounts}}", existingAccounts.map(a => `${a.name} (${a.id})`).join(" | "));
+        const prompt = renderTemplate(config.prompts.automaticTransaction, {
+            description,
+            packageName: packageName || "N/A",
+            type,
+            existingCategories: existingCategories.map(c => `${c.name} (${c.id})`).join(" | "),
+            existingAccounts: existingAccounts.map(a => `${a.name} (${a.id})`).join(" | "),
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -423,9 +426,10 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const accountInfo = extractionResult.account;
             
             // Usar IA apenas para classificação das transações identificadas
-            const prompt = config.prompts.documentOfx
-                .replace("{{existingCategories}}", existingCategories.join(" | "))
-                .replace("{{transactions}}", JSON.stringify(transactions));
+            const prompt = renderTemplate(config.prompts.documentOfx, {
+                existingCategories: existingCategories.join(" | "),
+                transactions: JSON.stringify(transactions),
+            });
 
             const aiResult = await model.generateContent(prompt);
             const response = await aiResult.response;
@@ -452,9 +456,10 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         }
         else {
             const isImage = mimeType.startsWith("image/");
-            const prompt = config.prompts.document
-                .replace("{{fileName}}", fileName)
-                .replace("{{existingCategories}}", existingCategories.join(" | "));
+            const prompt = renderTemplate(config.prompts.document, {
+                fileName,
+                existingCategories: existingCategories.join(" | "),
+            });
 
             const result = await model.generateContent([
                 prompt,
@@ -539,9 +544,10 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const config = await this.getConfig();
         const model = this.getResilientModel({ model: config.models.document });
 
-        let prompt = config.prompts.reconciliation
-            .replace("{{fileName}}", fileName)
-            .replace("{{existingCategories}}", existingCategories.join(", "));
+        let prompt = renderTemplate(config.prompts.reconciliation, {
+            fileName,
+            existingCategories: existingCategories.join(", "),
+        });
 
         let aiResult;
 
@@ -550,9 +556,10 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             const parsedOfx = await ofx.parse(ofxData);
             const ofxExtracted = this.extractOfxData(parsedOfx);
             
-            prompt = config.prompts.documentOfx
-                .replace("{{existingCategories}}", existingCategories.join(", "))
-                .replace("{{transactions}}", JSON.stringify(ofxExtracted.transactions));
+            prompt = renderTemplate(config.prompts.documentOfx, {
+                existingCategories: existingCategories.join(", "),
+                transactions: JSON.stringify(ofxExtracted.transactions),
+            });
             
             aiResult = await model.generateContent(prompt);
         }
@@ -612,12 +619,13 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             },
         });
 
-        const prompt = config.prompts.coaching
-            .replace("{{workspaceType}}", workspaceType)
-            .replace("{{financialData}}", JSON.stringify(financialData))
-            .replace("{{forecastData}}", JSON.stringify(forecastData))
-            .replace("{{goalsData}}", JSON.stringify(goalsData))
-            .replace("{{previousContext}}", previousContext ? JSON.stringify(previousContext) : "Nenhuma interação anterior.");
+        const prompt = renderTemplate(config.prompts.coaching, {
+            workspaceType,
+            financialData: JSON.stringify(financialData),
+            forecastData: JSON.stringify(forecastData),
+            goalsData: JSON.stringify(goalsData),
+            previousContext: previousContext ? JSON.stringify(previousContext) : "Nenhuma interação anterior.",
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -651,11 +659,12 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         const config = await this.getConfig();
         const model = this.getResilientModel({ model: config.models.weeklyMissions });
 
-        const prompt = config.prompts.weeklyMissions
-            .replace("{{workspaceType}}", workspaceType)
-            .replace("{{categories}}", categories.join(" | ") || "Nenhuma categoria")
-            .replace("{{goals}}", goals.join(" | ") || "Nenhuma meta")
-            .replace("{{maxCategory}}", maxCategory);
+        const prompt = renderTemplate(config.prompts.weeklyMissions, {
+            workspaceType,
+            categories: categories.join(" | ") || "Nenhuma categoria",
+            goals: goals.join(" | ") || "Nenhuma meta",
+            maxCategory,
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -694,8 +703,9 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             },
         });
 
-        const prompt = config.prompts.categoryGroups
-            .replace("{{categories}}", JSON.stringify(categories));
+        const prompt = renderTemplate(config.prompts.categoryGroups, {
+            categories: JSON.stringify(categories),
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -733,8 +743,9 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             },
         });
 
-        const prompt = config.prompts.planning503020
-            .replace("{{context}}", JSON.stringify(context));
+        const prompt = renderTemplate(config.prompts.planning503020, {
+            context: JSON.stringify(context),
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -772,9 +783,10 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             },
         });
 
-        const prompt = config.prompts.goalFeasibility
-            .replace("{{goalPayload}}", JSON.stringify(goalPayload))
-            .replace("{{monthlyBreakdown}}", JSON.stringify(monthlyBreakdown));
+        const prompt = renderTemplate(config.prompts.goalFeasibility, {
+            goalPayload: JSON.stringify(goalPayload),
+            monthlyBreakdown: JSON.stringify(monthlyBreakdown),
+        });
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
