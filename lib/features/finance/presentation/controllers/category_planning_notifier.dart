@@ -1,25 +1,32 @@
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/features/finance/domain/models/category_planning_model.dart';
-import 'package:funances/features/finance/domain/services/finance_service.dart';
+import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
-import 'package:uuid/uuid.dart';
 
 class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void> {
-  final FinanceService financeService;
+  final CategoryPlanningService planningService;
   final CategoryService categoryService;
   final CategoryType type;
   final AnalyticsService analytics;
 
+  /// Mês a que os limites desta tela se referem.
+  ///
+  /// Vem de fora (do relógio injetado) em vez de `DateTime.now()` no corpo do
+  /// notifier: a tela vive aberta e a leitura e a gravação precisam ser o
+  /// mesmo mês, inclusive na virada.
+  final String month;
+
   CategoryPlanningNotifier({
-    required this.financeService,
+    required this.planningService,
     required this.categoryService,
     required this.analytics,
     required this.type,
-  }) : super(CategoryPlanningState(isLoading: true)) {
+    required DateTime date,
+  }) : month = date.monthKey,
+       super(CategoryPlanningState(isLoading: true)) {
     _init();
   }
 
@@ -32,11 +39,12 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
         return type == c.type && c.isSelectable;
       }).toList();
 
-      final currentMonth = DateTime.now().formated("yyyy-MM");
-      final plannings = await financeService.getCategoryPlannings(startMonth: currentMonth);
+      final plannings = await planningService.plannings(month: month);
 
       final items = filteredCategories.map((category) {
-        final planning = plannings.where((p) => p.category.id == category.id).firstOrNull;
+        final planning = plannings
+            .where((p) => p.category.id == category.id)
+            .firstOrNull;
         return CategoryPlanningFormItem(
           category: category,
           amount: planning?.amount ?? 0.0,
@@ -62,49 +70,15 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
 
   @override
   Future<void> submit() async {
-    final currentMonth = DateTime.now().formated("yyyy-MM");
-    final endMonth = DateTime.now().add(const Duration(days: 365 * 99)).formated("yyyy-MM");
-    final previousMonth = DateTime.now().subtract(const Duration(days: 30)).formated("yyyy-MM");
+    final changed = await planningService.setLimits(
+      month: month,
+      limits: state.items
+          .where((item) => item.isDirty)
+          .map((item) => (category: item.category, amount: item.amount))
+          .toList(),
+    );
 
-    // Só emite o evento se algo mudou de fato.
-    var created = false;
-
-    for (final item in state.items) {
-      if (!item.isDirty) continue;
-      created = true;
-
-      if (item.planningId == null && item.amount > 0) {
-        // Novo planejamento
-        await financeService.addCategoryPlanning(
-          CategoryPlanningModel(
-            id: const Uuid().v4(),
-            category: item.category,
-            amount: item.amount,
-            startMonth: currentMonth,
-            endMonth: endMonth,
-          ),
-        );
-      } else if (item.planningId != null) {
-        if (item.amount <= 0) {
-          // "Remover" planejamento
-          final existingPlanning = (await financeService.getCategoryPlannings(startMonth: currentMonth))
-              .firstWhere((p) => p.id == item.planningId);
-          
-          await financeService.updateCategoryPlanning(
-            existingPlanning.copyWith(endMonth: previousMonth),
-          );
-        } else {
-          // Atualizar valor
-          final existingPlanning = (await financeService.getCategoryPlannings(startMonth: currentMonth))
-              .firstWhere((p) => p.id == item.planningId);
-
-          await financeService.updateCategoryPlanning(
-            existingPlanning.copyWith(amount: item.amount),
-          );
-        }
-      }
-    }
-    if (created) {
+    if (changed) {
       // Analytics não pode derrubar o salvamento do planejamento.
       try {
         await analytics.logPlanningCreated();

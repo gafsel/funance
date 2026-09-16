@@ -116,7 +116,10 @@ class CategoryPlanningScreen extends ConsumerWidget {
                 ),
                 if (item.planningId != null)
                   Text(
-                    AppLocalizations.of(context)!.planningLimitDefined,
+                    // Despesa tem limite; receita tem expectativa.
+                    type == CategoryType.income
+                        ? AppLocalizations.of(context)!.planningExpectationDefined
+                        : AppLocalizations.of(context)!.planningLimitDefined,
                     style: const TextStyle(color: AppColors.limeGreen, fontSize: 12),
                   ),
               ],

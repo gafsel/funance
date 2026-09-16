@@ -20,12 +20,17 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final CategoryService categoryService;
   final AnalyticsService analytics;
 
+  /// Dia corrente, do relógio injetado. Os planejamentos sugeridos valem a
+  /// partir do mês em que o onboarding acontece.
+  final DateTime today;
+
   OnboardingNotifier({
     required this.onboardingService,
     required this.accountRepository,
     required this.workspaceNotifier,
     required this.categoryService,
     required this.analytics,
+    required this.today,
   }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
 
   void load(WorkspaceModel workspace) {
@@ -189,6 +194,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       (state.planningSuggestions ?? PlanningSuggestions()).copyWith(
         plannings: processedPeriodSummaries,
       ),
+      today: today,
     );
   }
 

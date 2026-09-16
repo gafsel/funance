@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/finance_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/period_summary_repository_impl.dart';
-import 'package:funances/features/finance/data/repositories/planning_repository_impl.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -17,9 +17,9 @@ import 'package:funances/features/finance/domain/repositories/account_repository
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
 import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
 import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
-import 'package:funances/features/finance/domain/repositories/planning_repository.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
+import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/domain/services/invoice_service.dart';
 import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
@@ -85,13 +85,16 @@ class AutomaticTransactionViewProviders {
       });
 }
 
-/// O único consumidor restante é o onboarding, que grava os planejamentos
-/// sugeridos direto pelo repositório. O `PlanningService` e o
-/// `PlanningViewProviders.currentList` que existiam aqui eram um slice morto,
-/// paralelo a `FinanceService.getCategoryPlannings`.
-class PlanningDomainProviders {
-  static final repository = Provider<IPlanningRepository>(
-    (ref) => PlanningRepositoryImpl(),
+/// Caminho único para limites e expectativas de categoria.
+///
+/// A tela simples `/planning`, a 50-30-20 e o onboarding passam todos por
+/// aqui: eram três regras diferentes gravando na mesma coleção.
+class CategoryPlanningDomainProviders {
+  static final service = Provider<CategoryPlanningService>(
+    (ref) => CategoryPlanningService(
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
+      repository: ref.read(FinanceDomainProviders.repository),
+    ),
   );
 }
 
@@ -451,10 +454,11 @@ class FinanceViewProviders {
         CategoryPlanningArgs
       >((ref, args) {
         return CategoryPlanningNotifier(
-          financeService: ref.watch(FinanceDomainProviders.service),
+          planningService: ref.watch(CategoryPlanningDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
           type: args.type,
+          date: ref.watch(todayProvider),
         );
       });
 
@@ -573,7 +577,7 @@ class FinanceViewProviders {
 
   static final planning503020Service = Provider<Planning503020Service>((ref) {
     return Planning503020Service(
-      financeService: ref.watch(FinanceDomainProviders.service),
+      planningService: ref.watch(CategoryPlanningDomainProviders.service),
       categoryService: ref.watch(CategoryDomainProviders.service),
       periodSummaryService: ref.watch(PeriodSummaryDomainProviders.service),
     );

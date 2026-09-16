@@ -285,7 +285,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Define how much you expect to earn and the maximum you want to spend per category. This is your financial ceiling.';
 
   @override
-  String get onboardingConceptPlanningTitle => 'Planning';
+  String get onboardingConceptPlanningTitle => 'Schedules';
 
   @override
   String get onboardingConceptPlanningDesc =>
@@ -1134,13 +1134,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionAddIncome => 'Log Income';
 
   @override
-  String get transactionPlanExpense => 'Plan Expense';
+  String get transactionPlanExpense => 'Schedule Expense';
 
   @override
-  String get transactionPlanIncome => 'Plan Income';
+  String get transactionPlanIncome => 'Schedule Income';
 
   @override
-  String get transactionPlanTransfer => 'Plan Transfer';
+  String get transactionPlanTransfer => 'Schedule Transfer';
 
   @override
   String get transactionActionTransfer => 'Transfer';
@@ -1534,7 +1534,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get planningIncomeLimits => 'Income Expectations';
 
   @override
-  String get planningLimitDefined => 'Expectation defined';
+  String get planningLimitDefined => 'Limit set';
+
+  @override
+  String get planningExpectationDefined => 'Expectation set';
 
   @override
   String get planningSave => 'SAVE';

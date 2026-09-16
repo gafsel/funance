@@ -463,7 +463,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Planejar Despesa'), findsOneWidget);
+      expect(find.text('Agendar Despesa'), findsOneWidget);
       expect(find.text('Status'), findsNothing);
 
       // Agendamento deixou de ser exceção: o campo de conta rejeita vazio

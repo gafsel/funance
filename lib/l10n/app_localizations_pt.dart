@@ -286,7 +286,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Defina quanto você espera ganhar e o limite máximo que deseja gastar por categoria. É o seu teto financeiro.';
 
   @override
-  String get onboardingConceptPlanningTitle => 'Planejamentos';
+  String get onboardingConceptPlanningTitle => 'Agendamentos';
 
   @override
   String get onboardingConceptPlanningDesc =>
@@ -1142,13 +1142,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionAddIncome => 'Lançar Receita';
 
   @override
-  String get transactionPlanExpense => 'Planejar Despesa';
+  String get transactionPlanExpense => 'Agendar Despesa';
 
   @override
-  String get transactionPlanIncome => 'Planejar Receita';
+  String get transactionPlanIncome => 'Agendar Receita';
 
   @override
-  String get transactionPlanTransfer => 'Planejar Transferência';
+  String get transactionPlanTransfer => 'Agendar Transferência';
 
   @override
   String get transactionActionTransfer => 'Transferência';
@@ -1545,7 +1545,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planningIncomeLimits => 'Expectativa de Receitas';
 
   @override
-  String get planningLimitDefined => 'Expectativa definida';
+  String get planningLimitDefined => 'Limite definido';
+
+  @override
+  String get planningExpectationDefined => 'Expectativa definida';
 
   @override
   String get planningSave => 'SALVAR';

@@ -605,7 +605,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingConceptPlanningTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Planejamentos'**
+  /// **'Agendamentos'**
   String get onboardingConceptPlanningTitle;
 
   /// No description provided for @onboardingConceptPlanningDesc.
@@ -2129,19 +2129,19 @@ abstract class AppLocalizations {
   /// No description provided for @transactionPlanExpense.
   ///
   /// In pt, this message translates to:
-  /// **'Planejar Despesa'**
+  /// **'Agendar Despesa'**
   String get transactionPlanExpense;
 
   /// No description provided for @transactionPlanIncome.
   ///
   /// In pt, this message translates to:
-  /// **'Planejar Receita'**
+  /// **'Agendar Receita'**
   String get transactionPlanIncome;
 
   /// No description provided for @transactionPlanTransfer.
   ///
   /// In pt, this message translates to:
-  /// **'Planejar Transferência'**
+  /// **'Agendar Transferência'**
   String get transactionPlanTransfer;
 
   /// No description provided for @transactionActionTransfer.
@@ -2849,8 +2849,14 @@ abstract class AppLocalizations {
   /// No description provided for @planningLimitDefined.
   ///
   /// In pt, this message translates to:
-  /// **'Expectativa definida'**
+  /// **'Limite definido'**
   String get planningLimitDefined;
+
+  /// No description provided for @planningExpectationDefined.
+  ///
+  /// In pt, this message translates to:
+  /// **'Expectativa definida'**
+  String get planningExpectationDefined;
 
   /// No description provided for @planningSave.
   ///

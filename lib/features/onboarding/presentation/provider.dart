@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
@@ -22,7 +23,6 @@ class OnboardingDomainProviders {
       onboardingRepository: ref.read(repository),
       workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
       inviteRepository: ref.read(inviteRepositoryProvider),
-      planningRepository: ref.read(PlanningDomainProviders.repository),
       goalRepository: ref.read(GoalDomainProvider.repository),
     ),
   );
@@ -36,6 +36,7 @@ class OnboardingViewProviders {
       workspaceNotifier: ref.read(WorkspaceViewProviders.workspace.notifier),
       categoryService: ref.read(CategoryDomainProviders.service),
       analytics: ref.read(analyticsServiceProvider),
+      today: ref.watch(todayProvider),
     );
   });
 }
