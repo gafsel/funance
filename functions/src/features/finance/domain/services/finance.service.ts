@@ -34,6 +34,149 @@ export function splitAmountIntoInstallments(totalAmount: number, count: number):
     return Array.from({ length: count }, (_, i) => (baseCents + (i < remainderCents ? 1 : 0)) / 100);
 }
 
+/** Campos replicáveis que mudaram entre a versão anterior e a nova da parcela. */
+export interface InstallmentCascadeChanges {
+    amount: boolean;
+    dueDate: boolean;
+    description: boolean;
+    category: boolean;
+    accounts: boolean;
+    type: boolean;
+    /** A parcela passou a ter status `removed` nesta escrita. */
+    removed: boolean;
+    /** Verdadeiro quando ao menos um campo replicável mudou. */
+    hasReplicableChange: boolean;
+}
+
+/**
+ * Diferença entre duas versões de uma parcela, restrita ao que a cascata
+ * replica. Campos derivados (xp, replicationCascade) e de pagamento
+ * (status paid, paidAmount, paidDate) NÃO entram: pagar uma parcela não
+ * altera as irmãs.
+ */
+export function diffInstallmentForCascade(
+    before: InstallmentModel,
+    after: InstallmentModel
+): InstallmentCascadeChanges {
+    const amount = after.amount !== before.amount;
+    const dueDate = (after.dueDate?.getTime() ?? null) !== (before.dueDate?.getTime() ?? null);
+    const description = after.description !== before.description;
+    const category = after.category?.id !== before.category?.id;
+    const accounts = JSON.stringify(after.accounts || {}) !== JSON.stringify(before.accounts || {});
+    const type = after.type !== before.type;
+    const removed = before.status !== InstallmentStatus.removed && after.status === InstallmentStatus.removed;
+
+    return {
+        amount,
+        dueDate,
+        description,
+        category,
+        accounts,
+        type,
+        removed,
+        hasReplicableChange: amount || dueDate || description || category || accounts || type || removed,
+    };
+}
+
+/**
+ * Desloca o vencimento de uma parcela irmã segundo a mudança de vencimento da
+ * parcela de origem — em DIA DO MÊS, nunca em milissegundos.
+ *
+ * Somar o delta em ms quebra o calendário: 31/01 -> 28/02 são 28 dias, e somar
+ * 28 dias a uma parcela de 31/03 daria 28/04 em vez de 28/04... e a de 31/05
+ * cairia em 28/06 apenas por coincidência; com meses de 30 dias o erro se
+ * acumula e as parcelas escorregam de mês.
+ *
+ * Regra:
+ *  - o delta de MESES entre o vencimento antigo e o novo é aplicado ao mês da
+ *    irmã (normalmente zero: o usuário só troca o dia);
+ *  - o DIA passa a ser o dia do novo vencimento, com clamp no último dia do
+ *    mês de destino (31 em fevereiro vira 28/29).
+ */
+export function shiftDueDateByMonthDay(
+    siblingDueDate: Date,
+    beforeDueDate: Date,
+    afterDueDate: Date
+): Date {
+    const monthDelta = (afterDueDate.getFullYear() - beforeDueDate.getFullYear()) * 12
+        + (afterDueDate.getMonth() - beforeDueDate.getMonth());
+
+    const targetDay = afterDueDate.getDate();
+    const year = siblingDueDate.getFullYear();
+    const month = siblingDueDate.getMonth() + monthDelta;
+
+    // O dia 0 do mês seguinte é o último dia do mês de destino (e o construtor
+    // normaliza overflow/underflow de mês sozinho).
+    const lastDayOfTargetMonth = new Date(year, month + 1, 0).getDate();
+    const day = Math.min(targetDay, lastDayOfTargetMonth);
+
+    return new Date(year, month, day, 12, 0, 0, 0);
+}
+
+/**
+ * Valor de uma parcela para o total da order.
+ *
+ * Uma parcela PAGA tem `amount` zerado por regra de negócio (o planejado vira
+ * zero e o valor efetivo fica em `paidAmount`/`referenceAmount`) — somar
+ * `amount` zerava o total da order a cada pagamento. Numa parcela em aberto o
+ * valor acurado é o próprio `amount`: o `referenceAmount` acompanha o
+ * planejado, mas pode estar defasado na escrita que acabou de chegar do
+ * cliente.
+ */
+function installmentValueForOrderTotal(installment: InstallmentModel): number {
+    const isPaid = installment.status === InstallmentStatus.paid
+        || installment.status === InstallmentStatus.settled;
+
+    if (isPaid) {
+        return installment.referenceAmount ?? installment.paidAmount ?? 0;
+    }
+
+    return installment.amount ?? 0;
+}
+
+/**
+ * Monta o patch da order a partir do estado final das parcelas.
+ *
+ * Só inclui o que de fato mudou — cada `updateOrder` dispara onOrderWritten,
+ * que grava um documento em `orders/{id}/history`.
+ */
+export function buildOrderUpdateFromCascade(
+    after: InstallmentModel,
+    updatedInstallments: InstallmentModel[],
+    changes: InstallmentCascadeChanges
+): Partial<OrderModel> {
+    const orderUpdate: Partial<OrderModel> = {};
+
+    // Parcelas removidas são exclusões lógicas e não entram no total.
+    const activeInstallments = updatedInstallments.filter((i) => i.status !== InstallmentStatus.removed);
+
+    if (changes.amount || changes.removed) {
+        const totalAmount = activeInstallments.reduce(
+            (sum, i) => sum + installmentValueForOrderTotal(i),
+            0
+        );
+        orderUpdate.amount = Math.round(totalAmount * 100) / 100;
+    }
+
+    if (changes.description) orderUpdate.description = after.description;
+    if (changes.category) orderUpdate.category = after.category;
+    if (changes.accounts) {
+        orderUpdate.accounts = after.accounts;
+        orderUpdate.accountIds = after.accountIds;
+    }
+
+    // `dueDay` só acompanha uma mudança de VENCIMENTO. Antes era reescrito em
+    // toda cascata, inclusive quando o evento era um pagamento — e o dia do
+    // pagamento acabava virando o dia de vencimento da order.
+    if (changes.dueDate) orderUpdate.dueDay = after.dueDate.getDate();
+
+    if (updatedInstallments.length > 0 && activeInstallments.length === 0) {
+        orderUpdate.status = OrderStatus.cancelled;
+    }
+
+    return orderUpdate;
+}
+
 export class FinanceService {
     constructor(private financeRepository: IFinanceRepository) {
     }
@@ -179,119 +322,130 @@ export class FinanceService {
         }
     }
 
+    /**
+     * Cascata de uma parcela para as irmãs e para a order.
+     *
+     * Só roda quando algum campo REPLICÁVEL mudou: uma escrita que apenas
+     * recalculou `xp` ou zerou a cascata não tem o que replicar.
+     */
     async processInstallmentCascade(
         workspaceId: string,
         before: InstallmentModel,
         after: InstallmentModel
     ): Promise<void> {
         const cascade = after.replicationCascade || ReplicationCascade.none;
-        if (cascade === ReplicationCascade.none) return;
+        const changes = diffInstallmentForCascade(before, after);
 
-        const allInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, after.orderId);
-        const sorted = allInstallments.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-
-        const currentIndex = sorted.findIndex(i => i.id === after.id);
-        const targetInstallments = cascade === ReplicationCascade.all
-            ? sorted.filter(i => i.id !== after.id)
-            : sorted.slice(currentIndex + 1);
-
-        if (targetInstallments.length === 0) return;
-
-        let dateDeltaMs = 0;
-        if (after.dueDate && before.dueDate) {
-            dateDeltaMs = after.dueDate.getTime() - before.dueDate.getTime();
+        if (cascade === ReplicationCascade.none) {
+            // Sem cascata sobra uma única consequência possível na order: esta
+            // pode ter sido a ÚLTIMA parcela viva. Remoções uma a uma (cada
+            // uma com cascade 'none') precisam cancelar a order no fim.
+            if (changes.removed) {
+                await this.cancelOrderIfFullyRemoved(workspaceId, after);
+            }
+            return;
         }
 
-        const hasAmountChanged = after.amount !== before.amount;
-        const hasDescriptionChanged = after.description !== before.description;
-        const hasCategoryChanged = after.category?.id !== before.category?.id;
-        const hasAccountsChanged = JSON.stringify(after.accounts) !== JSON.stringify(before.accounts);
-        const hasTypeChanged = after.type !== before.type;
-        const wasRemoved = before.status !== InstallmentStatus.removed && after.status === InstallmentStatus.removed;
+        if (!changes.hasReplicableChange) {
+            logger.debug(`[processInstallmentCascade] ${after.id}: nenhum campo replicável mudou; cascata ignorada.`);
+            return;
+        }
 
-        for (const inst of targetInstallments) {
+        const allInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, after.orderId);
+        const sorted = [...allInstallments].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+        const siblings = sorted.filter((i) => i.id !== after.id);
+
+        // 'future' é por DATA, não por índice: irmãs que vencem a partir do
+        // (novo) vencimento desta parcela. Por índice, uma parcela fora de
+        // ordem — ou uma order recorrente com parcelas geradas depois —
+        // selecionava o conjunto errado.
+        const afterDueMs = after.dueDate.getTime();
+        const targets = (cascade === ReplicationCascade.all
+            ? siblings
+            : siblings.filter((i) => i.dueDate.getTime() >= afterDueMs)
+        // Parcelas já removidas são exclusões lógicas: não recebem replicação.
+        ).filter((i) => i.status !== InstallmentStatus.removed);
+
+        const appliedUpdates = new Map<string, Partial<InstallmentModel>>();
+
+        for (const inst of targets) {
             const installmentUpdate: Partial<InstallmentModel> = {};
+            const isTargetPaid = inst.status === InstallmentStatus.paid || inst.status === InstallmentStatus.settled;
 
-            if (hasDescriptionChanged) installmentUpdate.description = after.description;
-            if (hasAmountChanged) {
+            if (changes.description) installmentUpdate.description = after.description;
+
+            // Parcela paga tem `amount` zerado por regra de negócio (o valor
+            // efetivo vive em paidAmount/referenceAmount): replicar o novo
+            // planejado para ela reintroduziria um planejado já realizado.
+            if (changes.amount && !isTargetPaid) {
                 installmentUpdate.amount = after.amount;
-
-                // Se não estiver paga, o referenceAmount segue o amount
-                if (inst.status !== InstallmentStatus.paid && inst.status !== InstallmentStatus.settled) {
-                    installmentUpdate.referenceAmount = after.amount;
-                }
+                installmentUpdate.referenceAmount = after.amount;
             }
-            if (hasCategoryChanged) installmentUpdate.category = after.category;
-            if (hasAccountsChanged) {
+
+            if (changes.category) installmentUpdate.category = after.category;
+            if (changes.accounts) {
                 installmentUpdate.accounts = after.accounts;
                 installmentUpdate.accountIds = after.accountIds;
             }
-            if (hasTypeChanged) installmentUpdate.type = after.type;
-            if (wasRemoved) installmentUpdate.status = InstallmentStatus.removed;
+            if (changes.type) installmentUpdate.type = after.type;
+            if (changes.removed) installmentUpdate.status = InstallmentStatus.removed;
 
-            // 1. Aplicamos o delta na data se houver
-            if (dateDeltaMs !== 0) {
-                const currentDueDate = new Date(inst.dueDate);
-                const newDueDate = new Date(currentDueDate.getTime() + dateDeltaMs);
+            if (changes.dueDate) {
+                const newDueDate = shiftDueDateByMonthDay(inst.dueDate, before.dueDate, after.dueDate);
                 installmentUpdate.dueDate = newDueDate;
 
                 // Se não estiver paga, o referenceDate segue a dueDate
-                if (inst.status !== InstallmentStatus.paid && inst.status !== InstallmentStatus.settled) {
+                if (!isTargetPaid) {
                     installmentUpdate.referenceDate = newDueDate;
                 }
             }
 
             if (Object.keys(installmentUpdate).length > 0) {
-                // Importante: Marcar a cascata como none para evitar recursão infinita se o trigger disparar novamente
+                // Importante: marcar a cascata como none para evitar recursão
+                // infinita se o trigger disparar novamente.
                 installmentUpdate.replicationCascade = ReplicationCascade.none;
 
+                appliedUpdates.set(inst.id, installmentUpdate);
                 await this.financeRepository.updateInstallment(workspaceId, inst.id, installmentUpdate);
             }
         }
 
-        // 3. Cascatear alteração de Installment para Order
-        // O cascateamento deve ser feito na order também, definindo na order o valor mais acurado das installments.
-        // O valor acurado para uma Order que possui parcelas é a soma das parcelas.
-        // Se a parcela atual mudou (after), ela já está refletida em allInstallments se buscarmos novamente ou se mergearmos manualmente.
-        const updatedInstallments = allInstallments.map(i => i.id === after.id ? after : i);
+        // Estado final das parcelas depois da cascata, sem reler o Firestore.
+        const updatedInstallments = sorted.map((inst) => {
+            if (inst.id === after.id) return after;
+            const update = appliedUpdates.get(inst.id);
+            return update ? { ...inst, ...update } : inst;
+        });
 
-        // Se houver cascade 'all' ou 'next', as outras parcelas também foram atualizadas no loop acima,
-        // mas aqui no JS 'targetInstallments' e 'after' contêm os novos valores para essas parcelas.
-        // Precisamos garantir que updatedInstallments tenha os valores que acabamos de salvar.
-        for (const inst of updatedInstallments) {
-            if (inst.id === after.id) continue;
-            const isTarget = targetInstallments.some(t => t.id === inst.id);
-            if (isTarget) {
-                // Merge manual para o cálculo do total
-                if (hasAmountChanged) inst.amount = after.amount;
-                if (hasDescriptionChanged) inst.description = after.description;
-                if (hasCategoryChanged) inst.category = after.category;
-                if (hasAccountsChanged) {
-                    inst.accounts = after.accounts;
-                    inst.accountIds = after.accountIds;
-                }
-                if (wasRemoved) inst.status = after.status;
-                // ... data delta não afeta o total
-            }
+        const orderUpdate = buildOrderUpdateFromCascade(after, updatedInstallments, changes);
+
+        if (Object.keys(orderUpdate).length === 0) {
+            logger.debug(`[processInstallmentCascade] Order ${after.orderId} sem mudanças relevantes; updateOrder ignorado.`);
+            return;
         }
 
-        const totalAmount = updatedInstallments.reduce((sum, i) => sum + i.amount, 0);
-        const orderUpdate: Partial<OrderModel> = {
-            amount: Math.round(totalAmount * 100) / 100,
-            dueDay: after.dueDate.getDate(),
-            description: after.description,
-            category: after.category,
-            accounts: after.accounts,
-            accountIds: after.accountIds,
-        };
-
-        // Se a installment foi alterada para removed, inativar a order
-        if (wasRemoved) {
-            orderUpdate.status = OrderStatus.cancelled;
-        }
-
-        console.log(`Cascateando alteração de Installment para Order ${after.orderId}. Novo total: ${orderUpdate.amount}`);
+        logger.info(`[processInstallmentCascade] Cascateando alteração de Installment para Order ${after.orderId}: ${JSON.stringify(Object.keys(orderUpdate))}.`);
         await this.financeRepository.updateOrder(workspaceId, after.orderId, orderUpdate);
+    }
+
+    /**
+     * Cancela a order quando TODAS as suas parcelas estão removidas.
+     *
+     * Usado no caminho sem cascata: o usuário pode remover parcela a parcela,
+     * e só a última remoção encerra a order.
+     */
+    private async cancelOrderIfFullyRemoved(workspaceId: string, after: InstallmentModel): Promise<void> {
+        const allInstallments = await this.financeRepository.getInstallmentsByOrderId(workspaceId, after.orderId);
+        const merged = allInstallments.map((inst) => (inst.id === after.id ? after : inst));
+
+        if (merged.length === 0) return;
+        if (!merged.every((inst) => inst.status === InstallmentStatus.removed)) return;
+
+        logger.info(`[processInstallmentCascade] Todas as parcelas da order ${after.orderId} estão removidas: cancelando a order.`);
+        await this.financeRepository.updateOrder(workspaceId, after.orderId, {
+            status: OrderStatus.cancelled,
+        });
     }
 
     async updateAccountBalanceOnInstallmentChange(
@@ -345,7 +499,15 @@ export class FinanceService {
         // Caso 2: Novo pagamento (Não era pago e passou a ser)
         else if (!isBeforePaid && after && isAfterPaid) {
             const xp = this.calculateXp(after);
-            await this.financeRepository.updateInstallment(workspaceId, after.id, { xp });
+            // Uma ÚNICA escrita com xp + cascata zerada: a cascata já foi
+            // consumida por este evento e não pode ficar grudada no documento
+            // de origem (senão a próxima escrita qualquer a reexecuta). Como
+            // ambos são campos derivados, o evento resultante desta escrita cai
+            // na guarda por conteúdo do handler e sai cedo.
+            await this.financeRepository.updateInstallment(workspaceId, after.id, {
+                xp,
+                replicationCascade: ReplicationCascade.none,
+            });
             await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, xp);
             await container.gamificationService.addXp(workspaceId, xp, "Transação paga");
         }
@@ -359,7 +521,11 @@ export class FinanceService {
                 const newXp = this.calculateXp(after);
                 
                 if (oldXp !== newXp || hasChangedDate) {
-                    await this.financeRepository.updateInstallment(workspaceId, after.id, { xp: newXp });
+                    // Idem ao caso 2: xp e cascata na mesma escrita.
+                    await this.financeRepository.updateInstallment(workspaceId, after.id, {
+                        xp: newXp,
+                        replicationCascade: ReplicationCascade.none,
+                    });
                     
                     // Estorna o XP antigo da data antiga e aplica o novo na nova data
                     await this.updateWeeklyTotalXp(workspaceId, before.paidDate || before.dueDate, -oldXp);
