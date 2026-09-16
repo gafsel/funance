@@ -51,6 +51,7 @@ export const VIRTUAL_DEBT_EXPENSE_CATEGORY: CategoryModel = {
     color: "#E57373",
     type: CategoryType.expense,
     isDeleted: false,
+    isSystem: true,
 };
 
 export const VIRTUAL_DEBT_INCOME_CATEGORY: CategoryModel = {
@@ -60,6 +61,7 @@ export const VIRTUAL_DEBT_INCOME_CATEGORY: CategoryModel = {
     color: "#E57373",
     type: CategoryType.income,
     isDeleted: false,
+    isSystem: true,
 };
 
 export const VIRTUAL_INVESTMENT_EXPENSE_CATEGORY: CategoryModel = {
@@ -69,6 +71,7 @@ export const VIRTUAL_INVESTMENT_EXPENSE_CATEGORY: CategoryModel = {
     color: "#81C784",
     type: CategoryType.expense,
     isDeleted: false,
+    isSystem: true,
 };
 
 export const VIRTUAL_INVESTMENT_INCOME_CATEGORY: CategoryModel = {
@@ -78,4 +81,36 @@ export const VIRTUAL_INVESTMENT_INCOME_CATEGORY: CategoryModel = {
     color: "#81C784",
     type: CategoryType.income,
     isDeleted: false,
+    isSystem: true,
 };
+
+/**
+ * Prefixo dos ids das categorias virtuais (contrapartida de transferências:
+ * empréstimos/dívidas e investimentos).
+ */
+export const VIRTUAL_CATEGORY_ID_PREFIX = "virtual_";
+
+/**
+ * Todas as categorias de sistema criadas por `createDefaultCategories`.
+ * O script `migrate_system_categories` usa esta mesma lista.
+ */
+export const SYSTEM_CATEGORIES: CategoryModel[] = [
+    INITIAL_BALANCE_CATEGORY,
+    VIRTUAL_DEBT_EXPENSE_CATEGORY,
+    VIRTUAL_DEBT_INCOME_CATEGORY,
+    VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
+    VIRTUAL_INVESTMENT_INCOME_CATEGORY,
+];
+
+/**
+ * Uma categoria é de sistema quando está marcada com `isSystem` ou quando o id
+ * pertence ao conjunto conhecido. A checagem por id é necessária para os
+ * workspaces legados, cujos documentos ainda não têm a flag (ela só chega com
+ * `migrate_system_categories`).
+ */
+export function isSystemCategory(id: string, data?: { isSystem?: boolean } | null): boolean {
+    if (data?.isSystem === true) {
+        return true;
+    }
+    return id === INITIAL_BALANCE_CATEGORY_ID || id.startsWith(VIRTUAL_CATEGORY_ID_PREFIX);
+}

@@ -90,15 +90,15 @@ describe("GamificationRepositoryImpl.getPeriodSummaries", () => {
 
         expect(rows).toEqual([
             {
-                categoryId: "salario", type: "income", allocation: undefined,
+                categoryId: "salario", type: "income", allocation: undefined, isSystem: false,
                 actualAmount: 8000, generalPlannedAmount: 0, specificPlannedAmount: 0,
             },
             {
-                categoryId: "lazer", type: "expense", allocation: "comfort",
+                categoryId: "lazer", type: "expense", allocation: "comfort", isSystem: false,
                 actualAmount: 620, generalPlannedAmount: 500, specificPlannedAmount: 400,
             },
             {
-                categoryId: "aportes", type: "expense", allocation: "investment",
+                categoryId: "aportes", type: "expense", allocation: "investment", isSystem: false,
                 actualAmount: 1000, generalPlannedAmount: 1000, specificPlannedAmount: 1000,
             },
         ]);
@@ -126,5 +126,60 @@ describe("GamificationRepositoryImpl.getPeriodSummaries", () => {
         const rows = await new GamificationRepositoryImpl().getPeriodSummaries("w1", 2026, 7);
 
         expect(rows).toEqual([]);
+    });
+});
+
+describe("GamificationRepositoryImpl.getPeriodSummaries — marcação isSystem", () => {
+    beforeEach(() => {
+        mockFirestoreState.collections = {};
+        mockFirestoreState.queried = [];
+    });
+
+    it("marca como isSystem o saldo inicial e as virtuais, mesmo sem a flag no documento", async () => {
+        mockFirestoreState.collections["workspaces/w1/period_summaries"] = [
+            doc("2026-07", {
+                year: 2026,
+                month: 7,
+                categories: {
+                    "initial-balance": { generalPlannedAmount: 0, specificPlannedAmount: 0, actualAmount: 5000 },
+                    virtual_debt_expense: { generalPlannedAmount: 0, specificPlannedAmount: 0, actualAmount: 900 },
+                    virtual_investment_expense: { generalPlannedAmount: 0, specificPlannedAmount: 0, actualAmount: 400 },
+                    lazer: { generalPlannedAmount: 300, specificPlannedAmount: 300, actualAmount: 250 },
+                },
+            }),
+        ];
+        mockFirestoreState.collections["workspaces/w1/categories"] = [
+            // Workspace legado: os documentos ainda não têm a flag isSystem.
+            doc("initial-balance", { type: "income", isDeleted: false }),
+            doc("virtual_debt_expense", { type: "expense", isDeleted: false }),
+            doc("virtual_investment_expense", { type: "expense", allocation: "investment", isDeleted: false }),
+            doc("lazer", { type: "expense", allocation: "comfort", isDeleted: false }),
+        ];
+
+        const rows = await new GamificationRepositoryImpl().getPeriodSummaries("w1", 2026, 7);
+
+        const byId = Object.fromEntries(rows.map((r) => [r.categoryId, r.isSystem]));
+        expect(byId).toEqual({
+            "initial-balance": true,
+            virtual_debt_expense: true,
+            virtual_investment_expense: true,
+            lazer: false,
+        });
+    });
+
+    it("respeita a flag isSystem quando ela existe no documento", async () => {
+        mockFirestoreState.collections["workspaces/w1/period_summaries"] = [
+            doc("2026-07", {
+                year: 2026, month: 7,
+                categories: { minha: { generalPlannedAmount: 0, specificPlannedAmount: 0, actualAmount: 10 } },
+            }),
+        ];
+        mockFirestoreState.collections["workspaces/w1/categories"] = [
+            doc("minha", { type: "expense", isDeleted: false, isSystem: true }),
+        ];
+
+        const rows = await new GamificationRepositoryImpl().getPeriodSummaries("w1", 2026, 7);
+
+        expect(rows[0].isSystem).toBe(true);
     });
 });

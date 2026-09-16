@@ -2,6 +2,7 @@ import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import { IGamificationRepository, PeriodSummaryRow } from "../../domain/repositories/gamification.repository";
 import { calculateLevel } from "../../domain/services/gamification.service";
+import { isSystemCategory } from "../../../workspace/domain/models/category.model";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
     async getWorkspaceById(workspaceId: string): Promise<any | null> {
@@ -263,6 +264,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
                     categoryId,
                     type: category.type,
                     allocation: category.allocation,
+                    isSystem: isSystemCategory(categoryId, category),
                     actualAmount: raw?.actualAmount || 0,
                     generalPlannedAmount: raw?.generalPlannedAmount || 0,
                     specificPlannedAmount: raw?.specificPlannedAmount || 0,

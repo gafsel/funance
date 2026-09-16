@@ -1,16 +1,21 @@
 /**
- * Migração: cria a categoria de sistema `initial-balance` nos workspaces que
- * ainda não a possuem.
+ * Migração: garante as categorias de sistema (`initial-balance` e as virtuais
+ * `virtual_*`) em todos os workspaces — criando as que faltam e marcando com
+ * `isSystem: true` as que já existem sem a flag.
  *
  * Contexto: a categoria sintética `initial-balance` sempre foi embutida nas
  * orders/installments de saldo inicial (finance.service.syncInitialBalance),
  * mas nunca existiu como documento em `workspaces/{wid}/categories`. Por isso
  * ela sumia de qualquer lookup por id (coaching, 50-30-20, viabilidade) mesmo
- * continuando somada nos period_summaries. Workspaces novos já nascem com ela
+ * continuando somada nos period_summaries. As categorias virtuais já existiam
+ * como documentos, mas sem `isSystem`, e por isso apareciam nas telas de gestão
+ * e entravam nas avaliações de badge. Workspaces novos já nascem corretos
  * (category.service.impl.createDefaultCategories); este script cobre os antigos.
  *
  * Características:
- *  - IDEMPOTENTE: pula workspaces que já têm o documento; pode rodar N vezes.
+ *  - IDEMPOTENTE: pula o que já está correto; pode rodar N vezes.
+ *  - NÃO sobrescreve nome/ícone/cor de documentos existentes: só acrescenta a
+ *    flag `isSystem` (merge).
  *  - DRY-RUN POR PADRÃO: só escreve com `--apply` explícito.
  *  - Log por workspace, com resumo final.
  *
@@ -34,7 +39,7 @@
  */
 
 import * as admin from "firebase-admin";
-import { INITIAL_BALANCE_CATEGORY, INITIAL_BALANCE_CATEGORY_ID } from "../features/workspace/domain/models/category.model";
+import { SYSTEM_CATEGORIES } from "../features/workspace/domain/models/category.model";
 
 export interface MigrationOptions {
     dryRun: boolean;
@@ -42,9 +47,15 @@ export interface MigrationOptions {
 }
 
 export interface MigrationSummary {
+    /** Workspaces inspecionados. */
     scanned: number;
+    /** Categorias de sistema criadas (não existiam). */
     created: number;
+    /** Categorias existentes que ganharam `isSystem: true`. */
+    flagged: number;
+    /** Categorias que já estavam corretas. */
     skipped: number;
+    /** Categorias que falharam. */
     failed: number;
 }
 
@@ -57,7 +68,7 @@ export async function migrateSystemCategories(
     options: MigrationOptions,
     log: (message: string) => void = console.log
 ): Promise<MigrationSummary> {
-    const summary: MigrationSummary = { scanned: 0, created: 0, skipped: 0, failed: 0 };
+    const summary: MigrationSummary = { scanned: 0, created: 0, flagged: 0, skipped: 0, failed: 0 };
 
     const workspaceIds: string[] = [];
     if (options.workspaceId) {
@@ -71,46 +82,63 @@ export async function migrateSystemCategories(
         }
     }
 
-    log(`[migrate_system_categories] ${options.dryRun ? "DRY-RUN" : "APPLY"} — ${workspaceIds.length} workspace(s) a inspecionar.`);
-
-    // O id vira o id do documento; não deve ser duplicado no payload.
-    const categoryData: Record<string, any> = { ...INITIAL_BALANCE_CATEGORY };
-    delete categoryData.id;
+    log(`[migrate_system_categories] ${options.dryRun ? "DRY-RUN" : "APPLY"} — ${workspaceIds.length} workspace(s) a inspecionar, ${SYSTEM_CATEGORIES.length} categoria(s) de sistema por workspace.`);
 
     for (const workspaceId of workspaceIds) {
         summary.scanned++;
-        const docRef = firestore
+        const categories = firestore
             .collection("workspaces")
             .doc(workspaceId)
-            .collection("categories")
-            .doc(INITIAL_BALANCE_CATEGORY_ID);
+            .collection("categories");
 
-        try {
-            const doc = await docRef.get();
+        for (const category of SYSTEM_CATEGORIES) {
+            // O id vira o id do documento; não é duplicado no payload.
+            const payload: Record<string, any> = { ...category };
+            delete payload.id;
 
-            if (doc.exists) {
-                summary.skipped++;
-                log(`[migrate_system_categories] ${workspaceId}: já possui '${INITIAL_BALANCE_CATEGORY_ID}' — ignorado.`);
-                continue;
+            const docRef = categories.doc(category.id);
+
+            try {
+                const doc = await docRef.get();
+
+                if (!doc.exists) {
+                    if (options.dryRun) {
+                        summary.created++;
+                        log(`[migrate_system_categories] ${workspaceId}: CRIARIA '${category.id}' (dry-run).`);
+                        continue;
+                    }
+                    await docRef.set(payload);
+                    summary.created++;
+                    log(`[migrate_system_categories] ${workspaceId}: '${category.id}' criada.`);
+                    continue;
+                }
+
+                // Documento já existe: a única coisa que a migração ajusta é a
+                // flag `isSystem`. Nome/ícone/cor do usuário são preservados.
+                if (doc.data()?.isSystem === true) {
+                    summary.skipped++;
+                    log(`[migrate_system_categories] ${workspaceId}: '${category.id}' já marcada como isSystem — ignorada.`);
+                    continue;
+                }
+
+                if (options.dryRun) {
+                    summary.flagged++;
+                    log(`[migrate_system_categories] ${workspaceId}: MARCARIA '${category.id}' com isSystem: true (dry-run).`);
+                    continue;
+                }
+
+                await docRef.set({ isSystem: true }, { merge: true });
+                summary.flagged++;
+                log(`[migrate_system_categories] ${workspaceId}: '${category.id}' marcada com isSystem: true.`);
             }
-
-            if (options.dryRun) {
-                summary.created++;
-                log(`[migrate_system_categories] ${workspaceId}: CRIARIA '${INITIAL_BALANCE_CATEGORY_ID}' (dry-run).`);
-                continue;
+            catch (error) {
+                summary.failed++;
+                log(`[migrate_system_categories] ${workspaceId}/${category.id}: FALHOU — ${error}`);
             }
-
-            await docRef.set(categoryData);
-            summary.created++;
-            log(`[migrate_system_categories] ${workspaceId}: '${INITIAL_BALANCE_CATEGORY_ID}' criada.`);
-        }
-        catch (error) {
-            summary.failed++;
-            log(`[migrate_system_categories] ${workspaceId}: FALHOU — ${error}`);
         }
     }
 
-    log(`[migrate_system_categories] Resumo: inspecionados=${summary.scanned}, criados=${summary.created}, ignorados=${summary.skipped}, falhas=${summary.failed}.`);
+    log(`[migrate_system_categories] Resumo: workspaces=${summary.scanned}, criadas=${summary.created}, marcadas=${summary.flagged}, ignoradas=${summary.skipped}, falhas=${summary.failed}.`);
     return summary;
 }
 

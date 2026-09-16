@@ -7,6 +7,12 @@ export interface PeriodSummaryRow {
     categoryId: string;
     type: string;
     allocation?: string;
+    /**
+     * Categoria de sistema (saldo inicial, virtuais de transferência). Não
+     * representa uma escolha de consumo do usuário e é ignorada pelas
+     * avaliações de badge.
+     */
+    isSystem: boolean;
     actualAmount: number;
     generalPlannedAmount: number;
     specificPlannedAmount: number;

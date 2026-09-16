@@ -33,9 +33,18 @@ e **não devem aparecer nas telas de gestão de categorias do cliente**. Elas s�
 criadas e mantidas exclusivamente pelas Cloud Functions (Admin SDK) e marcadas
 com `isSystem: true`.
 
-| Id                | Nome          | Criada por                                 | Usada por                          |
-|-------------------|---------------|--------------------------------------------|------------------------------------|
-| `initial-balance` | Saldo Inicial | `createDefaultCategories` (`onWorkspaceCreated`) | orders `initial-balance-{accountId}` |
+| Id                            | Nome                | Usada por                                      |
+|-------------------------------|---------------------|------------------------------------------------|
+| `initial-balance`             | Saldo Inicial       | orders `initial-balance-{accountId}`            |
+| `virtual_debt_expense`        | Empréstimo/Dívidas  | contrapartida de transferência (summary.service)|
+| `virtual_debt_income`         | Empréstimo/Dívidas  | contrapartida de transferência (summary.service)|
+| `virtual_investment_expense`  | Investimentos       | contrapartida de transferência (summary.service)|
+| `virtual_investment_income`   | Investimentos       | contrapartida de transferência (summary.service)|
+
+Todas são criadas por `createDefaultCategories` (`onWorkspaceCreated`). Além de
+sumirem das telas de gestão, elas são **ignoradas nas avaliações de badge**
+(`under_control`, saúde financeira, missões mensais): não representam uma
+escolha de consumo do usuário.
 
 Contrato com o cliente Flutter:
 
@@ -55,12 +64,17 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 
 ### `migrate_system_categories.ts`
 
-Cria a categoria de sistema `initial-balance` nos workspaces que ainda não a
-possuem. Workspaces novos já nascem com ela; este script cobre a base legada.
+Garante as cinco categorias de sistema em todos os workspaces: cria as que
+faltam (tipicamente `initial-balance`) e acrescenta `isSystem: true` às que já
+existem sem a flag (tipicamente as `virtual_*`). Workspaces novos já nascem
+corretos; este script cobre a base legada.
 
-- **Idempotente**: pula workspaces que já têm o documento; pode rodar N vezes.
+- **Idempotente**: pula o que já está correto; pode rodar N vezes.
+- **Não sobrescreve** nome/ícone/cor de documentos existentes — a atualização é
+  um `set({isSystem: true}, {merge: true})`.
 - **Dry-run por padrão**: só escreve com `--apply`.
-- **Log por workspace**, com resumo final (`inspecionados/criados/ignorados/falhas`).
+- **Log por workspace/categoria**, com resumo final
+  (`workspaces/criadas/marcadas/ignoradas/falhas`).
 
 ```bash
 cd functions

@@ -620,6 +620,14 @@ export class GamificationService {
         let totalIncomes = 0;
 
         for (const row of rows) {
+            // Categorias de sistema (saldo inicial, virtuais de transferência)
+            // não são escolha de consumo do usuário: o saldo inicial de um
+            // cartão/dívida entrava como receita e as virtuais de empréstimo/
+            // aporte tornavam `under_control` inatingível para quem as usa.
+            if (row.isSystem) {
+                continue;
+            }
+
             const actual = row.actualAmount || 0;
             const planned = row.generalPlannedAmount || 0;
 
@@ -660,6 +668,9 @@ export class GamificationService {
 
         let prevComfortExpenses = 0;
         for (const row of prevRows) {
+            if (row.isSystem) {
+                continue;
+            }
             if (row.type === CategoryType.expense && row.allocation === "comfort") {
                 prevComfortExpenses += (row.actualAmount || 0);
             }
@@ -1034,6 +1045,11 @@ export class GamificationService {
         const categoryIds = new Set<string>();
 
         for (const row of rows) {
+            // Ver evaluateMonthlyMissionsCron: categorias de sistema ficam fora.
+            if (row.isSystem) {
+                continue;
+            }
+
             if (row.type === CategoryType.income) {
                 totalIncome += row.actualAmount || 0;
             }

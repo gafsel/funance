@@ -590,6 +590,7 @@ describe("F2.1 — evaluateMonthlyMissionsCron lê linhas achatadas de period_su
         categoryId: "c",
         type: "expense",
         allocation: undefined,
+        isSystem: false,
         actualAmount: 0,
         generalPlannedAmount: 0,
         specificPlannedAmount: 0,
@@ -781,5 +782,99 @@ describe("F2.1 — tipo de meta lido do campo realmente persistido (runtimeType)
         });
 
         expect(spy.mock.calls.map((c) => c[1])).not.toContain("goal_debt_paid");
+    });
+});
+
+describe("QA — categorias de sistema ficam fora das avaliações de badge", () => {
+    let service: GamificationService;
+    let spy: jest.SpyInstance;
+
+    const row = (over: Partial<any>) => ({
+        categoryId: "c",
+        type: "expense",
+        allocation: undefined,
+        isSystem: false,
+        actualAmount: 0,
+        generalPlannedAmount: 0,
+        specificPlannedAmount: 0,
+        ...over,
+    });
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        spy = jest.spyOn(service, "unlockBadge").mockResolvedValue(true);
+        mockRepository.getPaidInstallmentsSince.mockResolvedValue([]);
+        jest.useFakeTimers({ now: new Date("2026-08-01T06:00:00Z") });
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    const granted = () => spy.mock.calls.map((c) => c[1]);
+
+    it("under_control continua alcançável para quem usa empréstimo/aporte (categorias virtuais)", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "moradia", generalPlannedAmount: 2000, actualAmount: 1800 }),
+                // Virtuais nunca têm planejamento: antes derrubavam underControl.
+                row({ categoryId: "virtual_debt_expense", isSystem: true, generalPlannedAmount: 0, actualAmount: 900 }),
+                row({ categoryId: "virtual_investment_expense", isSystem: true, allocation: "investment", generalPlannedAmount: 0, actualAmount: 500 }),
+            ])
+            .mockResolvedValueOnce([]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        expect(granted()).toContain("under_control");
+    });
+
+    it("o saldo inicial de cartão/dívida não é somado como receita nem como aporte", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "initial-balance", isSystem: true, type: "income", actualAmount: 50000 }),
+                row({ categoryId: "salario", type: "income", actualAmount: 1000 }),
+                row({ categoryId: "aportes", allocation: "investment", generalPlannedAmount: 100, actualAmount: 100 }),
+            ])
+            .mockResolvedValueOnce([]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        // 100 / 1000 = 10% < 20%. Se o saldo inicial entrasse na receita, ou se
+        // uma virtual de investimento entrasse no aporte, o cálculo mudaria.
+        expect(granted()).not.toContain("future_focus");
+    });
+
+    it("checkFinancialHealthBadges ignora categorias de sistema", async () => {
+        mockRepository.getPeriodSummaries.mockResolvedValue([
+            row({ categoryId: "initial-balance", isSystem: true, type: "income", actualAmount: 90000 }),
+            row({ categoryId: "virtual_debt_expense", isSystem: true, actualAmount: 800 }),
+            row({ categoryId: "virtual_investment_expense", isSystem: true, actualAmount: 800 }),
+            row({ categoryId: "moradia", actualAmount: 2000 }),
+        ]);
+
+        await service.checkFinancialHealthBadges("w1");
+
+        // Sem receita real no mês, nada é concedido — e as duas virtuais não
+        // podem contar como "categorias do mês".
+        expect(granted()).not.toContain("expense_under_income");
+        expect(granted()).not.toContain("savings_10pct");
+        expect(granted()).not.toContain("three_categories_month");
+    });
+
+    it("cost_cutter ignora o conforto vindo de categorias de sistema", async () => {
+        mockRepository.getPeriodSummaries
+            .mockResolvedValueOnce([
+                row({ categoryId: "lazer", allocation: "comfort", generalPlannedAmount: 1000, actualAmount: 700 }),
+            ])
+            .mockResolvedValueOnce([
+                row({ categoryId: "lazer", allocation: "comfort", actualAmount: 800 }),
+                row({ categoryId: "virtual_debt_expense", isSystem: true, allocation: "comfort", actualAmount: 5000 }),
+            ]);
+
+        await service.evaluateMonthlyMissionsCron("w1");
+
+        // Base do mês anterior = 800 (não 5800): 700 > 0.8 * 800 = 640.
+        expect(granted()).not.toContain("cost_cutter");
     });
 });
