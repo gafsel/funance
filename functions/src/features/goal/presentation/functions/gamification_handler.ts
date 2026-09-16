@@ -2,6 +2,7 @@ import { onDocumentWritten, onDocumentCreated, onDocumentUpdated } from "firebas
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
+import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
 
 /**
@@ -200,6 +201,9 @@ export const weeklyGamificationCron = onSchedule(
         // anterior (domingo a sábado) já encerrada.
         schedule: "0 3 * * 1",
         timeZone: GAMIFICATION_TIME_ZONE,
+        // Varre todos os workspaces e gera missões semanais via IA: precisa de
+        // mais memória/timeout do que o padrão global de 256MiB/60s.
+        ...AI_SCHEDULE_OPTIONS,
     },
     async () => {
         logger.info("[weeklyGamificationCron] Starting weekly gamification cron.");

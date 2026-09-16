@@ -14,6 +14,8 @@ const mockGemini = {
     text: "{}",
     usageMetadata: undefined as any,
     error: undefined as any,
+    /** modelos que devem falhar; os demais respondem normalmente */
+    failingModels: [] as string[],
     modelsTried: [] as string[],
 };
 
@@ -63,6 +65,9 @@ jest.mock("@google/generative-ai", () => ({
             return {
                 generateContent: async () => {
                     mockGemini.modelsTried.push(params.model);
+                    if (mockGemini.failingModels.includes(params.model)) {
+                        throw Object.assign(new Error(`${params.model} indisponível`), { status: 503 });
+                    }
                     if (mockGemini.error) {
                         throw mockGemini.error;
                     }
@@ -77,6 +82,9 @@ jest.mock("@google/generative-ai", () => ({
         }
     },
 }));
+
+// eslint-disable-next-line import/first
+import { HttpsError } from "firebase-functions/v2/https";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -102,6 +110,7 @@ describe("logAiCall", () => {
         mockGemini.text = JSON.stringify({ assignments: [{ id: "c1", group: "groceries" }] });
         mockGemini.usageMetadata = undefined;
         mockGemini.error = undefined;
+        mockGemini.failingModels = [];
         mockGemini.modelsTried = [];
     });
 
@@ -176,6 +185,34 @@ describe("logAiCall", () => {
         expect(mockFs.added[0].data.promptSha256).toMatch(/^[0-9a-f]{64}$/);
     });
 
+    it("loga o modelo que de fato respondeu quando há fallback", async () => {
+        // O primário (gemini-flash-latest) responde 503 nas 2 tentativas;
+        // o primeiro fallback (gemini-2.5-flash) responde.
+        mockGemini.failingModels = ["gemini-flash-latest"];
+
+        await loadRepository().classifyCategoryGroups("w1", CATEGORIES);
+
+        expect(mockGemini.modelsTried).toEqual([
+            "gemini-flash-latest",
+            "gemini-flash-latest",
+            "gemini-2.5-flash",
+        ]);
+        expect(mockFs.added).toHaveLength(1);
+        expect(mockFs.added[0].data.model).toBe("gemini-2.5-flash");
+        expect(mockFs.added[0].data.status).toBe("ok");
+    });
+
+    it("no erro final, loga o modelo primário e o código do último erro", async () => {
+        mockGemini.failingModels = ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+
+        await expect(loadRepository().classifyCategoryGroups("w1", CATEGORIES)).rejects.toThrow(/indispon/);
+
+        expect(mockFs.added).toHaveLength(1);
+        expect(mockFs.added[0].data.model).toBe("gemini-flash-latest");
+        expect(mockFs.added[0].data.status).toBe("erro");
+        expect(mockFs.added[0].data.errorCode).toBe("503");
+    });
+
     it("falha ao gravar o log não derruba a chamada de IA", async () => {
         mockFs.addThrows = true;
 
@@ -183,5 +220,41 @@ describe("logAiCall", () => {
 
         expect(result).toEqual({ c1: "groceries" });
         expect(mockFs.added).toHaveLength(0);
+    });
+});
+
+describe("isTransientAiError", () => {
+    function classify(error: any): boolean {
+        let result = false;
+        jest.isolateModules(() => {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const mod = require("../core/services/ai.service");
+            result = mod.isTransientAiError(error);
+        });
+        return result;
+    }
+
+    it("considera transitório 5xx, 429 e 408 do Gemini", () => {
+        for (const status of [408, 429, 500, 502, 503, 504]) {
+            expect(classify(Object.assign(new Error("x"), { status }))).toBe(true);
+        }
+    });
+
+    it("NÃO considera transitório 400/403/404 (payload ou permissão)", () => {
+        for (const status of [400, 403, 404]) {
+            expect(classify(Object.assign(new Error("x"), { status }))).toBe(false);
+        }
+    });
+
+    it("considera transitório erro de rede/timeout", () => {
+        expect(classify(Object.assign(new Error("x"), { code: "ECONNRESET" }))).toBe(true);
+        expect(classify(new Error("request timed out"))).toBe(true);
+        expect(classify(new Error("fetch failed"))).toBe(true);
+    });
+
+    it("NÃO considera transitório HttpsError nem erro de parse", () => {
+        expect(classify(new HttpsError("internal", "resposta inválida"))).toBe(false);
+        expect(classify(new Error("A resposta da IA não contém JSON válido."))).toBe(false);
+        expect(classify(undefined)).toBe(false);
     });
 });
