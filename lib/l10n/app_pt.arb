@@ -1040,5 +1040,6 @@
   "planningAnalysisApplied": "Categoria atualizada com sucesso!",
   "planningAnalysisApplyError": "Não foi possível atualizar a categoria.",
   "planningAnalysisInsightsTitle": "Insights",
-  "planningAnalysisRefresh": "Atualizar análise"
+  "planningAnalysisRefresh": "Atualizar análise",
+  "planningAnalysisRefreshHint": "Uma análise recente é reaproveitada por alguns dias; o servidor decide quando vale gerar uma nova."
 }

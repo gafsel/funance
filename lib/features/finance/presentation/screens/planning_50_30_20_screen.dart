@@ -162,20 +162,14 @@ class Planning503020Screen extends ConsumerWidget {
     );
   }
 
-  Future<void> _openAnalysis(
-    BuildContext context,
-    WidgetRef ref, {
-    bool force = false,
-  }) async {
+  Future<void> _openAnalysis(BuildContext context, WidgetRef ref) async {
     final l10n = context.l10n;
     final messenger = ScaffoldMessenger.of(context);
 
     try {
       final analysis = await showLoadingModal(
         context,
-        ref
-            .read(PlanningAnalysisDomainProviders.service)
-            .analyze(force: force),
+        ref.read(PlanningAnalysisDomainProviders.service).analyze(),
         child: AnalysisLoadingView(
           title: l10n.planningAnalysisLoadingTitle,
           description: l10n.planningAnalysisLoadingDesc,
@@ -190,7 +184,7 @@ class Planning503020Screen extends ConsumerWidget {
         analysis,
         onRefresh: () {
           if (context.mounted) {
-            _openAnalysis(context, ref, force: true);
+            _openAnalysis(context, ref);
           }
         },
       );

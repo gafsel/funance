@@ -1033,5 +1033,6 @@
   "planningAnalysisApplied": "Category updated successfully!",
   "planningAnalysisApplyError": "Could not update the category.",
   "planningAnalysisInsightsTitle": "Insights",
-  "planningAnalysisRefresh": "Refresh analysis"
+  "planningAnalysisRefresh": "Refresh analysis",
+  "planningAnalysisRefreshHint": "A recent analysis is reused for a few days; the server decides when a new one is worth generating."
 }

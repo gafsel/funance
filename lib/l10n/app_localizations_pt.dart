@@ -2506,4 +2506,8 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get planningAnalysisRefresh => 'Atualizar análise';
+
+  @override
+  String get planningAnalysisRefreshHint =>
+      'Uma análise recente é reaproveitada por alguns dias; o servidor decide quando vale gerar uma nova.';
 }

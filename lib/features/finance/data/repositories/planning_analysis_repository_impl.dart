@@ -8,19 +8,13 @@ class PlanningAnalysisRepositoryImpl implements IPlanningAnalysisRepository {
   final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
   @override
-  Future<Planning503020Analysis> analyze(
-    String workspaceId, {
-    bool force = false,
-  }) async {
+  Future<Planning503020Analysis> analyze(String workspaceId) async {
     final callable = _functions.httpsCallable(
       'analyze503020Ideal',
       options: HttpsCallableOptions(timeout: const Duration(minutes: 2)),
     );
 
-    final result = await callable.call({
-      'workspaceId': workspaceId,
-      'force': force,
-    });
+    final result = await callable.call({'workspaceId': workspaceId});
 
     // O servidor persiste a análise e devolve o payload já validado com o id
     // do documento — o cliente não grava nada (a coleção é somente leitura).

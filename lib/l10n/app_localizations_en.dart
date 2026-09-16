@@ -2493,4 +2493,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planningAnalysisRefresh => 'Refresh analysis';
+
+  @override
+  String get planningAnalysisRefreshHint =>
+      'A recent analysis is reused for a few days; the server decides when a new one is worth generating.';
 }

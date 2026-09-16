@@ -10,7 +10,7 @@ class PlanningAnalysisService {
     required this.repository,
   });
 
-  Future<Planning503020Analysis> analyze({bool force = false}) {
-    return repository.analyze(workspaceId, force: force);
+  Future<Planning503020Analysis> analyze() {
+    return repository.analyze(workspaceId);
   }
 }

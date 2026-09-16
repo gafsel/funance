@@ -4537,6 +4537,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Atualizar análise'**
   String get planningAnalysisRefresh;
+
+  /// No description provided for @planningAnalysisRefreshHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uma análise recente é reaproveitada por alguns dias; o servidor decide quando vale gerar uma nova.'**
+  String get planningAnalysisRefreshHint;
 }
 
 class _AppLocalizationsDelegate

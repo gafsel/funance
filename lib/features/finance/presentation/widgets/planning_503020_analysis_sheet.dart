@@ -270,6 +270,17 @@ class _Planning503020AnalysisSheetState
                 ),
               ),
             ),
+            // O cliente não força a regeração: o servidor decide se reaproveita
+            // a análise recente. Explicamos isso para não frustrar o usuário.
+            Center(
+              child: Text(
+                l10n.planningAnalysisRefreshHint,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
           ],
         ],
       ),
