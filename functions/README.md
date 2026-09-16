@@ -421,6 +421,12 @@ categoria sem id é tratada como **sem categoria** para efeito de sumário.
 categoria. O que essas parcelas perdem é só a linha no sumário, até serem
 corrigidas pelo script [`fix_empty_category.ts`](#fix_empty_categoryts).
 
+Testes: `src/test/empty_category.test.ts` (gatilho), os casos de
+`src/test/rebuild.test.ts` e `src/test/finance_repository.test.ts`, e
+`src/test/integration/empty_category.integration.test.ts`, que prova o sintoma
+com o SDK de verdade (a escrita de `categories.""` é rejeitada) e que gatilho e
+`rebuild --apply` agora atravessam a parcela quebrada sem falhar.
+
 ## Planejamento de categoria: horizonte rolante (F1.5)
 
 O `generalPlannedAmount` dos `period_summaries` vem de `category_planning`. O
@@ -818,8 +824,9 @@ projeto real**.
 2. functions         firebase deploy --only functions
 3. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
 4. migração          node lib/scripts/migrate_planning_summaries.js    (dry-run → --apply)
-5. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
-6. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
+5. correção          node lib/scripts/fix_empty_category.js            (levantamento → --apply, uma categoria por vez)
+6. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
+7. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
 ```
 
 **1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
@@ -847,13 +854,20 @@ dos planejamentos. Ambas são idempotentes, dry-run por padrão e não mexem em
 `period_summaries`. Rodar a segunda também encerra a varredura de legados do
 cron mensal.
 
-**5. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
+**5. Correção de categoria sem id.** `fix_empty_category` é um levantamento por
+padrão: rode-o sem `--category-id` para ver quantas parcelas/orders estão com
+`category.id` vazio e com que nomes. A correção é feita uma categoria de cada
+vez, e só onde o nome bate — ver
+[Categoria sem id](#categoria-sem-id-fora-dos-sumários). Ela vem ANTES do
+rebuild porque é o rebuild que recoloca essas parcelas nos `period_summaries`.
+
+**6. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
 em UTC (pagamento perto da meia-noite de Brasília), ids de semana antigos e
 saldos acumulados divergentes. `--all-workspaces` percorre a base um workspace
 de cada vez, com um relatório por workspace e um resumo final; um workspace que
 falha não interrompe os demais.
 
-**6. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
+**7. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
 único passo que reescreve o `generalPlannedAmount`. O motivo do prazo: o valor
 gravado hoje carrega a acumulação do regime antigo (aplicação repetida sem
 estorno), e **cada execução do cron mensal soma mais um mês por cima desse
