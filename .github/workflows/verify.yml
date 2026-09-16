@@ -1,0 +1,129 @@
+# Workflow reutilizável com todos os jobs de verificação do repositório.
+# É chamado tanto pelo workflow de pull request quanto pelo de push na main,
+# que só fazem deploy depois que estes jobs ficam verdes.
+name: Verify
+
+'on':
+  workflow_call:
+
+env:
+  # Mesma versão usada localmente (flutter --version -> 3.44.3, Dart 3.12.2).
+  FLUTTER_VERSION: 3.44.3
+  # As Cloud Functions declaram "engines": { "node": "20" }.
+  NODE_VERSION: '20'
+  # O emulador do Firestore roda em Java; 17 é o mínimo suportado.
+  JAVA_VERSION: '17'
+
+jobs:
+  flutter:
+    name: Flutter (analyze, test, build web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: Gerar localizações (l10n)
+        run: flutter gen-l10n
+
+      - name: Gerar código (freezed / json_serializable)
+        run: dart run build_runner build
+
+      # NOTA: `flutter analyze` sem flags é fatal para warnings, e o projeto
+      # ainda carrega warnings/infos pré-existentes (imports não usados,
+      # use_build_context_synchronously etc.) que deixariam o CI vermelho
+      # desde o primeiro dia. Por ora só erros quebram o build; remova os
+      # flags depois da limpeza do analyzer.
+      - name: Analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
+
+      - name: Testes
+        run: flutter test
+
+      - name: Build web
+        run: flutter build web --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web
+          retention-days: 1
+          if-no-files-found: error
+
+  functions:
+    name: Cloud Functions (lint, build, testes)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # O emulador do Firestore (usado por `npm run test:integration`) é um JAR.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Cache dos binários do emulador
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ hashFiles('functions/package-lock.json') }}
+          restore-keys: firebase-emulators-${{ runner.os }}-
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run build
+
+      # `npm test` = test:unit (mocks manuais) + test:integration
+      # (`firebase emulators:exec --only firestore`). O CLI do Firebase vem do
+      # devDependency firebase-tools, então não é preciso instalá-lo à parte.
+      - name: Testes unitários e de integração
+        run: npm test
+
+  rules:
+    name: Security rules do Firestore
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Cache dos binários do emulador
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-${{ hashFiles('functions/package-lock.json') }}
+          restore-keys: firebase-emulators-${{ runner.os }}-
+
+      - run: npm ci
+
+      - name: Testes das rules
+        run: npm run test:rules

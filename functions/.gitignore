@@ -7,3 +7,12 @@ typings/
 
 # Node.js dependency directory
 node_modules/
+
+# Artefatos de build gerados localmente
+build_output.txt
+
+# Firebase emulators / logs
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+.firebase/

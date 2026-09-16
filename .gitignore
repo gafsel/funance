@@ -43,3 +43,21 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Artefatos de build/análise gerados localmente (não devem ser versionados)
+test_v.txt
+analysis_output.txt
+build_output.txt
+*.dart.bak
+
+# Saída do flutter gen-l10n
+untranslated_messages.json
+
+# Firebase emulators / logs
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+.firebase/
+emulator-data/
