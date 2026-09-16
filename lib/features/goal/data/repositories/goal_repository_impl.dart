@@ -45,8 +45,11 @@ class GoalRepositoryImpl implements IGoalRepository {
       data.remove('id');
       data['deadline'] = Timestamp.fromDate(goal.deadline);
       data['startDate'] = Timestamp.fromDate(goal.startDate);
-      await _getCollection(workspaceId).add(data);
-      return goal.copyWith(id: goal.id);
+      // O id real é o gerado pelo Firestore. Devolver `goal.id` (vazio na
+      // criação) fazia o segundo salvamento do mesmo formulário cair num
+      // update com doc("").
+      final doc = await _getCollection(workspaceId).add(data);
+      return goal.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

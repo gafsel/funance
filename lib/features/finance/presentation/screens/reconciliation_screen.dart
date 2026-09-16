@@ -148,19 +148,20 @@ class ReconciliationScreen extends ConsumerWidget {
 
             try {
               await showLoadingModal(
-              context,
-              notifier.uploadFile(file, uploadId: uploadId),
-              child: AnalysisLoadingView(
-                title: l10n.reconciliationAnalyzing,
-                description: l10n.reconciliationAnalyzingDesc,
-                progressStream: progressStream,
-                firstPhaseDuration:
-                    ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                    ? const Duration(seconds: 20)
-                    : const Duration(minutes: 1),
-                totalDuration: ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
-                    ? const Duration(seconds: 45)
-                    : const Duration(minutes: 5),
+                context,
+                notifier.uploadFile(file, uploadId: uploadId),
+                child: AnalysisLoadingView(
+                  title: l10n.reconciliationAnalyzing,
+                  description: l10n.reconciliationAnalyzingDesc,
+                  progressStream: progressStream,
+                  firstPhaseDuration:
+                      ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
+                      ? const Duration(seconds: 20)
+                      : const Duration(minutes: 1),
+                  totalDuration:
+                      ['ofx', 'png', 'jpg', 'jpeg'].contains(extension)
+                      ? const Duration(seconds: 45)
+                      : const Duration(minutes: 5),
                 ),
               );
             } catch (e) {

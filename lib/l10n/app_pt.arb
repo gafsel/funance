@@ -1046,7 +1046,5 @@
   "@planningAnalysisNextAvailable": {
     "placeholders": { "days": { "type": "int" } }
   },
-  "planningAnalysisGenerateNew": "Gerar nova análise",
-  "planningAnalysisRefresh": "Atualizar análise",
-  "planningAnalysisRefreshHint": "Uma análise recente é reaproveitada por alguns dias; o servidor decide quando vale gerar uma nova."
+  "planningAnalysisGenerateNew": "Gerar nova análise"
 }

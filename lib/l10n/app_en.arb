@@ -1039,7 +1039,5 @@
   "@planningAnalysisNextAvailable": {
     "placeholders": { "days": { "type": "int" } }
   },
-  "planningAnalysisGenerateNew": "Generate new analysis",
-  "planningAnalysisRefresh": "Refresh analysis",
-  "planningAnalysisRefreshHint": "A recent analysis is reused for a few days; the server decides when a new one is worth generating."
+  "planningAnalysisGenerateNew": "Generate new analysis"
 }
