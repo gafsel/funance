@@ -1,5 +1,6 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { container } from "../../../../core/container";
+import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
 
 const ACTIVITY_WINDOW_DAYS = 14;
 
@@ -16,8 +17,7 @@ export const generateWeeklyCoaching = onSchedule(
     {
         schedule: "0 6 * * 1",
         timeZone: "America/Sao_Paulo",
-        timeoutSeconds: 540,
-        memory: "512MiB",
+        ...AI_SCHEDULE_OPTIONS,
     },
     async () => {
         const financeRepository = container.financeRepository;

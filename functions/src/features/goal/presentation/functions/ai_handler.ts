@@ -1,8 +1,9 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { container } from "../../../../core/container";
 import { assertWorkspaceMember } from "../../../../core/services/workspace_access.service";
+import { AI_CALLABLE_OPTIONS, AI_CALLABLE_OPTIONS_SHORT } from "../../../../core/config/functions.config";
 
-export const analysePlanning = onCall({ timeoutSeconds: 300 }, async (request) => {
+export const analysePlanning = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
@@ -25,7 +26,7 @@ export const analysePlanning = onCall({ timeoutSeconds: 300 }, async (request) =
     }
 });
 
-export const analyzeAccountDocument = onCall({ timeoutSeconds: 300 }, async (request) => {
+export const analyzeAccountDocument = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
@@ -51,7 +52,7 @@ export const analyzeAccountDocument = onCall({ timeoutSeconds: 300 }, async (req
     }
 });
 
-export const analyzeReconciliationDocument = onCall({ timeoutSeconds: 300 }, async (request) => {
+export const analyzeReconciliationDocument = onCall(AI_CALLABLE_OPTIONS, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
@@ -78,7 +79,7 @@ export const analyzeReconciliationDocument = onCall({ timeoutSeconds: 300 }, asy
     }
 });
 
-export const analyzeGoalFeasibility = onCall({ timeoutSeconds: 120 }, async (request) => {
+export const analyzeGoalFeasibility = onCall(AI_CALLABLE_OPTIONS_SHORT, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }

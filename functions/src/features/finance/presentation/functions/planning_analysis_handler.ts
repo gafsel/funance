@@ -1,8 +1,9 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { container } from "../../../../core/container";
 import { assertWorkspaceMember } from "../../../../core/services/workspace_access.service";
+import { AI_CALLABLE_OPTIONS_SHORT } from "../../../../core/config/functions.config";
 
-export const analyze503020Ideal = onCall({ timeoutSeconds: 120 }, async (request) => {
+export const analyze503020Ideal = onCall(AI_CALLABLE_OPTIONS_SHORT, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "O usuário deve estar autenticado.");
     }
