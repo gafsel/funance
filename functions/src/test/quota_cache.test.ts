@@ -209,23 +209,59 @@ describe("PlanningAnalysisService + cota", () => {
 // CoachingService (cache de 5 dias)
 // ---------------------------------------------------------------------------
 
+const COACHING_AI_RESPONSE = {
+    message: "Vamos organizar o mês",
+    summary: "Resumo do diagnóstico",
+    type: "insight",
+    slides: [{
+        title: "Diagnóstico",
+        message: "Sua renda cobre as despesas.",
+        icon: "insights",
+        icons: ["insights"],
+        color: "#4A8C9C",
+        secondaryColor: "#2E5B66",
+        animationType: "fade",
+        actionLabel: null,
+        actionPath: null,
+    }],
+};
+
 describe("CoachingService + cota", () => {
-    function coachingService(lastAnalyses: any[]) {
+    /** Dependências mínimas para o fluxo completo (cache-miss até a IA). */
+    function coachingService(lastAnalyses: any[], overrides: any = {}) {
         const aiRepository = {
-            generateCoachingSlides: jest.fn(),
+            generateCoachingSlides: jest.fn().mockResolvedValue(COACHING_AI_RESPONSE),
             classifyCategoryGroups: jest.fn().mockResolvedValue({}),
+            ...overrides.aiRepository,
         };
         const financeRepository = {
             getLastCoachingAnalyses: jest.fn().mockResolvedValue(lastAnalyses),
+            getPeriodSummary: jest.fn().mockResolvedValue(null),
+            getInstallments: jest.fn().mockResolvedValue([]),
+            getAccountById: jest.fn().mockResolvedValue(null),
+            getCategoryPlannings: jest.fn().mockResolvedValue([]),
+            getCoachingCategoryGroups: jest.fn().mockResolvedValue({}),
+            saveCoachingAnalysis: jest.fn().mockResolvedValue("coach-novo"),
+            ...overrides.financeRepository,
         };
+        const workspaceRepository = {
+            getWorkspaceById: jest.fn().mockResolvedValue({ id: "w1", type: "personal", members: ["u1"] }),
+        };
+        const categoryRepository = {
+            getCategories: jest.fn().mockResolvedValue([EXPENSE_CATEGORY, INCOME_CATEGORY]),
+        };
+        const goalRepository = {
+            getGoals: jest.fn().mockResolvedValue([]),
+        };
+
         const service = new CoachingService(
             financeRepository as any,
-            {} as any,
-            {} as any,
-            {} as any,
+            goalRepository as any,
+            categoryRepository as any,
+            workspaceRepository as any,
             aiRepository as any
         );
-        return { service, aiRepository };
+        return { service, aiRepository, financeRepository };
     }
 
     it("não consome cota quando devolve o insight em cache", async () => {
@@ -242,15 +278,75 @@ describe("CoachingService + cota", () => {
         expect(aiRepository.generateCoachingSlides).not.toHaveBeenCalled();
     });
 
-    it("insight antigo não é cache: segue o fluxo e acaba chamando a IA", async () => {
+    it("consome cota exatamente uma vez no cache-miss (sem insight anterior)", async () => {
+        const { guard, calls } = makeQuota();
+        const { service, aiRepository, financeRepository } = coachingService([]);
+
+        const result = await service.generateCoaching("w1", guard);
+
+        expect(aiRepository.generateCoachingSlides).toHaveBeenCalledTimes(1);
+        expect(calls.consume).toBe(1);
+        expect(calls.refund).toBe(0);
+        expect(result.id).toBe("coach-novo");
+        expect(financeRepository.saveCoachingAnalysis).toHaveBeenCalledTimes(1);
+    });
+
+    it("insight antigo não conta como cache: consome cota e chama a IA", async () => {
         const old = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const { guard, calls } = makeQuota();
         const { service, aiRepository } = coachingService([
             { id: "c1", message: "oi", summary: "resumo", type: "insight", slides: [], date: old },
         ]);
 
-        // As demais dependências são stubs vazios, então o fluxo quebra logo
-        // depois do cache — o que importa aqui é que ele NÃO retornou o cache.
-        await expect(service.generateCoaching("w1")).rejects.toBeDefined();
-        expect(aiRepository.generateCoachingSlides).not.toHaveBeenCalled();
+        await service.generateCoaching("w1", guard);
+
+        expect(aiRepository.generateCoachingSlides).toHaveBeenCalledTimes(1);
+        expect(calls.consume).toBe(1);
+    });
+
+    it("consome a cota ANTES de chamar a IA e estorna em falha de infra", async () => {
+        const order: string[] = [];
+        const guard: QuotaGuard = {
+            check: async () => {
+                order.push("check");
+            },
+            consume: async () => {
+                order.push("consume");
+            },
+            refund: async () => {
+                order.push("refund");
+            },
+        };
+        const { service } = coachingService([], {
+            aiRepository: {
+                generateCoachingSlides: jest.fn().mockImplementation(async () => {
+                    order.push("ia");
+                    throw Object.assign(new Error("service unavailable"), { status: 503 });
+                }),
+            },
+        });
+
+        await expect(service.generateCoaching("w1", guard)).rejects.toThrow("service unavailable");
+        expect(order).toEqual(["consume", "ia", "refund"]);
+    });
+
+    it("NÃO estorna quando a IA responde algo inválido", async () => {
+        const { guard, calls } = makeQuota();
+        const { service } = coachingService([], {
+            aiRepository: {
+                generateCoachingSlides: jest.fn().mockResolvedValue({ slides: "não é lista" }),
+            },
+        });
+
+        await expect(service.generateCoaching("w1", guard)).rejects.toBeDefined();
+        expect(calls.consume).toBe(1);
+        expect(calls.refund).toBe(0);
+    });
+
+    it("funciona sem guard (cron de coaching proativo não gasta cota do usuário)", async () => {
+        const { service, aiRepository } = coachingService([]);
+
+        await expect(service.generateCoaching("w1")).resolves.toBeDefined();
+        expect(aiRepository.generateCoachingSlides).toHaveBeenCalledTimes(1);
     });
 });
