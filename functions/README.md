@@ -103,6 +103,11 @@ baixado do Storage, o base64 e a resposta do modelo.
   menor (um mês por vez) ou o arquivo OFX do seu banco, que é bem mais leve."*
   Vale checar o tamanho no app antes do upload, para não gastar banda à toa.
 - Arquivo inexistente no Storage: agora `not-found` (antes vinha `internal`).
+- As duas callables de documento **preservam o código do `HttpsError`** em vez
+  de reembrulhar tudo em `internal`: `invalid-argument` (tamanho/argumento),
+  `resource-exhausted` (cota) e `not-found` chegam ao app com o código certo,
+  como já acontecia em `analysePlanning` e `analyzeGoalFeasibility`. Só erro
+  inesperado vira `internal`.
 
 ## Quotas de IA
 

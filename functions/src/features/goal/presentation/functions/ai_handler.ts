@@ -74,6 +74,14 @@ export const analyzeAccountDocument = onCall(AI_DOCUMENT_CALLABLE_OPTIONS, async
         return analysis;
     }
     catch (error: any) {
+        // HttpsError já é a resposta final (ex.: `invalid-argument` do limite
+        // de tamanho, `resource-exhausted` da cota): reembrulhar em `internal`
+        // apagaria o código que o app usa para decidir o que mostrar.
+        // `isTransientAiError` devolve false para HttpsError, então nenhum
+        // estorno é perdido aqui.
+        if (error instanceof HttpsError) {
+            throw error;
+        }
         if (isTransientAiError(error)) {
             await quota.refund();
         }
@@ -115,6 +123,14 @@ export const analyzeReconciliationDocument = onCall(AI_DOCUMENT_CALLABLE_OPTIONS
         return analysis;
     }
     catch (error: any) {
+        // HttpsError já é a resposta final (ex.: `invalid-argument` do limite
+        // de tamanho, `resource-exhausted` da cota): reembrulhar em `internal`
+        // apagaria o código que o app usa para decidir o que mostrar.
+        // `isTransientAiError` devolve false para HttpsError, então nenhum
+        // estorno é perdido aqui.
+        if (error instanceof HttpsError) {
+            throw error;
+        }
         if (isTransientAiError(error)) {
             await quota.refund();
         }
