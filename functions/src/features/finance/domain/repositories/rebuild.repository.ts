@@ -9,13 +9,16 @@ export interface ExistingDoc {
     data: Record<string, any>;
 }
 
-/** Saldo diário reconstruído: `workspaces/{wid}/accounts/{aid}/balance/{YYYY-MM-DD}`. */
+/**
+ * Saldo diário reconstruído: `workspaces/{wid}/accounts/{aid}/balance/{dateKey}`.
+ * O `docId` é sempre igual ao `dateKey` (contrato com o app).
+ */
 export interface BalanceWrite {
     kind: "balance";
     accountId: string;
     docId: string;
     op: "set" | "delete";
-    data?: { balance: number };
+    data?: { dateKey: string, delta: number, balance: number };
 }
 
 /** Sumário reconstruído: `workspaces/{wid}/period_summaries/{id}`. */

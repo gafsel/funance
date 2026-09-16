@@ -21,6 +21,15 @@ const OUTSIDER_UID = "user-de-fora";
 const WORKSPACE_ID = "ws-rules";
 const ORDER_ID = "order-rules";
 const INSTALLMENT_ID = "installment-rules";
+const PLANNING_ID = "planning-rules";
+
+const planningDoc = (overrides: Record<string, unknown> = {}) => ({
+    category: { id: "cat-moradia", name: "Moradia", icon: "home", color: "#42A5F5" },
+    amount: 1200,
+    startMonth: "2026-01",
+    endMonth: "2026-12",
+    ...overrides,
+});
 
 const installmentDoc = (overrides: Record<string, unknown> = {}) => ({
     orderId: ORDER_ID,
@@ -68,6 +77,10 @@ describe("firestore.rules", () => {
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
                 installmentDoc()
+            );
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`),
+                planningDoc({ summarizedUntil: "2026-12", appliedAmount: 1200, appliedFrom: "2026-09", appliedUntil: "2026-12" })
             );
         });
     });
@@ -127,5 +140,67 @@ describe("firestore.rules", () => {
                 installmentDoc()
             )
         );
+    });
+
+    // ---- F1.9: a semana corrente é escrita só pelo servidor -----------------
+
+    it("nega que o cliente escreva currentWeekId/currentWeekStart no workspace", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), { currentWeekId: "2026-W37" })
+        );
+        await assertFails(
+            updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), {
+                currentWeekStart: Timestamp.fromDate(new Date(2026, 8, 13)),
+            })
+        );
+    });
+
+    it("permite que o membro leia a semana corrente e continue editando o nome", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertSucceeds(getDoc(doc(db, `workspaces/${WORKSPACE_ID}`)));
+        await assertSucceeds(updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), { name: "Casa nova" }));
+    });
+
+    // ---- F1.5: marcadores do planejamento são do servidor -------------------
+
+    it("permite que o membro crie e edite um planejamento sem os marcadores", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertSucceeds(
+            setDoc(doc(db, `workspaces/${WORKSPACE_ID}/category_planning/novo-plan`), planningDoc())
+        );
+        await assertSucceeds(
+            updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`), { amount: 1500 })
+        );
+    });
+
+    it("nega que o cliente crie um planejamento já com os marcadores", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/category_planning/plan-forjado`),
+                planningDoc({ summarizedUntil: "9999-12", appliedAmount: 99999, appliedFrom: "2020-01", appliedUntil: "2030-12" })
+            )
+        );
+    });
+
+    it("nega que o cliente altere os marcadores de um planejamento existente", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        for (const patch of [
+            { summarizedUntil: "2030-12" },
+            { appliedAmount: 0 },
+            { appliedFrom: "2020-01" },
+            { appliedUntil: "2030-12" },
+            { lastSummaryMonth: "2020-01" },
+        ]) {
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`), patch)
+            );
+        }
     });
 });

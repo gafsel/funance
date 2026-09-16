@@ -16,6 +16,7 @@ import { CategoryType, INITIAL_BALANCE_CATEGORY } from "../../../workspace/domai
 import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import { InvoiceService } from "./invoice.service";
 import { container } from "../../../../core/container";
+import { formatWeekId, getWeekRef } from "../../../../core/utils/week.utils";
 
 /**
  * Divide um valor total em `count` parcelas usando aritmética de centavos inteiros,
@@ -587,13 +588,20 @@ export class FinanceService {
         return baseXP;
     }
 
+    /**
+     * XP semanal em `weekly_xp/{YYYY-Www}`.
+     *
+     * F1.9: o id vem da ÚNICA definição de semana do projeto
+     * (`core/utils/week.utils.ts`, fuso do produto). Antes havia aqui uma cópia
+     * privada da aritmética, em UTC, que divergia das missões semanais no
+     * sábado à noite.
+     */
     private async updateWeeklyTotalXp(workspaceId: string, date: Date, deltaXp: number): Promise<void> {
         if (deltaXp === 0) return;
-        
-        const week = this.getWeekNumber(date);
-        const year = this.getWeekYear(date);
-        const weeklyXpId = `${year}-W${String(week).padStart(2, "0")}`;
-        
+
+        const { year, week } = getWeekRef(date);
+        const weeklyXpId = formatWeekId({ year, week });
+
         const docRef = admin.firestore().collection(`workspaces/${workspaceId}/weekly_xp`).doc(weeklyXpId);
         await docRef.set({
             year,
@@ -601,24 +609,10 @@ export class FinanceService {
             xp: admin.firestore.FieldValue.increment(deltaXp),
             lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
-    }
 
-    private getWeekNumber(d: Date): number {
-        const date = new Date(d.getTime());
-        date.setHours(0, 0, 0, 0);
-        // Ajusta para o domingo mais próximo (início da semana)
-        date.setDate(date.getDate() - date.getDay());
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const days = Math.floor((date.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
-        return Math.floor(days / 7) + 1;
-    }
-
-    private getWeekYear(d: Date): number {
-        const date = new Date(d.getTime());
-        date.setHours(0, 0, 0, 0);
-        // Ajusta para o domingo mais próximo
-        date.setDate(date.getDate() - date.getDay());
-        return date.getFullYear();
+        // O cliente lê a semana corrente do workspace em vez de calculá-la:
+        // qualquer handler que mexa em dados semanais reafirma o marcador.
+        await container.weekSyncService.ensureCurrentWeek(workspaceId);
     }
 
 

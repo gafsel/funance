@@ -4,10 +4,35 @@ import {
     OrderModel,
     InstallmentModel,
     CategoryPlanningModel,
+    CategoryPlanningMarks,
     AccountModel,
     AccountBalanceModel,
     PeriodSummaryUpdateModel, InstallmentStatus,
 } from "../models/finance.models";
+
+/** Planejamento lido pelo cron: sabe de que workspace veio e onde mora. */
+export type CategoryPlanningRef = CategoryPlanningModel & {
+    workspaceId: string;
+    ref: admin.firestore.DocumentReference;
+};
+
+/** Página de planejamentos + cursor para a próxima (null = acabou). */
+export interface CategoryPlanningPage {
+    items: CategoryPlanningRef[];
+    cursor: admin.firestore.QueryDocumentSnapshot | null;
+}
+
+/**
+ * Página da varredura completa. O cursor é o CAMINHO do último documento lido
+ * (`workspaces/{wid}/category_planning/{id}`), e não um snapshot, porque ele
+ * precisa sobreviver ao fim da execução: o cron guarda esse caminho num
+ * checkpoint e retoma dali no mês seguinte. `nextPath: null` significa que a
+ * coleção acabou.
+ */
+export interface CategoryPlanningScanPage {
+    items: CategoryPlanningRef[];
+    nextPath: string | null;
+}
 
 export interface IFinanceRepository {
   // Orders
@@ -56,12 +81,43 @@ export interface IFinanceRepository {
   // Category Planning
   deleteCategoryPlanningsByCategoryId(workspaceId: string, categoryId: string): Promise<void>;
   getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
-  getCategoryPlanningsByLastSummaryMonthGroup(nowStr: string, limit: number): Promise<(CategoryPlanningModel & { workspaceId: string, ref: any })[]>;
-  processCategoryPlanningSummariesChunk(
-    chunk: (CategoryPlanningModel & { workspaceId: string, ref: any })[],
-    nowStr: string,
-    summaryFactory: (workspaceId: string, planning: CategoryPlanningModel) => PeriodSummaryUpdateModel[]
+  /**
+   * Planejamentos cujo `summarizedUntil` ainda não alcançou o horizonte.
+   * Paginado por cursor: o cron não tem limite global (F1.5).
+   */
+  getCategoryPlanningsPendingSummary(
+    horizon: string,
+    pageSize: number,
+    cursor?: admin.firestore.QueryDocumentSnapshot | null
+  ): Promise<CategoryPlanningPage>;
+  /**
+   * Varredura de TODOS os planejamentos, paginada por id. Necessária porque o
+   * Firestore não consulta "documentos em que o campo não existe": é assim que
+   * o cron encontra os planejamentos legados, sem `summarizedUntil`.
+   */
+  scanCategoryPlannings(
+    pageSize: number,
+    afterPath?: string | null
+  ): Promise<CategoryPlanningScanPage>;
+  /**
+   * Aplica os deltas de `generalPlannedAmount` nos sumários (agrupados por
+   * documento, um `increment` por categoria) e, por último, grava os
+   * marcadores no planejamento. Em lotes de no máximo 400 escritas.
+   */
+  applyPlanningImpacts(
+    workspaceId: string,
+    updates: PeriodSummaryUpdateModel[],
+    marks?: { ref: admin.firestore.DocumentReference, data: CategoryPlanningMarks }
   ): Promise<void>;
+  /** Referência do documento de planejamento (para montar `marks`). */
+  getCategoryPlanningRef(workspaceId: string, planningId: string): admin.firestore.DocumentReference;
+
+  // Checkpoints de cron (`config/cron_checkpoints`) — coleção raiz, negada ao
+  // cliente pela regra final `match /{document=**}`.
+  /** Valor do checkpoint, ou `null` se nunca foi gravado. */
+  getCronCheckpoint(field: string): Promise<string | null>;
+  /** Grava (ou apaga, com `null`) o checkpoint. */
+  setCronCheckpoint(field: string, value: string | null): Promise<void>;
 
   // Period Summaries
   updatePeriodSummary(

@@ -132,16 +132,6 @@ describe("Gatilho de parcela: guarda por conteúdo (integração com emulador)",
         const beforePay = (await installmentRef().get()).data()!;
         const paidDate = new Date(2025, 2, 9, 12);
 
-        // O saldo do dia é pré-criado de propósito: sem um documento de saldo
-        // para a data, `updateAccountBalance` cai em `getLastBalanceBefore`,
-        // que usa `orderBy(documentId(), "desc")` — rejeitado pelo emulador
-        // ("Firestore does not support descending key scans"). É a mesma
-        // limitação que mantém `it.skip` em finance_flow.integration.test.ts e
-        // não tem relação com a guarda por conteúdo testada aqui.
-        await firestore
-            .doc(`workspaces/${WORKSPACE_ID}/accounts/${ACCOUNT_ID}/balance/${paidDate.toISOString().split("T")[0]}`)
-            .set({ balance: 0, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
-
         // 1) O cliente paga a parcela (mesma escrita que o app faz).
         await installmentRef().update({
             status: InstallmentStatus.paid,

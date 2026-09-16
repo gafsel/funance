@@ -67,6 +67,10 @@ service cloud.firestore {
       // via Cloud Function onInviteStatusChanged com Admin SDK, que ignora rules).
       // Campos de gamificação (xp, level, unlockedBadges, weeklyStreaks,
       // lastLevelUpAt) são escritos apenas por Cloud Functions.
+      // F1.9: 'currentWeekId'/'currentWeekStart'/'currentWeekUpdatedAt' também são
+      // exclusivos do servidor (WeekSyncService) — o cliente LÊ a semana corrente
+      // em vez de calculá-la. Como a lista de affectedKeys abaixo é fechada
+      // (hasOnly), qualquer escrita do cliente nesses campos já é negada.
       // 'createdAt' permitido apenas porque o fluxo de onboarding reescreve o doc
       // inteiro com um timestamp gerado no cliente logo após a criação.
       allow update: if request.auth != null
@@ -214,11 +218,21 @@ service cloud.firestore {
             && data.category is map;
         }
 
+        // F1.5: summarizedUntil/appliedAmount/appliedFrom/appliedUntil (e o
+        // legado lastSummaryMonth) registram o que o SERVIDOR já lançou nos
+        // sumários. Se o cliente pudesse escrevê-los, um estorno passaria a
+        // usar um intervalo forjado e o planejado do workspace ficaria errado.
         allow read: if isMember(workspaceId);
-        allow create: if isMember(workspaceId) && validPlanning(request.resource.data);
+        allow create: if isMember(workspaceId)
+          && validPlanning(request.resource.data)
+          && !request.resource.data.keys().hasAny([
+            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth'
+          ]);
         allow update: if isMember(workspaceId)
           && validPlanning(request.resource.data)
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSummaryMonth']);
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth'
+          ]);
         allow delete: if isMember(workspaceId);
       }
 

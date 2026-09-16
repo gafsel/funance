@@ -25,9 +25,16 @@
  * gatilhos e a "regra de negócio ideal" divergirem, este serviço reproduz o
  * gatilho — as divergências conhecidas estão comentadas no código e no
  * relatório do pacote.
+ *
+ * DIVERGÊNCIA CONHECIDA (F1.5, `--rebuild-planning`): o gatilho aplica o
+ * planejamento a partir do MÊS CORRENTE (nunca reescreve o passado), enquanto
+ * o rebuild cobre o período inteiro a partir de `startMonth`. Para um
+ * planejamento que começa no mês corrente ou no futuro os dois coincidem
+ * exatamente; para um que começou no passado, o rebuild PREENCHE os meses
+ * passados — é a correção pretendida, mas aparece como diferença no dry-run.
  */
 
-import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
+import { getZonedParts, toDateKey } from "../../../../core/utils/date_key";
 import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
 import {
@@ -39,7 +46,13 @@ import {
 } from "../models/finance.models";
 import { ExistingDoc, IRebuildRepository, RebuildWrite } from "../repositories/rebuild.repository";
 import { FinanceService } from "./finance.service";
-import { resolveTransferAccountIds, resolveVirtualCategory, SummaryService } from "./summary.service";
+import {
+    intersectPlanningWindow,
+    planningHorizon,
+    resolveTransferAccountIds,
+    resolveVirtualCategory,
+    SummaryService,
+} from "./summary.service";
 
 export interface RebuildOptions {
     /** Padrão `true`: só calcula e devolve o diff, sem escrever nada. */
@@ -67,12 +80,20 @@ export interface RebuildOptions {
     /**
      * Recalcula também o `generalPlannedAmount` (padrão `false`).
      *
-     * CUIDADO: esse campo NÃO é reconstruível a partir de `installments` +
-     * `category_planning`. `calculatePlanningImpacts` só projeta da data-base
-     * para a frente (12 meses), então recalcular zera o planejado dos meses
-     * PASSADOS e o resultado muda conforme o dia em que o job roda. Por padrão
-     * o rebuild PRESERVA o valor que já está gravado em cada categoria de cada
-     * documento de `period_summaries`.
+     * F1.5 tornou esse recálculo DETERMINÍSTICO: os impactos cobrem todos os
+     * meses de `startMonth` até `min(endMonth, horizonte)`, e a única
+     * dependência de `now` é o horizonte (mês corrente + 11). Rodar hoje e
+     * amanhã dá o mesmo resultado; rodar no mês que vem só acrescenta o mês
+     * novo da ponta.
+     *
+     * Continua sendo uma flag, e não o padrão, por dois motivos:
+     *  - o valor gravado pode ter vindo do regime antigo (janela que começava
+     *     em `now`), e o recálculo vai MUDÁ-LO — inclusive preenchendo meses
+     *     passados que o incremental nunca preencheu;
+     *  - quem opera precisa ver no dry-run de onde vem cada alteração
+     *    (`generalPlannedChanges` conta os documentos afetados).
+     *
+     * Sem a flag, o `generalPlannedAmount` gravado é PRESERVADO como está.
      */
     rebuildPlanning?: boolean;
 }
@@ -135,9 +156,17 @@ export interface TargetSummaryDoc {
     categories: Record<string, SummaryCategoryTotals>;
 }
 
+/** Documento de saldo diário reconstruído. */
+export interface TargetBalanceDoc {
+    /** Soma dos movimentos do dia. */
+    delta: number;
+    /** Saldo acumulado ao fim do dia. */
+    balance: number;
+}
+
 export interface TargetState {
-    /** accountId -> (YYYY-MM-DD -> saldo acumulado). */
-    balances: Map<string, Map<string, number>>;
+    /** accountId -> (dateKey -> saldo do dia). */
+    balances: Map<string, Map<string, TargetBalanceDoc>>;
     /** id do período -> documento. */
     summaries: Map<string, TargetSummaryDoc>;
     /** YYYY-Www -> documento. */
@@ -154,9 +183,14 @@ const toCents = (value: number) => Math.round(value * 100);
 const fromCents = (cents: number) => cents / 100;
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
-/** Id do documento de saldo — idêntico a `FinanceRepositoryImpl.updateAccountBalance`. */
+/**
+ * Id do documento de saldo — idêntico a `FinanceRepositoryImpl.updateAccountBalance`.
+ *
+ * F1.4: o dia é o dia de calendário no FUSO DO PRODUTO (antes era UTC). O id
+ * continua sendo igual ao campo `dateKey`, que é o contrato com o app.
+ */
 export function balanceDocId(date: Date): string {
-    return date.toISOString().split("T")[0];
+    return toDateKey(date);
 }
 
 /** Id do documento de período — idêntico a `FinanceRepositoryImpl.getPeriodSummaryDocRef`. */
@@ -229,14 +263,24 @@ export class RebuildAccumulator {
         this.addXpImpact(installment);
     }
 
-    /** Impactos de `category_planning` no `generalPlannedAmount`. */
+    /**
+     * Impactos de `category_planning` no `generalPlannedAmount` (F1.5).
+     *
+     * DETERMINÍSTICO: cobre todos os meses de `startMonth` até
+     * `min(endMonth, horizonte)`, com `horizonte = mês de baseDate + 11`. A
+     * única dependência de `now` é o horizonte — o passado não muda conforme o
+     * dia em que o job roda, como acontecia quando a janela começava em `now`.
+     */
     addPlanning(planning: CategoryPlanningModel, baseDate: Date): void {
-        const impacts = this.summaryService.calculatePlanningImpacts(
-            planning,
-            1,
-            baseDate,
-            DEFAULT_FINANCE_CONFIG.categoryPlanning.predictabilityMonths
+        const window = intersectPlanningWindow(
+            planning.startMonth,
+            planning.endMonth,
+            planning.startMonth,
+            planningHorizon(baseDate)
         );
+        if (!window) return;
+
+        const impacts = this.summaryService.calculatePlanningImpacts(planning, 1, window);
 
         for (const impact of impacts) {
             const bucket = this.categoryBucket(impact.year, impact.month, impact.week, impact.category);
@@ -335,8 +379,8 @@ export class RebuildAccumulator {
         field: "specificCents" | "actualCents",
         cents: number
     ): void {
-        const year = date.getFullYear();
-        const month = date.getMonth() + 1;
+        // Mês e ano no FUSO DO PRODUTO, como o gatilho (`SummaryService`).
+        const { year, month } = getZonedParts(date);
 
         this.categoryBucket(year, month, undefined, category)[field] += cents;
         this.categoryBucket(year, undefined, undefined, category)[field] += cents;
@@ -376,16 +420,17 @@ export class RebuildAccumulator {
 
     /** Fecha os agregados: acumula os saldos dia a dia e materializa os documentos. */
     build(): TargetState {
-        const balances = new Map<string, Map<string, number>>();
+        const balances = new Map<string, Map<string, TargetBalanceDoc>>();
 
         for (const [accountId, perDay] of this.balanceDeltaCents) {
             const days = [...perDay.keys()].sort();
-            const running = new Map<string, number>();
+            const running = new Map<string, TargetBalanceDoc>();
             let accumulated = 0;
 
             for (const day of days) {
-                accumulated += perDay.get(day)!;
-                running.set(day, fromCents(accumulated));
+                const deltaCents = perDay.get(day)!;
+                accumulated += deltaCents;
+                running.set(day, { delta: fromCents(deltaCents), balance: fromCents(accumulated) });
             }
             balances.set(accountId, running);
         }
@@ -568,18 +613,31 @@ export class RebuildService {
         for (const accountId of accountIds) {
             const existing = await this.rebuildRepository.getExistingBalances(workspaceId, accountId, pageSize);
             const existingById = new Map(existing.map((doc) => [doc.id, doc]));
-            const expected = target.balances.get(accountId) ?? new Map<string, number>();
+            const expected = target.balances.get(accountId) ?? new Map<string, TargetBalanceDoc>();
 
             for (const docId of [...expected.keys()].sort()) {
-                const balance = expected.get(docId)!;
+                const day = expected.get(docId)!;
                 const path = `accounts/${accountId}/balance/${docId}`;
                 const current = existingById.get(docId);
-                const write: RebuildWrite = { kind: "balance", accountId, docId, op: "set", data: { balance } };
+                const write: RebuildWrite = {
+                    kind: "balance",
+                    accountId,
+                    docId,
+                    op: "set",
+                    data: { dateKey: docId, delta: day.delta, balance: day.balance },
+                };
 
                 if (!current) {
                     collector.create(path, write);
                 }
-                else if (!numbersEqual(current.data.balance, balance, epsilon)) {
+                else if (
+                    !numbersEqual(current.data.balance, day.balance, epsilon) ||
+                    !numbersEqual(current.data.delta, day.delta, epsilon) ||
+                    current.data.dateKey !== docId
+                ) {
+                    // O `delta`/`dateKey` ausente é o documento anterior a F1.4:
+                    // o valor acumulado pode até estar certo, mas o documento
+                    // ainda não está no formato novo.
                     collector.update(path, write);
                 }
                 else {
@@ -728,11 +786,11 @@ export class RebuildService {
 }
 
 /** Saldo acumulado que o rebuild enxerga no dia (último dia-alvo <= `dayId`). */
-function impliedBalance(expected: Map<string, number>, sortedDays: string[], dayId: string): number {
+function impliedBalance(expected: Map<string, TargetBalanceDoc>, sortedDays: string[], dayId: string): number {
     let value = 0;
     for (const day of sortedDays) {
         if (day > dayId) break;
-        value = expected.get(day)!;
+        value = expected.get(day)!.balance;
     }
     return value;
 }

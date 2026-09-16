@@ -2,6 +2,7 @@ import { GeminiAIRepositoryImpl, IAIRepository } from "../core/services/ai.servi
 import { IIdempotencyService, IdempotencyServiceImpl } from "../core/services/idempotency.service";
 import { IQuotaService, QuotaServiceImpl } from "../core/services/quota.service";
 import { AiCacheServiceImpl, IAiCacheService } from "../core/services/ai_cache.service";
+import { IWeekSyncService, WeekSyncServiceImpl } from "../core/services/week_sync.service";
 import { IOnboardingService, OnboardingServiceImpl } from "../features/onboarding/domain/services/onboarding.service";
 import { IWorkspaceRepository } from "../features/workspace/domain/repositories/workspace.repository";
 import { IFinanceRepository } from "../features/finance/domain/repositories/finance.repository";
@@ -56,6 +57,7 @@ class Container {
     private static _idempotencyService: IIdempotencyService;
     private static _quotaService: IQuotaService;
     private static _aiCacheService: IAiCacheService;
+    private static _weekSyncService: IWeekSyncService;
     private static _gamificationRepository: IGamificationRepository;
     private static _gamificationService: GamificationService;
     private static _goalFeasibilityService: GoalFeasibilityService;
@@ -80,6 +82,14 @@ class Container {
             this._aiCacheService = new AiCacheServiceImpl();
         }
         return this._aiCacheService;
+    }
+
+    /** Marcador `currentWeekId`/`currentWeekStart` do workspace (F1.9). */
+    static get weekSyncService(): IWeekSyncService {
+        if (!this._weekSyncService) {
+            this._weekSyncService = new WeekSyncServiceImpl();
+        }
+        return this._weekSyncService;
     }
 
     static get workspaceRepository(): IWorkspaceRepository {

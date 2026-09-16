@@ -1,5 +1,6 @@
 /**
- * Reconstrução de saldos, sumários e XP semanal de UM workspace (F1.0).
+ * Reconstrução de saldos, sumários e XP semanal — de UM workspace ou de TODOS
+ * (F1.0; `--all-workspaces` em F1.4/F1.5).
  *
  * Recalcula do zero, a partir de `installments` (ignorando as `removed`) e
  * `category_planning`:
@@ -16,10 +17,9 @@
  *  - NÃO É TRANSACIONAL: lê o workspace, calcula e depois commita em lotes. Um
  *    pagamento feito no app entre a leitura e o commit é SOBRESCRITO. Rode numa
  *    janela sem uso e refaça o dry-run imediatamente antes do `--apply`.
- *  - `generalPlannedAmount` é PRESERVADO por padrão: esse campo não é
- *    reconstruível (a projeção de `category_planning` só olha para a frente,
- *    então recalcular zera o planejado dos meses passados). Só com
- *    `--rebuild-planning`.
+ *  - `generalPlannedAmount` é PRESERVADO por padrão: ele só é recalculado com
+ *    `--rebuild-planning`, que desde F1.5 é determinístico (cobre
+ *    `startMonth..min(endMonth, horizonte)`).
  *  - IDEMPOTENTE: aplicar duas vezes seguidas não muda nada (a segunda
  *    execução reporta zero diferenças).
  *  - Escritas em lotes de no máximo 400 operações; leituras paginadas.
@@ -37,9 +37,16 @@
  *   # 2) Execução real (somente após revisar a saída do dry-run):
  *   GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
  *     node lib/scripts/rebuild_workspace.js --project=<projectId> --workspace=<workspaceId> --apply
+ *   # 3) Base inteira, um workspace de cada vez (dry-run e depois --apply):
+ *   GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+ *     node lib/scripts/rebuild_workspace.js --project=<projectId> --all-workspaces
  *
  * Flags:
- *   --workspace=<id>     OBRIGATÓRIA: workspace a reconstruir
+ *   --workspace=<id>     workspace a reconstruir (obrigatória sem --all-workspaces)
+ *   --all-workspaces     percorre TODOS os workspaces (`listDocuments()`), um a
+ *                        um, com um relatório por workspace e um resumo final.
+ *                        Continua dry-run por padrão; com --apply, aplica um a
+ *                        um. Um workspace que falha não interrompe os demais.
  *   --apply              executa as escritas (sem ela, dry-run)
  *   --project=<id>       projectId do Firebase (default: GOOGLE_CLOUD_PROJECT)
  *   --page-size=<n>      tamanho da página nas leituras (default 500)
@@ -48,9 +55,10 @@
  *   --prune-residual     apaga também os documentos residuais (zerados/sem
  *                        movimento). Sem a flag eles são apenas reportados.
  *   --rebuild-planning   RECALCULA o `generalPlannedAmount` a partir de
- *                        `category_planning`. DESTRUTIVO: zera o planejado dos
- *                        meses passados e o resultado depende do dia em que o
- *                        job roda. Use só com dry-run revisado.
+ *                        `category_planning`, cobrindo todo o período do
+ *                        planejamento até o horizonte (determinístico desde
+ *                        F1.5). Preenche meses passados que o incremental nunca
+ *                        preencheu. Use só com dry-run revisado.
  */
 
 import * as admin from "firebase-admin";
@@ -62,6 +70,7 @@ import { CollectionDiff, RebuildReport, RebuildService } from "../features/finan
 
 export interface ScriptOptions {
     workspaceId?: string;
+    allWorkspaces: boolean;
     dryRun: boolean;
     projectId?: string;
     pageSize?: number;
@@ -85,6 +94,7 @@ export function parseArgs(argv: string[]): ScriptOptions {
 
     return {
         workspaceId: getValue("--workspace="),
+        allWorkspaces: argv.includes("--all-workspaces"),
         // Dry-run é o padrão: só escreve com --apply explícito.
         dryRun: !argv.includes("--apply"),
         projectId: getValue("--project=") || process.env.GOOGLE_CLOUD_PROJECT,
@@ -117,11 +127,88 @@ export function formatReport(report: RebuildReport): string {
     ].join("\n");
 }
 
+/** Serviço mínimo que o script consome (facilita o teste com um dublê). */
+export interface RebuildRunner {
+    rebuildWorkspace(workspaceId: string, options: Record<string, any>): Promise<RebuildReport>;
+}
+
+/** Resumo de uma execução em lote. */
+export interface RebuildRunSummary {
+    reports: RebuildReport[];
+    failures: string[];
+    totalChanges: number;
+    writesCommitted: number;
+}
+
+/**
+ * Resolve a lista de workspaces e reconstrói um de cada vez.
+ *
+ * `--all-workspaces` usa `listDocuments()` de propósito: ele traz também os
+ * workspaces "fantasmas" (documento apagado que ainda tem subcoleções), que um
+ * `get()` não retornaria — são justamente os que acumulam saldo órfão.
+ */
+export async function runRebuild(
+    firestore: admin.firestore.Firestore,
+    service: RebuildRunner,
+    options: ScriptOptions,
+    log: (message: string) => void = console.log
+): Promise<RebuildRunSummary> {
+    const workspaceIds = options.allWorkspaces
+        ? (await firestore.collection("workspaces").listDocuments()).map((ref) => ref.id).sort()
+        : [options.workspaceId!];
+
+    if (options.allWorkspaces) {
+        log(`[rebuild_workspace] ${options.dryRun ? "DRY-RUN" : "APPLY"} em ${workspaceIds.length} workspace(s).`);
+    }
+
+    const summary: RebuildRunSummary = { reports: [], failures: [], totalChanges: 0, writesCommitted: 0 };
+
+    for (const workspaceId of workspaceIds) {
+        try {
+            const report = await service.rebuildWorkspace(workspaceId, {
+                dryRun: options.dryRun,
+                pageSize: options.pageSize,
+                chunkSize: options.chunkSize,
+                sampleLimit: options.sampleLimit,
+                pruneResidual: options.pruneResidual,
+                rebuildPlanning: options.rebuildPlanning,
+            });
+
+            summary.reports.push(report);
+            summary.totalChanges += report.totalChanges;
+            summary.writesCommitted += report.writesCommitted;
+            log(formatReport(report));
+        }
+        catch (error) {
+            // Numa varredura da base inteira, um workspace corrompido não pode
+            // derrubar os outros: registra a falha e segue.
+            summary.failures.push(workspaceId);
+            log(`[rebuild_workspace] workspace=${workspaceId} FALHOU — ${error}`);
+        }
+    }
+
+    return summary;
+}
+
+/** Linha final de uma execução em lote. */
+export function formatTotals(summary: RebuildRunSummary): string {
+    return [
+        `[rebuild_workspace] RESUMO: ${summary.reports.length} workspace(s) processado(s), ${summary.failures.length} falha(s).`,
+        `  total de mudanças=${summary.totalChanges}, escritas commitadas=${summary.writesCommitted}`,
+        summary.failures.length > 0 ? `  falharam: ${summary.failures.join(", ")}` : "  falharam: (nenhum)",
+    ].join("\n");
+}
+
 async function main(): Promise<void> {
     const options = parseArgs(process.argv.slice(2));
 
-    if (!options.workspaceId) {
-        console.error("[rebuild_workspace] --workspace=<id> é obrigatório.");
+    if (!options.workspaceId && !options.allWorkspaces) {
+        console.error("[rebuild_workspace] informe --workspace=<id> ou --all-workspaces.");
+        process.exit(1);
+    }
+
+    if (options.workspaceId && options.allWorkspaces) {
+        console.error("[rebuild_workspace] --workspace e --all-workspaces são mutuamente exclusivos.");
         process.exit(1);
     }
 
@@ -140,19 +227,14 @@ async function main(): Promise<void> {
         new FinanceService(financeRepository)
     );
 
-    const report = await service.rebuildWorkspace(options.workspaceId, {
-        dryRun: options.dryRun,
-        pageSize: options.pageSize,
-        chunkSize: options.chunkSize,
-        sampleLimit: options.sampleLimit,
-        pruneResidual: options.pruneResidual,
-        rebuildPlanning: options.rebuildPlanning,
-    });
+    const summary = await runRebuild(admin.firestore(), service, options);
 
-    console.log(formatReport(report));
+    if (options.allWorkspaces) {
+        console.log(formatTotals(summary));
+    }
 
     if (options.rebuildPlanning) {
-        console.log("[rebuild_workspace] ATENÇÃO: --rebuild-planning recalcula o generalPlannedAmount e zera o planejado dos meses passados.");
+        console.log("[rebuild_workspace] ATENÇÃO: --rebuild-planning recalcula o generalPlannedAmount de todo o período do planejamento, inclusive meses passados que o incremental nunca preencheu.");
     }
 
     if (!options.dryRun) {
@@ -163,7 +245,7 @@ async function main(): Promise<void> {
         console.log("[rebuild_workspace] Nada foi escrito (dry-run). Rode novamente com --apply para aplicar.");
     }
 
-    process.exit(0);
+    process.exit(summary.failures.length > 0 ? 1 : 0);
 }
 
 // Só executa quando invocado diretamente (`node lib/scripts/...`), nunca ao ser importado.

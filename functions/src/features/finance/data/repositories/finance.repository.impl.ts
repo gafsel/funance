@@ -4,6 +4,7 @@ import {
     OrderModel,
     InstallmentModel,
     CategoryPlanningModel,
+    CategoryPlanningMarks,
     AccountModel,
     AccountBalanceModel,
     PeriodSummaryUpdateModel,
@@ -11,8 +12,14 @@ import {
     InstallmentType,
     OrderType, InstallmentStatus,
 } from "../../domain/models/finance.models";
-import { IFinanceRepository } from "../../domain/repositories/finance.repository";
+import {
+    CategoryPlanningPage,
+    CategoryPlanningRef,
+    CategoryPlanningScanPage,
+    IFinanceRepository,
+} from "../../domain/repositories/finance.repository";
 import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
+import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 
 /**
  * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
@@ -26,6 +33,74 @@ const MAX_WRITES_PER_TRANSACTION = 450;
  * `update` da própria order.
  */
 const MAX_INSTALLMENTS_PER_UNIT = MAX_WRITES_PER_TRANSACTION - 1;
+
+/**
+ * Página da propagação de saldo: no máximo 400 documentos por volta, que é
+ * também o teto de escritas por batch (`commitInChunks`).
+ */
+const BALANCE_PROPAGATION_PAGE_SIZE = DEFAULT_CHUNK_SIZE;
+
+/** Dinheiro em centavos inteiros: evita que o saldo acumule erro de ponto flutuante. */
+function roundCents(value: number): number {
+    return Math.round(value * 100) / 100;
+}
+
+/** Abaixo disso o delta de planejamento é ruído de ponto flutuante. */
+const PLANNING_DELTA_EPSILON = 1e-9;
+
+interface PlanningCategoryBucket {
+    category: CategoryModel;
+    delta: number;
+}
+
+interface PlanningSummaryGroup {
+    year: number;
+    month?: number;
+    week?: number;
+    runtimeType: string;
+    categories: Map<string, PlanningCategoryBucket>;
+}
+
+/** Agrupa os impactos por documento de sumário, somando os deltas por categoria. */
+function groupPlanningUpdates(updates: PeriodSummaryUpdateModel[]): Map<string, PlanningSummaryGroup> {
+    const groups = new Map<string, PlanningSummaryGroup>();
+
+    for (const update of updates) {
+        const docId = update.week !== undefined
+            ? `${update.year}-W${String(update.week).padStart(2, "0")}`
+            : update.month !== undefined
+                ? `${update.year}-${String(update.month).padStart(2, "0")}`
+                : `${update.year}`;
+
+        let group = groups.get(docId);
+        if (!group) {
+            group = {
+                year: update.year,
+                month: update.month,
+                week: update.week,
+                runtimeType: update.week !== undefined ? "week" : update.month !== undefined ? "month" : "year",
+                categories: new Map(),
+            };
+            groups.set(docId, group);
+        }
+
+        let bucket = group.categories.get(update.category.id);
+        if (!bucket) {
+            bucket = { category: update.category, delta: 0 };
+            group.categories.set(update.category.id, bucket);
+        }
+        bucket.delta += update.generalPlannedDelta ?? 0;
+    }
+
+    return groups;
+}
+
+/** Número tolerante a campo ausente/sujo (documentos legados). */
+function toNumber(value: unknown): number {
+    const parsed = typeof value === "number" ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 
 /**
  * Formato canônico do documento de parcela. Extraído para que exista UMA
@@ -485,30 +560,141 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CategoryPlanningModel));
     }
 
-    async getCategoryPlanningsByLastSummaryMonthGroup(nowStr: string, limit: number): Promise<(CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference })[]> {
-        let snapshot = await this.firestore.collectionGroup("category_planning")
-            .where("lastSummaryMonth", "<", nowStr)
-            .limit(limit)
-            .get();
+    getCategoryPlanningRef(workspaceId: string, planningId: string): admin.firestore.DocumentReference {
+        return this.getCategoryPlanningCollection(workspaceId).doc(planningId);
+    }
 
-        if (snapshot.empty) {
-            snapshot = await this.firestore.collectionGroup("category_planning")
-                .where("lastSummaryMonth", "==", null)
-                .limit(limit)
-                .get();
+    private toCategoryPlanningRef(doc: admin.firestore.QueryDocumentSnapshot): CategoryPlanningRef {
+        return {
+            id: doc.id,
+            workspaceId: doc.ref.parent.parent!.id,
+            ref: doc.ref,
+            ...doc.data(),
+        } as CategoryPlanningRef;
+    }
+
+    /**
+     * Planejamentos atrasados em relação ao horizonte (F1.5).
+     *
+     * A query antiga (`lastSummaryMonth < mês`) buscava um campo que ninguém
+     * gravava: o cron era inerte para todo planejamento criado pelo app. Agora
+     * o campo é `summarizedUntil`, escrito pelo gatilho e por este mesmo cron,
+     * e a leitura é paginada por cursor — sem o GLOBAL_LIMIT de 500 que
+     * silenciosamente ignorava o resto da base.
+     */
+    async getCategoryPlanningsPendingSummary(
+        horizon: string,
+        pageSize: number,
+        cursor?: admin.firestore.QueryDocumentSnapshot | null
+    ): Promise<CategoryPlanningPage> {
+        let query: admin.firestore.Query = this.firestore.collectionGroup("category_planning")
+            .where("summarizedUntil", "<", horizon)
+            .orderBy("summarizedUntil")
+            .limit(pageSize);
+
+        if (cursor) query = query.startAfter(cursor);
+
+        const snapshot = await query.get();
+
+        return {
+            items: snapshot.docs.map((doc) => this.toCategoryPlanningRef(doc)),
+            cursor: snapshot.size < pageSize ? null : snapshot.docs[snapshot.size - 1],
+        };
+    }
+
+    /**
+     * Varredura paginada por id — única forma de achar quem NÃO tem o campo.
+     *
+     * O cursor entra e sai como CAMINHO de documento para poder ser guardado no
+     * checkpoint entre execuções do cron. Num `collectionGroup` ordenado por
+     * `documentId()` o cursor é o caminho completo, por isso ele é reconstruído
+     * como `DocumentReference`.
+     */
+    async scanCategoryPlannings(pageSize: number, afterPath?: string | null): Promise<CategoryPlanningScanPage> {
+        let query: admin.firestore.Query = this.firestore.collectionGroup("category_planning")
+            .orderBy(admin.firestore.FieldPath.documentId())
+            .limit(pageSize);
+
+        if (afterPath) query = query.startAfter(this.firestore.doc(afterPath));
+
+        const snapshot = await query.get();
+
+        return {
+            items: snapshot.docs.map((doc) => this.toCategoryPlanningRef(doc)),
+            // Página incompleta = fim da coleção; o checkpoint é zerado e a
+            // próxima execução recomeça do início.
+            nextPath: snapshot.size < pageSize ? null : snapshot.docs[snapshot.size - 1].ref.path,
+        };
+    }
+
+    private getCronCheckpointsDocRef() {
+        return this.firestore.collection("config").doc("cron_checkpoints");
+    }
+
+    async getCronCheckpoint(field: string): Promise<string | null> {
+        const doc = await this.getCronCheckpointsDocRef().get();
+        const value = doc.exists ? doc.data()?.[field] : null;
+        return typeof value === "string" && value.length > 0 ? value : null;
+    }
+
+    async setCronCheckpoint(field: string, value: string | null): Promise<void> {
+        await this.getCronCheckpointsDocRef().set({
+            [field]: value,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+    }
+
+    /**
+     * Aplica os impactos de planejamento e grava os marcadores.
+     *
+     * Os deltas são AGRUPADOS por documento de sumário antes de virarem
+     * escrita: um horizonte de 12 meses gera ~70 impactos que caem em ~66
+     * documentos, e o código antigo fazia um `set` sequencial por impacto.
+     * Deltas que se anulam (estorno + reaplicação do mesmo mês) somem — editar
+     * só o fim do período escreve apenas os meses que mudaram.
+     *
+     * Os marcadores vão no FIM da lista: se um lote falhar no meio, o
+     * planejamento não fica marcado como sumarizado sem os impactos.
+     */
+    async applyPlanningImpacts(
+        workspaceId: string,
+        updates: PeriodSummaryUpdateModel[],
+        marks?: { ref: admin.firestore.DocumentReference, data: CategoryPlanningMarks }
+    ): Promise<void> {
+        const operations: BatchOperation[] = [];
+
+        for (const [docId, group] of groupPlanningUpdates(updates)) {
+            const categories: Record<string, any> = {};
+
+            for (const bucket of group.categories.values()) {
+                if (Math.abs(bucket.delta) < PLANNING_DELTA_EPSILON) continue;
+                categories[bucket.category.id] = {
+                    generalPlannedAmount: admin.firestore.FieldValue.increment(bucket.delta),
+                };
+            }
+
+            if (Object.keys(categories).length === 0) continue;
+
+            operations.push({
+                op: "set",
+                ref: this.getPeriodSummariesCollection(workspaceId).doc(docId),
+                data: {
+                    year: group.year,
+                    month: group.month ?? null,
+                    week: group.week ?? null,
+                    categories,
+                    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+                    runtimeType: group.runtimeType,
+                },
+                options: { merge: true },
+            });
         }
 
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            const workspaceId = doc.ref.parent.parent!.id;
+        if (marks) {
+            operations.push({ op: "set", ref: marks.ref, data: { ...marks.data }, options: { merge: true } });
+        }
 
-            return {
-                id: doc.id,
-                workspaceId: workspaceId,
-                ref: doc.ref,
-                ...data,
-            } as CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference };
-        });
+        await commitInChunks(this.firestore, operations);
     }
 
     private getPeriodSummaryDocRef(workspaceId: string, year: number, month?: number, week?: number): { docRef: admin.firestore.DocumentReference, runtimeType: string } {
@@ -562,36 +748,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         };
     }
 
-    async processCategoryPlanningSummariesChunk(
-        chunk: (CategoryPlanningModel & { workspaceId: string, ref: admin.firestore.DocumentReference })[],
-        nowStr: string,
-        summaryFactory: (workspaceId: string, planning: CategoryPlanningModel) => PeriodSummaryUpdateModel[]
-    ): Promise<void> {
-        await this.firestore.runTransaction(async (transaction) => {
-            for (const item of chunk) {
-                const updates = summaryFactory(item.workspaceId, item);
-
-                for (const update of updates) {
-                    const { docRef, runtimeType } = this.getPeriodSummaryDocRef(item.workspaceId, update.year, update.month, update.week);
-                    const updateData = this.buildPeriodSummaryUpdateData(
-                        update.year,
-                        update.month,
-                        update.week,
-                        update.category,
-                        {
-                            generalPlannedDelta: update.generalPlannedDelta,
-                            specificPlannedDelta: update.specificPlannedDelta,
-                            actualDelta: update.actualDelta
-                        },
-                        runtimeType
-                    );
-                    transaction.set(docRef, updateData, { merge: true });
-                }
-                transaction.update(item.ref, { lastSummaryMonth: nowStr });
-            }
-        });
-    }
-
     async updatePeriodSummary(
         workspaceId: string,
         year: number,
@@ -623,51 +779,197 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return { id: doc.id, ...doc.data() } as AccountModel;
     }
 
+    /**
+     * Aplica `delta` no saldo do dia e propaga para os dias seguintes (F1.4).
+     *
+     * O modelo antigo fazia TUDO numa transação só: lia o documento do dia, lia
+     * TODOS os saldos futuros e atualizava um por um lá dentro. Um pagamento
+     * retroativo de três anos atrás estourava o limite de 500 escritas por
+     * transação e nada era gravado. Pior: o saldo inicial do dia vinha de
+     * `getLastBalanceBefore`, chamado FORA da transação e com
+     * `orderBy(documentId(), "desc")` — rejeitado pelo emulador e dependente de
+     * um índice `balance __name__ DESC` em produção.
+     *
+     * Agora são duas fases:
+     *
+     *  1. **transação pequena** (2 leituras, 1 escrita): o documento do dia e o
+     *     último documento anterior. Grava `delta` (soma dos movimentos do dia)
+     *     e `balance = anterior.balance + delta`;
+     *  2. **propagação fora da transação**, paginando os dias seguintes e
+     *     somando `delta` ao `balance` de cada um em lotes de no máximo 400
+     *     escritas (`commitInChunks`).
+     *
+     * Entre as duas fases o saldo dos dias seguintes fica momentaneamente
+     * defasado — é o preço de não estourar a transação. A operação inteira é
+     * idempotente por evento: quem garante que ela não roda duas vezes para o
+     * mesmo evento é o `runIdempotency` do handler.
+     *
+     * CONCORRÊNCIA: o `delta` de cada dia é sempre exato (a transação serializa
+     * o dia) e a propagação usa `FieldValue.increment`, que é atômico. Resta uma
+     * janela estreita: se um segundo evento CRIAR um dia posterior no intervalo
+     * entre o commit desta transação e a consulta de propagação, esse dia nasce
+     * já com o efeito deste evento e recebe o incremento de novo. A janela é de
+     * milissegundos, só afeta o acumulado (nunca o `delta`) e o
+     * `rebuild_workspace.ts` recalcula a série inteira a partir das parcelas —
+     * é ele o conserto, e o teste de propriedade de
+     * `rebuild.integration.test.ts` é quem vigia.
+     */
     async updateAccountBalance(
         workspaceId: string,
         accountId: string,
         date: Date,
         delta: number
     ): Promise<void> {
-        const dateId = date.toISOString().split("T")[0];
+        const dateKey = toDateKey(date);
         const balancesColl = this.getAccountBalanceCollection(workspaceId, accountId);
-        const docRef = balancesColl.doc(dateId);
+        const docRef = balancesColl.doc(dateKey);
 
         await this.firestore.runTransaction(async (transaction) => {
             const doc = await transaction.get(docRef);
+            const previous = await this.readPreviousBalanceDoc(balancesColl, dateKey, transaction);
+            const previousBalance = toNumber(previous?.balance);
 
-            // Impactar saldos futuros dentro da mesma transação para garantir atomicidade
-            // IMPORTANTE: Usar transaction.get() para garantir que a leitura seja parte da transação
-            const futureBalancesQuery = balancesColl.where(admin.firestore.FieldPath.documentId(), ">", dateId);
-            const futureBalances = await transaction.get(futureBalancesQuery);
+            const data = doc.exists ? doc.data() ?? {} : null;
+            // Documento legado (só `balance`, sem `delta`): o movimento do dia é
+            // a diferença para o saldo do dia anterior — a mesma conta que o
+            // script de migração faz.
+            const currentDelta = data
+                ? (typeof data.delta === "number" ? data.delta : toNumber(data.balance) - previousBalance)
+                : 0;
 
-            if (!doc.exists) {
-                // Se não existe saldo no dia, precisamos buscar o último saldo anterior para compor o inicial
-                // Passamos a transaction internamente se houver uma ativa
-                const lastBalanceDoc = await this.getLastBalanceBefore(workspaceId, accountId, date);
-                const initialBalance = lastBalanceDoc ? lastBalanceDoc.balance : 0;
+            const newDelta = roundCents(currentDelta + delta);
 
-                transaction.set(docRef, {
-                    balance: initialBalance + delta,
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                }, { merge: true });
-            }
-            else {
-                transaction.update(docRef, {
+            transaction.set(docRef, {
+                dateKey,
+                delta: newDelta,
+                balance: roundCents(previousBalance + newDelta),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+        });
+
+        await this.propagateBalanceDelta(balancesColl, dateKey, delta);
+    }
+
+    /**
+     * Soma `delta` ao saldo acumulado de todos os dias POSTERIORES a `dateKey`.
+     *
+     * Pagina por documentId ascendente: o id do documento É o `dateKey` (é o
+     * contrato que o app usa para ler os últimos saldos), então a ordem é a
+     * mesma de `orderBy("dateKey")` e a varredura enxerga também os documentos
+     * legados, que ainda não têm o campo. Varredura ascendente não precisa de
+     * índice e é aceita pelo emulador.
+     *
+     * A soma usa `FieldValue.increment`: a propagação roda fora de transação e
+     * dois eventos concorrentes podem tocar o mesmo dia futuro. Aproveita a
+     * passagem para preencher o `dateKey` dos documentos legados.
+     */
+    private async propagateBalanceDelta(
+        balancesColl: admin.firestore.CollectionReference,
+        dateKey: string,
+        delta: number
+    ): Promise<void> {
+        if (!delta) return;
+
+        let cursor: admin.firestore.QueryDocumentSnapshot | null = null;
+
+        for (;;) {
+            let query: admin.firestore.Query = balancesColl
+                .where(admin.firestore.FieldPath.documentId(), ">", dateKey)
+                .orderBy(admin.firestore.FieldPath.documentId())
+                .limit(BALANCE_PROPAGATION_PAGE_SIZE);
+
+            if (cursor) query = query.startAfter(cursor);
+
+            const snapshot = await query.get();
+            if (snapshot.empty) return;
+
+            const operations: BatchOperation[] = snapshot.docs.map((doc) => {
+                const data: Record<string, any> = {
                     balance: admin.firestore.FieldValue.increment(delta),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                });
+                };
+                if (!isDateKey(doc.data()?.dateKey)) {
+                    data.dateKey = doc.id;
+                }
+                return { op: "update", ref: doc.ref, data };
+            });
+
+            await commitInChunks(this.firestore, operations, BALANCE_PROPAGATION_PAGE_SIZE);
+
+            if (snapshot.size < BALANCE_PROPAGATION_PAGE_SIZE) return;
+            cursor = snapshot.docs[snapshot.size - 1];
+        }
+    }
+
+    /**
+     * Último documento de saldo ANTERIOR a `dateKey`.
+     *
+     * Caminho rápido: `where("dateKey", "<", key).orderBy("dateKey", "desc")`,
+     * um campo indexado — nada de `documentId()` descendente.
+     *
+     * Compatibilidade: enquanto `migrate_balance_date_key.ts` não rodar, existem
+     * documentos sem o campo `dateKey`, que a query acima NÃO casa. Como o id é
+     * o próprio dateKey, uma varredura ASCENDENTE por id no intervalo
+     * `(candidato, key)` encontra qualquer documento legado mais recente que o
+     * candidato. Numa base já migrada esse intervalo é vazio e custa uma
+     * leitura; numa base legada ele paga o preço até a migração rodar.
+     */
+    private async readPreviousBalanceDoc(
+        balancesColl: admin.firestore.CollectionReference,
+        dateKey: string,
+        transaction?: admin.firestore.Transaction
+    ): Promise<{ id: string, balance: number, data: Record<string, any> } | null> {
+        const run = async (query: admin.firestore.Query) =>
+            (transaction ? transaction.get(query) : query.get());
+
+        const indexed = await run(
+            balancesColl
+                .where("dateKey", "<", dateKey)
+                .orderBy("dateKey", "desc")
+                .limit(1)
+        );
+
+        const candidate = indexed.empty ? null : indexed.docs[0];
+        const legacy = await this.findLastLegacyBalanceDoc(balancesColl, candidate?.id ?? null, dateKey, run);
+        const chosen = legacy ?? candidate;
+
+        if (!chosen) return null;
+        const data = chosen.data() ?? {};
+        return { id: chosen.id, balance: toNumber(data.balance), data };
+    }
+
+    /** Último documento por id no intervalo aberto `(after, before)`, varrendo ascendente. */
+    private async findLastLegacyBalanceDoc(
+        balancesColl: admin.firestore.CollectionReference,
+        after: string | null,
+        before: string,
+        run: (query: admin.firestore.Query) => Promise<admin.firestore.QuerySnapshot>
+    ): Promise<admin.firestore.QueryDocumentSnapshot | null> {
+        let last: admin.firestore.QueryDocumentSnapshot | null = null;
+        let cursor: admin.firestore.QueryDocumentSnapshot | null = null;
+
+        for (;;) {
+            let query: admin.firestore.Query = balancesColl
+                .where(admin.firestore.FieldPath.documentId(), "<", before);
+
+            if (after !== null) {
+                query = query.where(admin.firestore.FieldPath.documentId(), ">", after);
             }
 
-            if (!futureBalances.empty) {
-                futureBalances.docs.forEach((d) => {
-                    transaction.update(d.ref, {
-                        balance: admin.firestore.FieldValue.increment(delta),
-                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                    });
-                });
-            }
-        });
+            query = query
+                .orderBy(admin.firestore.FieldPath.documentId())
+                .limit(BALANCE_PROPAGATION_PAGE_SIZE);
+
+            if (cursor) query = query.startAfter(cursor);
+
+            const snapshot = await run(query);
+            if (snapshot.empty) return last;
+
+            last = snapshot.docs[snapshot.size - 1];
+
+            if (snapshot.size < BALANCE_PROPAGATION_PAGE_SIZE) return last;
+            cursor = last;
+        }
     }
 
     async getLastBalanceBefore(
@@ -675,20 +977,16 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         accountId: string,
         date: Date
     ): Promise<AccountBalanceModel | null> {
-        const dateId = date.toISOString().split("T")[0];
-        const query = this.getAccountBalanceCollection(workspaceId, accountId)
-            .where(admin.firestore.FieldPath.documentId(), "<", dateId)
-            .orderBy(admin.firestore.FieldPath.documentId(), "desc")
-            .limit(1);
+        const balancesColl = this.getAccountBalanceCollection(workspaceId, accountId);
+        const previous = await this.readPreviousBalanceDoc(balancesColl, toDateKey(date));
+        if (!previous) return null;
 
-        const snapshot = await query.get();
-
-        if (snapshot.empty) return null;
-        const doc = snapshot.docs[0];
-        const data = doc.data();
+        const data = previous.data;
         return {
-            id: doc.id,
             ...data,
+            id: previous.id,
+            dateKey: isDateKey(data.dateKey) ? data.dateKey : previous.id,
+            balance: previous.balance,
             updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
         } as AccountBalanceModel;
     }
