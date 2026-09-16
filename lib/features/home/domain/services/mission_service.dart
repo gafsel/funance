@@ -5,6 +5,8 @@ import 'package:funances/features/finance/domain/services/period_summary_service
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
+import 'package:funances/core/time/clock.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:rxdart/rxdart.dart';
 
 class MissionService {
@@ -12,22 +14,40 @@ class MissionService {
   final PeriodSummaryService summaryService;
   final CategoryService categoryService;
 
+  /// Fonte do "hoje". Injetável para o cálculo da semana ser testável e para
+  /// a virada do dia chegar aqui pelo `todayProvider`.
+  final Clock now;
+
   MissionService({
     required this.financeService,
     required this.summaryService,
     required this.categoryService,
-  });
+    Clock? now,
+  }) : now = now ?? DateTime.now;
+
+  /// Semana corrente (domingo a sábado) que contém [reference].
+  ///
+  /// Os limites andam por calendário: somar `Duration(days: n)` são 24h
+  /// absolutas e escorrega uma hora na semana em que o horário de verão entra
+  /// ou sai, deixando de fora (ou incluindo a mais) os lançamentos da última
+  /// hora do sábado.
+  static ({DateTime start, DateTime end}) weekWindow(DateTime reference) {
+    final start = DateTime(
+      reference.year,
+      reference.month,
+      reference.day,
+    ).addCalendarDays(-(reference.weekday % 7));
+
+    return (
+      start: start,
+      // Véspera do início da semana seguinte.
+      end: start.addCalendarDays(7).subtract(const Duration(milliseconds: 1)),
+    );
+  }
 
   Stream<MissionModel> watchMissions() {
-    final now = DateTime.now();
-    final startOfWeek = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday % 7));
-    final endOfWeek = startOfWeek.add(
-      const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
-    );
+    final now = this.now();
+    final (start: startOfWeek, end: endOfWeek) = weekWindow(now);
 
     // Determinar semana e ano para o summary semanal
     final weekNumber = _getWeekNumber(startOfWeek);
@@ -291,7 +311,12 @@ class MissionService {
     return watchMissions().first;
   }
 
-  // Métodos auxiliares de data (iguais aos do TS) para garantir consistência
+  // Métodos auxiliares de data (iguais aos do TS) para garantir consistência.
+  //
+  // De propósito ainda em aritmética de 24h e duplicados com o backend: o
+  // servidor está unificando a identidade da semana e o cliente vai passar a
+  // ler `currentWeekId` do workspace, em outro pacote. Mexer aqui agora só
+  // criaria uma terceira definição para depois jogar fora.
   int _getWeekNumber(DateTime d) {
     final date = DateTime(d.year, d.month, d.day);
     // Ajusta para o domingo mais próximo (início da semana)

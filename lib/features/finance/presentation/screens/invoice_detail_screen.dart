@@ -25,12 +25,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final l10n = context.l10n;
     // A conta da fatura é o cartão (lado credit/target). Depois que a fatura é
     // paga, accountIdSource passa a ser a conta corrente que pagou — usá-la
-    // aqui deixaria header e FAB apontando para a conta errada.
-    final accountId =
-        invoice.accountIdTarget ??
-        invoice.accountIdSource ??
-        invoice.accounts.keys.firstOrNull ??
-        "";
+    // aqui deixaria header e FAB apontando para a conta errada. A mesma
+    // cadeia alimenta a chave das famílias da fatura (`invoiceKey`).
+    final accountId = invoice.resolvedAccountId ?? "";
     final accountAsync = ref.watch(AccountViewProviders.byId(accountId));
 
     final locale = context.locale;
@@ -148,9 +145,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 Expanded(
                   child: TransactionListView(
                     provider: FinanceViewProviders.invoiceInstallmentsList(
-                      invoice,
+                      invoice.invoiceKey,
                     ),
-                    accountId: invoice.accountIdTarget,
+                    accountId: invoice.resolvedAccountId,
                   ),
                 ),
               ],
@@ -176,7 +173,9 @@ class InvoiceDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     InstallmentModel invoice,
   ) {
-    final provider = FinanceViewProviders.invoiceInstallmentsList(invoice);
+    final provider = FinanceViewProviders.invoiceInstallmentsList(
+      invoice.invoiceKey,
+    );
     final state = ref.watch(provider);
     final hasFilter =
         state.query.categoryId != null ||
@@ -240,7 +239,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
         return Consumer(
           builder: (context, ref, _) {
             final pieChartAsync = ref.watch(
-              FinanceViewProviders.invoicePieChart(invoice),
+              FinanceViewProviders.invoicePieChart(invoice.invoiceKey),
             );
 
             return Column(

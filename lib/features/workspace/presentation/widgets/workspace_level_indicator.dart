@@ -11,10 +11,9 @@ class WorkspaceLevelIndicator extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
-    final workspace = workspaceState.currentWorkspace;
+    final workspace = ref.watch(WorkspaceViewProviders.gamification);
 
-    if (workspace == null) {
+    if (workspace.workspaceId == null) {
       return const SizedBox.shrink();
     }
 

@@ -19,10 +19,9 @@ class PeriodSelection extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.chevron_left),
           onPressed: () {
-            ref.read(HomeViewProviders.period.notifier).state = DateTime(
-              overviewDate.year,
-              overviewDate.month - 1,
-            );
+            ref
+                .read(HomeViewProviders.period.notifier)
+                .choose(DateTime(overviewDate.year, overviewDate.month - 1));
           },
         ),
         Text(
@@ -34,10 +33,9 @@ class PeriodSelection extends ConsumerWidget {
         IconButton(
           icon: const Icon(Icons.chevron_right),
           onPressed: () {
-            ref.read(HomeViewProviders.period.notifier).state = DateTime(
-              overviewDate.year,
-              overviewDate.month + 1,
-            );
+            ref
+                .read(HomeViewProviders.period.notifier)
+                .choose(DateTime(overviewDate.year, overviewDate.month + 1));
           },
         ),
       ],

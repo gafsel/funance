@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
+import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import 'package:funances/features/onboarding/domain/services/onboarding_service.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
@@ -23,7 +23,7 @@ class OnboardingDomainProviders {
       workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
       inviteRepository: ref.read(inviteRepositoryProvider),
       planningRepository: ref.read(PlanningDomainProviders.repository),
-      goalRepository: ref.read(goalRepositoryProvider),
+      goalRepository: ref.read(GoalDomainProvider.repository),
     ),
   );
 }

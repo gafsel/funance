@@ -1,7 +1,10 @@
 import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/time/clock.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/finance_repository_impl.dart';
@@ -13,6 +16,9 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
+import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
+import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
+import 'package:funances/features/finance/domain/repositories/planning_repository.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -23,7 +29,6 @@ import 'package:funances/features/finance/data/repositories/planning_analysis_re
 import 'package:funances/features/finance/domain/repositories/planning_analysis_repository.dart';
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/domain/services/planning_analysis_service.dart';
-import 'package:funances/features/finance/domain/services/planning_service.dart';
 import 'package:funances/features/finance/domain/repositories/reconciliation_repository.dart';
 import 'package:funances/features/finance/data/repositories/reconciliation_repository_impl.dart';
 import 'package:funances/features/finance/domain/services/reconciliation_service.dart';
@@ -52,11 +57,8 @@ class AutomaticTransactionDomainProviders {
   });
 
   static final service = Provider<AutomaticTransactionService>((ref) {
-    final workspace = ref
-        .watch(WorkspaceViewProviders.workspace)
-        .currentWorkspace;
     return AutomaticTransactionService(
-      workspaceId: workspace?.id ?? "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.watch(repository),
     );
   });
@@ -84,16 +86,13 @@ class AutomaticTransactionViewProviders {
       });
 }
 
+/// O único consumidor restante é o onboarding, que grava os planejamentos
+/// sugeridos direto pelo repositório. O `PlanningService` e o
+/// `PlanningViewProviders.currentList` que existiam aqui eram um slice morto,
+/// paralelo a `FinanceService.getCategoryPlannings`.
 class PlanningDomainProviders {
-  static final repository = Provider((ref) => PlanningRepositoryImpl());
-
-  static final service = Provider(
-    (ref) => PlanningService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
-      repository: ref.read(repository),
-    ),
+  static final repository = Provider<IPlanningRepository>(
+    (ref) => PlanningRepositoryImpl(),
   );
 }
 
@@ -104,9 +103,7 @@ class AccountDomainProviders {
 
   static final service = Provider<AccountService>(
     (ref) => AccountService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
     ),
@@ -114,13 +111,13 @@ class AccountDomainProviders {
 }
 
 class FinanceDomainProviders {
-  static final repository = Provider((ref) => FinanceRepositoryImpl());
+  static final repository = Provider<IFinanceRepository>(
+    (ref) => FinanceRepositoryImpl(),
+  );
 
   static final service = Provider(
     (ref) => FinanceService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       accountRepository: ref.read(AccountDomainProviders.repository),
       categoryRepository: ref.watch(CategoryDomainProviders.repository),
@@ -137,9 +134,7 @@ class PlanningAnalysisDomainProviders {
 
   static final service = Provider.autoDispose<PlanningAnalysisService>((ref) {
     return PlanningAnalysisService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.watch(repository),
     );
   });
@@ -152,9 +147,7 @@ class ReconciliationDomainProviders {
 
   static final service = Provider<ReconciliationService>((ref) {
     return ReconciliationService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       accountService: ref.watch(AccountDomainProviders.service),
       financeService: ref.watch(FinanceDomainProviders.service),
@@ -163,9 +156,29 @@ class ReconciliationDomainProviders {
   });
 }
 
+/// Chave estável de uma fatura.
+///
+/// Chavear a família pelo `InstallmentModel` inteiro vazava um provider a
+/// cada edição: freezed gera um valor novo (e portanto uma chave nova) quando
+/// qualquer campo muda, e o provider antigo ficava para trás. O id identifica
+/// a fatura; a conta e o vencimento são o que o provider precisa para
+/// calcular o ciclo, e nenhum dos três muda ao editar valor ou descrição.
+typedef InvoiceKey = ({String invoiceId, String accountId, DateTime dueDate});
+
+extension InvoiceKeyExtension on InstallmentModel {
+  /// Usa a mesma cadeia de resolução de conta da tela de detalhe
+  /// (`resolvedAccountId`): cair em string vazia aqui faria o provider
+  /// consultar sem filtro de conta e listar o extrato inteiro.
+  InvoiceKey get invoiceKey => (
+    invoiceId: id,
+    accountId: resolvedAccountId ?? "",
+    dueDate: dueDate,
+  );
+}
+
 class AccountViewProviders {
-  static final latestBalanceById =
-      StreamProvider.family<AccountBalanceModel, String>((ref, accountId) {
+  static final latestBalanceById = StreamProvider.autoDispose
+      .family<AccountBalanceModel, String>((ref, accountId) {
         return ref
             .watch(AccountDomainProviders.service)
             .getLatestAccountBalance(accountId);
@@ -175,7 +188,7 @@ class AccountViewProviders {
     (ref) => ref.watch(AccountDomainProviders.service).getAccounts(),
   );
 
-  static final byId = StreamProvider.family<AccountModel?, String>((
+  static final byId = StreamProvider.autoDispose.family<AccountModel?, String>((
     ref,
     accountId,
   ) {
@@ -194,8 +207,6 @@ class AccountViewProviders {
     (ref) => ref.watch(AccountDomainProviders.service).getAccountsByType(),
   );
 
-  static final overviewType = StateProvider((ref) => AccountType.checking);
-
   static final form = StateNotifierProvider.autoDispose
       .family<AccountFormNotifier, AccountFormState, AccountFormArgs>((
         ref,
@@ -211,32 +222,41 @@ class AccountViewProviders {
         );
       });
 
-  static final latestBalanceByType = Provider.family<double, AccountType>((
-    ref,
-    type,
-  ) {
-    final List<AccountModel> accounts = ref.watch(
-      AccountViewProviders.byTypeMap.select((acc) => acc.value?[type] ?? []),
-    );
+  /// Soma dos saldos das contas de um tipo.
+  ///
+  /// Os saldos são combinados num único stream em vez de um `ref.watch` por
+  /// conta dentro do `map`: o `watch` em loop registrava uma dependência nova
+  /// a cada rebuild e somava 0 para toda conta cujo saldo ainda não tivesse
+  /// chegado, mostrando um total errado como se fosse definitivo. Agora o
+  /// provider só emite quando todas as contas já responderam — enquanto isso
+  /// fica em `AsyncLoading`, e a tela deve mostrar carregamento em vez de
+  /// zero.
+  static final latestBalanceByType = StreamProvider.autoDispose
+      .family<double, AccountType>((ref, type) {
+        final List<AccountModel> accounts = ref.watch(
+          AccountViewProviders.byTypeMap.select(
+            (acc) => acc.value?[type] ?? const <AccountModel>[],
+          ),
+        );
 
-    if (accounts.isEmpty) {
-      return 0;
-    }
+        if (accounts.isEmpty) {
+          return Stream.value(0);
+        }
 
-    return accounts
-        .map(
-          (account) =>
-              ref
-                  .watch(AccountViewProviders.latestBalanceById(account.id))
-                  .value
-                  ?.balance ??
-              0,
-        )
-        .reduce((v1, v2) => v1 + v2);
-  });
+        final service = ref.watch(AccountDomainProviders.service);
 
-  static final nextInvoiceByAccountId =
-      StreamProvider.family<InstallmentModel?, String>((ref, accountId) {
+        return Rx.combineLatestList(
+          accounts.map((account) => service.getLatestAccountBalance(account.id)),
+        ).map(
+          (balances) => balances.fold<double>(
+            0,
+            (total, balance) => total + balance.balance,
+          ),
+        );
+      });
+
+  static final nextInvoiceByAccountId = StreamProvider.autoDispose
+      .family<InstallmentModel?, String>((ref, accountId) {
         return ref
             .watch(FinanceDomainProviders.service)
             .watchNextInvoice(accountId);
@@ -251,15 +271,6 @@ class AccountViewProviders {
             .watch(AccountDomainProviders.service)
             .getAccountBalanceAtDate(args.accountId, args.date);
       });
-}
-
-class PlanningViewProviders {
-  static final currentList = StreamProvider((ref) {
-    final service = ref.watch(PlanningDomainProviders.service);
-    final date = DateTime.now();
-
-    return service.watchPlannings(month: date.month, year: date.year);
-  });
 }
 
 class FinanceViewProviders {
@@ -328,51 +339,50 @@ class FinanceViewProviders {
         );
       });
 
-  static final reconciliationForm = StateNotifierProvider.autoDispose
-      .family<
-        TransactionFormNotifier,
-        TransactionFormState,
-        TransactionFormState
-      >((ref, initialState) {
-        return TransactionFormNotifier(
-          initialState,
-          financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
-          analytics: ref.watch(analyticsServiceProvider),
-        );
-      });
-
   static final transactionFilter = StateNotifierProvider.autoDispose
       .family<
         TransactionFilterNotifier,
         TransactionFilterState,
         TransactionQuery
       >((ref, query) {
-        final category = query.categoryId != null
-            ? ref
-                  .read(CategoryViewProviders.byId(query.categoryId!))
-                  .valueOrNull
-            : null;
+        // `read` numa família autoDispose devolve sempre AsyncLoading na
+        // primeira leitura (e ainda agenda o dispose do provider), então o
+        // filtro de categoria vindo do detalhe de fatura era descartado em
+        // silêncio. Com `watch` + `select` o notifier é reconstruído uma vez,
+        // quando a categoria resolve, e não a cada emissão da lista.
+        final category = query.categoryId == null
+            ? null
+            : ref.watch(
+                CategoryViewProviders.byId(
+                  query.categoryId!,
+                ).select((async) => async.valueOrNull),
+              );
 
         return TransactionFilterNotifier(
           TransactionFilterState.fromQuery(query, category: category),
         );
       });
 
-  static final history = StateNotifierProvider(
-    (ref) => TransactionListNotifier(
+  static final history = StateNotifierProvider.autoDispose<
+    TransactionListNotifier,
+    InfiniteListState<TransactionQuery, InstallmentModel>
+  >((ref) {
+    // A aba de histórico guarda filtros e as páginas já carregadas; sem o
+    // keepAlive elas seriam descartadas a cada ida e volta para outra aba.
+    ref.keepAlive();
+    return TransactionListNotifier(
       financeiroService: ref.watch(FinanceDomainProviders.service),
-    ),
-  );
+    );
+  });
 
   static final invoiceInstallmentsList =
-      StateNotifierProvider.family<
+      StateNotifierProvider.autoDispose.family<
         TransactionListNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>,
-        InstallmentModel
+        InvoiceKey
       >((ref, invoice) {
         final accountAsync = ref.watch(
-          AccountViewProviders.byId(invoice.accountIdTarget ?? ""),
+          AccountViewProviders.byId(invoice.accountId),
         );
 
         final query = accountAsync.when(
@@ -401,7 +411,7 @@ class FinanceViewProviders {
       });
 
   static final goalTransactions =
-      StateNotifierProvider.family<
+      StateNotifierProvider.autoDispose.family<
         TransactionListNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>,
         TransactionQuery
@@ -413,7 +423,7 @@ class FinanceViewProviders {
       });
 
   static final statement =
-      StateNotifierProvider.family<
+      StateNotifierProvider.autoDispose.family<
         AccountStatementNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>,
         ({String accountId, bool isFuture})
@@ -431,6 +441,8 @@ class FinanceViewProviders {
         TransactionWizardState,
         TransactionWizardArgs
       >((ref, args) {
+        final today = ref.watch(todayProvider);
+
         return TransactionWizardNotifier(
           TransactionWizardState(
             type: args.type,
@@ -438,6 +450,7 @@ class FinanceViewProviders {
             accountIdSource: args.accountIdSource,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
+          now: () => today,
         );
       });
 
@@ -447,7 +460,7 @@ class FinanceViewProviders {
         args,
       ) {
         final service = ref.watch(FinanceDomainProviders.service);
-        final today = DateTime.now();
+        final today = ref.watch(todayProvider);
         return service.watchInstallments(
           type: args.type,
           categoryId: args.categoryId,
@@ -487,7 +500,7 @@ class FinanceViewProviders {
       });
 
   static final reconciliationPicker =
-      StateNotifierProvider<
+      StateNotifierProvider.autoDispose<
         TransactionListNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>
       >((ref) {
@@ -496,13 +509,10 @@ class FinanceViewProviders {
         );
       });
 
-  static final invoiceInstallments =
-      StreamProvider.family<List<InstallmentModel>, InstallmentModel>((
-        ref,
-        invoice,
-      ) {
+  static final invoiceInstallments = StreamProvider.autoDispose
+      .family<List<InstallmentModel>, InvoiceKey>((ref, invoice) {
         final accountAsync = ref.watch(
-          AccountViewProviders.byId(invoice.accountIdTarget!),
+          AccountViewProviders.byId(invoice.accountId),
         );
 
         return accountAsync.when(
@@ -536,11 +546,8 @@ class FinanceViewProviders {
         );
       });
 
-  static final invoicePieChart =
-      StreamProvider.family<List<CategoryAmountModel>, InstallmentModel>((
-        ref,
-        invoice,
-      ) {
+  static final invoicePieChart = StreamProvider.autoDispose
+      .family<List<CategoryAmountModel>, InvoiceKey>((ref, invoice) {
         final installments = ref.watch(invoiceInstallments(invoice));
 
         return installments.when(
@@ -701,13 +708,13 @@ class FinanceViewProviders {
 }
 
 class PeriodSummaryDomainProviders {
-  static final repository = Provider((ref) => PeriodSummaryRepositoryImpl());
+  static final repository = Provider<IPeriodSummaryRepository>(
+    (ref) => PeriodSummaryRepositoryImpl(),
+  );
 
   static final service = Provider(
     (ref) => PeriodSummaryService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
     ),
   );
@@ -738,11 +745,11 @@ List<OverviewCategorySummary> _mapToOverview(
 }
 
 class PeriodSummaryViewProviders {
-  static final monthSummary =
-      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((
-        ref,
-        period,
-      ) {
+  /// Chaveado por `YYYY-MM` (veja `DateTimeExtension.monthKey`): um
+  /// `DateTime` como chave criaria uma família por instante distinto, já que
+  /// o período nasce do relógio.
+  static final monthSummary = StreamProvider.autoDispose
+      .family<List<OverviewCategorySummary>, String>((ref, monthKey) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
         final List<CategoryModel> categories = ref
             .watch(CategoryViewProviders.allStream)
@@ -752,27 +759,10 @@ class PeriodSummaryViewProviders {
               loading: () => [],
             );
 
-        return service
-            .watchMonth(period.year, period.month)
-            .map((summary) => _mapToOverview(summary, categories));
-      });
-
-  static final yearSummary =
-      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((
-        ref,
-        period,
-      ) {
-        final service = ref.watch(PeriodSummaryDomainProviders.service);
-        final List<CategoryModel> categories = ref
-            .watch(CategoryViewProviders.allStream)
-            .when(
-              data: (data) => data,
-              error: (_, _) => [],
-              loading: () => [],
-            );
+        final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
 
         return service
-            .watchYear(period.year)
+            .watchMonth(year, month)
             .map((summary) => _mapToOverview(summary, categories));
       });
 }

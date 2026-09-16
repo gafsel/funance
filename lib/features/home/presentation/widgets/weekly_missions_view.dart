@@ -130,9 +130,7 @@ class WeeklyMissionsView extends ConsumerWidget {
   /// espaço extra, e só quando existe streak.
   Widget _buildStreakBadge(BuildContext context, WidgetRef ref) {
     final streak = ref.watch(
-      WorkspaceViewProviders.workspace.select(
-        (s) => s.currentWorkspace?.weeklyStreaks ?? 0,
-      ),
+      WorkspaceViewProviders.gamification.select((g) => g.weeklyStreaks),
     );
     if (streak <= 0) return const SizedBox.shrink();
 

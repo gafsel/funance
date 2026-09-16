@@ -15,7 +15,7 @@ import 'package:funances/features/finance/presentation/widgets/account_logo.dart
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
-import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
+import 'package:funances/features/goal/presentation/model/goal_progress_ui.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -135,7 +135,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             ) ??
             false;
 
-        final screenProgress = ref.watch(goalProgressProvider(goal));
+        final screenProgress = goal.calculateProgress();
         final pct = (screenProgress.percent * 100).floor();
         if (celebratesMilestones && pct != _lastCheckedPct) {
           _lastCheckedPct = pct;
@@ -151,7 +151,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
             children: [
               NestedScrollView(
                 headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  final progress = ref.watch(goalProgressProvider(goal));
+                  final progress = goal.calculateProgress();
 
                   return [
                     SliverDetailHeader(

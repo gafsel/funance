@@ -87,7 +87,9 @@ class _CategorySelectionStep extends ConsumerWidget {
     // Watch both categories and summaries to show progress
     final categoriesAsync = ref.watch(CategoryViewProviders.allStream);
     final period = ref.watch(HomeViewProviders.period);
-    final summariesAsync = ref.watch(PeriodSummaryViewProviders.monthSummary(period));
+    final summariesAsync = ref.watch(
+      PeriodSummaryViewProviders.monthSummary(period.monthKey),
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.transactionWizardSelectCategory)),

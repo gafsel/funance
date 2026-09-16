@@ -54,6 +54,10 @@ class AccountsView extends ConsumerWidget {
     final locale = context.locale;
 
     double total = 0;
+    // Só o total somado de saldos pode estar carregando: os saldos chegam por
+    // stream e mostrar R$ 0,00 enquanto isso é um número errado com cara de
+    // definitivo.
+    bool isTotalLoading = false;
     final Map<String, double> totalsByMonth = {};
 
     if (type == AccountType.creditCard) {
@@ -69,7 +73,11 @@ class AccountsView extends ConsumerWidget {
         }
       }
     } else {
-      total = ref.watch(AccountViewProviders.latestBalanceByType(type));
+      final totalAsync = ref.watch(
+        AccountViewProviders.latestBalanceByType(type),
+      );
+      total = totalAsync.valueOrNull ?? 0;
+      isTotalLoading = totalAsync.isLoading && !totalAsync.hasValue;
     }
 
     final List<String> sortedMonthKeys = totalsByMonth.keys.toList()
@@ -101,6 +109,12 @@ class AccountsView extends ConsumerWidget {
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
+              )
+            : isTotalLoading
+            ? const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Text(
                 total.asCurrency(locale: locale),

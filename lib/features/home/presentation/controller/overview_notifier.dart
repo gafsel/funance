@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
@@ -12,7 +13,7 @@ class ExpenseSummaryNotifier extends Notifier<SummaryState> {
     final viewType = ref.watch(HomeViewProviders.viewType);
 
     final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
 
     return _buildSummary(
       summaries.where((s) => s.category.type == CategoryType.expense).toList(),
@@ -29,7 +30,7 @@ class IncomeSummaryNotifier extends Notifier<SummaryState> {
     final viewType = ref.watch(HomeViewProviders.viewType);
 
     final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
 
     return _buildSummary(
       summaries.where((s) => s.category.type == CategoryType.income).toList(),
@@ -45,7 +46,7 @@ class ExpenseSummaryFullNotifier extends Notifier<SummaryState> {
     final viewType = ref.watch(HomeViewProviders.viewType);
 
     final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
 
     return _buildSummary(
       summaries.where((s) => s.category.type == CategoryType.expense).toList(),
@@ -62,7 +63,7 @@ class IncomeSummaryFullNotifier extends Notifier<SummaryState> {
     final viewType = ref.watch(HomeViewProviders.viewType);
 
     final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period)).value ?? [];
+        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
 
     return _buildSummary(
       summaries.where((s) => s.category.type == CategoryType.income).toList(),
@@ -153,7 +154,7 @@ class BalanceSummaryNotifier extends Notifier<BalanceState> {
   BalanceState build() {
     final period = ref.watch(HomeViewProviders.period);
     final summaries = ref
-        .watch(PeriodSummaryViewProviders.monthSummary(period))
+        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
         .value ?? [];
 
     double totalPlannedIncomes = 0;

@@ -13,9 +13,7 @@ sealed class CoachingDomainProviders {
 
   static final service = Provider<CoachingService>((ref) {
     return CoachingService(
-      workspaceId:
-          ref.watch(WorkspaceViewProviders.workspace).currentWorkspace?.id ??
-          "",
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.watch(repository),
     );
   });

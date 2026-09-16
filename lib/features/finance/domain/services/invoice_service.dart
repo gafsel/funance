@@ -1,3 +1,4 @@
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 
 class InvoiceService {
@@ -25,7 +26,9 @@ class InvoiceService {
   static DateTime getNextBusinessDay(DateTime date) {
     DateTime nextDate = date;
     while (isWeekend(nextDate) || isHoliday(nextDate)) {
-      nextDate = nextDate.add(const Duration(days: 1));
+      // Por calendário: `Duration(days: 1)` são 24h absolutas e, na virada do
+      // horário de verão, cairia no mesmo dia ou pularia um.
+      nextDate = nextDate.addCalendarDays(1);
     }
     return nextDate;
   }

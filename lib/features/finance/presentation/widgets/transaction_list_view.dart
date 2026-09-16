@@ -23,8 +23,10 @@ import 'package:intl/intl.dart';
 typedef TransactionListViewNotifier =
     InfiniteListNotifier<TransactionQuery, InstallmentModel>;
 
+/// Todas as listas de transações são `autoDispose`; as que precisam manter
+/// cache entre navegações chamam `ref.keepAlive()` explicitamente.
 typedef TransactionListViewProvider =
-    StateNotifierProvider<
+    AutoDisposeStateNotifierProvider<
       TransactionListViewNotifier,
       InfiniteListState<TransactionQuery, InstallmentModel>
     >;
@@ -167,7 +169,7 @@ class TransactionListView extends ConsumerWidget {
   ) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
+    final yesterday = today.addCalendarDays(-1);
     final checkDate = DateTime(date.year, date.month, date.day);
 
     String dateText;
