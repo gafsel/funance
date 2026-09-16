@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/data/repositories/badge_catalog_repository_impl.dart';
 import 'package:funances/features/workspace/data/repositories/workspace_repository_impl.dart';
+import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
+import 'package:funances/features/workspace/domain/repositories/badge_catalog_repository.dart';
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/domain/services/workspace_service.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
@@ -125,4 +128,20 @@ sealed class CategoryViewProviders {
           initialCategory: category,
         );
       });
+}
+
+/// Catálogo de conquistas servido pelo backend (`config/badges`).
+///
+/// Não depende do workspace: é configuração do projeto, igual para todo mundo.
+sealed class BadgeCatalogProviders {
+  static final repository = Provider<IBadgeCatalogRepository>(
+    (ref) => BadgeCatalogRepositoryImpl(),
+  );
+
+  /// `null` enquanto o servidor não publicou o catálogo — a vitrine mostra
+  /// "catálogo indisponível" nesse caso, em vez de uma tela vazia sem
+  /// explicação.
+  static final catalog = StreamProvider<BadgeCatalog?>((ref) {
+    return ref.watch(repository).watchCatalog();
+  });
 }

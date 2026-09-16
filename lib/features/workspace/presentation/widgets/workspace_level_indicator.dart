@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,13 +18,15 @@ class WorkspaceLevelIndicator extends ConsumerWidget {
 
     final level = workspace.level;
     final xp = workspace.xp;
-    
-    // Level progress calculations
-    final xpAcumuladoPrev = (300 * (pow(2, level - 1) - 1)).toInt();
-    final xpAtual = xp - xpAcumuladoPrev;
-    final xpDegrau = (300 * pow(2, level - 1)).toInt();
-    final progressFraction = xpDegrau > 0 ? (xpAtual / xpDegrau).clamp(0.0, 1.0) : 0.0;
-    
+
+    // A régua de XP por nível vem do backend (`config/badges.levelThresholds`).
+    // Antes esta tela reimplementava a inversa de `calculateLevel` — e a tela
+    // de conquistas reimplementava outra vez. Sem catálogo publicado a barra
+    // fica vazia, em vez de mostrar um progresso calculado por uma fórmula que
+    // o servidor pode ter mudado.
+    final catalog = ref.watch(BadgeCatalogProviders.catalog).valueOrNull;
+    final progressFraction = catalog?.levelProgress(level, xp) ?? 0.0;
+
     final unlockedCount = workspace.unlockedBadges.length;
 
     return Semantics(

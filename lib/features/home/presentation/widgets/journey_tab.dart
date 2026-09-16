@@ -321,23 +321,57 @@ class JourneyTab extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    goal.type == GoalType.saveMoney ||
-                            goal.type == GoalType.payDebt
-                        ? l10n.goalRemainingValue(
-                            (goal.targetAmount - goal.currentAmount).asCurrency(
-                              locale: locale,
-                            ),
-                          )
-                        : progress.percent.asPercent(locale: locale),
-                    style: theme.textTheme.bodySmall,
+                  // O texto muda com o tipo: nas metas de redução,
+                  // `currentAmount` é gasto contra um teto, não conquista.
+                  Expanded(
+                    child: Text(
+                      goal.progressSummary(
+                        l10n,
+                        (value) => value.asCurrency(locale: locale),
+                      ),
+                      style: theme.textTheme.bodySmall,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     goal.deadline.formated(l10n.formatSimpleDate),
                     style: theme.textTheme.bodySmall,
                   ),
                 ],
               ),
+              if (goal.completedAt != null) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      goal.isAccumulation
+                          ? Icons.emoji_events
+                          : Icons.report_gmailerrorred,
+                      size: 14,
+                      color: goal.isAccumulation
+                          ? AppColors.success
+                          : AppColors.error,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        goal.completionLabel(
+                          l10n,
+                          (date) => date.formated(l10n.formatSimpleDate),
+                        )!,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: goal.isAccumulation
+                              ? AppColors.success
+                              : AppColors.error,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
