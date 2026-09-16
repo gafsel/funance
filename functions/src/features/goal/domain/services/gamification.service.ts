@@ -2,6 +2,12 @@ import * as logger from "firebase-functions/logger";
 import { CategoryType } from "../../../workspace/domain/models/category.model";
 import { IAIRepository } from "../../../../core/services/ai.service";
 import { IIdempotencyService } from "../../../../core/services/idempotency.service";
+import { forEachWorkspacePaged } from "../../../../core/utils/cron_runner";
+import {
+    CRON_PAGE_SIZE,
+    CRON_SCAN_DEADLINE_MS,
+    CRON_WORKSPACE_CONCURRENCY,
+} from "../../../../core/config/functions.config";
 import { IGamificationRepository } from "../repositories/gamification.repository";
 import { GoalType, resolveGoalType } from "../models/goal.model";
 import {
@@ -729,38 +735,56 @@ export class GamificationService {
     /**
      * Executa a rotina semanal para todos os workspaces (chamado pelo
      * scheduler toda segunda-feira, 03:00 America/Sao_Paulo).
+     *
+     * A varredura é paginada, concorrente e com checkpoint (F5.5): antes, a
+     * lista inteira de workspaces vinha para a memória e era percorrida em
+     * série — quando o timeout estourava, a execução seguinte recomeçava do
+     * zero e os últimos workspaces nunca eram avaliados.
      */
     async runWeeklyCronForAllWorkspaces(): Promise<void> {
-        const workspaceIds = await this.gamificationRepository.getAllWorkspaceIds();
-        logger.info(`[GamificationService] Weekly cron: processing ${workspaceIds.length} workspaces.`);
-        for (const workspaceId of workspaceIds) {
-            try {
+        const result = await forEachWorkspacePaged(
+            {
+                checkpointKey: "gamification_weekly",
+                pageSize: CRON_PAGE_SIZE,
+                concurrency: CRON_WORKSPACE_CONCURRENCY,
+                deadlineMs: CRON_SCAN_DEADLINE_MS,
+            },
+            async (workspaceId) => {
                 await this.evaluateWeeklyMissionsCron(workspaceId);
                 await this.checkFinancialHealthBadges(workspaceId);
             }
-            catch (e) {
-                logger.error(`[GamificationService] Weekly cron failed for workspace ${workspaceId}:`, e);
-            }
-        }
+        );
+
+        logger.info(
+            `[GamificationService] Weekly cron: ${result.processed} processados, ${result.failed} com falha, ` +
+            `varredura ${result.completed ? "completa" : `interrompida em ${result.lastWorkspaceId}`}.`
+        );
     }
 
     /**
      * Executa a rotina mensal para todos os workspaces (chamado pelo
-     * scheduler todo dia 1, 03:00 America/Sao_Paulo).
+     * scheduler todo dia 1, 03:00 America/Sao_Paulo). Mesma varredura
+     * paginada com checkpoint do cron semanal.
      */
     async runMonthlyCronForAllWorkspaces(): Promise<void> {
-        const workspaceIds = await this.gamificationRepository.getAllWorkspaceIds();
-        logger.info(`[GamificationService] Monthly cron: processing ${workspaceIds.length} workspaces.`);
-        for (const workspaceId of workspaceIds) {
-            try {
+        const result = await forEachWorkspacePaged(
+            {
+                checkpointKey: "gamification_monthly",
+                pageSize: CRON_PAGE_SIZE,
+                concurrency: CRON_WORKSPACE_CONCURRENCY,
+                deadlineMs: CRON_SCAN_DEADLINE_MS,
+            },
+            async (workspaceId) => {
                 await this.evaluateMonthlyMissionsCron(workspaceId);
                 await this.checkFinancialHealthBadges(workspaceId);
                 await this.checkNoCreditDebtBadge(workspaceId);
             }
-            catch (e) {
-                logger.error(`[GamificationService] Monthly cron failed for workspace ${workspaceId}:`, e);
-            }
-        }
+        );
+
+        logger.info(
+            `[GamificationService] Monthly cron: ${result.processed} processados, ${result.failed} com falha, ` +
+            `varredura ${result.completed ? "completa" : `interrompida em ${result.lastWorkspaceId}`}.`
+        );
     }
 
     async checkSimpleWorkspaceBadges(workspaceId: string, workspaceData: any): Promise<void> {

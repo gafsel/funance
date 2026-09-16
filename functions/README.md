@@ -360,6 +360,51 @@ documento gravado tenha sempre o mesmo formato — `Timestamp` em todas as datas
 o cron montava o documento por conta própria e as parcelas nasciam com um
 schema ligeiramente diferente das criadas pelo app.
 
+## Varredura de workspaces nos crons
+
+Três crons tocam **todos** os workspaces: `generateWeeklyCoaching`,
+`weeklyGamificationCron` e `monthlyGamificationCron`. Antes, cada um lia a
+coleção inteira (`getAllWorkspaces()`) e percorria a lista em série dentro do
+timeout. Com a base crescendo isso quebra de três jeitos: a lista toda na
+memória, o tempo total como SOMA de todos os workspaces e — o pior — quando o
+timeout estoura a execução morre no meio e a **próxima recomeça do zero**, de
+modo que os workspaces do fim da coleção nunca são processados.
+
+`forEachWorkspacePaged` (`src/core/utils/cron_runner.ts`) resolve os três:
+
+- pagina por `documentId()` ascendente (`CRON_PAGE_SIZE`, 50 por query);
+- processa em lotes paralelos (`CRON_WORKSPACE_CONCURRENCY` = 5;
+  `CRON_AI_WORKSPACE_CONCURRENCY` = 3 no coaching, que chama o Gemini por
+  workspace);
+- grava **checkpoint a cada lote** e **para antes do deadline**
+  (`CRON_SCAN_DEADLINE_MS` = 540s − 90s de margem), retomando do ponto exato na
+  execução seguinte;
+- **zera o checkpoint ao completar** a varredura, para a próxima começar do
+  início;
+- **isola falha**: um workspace que lança é logado, contado em `failed` e
+  considerado consumido — um dado corrompido não trava o cron para todos os
+  outros, execução após execução.
+
+### Checkpoints
+
+Um documento só, `config/cron_checkpoints`, com **um campo por cron**:
+
+```
+config/cron_checkpoints
+  weekly_coaching:        { lastWorkspaceId: "...", updatedAt: <ts> }
+  gamification_weekly:    { lastWorkspaceId: "...", updatedAt: <ts> }
+  gamification_monthly:   { lastWorkspaceId: "...", updatedAt: <ts> }
+```
+
+Campo ausente = varredura começa do início. As chaves são **estáveis**: mudar
+uma delas faz o cron recomeçar do zero uma vez. O documento é fechado para o
+cliente pelo `match /{document=**} { allow read, write: if false }` das
+security rules.
+
+`monthlyGamificationCron` passou a usar `AI_SCHEDULE_OPTIONS`: ele herdava o
+padrão global de **60 segundos**, e a varredura morria no meio do primeiro
+minuto.
+
 ## Scripts de migração
 
 Os scripts em `src/scripts/` são compilados para `lib/scripts/` junto com o

@@ -40,11 +40,33 @@ export const AI_CALLABLE_OPTIONS_SHORT: CallableOptions = {
 };
 
 /**
+ * Orçamento de tempo de uma varredura de workspaces num cron (F5.5).
+ *
+ * `AI_SCHEDULE_OPTIONS.timeoutSeconds` é 540s; a margem de 90s precisa caber o
+ * último lote em voo (um workspace com chamada de IA leva dezenas de segundos)
+ * mais a gravação do checkpoint. O que não couber retoma na execução seguinte.
+ */
+export const CRON_SCAN_TIMEOUT_SECONDS = 540;
+export const CRON_SCAN_MARGIN_SECONDS = 90;
+export const CRON_SCAN_DEADLINE_MS = (CRON_SCAN_TIMEOUT_SECONDS - CRON_SCAN_MARGIN_SECONDS) * 1000;
+
+/** Workspaces por página de varredura (uma query do Firestore). */
+export const CRON_PAGE_SIZE = 50;
+
+/**
+ * Workspaces processados em paralelo. Os crons de gamificação só leem/escrevem
+ * no Firestore; o de coaching chama o Gemini por workspace e usa um valor
+ * menor, para não empilhar chamadas pagas nem tomar 429.
+ */
+export const CRON_WORKSPACE_CONCURRENCY = 5;
+export const CRON_AI_WORKSPACE_CONCURRENCY = 3;
+
+/**
  * Cron de coaching: varre todos os workspaces com atividade recente e chama a
  * IA para cada um, por isso o timeout máximo do agendador e instância única.
  */
 export const AI_SCHEDULE_OPTIONS: Omit<ScheduleOptions, "schedule"> = {
     memory: "512MiB",
-    timeoutSeconds: 540,
+    timeoutSeconds: CRON_SCAN_TIMEOUT_SECONDS,
     maxInstances: 1,
 };
