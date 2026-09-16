@@ -1,4 +1,10 @@
 export interface AIConfig {
+  /**
+   * Quando true, os documentos em workspaces/{id}/ai_logs passam a guardar o
+   * prompt e a resposta crus (dados financeiros do usuário) e expiram em 7
+   * dias em vez de 90. Use apenas para depuração pontual, via config/ai.
+   */
+  debugLogging: boolean;
   models: {
     goals: string;
     document: string;
@@ -24,6 +30,8 @@ export interface AIConfig {
 }
 
 export const DEFAULT_CONFIG: AIConfig = {
+    // Logs de IA sem PII por padrão: só metadados (ver ai.service.ts#logAiCall).
+    debugLogging: false,
     // Aliases rolantes ("-latest") em vez de versões pinadas: a família
     // gemini-1.5-* foi aposentada pelo Google e passou a responder 404.
     // Modelos específicos podem ser pinados via Firestore config/ai.

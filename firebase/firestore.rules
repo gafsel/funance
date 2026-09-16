@@ -262,6 +262,15 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Logs de IA: metadados das chamadas ao Gemini (função, modelo, tokens,
+      // latência, hash do prompt), escritos apenas pelas Cloud Functions.
+      // Leitura negada ao cliente: é dado de operação, não do app. Em modo
+      // debug (config/ai.debugLogging) o documento ainda guarda prompt e
+      // resposta crus por 7 dias, mais uma razão para não expor.
+      match /ai_logs/{logId} {
+        allow read, write: if false;
+      }
+
       // Quotas de IA: contadores diários de uso das funções de IA
       // (workspaces/{id}/quotas/{YYYY-MM-DD}), escritos exclusivamente pelas
       // Cloud Functions (Admin SDK). O membro pode ler para exibir o consumo,
@@ -335,6 +344,9 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Coleção raiz legada de ai_logs. Os logs novos vão para
+    // workspaces/{id}/ai_logs (só metadados, com TTL). A regra continua aqui
+    // para manter os documentos antigos inacessíveis até serem expurgados.
     match /ai_logs/{logId} {
       allow read, write: if false; // Apenas via Cloud Functions (Admin SDK)
     }
