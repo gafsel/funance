@@ -22,6 +22,12 @@ import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChun
 const MAX_WRITES_PER_TRANSACTION = 450;
 
 /**
+ * Teto de parcelas de UMA order por transação: sobra uma escrita para o
+ * `update` da própria order.
+ */
+const MAX_INSTALLMENTS_PER_UNIT = MAX_WRITES_PER_TRANSACTION - 1;
+
+/**
  * Formato canônico do documento de parcela. Extraído para que exista UMA
  * definição do schema, usada por toda criação de parcela.
  */
@@ -408,6 +414,28 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         if (planned.length === 0) return;
 
+        // Uma order sozinha pode estourar o teto (série muito atrasada). Nesse
+        // caso ela é dividida em várias transações, cada uma avançando o
+        // `lastGeneratedDueDate` até a última parcela que ELA criou: se uma
+        // falhar no meio, a marca da order continua batendo com o que existe, e
+        // a execução seguinte retoma de onde parou sem duplicar nada.
+        const units: typeof planned = [];
+        for (const entry of planned) {
+            if (entry.installments.length <= MAX_INSTALLMENTS_PER_UNIT) {
+                units.push(entry);
+                continue;
+            }
+
+            console.warn(`processRecurringInstallmentsChunk: order ${entry.order.id} (workspace ${entry.order.workspaceId}) precisa de ${entry.installments.length} parcelas, acima do teto de ${MAX_INSTALLMENTS_PER_UNIT} por transação: será dividida.`);
+
+            for (let i = 0; i < entry.installments.length; i += MAX_INSTALLMENTS_PER_UNIT) {
+                units.push({
+                    order: entry.order,
+                    installments: entry.installments.slice(i, i + MAX_INSTALLMENTS_PER_UNIT),
+                });
+            }
+        }
+
         let batch: typeof planned = [];
         let writes = 0;
 
@@ -433,7 +461,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             });
         };
 
-        for (const entry of planned) {
+        for (const entry of units) {
             const cost = entry.installments.length + 1; // parcelas + update da order
             if (writes > 0 && writes + cost > MAX_WRITES_PER_TRANSACTION) {
                 await flush();
