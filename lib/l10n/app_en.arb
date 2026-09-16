@@ -1039,5 +1039,10 @@
   "@planningAnalysisNextAvailable": {
     "placeholders": { "days": { "type": "int" } }
   },
-  "planningAnalysisGenerateNew": "Generate new analysis"
+  "planningAnalysisGenerateNew": "Generate new analysis",
+  "invoiceCalculating": "calculating…",
+  "@invoiceCalculating": {
+    "description": "Shown instead of the invoice amount while the server has not published the card's next invoice summary yet."
+  },
+  "invoiceCycleUnavailable": "We are closing this invoice. Purchases show up as soon as the calculation finishes."
 }

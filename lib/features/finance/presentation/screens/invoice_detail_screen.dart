@@ -143,12 +143,19 @@ class InvoiceDetailScreen extends ConsumerWidget {
               children: [
                 _buildFilterBar(context, ref, invoice),
                 Expanded(
-                  child: TransactionListView(
-                    provider: FinanceViewProviders.invoiceInstallmentsList(
-                      invoice.invoiceKey,
-                    ),
-                    accountId: invoice.resolvedAccountId,
-                  ),
+                  // F1.8: a janela do ciclo é do servidor, gravada na própria
+                  // parcela da fatura. Sem ela (fatura anterior ao backfill) a
+                  // lista não tem período: mostrar o extrato de um intervalo
+                  // chutado seria pior do que dizer que ainda está fechando.
+                  child: invoice.invoiceKey.hasServerCycle
+                      ? TransactionListView(
+                          provider:
+                              FinanceViewProviders.invoiceInstallmentsList(
+                                invoice.invoiceKey,
+                              ),
+                          accountId: invoice.resolvedAccountId,
+                        )
+                      : _buildCycleUnavailable(context),
                 ),
               ],
             ),
@@ -165,6 +172,30 @@ class InvoiceDetailScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCycleUnavailable(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.hourglass_empty, color: theme.hintColor),
+            const SizedBox(height: 12),
+            Text(
+              context.l10n.invoiceCycleUnavailable,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

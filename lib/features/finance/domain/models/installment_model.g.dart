@@ -41,6 +41,12 @@ _InstallmentModel _$InstallmentModelFromJson(Map<String, dynamic> json) =>
       ),
       xp: (json['xp'] as num?)?.toDouble(),
       isInvoice: json['isInvoice'] as bool? ?? false,
+      cycleStart: const DateTimeIsoNullableConverter().fromJson(
+        json['cycleStart'] as String?,
+      ),
+      cycleEnd: const DateTimeIsoNullableConverter().fromJson(
+        json['cycleEnd'] as String?,
+      ),
     );
 
 Map<String, dynamic> _$InstallmentModelToJson(_InstallmentModel instance) =>

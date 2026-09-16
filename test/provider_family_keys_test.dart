@@ -95,10 +95,17 @@ final _card = CreditCardAccount(
   dueDay: 28,
 );
 
+/// Janela do ciclo como o SERVIDOR a grava na parcela de fatura (F1.8):
+/// fechamento dia 20, então a fatura que vence em 28/03 cobre 20/02 (00:00)
+/// até a véspera do fechamento de março, 19/03 (23:59:59.999).
+final _cycleStart = DateTime(2026, 2, 20);
+final _cycleEnd = DateTime(2026, 3, 19, 23, 59, 59, 999);
+
 InstallmentModel _installment({
   required double amount,
   CategoryModel? category,
   String description = 'Fatura de março',
+  bool withServerCycle = true,
 }) {
   return InstallmentModel(
     id: 'inv-1',
@@ -112,6 +119,8 @@ InstallmentModel _installment({
     accounts: const {'card-1': AccountImpact.credit},
     category: category,
     isInvoice: true,
+    cycleStart: withServerCycle ? _cycleStart : null,
+    cycleEnd: withServerCycle ? _cycleEnd : null,
   );
 }
 
@@ -166,6 +175,43 @@ void main() {
     });
   });
 
+  test('fatura sem janela do servidor não consulta nada', () async {
+    final financeRepository = _FakeFinanceRepository();
+    final container = ProviderContainer(
+      overrides: [
+        WorkspaceDomainProviders.repository.overrideWithValue(
+          _FakeWorkspaceRepository(),
+        ),
+        AccountDomainProviders.repository.overrideWithValue(
+          _FakeAccountRepository([_card]),
+        ),
+        CategoryDomainProviders.repository.overrideWithValue(
+          _FakeCategoryRepository(),
+        ),
+        FinanceDomainProviders.repository.overrideWithValue(financeRepository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final key = _installment(amount: 100, withServerCycle: false).invoiceKey;
+    expect(key.hasServerCycle, isFalse);
+
+    container.listen(
+      FinanceViewProviders.invoiceInstallments(key),
+      (_, _) {},
+      fireImmediately: true,
+    );
+
+    // Sem período, listar o extrato de um intervalo chutado seria pior do que
+    // não listar: a tela mostra o aviso de fatura em fechamento.
+    await Future<void>.delayed(Duration.zero);
+    expect(financeRepository.watchCalls, isEmpty);
+    expect(
+      container.read(FinanceViewProviders.invoiceInstallments(key)).isLoading,
+      isTrue,
+    );
+  });
+
   test('as parcelas da fatura seguem o ciclo do cartão', () async {
     final financeRepository = _FakeFinanceRepository();
     final container = ProviderContainer(
@@ -208,9 +254,10 @@ void main() {
     expect(financeRepository.watchCalls, hasLength(1));
     final call = financeRepository.watchCalls.single;
     expect(call.accountId, 'card-1');
-    // Fechamento no dia 20: o ciclo da fatura que vence em 28/03 vai de
-    // 21/02 a 20/03.
-    expect(call.startDate!.isBefore(call.endDate!), isTrue);
+    // A janela é a do SERVIDOR, repassada tal e qual — o cliente não recalcula
+    // nada a partir do dia de fechamento do cartão.
+    expect(call.startDate, _cycleStart);
+    expect(call.endDate, _cycleEnd);
     expect(call.endDate!.isBefore(invoice.dueDate), isTrue);
 
     // O gráfico reaproveita o mesmo stream — não dispara uma segunda query.

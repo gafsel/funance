@@ -4537,6 +4537,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Gerar nova análise'**
   String get planningAnalysisGenerateNew;
+
+  /// Mostrado no lugar do valor da fatura enquanto o servidor ainda não publicou o resumo da próxima fatura do cartão.
+  ///
+  /// In pt, this message translates to:
+  /// **'calculando…'**
+  String get invoiceCalculating;
+
+  /// No description provided for @invoiceCycleUnavailable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar.'**
+  String get invoiceCycleUnavailable;
 }
 
 class _AppLocalizationsDelegate
