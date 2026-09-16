@@ -5,6 +5,9 @@
 module.exports = {
     preset: "ts-jest",
     testEnvironment: "node",
+    transform: {
+        "^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
+    },
     testMatch: ["**/src/**/*.test.ts"],
     testPathIgnorePatterns: [
         "/node_modules/",
