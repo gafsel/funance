@@ -144,6 +144,10 @@ sealed class TransactionFormState with _$TransactionFormState {
     String? accountIdTarget,
     ReplicationCascade? replicateCascade,
     @Default(false) bool isInvoice,
+    // Status da parcela como está persistida, capturado ao abrir o formulário.
+    // `status` acompanha a edição do usuário, então só este campo responde
+    // "como estava antes deste save". Nulo quando não há parcela persistida.
+    InstallmentStatus? originalStatus,
   }) = _TransactionFormState;
 
   bool get creation => formType == TransactionFormType.order && orderId == null;
@@ -222,6 +226,7 @@ sealed class TransactionFormState with _$TransactionFormState {
 
     return TransactionFormState(
       formType: TransactionFormType.installment,
+      originalStatus: installment.status,
       installmentId: installment.id,
       orderId: installment.orderId,
       type: installment.type,

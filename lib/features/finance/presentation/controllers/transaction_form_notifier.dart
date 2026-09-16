@@ -164,9 +164,10 @@ class TransactionFormNotifier
 
   @override
   Future<dynamic> submit() async {
-    // Captura o status anterior antes de salvar: é o que diz se esta submissão
-    // foi a que quitou a parcela.
-    final wasAlreadyPaid = _isPaid(state.status);
+    // `state.status` já é o status NOVO quando chegamos aqui — a UI chama
+    // updateStatus (ou monta o form já com status: paid) antes do submit.
+    // Quem responde "como estava antes" é o status persistido da parcela.
+    final wasAlreadyPaid = _isPaid(state.originalStatus);
 
     final dynamic result;
     if (state.formType == TransactionFormType.order) {
@@ -196,7 +197,7 @@ class TransactionFormNotifier
     return result;
   }
 
-  static bool _isPaid(InstallmentStatus status) =>
+  static bool _isPaid(InstallmentStatus? status) =>
       status == InstallmentStatus.paid || status == InstallmentStatus.settled;
 
   /// Emite os eventos do funil. Nunca propaga erro: analytics não pode
@@ -209,15 +210,17 @@ class TransactionFormNotifier
         type: state.type.name,
       );
 
-      // Só conta como pagamento quando a parcela já existia e ainda não estava
-      // quitada — evita contar duas vezes ao reeditar algo já pago.
+      // Só conta como pagamento a submissão que de fato quitou a parcela:
+      // reeditar uma parcela já paga não emite installment_paid de novo.
       final isInstallment = state.formType == TransactionFormType.installment;
-      if (isInstallment && _isPaid(state.status)) {
+      final justPaid = isInstallment && !wasAlreadyPaid && _isPaid(state.status);
+
+      if (justPaid) {
         await analytics.logInstallmentPaid();
 
         // Uma missão semanal é exatamente uma parcela da semana corrente que
         // passou a paga/quitada.
-        if (!wasAlreadyPaid && _isInCurrentWeek(state.dueDate)) {
+        if (_isInCurrentWeek(state.dueDate)) {
           await analytics.logMissionCompleted();
         }
       }
@@ -226,8 +229,16 @@ class TransactionFormNotifier
     }
   }
 
-  /// true se a categoria já tinha planejamento vigente no mês OU se o
-  /// lançamento casou com uma parcela pendente já existente.
+  /// Regra do `had_planning`:
+  ///
+  /// - Caminho de parcela: a parcela já existia como item agendado antes deste
+  ///   save, então conta como planejada. Vale tanto para a que estava pendente
+  ///   (era algo agendado que o usuário está quitando agora) quanto para a
+  ///   reedição de uma já paga, que mantém o valor que teria quando foi
+  ///   quitada — senão o mesmo lançamento mudaria de classificação só por ter
+  ///   sido reaberto.
+  /// - Caminho de order (lançamento avulso): só é true quando a categoria tem
+  ///   planejamento vigente no mês do vencimento.
   Future<bool> _hadPlanning() async {
     if (state.formType == TransactionFormType.installment) return true;
 

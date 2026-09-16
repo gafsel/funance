@@ -96,6 +96,13 @@ class FakeFinanceService extends FinanceService {
     return saved;
   }
 
+  final List<InstallmentModel> savedInstallments = [];
+
+  @override
+  Future<void> updateInstallment(InstallmentModel installment) async {
+    savedInstallments.add(installment);
+  }
+
   @override
   Future<List<CategoryPlanningModel>> getCategoryPlannings({
     String? startMonth,
@@ -133,6 +140,52 @@ TransactionFormNotifier _notifier({
   );
 }
 
+/// Segunda-feira da semana corrente, para montar vencimentos dentro dela.
+DateTime _thisWeek() {
+  final now = DateTime.now();
+  return DateTime(now.year, now.month, now.day);
+}
+
+InstallmentModel _installment({
+  required InstallmentStatus status,
+  required DateTime dueDate,
+}) => InstallmentModel(
+  id: 'inst-1',
+  orderId: 'order-1',
+  amount: 100,
+  description: 'Aluguel',
+  dueDate: dueDate,
+  status: status,
+  type: OrderType.expense,
+  installmentType: InstallmentType.single,
+  category: _category(),
+  // asInstallmentModel exige uma conta de origem para a despesa.
+  accounts: const {'acc-1': AccountImpact.debt},
+);
+
+TransactionFormNotifier _installmentNotifier({
+  required FakeAnalyticsService analytics,
+  required FakeFinanceService financeService,
+  required InstallmentStatus originalStatus,
+  required InstallmentStatus newStatus,
+  required DateTime dueDate,
+}) {
+  return TransactionFormNotifier(
+    // updateInstallment guarda o status persistido em originalStatus e já
+    // aplica o status novo em status — exatamente o que a UI faz.
+    TransactionFormState.updateInstallment(
+      _installment(status: originalStatus, dueDate: dueDate),
+      status: newStatus,
+    ),
+    financeService: financeService,
+    categoryService: CategoryService(
+      workspaceId: 'ws-test',
+      repository: _UnusedCategoryRepository(),
+    ),
+    analytics: analytics,
+  );
+}
+
 void main() {
   group('TransactionFormNotifier analytics', () {
     test('emite transaction_saved ao salvar o formulário', () async {
@@ -153,30 +206,35 @@ void main() {
       expect(financeService.savedOrders, hasLength(1));
     });
 
-    test('had_planning é true quando a categoria tem planejamento no mês', () async {
-      final analytics = FakeAnalyticsService();
-      final financeService = FakeFinanceService(
-        plannings: [
-          CategoryPlanningModel(
-            id: 'plan-1',
-            category: _category(),
-            amount: 500,
-            startMonth: '2026-03',
-            endMonth: '2099-12',
-          ),
-        ],
-      );
+    test(
+      'had_planning é true quando a categoria tem planejamento no mês',
+      () async {
+        final analytics = FakeAnalyticsService();
+        final financeService = FakeFinanceService(
+          plannings: [
+            CategoryPlanningModel(
+              id: 'plan-1',
+              category: _category(),
+              amount: 500,
+              startMonth: '2026-03',
+              endMonth: '2099-12',
+            ),
+          ],
+        );
 
-      await _notifier(
-        analytics: analytics,
-        financeService: financeService,
-      ).submit();
+        await _notifier(
+          analytics: analytics,
+          financeService: financeService,
+        ).submit();
 
-      expect(
-        analytics.find(AnalyticsEvents.transactionSaved)!.params['had_planning'],
-        isTrue,
-      );
-    });
+        expect(
+          analytics
+              .find(AnalyticsEvents.transactionSaved)!
+              .params['had_planning'],
+          isTrue,
+        );
+      },
+    );
 
     test('não emite installment_paid ao criar uma ordem pendente', () async {
       final analytics = FakeAnalyticsService();
@@ -208,6 +266,112 @@ void main() {
       expect(values, isNot(contains('Compra do mês')));
       expect(values, isNot(contains('cat-1')));
       expect(values, isNot(contains('order-salva')));
+    });
+  });
+
+  group('TransactionFormNotifier analytics — caminho de parcela', () {
+    test(
+      'quitar parcela pendente da semana emite saved + paid + mission',
+      () async {
+        final analytics = FakeAnalyticsService();
+        final financeService = FakeFinanceService();
+
+        await _installmentNotifier(
+          analytics: analytics,
+          financeService: financeService,
+          originalStatus: InstallmentStatus.pending,
+          newStatus: InstallmentStatus.paid,
+          dueDate: _thisWeek(),
+        ).submit();
+
+        expect(analytics.find(AnalyticsEvents.transactionSaved), isNotNull);
+        expect(analytics.find(AnalyticsEvents.installmentPaid), isNotNull);
+        expect(analytics.find(AnalyticsEvents.missionCompleted), isNotNull);
+        expect(financeService.savedInstallments, hasLength(1));
+      },
+    );
+
+    test('quitar parcela pendente fora da semana não emite mission', () async {
+      final analytics = FakeAnalyticsService();
+
+      await _installmentNotifier(
+        analytics: analytics,
+        financeService: FakeFinanceService(),
+        originalStatus: InstallmentStatus.pending,
+        newStatus: InstallmentStatus.paid,
+        dueDate: _thisWeek().subtract(const Duration(days: 30)),
+      ).submit();
+
+      expect(analytics.find(AnalyticsEvents.installmentPaid), isNotNull);
+      expect(analytics.find(AnalyticsEvents.missionCompleted), isNull);
+    });
+
+    test('reeditar parcela já paga emite só transaction_saved', () async {
+      final analytics = FakeAnalyticsService();
+
+      await _installmentNotifier(
+        analytics: analytics,
+        financeService: FakeFinanceService(),
+        originalStatus: InstallmentStatus.paid,
+        newStatus: InstallmentStatus.paid,
+        dueDate: _thisWeek(),
+      ).submit();
+
+      expect(analytics.find(AnalyticsEvents.transactionSaved), isNotNull);
+      expect(analytics.find(AnalyticsEvents.installmentPaid), isNull);
+      expect(analytics.find(AnalyticsEvents.missionCompleted), isNull);
+    });
+
+    test('quitar parcela settled da semana também conta como missão', () async {
+      final analytics = FakeAnalyticsService();
+
+      await _installmentNotifier(
+        analytics: analytics,
+        financeService: FakeFinanceService(),
+        originalStatus: InstallmentStatus.pending,
+        newStatus: InstallmentStatus.settled,
+        dueDate: _thisWeek(),
+      ).submit();
+
+      expect(analytics.find(AnalyticsEvents.missionCompleted), isNotNull);
+    });
+
+    test(
+      'had_planning é true na parcela mesmo sem planejamento de categoria',
+      () async {
+        final analytics = FakeAnalyticsService();
+
+        await _installmentNotifier(
+          analytics: analytics,
+          financeService: FakeFinanceService(),
+          originalStatus: InstallmentStatus.pending,
+          newStatus: InstallmentStatus.paid,
+          dueDate: _thisWeek(),
+        ).submit();
+
+        expect(
+          analytics
+              .find(AnalyticsEvents.transactionSaved)!
+              .params['had_planning'],
+          isTrue,
+        );
+      },
+    );
+
+    test('had_planning é false na order avulsa sem planejamento', () async {
+      final analytics = FakeAnalyticsService();
+
+      await _notifier(
+        analytics: analytics,
+        financeService: FakeFinanceService(),
+      ).submit();
+
+      expect(
+        analytics
+            .find(AnalyticsEvents.transactionSaved)!
+            .params['had_planning'],
+        isFalse,
+      );
     });
   });
 }
