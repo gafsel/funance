@@ -1,7 +1,7 @@
 import { IGoalService } from "./goal.service";
 import { InstallmentModel, InstallmentStatus } from "../../../finance/domain/models/finance.models";
 import { IGoalRepository } from "../repositories/goal.repository";
-import { GoalType } from "../models/goal.model";
+import { GoalType, resolveGoalType } from "../models/goal.model";
 
 export class GoalServiceImpl implements IGoalService {
     constructor(private goalRepository: IGoalRepository) {}
@@ -22,16 +22,23 @@ export class GoalServiceImpl implements IGoalService {
             if (activeGoals.length === 0) continue;
 
             for (const goal of activeGoals) {
+                // O discriminador da union freezed é gravado em `runtimeType`;
+                // `type` não é serializado pelo cliente. Ler `goal.type` direto
+                // devolvia undefined e a contribuição era sempre zero — o
+                // progresso das metas nunca era atualizado.
+                const goalType = resolveGoalType(goal);
+                if (!goalType) continue;
+
                 let amountChange = 0;
 
                 if (before && isPaidStatus(before.status) && before.paidDate) {
                     if (before.paidDate >= goal.startDate && before.accounts && before.accounts[accountId]) {
-                        amountChange -= this.calculateContribution(goal.type, before, accountId);
+                        amountChange -= this.calculateContribution(goalType, before, accountId);
                     }
                 }
                 if (after && isPaidStatus(after.status) && after.paidDate) {
                     if (after.paidDate >= goal.startDate && after.accounts && after.accounts[accountId]) {
-                        amountChange += this.calculateContribution(goal.type, after, accountId);
+                        amountChange += this.calculateContribution(goalType, after, accountId);
                     }
                 }
 
