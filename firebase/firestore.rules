@@ -262,6 +262,15 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Quotas de IA: contadores diários de uso das funções de IA
+      // (workspaces/{id}/quotas/{YYYY-MM-DD}), escritos exclusivamente pelas
+      // Cloud Functions (Admin SDK). O membro pode ler para exibir o consumo,
+      // mas nunca escrever — senão zeraria o próprio limite.
+      match /quotas/{dayId} {
+        allow read: if isMember(workspaceId);
+        allow write: if false;
+      }
+
       // Finance Hacks: Membros podem apenas ler
       match /finance_hacks/{hackId} {
         allow read: if isMember(workspaceId);

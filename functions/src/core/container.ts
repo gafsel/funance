@@ -1,5 +1,6 @@
 import { GeminiAIRepositoryImpl, IAIRepository } from "../core/services/ai.service";
 import { IIdempotencyService, IdempotencyServiceImpl } from "../core/services/idempotency.service";
+import { IQuotaService, QuotaServiceImpl } from "../core/services/quota.service";
 import { IOnboardingService, OnboardingServiceImpl } from "../features/onboarding/domain/services/onboarding.service";
 import { IWorkspaceRepository } from "../features/workspace/domain/repositories/workspace.repository";
 import { IFinanceRepository } from "../features/finance/domain/repositories/finance.repository";
@@ -47,6 +48,7 @@ class Container {
     private static _aiRepository: IAIRepository;
     private static _onboardingService: IOnboardingService;
     private static _idempotencyService: IIdempotencyService;
+    private static _quotaService: IQuotaService;
     private static _gamificationRepository: IGamificationRepository;
     private static _gamificationService: GamificationService;
     private static _goalFeasibilityService: GoalFeasibilityService;
@@ -57,6 +59,13 @@ class Container {
             this._idempotencyService = new IdempotencyServiceImpl();
         }
         return this._idempotencyService;
+    }
+
+    static get quotaService(): IQuotaService {
+        if (!this._quotaService) {
+            this._quotaService = new QuotaServiceImpl();
+        }
+        return this._quotaService;
     }
 
     static get workspaceRepository(): IWorkspaceRepository {
