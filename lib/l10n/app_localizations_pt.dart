@@ -61,6 +61,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get shortPassword => 'A senha deve ter pelo menos 6 caracteres';
 
   @override
+  String get appErrorWidgetTitle => 'Algo deu errado';
+
+  @override
+  String get appErrorWidgetMessage =>
+      'Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.';
+
+  @override
   String get errorUnknown => 'Ocorreu um erro inesperado.';
 
   @override

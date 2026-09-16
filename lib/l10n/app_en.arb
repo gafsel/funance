@@ -17,6 +17,8 @@
   "fieldRequired": "This field is required",
   "invalidEmail": "Invalid email",
   "shortPassword": "Password must be at least 6 characters",
+  "appErrorWidgetTitle": "Something went wrong",
+  "appErrorWidgetMessage": "We have been notified and are working on it. Try going back and opening the screen again.",
   "errorUnknown": "An unexpected error occurred.",
   "routeNotFound": "Page not found.",
   "routeNotFoundGoHome": "Back to home",

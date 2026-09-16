@@ -1,17 +1,47 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/core/router/app_router.dart';
+import 'package:funances/core/widgets/app_error_widget.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';
 import 'firebase_options.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: MyApp()));
+void main() {
+  // runZonedGuarded captura os erros assíncronos que escapam das zonas do
+  // Flutter; os handlers abaixo cobrem o framework e a plataforma.
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      await CrashReporter.initialize();
+
+      FlutterError.onError = CrashReporter.recordFlutterError;
+
+      PlatformDispatcher.instance.onError = (error, stack) {
+        CrashReporter.recordError(error, stack, fatal: true);
+        return true;
+      };
+
+      // Em release a faixa vermelha de erro vira uma mensagem amigável; em
+      // debug o widget padrão do Flutter continua sendo mais útil.
+      if (kReleaseMode) {
+        ErrorWidget.builder = (details) => const AppErrorWidget();
+      }
+
+      runApp(const ProviderScope(child: MyApp()));
+    },
+    (error, stack) => CrashReporter.recordError(error, stack, fatal: true),
+  );
 }
 
 class MyApp extends ConsumerWidget {

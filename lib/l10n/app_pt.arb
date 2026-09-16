@@ -17,6 +17,8 @@
   "fieldRequired": "Este campo é obrigatório",
   "invalidEmail": "E-mail inválido",
   "shortPassword": "A senha deve ter pelo menos 6 caracteres",
+  "appErrorWidgetTitle": "Algo deu errado",
+  "appErrorWidgetMessage": "Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.",
   "errorUnknown": "Ocorreu um erro inesperado.",
   "routeNotFound": "Página não encontrada.",
   "routeNotFoundGoHome": "Voltar para o início",

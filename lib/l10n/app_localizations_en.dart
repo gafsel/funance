@@ -60,6 +60,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shortPassword => 'Password must be at least 6 characters';
 
   @override
+  String get appErrorWidgetTitle => 'Something went wrong';
+
+  @override
+  String get appErrorWidgetMessage =>
+      'We have been notified and are working on it. Try going back and opening the screen again.';
+
+  @override
   String get errorUnknown => 'An unexpected error occurred.';
 
   @override

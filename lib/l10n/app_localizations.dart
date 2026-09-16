@@ -200,6 +200,18 @@ abstract class AppLocalizations {
   /// **'A senha deve ter pelo menos 6 caracteres'**
   String get shortPassword;
 
+  /// No description provided for @appErrorWidgetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Algo deu errado'**
+  String get appErrorWidgetTitle;
+
+  /// No description provided for @appErrorWidgetMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.'**
+  String get appErrorWidgetMessage;
+
   /// No description provided for @errorUnknown.
   ///
   /// In pt, this message translates to:
