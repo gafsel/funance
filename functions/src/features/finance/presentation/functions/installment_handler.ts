@@ -2,22 +2,11 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
-import { InstallmentModel } from "../../domain/models/finance.models";
+import { INSTALLMENT_DERIVED_FIELDS, InstallmentModel } from "../../domain/models/finance.models";
 
-/**
- * Campos derivados/técnicos: são escritos pelo PRÓPRIO servidor em resposta a
- * um evento (o `xp` calculado, a cascata zerada, carimbos de atualização).
- *
- * Uma escrita que mexe SOMENTE nestes campos é o eco da execução anterior —
- * reprocessá-la só gera trabalho e escritas redundantes (updateOrder, histórico
- * de order, recontagem de sumário). O handler sai cedo nesse caso.
- */
-export const INSTALLMENT_DERIVED_FIELDS = new Set([
-    "xp",
-    "replicationCascade",
-    "lastUpdate",
-    "updatedAt",
-]);
+// Reexportado por compatibilidade: a definição vive no modelo da parcela,
+// porque o gatilho de gamificação observa a mesma coleção e usa a mesma guarda.
+export { INSTALLMENT_DERIVED_FIELDS };
 
 export interface InstallmentEventContext {
     workspaceId: string;

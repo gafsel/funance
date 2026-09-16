@@ -73,6 +73,22 @@ export interface InstallmentModel {
     isInvoice?: boolean;
 }
 
+/**
+ * Campos derivados/técnicos da parcela: escritos pelo PRÓPRIO servidor em
+ * resposta a um evento (o `xp` calculado, a cascata zerada, carimbos de
+ * atualização), nunca uma intenção do usuário.
+ *
+ * Uma escrita que mexe SOMENTE nestes campos é o eco da execução anterior.
+ * Mora aqui, no modelo, porque mais de um gatilho observa a coleção
+ * `installments` e todos precisam da mesma definição.
+ */
+export const INSTALLMENT_DERIVED_FIELDS = new Set([
+    "xp",
+    "replicationCascade",
+    "lastUpdate",
+    "updatedAt",
+]);
+
 export interface CategoryPlanningModel {
     id: string;
     category: CategoryModel;

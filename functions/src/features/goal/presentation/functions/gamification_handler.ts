@@ -3,6 +3,8 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
 import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
+import { getChangedFields } from "../../../../core/utils/diff.utils";
+import { INSTALLMENT_DERIVED_FIELDS } from "../../../finance/domain/models/finance.models";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
 
 /**
@@ -106,13 +108,37 @@ export const onAccountCreatedGamification = onDocumentCreated(
     }
 );
 
+/**
+ * Verdadeiro quando a escrita só mexeu em campos derivados da parcela — o eco
+ * da execução anterior do servidor (xp recalculado, cascata zerada).
+ *
+ * Mesma guarda do gatilho de finanças (`handleInstallmentWritten`): este
+ * handler observa a MESMA coleção e, sem ela, cada escrita de xp reavaliava
+ * badges e missões semanais de graça.
+ */
+export function isDerivedOnlyInstallmentWrite(
+    before: Record<string, any> | null,
+    after: Record<string, any> | null
+): boolean {
+    if (!before || !after) return false;
+
+    return getChangedFields(before, after)
+        .every((field) => INSTALLMENT_DERIVED_FIELDS.has(field));
+}
+
 export const onInstallmentWrittenGamification = onDocumentWritten(
     "workspaces/{workspaceId}/installments/{installmentId}",
     async (event) => {
         const workspaceId = event.params.workspaceId;
-        const after = event.data?.after.exists ? event.data.after.data() : null;
+        const before = event.data?.before.exists ? event.data.before.data()! : null;
+        const after = event.data?.after.exists ? event.data.after.data()! : null;
 
         if (!after || after.status === "removed") return;
+
+        if (isDerivedOnlyInstallmentWrite(before, after)) {
+            logger.info(`[onInstallmentWrittenGamification] Saída antecipada: parcela mudou apenas campos derivados (workspaceId=${workspaceId}).`);
+            return;
+        }
 
         logger.info(`[onInstallmentWrittenGamification] Triggered for workspaceId=${workspaceId}`);
 
