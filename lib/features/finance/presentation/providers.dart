@@ -15,6 +15,7 @@ import 'package:funances/features/finance/domain/repositories/account_repository
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
 import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
 import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
+import 'package:funances/features/finance/domain/repositories/planning_repository.dart';
 import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -25,7 +26,6 @@ import 'package:funances/features/finance/data/repositories/planning_analysis_re
 import 'package:funances/features/finance/domain/repositories/planning_analysis_repository.dart';
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/domain/services/planning_analysis_service.dart';
-import 'package:funances/features/finance/domain/services/planning_service.dart';
 import 'package:funances/features/finance/domain/repositories/reconciliation_repository.dart';
 import 'package:funances/features/finance/data/repositories/reconciliation_repository_impl.dart';
 import 'package:funances/features/finance/domain/services/reconciliation_service.dart';
@@ -83,14 +83,13 @@ class AutomaticTransactionViewProviders {
       });
 }
 
+/// O único consumidor restante é o onboarding, que grava os planejamentos
+/// sugeridos direto pelo repositório. O `PlanningService` e o
+/// `PlanningViewProviders.currentList` que existiam aqui eram um slice morto,
+/// paralelo a `FinanceService.getCategoryPlannings`.
 class PlanningDomainProviders {
-  static final repository = Provider((ref) => PlanningRepositoryImpl());
-
-  static final service = Provider(
-    (ref) => PlanningService(
-      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
-      repository: ref.read(repository),
-    ),
+  static final repository = Provider<IPlanningRepository>(
+    (ref) => PlanningRepositoryImpl(),
   );
 }
 
@@ -185,8 +184,6 @@ class AccountViewProviders {
     (ref) => ref.watch(AccountDomainProviders.service).getAccountsByType(),
   );
 
-  static final overviewType = StateProvider((ref) => AccountType.checking);
-
   static final form = StateNotifierProvider.autoDispose
       .family<AccountFormNotifier, AccountFormState, AccountFormArgs>((
         ref,
@@ -242,15 +239,6 @@ class AccountViewProviders {
             .watch(AccountDomainProviders.service)
             .getAccountBalanceAtDate(args.accountId, args.date);
       });
-}
-
-class PlanningViewProviders {
-  static final currentList = StreamProvider((ref) {
-    final service = ref.watch(PlanningDomainProviders.service);
-    final date = DateTime.now();
-
-    return service.watchPlannings(month: date.month, year: date.year);
-  });
 }
 
 class FinanceViewProviders {
@@ -313,20 +301,6 @@ class FinanceViewProviders {
             installment,
             status: InstallmentStatus.paid,
           ),
-          financeService: ref.watch(FinanceDomainProviders.service),
-          categoryService: ref.watch(CategoryDomainProviders.service),
-          analytics: ref.watch(analyticsServiceProvider),
-        );
-      });
-
-  static final reconciliationForm = StateNotifierProvider.autoDispose
-      .family<
-        TransactionFormNotifier,
-        TransactionFormState,
-        TransactionFormState
-      >((ref, initialState) {
-        return TransactionFormNotifier(
-          initialState,
           financeService: ref.watch(FinanceDomainProviders.service),
           categoryService: ref.watch(CategoryDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
@@ -745,25 +719,6 @@ class PeriodSummaryViewProviders {
 
         return service
             .watchMonth(period.year, period.month)
-            .map((summary) => _mapToOverview(summary, categories));
-      });
-
-  static final yearSummary =
-      StreamProvider.family<List<OverviewCategorySummary>, DateTime>((
-        ref,
-        period,
-      ) {
-        final service = ref.watch(PeriodSummaryDomainProviders.service);
-        final List<CategoryModel> categories = ref
-            .watch(CategoryViewProviders.allStream)
-            .when(
-              data: (data) => data,
-              error: (_, _) => [],
-              loading: () => [],
-            );
-
-        return service
-            .watchYear(period.year)
             .map((summary) => _mapToOverview(summary, categories));
       });
 }

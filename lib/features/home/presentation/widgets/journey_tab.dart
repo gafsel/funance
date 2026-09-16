@@ -6,7 +6,8 @@ import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/presentation/widgets/automatic_transaction_consolidation_widget.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
-import 'package:funances/features/goal/presentation/providers/goal_providers.dart';
+import 'package:funances/features/goal/presentation/model/goal_progress_ui.dart';
+import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/coaching_insight_card.dart';
 import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
 import 'package:funances/features/home/presentation/widgets/weekly_missions_view.dart';
@@ -20,7 +21,7 @@ class JourneyTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final goalsAsync = ref.watch(goalsProvider);
+    final goalsAsync = ref.watch(GoalViewProvider.goalsStream);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -110,7 +111,7 @@ class JourneyTab extends ConsumerWidget {
                               children: goals.map((goal) {
                                 return SizedBox(
                                   width: width.clamp(0.0, 400.0),
-                                  child: _buildGoalCard(context, ref, goal),
+                                  child: _buildGoalCard(context, goal),
                                 );
                               }).toList(),
                             ),
@@ -122,7 +123,7 @@ class JourneyTab extends ConsumerWidget {
                               .map(
                                 (goal) => Padding(
                                   padding: const EdgeInsets.only(bottom: 16),
-                                  child: _buildGoalCard(context, ref, goal),
+                                  child: _buildGoalCard(context, goal),
                                 ),
                               )
                               .toList(),
@@ -187,10 +188,10 @@ class JourneyTab extends ConsumerWidget {
     context.push('/goals/form', extra: goal);
   }
 
-  Widget _buildGoalCard(BuildContext context, WidgetRef ref, GoalModel goal) {
+  Widget _buildGoalCard(BuildContext context, GoalModel goal) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final progress = ref.watch(goalProgressProvider(goal));
+    final progress = goal.calculateProgress();
     final locale = context.locale;
 
     return Card(

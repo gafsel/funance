@@ -23,14 +23,6 @@ class PeriodSummaryRepositoryImpl implements IPeriodSummaryRepository {
   }
 
   @override
-  Stream<PeriodSummaryModel?> watchYear(String workspaceId, int year) {
-    final id = "$year";
-    return collection(workspaceId).doc(id).snapshots().map(
-          (doc) => doc.exists ? doc.toPeriodSummaryModel() : null,
-        );
-  }
-
-  @override
   Stream<PeriodSummaryModel?> watchWeek(
     String workspaceId,
     int year,
