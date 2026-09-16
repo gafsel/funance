@@ -68,16 +68,21 @@ export async function handleInstallmentWritten(
         await container.summaryService.processInstallmentChange(workspaceId, before, after);
     });
 
-    // Atualizar metas baseadas no Installment
-    await idempotencyService.runIdempotency(eventId, "processGoalChange", async () => {
-        logger.debug(`[onInstallmentWritten] Executando processGoalChange: ${installmentId}`);
-        await container.goalService.processInstallmentChange(workspaceId, before, after);
-    });
-
     // Atualiza o balance das accounts relacionadas ao Installment
     await idempotencyService.runIdempotency(eventId, "updateAccountBalance", async () => {
         logger.debug(`[onInstallmentWritten] Executando updateAccountBalance: ${installmentId}`);
         await container.financeService.updateAccountBalanceOnInstallmentChange(workspaceId, before, after);
+    });
+
+    // Atualizar metas baseadas no Installment.
+    //
+    // ORDEM IMPORTA: depois do saldo e do sumário. A meta `payDebt` é calculada
+    // a partir dos saldos diários da conta e a `reduceExpense` a partir do
+    // `period_summaries` do mês — rodando antes, as duas leriam o estado
+    // anterior a esta parcela e ficariam sempre um evento atrasadas.
+    await idempotencyService.runIdempotency(eventId, "processGoalChange", async () => {
+        logger.debug(`[onInstallmentWritten] Executando processGoalChange: ${installmentId}`);
+        await container.goalService.processInstallmentChange(workspaceId, before, after);
     });
 
     // Atualiza as faturas de cartão de crédito
