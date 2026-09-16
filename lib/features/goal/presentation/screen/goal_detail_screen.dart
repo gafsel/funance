@@ -185,18 +185,18 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                         ),
                         // Carimbo do servidor: só existe depois que a meta
                         // alcançou o alvo pela primeira vez.
-                        if (goal.completedAt != null)
+                        if (goal.outcome != null)
                           DetailHeaderChip(
-                            icon: goal.isAccumulation
-                                ? Icons.emoji_events
-                                : Icons.report_gmailerrorred,
-                            label: goal.completionLabel(
-                              l10n,
-                              (date) => DateFormat.yMMMd(
-                                context.locale,
-                              ).format(date),
-                            )!,
-                            backgroundColor: goal.isAccumulation
+                            icon: goal.outcomeIcon,
+                            label:
+                                goal.outcomeLabel(
+                                  l10n,
+                                  (date) => DateFormat.yMMMd(
+                                    context.locale,
+                                  ).format(date),
+                                ) ??
+                                '',
+                            backgroundColor: goal.isCompleted
                                 ? AppColors.limeGreen
                                 : AppColors.error,
                           ),

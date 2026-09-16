@@ -306,10 +306,13 @@ GoalModel _$GoalModelFromJson(
 /// @nodoc
 mixin _$GoalModel {
 
- String get id; String get name; double get targetAmount; double get currentAmount; DateTime get deadline; DateTime get startDate;/// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-/// O app só lê: as security rules negam a escrita pelo cliente e o
-/// repositório remove o campo antes de salvar.
- DateTime? get completedAt; bool get isDeleted;
+ String get id; String get name; double get targetAmount; double get currentAmount; DateTime get deadline; DateTime get startDate;/// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+/// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+/// as rules negam a escrita e o repositório remove os campos antes de
+/// salvar.
+/// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+/// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) GoalOutcome? get outcome; DateTime? get completedAt; DateTime? get failedAt; bool get isDeleted;
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -322,16 +325,16 @@ $GoalModelCopyWith<GoalModel> get copyWith => _$GoalModelCopyWithImpl<GoalModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GoalModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GoalModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.outcome, outcome) || other.outcome == outcome)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.failedAt, failedAt) || other.failedAt == failedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,startDate,completedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,startDate,outcome,completedAt,failedAt,isDeleted);
 
 @override
 String toString() {
-  return 'GoalModel(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, startDate: $startDate, completedAt: $completedAt, isDeleted: $isDeleted)';
+  return 'GoalModel(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, startDate: $startDate, outcome: $outcome, completedAt: $completedAt, failedAt: $failedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -342,7 +345,7 @@ abstract mixin class $GoalModelCopyWith<$Res>  {
   factory $GoalModelCopyWith(GoalModel value, $Res Function(GoalModel) _then) = _$GoalModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, DateTime deadline, DateTime startDate, DateTime? completedAt, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, DateTime startDate,@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) GoalOutcome? outcome, DateTime? completedAt, DateTime? failedAt, bool isDeleted
 });
 
 
@@ -359,7 +362,7 @@ class _$GoalModelCopyWithImpl<$Res>
 
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? startDate = null,Object? completedAt = freezed,Object? isDeleted = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? startDate = null,Object? outcome = freezed,Object? completedAt = freezed,Object? failedAt = freezed,Object? isDeleted = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -367,7 +370,9 @@ as String,targetAmount: null == targetAmount ? _self.targetAmount : targetAmount
 as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAmount // ignore: cast_nullable_to_non_nullable
 as double,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
-as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,outcome: freezed == outcome ? _self.outcome : outcome // ignore: cast_nullable_to_non_nullable
+as GoalOutcome?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,failedAt: freezed == failedAt ? _self.failedAt : failedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -460,13 +465,13 @@ return saveMoney(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  payDebt,TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  reduceCreditCard,TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime deadline,  CategoryModel category,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  reduceExpense,TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  saveMoney,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  payDebt,TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  reduceCreditCard,TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  CategoryModel category,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  reduceExpense,TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  saveMoney,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _GoalModelPayDebt() when payDebt != null:
-return payDebt(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelCreditCard() when reduceCreditCard != null:
-return reduceCreditCard(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelReduceExpense() when reduceExpense != null:
-return reduceExpense(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.deadline,_that.category,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelSaveMoney() when saveMoney != null:
-return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _:
+return payDebt(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelCreditCard() when reduceCreditCard != null:
+return reduceCreditCard(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelReduceExpense() when reduceExpense != null:
+return reduceExpense(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.category,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelSaveMoney() when saveMoney != null:
+return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _:
   return orElse();
 
 }
@@ -484,13 +489,13 @@ return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)  payDebt,required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)  reduceCreditCard,required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime deadline,  CategoryModel category,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)  reduceExpense,required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)  saveMoney,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)  payDebt,required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)  reduceCreditCard,required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  CategoryModel category,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)  reduceExpense,required TResult Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)  saveMoney,}) {final _that = this;
 switch (_that) {
 case _GoalModelPayDebt():
-return payDebt(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelCreditCard():
-return reduceCreditCard(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelReduceExpense():
-return reduceExpense(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.deadline,_that.category,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelSaveMoney():
-return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);}
+return payDebt(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelCreditCard():
+return reduceCreditCard(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelReduceExpense():
+return reduceExpense(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.category,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelSaveMoney():
+return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -504,13 +509,13 @@ return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  payDebt,TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  reduceCreditCard,TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  double averageSpending,  DateTime deadline,  CategoryModel category,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  reduceExpense,TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate,  DateTime? completedAt,  bool isDeleted)?  saveMoney,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  payDebt,TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  reduceCreditCard,TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  CategoryModel category,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  reduceExpense,TResult? Function( String id,  String name,  double targetAmount,  double currentAmount,  DateTime deadline,  String accountId,  DateTime startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)  GoalOutcome? outcome,  DateTime? completedAt,  DateTime? failedAt,  bool isDeleted)?  saveMoney,}) {final _that = this;
 switch (_that) {
 case _GoalModelPayDebt() when payDebt != null:
-return payDebt(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelCreditCard() when reduceCreditCard != null:
-return reduceCreditCard(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelReduceExpense() when reduceExpense != null:
-return reduceExpense(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.averageSpending,_that.deadline,_that.category,_that.startDate,_that.completedAt,_that.isDeleted);case _GoalModelSaveMoney() when saveMoney != null:
-return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.completedAt,_that.isDeleted);case _:
+return payDebt(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelCreditCard() when reduceCreditCard != null:
+return reduceCreditCard(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelReduceExpense() when reduceExpense != null:
+return reduceExpense(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.category,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _GoalModelSaveMoney() when saveMoney != null:
+return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_that.deadline,_that.accountId,_that.startDate,_that.outcome,_that.completedAt,_that.failedAt,_that.isDeleted);case _:
   return null;
 
 }
@@ -522,7 +527,7 @@ return saveMoney(_that.id,_that.name,_that.targetAmount,_that.currentAmount,_tha
 
 @JsonSerializable(explicitToJson: true)
 class _GoalModelPayDebt extends GoalModel {
-  const _GoalModelPayDebt({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, required this.accountId, required this.startDate, this.completedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'payDebt',super._();
+  const _GoalModelPayDebt({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, required this.accountId, required this.startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) this.outcome, this.completedAt, this.failedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'payDebt',super._();
   factory _GoalModelPayDebt.fromJson(Map<String, dynamic> json) => _$GoalModelPayDebtFromJson(json);
 
 @override final  String id;
@@ -532,10 +537,15 @@ class _GoalModelPayDebt extends GoalModel {
 @override final  DateTime deadline;
  final  String accountId;
 @override final  DateTime startDate;
-/// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-/// O app só lê: as security rules negam a escrita pelo cliente e o
-/// repositório remove o campo antes de salvar.
+/// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+/// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+/// as rules negam a escrita e o repositório remove os campos antes de
+/// salvar.
+/// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+/// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+@override@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) final  GoalOutcome? outcome;
 @override final  DateTime? completedAt;
+@override final  DateTime? failedAt;
 @override@JsonKey() final  bool isDeleted;
 
 @JsonKey(name: 'runtimeType')
@@ -555,16 +565,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelPayDebt&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelPayDebt&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.outcome, outcome) || other.outcome == outcome)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.failedAt, failedAt) || other.failedAt == failedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,accountId,startDate,completedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,accountId,startDate,outcome,completedAt,failedAt,isDeleted);
 
 @override
 String toString() {
-  return 'GoalModel.payDebt(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, accountId: $accountId, startDate: $startDate, completedAt: $completedAt, isDeleted: $isDeleted)';
+  return 'GoalModel.payDebt(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, accountId: $accountId, startDate: $startDate, outcome: $outcome, completedAt: $completedAt, failedAt: $failedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -575,7 +585,7 @@ abstract mixin class _$GoalModelPayDebtCopyWith<$Res> implements $GoalModelCopyW
   factory _$GoalModelPayDebtCopyWith(_GoalModelPayDebt value, $Res Function(_GoalModelPayDebt) _then) = __$GoalModelPayDebtCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, DateTime deadline, String accountId, DateTime startDate, DateTime? completedAt, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, String accountId, DateTime startDate,@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) GoalOutcome? outcome, DateTime? completedAt, DateTime? failedAt, bool isDeleted
 });
 
 
@@ -592,7 +602,7 @@ class __$GoalModelPayDebtCopyWithImpl<$Res>
 
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? accountId = null,Object? startDate = null,Object? completedAt = freezed,Object? isDeleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? accountId = null,Object? startDate = null,Object? outcome = freezed,Object? completedAt = freezed,Object? failedAt = freezed,Object? isDeleted = null,}) {
   return _then(_GoalModelPayDebt(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -601,7 +611,9 @@ as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAm
 as double,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,accountId: null == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as String,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
-as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,outcome: freezed == outcome ? _self.outcome : outcome // ignore: cast_nullable_to_non_nullable
+as GoalOutcome?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,failedAt: freezed == failedAt ? _self.failedAt : failedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -614,21 +626,25 @@ as bool,
 
 @JsonSerializable(explicitToJson: true)
 class _GoalModelCreditCard extends GoalModel {
-  const _GoalModelCreditCard({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.averageSpending, required this.deadline, required this.accountId, required this.startDate, this.completedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'reduceCreditCard',super._();
+  const _GoalModelCreditCard({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, required this.accountId, required this.startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) this.outcome, this.completedAt, this.failedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'reduceCreditCard',super._();
   factory _GoalModelCreditCard.fromJson(Map<String, dynamic> json) => _$GoalModelCreditCardFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override final  double targetAmount;
 @override final  double currentAmount;
- final  double averageSpending;
 @override final  DateTime deadline;
  final  String accountId;
 @override final  DateTime startDate;
-/// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-/// O app só lê: as security rules negam a escrita pelo cliente e o
-/// repositório remove o campo antes de salvar.
+/// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+/// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+/// as rules negam a escrita e o repositório remove os campos antes de
+/// salvar.
+/// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+/// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+@override@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) final  GoalOutcome? outcome;
 @override final  DateTime? completedAt;
+@override final  DateTime? failedAt;
 @override@JsonKey() final  bool isDeleted;
 
 @JsonKey(name: 'runtimeType')
@@ -648,16 +664,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelCreditCard&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.averageSpending, averageSpending) || other.averageSpending == averageSpending)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelCreditCard&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.outcome, outcome) || other.outcome == outcome)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.failedAt, failedAt) || other.failedAt == failedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,averageSpending,deadline,accountId,startDate,completedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,accountId,startDate,outcome,completedAt,failedAt,isDeleted);
 
 @override
 String toString() {
-  return 'GoalModel.reduceCreditCard(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, averageSpending: $averageSpending, deadline: $deadline, accountId: $accountId, startDate: $startDate, completedAt: $completedAt, isDeleted: $isDeleted)';
+  return 'GoalModel.reduceCreditCard(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, accountId: $accountId, startDate: $startDate, outcome: $outcome, completedAt: $completedAt, failedAt: $failedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -668,7 +684,7 @@ abstract mixin class _$GoalModelCreditCardCopyWith<$Res> implements $GoalModelCo
   factory _$GoalModelCreditCardCopyWith(_GoalModelCreditCard value, $Res Function(_GoalModelCreditCard) _then) = __$GoalModelCreditCardCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, double averageSpending, DateTime deadline, String accountId, DateTime startDate, DateTime? completedAt, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, String accountId, DateTime startDate,@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) GoalOutcome? outcome, DateTime? completedAt, DateTime? failedAt, bool isDeleted
 });
 
 
@@ -685,17 +701,18 @@ class __$GoalModelCreditCardCopyWithImpl<$Res>
 
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? averageSpending = null,Object? deadline = null,Object? accountId = null,Object? startDate = null,Object? completedAt = freezed,Object? isDeleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? accountId = null,Object? startDate = null,Object? outcome = freezed,Object? completedAt = freezed,Object? failedAt = freezed,Object? isDeleted = null,}) {
   return _then(_GoalModelCreditCard(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,targetAmount: null == targetAmount ? _self.targetAmount : targetAmount // ignore: cast_nullable_to_non_nullable
 as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAmount // ignore: cast_nullable_to_non_nullable
-as double,averageSpending: null == averageSpending ? _self.averageSpending : averageSpending // ignore: cast_nullable_to_non_nullable
 as double,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,accountId: null == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as String,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
-as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,outcome: freezed == outcome ? _self.outcome : outcome // ignore: cast_nullable_to_non_nullable
+as GoalOutcome?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,failedAt: freezed == failedAt ? _self.failedAt : failedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -708,21 +725,25 @@ as bool,
 
 @JsonSerializable(explicitToJson: true)
 class _GoalModelReduceExpense extends GoalModel {
-  const _GoalModelReduceExpense({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.averageSpending, required this.deadline, required this.category, required this.startDate, this.completedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'reduceExpense',super._();
+  const _GoalModelReduceExpense({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, required this.category, required this.startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) this.outcome, this.completedAt, this.failedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'reduceExpense',super._();
   factory _GoalModelReduceExpense.fromJson(Map<String, dynamic> json) => _$GoalModelReduceExpenseFromJson(json);
 
 @override final  String id;
 @override final  String name;
 @override final  double targetAmount;
 @override final  double currentAmount;
- final  double averageSpending;
 @override final  DateTime deadline;
  final  CategoryModel category;
 @override final  DateTime startDate;
-/// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-/// O app só lê: as security rules negam a escrita pelo cliente e o
-/// repositório remove o campo antes de salvar.
+/// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+/// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+/// as rules negam a escrita e o repositório remove os campos antes de
+/// salvar.
+/// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+/// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+@override@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) final  GoalOutcome? outcome;
 @override final  DateTime? completedAt;
+@override final  DateTime? failedAt;
 @override@JsonKey() final  bool isDeleted;
 
 @JsonKey(name: 'runtimeType')
@@ -742,16 +763,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelReduceExpense&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.averageSpending, averageSpending) || other.averageSpending == averageSpending)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.category, category) || other.category == category)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelReduceExpense&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.category, category) || other.category == category)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.outcome, outcome) || other.outcome == outcome)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.failedAt, failedAt) || other.failedAt == failedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,averageSpending,deadline,category,startDate,completedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,category,startDate,outcome,completedAt,failedAt,isDeleted);
 
 @override
 String toString() {
-  return 'GoalModel.reduceExpense(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, averageSpending: $averageSpending, deadline: $deadline, category: $category, startDate: $startDate, completedAt: $completedAt, isDeleted: $isDeleted)';
+  return 'GoalModel.reduceExpense(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, category: $category, startDate: $startDate, outcome: $outcome, completedAt: $completedAt, failedAt: $failedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -762,7 +783,7 @@ abstract mixin class _$GoalModelReduceExpenseCopyWith<$Res> implements $GoalMode
   factory _$GoalModelReduceExpenseCopyWith(_GoalModelReduceExpense value, $Res Function(_GoalModelReduceExpense) _then) = __$GoalModelReduceExpenseCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, double averageSpending, DateTime deadline, CategoryModel category, DateTime startDate, DateTime? completedAt, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, CategoryModel category, DateTime startDate,@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) GoalOutcome? outcome, DateTime? completedAt, DateTime? failedAt, bool isDeleted
 });
 
 
@@ -779,17 +800,18 @@ class __$GoalModelReduceExpenseCopyWithImpl<$Res>
 
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? averageSpending = null,Object? deadline = null,Object? category = null,Object? startDate = null,Object? completedAt = freezed,Object? isDeleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? category = null,Object? startDate = null,Object? outcome = freezed,Object? completedAt = freezed,Object? failedAt = freezed,Object? isDeleted = null,}) {
   return _then(_GoalModelReduceExpense(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,targetAmount: null == targetAmount ? _self.targetAmount : targetAmount // ignore: cast_nullable_to_non_nullable
 as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAmount // ignore: cast_nullable_to_non_nullable
-as double,averageSpending: null == averageSpending ? _self.averageSpending : averageSpending // ignore: cast_nullable_to_non_nullable
 as double,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
-as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,outcome: freezed == outcome ? _self.outcome : outcome // ignore: cast_nullable_to_non_nullable
+as GoalOutcome?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,failedAt: freezed == failedAt ? _self.failedAt : failedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -811,7 +833,7 @@ $CategoryModelCopyWith<$Res> get category {
 
 @JsonSerializable(explicitToJson: true)
 class _GoalModelSaveMoney extends GoalModel {
-  const _GoalModelSaveMoney({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, required this.accountId, required this.startDate, this.completedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'saveMoney',super._();
+  const _GoalModelSaveMoney({required this.id, required this.name, required this.targetAmount, required this.currentAmount, required this.deadline, required this.accountId, required this.startDate, @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) this.outcome, this.completedAt, this.failedAt, this.isDeleted = false, final  String? $type}): $type = $type ?? 'saveMoney',super._();
   factory _GoalModelSaveMoney.fromJson(Map<String, dynamic> json) => _$GoalModelSaveMoneyFromJson(json);
 
 @override final  String id;
@@ -821,10 +843,15 @@ class _GoalModelSaveMoney extends GoalModel {
 @override final  DateTime deadline;
  final  String accountId;
 @override final  DateTime startDate;
-/// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-/// O app só lê: as security rules negam a escrita pelo cliente e o
-/// repositório remove o campo antes de salvar.
+/// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+/// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+/// as rules negam a escrita e o repositório remove os campos antes de
+/// salvar.
+/// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+/// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+@override@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) final  GoalOutcome? outcome;
 @override final  DateTime? completedAt;
+@override final  DateTime? failedAt;
 @override@JsonKey() final  bool isDeleted;
 
 @JsonKey(name: 'runtimeType')
@@ -844,16 +871,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelSaveMoney&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GoalModelSaveMoney&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.targetAmount, targetAmount) || other.targetAmount == targetAmount)&&(identical(other.currentAmount, currentAmount) || other.currentAmount == currentAmount)&&(identical(other.deadline, deadline) || other.deadline == deadline)&&(identical(other.accountId, accountId) || other.accountId == accountId)&&(identical(other.startDate, startDate) || other.startDate == startDate)&&(identical(other.outcome, outcome) || other.outcome == outcome)&&(identical(other.completedAt, completedAt) || other.completedAt == completedAt)&&(identical(other.failedAt, failedAt) || other.failedAt == failedAt)&&(identical(other.isDeleted, isDeleted) || other.isDeleted == isDeleted));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,accountId,startDate,completedAt,isDeleted);
+int get hashCode => Object.hash(runtimeType,id,name,targetAmount,currentAmount,deadline,accountId,startDate,outcome,completedAt,failedAt,isDeleted);
 
 @override
 String toString() {
-  return 'GoalModel.saveMoney(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, accountId: $accountId, startDate: $startDate, completedAt: $completedAt, isDeleted: $isDeleted)';
+  return 'GoalModel.saveMoney(id: $id, name: $name, targetAmount: $targetAmount, currentAmount: $currentAmount, deadline: $deadline, accountId: $accountId, startDate: $startDate, outcome: $outcome, completedAt: $completedAt, failedAt: $failedAt, isDeleted: $isDeleted)';
 }
 
 
@@ -864,7 +891,7 @@ abstract mixin class _$GoalModelSaveMoneyCopyWith<$Res> implements $GoalModelCop
   factory _$GoalModelSaveMoneyCopyWith(_GoalModelSaveMoney value, $Res Function(_GoalModelSaveMoney) _then) = __$GoalModelSaveMoneyCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, double targetAmount, double currentAmount, DateTime deadline, String accountId, DateTime startDate, DateTime? completedAt, bool isDeleted
+ String id, String name, double targetAmount, double currentAmount, DateTime deadline, String accountId, DateTime startDate,@JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue) GoalOutcome? outcome, DateTime? completedAt, DateTime? failedAt, bool isDeleted
 });
 
 
@@ -881,7 +908,7 @@ class __$GoalModelSaveMoneyCopyWithImpl<$Res>
 
 /// Create a copy of GoalModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? accountId = null,Object? startDate = null,Object? completedAt = freezed,Object? isDeleted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? targetAmount = null,Object? currentAmount = null,Object? deadline = null,Object? accountId = null,Object? startDate = null,Object? outcome = freezed,Object? completedAt = freezed,Object? failedAt = freezed,Object? isDeleted = null,}) {
   return _then(_GoalModelSaveMoney(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -890,7 +917,9 @@ as double,currentAmount: null == currentAmount ? _self.currentAmount : currentAm
 as double,deadline: null == deadline ? _self.deadline : deadline // ignore: cast_nullable_to_non_nullable
 as DateTime,accountId: null == accountId ? _self.accountId : accountId // ignore: cast_nullable_to_non_nullable
 as String,startDate: null == startDate ? _self.startDate : startDate // ignore: cast_nullable_to_non_nullable
-as DateTime,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime,outcome: freezed == outcome ? _self.outcome : outcome // ignore: cast_nullable_to_non_nullable
+as GoalOutcome?,completedAt: freezed == completedAt ? _self.completedAt : completedAt // ignore: cast_nullable_to_non_nullable
+as DateTime?,failedAt: freezed == failedAt ? _self.failedAt : failedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,isDeleted: null == isDeleted ? _self.isDeleted : isDeleted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));

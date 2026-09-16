@@ -2037,11 +2037,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String goalLimitReachedAt(String date) {
-    return 'Cap reached on $date';
-  }
-
-  @override
   String goalSpentOfLimit(String amount, String limit) {
     return '$amount of $limit';
   }
@@ -2098,4 +2093,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String badgeCatalogTotal(int unlocked, int total) {
     return '$unlocked of $total';
   }
+
+  @override
+  String goalLimitBlownAt(String date) {
+    return 'Cap blown on $date';
+  }
+
+  @override
+  String goalDeadlineMissedAt(String date) {
+    return 'Deadline passed without reaching it on $date';
+  }
+
+  @override
+  String get journeyClosedGoalsTitle => 'Closed goals';
 }

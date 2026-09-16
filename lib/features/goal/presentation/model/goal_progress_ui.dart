@@ -89,13 +89,36 @@ extension GoalLabelsUi on GoalModel {
         : l10n.goalOverLimit(format(-slack));
   }
 
-  /// "Concluída em" para metas de acúmulo, "Limite atingido em" para as de
-  /// redução — nas de redução alcançar o alvo é bater o teto, não vencer.
-  String? completionLabel(AppLocalizations l10n, String Function(DateTime) format) {
-    final date = completedAt;
-    if (date == null) return null;
-    return isAccumulation
-        ? l10n.goalCompletedAt(format(date))
-        : l10n.goalLimitReachedAt(format(date));
+  /// Rótulo do DESFECHO da meta, ou `null` enquanto ela ainda corre.
+  ///
+  /// Sucesso é sempre "Concluída em". A falha tem duas caras, e são mesmo
+  /// diferentes: numa meta de redução, falhar é ter ESTOURADO o teto (o prazo
+  /// nem precisa ter chegado); numa de acúmulo, é o prazo ter acabado sem
+  /// alcançar o alvo.
+  String? outcomeLabel(
+    AppLocalizations l10n,
+    String Function(DateTime) format,
+  ) {
+    switch (outcome) {
+      case null:
+        return null;
+      case GoalOutcome.success:
+        final date = completedAt;
+        return date == null ? null : l10n.goalCompletedAt(format(date));
+      case GoalOutcome.failed:
+        final date = failedAt;
+        if (date == null) return null;
+        return isAccumulation
+            ? l10n.goalDeadlineMissedAt(format(date))
+            : l10n.goalLimitBlownAt(format(date));
+    }
   }
+
+  /// Ícone do desfecho: troféu para sucesso, alerta para falha.
+  IconData get outcomeIcon =>
+      isCompleted ? Icons.emoji_events : Icons.report_gmailerrorred;
+
+  /// Cor do desfecho — o mesmo par de cores que o resto do app usa para
+  /// sucesso e erro.
+  Color get outcomeColor => isCompleted ? AppColors.success : AppColors.error;
 }

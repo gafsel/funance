@@ -12,27 +12,27 @@ const _catalog = BadgeCatalog(
   badges: [
     BadgeCatalogItem(
       id: 'first_step',
-      name: 'Primeiro Passo',
+      name: {'pt': 'Primeiro Passo', 'en': 'Primeiro Passo (en)'},
       icon: 'rocket_launch',
       xpReward: 100,
       category: BadgeCategory.advanced,
-      description: 'Concluir o onboarding.',
+      description: {'pt': 'Concluir o onboarding.'},
     ),
     BadgeCatalogItem(
       id: 'first_goal',
-      name: 'Sonhador',
+      name: {'pt': 'Sonhador', 'en': 'Sonhador (en)'},
       icon: 'flag',
       xpReward: 50,
       category: BadgeCategory.firstSteps,
-      description: 'Criar a primeira meta.',
+      description: {'pt': 'Criar a primeira meta.'},
     ),
     BadgeCatalogItem(
       id: 'badge_do_futuro',
-      name: 'Badge do Futuro',
+      name: {'pt': 'Badge do Futuro', 'en': 'Badge do Futuro (en)'},
       icon: 'icone_que_o_app_nao_conhece',
       xpReward: 10,
       category: BadgeCategory.unknown,
-      description: 'Publicado por um servidor mais novo que o app.',
+      description: {'pt': 'Publicado por um servidor mais novo que o app.'},
     ),
   ],
   // Mesma régua do servidor: 300 * (2^(n-1) - 1).

@@ -3722,12 +3722,6 @@ abstract class AppLocalizations {
   /// **'Concluída em {date}'**
   String goalCompletedAt(String date);
 
-  /// No description provided for @goalLimitReachedAt.
-  ///
-  /// In pt, this message translates to:
-  /// **'Limite atingido em {date}'**
-  String goalLimitReachedAt(String date);
-
   /// No description provided for @goalSpentOfLimit.
   ///
   /// In pt, this message translates to:
@@ -3823,6 +3817,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{unlocked} de {total}'**
   String badgeCatalogTotal(int unlocked, int total);
+
+  /// No description provided for @goalLimitBlownAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite estourado em {date}'**
+  String goalLimitBlownAt(String date);
+
+  /// No description provided for @goalDeadlineMissedAt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Prazo encerrado sem atingir em {date}'**
+  String goalDeadlineMissedAt(String date);
+
+  /// No description provided for @journeyClosedGoalsTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Metas encerradas'**
+  String get journeyClosedGoalsTitle;
 }
 
 class _AppLocalizationsDelegate

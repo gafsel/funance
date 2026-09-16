@@ -3,8 +3,10 @@ import * as logger from "firebase-functions/logger";
 import {
     BadgeCatalogDocument,
     IBadgeCatalogRepository,
+    LocalizedText,
 } from "../repositories/badge_catalog.repository";
 import { BADGES } from "./gamification.service";
+import { BADGE_STRINGS_EN } from "./badge_catalog.i18n";
 
 /** Quantos níveis o app precisa desenhar. */
 export const LEVEL_COUNT = 20;
@@ -25,15 +27,22 @@ export function buildLevelThresholds(levels: number = LEVEL_COUNT): number[] {
     return thresholds;
 }
 
-/** Monta o documento do catálogo a partir do `BADGES` do servidor. */
+/**
+ * Monta o documento do catálogo a partir do `BADGES` do servidor.
+ *
+ * `name` e `description` saem como mapas por locale. O português vem da
+ * definição do badge; o inglês, de `BADGE_STRINGS_EN`. Badge sem tradução é
+ * publicado só em `pt` — o app cai no fallback e mostra o texto em português,
+ * em vez de mostrar vazio.
+ */
 export function buildBadgeCatalog(): BadgeCatalogDocument {
     const badges = Object.values(BADGES).map((badge) => ({
         id: badge.id,
-        name: badge.name,
+        name: localized(badge.name, BADGE_STRINGS_EN[badge.id]?.name),
         icon: badge.icon,
         xpReward: badge.xpReward,
         category: badge.category as string,
-        description: badge.description,
+        description: localized(badge.description, BADGE_STRINGS_EN[badge.id]?.description),
     }));
 
     const levelThresholds = buildLevelThresholds();
@@ -43,6 +52,10 @@ export function buildBadgeCatalog(): BadgeCatalogDocument {
         badges,
         levelThresholds,
     };
+}
+
+function localized(pt: string, en?: string): LocalizedText {
+    return en ? { pt, en } : { pt };
 }
 
 /**

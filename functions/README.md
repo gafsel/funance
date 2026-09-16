@@ -413,6 +413,12 @@ que ninguém atualizava.
 | `reduceExpense` | `actualAmount` da categoria nos `period_summaries` **mensais** do período da meta | **recálculo total** quando uma parcela daquela categoria muda |
 | `payDebt` | `saldo atual da conta − saldo no startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
 
+Nos dois primeiros tipos e em `payDebt`, `currentAmount` é **conquista**: quanto
+já foi juntado ou amortizado, e alcançar o alvo é vencer. Em `reduceExpense` e
+`reduceCreditCard` ele é **gasto contra um teto**: passar do alvo é **estourar o
+orçamento**, e é por isso que a conclusão de uma meta não pode ser inferida
+desse número — ver "Contrato: meta ativa e desfecho".
+
 **Decisão — `reduceExpense` lê os sumários mensais, não as parcelas.** O
 documento mensal já é a consolidação que o próprio servidor mantém
 (`actualAmount` = soma de `paidAmount ?? amount` das parcelas pagas, por
@@ -451,33 +457,78 @@ ação de idempotência `gamification:goalRecompute`), para uma meta nova nascer
 com o progresso real do histórico. O recálculo só escreve quando o valor muda,
 então a escrita que ele provoca não reentra.
 
-### Contrato: meta ativa e `completedAt`
+### Contrato: meta ativa e desfecho
 
 O documento de meta **não tem `status`** — o cliente nunca gravou um. Os badges
-liam `status === "active"`/`"completed"` e por isso jamais disparavam. A
-definição única vive em `goal.model.ts`:
+liam `status === "active"`/`"completed"` e por isso jamais disparavam.
 
-```ts
-isGoalActive(goal)    // !isDeleted && currentAmount < targetAmount &&
-                      // (sem deadline || deadline >= hoje)
-isGoalCompleted(goal) // completedAt != null || currentAmount >= targetAmount
+O desfecho de uma meta é um campo **gravado**, não inferido de `currentAmount`:
+
+```
+outcome: "success" | "failed" | ausente     # ausente = ainda em andamento
+completedAt: Timestamp                      # instante do sucesso
+failedAt:    Timestamp                      # instante da falha
 ```
 
-`two_active_goals`, `five_active_goals`, as missões semanais e os badges de
-conclusão (`savings_seed`, `goal_bronze`, `goal_silver`, `goal_under_deadline`,
-`goal_debt_paid`) usam essas duas funções.
+Por que gravado. Numa meta de **redução**, `currentAmount` é o quanto já foi
+**gasto** contra um teto: passar do alvo é **fracasso**, e o sucesso só se
+conhece quando o prazo termina com o gasto ainda dentro do teto. Nenhuma
+comparação instantânea entre valor e alvo distingue "vai bem, ainda dentro do
+teto" de "terminou dentro do teto" — a comparação que existia antes tratava o
+estouro como conclusão, tirava a meta do pool de ativas e **concedia os badges
+de conclusão por ter estourado o orçamento**.
 
-- **`completedAt`**: `Timestamp`, escrito **só pelo servidor**, na primeira vez
-  que `currentAmount >= targetAmount`. Nunca é reescrito — ele marca a primeira
-  conclusão, não a última. As security rules negam ao cliente criar o campo ou
-  alterá-lo (o app grava a meta com `update`, que só toca os campos enviados,
-  então o carimbo sobrevive a uma edição).
-- Para as metas de **redução** (`reduceExpense`, `reduceCreditCard`), alcançar o
-  alvo é **bater o teto de gastos**. A meta sai do pool de ativas do mesmo
-  jeito, e o app chama isso de "Limite atingido em", não de conquista.
+| Família | Sucesso | Falha |
+|---|---|---|
+| acúmulo (`saveMoney`, `payDebt`) | alcançou o alvo, a qualquer momento | prazo venceu sem alcançar |
+| redução (`reduceExpense`, `reduceCreditCard`) | prazo venceu com o gasto **dentro** do teto | passou do teto, a qualquer momento |
+
+```ts
+isGoalActive(goal)    // !isDeleted && outcome == null &&
+                      // (sem deadline || deadline >= hoje)
+isGoalCompleted(goal) // outcome === "success"
+isGoalFailed(goal)    // outcome === "failed"
+```
+
+- O desfecho é **terminal**: uma meta que já desfechou não é reavaliada. Ele tem
+  efeito fora do documento (badges concedidos, XP creditado) e badge não se
+  devolve — um estorno que derruba o valor depois não pode desconceder nada.
+- Escrito **só pelo servidor**, em dois caminhos: junto do recálculo do
+  progresso (`GoalServiceImpl.writeProgress`) e pelo cron de vencimento
+  (`closeExpiredGoals`). As security rules negam ao cliente criar ou alterar
+  `outcome`, `completedAt` e `failedAt` — o app grava a meta com `update`, que
+  só toca os campos enviados, então o desfecho sobrevive a uma edição.
+- Badges de conclusão (`savings_seed`, `goal_bronze`, `goal_silver`,
+  `goal_under_deadline`, `short_term_goal`, `goal_debt_paid`) exigem
+  `outcome === "success"`. Os de progresso (`goal_halfway`, `goal_75pct`,
+  `goal_deposit`, `savings_start`) só valem para meta de **acúmulo**: "Na Metade
+  do Caminho" por ter consumido metade do orçamento premiava o contrário do que
+  a meta pede.
+- No app: sucesso é "Concluída em"; falha é "Limite estourado em" (redução) ou
+  "Prazo encerrado sem atingir" (acúmulo), com o visual de erro. Metas
+  encerradas ficam numa seção própria, fora da lista das que ainda correm.
 - **`currentAmount` continua gravável pelo cliente** (a meta nasce em zero pelo
   formulário), mas o formulário não pede mais esse valor: quem o mantém é o
   servidor.
+
+### Cron `closeExpiredGoals`
+
+Roda todo dia às **03:15** (America/Sao_Paulo) e carimba o desfecho das metas
+com `outcome` ausente e `deadline` já vencido.
+
+Existe porque o sucesso de uma meta de redução é a **ausência** de um evento: o
+gasto não passou do teto até o vencimento. Nenhum gatilho dispara no dia do
+vencimento, então sem o cron essas metas ficariam "em andamento" para sempre — e
+o mesmo vale para a meta de acúmulo que vence sem alcançar o alvo.
+
+- Varredura paginada com checkpoint (`forEachWorkspacePaged`, chave
+  `close_expired_goals`): um timeout retoma do ponto exato na execução seguinte.
+- **Idempotente**: só toca meta sem desfecho, e não altera `currentAmount`.
+- Dispara as checagens de badge para cada meta fechada — só as de sucesso
+  concedem alguma coisa.
+- O mesmo veredito é aplicado no `onGoalWritten` e no recálculo: uma meta cujo
+  prazo venceu desfecha na primeira escrita que passar por ela, mesmo que o
+  valor não mude.
 
 ## Catálogo de badges (`config/badges`)
 
@@ -489,11 +540,17 @@ descrições nos ARB), e o nível era recalculado no app com a inversa de
 ```
 config/badges
   version: string            # hash do conteúdo (16 hex)
-  badges: [{ id, name, icon, xpReward, category, description }]
+  badges: [{ id, name: {pt, en}, icon, xpReward, category, description: {pt, en} }]
   levelThresholds: number[]  # XP mínimo de cada nível, 20 níveis
   updatedAt: timestamp
 ```
 
+- `name` e `description` são mapas **por locale**. O português vem da definição
+  do badge (`BADGES`); o inglês, de `badge_catalog.i18n.ts` — as mesmas strings
+  que saíram dos ARB do app quando o catálogo virou responsabilidade do
+  servidor. O app escolhe pelo idioma do usuário com **fallback para `pt`**, e
+  também aceita o formato antigo (texto em string pura), que fica publicado até
+  o cron republicar depois do deploy.
 - `category` ∈ `advanced | first_steps | consistency | savings | goals | team`.
 - `icon` é o nome do ícone Material (o app mapeia nome → `IconData`).
 - `levelThresholds[n-1]` é o XP que abre o nível `n` — a tabela é a inversa
@@ -697,12 +754,12 @@ sempre e as de conta podem ter derivado por um evento perdido.
 
 - **Idempotente**: pula a meta cujo valor já bate (tolerância de 1 centavo).
 - **Dry-run por padrão**: só escreve com `--apply`.
-- **Carimba `completedAt`** na primeira conclusão; **nunca** reescreve um
-  `completedAt` existente.
+- **Carimba o desfecho** (`outcome` + `completedAt`/`failedAt`) pela mesma regra
+  do serviço; **nunca** reescreve o desfecho de uma meta que já desfechou.
 - **Meta de tipo desconhecido é mantida**, não zerada.
 - **Isola falha**: uma meta que lança é contada e não derruba as outras.
 - **Log por meta**, com resumo final
-  (`workspaces/metas/atualizadas/iguais/concluídas/ativas/falhas`).
+  (`workspaces/metas/atualizadas/iguais/sucesso/falha/ativas/falhas`).
 
 ```bash
 cd functions
@@ -731,9 +788,15 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 Saída de código: `0` se não houve falhas, `1` caso contrário.
 
 Coberto por testes com mocks em `src/test/recompute_goals.test.ts` (dry-run,
-idempotência, `completedAt`, escopo por workspace e contabilização de falhas).
+idempotência, desfecho, escopo por workspace e contabilização de falhas).
 
 > ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
+>
+> ⚠️ **Não rode este script numa base que ainda não tenha o deploy do desfecho
+> (`outcome`).** A versão anterior carimbava `completedAt` por
+> `currentAmount >= targetAmount`, o que numa base com metas de redução
+> significa marcar em massa como concluídas justamente as que estouraram o teto
+> — e conceder os badges correspondentes, que não se desfazem.
 
 ### `publish_badge_catalog.ts`
 

@@ -31,18 +31,58 @@ sealed class BadgeCatalogItem with _$BadgeCatalogItem {
 
   const factory BadgeCatalogItem({
     required String id,
-    required String name,
+
+    /// Nome por idioma (`{pt: ..., en: ...}`). Use [nameIn].
+    @JsonKey(fromJson: localizedText)
+    @Default(<String, String>{})
+    Map<String, String> name,
+
     /// Nome do ícone Material (ver `badgeIconFor`).
     @Default('') String icon,
     @Default(0) int xpReward,
     @JsonKey(unknownEnumValue: BadgeCategory.unknown)
     @Default(BadgeCategory.unknown)
     BadgeCategory category,
-    @Default('') String description,
+
+    /// Descrição por idioma. Use [descriptionIn].
+    @JsonKey(fromJson: localizedText)
+    @Default(<String, String>{})
+    Map<String, String> description,
   }) = _BadgeCatalogItem;
 
   factory BadgeCatalogItem.fromJson(Map<String, dynamic> json) =>
       _$BadgeCatalogItemFromJson(json);
+
+  /// Nome no idioma pedido, com fallback para português.
+  String nameIn(String locale) => _pick(name, locale);
+
+  /// Descrição no idioma pedido, com fallback para português.
+  String descriptionIn(String locale) => _pick(description, locale);
+
+  static String _pick(Map<String, String> text, String locale) {
+    if (text.isEmpty) return '';
+    return text[locale] ??
+        text[locale.split(RegExp('[_-]')).first] ??
+        text['pt'] ??
+        text.values.first;
+  }
+}
+
+/// Aceita o texto do catálogo em dois formatos.
+///
+/// Mapa por locale é o formato atual. String pura é o formato ANTIGO, que fica
+/// publicado até o cron republicar o catálogo depois do deploy — tratada como
+/// português, que é o idioma em que ela foi escrita.
+Map<String, String> localizedText(Object? raw) {
+  if (raw is String) return {'pt': raw};
+  if (raw is Map) {
+    return {
+      for (final entry in raw.entries)
+        if (entry.key is String && entry.value is String)
+          entry.key as String: entry.value as String,
+    };
+  }
+  return const {};
 }
 
 /// Catálogo publicado pelo servidor em `config/badges`.

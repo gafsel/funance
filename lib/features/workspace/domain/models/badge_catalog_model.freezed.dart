@@ -15,8 +15,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BadgeCatalogItem {
 
- String get id; String get name;/// Nome do ícone Material (ver `badgeIconFor`).
- String get icon; int get xpReward;@JsonKey(unknownEnumValue: BadgeCategory.unknown) BadgeCategory get category; String get description;
+ String get id;/// Nome por idioma (`{pt: ..., en: ...}`). Use [nameIn].
+@JsonKey(fromJson: localizedText) Map<String, String> get name;/// Nome do ícone Material (ver `badgeIconFor`).
+ String get icon; int get xpReward;@JsonKey(unknownEnumValue: BadgeCategory.unknown) BadgeCategory get category;/// Descrição por idioma. Use [descriptionIn].
+@JsonKey(fromJson: localizedText) Map<String, String> get description;
 /// Create a copy of BadgeCatalogItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,12 +31,12 @@ $BadgeCatalogItemCopyWith<BadgeCatalogItem> get copyWith => _$BadgeCatalogItemCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BadgeCatalogItem&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.xpReward, xpReward) || other.xpReward == xpReward)&&(identical(other.category, category) || other.category == category)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BadgeCatalogItem&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other.name, name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.xpReward, xpReward) || other.xpReward == xpReward)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other.description, description));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,xpReward,category,description);
+int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(name),icon,xpReward,category,const DeepCollectionEquality().hash(description));
 
 @override
 String toString() {
@@ -49,7 +51,7 @@ abstract mixin class $BadgeCatalogItemCopyWith<$Res>  {
   factory $BadgeCatalogItemCopyWith(BadgeCatalogItem value, $Res Function(BadgeCatalogItem) _then) = _$BadgeCatalogItemCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, String icon, int xpReward,@JsonKey(unknownEnumValue: BadgeCategory.unknown) BadgeCategory category, String description
+ String id,@JsonKey(fromJson: localizedText) Map<String, String> name, String icon, int xpReward,@JsonKey(unknownEnumValue: BadgeCategory.unknown) BadgeCategory category,@JsonKey(fromJson: localizedText) Map<String, String> description
 });
 
 
@@ -70,11 +72,11 @@ class _$BadgeCatalogItemCopyWithImpl<$Res>
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String,xpReward: null == xpReward ? _self.xpReward : xpReward // ignore: cast_nullable_to_non_nullable
 as int,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as BadgeCategory,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String,
+as Map<String, String>,
   ));
 }
 
@@ -156,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  int xpReward, @JsonKey(unknownEnumValue: BadgeCategory.unknown)  BadgeCategory category,  String description)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id, @JsonKey(fromJson: localizedText)  Map<String, String> name,  String icon,  int xpReward, @JsonKey(unknownEnumValue: BadgeCategory.unknown)  BadgeCategory category, @JsonKey(fromJson: localizedText)  Map<String, String> description)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BadgeCatalogItem() when $default != null:
 return $default(_that.id,_that.name,_that.icon,_that.xpReward,_that.category,_that.description);case _:
@@ -177,7 +179,7 @@ return $default(_that.id,_that.name,_that.icon,_that.xpReward,_that.category,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String icon,  int xpReward, @JsonKey(unknownEnumValue: BadgeCategory.unknown)  BadgeCategory category,  String description)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id, @JsonKey(fromJson: localizedText)  Map<String, String> name,  String icon,  int xpReward, @JsonKey(unknownEnumValue: BadgeCategory.unknown)  BadgeCategory category, @JsonKey(fromJson: localizedText)  Map<String, String> description)  $default,) {final _that = this;
 switch (_that) {
 case _BadgeCatalogItem():
 return $default(_that.id,_that.name,_that.icon,_that.xpReward,_that.category,_that.description);}
@@ -194,7 +196,7 @@ return $default(_that.id,_that.name,_that.icon,_that.xpReward,_that.category,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String icon,  int xpReward, @JsonKey(unknownEnumValue: BadgeCategory.unknown)  BadgeCategory category,  String description)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id, @JsonKey(fromJson: localizedText)  Map<String, String> name,  String icon,  int xpReward, @JsonKey(unknownEnumValue: BadgeCategory.unknown)  BadgeCategory category, @JsonKey(fromJson: localizedText)  Map<String, String> description)?  $default,) {final _that = this;
 switch (_that) {
 case _BadgeCatalogItem() when $default != null:
 return $default(_that.id,_that.name,_that.icon,_that.xpReward,_that.category,_that.description);case _:
@@ -209,16 +211,32 @@ return $default(_that.id,_that.name,_that.icon,_that.xpReward,_that.category,_th
 @JsonSerializable()
 
 class _BadgeCatalogItem extends BadgeCatalogItem {
-  const _BadgeCatalogItem({required this.id, required this.name, this.icon = '', this.xpReward = 0, @JsonKey(unknownEnumValue: BadgeCategory.unknown) this.category = BadgeCategory.unknown, this.description = ''}): super._();
+  const _BadgeCatalogItem({required this.id, @JsonKey(fromJson: localizedText) final  Map<String, String> name = const <String, String>{}, this.icon = '', this.xpReward = 0, @JsonKey(unknownEnumValue: BadgeCategory.unknown) this.category = BadgeCategory.unknown, @JsonKey(fromJson: localizedText) final  Map<String, String> description = const <String, String>{}}): _name = name,_description = description,super._();
   factory _BadgeCatalogItem.fromJson(Map<String, dynamic> json) => _$BadgeCatalogItemFromJson(json);
 
 @override final  String id;
-@override final  String name;
+/// Nome por idioma (`{pt: ..., en: ...}`). Use [nameIn].
+ final  Map<String, String> _name;
+/// Nome por idioma (`{pt: ..., en: ...}`). Use [nameIn].
+@override@JsonKey(fromJson: localizedText) Map<String, String> get name {
+  if (_name is EqualUnmodifiableMapView) return _name;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_name);
+}
+
 /// Nome do ícone Material (ver `badgeIconFor`).
 @override@JsonKey() final  String icon;
 @override@JsonKey() final  int xpReward;
 @override@JsonKey(unknownEnumValue: BadgeCategory.unknown) final  BadgeCategory category;
-@override@JsonKey() final  String description;
+/// Descrição por idioma. Use [descriptionIn].
+ final  Map<String, String> _description;
+/// Descrição por idioma. Use [descriptionIn].
+@override@JsonKey(fromJson: localizedText) Map<String, String> get description {
+  if (_description is EqualUnmodifiableMapView) return _description;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_description);
+}
+
 
 /// Create a copy of BadgeCatalogItem
 /// with the given fields replaced by the non-null parameter values.
@@ -233,12 +251,12 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BadgeCatalogItem&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.xpReward, xpReward) || other.xpReward == xpReward)&&(identical(other.category, category) || other.category == category)&&(identical(other.description, description) || other.description == description));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BadgeCatalogItem&&(identical(other.id, id) || other.id == id)&&const DeepCollectionEquality().equals(other._name, _name)&&(identical(other.icon, icon) || other.icon == icon)&&(identical(other.xpReward, xpReward) || other.xpReward == xpReward)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other._description, _description));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,icon,xpReward,category,description);
+int get hashCode => Object.hash(runtimeType,id,const DeepCollectionEquality().hash(_name),icon,xpReward,category,const DeepCollectionEquality().hash(_description));
 
 @override
 String toString() {
@@ -253,7 +271,7 @@ abstract mixin class _$BadgeCatalogItemCopyWith<$Res> implements $BadgeCatalogIt
   factory _$BadgeCatalogItemCopyWith(_BadgeCatalogItem value, $Res Function(_BadgeCatalogItem) _then) = __$BadgeCatalogItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, int xpReward,@JsonKey(unknownEnumValue: BadgeCategory.unknown) BadgeCategory category, String description
+ String id,@JsonKey(fromJson: localizedText) Map<String, String> name, String icon, int xpReward,@JsonKey(unknownEnumValue: BadgeCategory.unknown) BadgeCategory category,@JsonKey(fromJson: localizedText) Map<String, String> description
 });
 
 
@@ -273,12 +291,12 @@ class __$BadgeCatalogItemCopyWithImpl<$Res>
 @override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? icon = null,Object? xpReward = null,Object? category = null,Object? description = null,}) {
   return _then(_BadgeCatalogItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self._name : name // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,icon: null == icon ? _self.icon : icon // ignore: cast_nullable_to_non_nullable
 as String,xpReward: null == xpReward ? _self.xpReward : xpReward // ignore: cast_nullable_to_non_nullable
 as int,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
-as BadgeCategory,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
-as String,
+as BadgeCategory,description: null == description ? _self._description : description // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
   ));
 }
 

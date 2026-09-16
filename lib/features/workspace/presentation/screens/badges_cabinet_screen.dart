@@ -616,7 +616,7 @@ void showBadgeDetail(
             ),
           ),
           Text(
-            badge.name,
+            badge.nameIn(l10n.localeName),
             textAlign: TextAlign.center,
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
@@ -640,7 +640,7 @@ void showBadgeDetail(
           ),
           const SizedBox(height: 16),
           Text(
-            badge.description,
+            badge.descriptionIn(l10n.localeName),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
           ),
@@ -780,7 +780,7 @@ class _AdvancedBadgeCard extends StatelessWidget {
           const SizedBox(height: 8),
           Expanded(
             child: Text(
-              badge.name,
+              badge.nameIn(AppLocalizations.of(context)!.localeName),
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
@@ -815,7 +815,7 @@ class _SimpleBadgeChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Tooltip(
-        message: badge.name,
+        message: badge.nameIn(AppLocalizations.of(context)!.localeName),
         child: BadgeShapeWidget(
           size: 48,
           tier: BadgeTier.simple,

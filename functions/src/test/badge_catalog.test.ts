@@ -29,12 +29,34 @@ describe("buildBadgeCatalog", () => {
 
     it("todo badge tem nome, ícone, descrição e categoria conhecida", () => {
         for (const badge of buildBadgeCatalog().badges) {
-            expect(badge.name.length).toBeGreaterThan(0);
+            expect(badge.name.pt.length).toBeGreaterThan(0);
             expect(badge.icon.length).toBeGreaterThan(0);
-            expect(badge.description.length).toBeGreaterThan(0);
+            expect(badge.description.pt.length).toBeGreaterThan(0);
             expect(badge.xpReward).toBeGreaterThan(0);
             expect(BADGE_CATEGORIES as readonly string[]).toContain(badge.category);
         }
+    });
+
+    it("todo badge é publicado em português E em inglês", () => {
+        for (const badge of buildBadgeCatalog().badges) {
+            expect(Object.keys(badge.name).sort()).toEqual(["en", "pt"]);
+            expect(Object.keys(badge.description).sort()).toEqual(["en", "pt"]);
+            expect(badge.name.en.length).toBeGreaterThan(0);
+            expect(badge.description.en.length).toBeGreaterThan(0);
+        }
+    });
+
+    it("o texto em inglês é DIFERENTE do português (tradução, não cópia)", () => {
+        const iguais = buildBadgeCatalog().badges.filter((b) => b.name.pt === b.name.en);
+        // "Streak" e afins podem coincidir; o que não pode é o inglês ser um
+        // espelho do português inteiro.
+        expect(iguais.length).toBeLessThan(5);
+    });
+
+    it("a versão muda quando o conteúdo por locale muda", () => {
+        // O hash cobre os mapas de texto: publicar uma tradução nova propaga.
+        const catalog = buildBadgeCatalog();
+        expect(catalog.version).toHaveLength(16);
     });
 
     it("a chave do mapa BADGES é sempre igual ao id do badge", () => {

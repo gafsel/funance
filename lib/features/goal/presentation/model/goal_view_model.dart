@@ -13,7 +13,6 @@ sealed class GoalFormState with _$GoalFormState {
     required String name,
     required double targetAmount,
     required double currentAmount,
-    required double averageSpending,
     required DateTime startDate,
     required DateTime deadline,
     required GoalType type,
@@ -27,12 +26,6 @@ sealed class GoalFormState with _$GoalFormState {
       name: goal?.name ?? '',
       targetAmount: goal?.targetAmount ?? 0.0,
       currentAmount: goal?.currentAmount ?? 0.0,
-      averageSpending:
-          goal?.mapOrNull(
-            reduceCreditCard: (goal) => goal.averageSpending,
-            reduceExpense: (goal) => goal.averageSpending,
-          ) ??
-          0.0,
       startDate: goal?.startDate ?? DateTime.now(),
       deadline: goal?.deadline ?? DateTime.now().add(const Duration(days: 30)),
       type: goal?.type ?? GoalType.saveMoney,
@@ -65,7 +58,6 @@ sealed class GoalFormState with _$GoalFormState {
           name: name,
           targetAmount: targetAmount,
           currentAmount: currentAmount,
-          averageSpending: averageSpending,
           deadline: deadline,
           category: category!,
           startDate: startDate,
@@ -76,7 +68,6 @@ sealed class GoalFormState with _$GoalFormState {
           name: name,
           targetAmount: targetAmount,
           currentAmount: currentAmount,
-          averageSpending: averageSpending,
           deadline: deadline,
           accountId: accountId!,
           startDate: startDate,

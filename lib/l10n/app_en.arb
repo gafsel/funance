@@ -919,14 +919,6 @@
       }
     }
   },
-  "goalLimitReachedAt": "Cap reached on {date}",
-  "@goalLimitReachedAt": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
   "goalSpentOfLimit": "{amount} of {limit}",
   "@goalSpentOfLimit": {
     "placeholders": {
@@ -976,5 +968,22 @@
         "type": "int"
       }
     }
-  }
+  },
+  "goalLimitBlownAt": "Cap blown on {date}",
+  "@goalLimitBlownAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "goalDeadlineMissedAt": "Deadline passed without reaching it on {date}",
+  "@goalDeadlineMissedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyClosedGoalsTitle": "Closed goals"
 }

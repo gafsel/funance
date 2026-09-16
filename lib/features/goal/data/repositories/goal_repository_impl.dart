@@ -43,9 +43,12 @@ class GoalRepositoryImpl implements IGoalRepository {
     try {
       final data = goal.toJson();
       data.remove('id');
-      // `completedAt` é do servidor: as rules negam a escrita pelo cliente, e
-      // enviar o campo (mesmo como null) derrubaria a gravação inteira.
-      data.remove('completedAt');
+      // O DESFECHO é do servidor: as rules negam a escrita destes campos pelo
+      // cliente, e enviar qualquer um deles (mesmo como null) derrubaria a
+      // gravação inteira.
+      data.removeWhere(
+        (key, _) => const {'outcome', 'completedAt', 'failedAt'}.contains(key),
+      );
       data['deadline'] = Timestamp.fromDate(goal.deadline);
       data['startDate'] = Timestamp.fromDate(goal.startDate);
       // O id real é o gerado pelo Firestore. Devolver `goal.id` (vazio na
@@ -67,8 +70,10 @@ class GoalRepositoryImpl implements IGoalRepository {
     try {
       final data = goal.toJson();
       data.remove('id');
-      // Ver `addGoal`: o carimbo de conclusão pertence ao servidor.
-      data.remove('completedAt');
+      // Ver `addGoal`: o desfecho pertence ao servidor.
+      data.removeWhere(
+        (key, _) => const {'outcome', 'completedAt', 'failedAt'}.contains(key),
+      );
       data['deadline'] = Timestamp.fromDate(goal.deadline);
       data['startDate'] = Timestamp.fromDate(goal.startDate);
       await _getCollection(workspaceId).doc(goal.id).update(data);

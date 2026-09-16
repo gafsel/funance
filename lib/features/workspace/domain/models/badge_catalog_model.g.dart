@@ -9,7 +9,9 @@ part of 'badge_catalog_model.dart';
 _BadgeCatalogItem _$BadgeCatalogItemFromJson(Map<String, dynamic> json) =>
     _BadgeCatalogItem(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: json['name'] == null
+          ? const <String, String>{}
+          : localizedText(json['name']),
       icon: json['icon'] as String? ?? '',
       xpReward: (json['xpReward'] as num?)?.toInt() ?? 0,
       category:
@@ -19,7 +21,9 @@ _BadgeCatalogItem _$BadgeCatalogItemFromJson(Map<String, dynamic> json) =>
             unknownValue: BadgeCategory.unknown,
           ) ??
           BadgeCategory.unknown,
-      description: json['description'] as String? ?? '',
+      description: json['description'] == null
+          ? const <String, String>{}
+          : localizedText(json['description']),
     );
 
 Map<String, dynamic> _$BadgeCatalogItemToJson(_BadgeCatalogItem instance) =>

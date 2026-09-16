@@ -18,6 +18,18 @@ enum GoalType {
 
 enum GoalStatus { onTrack, atRisk, behind, lost }
 
+/// Desfecho gravado pelo SERVIDOR quando a meta acaba.
+///
+/// Numa meta de redução, passar do teto é `failed` — nunca conclusão. Numa de
+/// acúmulo, vencer o prazo sem alcançar o alvo também é `failed`. O app só lê:
+/// as rules negam a escrita destes campos pelo cliente.
+enum GoalOutcome {
+  @JsonValue('success')
+  success,
+  @JsonValue('failed')
+  failed,
+}
+
 @freezed
 sealed class GoalProgress with _$GoalProgress {
   const factory GoalProgress({
@@ -41,10 +53,17 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     required String accountId,
     required DateTime startDate,
-    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-    /// O app só lê: as security rules negam a escrita pelo cliente e o
-    /// repositório remove o campo antes de salvar.
+
+    /// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+    /// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+    /// as rules negam a escrita e o repositório remove os campos antes de
+    /// salvar.
+    /// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+    /// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+    @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
+    GoalOutcome? outcome,
     DateTime? completedAt,
+    DateTime? failedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelPayDebt;
 
@@ -54,14 +73,20 @@ sealed class GoalModel with _$GoalModel {
     required String name,
     required double targetAmount,
     required double currentAmount,
-    required double averageSpending,
     required DateTime deadline,
     required String accountId,
     required DateTime startDate,
-    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-    /// O app só lê: as security rules negam a escrita pelo cliente e o
-    /// repositório remove o campo antes de salvar.
+
+    /// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+    /// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+    /// as rules negam a escrita e o repositório remove os campos antes de
+    /// salvar.
+    /// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+    /// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+    @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
+    GoalOutcome? outcome,
     DateTime? completedAt,
+    DateTime? failedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelCreditCard;
 
@@ -71,14 +96,20 @@ sealed class GoalModel with _$GoalModel {
     required String name,
     required double targetAmount,
     required double currentAmount,
-    required double averageSpending,
     required DateTime deadline,
     required CategoryModel category,
     required DateTime startDate,
-    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-    /// O app só lê: as security rules negam a escrita pelo cliente e o
-    /// repositório remove o campo antes de salvar.
+
+    /// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+    /// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+    /// as rules negam a escrita e o repositório remove os campos antes de
+    /// salvar.
+    /// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+    /// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+    @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
+    GoalOutcome? outcome,
     DateTime? completedAt,
+    DateTime? failedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelReduceExpense;
 
@@ -91,10 +122,17 @@ sealed class GoalModel with _$GoalModel {
     required DateTime deadline,
     required String accountId,
     required DateTime startDate,
-    /// Carimbo do SERVIDOR na primeira vez que a meta alcança o alvo.
-    /// O app só lê: as security rules negam a escrita pelo cliente e o
-    /// repositório remove o campo antes de salvar.
+
+    /// Desfecho gravado pelo SERVIDOR (`null` = ainda em andamento), com o
+    /// instante em [completedAt] (sucesso) ou [failedAt] (falha). O app só lê:
+    /// as rules negam a escrita e o repositório remove os campos antes de
+    /// salvar.
+    /// `nullForUndefinedEnumValue`: um desfecho que só um servidor mais novo
+    /// conhece lê como "em andamento" em vez de derrubar a tela de metas.
+    @JsonKey(unknownEnumValue: JsonKey.nullForUndefinedEnumValue)
+    GoalOutcome? outcome,
     DateTime? completedAt,
+    DateTime? failedAt,
     @Default(false) bool isDeleted,
   }) = _GoalModelSaveMoney;
 
@@ -102,6 +140,16 @@ sealed class GoalModel with _$GoalModel {
   /// Nas de redução, `currentAmount` é GASTO e 100% significa estourar o teto.
   bool get isAccumulation =>
       type == GoalType.saveMoney || type == GoalType.payDebt;
+
+  /// Meta encerrada com sucesso. Numa de redução, quer dizer que o prazo
+  /// acabou com o gasto dentro do teto — NÃO que o alvo foi "alcançado".
+  bool get isCompleted => outcome == GoalOutcome.success;
+
+  /// Meta encerrada sem sucesso: teto estourado, ou prazo vencido sem atingir.
+  bool get isFailed => outcome == GoalOutcome.failed;
+
+  /// Ainda em andamento: sem desfecho e dentro do prazo.
+  bool get isActive => !isDeleted && outcome == null;
 
   GoalType get type => map(
     payDebt: (_) => GoalType.payDebt,
