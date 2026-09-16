@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,11 +9,52 @@ import 'package:funances/features/finance/presentation/widgets/statement_upload_
 import 'package:funances/l10n/app_localizations.dart';
 
 /// O que o painel entregou a quem vai enviar o arquivo.
-///
-/// Os testes chamam `acceptForTest`, a mesma porta por onde passam o seletor
-/// de arquivos e o arrastar-e-soltar — dirigir o `FilePicker` nativo num
-/// teste de widget não é possível, mas a barreira exercitada é a de verdade.
 typedef Selection = ({File file, String name});
+
+/// Responde no lugar do seletor nativo de arquivos.
+///
+/// Os testes tocam o botão de verdade e o arquivo entra pelo mesmo caminho do
+/// app — sem porta de teste no painel. Dirigir o seletor nativo num teste de
+/// widget não é possível, mas `FilePicker.platform` é justamente a costura
+/// que o pacote expõe para isso.
+class _FakeFilePicker extends FilePicker {
+  _FakeFilePicker(this.picked);
+
+  /// Arquivo devolvido ao toque no botão. Nulo é o usuário que desistiu.
+  final File? picked;
+
+  /// Nome que o seletor informa, que nem sempre é o do caminho.
+  String? name;
+
+  @override
+  Future<FilePickerResult?> pickFiles({
+    String? dialogTitle,
+    String? initialDirectory,
+    FileType type = FileType.any,
+    List<String>? allowedExtensions,
+    Function(FilePickerStatus)? onFileLoading,
+    bool allowCompression = true,
+    int compressionQuality = 30,
+    bool allowMultiple = false,
+    bool withData = false,
+    bool withReadStream = false,
+    bool lockParentWindow = false,
+    bool readSequential = false,
+  }) async {
+    final file = picked;
+    if (file == null) return null;
+
+    return FilePickerResult([
+      PlatformFile(
+        path: file.path,
+        name: name ?? file.uri.pathSegments.last,
+        // O tamanho declarado pelo seletor é de propósito diferente do real:
+        // quem decide é o arquivo no disco, não o que o seletor disse.
+        size: 0,
+      ),
+    ]);
+  }
+}
 
 Widget _app(StatementUploadPanel panel) => MaterialApp(
   localizationsDelegates: const [
@@ -54,16 +96,23 @@ void main() {
     if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
   });
 
-  testWidgets('arquivo de 11 MB não chega ao onFileSelected', (tester) async {
+  /// Monta o painel, escolhe [file] no seletor e devolve o que foi entregue.
+  Future<List<Selection>> pick(WidgetTester tester, File? file) async {
+    FilePicker.platform = _FakeFilePicker(file);
+
     final selected = <Selection>[];
     await tester.pumpWidget(_app(_panel(selected)));
 
+    await tester.tap(find.text('Escolher arquivo'));
+    await tester.pumpAndSettle();
+
+    return selected;
+  }
+
+  testWidgets('arquivo de 11 MB não chega ao onFileSelected', (tester) async {
     final grande = _fileOfSize(tempDir, 'extrato.pdf', 11 * 1024 * 1024);
 
-    tester
-        .state<StatementUploadPanelState>(find.byType(StatementUploadPanel))
-        .acceptForTest(grande, 'extrato.pdf');
-    await tester.pumpAndSettle();
+    final selected = await pick(tester, grande);
 
     expect(
       selected,
@@ -77,15 +126,9 @@ void main() {
   });
 
   testWidgets('arquivo dentro do limite é entregue', (tester) async {
-    final selected = <Selection>[];
-    await tester.pumpWidget(_app(_panel(selected)));
-
     final pequeno = _fileOfSize(tempDir, 'extrato.ofx', 2048);
 
-    tester
-        .state<StatementUploadPanelState>(find.byType(StatementUploadPanel))
-        .acceptForTest(pequeno, 'extrato.ofx');
-    await tester.pumpAndSettle();
+    final selected = await pick(tester, pequeno);
 
     expect(selected, hasLength(1));
     expect(selected.single.name, 'extrato.ofx');
@@ -94,16 +137,10 @@ void main() {
   testWidgets('arquivo inexistente é recusado, não tratado como 0 byte', (
     tester,
   ) async {
-    final selected = <Selection>[];
-    await tester.pumpWidget(_app(_panel(selected)));
-
     final sumiu = File('${tempDir.path}/nao-existe.pdf');
     expect(sumiu.existsSync(), isFalse);
 
-    tester
-        .state<StatementUploadPanelState>(find.byType(StatementUploadPanel))
-        .acceptForTest(sumiu, 'nao-existe.pdf');
-    await tester.pumpAndSettle();
+    final selected = await pick(tester, sumiu);
 
     expect(
       selected,
@@ -114,18 +151,18 @@ void main() {
   });
 
   testWidgets('extensão fora da lista é recusada', (tester) async {
-    final selected = <Selection>[];
-    await tester.pumpWidget(_app(_panel(selected)));
-
     final planilha = _fileOfSize(tempDir, 'extrato.xlsx', 1024);
 
-    tester
-        .state<StatementUploadPanelState>(find.byType(StatementUploadPanel))
-        .acceptForTest(planilha, 'extrato.xlsx');
-    await tester.pumpAndSettle();
+    final selected = await pick(tester, planilha);
 
     expect(selected, isEmpty);
     expect(find.textContaining('Formato não suportado'), findsOneWidget);
+  });
+
+  testWidgets('desistir do seletor não entrega nada', (tester) async {
+    final selected = await pick(tester, null);
+
+    expect(selected, isEmpty);
   });
 
   test('o limite do painel é o mesmo do servidor', () {

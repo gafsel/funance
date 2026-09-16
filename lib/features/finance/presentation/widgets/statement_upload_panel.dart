@@ -27,10 +27,10 @@ class StatementUploadPanel extends StatefulWidget {
   });
 
   @override
-  State<StatementUploadPanel> createState() => StatementUploadPanelState();
+  State<StatementUploadPanel> createState() => _StatementUploadPanelState();
 }
 
-class StatementUploadPanelState extends State<StatementUploadPanel>
+class _StatementUploadPanelState extends State<StatementUploadPanel>
     with SingleTickerProviderStateMixin {
   bool _dragging = false;
   late AnimationController _borderAnimationController;
@@ -82,11 +82,6 @@ class StatementUploadPanelState extends State<StatementUploadPanel>
 
     _accept(File(result.files.single.path!), result.files.single.name);
   }
-
-  /// Porta única do painel, para o teste exercitar a mesma barreira que o
-  /// seletor de arquivos e o arrastar-e-soltar atravessam.
-  @visibleForTesting
-  void acceptForTest(File file, String name) => _accept(file, name);
 
   /// Só entrega o arquivo para quem vai enviá-lo se ele existir, for de um
   /// formato aceito e couber no limite da análise. Mandar para o Storage um
