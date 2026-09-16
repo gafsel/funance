@@ -7,6 +7,7 @@ import {
     CategoryPlanningMarks,
     AccountModel,
     AccountBalanceModel,
+    NextInvoiceModel,
     PeriodSummaryUpdateModel,
     OrderStatus,
     InstallmentType,
@@ -20,6 +21,8 @@ import {
 } from "../../domain/repositories/finance.repository";
 import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChunks } from "../../../../core/utils/batch.utils";
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
+import { getZonedParts } from "../../../../core/utils/timezone.utils";
+import { InvoiceService } from "../../domain/services/invoice.service";
 
 /**
  * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
@@ -776,7 +779,60 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null> {
         const doc = await this.getAccountsCollection(workspaceId).doc(accountId).get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() } as AccountModel;
+        return toAccountModel(doc.id, doc.data()!);
+    }
+
+    async getNextPendingInvoice(workspaceId: string, accountId: string): Promise<InstallmentModel | null> {
+        // Mesma consulta que o app fazia em `watchNextInvoice` — e o mesmo
+        // índice composto (accountIds CONTAINS, isInvoice, status, dueDate).
+        const snapshot = await this.getInstallmentsCollection(workspaceId)
+            .where("isInvoice", "==", true)
+            .where("accountIds", "array-contains", accountId)
+            .where("status", "==", InstallmentStatus.pending)
+            .orderBy("dueDate")
+            .limit(1)
+            .get();
+
+        const doc = snapshot.docs[0];
+        if (!doc) return null;
+
+        const data = doc.data();
+        // Sem `setHours(12)` aqui de propósito: o instante gravado é o que vai
+        // para `nextInvoice.dueDate` e para a janela do ciclo. Normalizar a
+        // hora no fuso do SERVIDOR é o que deslocava o dia da fatura.
+        return {
+            id: doc.id,
+            ...data,
+            dueDate: data.dueDate?.toDate ? data.dueDate.toDate() : new Date(data.dueDate),
+            paidDate: data.paidDate?.toDate ? data.paidDate.toDate() : undefined,
+        } as InstallmentModel;
+    }
+
+    async setAccountNextInvoice(
+        workspaceId: string,
+        accountId: string,
+        nextInvoice: NextInvoiceModel | null
+    ): Promise<void> {
+        const docRef = this.getAccountsCollection(workspaceId).doc(accountId);
+
+        if (!nextInvoice) {
+            await docRef.set({ nextInvoice: admin.firestore.FieldValue.delete() }, { merge: true });
+            return;
+        }
+
+        await docRef.set({
+            nextInvoice: {
+                dueDate: admin.firestore.Timestamp.fromDate(nextInvoice.dueDate),
+                closingDate: admin.firestore.Timestamp.fromDate(nextInvoice.closingDate),
+                cycleStart: admin.firestore.Timestamp.fromDate(nextInvoice.cycleStart),
+                cycleEnd: admin.firestore.Timestamp.fromDate(nextInvoice.cycleEnd),
+                amount: nextInvoice.amount,
+                orderId: nextInvoice.orderId,
+                installmentId: nextInvoice.installmentId,
+                status: nextInvoice.status,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+        }, { merge: true });
     }
 
     /**
@@ -1030,17 +1086,21 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     ): Promise<void> {
         if (delta === 0) return;
 
-        const dueDateStr = dueDate.toISOString().split("T")[0];
-        const orderId = `invoice-${account.id}-${dueDateStr}`;
+        const orderRef = await this.resolveInvoiceOrderRef(workspaceId, account.id, dueDate);
 
-        const orderRef = this.getOrdersCollection(workspaceId).doc(orderId);
+        // Dia e mês da fatura vêm do fuso do PRODUTO. `getDate()/getMonth()` é
+        // o fuso do servidor (UTC nas Cloud Functions): um vencimento gravado
+        // às 21h de São Paulo virava o dia seguinte no `dueDay` da order, e a
+        // parcela nascia com o vencimento errado.
+        const p = getZonedParts(dueDate);
+        const monthKey = `${p.year}-${p.month.toString().padStart(2, "0")}`;
 
         const orderData = {
             amount: admin.firestore.FieldValue.increment(delta),
-            dueDay: dueDate.getDate(),
+            dueDay: p.day,
             description: `Fatura ${account.name}`,
-            startMonth: `${dueDate.getFullYear()}-${(dueDate.getMonth() + 1).toString().padStart(2, "0")}`,
-            endMonth: `${dueDate.getFullYear()}-${(dueDate.getMonth() + 1).toString().padStart(2, "0")}`,
+            startMonth: monthKey,
+            endMonth: monthKey,
             installmentType: InstallmentType.single,
             status: OrderStatus.active,
             type: OrderType.transfer,
@@ -1050,6 +1110,42 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         };
 
         await orderRef.set(orderData, { merge: true });
+    }
+
+    /**
+     * Referência da order de fatura do vencimento, reconhecendo os DOIS
+     * formatos de id.
+     *
+     * O id canônico passou a usar `toDateKey` (dia no fuso do produto); o
+     * antigo usava `toISOString()` (dia em UTC). Enquanto o servidor rodou em
+     * UTC com o vencimento ao meio-dia os dois coincidiam, mas nem toda order
+     * da base nasceu assim. Quando os ids DIFEREM e só o antigo existe,
+     * continuamos escrevendo nele: criar a order canônica ao lado
+     * DUPLICARIA a fatura daquele mês.
+     */
+    private async resolveInvoiceOrderRef(
+        workspaceId: string,
+        accountId: string,
+        dueDate: Date
+    ): Promise<admin.firestore.DocumentReference> {
+        const collection = this.getOrdersCollection(workspaceId);
+        const canonicalId = InvoiceService.invoiceOrderId(accountId, dueDate);
+        const legacyId = InvoiceService.legacyInvoiceOrderId(accountId, dueDate);
+
+        if (canonicalId === legacyId) {
+            return collection.doc(canonicalId);
+        }
+
+        const [canonical, legacy] = await Promise.all([
+            collection.doc(canonicalId).get(),
+            collection.doc(legacyId).get(),
+        ]);
+
+        if (!canonical.exists && legacy.exists) {
+            return collection.doc(legacyId);
+        }
+
+        return collection.doc(canonicalId);
     }
 
     async getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]> {
@@ -1148,6 +1244,40 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async getAccounts(workspaceId: string): Promise<AccountModel[]> {
         const snapshot = await this.getAccountsCollection(workspaceId).where("isDeleted", "==", false).get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AccountModel));
+        return snapshot.docs.map(doc => toAccountModel(doc.id, doc.data()));
     }
+}
+
+/**
+ * Converte o documento cru da conta no modelo, normalizando os `Timestamp` de
+ * `nextInvoice` para `Date`. Sem isso, quem compara o resumo já gravado com o
+ * recém-calculado compararia `Timestamp` com `Date` e reescreveria sempre —
+ * e cada escrita dispara `onAccountUpdated` de novo.
+ */
+function toAccountModel(id: string, data: admin.firestore.DocumentData): AccountModel {
+    const account = { id, ...data } as AccountModel;
+    const raw = data.nextInvoice;
+
+    if (raw && typeof raw === "object") {
+        account.nextInvoice = {
+            dueDate: toDateOrNull(raw.dueDate)!,
+            closingDate: toDateOrNull(raw.closingDate)!,
+            cycleStart: toDateOrNull(raw.cycleStart)!,
+            cycleEnd: toDateOrNull(raw.cycleEnd)!,
+            amount: typeof raw.amount === "number" ? raw.amount : 0,
+            orderId: typeof raw.orderId === "string" ? raw.orderId : "",
+            installmentId: typeof raw.installmentId === "string" ? raw.installmentId : null,
+            status: raw.status ?? InstallmentStatus.pending,
+            updatedAt: toDateOrNull(raw.updatedAt) ?? undefined,
+        };
+    }
+
+    return account;
+}
+
+function toDateOrNull(value: any): Date | null {
+    if (!value) return null;
+    if (typeof value.toDate === "function") return value.toDate();
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
 }

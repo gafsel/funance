@@ -7,6 +7,7 @@ import {
     CategoryPlanningMarks,
     AccountModel,
     AccountBalanceModel,
+    NextInvoiceModel,
     PeriodSummaryUpdateModel, InstallmentStatus,
 } from "../models/finance.models";
 
@@ -136,6 +137,21 @@ export interface IFinanceRepository {
 
   // Accounts
   getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null>;
+  /**
+   * Fatura em aberto mais próxima do cartão (`isInvoice` + `pending`, ordenada
+   * por `dueDate`). É a MESMA consulta que o app fazia em `watchNextInvoice`;
+   * ela mudou de lado em F1.8 para que o resumo seja escrito na conta.
+   */
+  getNextPendingInvoice(workspaceId: string, accountId: string): Promise<InstallmentModel | null>;
+  /**
+   * Grava (ou apaga, com `null`) o resumo `nextInvoice` da conta. Exclusivo do
+   * servidor: as security rules negam o campo ao cliente.
+   */
+  setAccountNextInvoice(
+    workspaceId: string,
+    accountId: string,
+    nextInvoice: NextInvoiceModel | null
+  ): Promise<void>;
 
   // Account Balances
   updateAccountBalance(

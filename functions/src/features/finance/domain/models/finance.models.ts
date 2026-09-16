@@ -176,6 +176,49 @@ export enum BankLogo {
     amex = "amex",
 }
 
+/**
+ * F1.8 — resumo da PRÓXIMA fatura de um cartão, denormalizado em
+ * `accounts/{accountId}.nextInvoice`.
+ *
+ * Existe para que o cliente **leia** o vencimento, o fechamento e a janela do
+ * ciclo em vez de calculá-los: havia duas implementações da mesma regra (TS e
+ * Dart) e elas divergiam, de modo que app e servidor podiam apontar para
+ * faturas diferentes — o id da order de fatura deriva da data.
+ *
+ * Escrito **apenas pelo servidor** (`InvoiceSyncService`, via Admin SDK). As
+ * security rules negam ao cliente incluir o campo num create ou update da
+ * conta.
+ */
+export interface NextInvoiceModel {
+    /** Vencimento da fatura (meio-dia no fuso do produto). */
+    dueDate: Date;
+    /** Fechamento que gerou esta fatura (00:00 no fuso do produto). */
+    closingDate: Date;
+    /** Primeira compra que pertence a esta fatura — 00:00, inclusive. */
+    cycleStart: Date;
+    /** Última compra que pertence a esta fatura — 23:59:59.999, inclusive. */
+    cycleEnd: Date;
+    /** Valor da fatura em aberto. `0` quando ainda não há nenhuma compra. */
+    amount: number;
+    /** Id da order de fatura (`invoice-{accountId}-{YYYY-MM-DD}`). */
+    orderId: string;
+    /** Parcela da fatura, ou `null` enquanto a fatura não existe de fato. */
+    installmentId: string | null;
+    /** Status da parcela da fatura (sempre `pending` quando não existe). */
+    status: InstallmentStatus;
+    /** Carimbo da última sincronização. */
+    updatedAt?: Date;
+}
+
+/**
+ * Campos de `accounts/{id}` que só o servidor escreve. Um `onAccountUpdated`
+ * cujo diff caiba aqui é o eco da sincronização anterior — reprocessá-lo
+ * gravaria de novo e o gatilho se realimentaria em laço.
+ */
+export const ACCOUNT_DERIVED_FIELDS = new Set([
+    "nextInvoice",
+]);
+
 export interface AccountModel {
     id: string;
     name: string;
@@ -191,6 +234,8 @@ export interface AccountModel {
     interestRate?: number;
     bankLogo?: BankLogo;
     ownerIds?: string[];
+    /** Somente leitura para o cliente — ver `NextInvoiceModel`. */
+    nextInvoice?: NextInvoiceModel | null;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { container } from "../../../../core/container";
+import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
 
 /**
  * Fuso dos crons de manutenção. O cliente e o negócio raciocinam em horário de
@@ -54,6 +55,41 @@ export const syncWorkspaceCurrentWeek = onSchedule(
         }
         catch (error) {
             console.error("Erro ao sincronizar a semana corrente dos workspaces:", error);
+        }
+    }
+);
+
+/**
+ * F1.8 — avança `accounts/{id}.nextInvoice` quando o vencimento passa.
+ *
+ * Fora deste cron o resumo é recalculado por evento (pagamento, mudança da
+ * fatura, criação/edição do cartão). Falta um caso que NÃO gera evento nenhum:
+ * o vencimento simplesmente chega e o ciclo vira. Um cartão sem movimento
+ * ficaria mostrando a fatura do mês passado indefinidamente.
+ *
+ * Roda de madrugada, depois da geração de parcelas recorrentes (03:30) para
+ * que uma parcela nova do dia já esteja refletida na fatura. A varredura é
+ * leve: só toca em cartão sem resumo ou com vencimento vencido.
+ */
+export const syncNextInvoices = onSchedule(
+    {
+        schedule: "45 3 * * *",
+        timeZone: FINANCE_CRON_TIME_ZONE,
+        ...AI_SCHEDULE_OPTIONS,
+    },
+    async () => {
+        console.log("Iniciando sincronização das próximas faturas...");
+        try {
+            const result = await container.invoiceSyncService.syncAllWorkspaces();
+            console.log(
+                `Próximas faturas sincronizadas. Workspaces processados: ${result.processed}, ` +
+                `falhas: ${result.failed}. Varredura ${result.completed
+                    ? "completa"
+                    : `interrompida em ${result.lastWorkspaceId} (retoma na próxima execução)`}.`
+            );
+        }
+        catch (error) {
+            console.error("Erro ao sincronizar as próximas faturas:", error);
         }
     }
 );

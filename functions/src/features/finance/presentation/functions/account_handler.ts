@@ -1,5 +1,6 @@
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
+import { AccountType } from "../../domain/models/finance.models";
 
 export const onAccountUpdated = onDocumentUpdated(
     "workspaces/{workspaceId}/accounts/{accountId}",
@@ -20,6 +21,11 @@ export const onAccountUpdated = onDocumentUpdated(
                 console.log(`Conta ${accountId} marcada como excluída no workspace ${workspaceId}. Removendo transações associadas.`);
                 await financeService.deleteOrdersByAccountId(workspaceId, accountId);
             });
+            // O resumo da fatura precisa sair junto: uma conta apagada não
+            // cobra mais nada, e o app mostraria uma fatura fantasma.
+            await container.idempotencyService.runIdempotency(event.id, "syncNextInvoice", async () => {
+                await container.invoiceSyncService.syncNextInvoice(workspaceId, accountId);
+            });
             return;
         }
 
@@ -33,6 +39,24 @@ export const onAccountUpdated = onDocumentUpdated(
             await container.idempotencyService.runIdempotency(event.id, "syncInitialBalance", async () => {
                 console.log(`Saldo inicial da conta ${accountId} alterado no workspace ${workspaceId}. Ressincronizando a order de saldo inicial.`);
                 await financeService.syncInitialBalance(workspaceId, accountId, after as any);
+            });
+        }
+
+        // F1.8: mudar o dia de fechamento ou de vencimento muda o vencimento,
+        // a janela do ciclo e — por tabela — o id da order de fatura. O resumo
+        // denormalizado precisa acompanhar.
+        //
+        // A guarda é ESTREITA de propósito: a própria escrita de `nextInvoice`
+        // dispara este gatilho, e sincronizar em toda atualização faria a conta
+        // se realimentar em laço.
+        const invoiceConfigChanged = before.closingDay !== after.closingDay
+            || before.dueDay !== after.dueDay
+            || before.runtimeType !== after.runtimeType;
+
+        if (invoiceConfigChanged) {
+            await container.idempotencyService.runIdempotency(event.id, "syncNextInvoice", async () => {
+                console.log(`Fechamento/vencimento da conta ${accountId} alterado no workspace ${workspaceId}. Recalculando nextInvoice.`);
+                await container.invoiceSyncService.syncNextInvoice(workspaceId, accountId);
             });
         }
     }
@@ -59,5 +83,14 @@ export const onAccountCreated = onDocumentCreated(
         await container.idempotencyService.runIdempotency(event.id, "syncInitialBalance", async () => {
             await financeService.syncInitialBalance(workspaceId, accountId, account);
         });
+
+        // Cartão novo já nasce com a janela e o vencimento da fatura corrente
+        // (valor zero): sem isso o app ficaria em "calculando" até a primeira
+        // compra ou até o cron da madrugada.
+        if (account?.runtimeType === AccountType.creditCard) {
+            await container.idempotencyService.runIdempotency(event.id, "syncNextInvoice", async () => {
+                await container.invoiceSyncService.syncNextInvoice(workspaceId, accountId);
+            });
+        }
     }
 );

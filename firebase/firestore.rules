@@ -266,7 +266,18 @@ service cloud.firestore {
         }
 
         allow read: if isMember(workspaceId);
-        allow create, update: if isMember(workspaceId) && validAccount(request.resource.data);
+        // `nextInvoice` (F1.8) é do SERVIDOR: vencimento, fechamento e janela
+        // do ciclo da próxima fatura. O cliente lê e nunca envia — nem na
+        // criação, nem num update que reenvie o documento inteiro. Sem esta
+        // negação, o app poderia gravar uma janela calculada por ele e voltar a
+        // apontar para uma fatura diferente da do servidor, que é exatamente o
+        // defeito que o pacote corrige.
+        allow create: if isMember(workspaceId)
+          && validAccount(request.resource.data)
+          && !('nextInvoice' in request.resource.data);
+        allow update: if isMember(workspaceId)
+          && validAccount(request.resource.data)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['nextInvoice']);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
 
         // Account Balances: Membros podem apenas ler (escrito pelo servidor)
