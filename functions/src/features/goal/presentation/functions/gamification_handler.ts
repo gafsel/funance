@@ -19,6 +19,25 @@ const GAMIFICATION_ONLY_FIELDS = new Set([
     "lastLevelUpAt",
 ]);
 
+/**
+ * Nomes de ação da idempotência — ESTÁVEIS: mudar um destes valores faz o
+ * marcador antigo deixar de casar e a ação roda de novo para eventos em voo.
+ *
+ * A chave gravada é `${eventId}_${actionName}`. Estes handlers observam os
+ * mesmos documentos que os handlers de finanças (ex.: installments), por isso
+ * os nomes são prefixados: se a plataforma entregar o mesmo `event.id` para
+ * dois triggers da mesma escrita, um não pode roubar a chave do outro.
+ */
+export const GAMIFICATION_ACTIONS = {
+    workspaceUpdated: "gamification:workspaceUpdated",
+    accountCreated: "gamification:accountCreated",
+    installmentWritten: "gamification:installmentWritten",
+    categoryPlanningWritten: "gamification:categoryPlanningWritten",
+    categoryWritten: "gamification:categoryWritten",
+    reconciliationWritten: "gamification:reconciliationWritten",
+    goalWritten: "gamification:goalWritten",
+} as const;
+
 function getChangedTopLevelFields(before: Record<string, any>, after: Record<string, any>): string[] {
     const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
     const changed: string[] = [];
@@ -49,24 +68,26 @@ export const onWorkspaceUpdated = onDocumentUpdated(
 
         logger.info(`[onWorkspaceUpdated] Triggered for workspaceId=${workspaceId}`);
 
-        const gamificationService = container.gamificationService;
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.workspaceUpdated, async () => {
+            const gamificationService = container.gamificationService;
 
-        // 1. Check first_step: onboardingCompleted transitions from false to true
-        const beforeCompleted = before.onboardingCompleted || false;
-        const afterCompleted = after.onboardingCompleted || false;
-        if (!beforeCompleted && afterCompleted) {
-            await gamificationService.checkFirstStep(workspaceId, true);
-        }
+            // 1. Check first_step: onboardingCompleted transitions from false to true
+            const beforeCompleted = before.onboardingCompleted || false;
+            const afterCompleted = after.onboardingCompleted || false;
+            if (!beforeCompleted && afterCompleted) {
+                await gamificationService.checkFirstStep(workspaceId, true);
+            }
 
-        // 2. Check united_front: members list length >= 3
-        const beforeMembers = before.members || [];
-        const afterMembers = after.members || [];
-        if (beforeMembers.length !== afterMembers.length && afterMembers.length >= 3) {
-            await gamificationService.checkUnitedFront(workspaceId, afterMembers.length);
-        }
+            // 2. Check united_front: members list length >= 3
+            const beforeMembers = before.members || [];
+            const afterMembers = after.members || [];
+            if (beforeMembers.length !== afterMembers.length && afterMembers.length >= 3) {
+                await gamificationService.checkUnitedFront(workspaceId, afterMembers.length);
+            }
 
-        // 3. Simple badges: profile, naming, team size, anniversary
-        await gamificationService.checkSimpleWorkspaceBadges(workspaceId, after);
+            // 3. Simple badges: profile, naming, team size, anniversary
+            await gamificationService.checkSimpleWorkspaceBadges(workspaceId, after);
+        });
     }
 );
 
@@ -75,10 +96,13 @@ export const onAccountCreatedGamification = onDocumentCreated(
     async (event) => {
         const workspaceId = event.params.workspaceId;
         logger.info(`[onAccountCreatedGamification] Triggered for workspaceId=${workspaceId}`);
-        const gamificationService = container.gamificationService;
-        await gamificationService.checkFirstAccount(workspaceId);
-        // Simple: multi-account badges
-        await gamificationService.checkSimpleAccountBadges(workspaceId);
+
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.accountCreated, async () => {
+            const gamificationService = container.gamificationService;
+            await gamificationService.checkFirstAccount(workspaceId);
+            // Simple: multi-account badges
+            await gamificationService.checkSimpleAccountBadges(workspaceId);
+        });
     }
 );
 
@@ -92,18 +116,20 @@ export const onInstallmentWrittenGamification = onDocumentWritten(
 
         logger.info(`[onInstallmentWrittenGamification] Triggered for workspaceId=${workspaceId}`);
 
-        const gamificationService = container.gamificationService;
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.installmentWritten, async () => {
+            const gamificationService = container.gamificationService;
 
-        if (after.status === "paid" || after.status === "settled") {
-            // 1. Check first_transaction
-            await gamificationService.checkFirstTransaction(workspaceId);
+            if (after.status === "paid" || after.status === "settled") {
+                // 1. Check first_transaction
+                await gamificationService.checkFirstTransaction(workspaceId);
 
-            // 2. Simple transaction-count and type badges
-            await gamificationService.checkSimpleTransactionBadges(workspaceId, after);
-        }
+                // 2. Simple transaction-count and type badges
+                await gamificationService.checkSimpleTransactionBadges(workspaceId, after);
+            }
 
-        // 4. Update weekly mission progress
-        await gamificationService.updateWeeklyMissionsProgress(workspaceId, "transaction", after);
+            // 4. Update weekly mission progress
+            await gamificationService.updateWeeklyMissionsProgress(workspaceId, "transaction", after);
+        });
     }
 );
 
@@ -116,15 +142,17 @@ export const onCategoryPlanningWrittenGamification = onDocumentWritten(
         const workspaceId = event.params.workspaceId;
         logger.info(`[onCategoryPlanningWrittenGamification] Triggered for workspaceId=${workspaceId}`);
 
-        const gamificationService = container.gamificationService;
-        await gamificationService.checkPlanner(workspaceId);
-        await gamificationService.checkGoldenRule(workspaceId);
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.categoryPlanningWritten, async () => {
+            const gamificationService = container.gamificationService;
+            await gamificationService.checkPlanner(workspaceId);
+            await gamificationService.checkGoldenRule(workspaceId);
 
-        // Simple: planning count badges
-        await gamificationService.checkSimplePlanningBadges(workspaceId);
+            // Simple: planning count badges
+            await gamificationService.checkSimplePlanningBadges(workspaceId);
 
-        const after = event.data?.after.exists ? event.data.after.data() : null;
-        await gamificationService.updateWeeklyMissionsProgress(workspaceId, "planning", after);
+            const after = event.data?.after.exists ? event.data.after.data() : null;
+            await gamificationService.updateWeeklyMissionsProgress(workspaceId, "planning", after);
+        });
     }
 );
 
@@ -133,7 +161,10 @@ export const onCategoryWrittenGamification = onDocumentWritten(
     async (event) => {
         const workspaceId = event.params.workspaceId;
         logger.info(`[onCategoryWrittenGamification] Triggered for workspaceId=${workspaceId}`);
-        await container.gamificationService.checkSimpleCategoryBadges(workspaceId);
+
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.categoryWritten, async () => {
+            await container.gamificationService.checkSimpleCategoryBadges(workspaceId);
+        });
     }
 );
 
@@ -147,9 +178,11 @@ export const onReconciliationWritten = onDocumentWritten(
 
         logger.info(`[onReconciliationWritten] Triggered for workspaceId=${workspaceId}`);
 
-        const gamificationService = container.gamificationService;
+        if (after.status !== "completed") return;
 
-        if (after.status === "completed") {
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.reconciliationWritten, async () => {
+            const gamificationService = container.gamificationService;
+
             const confirmedMatches = after.confirmedMatchesCount || 0;
             const totalProcessed = after.totalTransactionsProcessed || 0;
             const createdCount = after.createdTransactionsCount || 0;
@@ -167,7 +200,7 @@ export const onReconciliationWritten = onDocumentWritten(
 
             // 3. Update weekly mission progress
             await gamificationService.updateWeeklyMissionsProgress(workspaceId, "reconciliation", after);
-        }
+        });
     }
 );
 
@@ -180,13 +213,16 @@ export const onGoalWritten = onDocumentWritten(
         if (!after) return;
 
         logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
-        const gamificationService = container.gamificationService;
 
-        // Advanced goal badges
-        await gamificationService.checkGoalBadges(workspaceId, after);
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalWritten, async () => {
+            const gamificationService = container.gamificationService;
 
-        // Simple goal badges
-        await gamificationService.checkSimpleGoalBadges(workspaceId, after);
+            // Advanced goal badges
+            await gamificationService.checkGoalBadges(workspaceId, after);
+
+            // Simple goal badges
+            await gamificationService.checkSimpleGoalBadges(workspaceId, after);
+        });
     }
 );
 
