@@ -222,6 +222,91 @@ describe("logAiCall", () => {
     });
 });
 
+describe("pinning e sanitização de modelo", () => {
+    beforeEach(() => {
+        mockFs.configDoc = undefined;
+        mockFs.added = [];
+        mockFs.addThrows = false;
+        mockGemini.text = JSON.stringify({ assignments: [] });
+        mockGemini.usageMetadata = undefined;
+        mockGemini.error = undefined;
+        mockGemini.failingModels = [];
+        mockGemini.modelsTried = [];
+    });
+
+    /**
+     * `sanitizeModel` é privado; o que importa é qual modelo foi de fato
+     * chamado, e isso o ai_log registra. `modelsTried[0]` é o primário, antes
+     * de qualquer fallback.
+     */
+    async function modelFor(models?: any): Promise<string> {
+        // `modelsTried` acumula entre chamadas; cada asserção quer o primário
+        // da SUA chamada. loadRepository() já zera o cache de config em memória.
+        mockGemini.modelsTried = [];
+        mockFs.configDoc = models === undefined ? undefined : { models };
+        await loadRepository().classifyCategoryGroups("w1", CATEGORIES);
+        return mockGemini.modelsTried[0];
+    }
+
+    it("sem override em config/ai, usa o flash PINADO", async () => {
+        expect(await modelFor()).toBe("gemini-2.5-flash");
+    });
+
+    it("alias rolante -latest é remapeado para a versão pinada", async () => {
+        expect(await modelFor({ categoryGroups: "gemini-flash-latest" })).toBe("gemini-2.5-flash");
+        expect(await modelFor({ categoryGroups: "gemini-pro-latest" })).toBe("gemini-2.5-pro");
+    });
+
+    it("família aposentada gemini-1.5-* é remapeada para a versão pinada", async () => {
+        expect(await modelFor({ categoryGroups: "gemini-1.5-flash" })).toBe("gemini-2.5-flash");
+        expect(await modelFor({ categoryGroups: "gemini-1.5-pro-002" })).toBe("gemini-2.5-pro");
+    });
+
+    it("override para um modelo pinado válido é honrado", async () => {
+        expect(await modelFor({ categoryGroups: "gemini-2.5-pro" })).toBe("gemini-2.5-pro");
+        expect(await modelFor({ categoryGroups: "gemini-3.0-flash" })).toBe("gemini-3.0-flash");
+    });
+
+    it("override inválido cai no padrão do código em vez de ir para a API", async () => {
+        for (const lixo of ["", "   ", "modelo inválido!", "../../etc/passwd", "a".repeat(100), 42, null, {}]) {
+            expect(await modelFor({ categoryGroups: lixo })).toBe("gemini-2.5-flash");
+        }
+    });
+
+    it("config/ai sem a chave models não quebra a sanitização", async () => {
+        mockFs.configDoc = { debugLogging: false };
+        await loadRepository().classifyCategoryGroups("w1", CATEGORIES);
+        expect(mockGemini.modelsTried[0]).toBe("gemini-2.5-flash");
+    });
+
+    it("análise de documento usa o PRO pinado por padrão", async () => {
+        mockGemini.text = JSON.stringify({ orders: [] });
+
+        await loadRepository().analyzeAccountDocument(
+            "w1", Buffer.from("%PDF-1.4"), "application/pdf", "fatura.pdf", []
+        );
+
+        expect(mockGemini.modelsTried[0]).toBe("gemini-2.5-pro");
+        expect(mockFs.added[0].data.model).toBe("gemini-2.5-pro");
+    });
+
+    it("os fallbacks também são versões pinadas, nunca alias", async () => {
+        mockGemini.failingModels = ["gemini-2.5-pro"];
+        mockGemini.text = JSON.stringify({ orders: [] });
+
+        await loadRepository().analyzeAccountDocument(
+            "w1", Buffer.from("%PDF-1.4"), "application/pdf", "fatura.pdf", []
+        );
+
+        expect(mockGemini.modelsTried).toEqual([
+            "gemini-2.5-pro",
+            "gemini-2.5-pro",
+            "gemini-2.5-flash",
+        ]);
+        expect(mockGemini.modelsTried.every((m) => !m.endsWith("-latest"))).toBe(true);
+    });
+});
+
 describe("isTransientAiError", () => {
     function classify(error: any): boolean {
         let result = false;
