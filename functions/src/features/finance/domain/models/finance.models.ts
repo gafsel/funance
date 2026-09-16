@@ -113,6 +113,10 @@ export const INSTALLMENT_DERIVED_FIELDS = new Set([
     "replicationCascade",
     "lastUpdate",
     "updatedAt",
+    // F1.8: a janela do ciclo é do servidor. Sem ela aqui, o backfill que
+    // preenche as faturas antigas dispararia o gatilho inteiro — sumário,
+    // meta, saldo, XP — para cada fatura da base, tudo com delta zero.
+    ...INVOICE_CYCLE_FIELDS,
 ]);
 
 /**
