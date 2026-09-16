@@ -24,6 +24,9 @@ import { WorkspaceServiceImpl } from "../features/workspace/domain/services/work
 import { GoalServiceImpl } from "../features/goal/domain/services/goal.service.impl";
 import { FinanceService } from "../features/finance/domain/services/finance.service";
 import { SummaryService } from "../features/finance/domain/services/summary.service";
+import { RebuildService } from "../features/finance/domain/services/rebuild.service";
+import { IRebuildRepository } from "../features/finance/domain/repositories/rebuild.repository";
+import { RebuildRepositoryImpl } from "../features/finance/data/repositories/rebuild.repository.impl";
 import { CoachingService } from "../features/coaching/domain/services/coaching.service";
 import { GamificationService } from "../features/goal/domain/services/gamification.service";
 import { GoalFeasibilityService } from "../features/goal/domain/services/goal_feasibility.service";
@@ -44,6 +47,8 @@ class Container {
     private static _goalService: IGoalService;
     private static _financeService: FinanceService;
     private static _summaryService: SummaryService;
+    private static _rebuildRepository: IRebuildRepository;
+    private static _rebuildService: RebuildService;
     private static _coachingService: CoachingService;
     private static _aiRepository: IAIRepository;
     private static _onboardingService: IOnboardingService;
@@ -136,6 +141,24 @@ class Container {
             this._summaryService = new SummaryService(this.financeRepository);
         }
         return this._summaryService;
+    }
+
+    static get rebuildRepository(): IRebuildRepository {
+        if (!this._rebuildRepository) {
+            this._rebuildRepository = new RebuildRepositoryImpl();
+        }
+        return this._rebuildRepository;
+    }
+
+    static get rebuildService(): RebuildService {
+        if (!this._rebuildService) {
+            this._rebuildService = new RebuildService(
+                this.rebuildRepository,
+                this.summaryService,
+                this.financeService
+            );
+        }
+        return this._rebuildService;
     }
 
     static get goalRepository(): IGoalRepository {
