@@ -155,6 +155,81 @@ firebase deploy --only functions:onOrderWritten
 
 ---
 
+## 🧪 Testes e CI
+
+### Rodando os testes das Cloud Functions
+
+Pré-requisito: **Java 17+** (o emulador do Firestore é um JAR). O Firebase CLI
+vem do devDependency `firebase-tools`, então um `npm ci` basta.
+
+```bash
+cd functions
+npm ci
+
+npm run test:unit         # testes com mocks manuais, sem emulador
+npm run test:integration  # integração + rules no emulador do Firestore
+npm run test:rules        # só as security rules
+npm test                  # test:unit + test:integration
+```
+
+Os scripts com emulador usam `firebase emulators:exec --project demo-funances
+--only firestore`. O prefixo `demo-` garante que o CLI trabalhe em modo
+totalmente emulado — **nenhum teste toca o projeto real `funance-cef1b`**. O
+setup em `src/test/integration/setup.ts` aborta se `FIRESTORE_EMULATOR_HOST`
+não estiver definido, então rodar `jest` direto nesses testes falha de
+propósito em vez de vazar escrita para produção. As portas ficam fixas em
+`firebase.json` (Firestore 8080, Functions 5001).
+
+Os testes de integração instanciam os repositórios reais (sem mocks) e
+verificam documentos no formato de produção; os de rules rodam com
+`@firebase/rules-unit-testing` contra `firebase/firestore.rules`.
+
+### O que o CI verifica
+
+`.github/workflows/verify.yml` é um workflow reutilizável com três jobs,
+chamado tanto no pull request quanto no push para `main`:
+
+| Job | O que roda |
+|---|---|
+| `flutter` | `pub get`, `gen-l10n`, `build_runner`, `analyze`, `test`, `build web` (Flutter pinado em 3.44.3 stable) |
+| `functions` | Node 20 + Java 17, `npm ci`, `lint`, `build`, `npm test` |
+| `rules` | Node 20 + Java 17, `npm ci`, `npm run test:rules` |
+
+No PR, o preview do Hosting só publica depois que os três jobs passam. No push
+para `main`, o deploy (Hosting, Functions, rules do Firestore e do Storage e
+indexes) também só roda depois dos três verdes. O build web é feito uma única
+vez e reaproveitado pelos jobs de deploy via artifact.
+
+> `flutter analyze` roda com `--no-fatal-warnings --no-fatal-infos` enquanto
+> houver warnings/infos pré-existentes no projeto. Remova os flags depois da
+> limpeza do analyzer.
+
+### Pendência: IAM do service account para o `deploy_backend`
+
+O job `deploy_backend` reaproveita o secret `FIREBASE_SERVICE_ACCOUNT_FUNANCE_CEF1B`
+como credencial do Firebase CLI. Esse service account foi criado pelo
+`firebase init hosting:github` apenas com *Firebase Hosting Admin* e
+*API Keys Viewer* — **ele ainda não consegue publicar Functions, rules nem
+indexes**. Antes do primeiro deploy é preciso conceder a ele, no IAM do
+projeto, os seis papéis:
+
+- Cloud Functions Admin
+- Service Account User
+- Firebase Rules Admin
+- Cloud Datastore Index Admin
+- Artifact Registry Writer
+- Cloud Build Editor
+
+Alternativa, se preferir isolar as permissões: criar um service account
+dedicado ao backend, gravá-lo num novo secret (ex.:
+`FIREBASE_SERVICE_ACCOUNT_DEPLOY_BACKEND`) e trocar a referência em
+`.github/workflows/firebase-hosting-merge.yml`.
+
+Os secrets do Gemini usados via `defineSecret` continuam no Secret Manager do
+projeto — não são configurados no GitHub.
+
+---
+
 ## 📜 Blueprint v4.0 (Destaques)
 - **Multi-Tenant:** Cada `Workspace` é um silo de dados isolado.
 - **Parcelamento Inteligente:** Cloud Functions automatizam a criação de parcelas (`ledger_entries`) em tempo real.
