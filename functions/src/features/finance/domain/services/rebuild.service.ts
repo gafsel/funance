@@ -10,6 +10,10 @@
  * As fontes da verdade são `installments` (exceto as `removed`, que são
  * exclusões lógicas) e `category_planning`.
  *
+ * ATENÇÃO (não é transacional): o job lê o workspace, calcula em memória e só
+ * então commita em lotes. Uma escrita feita pelo app entre a leitura e o commit
+ * é SOBRESCRITA — aplique numa janela sem uso, com o dry-run refeito logo antes.
+ *
  * ATENÇÃO (conta apagada): quando uma conta é marcada como `isDeleted`, o
  * gatilho `onAccountUpdated` apaga as orders/parcelas dela
  * (`deleteOrdersByAccountId`), mas NÃO apaga a subcoleção `balance`. Sem
@@ -58,8 +62,19 @@ export interface RebuildOptions {
      * daquele dia. Eles não contam como divergência.
      */
     pruneResidual?: boolean;
-    /** Quantos caminhos de documento listar como amostra por coleção (padrão 10). */
+    /** Quantos caminhos de documento listar como amostra por coleção (padrão 50). */
     sampleLimit?: number;
+    /**
+     * Recalcula também o `generalPlannedAmount` (padrão `false`).
+     *
+     * CUIDADO: esse campo NÃO é reconstruível a partir de `installments` +
+     * `category_planning`. `calculatePlanningImpacts` só projeta da data-base
+     * para a frente (12 meses), então recalcular zera o planejado dos meses
+     * PASSADOS e o resultado muda conforme o dia em que o job roda. Por padrão
+     * o rebuild PRESERVA o valor que já está gravado em cada categoria de cada
+     * documento de `period_summaries`.
+     */
+    rebuildPlanning?: boolean;
 }
 
 export interface CollectionDiff {
@@ -69,6 +84,13 @@ export interface CollectionDiff {
     unchanged: number;
     /** Documentos residuais (ver `RebuildOptions.pruneResidual`). */
     residual: number;
+    /**
+     * Documentos cuja mudança mexe no `generalPlannedAmount` de alguma
+     * categoria. Sempre 0 fora de `period_summaries` e sempre 0 sem
+     * `rebuildPlanning`. Contado à parte para o dono saber de onde vem a
+     * alteração.
+     */
+    generalPlannedChanges: number;
     /** Amostra de caminhos afetados, no formato `criar|alterar|apagar <path>`. */
     samples: string[];
 }
@@ -76,6 +98,8 @@ export interface CollectionDiff {
 export interface RebuildReport {
     workspaceId: string;
     mode: "dryRun" | "apply";
+    /** `false` (padrão) = o `generalPlannedAmount` gravado foi preservado. */
+    rebuildPlanning: boolean;
     durationMs: number;
     scanned: {
         installments: number;
@@ -122,7 +146,9 @@ export interface TargetState {
 
 const DEFAULT_PAGE_SIZE = 500;
 const DEFAULT_EPSILON = 0.005;
-const DEFAULT_SAMPLE_LIMIT = 10;
+const DEFAULT_SAMPLE_LIMIT = 50;
+/** Teto de operações por batch — `commitInChunks` aceita 500, usamos 400 de folga. */
+const MAX_CHUNK_SIZE = 400;
 
 const toCents = (value: number) => Math.round(value * 100);
 const fromCents = (cents: number) => cents / 100;
@@ -167,8 +193,10 @@ interface SummaryAccumulator {
 /**
  * Acumulador determinístico do estado-alvo.
  *
- * Consome parcelas uma a uma (as leituras são paginadas: o workspace inteiro
- * nunca fica em memória) e só mantém os agregados.
+ * As parcelas são consumidas em streaming (página a página, nenhuma lista de
+ * parcelas fica retida). Os AGREGADOS — saldo por conta/dia, sumários por
+ * período/categoria e XP por semana — ficam em memória, e são eles que
+ * dimensionam o consumo do job.
  */
 export class RebuildAccumulator {
     private balanceDeltaCents = new Map<string, Map<string, number>>();
@@ -386,7 +414,7 @@ export class RebuildAccumulator {
 }
 
 function emptyDiff(): CollectionDiff {
-    return { toCreate: 0, toUpdate: 0, toDelete: 0, unchanged: 0, residual: 0, samples: [] };
+    return { toCreate: 0, toUpdate: 0, toDelete: 0, unchanged: 0, residual: 0, generalPlannedChanges: 0, samples: [] };
 }
 
 class DiffCollector {
@@ -404,15 +432,17 @@ class DiffCollector {
         }
     }
 
-    create(path: string, write: RebuildWrite): void {
+    create(path: string, write: RebuildWrite, generalPlannedChanged = false): void {
         this.diff.toCreate++;
-        this.sample("criar", path);
+        if (generalPlannedChanged) this.diff.generalPlannedChanges++;
+        this.sample(generalPlannedChanged ? "criar (generalPlanned)" : "criar", path);
         this.writes.push(write);
     }
 
-    update(path: string, write: RebuildWrite): void {
+    update(path: string, write: RebuildWrite, generalPlannedChanged = false): void {
         this.diff.toUpdate++;
-        this.sample("alterar", path);
+        if (generalPlannedChanged) this.diff.generalPlannedChanges++;
+        this.sample(generalPlannedChanged ? "alterar (generalPlanned)" : "alterar", path);
         this.writes.push(write);
     }
 
@@ -453,6 +483,7 @@ export class RebuildService {
         const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
         const epsilon = options.epsilon ?? DEFAULT_EPSILON;
         const sampleLimit = options.sampleLimit ?? DEFAULT_SAMPLE_LIMIT;
+        const rebuildPlanning = options.rebuildPlanning === true;
         const baseDate = options.now ?? new Date();
 
         const accounts = await this.rebuildRepository.getAccounts(workspaceId);
@@ -464,13 +495,23 @@ export class RebuildService {
             accumulator.addInstallment(installment);
         });
 
-        // Ordem fixa (por id) para que o acúmulo em ponto flutuante seja
-        // determinístico entre execuções.
-        for (const planning of [...plannings].sort((a, b) => a.id.localeCompare(b.id))) {
-            accumulator.addPlanning(planning, baseDate);
+        if (rebuildPlanning) {
+            // Ordem fixa (por id) para que o acúmulo em ponto flutuante seja
+            // determinístico entre execuções.
+            for (const planning of [...plannings].sort((a, b) => a.id.localeCompare(b.id))) {
+                accumulator.addPlanning(planning, baseDate);
+            }
         }
 
         const target = accumulator.build();
+
+        const existingSummaries = await this.rebuildRepository.getExistingPeriodSummaries(workspaceId, pageSize);
+
+        if (!rebuildPlanning) {
+            // Padrão: o `generalPlannedAmount` gravado é preservado como está —
+            // ver `RebuildOptions.rebuildPlanning`.
+            preserveGeneralPlanned(target, existingSummaries, epsilon);
+        }
 
         const accountIds = new Set<string>(await this.rebuildRepository.listAccountIds(workspaceId));
         for (const accountId of target.balances.keys()) {
@@ -478,7 +519,7 @@ export class RebuildService {
         }
 
         const balances = await this.diffBalances(workspaceId, [...accountIds].sort(), target, pageSize, epsilon, sampleLimit);
-        const summaries = await this.diffSummaries(workspaceId, target, pageSize, epsilon, sampleLimit);
+        const summaries = this.diffSummaries(existingSummaries, target, epsilon, sampleLimit);
         const weeklyXp = await this.diffWeeklyXp(workspaceId, target, pageSize, epsilon, sampleLimit);
 
         const changes = [...balances.writes, ...summaries.writes, ...weeklyXp.writes];
@@ -487,7 +528,8 @@ export class RebuildService {
 
         let writesCommitted = 0;
         if (!dryRun && writes.length > 0) {
-            writesCommitted = await this.rebuildRepository.applyWrites(workspaceId, writes, options.chunkSize ?? 400);
+            const chunkSize = Math.min(Math.max(1, options.chunkSize ?? MAX_CHUNK_SIZE), MAX_CHUNK_SIZE);
+            writesCommitted = await this.rebuildRepository.applyWrites(workspaceId, writes, chunkSize);
         }
 
         const totalChanges = changes.length;
@@ -495,6 +537,7 @@ export class RebuildService {
         return {
             workspaceId,
             mode: dryRun ? "dryRun" : "apply",
+            rebuildPlanning,
             durationMs: Date.now() - startedAt,
             scanned: {
                 installments: accumulator.installmentsSeen,
@@ -567,15 +610,19 @@ export class RebuildService {
         return collector;
     }
 
-    private async diffSummaries(
-        workspaceId: string,
+    /**
+     * Compara os `period_summaries` já gravados com o estado-alvo.
+     *
+     * Recebe os documentos existentes prontos (já foram lidos para preservar o
+     * `generalPlannedAmount`), evitando uma segunda varredura da coleção.
+     */
+    private diffSummaries(
+        existing: ExistingDoc[],
         target: TargetState,
-        pageSize: number,
         epsilon: number,
         sampleLimit: number
-    ): Promise<DiffCollector> {
+    ): DiffCollector {
         const collector = new DiffCollector(sampleLimit);
-        const existing = await this.rebuildRepository.getExistingPeriodSummaries(workspaceId, pageSize);
         const existingById = new Map(existing.map((doc) => [doc.id, doc]));
 
         for (const docId of [...target.summaries.keys()].sort()) {
@@ -585,13 +632,24 @@ export class RebuildService {
             const write: RebuildWrite = { kind: "summary", docId, op: "set", data: expected };
 
             if (!current) {
-                collector.create(path, write);
+                const hasPlanned = Object.values(expected.categories)
+                    .some((totals) => !numbersEqual(totals.generalPlannedAmount, 0, epsilon));
+                collector.create(path, write, hasPlanned);
+                continue;
             }
-            else if (!summaryEquals(current, expected, epsilon)) {
-                collector.update(path, write);
+
+            const comparison = compareSummary(current, expected, epsilon);
+
+            if (comparison.equal) {
+                collector.keep();
+            }
+            else if (comparison.onlyZeroedCategoriesRemoved) {
+                // A única diferença é uma categoria zerada que sairia do
+                // documento: nada que o app leia muda.
+                collector.residual(path, write);
             }
             else {
-                collector.keep();
+                collector.update(path, write, comparison.generalPlannedChanged);
             }
         }
 
@@ -601,9 +659,14 @@ export class RebuildService {
             const path = `period_summaries/${doc.id}`;
             const write: RebuildWrite = { kind: "summary", docId: doc.id, op: "delete" };
 
-            // Documento inteiramente zerado (sobra de lançamento estornado ou
-            // removido): equivale à ausência do documento.
-            if (isZeroedSummary(doc, epsilon)) {
+            // Id fora do padrão (`YYYY`, `YYYY-MM`, `YYYY-Www`): o job não sabe
+            // o que é, então NÃO mexe.
+            if (!parsePeriodId(doc.id)) {
+                collector.keep();
+            }
+            else if (isZeroedSummary(doc, epsilon)) {
+                // Documento inteiramente zerado (sobra de lançamento estornado
+                // ou removido): equivale à ausência do documento.
                 collector.residual(path, write);
             }
             else {
@@ -674,6 +737,140 @@ function impliedBalance(expected: Map<string, number>, sortedDays: string[], day
     return value;
 }
 
+export interface PeriodIdParts {
+    year: number;
+    month: number | null;
+    week: number | null;
+    runtimeType: string;
+}
+
+/** Interpreta o id de um `period_summaries` (`YYYY`, `YYYY-MM` ou `YYYY-Www`). */
+export function parsePeriodId(docId: string): PeriodIdParts | null {
+    const week = /^(\d{4})-W(\d{2})$/.exec(docId);
+    if (week) {
+        return { year: Number(week[1]), month: null, week: Number(week[2]), runtimeType: "week" };
+    }
+
+    const month = /^(\d{4})-(\d{2})$/.exec(docId);
+    if (month) {
+        return { year: Number(month[1]), month: Number(month[2]), week: null, runtimeType: "month" };
+    }
+
+    const year = /^(\d{4})$/.exec(docId);
+    if (year) {
+        return { year: Number(year[1]), month: null, week: null, runtimeType: "year" };
+    }
+
+    return null;
+}
+
+/**
+ * Copia para o estado-alvo o `generalPlannedAmount` que já está gravado.
+ *
+ * Esse campo vem de `category_planning` através de uma janela que só olha para
+ * a frente, então recalculá-lo apagaria o histórico. Categorias cujo planejado
+ * gravado é zero NÃO são copiadas: se nada mais as sustenta, elas somem do
+ * documento como residual.
+ */
+export function preserveGeneralPlanned(target: TargetState, existing: ExistingDoc[], epsilon: number): void {
+    for (const doc of existing) {
+        const parts = parsePeriodId(doc.id);
+        if (!parts) continue;
+
+        const categories: Record<string, any> = doc.data?.categories || {};
+
+        for (const [categoryId, totals] of Object.entries(categories)) {
+            const general = Number(totals?.generalPlannedAmount ?? 0);
+            if (!Number.isFinite(general) || numbersEqual(general, 0, epsilon)) continue;
+
+            let summary = target.summaries.get(doc.id);
+            if (!summary) {
+                summary = {
+                    year: parts.year,
+                    month: parts.month,
+                    week: parts.week,
+                    runtimeType: parts.runtimeType,
+                    categories: {},
+                };
+                target.summaries.set(doc.id, summary);
+            }
+
+            const bucket = summary.categories[categoryId] ?? {
+                generalPlannedAmount: 0,
+                specificPlannedAmount: 0,
+                actualAmount: 0,
+            };
+            bucket.generalPlannedAmount = general;
+            summary.categories[categoryId] = bucket;
+        }
+    }
+}
+
+export interface SummaryComparison {
+    equal: boolean;
+    /** Difere apenas por categorias zeradas que sairiam do documento. */
+    onlyZeroedCategoriesRemoved: boolean;
+    generalPlannedChanged: boolean;
+}
+
+/** Compara o documento gravado com o alvo, separando o que é residual. */
+export function compareSummary(current: ExistingDoc, expected: TargetSummaryDoc, epsilon: number): SummaryComparison {
+    const data = current.data || {};
+    let different = false;
+    let generalPlannedChanged = false;
+    let zeroedCategoriesRemoved = false;
+
+    if ((data.year ?? null) !== expected.year) different = true;
+    if ((data.month ?? null) !== expected.month) different = true;
+    if ((data.week ?? null) !== expected.week) different = true;
+    if ((data.runtimeType ?? null) !== expected.runtimeType) different = true;
+
+    const currentCategories: Record<string, any> = data.categories || {};
+
+    for (const [categoryId, expectedTotals] of Object.entries(expected.categories)) {
+        const currentTotals = currentCategories[categoryId];
+
+        if (!currentTotals) {
+            different = true;
+            if (!numbersEqual(expectedTotals.generalPlannedAmount, 0, epsilon)) generalPlannedChanged = true;
+            continue;
+        }
+
+        if (!numbersEqual(currentTotals.generalPlannedAmount ?? 0, expectedTotals.generalPlannedAmount, epsilon)) {
+            different = true;
+            generalPlannedChanged = true;
+        }
+        if (!numbersEqual(currentTotals.specificPlannedAmount ?? 0, expectedTotals.specificPlannedAmount, epsilon)) {
+            different = true;
+        }
+        if (!numbersEqual(currentTotals.actualAmount ?? 0, expectedTotals.actualAmount, epsilon)) {
+            different = true;
+        }
+    }
+
+    for (const [categoryId, currentTotals] of Object.entries(currentCategories)) {
+        if (expected.categories[categoryId]) continue;
+
+        const isZeroed = numbersEqual(currentTotals?.generalPlannedAmount ?? 0, 0, epsilon) &&
+            numbersEqual(currentTotals?.specificPlannedAmount ?? 0, 0, epsilon) &&
+            numbersEqual(currentTotals?.actualAmount ?? 0, 0, epsilon);
+
+        if (isZeroed) {
+            zeroedCategoriesRemoved = true;
+        }
+        else {
+            different = true;
+            if (!numbersEqual(currentTotals?.generalPlannedAmount ?? 0, 0, epsilon)) generalPlannedChanged = true;
+        }
+    }
+
+    return {
+        equal: !different && !zeroedCategoriesRemoved,
+        onlyZeroedCategoriesRemoved: !different && zeroedCategoriesRemoved,
+        generalPlannedChanged,
+    };
+}
+
 /** `true` se todas as categorias do documento estão zeradas. */
 function isZeroedSummary(doc: ExistingDoc, epsilon: number): boolean {
     const categories: Record<string, any> = doc.data?.categories || {};
@@ -691,29 +888,3 @@ function numbersEqual(current: any, expected: number, epsilon: number): boolean 
     return Math.abs(value - expected) <= epsilon;
 }
 
-function summaryEquals(current: ExistingDoc, expected: TargetSummaryDoc, epsilon: number): boolean {
-    const data = current.data || {};
-
-    if ((data.year ?? null) !== expected.year) return false;
-    if ((data.month ?? null) !== expected.month) return false;
-    if ((data.week ?? null) !== expected.week) return false;
-    if ((data.runtimeType ?? null) !== expected.runtimeType) return false;
-
-    const currentCategories: Record<string, any> = data.categories || {};
-    const currentIds = Object.keys(currentCategories);
-    const expectedIds = Object.keys(expected.categories);
-
-    if (currentIds.length !== expectedIds.length) return false;
-
-    for (const categoryId of expectedIds) {
-        const currentTotals = currentCategories[categoryId];
-        if (!currentTotals) return false;
-
-        const expectedTotals = expected.categories[categoryId];
-        if (!numbersEqual(currentTotals.generalPlannedAmount ?? 0, expectedTotals.generalPlannedAmount, epsilon)) return false;
-        if (!numbersEqual(currentTotals.specificPlannedAmount ?? 0, expectedTotals.specificPlannedAmount, epsilon)) return false;
-        if (!numbersEqual(currentTotals.actualAmount ?? 0, expectedTotals.actualAmount, epsilon)) return false;
-    }
-
-    return true;
-}
