@@ -1,4 +1,4 @@
-import { GoalModel } from "../models/goal.model";
+import { GoalModel, GoalOutcome } from "../models/goal.model";
 
 export interface IGoalRepository {
   getGoals(workspaceId: string): Promise<GoalModel[]>;
@@ -15,15 +15,24 @@ export interface IGoalRepository {
   getGoal(workspaceId: string, goalId: string): Promise<GoalModel | null>;
   updateGoal(workspaceId: string, goal: GoalModel): Promise<void>;
   /**
-   * Escrita mínima do progresso: só `currentAmount` (e `completedAt` na
-   * primeira conclusão). Não reescreve o documento inteiro, de modo que uma
-   * edição feita no app entre a leitura e a escrita não é sobrescrita.
+   * Escrita mínima do progresso: só `currentAmount` (e o desfecho, quando a
+   * meta acabou de desfechar). Não reescreve o documento inteiro, de modo que
+   * uma edição feita no app entre a leitura e a escrita não é sobrescrita.
    */
   updateGoalProgress(
     workspaceId: string,
     goalId: string,
     currentAmount: number,
-    completedAt?: Date
+    outcome?: GoalOutcomeStamp | null
+  ): Promise<void>;
+  /**
+   * Carimba SÓ o desfecho, sem tocar em `currentAmount` — o caminho do cron de
+   * vencimento, que fecha metas cujo valor não mudou.
+   */
+  updateGoalOutcome(
+    workspaceId: string,
+    goalId: string,
+    stamp: GoalOutcomeStamp
   ): Promise<void>;
   /**
    * Soma de `actualAmount` da categoria nos `period_summaries` mensais
@@ -53,6 +62,12 @@ export interface IGoalRepository {
     accountId: string,
     since: Date
   ): Promise<InstallmentLike[]>;
+}
+
+/** Desfecho + instante, do jeito que vai para o documento. */
+export interface GoalOutcomeStamp {
+  outcome: GoalOutcome;
+  at: Date;
 }
 
 export interface GoalBalances {

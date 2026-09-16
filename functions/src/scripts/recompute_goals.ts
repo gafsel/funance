@@ -51,7 +51,14 @@ import * as admin from "firebase-admin";
 import { GoalRepositoryImpl } from "../features/goal/data/repositories/goal.repository.impl";
 import { GoalServiceImpl } from "../features/goal/domain/services/goal.service.impl";
 import { IGoalRepository } from "../features/goal/domain/repositories/goal.repository";
-import { GoalModel, isGoalActive, resolveGoalType } from "../features/goal/domain/models/goal.model";
+import {
+    GoalModel,
+    GoalOutcome,
+    evaluateGoalOutcome,
+    isGoalActive,
+    resolveGoalOutcome,
+    resolveGoalType,
+} from "../features/goal/domain/models/goal.model";
 
 /** Diferença abaixo da qual a meta é considerada já correta. */
 const AMOUNT_EPSILON = 0.005;
@@ -70,8 +77,10 @@ export interface RecomputeSummary {
     updated: number;
     /** Metas que já estavam corretas. */
     skipped: number;
-    /** Metas que ganharam (ou ganhariam) `completedAt`. */
+    /** Metas que desfecharam (ou desfechariam) em SUCESSO. */
     completed: number;
+    /** Metas que desfecharam (ou desfechariam) em FALHA. */
+    lost: number;
     /** Metas ativas ao fim do recálculo (definição de `isGoalActive`). */
     active: number;
     /** Metas que falharam. */
@@ -89,7 +98,7 @@ export async function recomputeGoals(
     log: (message: string) => void = console.log
 ): Promise<RecomputeSummary> {
     const summary: RecomputeSummary = {
-        scanned: 0, goals: 0, updated: 0, skipped: 0, completed: 0, active: 0, failed: 0,
+        scanned: 0, goals: 0, updated: 0, skipped: 0, completed: 0, lost: 0, active: 0, failed: 0,
     };
 
     const service = new GoalServiceImpl(repository);
@@ -134,12 +143,15 @@ export async function recomputeGoals(
                 }
 
                 const current = Number(goal.currentAmount ?? 0);
-                const target = Number(goal.targetAmount ?? 0);
-                const reachedTarget = target > 0 && computed >= target;
-                const needsCompletedAt = reachedTarget && !goal.completedAt;
                 const changed = Math.abs(computed - current) >= AMOUNT_EPSILON;
 
-                if (!changed && !needsCompletedAt) {
+                // Desfecho pela MESMA regra do serviço, e só para meta que
+                // ainda não desfechou — o desfecho é terminal.
+                const outcome = resolveGoalOutcome(goal) === null
+                    ? evaluateGoalOutcome({ ...goal, currentAmount: computed })
+                    : null;
+
+                if (!changed && !outcome) {
                     summary.skipped++;
                     if (isGoalActive({ ...goal, currentAmount: computed })) {
                         summary.active++;
@@ -147,24 +159,28 @@ export async function recomputeGoals(
                     continue;
                 }
 
-                if (needsCompletedAt) {
+                if (outcome === GoalOutcome.success) {
                     summary.completed++;
+                }
+                if (outcome === GoalOutcome.failed) {
+                    summary.lost++;
                 }
                 summary.updated++;
 
                 const verb = options.dryRun ? "GRAVARIA" : "gravado";
-                log(`[recompute_goals] ${workspaceId}/${goal.id} (${goalType ?? "?"}): ${current} -> ${computed}${needsCompletedAt ? " + completedAt" : ""} (${verb}).`);
+                log(`[recompute_goals] ${workspaceId}/${goal.id} (${goalType ?? "?"}): ${current} -> ${computed}${outcome ? ` + outcome=${outcome}` : ""} (${verb}).`);
 
                 if (!options.dryRun) {
                     await repository.updateGoalProgress(
                         workspaceId,
                         goal.id,
                         computed,
-                        needsCompletedAt ? new Date() : undefined
+                        outcome ? { outcome, at: new Date() } : null
                     );
                 }
 
-                if (isGoalActive({ ...goal, currentAmount: computed })) {
+                const after = { ...goal, currentAmount: computed, outcome: outcome ?? goal.outcome };
+                if (isGoalActive(after)) {
                     summary.active++;
                 }
             }
@@ -175,7 +191,7 @@ export async function recomputeGoals(
         }
     }
 
-    log(`[recompute_goals] Fim: workspaces=${summary.scanned} metas=${summary.goals} atualizadas=${summary.updated} iguais=${summary.skipped} concluídas=${summary.completed} ativas=${summary.active} falhas=${summary.failed}`);
+    log(`[recompute_goals] Fim: workspaces=${summary.scanned} metas=${summary.goals} atualizadas=${summary.updated} iguais=${summary.skipped} sucesso=${summary.completed} falha=${summary.lost} ativas=${summary.active} falhas=${summary.failed}`);
 
     return summary;
 }

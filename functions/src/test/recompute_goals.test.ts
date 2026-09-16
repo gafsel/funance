@@ -18,6 +18,7 @@ function makeRepository(goalsByWorkspace: Record<string, any[]>) {
         getGoal: jest.fn(),
         updateGoal: jest.fn(),
         updateGoalProgress: jest.fn().mockResolvedValue(undefined),
+        updateGoalOutcome: jest.fn().mockResolvedValue(undefined),
         getCategoryActualByMonths: jest.fn().mockResolvedValue(0),
         getBalancesForGoal: jest.fn().mockResolvedValue({ startBalance: null, currentBalance: null }),
         getPaidInstallmentsByAccountSince: jest.fn().mockResolvedValue([]),
@@ -73,7 +74,7 @@ describe("recompute_goals (script)", () => {
             silent
         );
 
-        expect(repository.updateGoalProgress).toHaveBeenCalledWith("w1", "g1", 300, undefined);
+        expect(repository.updateGoalProgress).toHaveBeenCalledWith("w1", "g1", 300, null);
         expect(summary.updated).toBe(1);
         expect(summary.active).toBe(1);
     });
@@ -95,7 +96,7 @@ describe("recompute_goals (script)", () => {
         expect(summary).toMatchObject({ updated: 0, skipped: 1, active: 1 });
     });
 
-    it("carimba completedAt quando o recálculo alcança o alvo", async () => {
+    it("carimba outcome=success quando o recálculo alcança o alvo", async () => {
         const repository = makeRepository({ w1: [saveMoneyGoal()] });
         repository.getPaidInstallmentsByAccountSince.mockResolvedValue([
             { amount: 1000, paidAmount: 1000, accounts: { acc1: "credit" } },
@@ -108,15 +109,20 @@ describe("recompute_goals (script)", () => {
             silent
         );
 
-        const [, , amount, completedAt] = repository.updateGoalProgress.mock.calls[0];
+        const [, , amount, stamp] = repository.updateGoalProgress.mock.calls[0];
         expect(amount).toBe(1000);
-        expect(completedAt).toBeInstanceOf(Date);
-        expect(summary).toMatchObject({ completed: 1, active: 0 });
+        expect(stamp).toMatchObject({ outcome: "success" });
+        expect(stamp.at).toBeInstanceOf(Date);
+        expect(summary).toMatchObject({ completed: 1, lost: 0, active: 0 });
     });
 
-    it("não reescreve um completedAt já existente", async () => {
+    it("não reescreve o desfecho de uma meta que já desfechou", async () => {
         const repository = makeRepository({
-            w1: [saveMoneyGoal({ currentAmount: 0, completedAt: new Date("2026-02-01T00:00:00.000") })],
+            w1: [saveMoneyGoal({
+                currentAmount: 0,
+                outcome: "success",
+                completedAt: new Date("2026-02-01T00:00:00.000"),
+            })],
         });
         repository.getPaidInstallmentsByAccountSince.mockResolvedValue([
             { amount: 1000, paidAmount: 1000, accounts: { acc1: "credit" } },
@@ -129,7 +135,7 @@ describe("recompute_goals (script)", () => {
             silent
         );
 
-        expect(repository.updateGoalProgress.mock.calls[0][3]).toBeUndefined();
+        expect(repository.updateGoalProgress.mock.calls[0][3]).toBeNull();
         expect(summary.completed).toBe(0);
     });
 
@@ -166,7 +172,7 @@ describe("recompute_goals (script)", () => {
         );
 
         expect(summary).toMatchObject({ goals: 2, failed: 1, updated: 1 });
-        expect(repository.updateGoalProgress).toHaveBeenCalledWith("w1", "boa", 250, undefined);
+        expect(repository.updateGoalProgress).toHaveBeenCalledWith("w1", "boa", 250, null);
     });
 
     it("meta de tipo desconhecido é mantida, não zerada", async () => {

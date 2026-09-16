@@ -28,6 +28,8 @@ import { CategoryModel, CategoryType } from "../../features/workspace/domain/mod
  * `orderBy(documentId(), "desc")` seria traiçoeiro.
  */
 const WORKSPACE_ID = `ws-goals-${Date.now()}`;
+/** "Hoje" dos testes: dentro do período das metas de janeiro a fevereiro. */
+const NOW = new Date("2026-02-15T12:00:00.000Z");
 const CATEGORY_ID = "cat-mercado";
 const DEBT_ACCOUNT_ID = "acc-emprestimo";
 const MIGRATED_ACCOUNT_ID = "acc-emprestimo-migrado";
@@ -77,7 +79,10 @@ describe("Progresso automático das metas (integração com emulador)", () => {
 
         firestore = admin.firestore();
         repository = new GoalRepositoryImpl();
-        service = new GoalServiceImpl(repository);
+        // Relógio fixo DENTRO do período das metas: o desfecho depende de o
+        // prazo ter vencido, e um teste preso ao relógio real passaria a fechar
+        // as metas sozinho a partir de março de 2026.
+        service = new GoalServiceImpl(repository, () => NOW);
 
         // Sumários mensais da categoria: jan/2026 = 300, fev/2026 = 450,
         // mar/2026 = 200 (fora do período da meta, que termina em fevereiro).
@@ -155,10 +160,11 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         // 300 (jan) + 450 (fev); março está fora do prazo da meta e a outra
         // categoria do mesmo documento não entra.
         expect(saved.currentAmount).toBe(750);
+        expect(saved.outcome).toBeUndefined();
         expect(saved.completedAt).toBeUndefined();
     });
 
-    it("reduceExpense: carimba completedAt quando o gasto atinge o teto", async () => {
+    it("reduceExpense: estourar o teto é FALHA, nunca conclusão", async () => {
         const goalId = "goal-reduce-expense-estourada";
         await goalRef(goalId).set({
             name: "Teto apertado",
@@ -180,7 +186,11 @@ describe("Progresso automático das metas (integração com emulador)", () => {
 
         const saved = (await goalRef(goalId).get()).data()!;
         expect(saved.currentAmount).toBe(750);
-        expect(saved.completedAt).toBeDefined();
+        // 750 de gasto contra um teto de 500: a meta FALHOU. Antes isto
+        // carimbava `completedAt` e concedia os badges de conclusão.
+        expect(saved.outcome).toBe("failed");
+        expect(saved.failedAt).toBeDefined();
+        expect(saved.completedAt).toBeUndefined();
     });
 
     it("payDebt: mede o quanto a dívida encolheu desde o início da meta", async () => {
@@ -210,6 +220,130 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         // Saldo em 2026-01-01 é o de 2025-12-20 (-5000, o mais próximo ANTES do
         // início); o atual é -3800. Amortizados: 1200.
         expect(saved.currentAmount).toBe(1200);
+    });
+
+    // ── Fechamento no vencimento (cron `closeExpiredGoals`) ───────────────
+
+    describe("closeExpiredGoals", () => {
+        /** "Hoje" depois do vencimento de todas as metas abaixo. */
+        const DEPOIS = new Date("2026-03-15T12:00:00.000Z");
+
+        const expirada = (goalId: string, over: Record<string, any>) => goalRef(goalId).set({
+            name: goalId,
+            currentAmount: 0,
+            startDate: admin.firestore.Timestamp.fromDate(new Date("2026-01-01T00:00:00.000Z")),
+            deadline: admin.firestore.Timestamp.fromDate(new Date("2026-02-28T00:00:00.000Z")),
+            isDeleted: false,
+            ...over,
+        });
+
+        afterEach(async () => {
+            const snapshot = await firestore
+                .collection(`workspaces/${WORKSPACE_ID}/goals`)
+                .get();
+            await Promise.all(snapshot.docs
+                .filter((doc) => doc.id.startsWith("goal-expira-"))
+                .map((doc) => doc.ref.delete()));
+        });
+
+        it("redução que venceu DENTRO do teto vira sucesso", async () => {
+            await expirada("goal-expira-red-ok", {
+                runtimeType: "reduceExpense",
+                targetAmount: 1000,
+                currentAmount: 400,
+                category: CATEGORY,
+            });
+
+            const closed = await service.closeExpiredGoals(WORKSPACE_ID, DEPOIS);
+
+            expect(closed.map((g) => g.id)).toContain("goal-expira-red-ok");
+            const saved = (await goalRef("goal-expira-red-ok").get()).data()!;
+            expect(saved.outcome).toBe("success");
+            expect(saved.completedAt).toBeDefined();
+            expect(saved.failedAt).toBeUndefined();
+            // O valor não é tocado: o cron só carimba o desfecho.
+            expect(saved.currentAmount).toBe(400);
+        });
+
+        it("redução que venceu com o teto ESTOURADO vira falha", async () => {
+            await expirada("goal-expira-red-fail", {
+                runtimeType: "reduceExpense",
+                targetAmount: 1000,
+                currentAmount: 1800,
+                category: CATEGORY,
+            });
+
+            await service.closeExpiredGoals(WORKSPACE_ID, DEPOIS);
+
+            const saved = (await goalRef("goal-expira-red-fail").get()).data()!;
+            expect(saved.outcome).toBe("failed");
+            expect(saved.failedAt).toBeDefined();
+            expect(saved.completedAt).toBeUndefined();
+        });
+
+        it("acúmulo que venceu SEM alcançar o alvo vira falha", async () => {
+            await expirada("goal-expira-save-fail", {
+                runtimeType: "saveMoney",
+                targetAmount: 5000,
+                currentAmount: 4999,
+                accountId: DEBT_ACCOUNT_ID,
+            });
+
+            await service.closeExpiredGoals(WORKSPACE_ID, DEPOIS);
+
+            const saved = (await goalRef("goal-expira-save-fail").get()).data()!;
+            expect(saved.outcome).toBe("failed");
+            expect(saved.failedAt).toBeDefined();
+        });
+
+        it("acúmulo que venceu COM o alvo alcançado vira sucesso", async () => {
+            await expirada("goal-expira-save-ok", {
+                runtimeType: "payDebt",
+                targetAmount: 5000,
+                currentAmount: 5000,
+                accountId: DEBT_ACCOUNT_ID,
+            });
+
+            await service.closeExpiredGoals(WORKSPACE_ID, DEPOIS);
+
+            const saved = (await goalRef("goal-expira-save-ok").get()).data()!;
+            expect(saved.outcome).toBe("success");
+            expect(saved.completedAt).toBeDefined();
+        });
+
+        it("a segunda execução não reescreve nada (idempotente)", async () => {
+            await expirada("goal-expira-idem", {
+                runtimeType: "reduceExpense",
+                targetAmount: 1000,
+                currentAmount: 100,
+                category: CATEGORY,
+            });
+
+            await service.closeExpiredGoals(WORKSPACE_ID, DEPOIS);
+            const primeiro = (await goalRef("goal-expira-idem").get()).data()!;
+
+            const segunda = await service.closeExpiredGoals(WORKSPACE_ID, new Date("2026-04-01T12:00:00.000Z"));
+
+            expect(segunda.map((g) => g.id)).not.toContain("goal-expira-idem");
+            const depois = (await goalRef("goal-expira-idem").get()).data()!;
+            expect(depois.completedAt.toMillis()).toBe(primeiro.completedAt.toMillis());
+        });
+
+        it("meta ainda no prazo não é fechada", async () => {
+            await expirada("goal-expira-no-prazo", {
+                runtimeType: "reduceExpense",
+                targetAmount: 1000,
+                currentAmount: 100,
+                category: CATEGORY,
+                deadline: admin.firestore.Timestamp.fromDate(new Date("2026-12-31T00:00:00.000Z")),
+            });
+
+            const closed = await service.closeExpiredGoals(WORKSPACE_ID, DEPOIS);
+
+            expect(closed.map((g) => g.id)).not.toContain("goal-expira-no-prazo");
+            const saved = (await goalRef("goal-expira-no-prazo").get()).data()!;
+            expect(saved.outcome).toBeUndefined();
+        });
     });
 
     it("getBalancesForGoal usa o saldo do dia exato quando ele existe", async () => {

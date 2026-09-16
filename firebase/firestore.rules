@@ -161,21 +161,23 @@ service cloud.firestore {
             && data.isDeleted is bool
             && isOptStr(data, 'runtimeType', 50)
             && isOptStr(data, 'accountId', 128)
-            && isOptNum(data, 'averageSpending')
             && (!('category' in data) || data.category == null || data.category is map);
         }
 
         allow read: if isMember(workspaceId);
-        // `completedAt` é do SERVIDOR: ele carimba a primeira vez que a meta
-        // alcança o alvo e os badges de conclusão confiam nesse instante. O
-        // cliente não cria o campo nem o altera (o app escreve a meta com
-        // `update`, que só toca os campos enviados, então o carimbo sobrevive).
+        // `outcome`, `completedAt` e `failedAt` são do SERVIDOR: ele decide se a
+        // meta terminou em sucesso ou em falha (uma meta de redução que estoura
+        // o teto FALHA) e os badges de conclusão confiam nesse veredito. O
+        // cliente não cria os campos nem os altera — o app escreve a meta com
+        // `update`, que só toca os campos enviados, então o desfecho sobrevive
+        // a uma edição.
         allow create: if isMember(workspaceId)
           && validGoal(request.resource.data)
-          && !('completedAt' in request.resource.data);
+          && !request.resource.data.keys().hasAny(['outcome', 'completedAt', 'failedAt']);
         allow update: if isMember(workspaceId)
           && validGoal(request.resource.data)
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['completedAt']);
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['outcome', 'completedAt', 'failedAt']);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }
 

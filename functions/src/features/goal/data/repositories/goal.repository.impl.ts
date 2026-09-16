@@ -1,6 +1,11 @@
 import * as admin from "firebase-admin";
-import { GoalBalances, IGoalRepository, InstallmentLike } from "../../domain/repositories/goal.repository";
-import { GoalModel, toGoalDate } from "../../domain/models/goal.model";
+import {
+    GoalBalances,
+    GoalOutcomeStamp,
+    IGoalRepository,
+    InstallmentLike,
+} from "../../domain/repositories/goal.repository";
+import { GoalModel, GoalOutcome, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
 /** Máximo de documentos por `getAll` — evita um lote gigante numa meta longa. */
 const MAX_SUMMARY_DOCS_PER_BATCH = 100;
@@ -61,14 +66,20 @@ export class GoalRepositoryImpl implements IGoalRepository {
         workspaceId: string,
         goalId: string,
         currentAmount: number,
-        completedAt?: Date
+        outcome?: GoalOutcomeStamp | null
     ): Promise<void> {
-        const payload: Record<string, any> = { currentAmount };
-        if (completedAt) {
-            payload.completedAt = admin.firestore.Timestamp.fromDate(completedAt);
-        }
-
+        const payload: Record<string, any> = { currentAmount, ...outcomePayload(outcome) };
         await this.goalsCollection(workspaceId).doc(goalId).set(payload, { merge: true });
+    }
+
+    async updateGoalOutcome(
+        workspaceId: string,
+        goalId: string,
+        stamp: GoalOutcomeStamp
+    ): Promise<void> {
+        await this.goalsCollection(workspaceId)
+            .doc(goalId)
+            .set(outcomePayload(stamp), { merge: true });
     }
 
     async getCategoryActualByMonths(
@@ -205,24 +216,28 @@ export class GoalRepositoryImpl implements IGoalRepository {
         accountId: string,
         since: Date
     ): Promise<InstallmentLike[]> {
-        // Só `array-contains` na consulta: filtrar status e `paidDate` aqui
-        // exigiria um índice composto novo, e este caminho é do recálculo
-        // total (script/criação de meta), não do gatilho de cada parcela.
+        // Os três filtros vão para o SERVIDOR (índice composto
+        // `accountIds CONTAINS + status + paidDate` em `firestore.indexes.json`).
+        // Antes a consulta baixava TODAS as parcelas que tocam a conta, desde
+        // sempre, e descartava na memória — numa conta antiga isso é a coleção
+        // inteira por recálculo.
         const snapshot = await this.db
             .collection("workspaces")
             .doc(workspaceId)
             .collection("installments")
             .where("accountIds", "array-contains", accountId)
+            .where("status", "in", ["paid", "settled"])
+            .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))
             .get();
 
         const result: InstallmentLike[] = [];
         for (const doc of snapshot.docs) {
             const data = doc.data();
+            // A consulta já filtrou os três campos; esta conferência só protege
+            // de um `paidDate` gravado como string (que o índice ordena como
+            // outro tipo e deixaria passar).
             const paidDate = toGoalDate(data.paidDate);
             if (!paidDate || paidDate.getTime() < since.getTime()) {
-                continue;
-            }
-            if (data.status !== "paid" && data.status !== "settled") {
                 continue;
             }
             result.push({
@@ -253,9 +268,25 @@ export class GoalRepositoryImpl implements IGoalRepository {
             startDate: toGoalDate(data.startDate) || new Date(),
             // Documento legado pode não ter `deadline`; antes isso lançava.
             deadline: toGoalDate(data.deadline) || undefined,
+            outcome: resolveGoalOutcome(data),
             completedAt: toGoalDate(data.completedAt),
+            failedAt: toGoalDate(data.failedAt),
         } as GoalModel;
     }
+}
+
+/**
+ * Campos do desfecho: `outcome` mais o carimbo do instante no campo que
+ * corresponde a ele (`completedAt` para sucesso, `failedAt` para falha).
+ */
+function outcomePayload(stamp?: GoalOutcomeStamp | null): Record<string, any> {
+    if (!stamp) {
+        return {};
+    }
+    const at = admin.firestore.Timestamp.fromDate(stamp.at);
+    return stamp.outcome === GoalOutcome.success
+        ? { outcome: GoalOutcome.success, completedAt: at }
+        : { outcome: GoalOutcome.failed, failedAt: at };
 }
 
 /**

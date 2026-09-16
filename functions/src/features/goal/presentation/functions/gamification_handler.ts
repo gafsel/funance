@@ -2,11 +2,17 @@ import { onDocumentWritten, onDocumentCreated, onDocumentUpdated } from "firebas
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
-import { AI_SCHEDULE_OPTIONS } from "../../../../core/config/functions.config";
+import {
+    AI_SCHEDULE_OPTIONS,
+    CRON_PAGE_SIZE,
+    CRON_SCAN_DEADLINE_MS,
+    CRON_WORKSPACE_CONCURRENCY,
+} from "../../../../core/config/functions.config";
+import { forEachWorkspacePaged } from "../../../../core/utils/cron_runner";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
 import { INSTALLMENT_DERIVED_FIELDS } from "../../../finance/domain/models/finance.models";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
-import { GoalModel, toGoalDate } from "../../domain/models/goal.model";
+import { GoalModel, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
 /**
  * Campos do doc do workspace escritos pela própria gamificação
@@ -258,7 +264,11 @@ export const onGoalWritten = onDocumentWritten(
                     id: goalId,
                     startDate: toGoalDate(after.startDate) ?? new Date(),
                     deadline: toGoalDate(after.deadline) ?? undefined,
+                    // O desfecho já gravado precisa vir junto: é ele que impede
+                    // o recálculo de carimbar um segundo desfecho por cima.
+                    outcome: resolveGoalOutcome(after),
                     completedAt: toGoalDate(after.completedAt),
+                    failedAt: toGoalDate(after.failedAt),
                 } as GoalModel);
             }
             catch (e) {
@@ -323,6 +333,61 @@ export const monthlyGamificationCron = onSchedule(
         catch (e) {
             logger.error("[monthlyGamificationCron] Error processing monthly cron:", e);
         }
+    }
+);
+
+/**
+ * Fecha, todo dia, as metas cujo prazo venceu.
+ *
+ * Sem este cron, uma meta de REDUÇÃO que atravessa o prazo dentro do teto
+ * ficaria "em andamento" para sempre: o sucesso dela não é um evento — é a
+ * AUSÊNCIA de estouro até o vencimento, e nada acontece no dia do vencimento
+ * para disparar um gatilho. O mesmo vale para a meta de acúmulo que vence sem
+ * alcançar o alvo: alguém precisa carimbar a derrota.
+ *
+ * 03:15 (America/Sao_Paulo), quinze minutos depois dos crons semanais/mensais,
+ * para não disputar leitura com eles no mesmo minuto. A varredura é a paginada
+ * com checkpoint (`forEachWorkspacePaged`), então um timeout retoma do ponto
+ * exato na execução seguinte.
+ *
+ * Idempotente: só toca metas com `outcome == null` e prazo vencido — na segunda
+ * passada elas já têm desfecho e são puladas.
+ */
+export const closeExpiredGoals = onSchedule(
+    {
+        schedule: "15 3 * * *",
+        timeZone: GAMIFICATION_TIME_ZONE,
+        ...AI_SCHEDULE_OPTIONS,
+    },
+    async () => {
+        let closedTotal = 0;
+
+        const result = await forEachWorkspacePaged(
+            {
+                checkpointKey: "close_expired_goals",
+                pageSize: CRON_PAGE_SIZE,
+                concurrency: CRON_WORKSPACE_CONCURRENCY,
+                deadlineMs: CRON_SCAN_DEADLINE_MS,
+            },
+            async (workspaceId) => {
+                const closed = await container.goalService.closeExpiredGoals(workspaceId);
+                closedTotal += closed.length;
+
+                for (const goal of closed) {
+                    // Só o desfecho de SUCESSO concede alguma coisa; as
+                    // checagens já sabem disso (`isGoalCompleted`). Passar a
+                    // meta falhada por aqui é de propósito: é o que mantém o
+                    // caminho do cron igual ao do gatilho.
+                    await container.gamificationService.checkGoalBadges(workspaceId, goal);
+                    await container.gamificationService.checkSimpleGoalBadges(workspaceId, goal);
+                }
+            }
+        );
+
+        logger.info(
+            `[closeExpiredGoals] ${result.processed} workspaces, ${closedTotal} metas fechadas, ` +
+            `${result.failed} com falha, varredura ${result.completed ? "completa" : `interrompida em ${result.lastWorkspaceId}`}.`
+        );
     }
 );
 

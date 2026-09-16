@@ -1,5 +1,11 @@
 import { GoalServiceImpl, monthKeysBetween } from "../features/goal/domain/services/goal.service.impl";
-import { isGoalActive, isGoalCompleted } from "../features/goal/domain/models/goal.model";
+import {
+    GoalOutcome,
+    evaluateGoalOutcome,
+    isGoalActive,
+    isGoalCompleted,
+    isGoalFailed,
+} from "../features/goal/domain/models/goal.model";
 import {
     InstallmentModel,
     InstallmentStatus,
@@ -27,6 +33,13 @@ function goalDoc(over: Partial<any> = {}) {
         ...over,
     };
 }
+
+/**
+ * Relógio fixo para os testes: dentro do período padrão de `goalDoc`
+ * (2026-01-01 a 2026-12-31). O desfecho de uma meta depende de o prazo ter
+ * vencido, então nenhum teste pode depender do relógio real.
+ */
+const agora = () => new Date("2026-06-15T12:00:00.000");
 
 function installment(over: Partial<InstallmentModel> = {}): InstallmentModel {
     return {
@@ -56,6 +69,7 @@ function makeRepository() {
         getGoal: jest.fn(),
         updateGoal: jest.fn(),
         updateGoalProgress: jest.fn().mockResolvedValue(undefined),
+        updateGoalOutcome: jest.fn().mockResolvedValue(undefined),
         getCategoryActualByMonths: jest.fn().mockResolvedValue(0),
         getBalancesForGoal: jest.fn().mockResolvedValue({ startBalance: null, currentBalance: null }),
         getPaidInstallmentsByAccountSince: jest.fn().mockResolvedValue([]),
@@ -68,7 +82,7 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
 
     beforeEach(() => {
         repository = makeRepository();
-        service = new GoalServiceImpl(repository as any);
+        service = new GoalServiceImpl(repository as any, agora);
     });
 
     it("soma o crédito ao currentAmount de uma meta saveMoney (runtimeType)", async () => {
@@ -154,26 +168,31 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
         expect(repository.updateGoalProgress).not.toHaveBeenCalled();
     });
 
-    it("carimba completedAt na primeira vez que a meta alcança o alvo", async () => {
+    it("carimba outcome=success na primeira vez que a meta de acúmulo alcança o alvo", async () => {
         repository.getActiveGoalsByAccount.mockResolvedValue([
             goalDoc({ targetAmount: 500 }),
         ]);
 
         await service.processInstallmentChange("w1", null, installment());
 
-        const [, , amount, completedAt] = repository.updateGoalProgress.mock.calls[0];
+        const [, , amount, stamp] = repository.updateGoalProgress.mock.calls[0];
         expect(amount).toBe(500);
-        expect(completedAt).toBeInstanceOf(Date);
+        expect(stamp.outcome).toBe(GoalOutcome.success);
+        expect(stamp.at).toBeInstanceOf(Date);
     });
 
-    it("não reescreve completedAt de uma meta que já foi concluída", async () => {
+    it("não reescreve o desfecho de uma meta que já desfechou", async () => {
         repository.getActiveGoalsByAccount.mockResolvedValue([
-            goalDoc({ targetAmount: 500, completedAt: new Date("2026-02-01T00:00:00.000") }),
+            goalDoc({
+                targetAmount: 500,
+                outcome: "success",
+                completedAt: new Date("2026-02-01T00:00:00.000"),
+            }),
         ]);
 
         await service.processInstallmentChange("w1", null, installment());
 
-        expect(repository.updateGoalProgress.mock.calls[0][3]).toBeUndefined();
+        expect(repository.updateGoalProgress.mock.calls[0][3]).toBeNull();
     });
 });
 
@@ -181,9 +200,14 @@ describe("GoalServiceImpl.processInstallmentChange — reduceExpense (categoria)
     let repository: ReturnType<typeof makeRepository>;
     let service: GoalServiceImpl;
 
+    // Relógio fixo DENTRO do período da meta: o desfecho depende de o prazo ter
+    // vencido ou não, então um teste preso ao relógio real mudaria de resposta
+    // com o passar dos meses.
+    const dentroDoPrazo = () => new Date("2026-02-10T12:00:00.000");
+
     beforeEach(() => {
         repository = makeRepository();
-        service = new GoalServiceImpl(repository as any);
+        service = new GoalServiceImpl(repository as any, dentroDoPrazo);
     });
 
     const expenseGoal = () => goalDoc({
@@ -263,7 +287,7 @@ describe("GoalServiceImpl.processInstallmentChange — payDebt (saldo da conta)"
 
     beforeEach(() => {
         repository = makeRepository();
-        service = new GoalServiceImpl(repository as any);
+        service = new GoalServiceImpl(repository as any, agora);
     });
 
     const debtGoal = () => goalDoc({
@@ -331,7 +355,7 @@ describe("GoalServiceImpl.computeCurrentAmount — recálculo total", () => {
 
     beforeEach(() => {
         repository = makeRepository();
-        service = new GoalServiceImpl(repository as any);
+        service = new GoalServiceImpl(repository as any, agora);
     });
 
     it("saveMoney soma créditos e subtrai débitos das parcelas pagas da conta", async () => {
@@ -402,10 +426,199 @@ describe("monthKeysBetween", () => {
     });
 });
 
-describe("isGoalActive / isGoalCompleted", () => {
+describe("evaluateGoalOutcome — os quatro tipos", () => {
+    const hoje = new Date("2026-06-15T12:00:00.000");
+    const noPrazo = new Date("2026-12-31T00:00:00.000");
+    const vencido = new Date("2026-05-31T00:00:00.000");
+
+    const meta = (runtimeType: string, over: Partial<any> = {}) => goalDoc({
+        runtimeType, targetAmount: 1000, currentAmount: 0, deadline: noPrazo, ...over,
+    });
+
+    // ── Acúmulo: alcançar o alvo é vitória ────────────────────────────────
+
+    it.each(["saveMoney", "payDebt"])("%s no prazo e abaixo do alvo segue em andamento", (tipo) => {
+        expect(evaluateGoalOutcome(meta(tipo, { currentAmount: 999 }), hoje)).toBeNull();
+    });
+
+    it.each(["saveMoney", "payDebt"])("%s que alcança o alvo é sucesso na hora", (tipo) => {
+        expect(evaluateGoalOutcome(meta(tipo, { currentAmount: 1000 }), hoje))
+            .toBe(GoalOutcome.success);
+    });
+
+    it.each(["saveMoney", "payDebt"])("%s que vence sem alcançar falha", (tipo) => {
+        expect(evaluateGoalOutcome(meta(tipo, { currentAmount: 999, deadline: vencido }), hoje))
+            .toBe(GoalOutcome.failed);
+    });
+
+    // ── Redução: passar do teto é FRACASSO, nunca conclusão ───────────────
+
+    it.each(["reduceExpense", "reduceCreditCard"])("%s dentro do teto e no prazo segue em andamento", (tipo) => {
+        expect(evaluateGoalOutcome(meta(tipo, { currentAmount: 1000 }), hoje)).toBeNull();
+    });
+
+    it.each(["reduceExpense", "reduceCreditCard"])("%s que estoura o teto FALHA (não conclui)", (tipo) => {
+        const outcome = evaluateGoalOutcome(meta(tipo, { currentAmount: 1000.5 }), hoje);
+        expect(outcome).toBe(GoalOutcome.failed);
+        expect(outcome).not.toBe(GoalOutcome.success);
+    });
+
+    it.each(["reduceExpense", "reduceCreditCard"])("%s que vence dentro do teto é sucesso", (tipo) => {
+        expect(evaluateGoalOutcome(meta(tipo, { currentAmount: 800, deadline: vencido }), hoje))
+            .toBe(GoalOutcome.success);
+    });
+
+    it.each(["reduceExpense", "reduceCreditCard"])("%s que vence com o teto estourado falha", (tipo) => {
+        expect(evaluateGoalOutcome(meta(tipo, { currentAmount: 1200, deadline: vencido }), hoje))
+            .toBe(GoalOutcome.failed);
+    });
+
+    it("meta sem prazo e sem alvo alcançado nunca desfecha sozinha", () => {
+        expect(evaluateGoalOutcome(meta("saveMoney", { deadline: undefined }), hoje)).toBeNull();
+    });
+
+    it("meta que vence HOJE ainda não desfecha por prazo", () => {
+        expect(evaluateGoalOutcome(
+            meta("reduceExpense", { currentAmount: 10, deadline: new Date("2026-06-15T00:00:00.000") }),
+            hoje
+        )).toBeNull();
+    });
+});
+
+describe("GoalServiceImpl.writeProgress — desfecho por tipo", () => {
+    let repository: ReturnType<typeof makeRepository>;
+    let service: GoalServiceImpl;
+
+    beforeEach(() => {
+        repository = makeRepository();
+        service = new GoalServiceImpl(repository as any, agora);
+    });
+
+    it("meta reduceCreditCard que estoura o teto é gravada como FALHA", async () => {
+        repository.getActiveGoalsByAccount.mockResolvedValue([
+            goalDoc({ runtimeType: "reduceCreditCard", targetAmount: 400, currentAmount: 0 }),
+        ]);
+
+        await service.processInstallmentChange("w1", null, installment({
+            accounts: { acc1: "debt" },
+            paidAmount: 500,
+            amount: 500,
+        }));
+
+        const [, , amount, stamp] = repository.updateGoalProgress.mock.calls[0];
+        expect(amount).toBe(500);
+        expect(stamp.outcome).toBe(GoalOutcome.failed);
+    });
+
+    it("meta reduceCreditCard dentro do teto não desfecha", async () => {
+        repository.getActiveGoalsByAccount.mockResolvedValue([
+            goalDoc({ runtimeType: "reduceCreditCard", targetAmount: 400, currentAmount: 0 }),
+        ]);
+
+        await service.processInstallmentChange("w1", null, installment({
+            accounts: { acc1: "debt" },
+            paidAmount: 100,
+            amount: 100,
+        }));
+
+        expect(repository.updateGoalProgress.mock.calls[0][3]).toBeNull();
+    });
+});
+
+describe("GoalServiceImpl.closeExpiredGoals", () => {
+    let repository: ReturnType<typeof makeRepository>;
+    let service: GoalServiceImpl;
+    const hoje = new Date("2026-06-15T12:00:00.000");
+    const vencido = new Date("2026-05-31T00:00:00.000");
+
+    beforeEach(() => {
+        repository = makeRepository();
+        service = new GoalServiceImpl(repository as any, agora);
+    });
+
+    const meta = (over: Partial<any> = {}) => goalDoc({
+        targetAmount: 1000, currentAmount: 0, deadline: vencido, ...over,
+    });
+
+    it("fecha em sucesso a meta de redução que venceu dentro do teto", async () => {
+        repository.getGoals.mockResolvedValue([
+            meta({ id: "g-red", runtimeType: "reduceExpense", currentAmount: 800 }),
+        ]);
+
+        const closed = await service.closeExpiredGoals("w1", hoje);
+
+        expect(repository.updateGoalOutcome).toHaveBeenCalledWith(
+            "w1", "g-red", { outcome: GoalOutcome.success, at: hoje }
+        );
+        expect(closed).toHaveLength(1);
+        expect(isGoalCompleted(closed[0])).toBe(true);
+        expect(closed[0].completedAt).toEqual(hoje);
+    });
+
+    it("fecha em falha a meta de redução que venceu com o teto estourado", async () => {
+        repository.getGoals.mockResolvedValue([
+            meta({ id: "g-red2", runtimeType: "reduceExpense", currentAmount: 1500 }),
+        ]);
+
+        const closed = await service.closeExpiredGoals("w1", hoje);
+
+        expect(repository.updateGoalOutcome.mock.calls[0][2].outcome).toBe(GoalOutcome.failed);
+        expect(isGoalFailed(closed[0])).toBe(true);
+        expect(closed[0].failedAt).toEqual(hoje);
+        expect(closed[0].completedAt).toBeUndefined();
+    });
+
+    it("fecha em falha a meta de acúmulo que venceu sem alcançar o alvo", async () => {
+        repository.getGoals.mockResolvedValue([
+            meta({ id: "g-save", runtimeType: "saveMoney", currentAmount: 999 }),
+        ]);
+
+        const closed = await service.closeExpiredGoals("w1", hoje);
+
+        expect(repository.updateGoalOutcome.mock.calls[0][2].outcome).toBe(GoalOutcome.failed);
+        expect(isGoalFailed(closed[0])).toBe(true);
+    });
+
+    it("fecha em sucesso a meta de acúmulo que venceu com o alvo alcançado", async () => {
+        repository.getGoals.mockResolvedValue([
+            meta({ id: "g-save2", runtimeType: "payDebt", currentAmount: 1000 }),
+        ]);
+
+        await service.closeExpiredGoals("w1", hoje);
+
+        expect(repository.updateGoalOutcome.mock.calls[0][2].outcome).toBe(GoalOutcome.success);
+    });
+
+    it("não toca em meta no prazo, deletada, ou que já desfechou", async () => {
+        repository.getGoals.mockResolvedValue([
+            meta({ id: "g-prazo", deadline: new Date("2026-12-31T00:00:00.000") }),
+            meta({ id: "g-del", isDeleted: true }),
+            meta({ id: "g-pronta", outcome: "failed" }),
+        ]);
+
+        const closed = await service.closeExpiredGoals("w1", hoje);
+
+        expect(repository.updateGoalOutcome).not.toHaveBeenCalled();
+        expect(closed).toHaveLength(0);
+    });
+
+    it("é idempotente: a segunda passada não reescreve nada", async () => {
+        const goal = meta({ id: "g-idem", runtimeType: "reduceExpense", currentAmount: 10 });
+        repository.getGoals.mockResolvedValue([goal]);
+
+        await service.closeExpiredGoals("w1", hoje);
+        repository.getGoals.mockResolvedValue([{ ...goal, outcome: "success" }]);
+        const second = await service.closeExpiredGoals("w1", hoje);
+
+        expect(repository.updateGoalOutcome).toHaveBeenCalledTimes(1);
+        expect(second).toHaveLength(0);
+    });
+});
+
+describe("isGoalActive / isGoalCompleted — o desfecho manda", () => {
     const hoje = new Date("2026-06-15T12:00:00.000");
 
-    it("meta no prazo e com alvo a alcançar é ativa", () => {
+    it("meta no prazo e sem desfecho é ativa", () => {
         expect(isGoalActive(goalDoc({ currentAmount: 10 }), hoje)).toBe(true);
     });
 
@@ -413,8 +626,16 @@ describe("isGoalActive / isGoalCompleted", () => {
         expect(isGoalActive(goalDoc({ isDeleted: true }), hoje)).toBe(false);
     });
 
-    it("meta que alcançou o alvo não é ativa", () => {
-        expect(isGoalActive(goalDoc({ currentAmount: 10000 }), hoje)).toBe(false);
+    it("meta de acúmulo com desfecho de sucesso não é mais ativa", () => {
+        expect(isGoalActive(goalDoc({ currentAmount: 10000, outcome: "success" }), hoje)).toBe(false);
+    });
+
+    it("meta de REDUÇÃO no prazo continua ativa mesmo com valor acima do alvo, enquanto o desfecho não é gravado", () => {
+        // O valor sozinho não decide nada: quem tira do pool é o `outcome`, que
+        // o serviço grava na mesma escrita que passou do teto.
+        const estourada = goalDoc({ runtimeType: "reduceExpense", currentAmount: 99999 });
+        expect(isGoalActive(estourada, hoje)).toBe(true);
+        expect(isGoalActive({ ...estourada, outcome: "failed" }, hoje)).toBe(false);
     });
 
     it("meta com prazo vencido não é ativa", () => {
@@ -425,13 +646,26 @@ describe("isGoalActive / isGoalCompleted", () => {
         expect(isGoalActive(goalDoc({ deadline: new Date("2026-06-15T00:00:00.000") }), hoje)).toBe(true);
     });
 
-    it("meta sem prazo é ativa enquanto não alcança o alvo", () => {
+    it("meta sem prazo é ativa enquanto não desfecha", () => {
         expect(isGoalActive(goalDoc({ deadline: undefined }), hoje)).toBe(true);
     });
 
-    it("conclusão é completedAt ou alvo alcançado", () => {
+    it("concluída é SÓ outcome=success — alvo alcançado sozinho não basta", () => {
         expect(isGoalCompleted(goalDoc())).toBe(false);
-        expect(isGoalCompleted(goalDoc({ currentAmount: 10000 }))).toBe(true);
-        expect(isGoalCompleted(goalDoc({ completedAt: new Date() }))).toBe(true);
+        expect(isGoalCompleted(goalDoc({ currentAmount: 10000 }))).toBe(false);
+        expect(isGoalCompleted(goalDoc({ completedAt: new Date() }))).toBe(false);
+        expect(isGoalCompleted(goalDoc({ outcome: "success" }))).toBe(true);
+    });
+
+    it("meta de redução com o teto estourado NUNCA conta como concluída", () => {
+        const estourada = goalDoc({
+            runtimeType: "reduceExpense",
+            targetAmount: 1000,
+            currentAmount: 5000,
+            outcome: "failed",
+            failedAt: new Date("2026-06-10T00:00:00.000"),
+        });
+        expect(isGoalCompleted(estourada)).toBe(false);
+        expect(isGoalFailed(estourada)).toBe(true);
     });
 });

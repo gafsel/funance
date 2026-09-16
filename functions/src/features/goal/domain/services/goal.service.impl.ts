@@ -1,8 +1,16 @@
 import * as logger from "firebase-functions/logger";
 import { IGoalService } from "./goal.service";
 import { InstallmentModel, InstallmentStatus } from "../../../finance/domain/models/finance.models";
-import { IGoalRepository, InstallmentLike } from "../repositories/goal.repository";
-import { GoalModel, GoalType, resolveGoalCategoryId, resolveGoalType } from "../models/goal.model";
+import { GoalOutcomeStamp, IGoalRepository, InstallmentLike } from "../repositories/goal.repository";
+import {
+    GoalModel,
+    GoalOutcome,
+    GoalType,
+    evaluateGoalOutcome,
+    resolveGoalCategoryId,
+    resolveGoalOutcome,
+    resolveGoalType,
+} from "../models/goal.model";
 
 /**
  * Teto de meses lidos no cálculo de uma meta `reduceExpense`. Uma meta de 10
@@ -16,7 +24,15 @@ export const MAX_GOAL_SUMMARY_MONTHS = 120;
 const AMOUNT_EPSILON = 0.005;
 
 export class GoalServiceImpl implements IGoalService {
-    constructor(private goalRepository: IGoalRepository) {}
+    /**
+     * `now` é injetável porque o DESFECHO de uma meta depende da data de hoje
+     * (prazo vencido ou não). Sem isso, um teste de meta com prazo em março
+     * mudaria de resultado quando março chegasse.
+     */
+    constructor(
+        private goalRepository: IGoalRepository,
+        private now: () => Date = () => new Date()
+    ) {}
 
     /**
      * Recalcula as metas afetadas por uma mudança de parcela.
@@ -91,10 +107,45 @@ export class GoalServiceImpl implements IGoalService {
 
     async recomputeGoal(workspaceId: string, goal: GoalModel): Promise<number | null> {
         const computed = await this.computeCurrentAmount(workspaceId, goal);
-        if (computed === null) {
-            return null;
+        // Mesmo sem valor novo, a meta passa pelo `writeProgress`: o desfecho
+        // pode ter mudado só porque o prazo venceu, sem ninguém mexer no valor.
+        const next = computed ?? Number(goal.currentAmount ?? 0);
+        const written = await this.writeProgress(workspaceId, goal, next);
+        return computed === null ? null : written;
+    }
+
+    /**
+     * Fecha as metas do workspace cujo prazo já venceu e que ainda não têm
+     * desfecho. É o caminho do cron `closeExpiredGoals`: sem ele, uma meta de
+     * redução que atravessa o prazo dentro do teto ficaria para sempre "em
+     * andamento", porque nenhum evento acontece no dia do vencimento.
+     *
+     * Devolve as metas fechadas (já com `outcome` aplicado) para quem chamou
+     * disparar os badges.
+     */
+    async closeExpiredGoals(workspaceId: string, now: Date = this.now()): Promise<GoalModel[]> {
+        const goals = await this.goalRepository.getGoals(workspaceId);
+        const closed: GoalModel[] = [];
+
+        for (const goal of goals) {
+            if (goal.isDeleted === true || resolveGoalOutcome(goal) !== null) {
+                continue;
+            }
+            if (!goal.deadline || goal.deadline.getTime() >= startOfDay(now).getTime()) {
+                continue;
+            }
+
+            const outcome = evaluateGoalOutcome(goal, now);
+            if (!outcome) {
+                continue;
+            }
+
+            const stamp: GoalOutcomeStamp = { outcome, at: now };
+            await this.goalRepository.updateGoalOutcome(workspaceId, goal.id, stamp);
+            closed.push(applyOutcome(goal, stamp));
         }
-        return this.writeProgress(workspaceId, goal, computed);
+
+        return closed;
     }
 
     async computeCurrentAmount(workspaceId: string, goal: GoalModel): Promise<number | null> {
@@ -205,12 +256,17 @@ export class GoalServiceImpl implements IGoalService {
     }
 
     /**
-     * Grava o novo progresso quando ele mudou de fato, carimbando
-     * `completedAt` na PRIMEIRA vez que a meta alcança o alvo.
+     * Grava o novo progresso quando ele mudou de fato — e, junto, o DESFECHO,
+     * quando a meta acabou de desfechar.
      *
-     * Para as metas de redução (`reduceExpense`/`reduceCreditCard`), alcançar o
-     * alvo é bater o teto de gastos — a meta sai do pool de ativas do mesmo
-     * jeito, e a UI chama isso de "limite atingido", não de conquista.
+     * O desfecho é TERMINAL: uma meta que já tem `outcome` não é reavaliada. O
+     * motivo é que o desfecho tem efeito colateral fora do documento (badges
+     * concedidos, XP creditado) e badge não se devolve; um estorno que derruba
+     * o valor de volta não pode desconceder o que já foi dado.
+     *
+     * A escrita acontece também quando o valor NÃO mudou, se o desfecho mudou:
+     * é assim que uma meta de redução fecha no vencimento sem que nada tenha
+     * sido pago naquele dia.
      */
     private async writeProgress(workspaceId: string, goal: GoalModel, nextAmount: number): Promise<number | null> {
         if (!Number.isFinite(nextAmount)) {
@@ -219,28 +275,46 @@ export class GoalServiceImpl implements IGoalService {
         }
 
         const current = Number(goal.currentAmount ?? 0);
-        const target = Number(goal.targetAmount ?? 0);
-        const reachedTarget = target > 0 && nextAmount >= target;
-        const needsCompletedAt = reachedTarget && !goal.completedAt;
+        const amountChanged = Math.abs(nextAmount - current) >= AMOUNT_EPSILON;
 
-        if (Math.abs(nextAmount - current) < AMOUNT_EPSILON && !needsCompletedAt) {
+        const now = this.now();
+        const outcome = resolveGoalOutcome(goal) === null
+            ? evaluateGoalOutcome({ ...goal, currentAmount: nextAmount }, now)
+            : null;
+        const stamp: GoalOutcomeStamp | null = outcome ? { outcome, at: now } : null;
+
+        if (!amountChanged && !stamp) {
             return null;
         }
 
-        await this.goalRepository.updateGoalProgress(
-            workspaceId,
-            goal.id,
-            nextAmount,
-            needsCompletedAt ? new Date() : undefined
-        );
+        await this.goalRepository.updateGoalProgress(workspaceId, goal.id, nextAmount, stamp);
 
         goal.currentAmount = nextAmount;
+        if (stamp) {
+            applyOutcome(goal, stamp);
+        }
         return nextAmount;
     }
 
     private calculateContribution(goalType: GoalType, inst: InstallmentModel, accountId: string): number {
         return contributionOf(goalType, inst as InstallmentLike, accountId);
     }
+}
+
+/** Espelha no objeto em memória o desfecho que acabou de ser gravado. */
+function applyOutcome(goal: GoalModel, stamp: GoalOutcomeStamp): GoalModel {
+    goal.outcome = stamp.outcome;
+    if (stamp.outcome === GoalOutcome.success) {
+        goal.completedAt = stamp.at;
+    }
+    else {
+        goal.failedAt = stamp.at;
+    }
+    return goal;
+}
+
+function startOfDay(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function isPaidStatus(status: InstallmentStatus): boolean {

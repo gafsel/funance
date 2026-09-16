@@ -9,7 +9,7 @@ import {
     CRON_WORKSPACE_CONCURRENCY,
 } from "../../../../core/config/functions.config";
 import { IGamificationRepository } from "../repositories/gamification.repository";
-import { GoalType, isGoalActive, isGoalCompleted, resolveGoalType } from "../models/goal.model";
+import { GoalType, isAccumulationGoal, isGoalActive, isGoalCompleted, resolveGoalType } from "../models/goal.model";
 import {
     addCalendarDays,
     endOfWeekFromStart,
@@ -473,9 +473,10 @@ export class GamificationService {
     }
 
     async checkGoalBadges(workspaceId: string, goalDoc: any): Promise<void> {
-        // `status` NÃO existe no documento de meta (o cliente nunca gravou um):
-        // a conclusão é o carimbo `completedAt` do servidor, ou o alvo já
-        // alcançado — ver `isGoalCompleted`.
+        // `status` NÃO existe no documento de meta (o cliente nunca gravou um).
+        // Conclusão é o desfecho `outcome == "success"` gravado pelo servidor —
+        // ver `isGoalCompleted`. Meta de redução com o teto estourado tem
+        // `outcome == "failed"` e não conta para badge nenhum.
         if (isGoalCompleted(goalDoc)) {
             const completedSnapshot = await this.gamificationRepository.getGoals(workspaceId);
             let completedCount = 0;
@@ -1123,26 +1124,36 @@ export class GamificationService {
         const target = data.targetAmount || 1;
         const pct = current / target;
 
-        if (current > 0) {
-            if (isLocked("goal_deposit")) {
-                await this.unlockBadge(workspaceId, "goal_deposit");
+        // Badges de PROGRESSO — só para metas de acúmulo.
+        //
+        // Numa meta de redução, `currentAmount` é o quanto já foi GASTO contra
+        // um teto: "Primeiro Depósito" por ter gasto os primeiros reais e "Na
+        // Metade do Caminho" por ter consumido metade do orçamento premiavam
+        // exatamente o oposto do que a meta pede.
+        if (isAccumulationGoal(resolveGoalType(data))) {
+            if (current > 0) {
+                if (isLocked("goal_deposit")) {
+                    await this.unlockBadge(workspaceId, "goal_deposit");
+                }
+                if (isLocked("savings_start")) {
+                    await this.unlockBadge(workspaceId, "savings_start");
+                }
             }
-            if (isLocked("savings_start")) {
-                await this.unlockBadge(workspaceId, "savings_start");
+            if (isLocked("goal_halfway") && pct >= 0.5) {
+                await this.unlockBadge(workspaceId, "goal_halfway");
             }
-        }
-        if (isLocked("goal_halfway") && pct >= 0.5) {
-            await this.unlockBadge(workspaceId, "goal_halfway");
-        }
-        if (isLocked("goal_75pct") && pct >= 0.75) {
-            await this.unlockBadge(workspaceId, "goal_75pct");
+            if (isLocked("goal_75pct") && pct >= 0.75) {
+                await this.unlockBadge(workspaceId, "goal_75pct");
+            }
         }
 
+        // Daqui para baixo, SÓ meta concluída com sucesso (`outcome ==
+        // "success"`). Uma meta que falhou — teto estourado ou prazo vencido sem
+        // atingir — não concede nada.
         if (isGoalCompleted(data)) {
-            // `completedAt` é carimbado pelo servidor na primeira vez que a meta
-            // alcança o alvo (`GoalServiceImpl.writeProgress`). Só quando ele
-            // ainda não existe é que "agora" serve de aproximação — é a escrita
-            // que acabou de concluir a meta.
+            // `completedAt` é carimbado pelo servidor junto com o desfecho
+            // (`GoalServiceImpl.writeProgress` / cron `closeExpiredGoals`). Só
+            // quando ele ainda não existe é que "agora" serve de aproximação.
             const completedAt = toDate(data.completedAt) ?? new Date();
 
             // "Sprint Financeiro": a meta foi PLANEJADA para menos de 30 dias.

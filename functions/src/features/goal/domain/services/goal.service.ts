@@ -17,4 +17,10 @@ export interface IGoalService {
    * tipo, sem gravar nada. `null` quando o tipo da meta não é reconhecido.
    */
   computeCurrentAmount(workspaceId: string, goal: GoalModel): Promise<number | null>;
+  /**
+   * Carimba o desfecho das metas do workspace cujo prazo venceu e que ainda
+   * estavam em andamento. Devolve as metas fechadas, já com `outcome`, para
+   * quem chamou disparar os badges.
+   */
+  closeExpiredGoals(workspaceId: string, now?: Date): Promise<GoalModel[]>;
 }

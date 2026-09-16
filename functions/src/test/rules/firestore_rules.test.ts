@@ -84,7 +84,10 @@ describe("firestore.rules", () => {
             );
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
-                goalDoc({ completedAt: Timestamp.fromDate(new Date(2026, 5, 1, 12)) })
+                goalDoc({
+                    outcome: "success",
+                    completedAt: Timestamp.fromDate(new Date(2026, 5, 1, 12)),
+                })
             );
             // Catálogo público de badges (F2.7): publicado pelo servidor.
             await setDoc(doc(db, "config/badges"), {
@@ -152,9 +155,9 @@ describe("firestore.rules", () => {
         );
     });
 
-    // ── Metas: `completedAt` é do servidor (F2.5) ──────────────────────────
+    // ── Metas: o DESFECHO é do servidor (F2.5) ────────────────────────────
 
-    it("permite que o membro edite a meta sem tocar em completedAt", async () => {
+    it("permite que o membro edite a meta sem tocar no desfecho", async () => {
         const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 
         await assertSucceeds(
@@ -183,6 +186,42 @@ describe("firestore.rules", () => {
             setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova`),
                 goalDoc({ completedAt: Timestamp.fromDate(new Date(2026, 0, 2, 12)) })
+            )
+        );
+    });
+
+    it("nega que o cliente escreva outcome numa meta", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        // A meta semeada já tem `outcome: "success"`; escrever o MESMO valor
+        // não muda chave nenhuma e as rules nem veriam a tentativa. O que
+        // precisa ser negado é a troca do veredito.
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { outcome: "failed" }
+            )
+        );
+    });
+
+    it("nega que o cliente escreva failedAt numa meta", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                { failedAt: Timestamp.fromDate(new Date(2026, 0, 2, 12)) }
+            )
+        );
+    });
+
+    it("nega que o cliente crie uma meta já com outcome", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova-outcome`),
+                goalDoc({ outcome: "failed" })
             )
         );
     });
