@@ -206,6 +206,13 @@ void main() {
     // não listar: a tela mostra o aviso de fatura em fechamento.
     await Future<void>.delayed(Duration.zero);
     expect(financeRepository.watchCalls, isEmpty);
+    // E a lista paginada, se alguém a montar, consulta um intervalo VAZIO em
+    // vez de cair numa query sem filtro (que traria o workspace inteiro).
+    final listQuery = container
+        .read(FinanceViewProviders.invoiceInstallmentsList(key))
+        .query;
+    expect(listQuery.accountId, 'card-1');
+    expect(listQuery.endDate!.isBefore(listQuery.startDate!), isTrue);
     expect(
       container.read(FinanceViewProviders.invoiceInstallments(key)).isLoading,
       isTrue,

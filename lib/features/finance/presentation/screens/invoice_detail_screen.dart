@@ -139,26 +139,28 @@ class InvoiceDetailScreen extends ConsumerWidget {
                 ),
               ];
             },
-            body: Column(
-              children: [
-                _buildFilterBar(context, ref, invoice),
-                Expanded(
-                  // F1.8: a janela do ciclo é do servidor, gravada na própria
-                  // parcela da fatura. Sem ela (fatura anterior ao backfill) a
-                  // lista não tem período: mostrar o extrato de um intervalo
-                  // chutado seria pior do que dizer que ainda está fechando.
-                  child: invoice.invoiceKey.hasServerCycle
-                      ? TransactionListView(
+            // F1.8: a janela do ciclo é do servidor, gravada na própria
+            // parcela da fatura. Sem ela (fatura anterior ao backfill) a lista
+            // não tem período: mostrar o extrato de um intervalo chutado seria
+            // pior do que dizer que a fatura ainda está fechando. Nem a barra
+            // de filtro é montada — ela instancia o notifier, que consulta na
+            // construção.
+            body: invoice.invoiceKey.hasServerCycle
+                ? Column(
+                    children: [
+                      _buildFilterBar(context, ref, invoice),
+                      Expanded(
+                        child: TransactionListView(
                           provider:
                               FinanceViewProviders.invoiceInstallmentsList(
                                 invoice.invoiceKey,
                               ),
                           accountId: invoice.resolvedAccountId,
-                        )
-                      : _buildCycleUnavailable(context),
-                ),
-              ],
-            ),
+                        ),
+                      ),
+                    ],
+                  )
+                : _buildCycleUnavailable(context),
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () {

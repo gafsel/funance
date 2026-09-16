@@ -427,16 +427,23 @@ class FinanceViewProviders {
         InvoiceKey
       >((ref, invoice) {
         // A janela vem do servidor (gravada na própria parcela da fatura).
-        // Sem ela — fatura anterior a F1.8, antes do backfill — a query fica
-        // sem período em vez de usar um intervalo chutado: listar as compras
-        // erradas é pior do que não listar nada.
+        // Sem ela — fatura anterior a F1.8, antes do backfill — a consulta usa
+        // um intervalo VAZIO (fim antes do início) em vez de um intervalo
+        // chutado: o notifier carrega na construção, e uma query sem filtro
+        // traria os últimos lançamentos do workspace inteiro como se fossem
+        // desta fatura. A tela não chega a montar esta lista (mostra o aviso de
+        // fatura em fechamento); o intervalo vazio é a rede de segurança.
         final query = invoice.hasServerCycle
             ? TransactionQuery(
                 accountId: invoice.accountId,
                 startDate: invoice.cycleStart,
                 endDate: invoice.cycleEnd,
               )
-            : TransactionQuery();
+            : TransactionQuery(
+                accountId: invoice.accountId,
+                startDate: invoice.dueDate,
+                endDate: invoice.dueDate.addCalendarDays(-1),
+              );
 
         return TransactionListNotifier(
           financeiroService: ref.watch(FinanceDomainProviders.service),
