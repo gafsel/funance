@@ -106,6 +106,13 @@ gcloud firestore fields ttls update expiresAt \
   --collection-group=quotas \
   --project=funance-cef1b \
   --enable-ttl
+
+# Marcadores de idempotência (coleção RAIZ `_idempotency`, TTL de 30 dias —
+# ver a seção "Idempotência dos gatilhos" abaixo). NÃO EXECUTADO.
+gcloud firestore fields ttls update expiresAt \
+  --collection-group=_idempotency \
+  --project=funance-cef1b \
+  --enable-ttl
 ```
 
 Para conferir o estado da política:
@@ -135,6 +142,41 @@ completos e sem expiração. Nada mais escreve lá; o expurgo desses documentos 
 uma tarefa manual separada (as regras do Firestore já negam leitura e escrita
 pelo cliente).
 
+## Idempotência dos gatilhos
+
+Um gatilho do Firestore tem entrega **at-least-once**: o mesmo evento pode
+chegar mais de uma vez (retry da plataforma, reentrega após timeout). Como os
+handlers somam XP, movem saldo e atualizam faturas, reprocessar um evento
+corrompe dados. `src/core/services/idempotency.service.ts` resolve isso com um
+marcador em `_idempotency/{eventId}_{actionName}`.
+
+A chave é `eventId_action` — **por ação, não por evento**: um mesmo evento
+dispara vários blocos independentes (sumário, meta, saldo, fatura, XP,
+cascata), e cada um precisa poder ser reexecutado sozinho. É também o que
+permite que dois handlers observando o mesmo documento (finanças e
+gamificação) não roubem a chave um do outro: os nomes de ação são distintos e
+**estáveis** (`GAMIFICATION_ACTIONS` em `gamification_handler.ts`,
+`AUTOMATIC_TRANSACTION_ACTION` em `automatic_transaction_handler.ts`). Mudar
+um desses nomes faz o marcador antigo deixar de casar e a ação roda de novo
+para eventos em voo.
+
+O marcador é escrito **antes** da ação:
+
+1. `create({status: "running", startedAt, expiresAt})` — `create` falha com
+   `ALREADY_EXISTS` se alguém já reivindicou a chave, e é o Firestore que
+   serializa a disputa. Nesse caso o handler sai sem rodar nada.
+2. roda a ação;
+3. `update({status: "done", finishedAt})`.
+
+Se a ação **lançar**, o marcador é apagado e o erro é repropagado — sem isso o
+retry automático da Function encontraria a chave e pularia a ação para sempre.
+Um marcador `running` parado há mais de 10 minutos é considerado abandonado
+(a instância morreu no meio): ele é apagado e a ação roda de novo.
+
+`expiresAt` = criação + **30 dias**, recolhido pela política de TTL descrita
+acima (a política de `_idempotency` ainda **não foi ativada** — o comando
+`gcloud` está na seção anterior).
+
 ## Categorias de sistema (`isSystem`)
 
 Algumas categorias existem para dar suporte a lançamentos sintéticos do servidor
@@ -161,6 +203,27 @@ Contrato com o cliente Flutter:
 - `isDeleted`: booleano, **ausente == false**.
 - As security rules impedem o cliente de criar uma categoria com
   `isSystem: true` e de editar/apagar uma categoria de sistema já existente.
+
+## Crons de manutenção
+
+| Function                            | Agendamento               | Fuso              |
+|-------------------------------------|---------------------------|-------------------|
+| `generateRecurringInstallments`     | `30 3 * * *` (diário)     | `America/Sao_Paulo` |
+| `generateCategoryPlanningSummaries` | `0 0 1 * *` (dia 1)       | `America/Sao_Paulo` |
+| `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
+| `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
+
+`generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
+uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha
+parcela quando o horizonte de previsibilidade vira de mês). Passou a rodar uma
+vez por dia, de madrugada.
+
+As parcelas geradas pelo cron passam pela **mesma** função de criação das
+parcelas normais (`FinanceRepositoryImpl.createInstallments`), de modo que o
+documento gravado tenha sempre o mesmo formato — `Timestamp` em todas as datas,
+`paidDate: null` explícito, `referenceDate`/`referenceAmount` preenchidos. Antes
+o cron montava o documento por conta própria e as parcelas nasciam com um
+schema ligeiramente diferente das criadas pelo app.
 
 ## Scripts de migração
 
@@ -214,3 +277,53 @@ Saída de código: `0` se não houve falhas, `1` caso contrário.
 A lógica do script é coberta por testes com mocks em
 `src/test/migrate_system_categories.test.ts` (dry-run, idempotência, escopo por
 workspace e contabilização de falhas).
+
+### `backfill_last_generated_due_date.ts`
+
+Preenche `lastGeneratedDueDate` nas orders **recorrentes** que estão sem o
+campo, usando o vencimento da **última parcela já existente** da order.
+
+Contexto: o cron `generateRecurringInstallments` estende uma order recorrente a
+partir de `lastGeneratedDueDate`, e a query usa
+`where("lastGeneratedDueDate", "<", threshold)` — o Firestore **não casa
+documentos em que o campo não existe**, então uma order legada sem a marca
+nunca é estendida. O serviço também se recusa a estendê-la: sem a marca não há
+como saber onde a série parou (o fallback antigo assumia "hoje" e inventava
+parcelas fora da série).
+
+- **Idempotente**: pula orders que já têm o campo; pode rodar N vezes.
+- **Não cria parcela nenhuma**: só grava a marca na order. Quem gera as parcelas
+  faltantes é o cron diário, no formato normal.
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **Log por order**, com resumo final
+  (`orders/preenchidas/já_preenchidas/sem_parcelas/falhas`).
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/backfill_last_generated_due_date.js --project=<projectId>
+
+# 2) Um único workspace, para validar antes da base inteira
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/backfill_last_generated_due_date.js --project=<projectId> --workspace=<workspaceId> --apply
+
+# 3) Execução real na base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/backfill_last_generated_due_date.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+
+Saída de código: `0` se não houve falhas, `1` caso contrário.
+
+Coberto por testes com mocks em
+`src/test/backfill_last_generated_due_date.test.ts` (dry-run, idempotência,
+escolha da última parcela, escopo por workspace e contabilização de falhas).
