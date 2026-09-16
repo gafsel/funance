@@ -21,6 +21,10 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 /// O status vem do ponto de entrada ("Registrei" abre como pago, "Agendar"
 /// como pendente) e não é mais uma escolha dentro do formulário. Sem status,
 /// vale o caminho mais comum: registrar algo que já aconteceu.
+///
+/// No caminho "Registrei", o formulário ainda oferece os agendamentos
+/// pendentes da categoria, para o usuário quitar o que já tinha planejado em
+/// vez de criar um lançamento paralelo.
 class TransactionWizardScreen extends ConsumerWidget {
   final OrderType type;
   final InstallmentStatus? initialStatus;
@@ -50,7 +54,9 @@ class TransactionWizardScreen extends ConsumerWidget {
       TransactionWizardStep.form => TransactionFormScreen.creation(
         type: type,
         category: state.selectedCategory,
-        status: initialStatus ?? InstallmentStatus.paid,
+        // Sem status no ponto de entrada quem decide é
+        // `TransactionFormState.creation`, que assume realizado.
+        status: initialStatus,
         accountIdSource: state.accountIdSource,
       ),
     };

@@ -5,8 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
+import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
@@ -24,8 +26,29 @@ import 'package:funances/features/workspace/domain/repositories/category_reposit
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 class _StubAnalyticsService implements AnalyticsService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => Future<void>.value();
+}
+
+class _RecordingAnalytics implements AnalyticsService {
+  Map<String, Object>? transactionSaved;
+
+  @override
+  Future<void> logTransactionSaved({
+    required String status,
+    required bool hadPlanning,
+    required String type,
+  }) async {
+    transactionSaved = {
+      'status': status,
+      'had_planning': hadPlanning,
+      'type': type,
+    };
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => Future<void>.value();
 }
@@ -36,7 +59,17 @@ class _FakeFinanceRepository implements IFinanceRepository {
   _FakeFinanceRepository({this.installments = const []});
 
   final List<InstallmentModel> installments;
-  final List<({String? categoryId, OrderType? type, int? limit})> queryCalls = [];
+  final List<
+    ({
+      String? categoryId,
+      OrderType? type,
+      int? limit,
+      InstallmentStatus? status,
+      DateTime? startDate,
+      DateTime? endDate,
+    })
+  >
+  queryCalls = [];
 
   @override
   Future<QueryChunk<InstallmentModel>> queryInstallments(
@@ -54,9 +87,48 @@ class _FakeFinanceRepository implements IFinanceRepository {
     bool descending = true,
     dynamic chunkRef,
   }) async {
-    queryCalls.add((categoryId: categoryId, type: type, limit: limit));
-    return QueryChunk(items: installments);
+    queryCalls.add((
+      categoryId: categoryId,
+      type: type,
+      limit: limit,
+      status: status,
+      startDate: startDate,
+      endDate: endDate,
+    ));
+
+    // O Firestore filtra por status e janela; o fake precisa filtrar também,
+    // senão a busca de agendamentos "acharia" parcelas já pagas.
+    final matching = installments.where((installment) {
+      if (status != null && installment.status != status) return false;
+      if (categoryId != null && installment.category?.id != categoryId) {
+        return false;
+      }
+      if (startDate != null && installment.dueDate.isBefore(startDate)) {
+        return false;
+      }
+      if (endDate != null && installment.dueDate.isAfter(endDate)) return false;
+      return true;
+    }).toList();
+
+    return QueryChunk(
+      items: limit == null ? matching : matching.take(limit).toList(),
+    );
   }
+
+  final List<OrderModel> savedOrders = [];
+
+  @override
+  Future<OrderModel> addOrder(String workspaceId, OrderModel order) async {
+    savedOrders.add(order);
+    return order;
+  }
+
+  @override
+  Future<List<CategoryPlanningModel>> getCategoryPlannings(
+    String workspaceId, {
+    String? startMonth,
+    String? endMonth,
+  }) async => const [];
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -166,13 +238,19 @@ FinanceService _financeService({
   categoryRepository: _FakeCategoryRepository(),
 );
 
+/// Um dia fixo, para as janelas de busca não dependerem de quando o teste
+/// roda: março/2026, com fevereiro como "mês anterior".
+final _hoje = DateTime(2026, 3, 15);
+
 TransactionFormNotifier _notifierFor(
   TransactionFormState state, {
   FinanceService? financeService,
+  AnalyticsService? analytics,
 }) => TransactionFormNotifier(
   state,
   financeService: financeService ?? _financeService(),
-  analytics: _StubAnalyticsService(),
+  analytics: analytics ?? _StubAnalyticsService(),
+  today: _hoje,
 );
 
 Widget _hostedForm(
@@ -195,6 +273,35 @@ Widget _hostedForm(
   );
 }
 
+/// Agendamento vencido em março, no mês do relógio fixo dos testes.
+InstallmentModel _agendamentoDeMarco() => _installment(
+  id: 'inst-agendada',
+  description: 'Aluguel de março',
+  amount: 2000,
+  dueDate: DateTime(2026, 3, 5),
+  status: InstallmentStatus.pending,
+  installmentType: InstallmentType.single,
+  installmentCount: null,
+);
+
+Widget _hostedRouter(
+  GoRouter router, {
+  required List<Override> overrides,
+}) => ProviderScope(
+  overrides: overrides,
+  child: MaterialApp.router(
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('pt'),
+    routerConfig: router,
+  ),
+);
+
 List<Override> _overrides({
   List<AccountModel> accounts = const [],
   List<CategoryModel> categories = const [],
@@ -206,6 +313,9 @@ List<Override> _overrides({
     _FakeWorkspaceRepository(),
   ),
   AuthDomainProviders.currentUser.overrideWithValue(null),
+  // Dia fixo: as janelas de busca de agendamento não podem depender de
+  // quando o teste roda.
+  clockProvider.overrideWithValue(() => _hoje),
   FinanceDomainProviders.repository.overrideWithValue(
     _FakeFinanceRepository(installments: installments),
   ),
@@ -349,7 +459,12 @@ void main() {
           category: _category(),
         ),
         financeService: _financeService(
-          installments: [_installment(accountId: 'acc-ultima')],
+          installments: [
+            _installment(
+              accountId: 'acc-ultima',
+              status: InstallmentStatus.paid,
+            ),
+          ],
           accounts: [
             _account(id: 'acc-ultima', name: 'Nubank'),
             _account(id: 'acc-outra', name: 'Itaú'),
@@ -362,6 +477,62 @@ void main() {
 
       expect(notifier.state.accountIdSource, 'acc-ultima');
       expect(notifier.state.resolvingAccount, isFalse);
+    });
+
+    test('parcela liquidada também conta como conta já usada', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          category: _category(),
+        ),
+        financeService: _financeService(
+          installments: [
+            _installment(
+              accountId: 'acc-liquidada',
+              status: InstallmentStatus.settled,
+            ),
+          ],
+          accounts: [
+            _account(id: 'acc-liquidada', name: 'Nubank'),
+            _account(id: 'acc-outra', name: 'Itaú'),
+          ],
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.accountIdSource, 'acc-liquidada');
+    });
+
+    test('agendamento pendente não é histórico de conta usada', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          category: _category(),
+        ),
+        financeService: _financeService(
+          installments: [
+            _installment(
+              accountId: 'acc-agendada',
+              status: InstallmentStatus.pending,
+            ),
+          ],
+          accounts: [
+            _account(id: 'acc-agendada', name: 'Nubank'),
+            _account(id: 'acc-outra', name: 'Itaú'),
+          ],
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        notifier.state.accountIdSource,
+        isNull,
+        reason: 'pendente não saiu de conta nenhuma ainda',
+      );
     });
 
     test('cai na única conta quando a categoria não tem histórico', () async {
@@ -410,7 +581,12 @@ void main() {
           accountIdSource: 'acc-escolhida',
         ),
         financeService: _financeService(
-          installments: [_installment(accountId: 'acc-ultima')],
+          installments: [
+            _installment(
+              accountId: 'acc-ultima',
+              status: InstallmentStatus.paid,
+            ),
+          ],
         ),
       );
       addTearDown(notifier.dispose);
@@ -419,6 +595,206 @@ void main() {
 
       expect(notifier.state.accountIdSource, 'acc-escolhida');
     });
+  });
+
+  group('casamento com agendamento', () {
+    InstallmentModel agendamento({
+      String id = 'inst-agendada',
+      String description = 'Aluguel',
+      DateTime? dueDate,
+    }) => _installment(
+      id: id,
+      description: description,
+      dueDate: dueDate ?? DateTime(2026, 3, 5),
+      status: InstallmentStatus.pending,
+      installmentType: InstallmentType.single,
+      installmentCount: null,
+    );
+
+    test('oferece os pendentes da categoria no mês e no anterior', () async {
+      final repository = _FakeFinanceRepository(
+        installments: [
+          agendamento(),
+          agendamento(id: 'inst-mes-passado', dueDate: DateTime(2026, 2, 5)),
+        ],
+      );
+
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: FinanceService(
+          workspaceId: 'ws-test',
+          repository: repository,
+          accountRepository: _FakeAccountRepository(),
+          categoryRepository: _FakeCategoryRepository(),
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.pendingMatches, hasLength(2));
+      expect(notifier.state.hasPendingMatches, isTrue);
+      expect(notifier.state.loadingMatches, isFalse);
+
+      final matchCall = repository.queryCalls.firstWhere(
+        (call) => call.status == InstallmentStatus.pending,
+      );
+      expect(matchCall.limit, TransactionFormNotifier.maxPendingMatches);
+      expect(matchCall.categoryId, 'cat-1');
+      expect(matchCall.type, OrderType.expense);
+      // Janela: do primeiro dia do mês anterior ao último do mês corrente.
+      expect(matchCall.startDate, DateTime(2026, 2, 1));
+      expect(matchCall.endDate, DateTime(2026, 3, 31, 23, 59, 59));
+    });
+
+    test('sem pendente na categoria, nada a oferecer', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(
+          installments: [
+            _installment(status: InstallmentStatus.paid),
+            agendamento().copyWith(category: _category(id: 'outra-cat')),
+          ],
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.pendingMatches, isEmpty);
+      expect(notifier.state.hasPendingMatches, isFalse);
+      expect(notifier.state.matchedInstallmentId, isNull);
+    });
+
+    test('agendar não oferece casamento', () async {
+      final repository = _FakeFinanceRepository(
+        installments: [agendamento()],
+      );
+
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.pending,
+          category: _category(),
+        ),
+        financeService: FinanceService(
+          workspaceId: 'ws-test',
+          repository: repository,
+          accountRepository: _FakeAccountRepository(),
+          categoryRepository: _FakeCategoryRepository(),
+        ),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.pendingMatches, isEmpty);
+      expect(
+        repository.queryCalls.where(
+          (call) => call.status == InstallmentStatus.pending,
+        ),
+        isEmpty,
+        reason: 'agendar em cima de agendamento não é casamento',
+      );
+    });
+
+    test('escolher um agendamento leva a tela para a edição dele', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(installments: [agendamento()]),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+      notifier.selectMatch(notifier.state.pendingMatches.single);
+
+      expect(notifier.state.matchedInstallment, isNotNull);
+      expect(notifier.state.matchedInstallmentId, 'inst-agendada');
+    });
+
+    test('dispensar deixa o lançamento seguir como novo', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(installments: [agendamento()]),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+      notifier.dismissMatches();
+
+      expect(notifier.state.dismissedMatch, isTrue);
+      expect(notifier.state.hasPendingMatches, isFalse);
+      expect(notifier.state.matchedInstallmentId, isNull);
+      expect(
+        notifier.state.creation,
+        isTrue,
+        reason: 'continua criando uma order',
+      );
+    });
+
+    test('trocar de categoria refaz a oferta e desfaz a recusa', () async {
+      final notifier = _notifierFor(
+        TransactionFormState.creation(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          category: _category(),
+        ),
+        financeService: _financeService(installments: [agendamento()]),
+      );
+      addTearDown(notifier.dispose);
+
+      await Future<void>.delayed(Duration.zero);
+      notifier.dismissMatches();
+      expect(notifier.state.dismissedMatch, isTrue);
+
+      notifier.updateCategory(_category(id: 'outra-cat'));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(notifier.state.dismissedMatch, isFalse);
+      expect(notifier.state.pendingMatches, isEmpty);
+    });
+
+    test(
+      'lançamento novo sem casar e sem limite emite had_planning=false',
+      () async {
+        final analytics = _RecordingAnalytics();
+        final notifier = _notifierFor(
+          TransactionFormState.creation(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+            amount: 100,
+            description: 'Compra do mês',
+            accountIdSource: 'acc-1',
+          ),
+          financeService: _financeService(installments: [agendamento()]),
+          analytics: analytics,
+        );
+        addTearDown(notifier.dispose);
+
+        await Future<void>.delayed(Duration.zero);
+        notifier.dismissMatches();
+        await notifier.submit();
+
+        expect(analytics.transactionSaved?['had_planning'], isFalse);
+      },
+    );
   });
 
   group('construtores do formulário', () {
@@ -499,6 +875,169 @@ void main() {
 
       expect(find.text('Editar'), findsOneWidget);
       expect(find.text('Status'), findsNothing);
+    });
+
+    testWidgets('banner oferece o agendamento e some ao dispensar', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.creation(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+            installments: [_agendamentoDeMarco()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Existe um agendamento nesta categoria. Quitar este?'),
+        findsOneWidget,
+      );
+      expect(find.text('Aluguel de março'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('pending-match-inst-agendada')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('É um gasto novo'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Existe um agendamento nesta categoria. Quitar este?'),
+        findsNothing,
+      );
+      // Continua sendo um lançamento novo: o cabeçalho é o de criação.
+      expect(find.text('Lançar Despesa'), findsOneWidget);
+    });
+
+    testWidgets('tocar no agendamento passa a tela para a quitação dele', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.creation(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+            installments: [_agendamentoDeMarco()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('pending-match-inst-agendada')),
+      );
+      await tester.pumpAndSettle();
+
+      // Deixou de criar uma order: agora é edição da parcela agendada.
+      expect(find.text('Editar'), findsOneWidget);
+      expect(find.text('Lançar Despesa'), findsNothing);
+      expect(
+        find.text('Existe um agendamento nesta categoria. Quitar este?'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('consolidação de transação automática abre como realizada', (
+      tester,
+    ) async {
+      // Mesma rota que `_handleConsolidate` monta: status paid e a data da
+      // notificação bancária.
+      final router = GoRouter(
+        initialLocation:
+            '/transactions/form?type=expense&status=paid'
+            '&description=Compra&amount=87.9'
+            '&date=2026-03-12T10%3A30%3A00.000',
+        routes: [
+          GoRoute(
+            path: '/transactions/form',
+            builder: (context, state) {
+              final status = InstallmentStatus.values
+                  .where((e) => e.name == state.uri.queryParameters['status'])
+                  .firstOrNull;
+
+              return TransactionFormScreen.creation(
+                type: OrderType.expense,
+                status: status,
+                category: _category(),
+                description: state.uri.queryParameters['description'],
+                amount: double.tryParse(
+                  state.uri.queryParameters['amount'] ?? '',
+                ),
+                dueDate: DateTime.tryParse(
+                  state.uri.queryParameters['date'] ?? '',
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _hostedRouter(
+          router,
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Já aconteceu: título de realizado, não de agendamento.
+      expect(find.text('Lançar Despesa'), findsOneWidget);
+      expect(find.text('Agendar Despesa'), findsNothing);
+
+      final state = ProviderScope.containerOf(
+        tester.element(find.byType(TransactionFormScreen)),
+      ).read(
+        FinanceViewProviders.creationForm(
+          TransactionCreationArgs(
+            type: OrderType.expense,
+            status: InstallmentStatus.paid,
+            category: _category(),
+            description: 'Compra',
+            amount: 87.9,
+            date: DateTime(2026, 3, 12, 10, 30),
+          ),
+        ),
+      );
+
+      expect(state.status, InstallmentStatus.paid);
+      expect(state.paidDate, DateTime(2026, 3, 12, 10, 30));
+      expect(state.paidAmount, 87.9);
+    });
+
+    testWidgets('sem status no ponto de entrada o lançamento nasce realizado', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _hostedForm(
+          TransactionFormScreen.creation(
+            type: OrderType.expense,
+            category: _category(),
+          ),
+          overrides: _overrides(
+            accounts: [_account(id: 'acc-1', name: 'Nubank')],
+            categories: [_category()],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lançar Despesa'), findsOneWidget);
     });
 
     testWidgets('transferência avisa em qual pool vai cair', (tester) async {

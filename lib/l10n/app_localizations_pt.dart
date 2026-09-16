@@ -92,6 +92,19 @@ class AppLocalizationsPt extends AppLocalizations {
   String get transactionMoreOptions => 'Mais Opções';
 
   @override
+  String get transactionMatchTitle =>
+      'Existe um agendamento nesta categoria. Quitar este?';
+
+  @override
+  String get transactionMatchSettle => 'Quitar';
+
+  @override
+  String get transactionMatchDismiss => 'É um gasto novo';
+
+  @override
+  String get transactionMatchDismissIncome => 'É uma receita nova';
+
+  @override
   String get onboardingConceptXpTitle => 'Ganhe XP e suba de nível';
 
   @override

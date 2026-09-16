@@ -260,6 +260,30 @@ abstract class AppLocalizations {
   /// **'Mais Opções'**
   String get transactionMoreOptions;
 
+  /// No description provided for @transactionMatchTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Existe um agendamento nesta categoria. Quitar este?'**
+  String get transactionMatchTitle;
+
+  /// No description provided for @transactionMatchSettle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quitar'**
+  String get transactionMatchSettle;
+
+  /// No description provided for @transactionMatchDismiss.
+  ///
+  /// In pt, this message translates to:
+  /// **'É um gasto novo'**
+  String get transactionMatchDismiss;
+
+  /// No description provided for @transactionMatchDismissIncome.
+  ///
+  /// In pt, this message translates to:
+  /// **'É uma receita nova'**
+  String get transactionMatchDismissIncome;
+
   /// No description provided for @onboardingConceptXpTitle.
   ///
   /// In pt, this message translates to:

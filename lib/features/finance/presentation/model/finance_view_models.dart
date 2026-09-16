@@ -103,6 +103,18 @@ sealed class TransactionWizardState with _$TransactionWizardState {
   }) = _TransactionWizardState;
 }
 
+/// Chave do formulário de pagamento de uma parcela.
+///
+/// [paidOn] entra na chave porque é ele que distingue "quitar esta parcela"
+/// (data do vencimento) de "registrei hoje e isto era o agendamento" (hoje).
+@freezed
+sealed class TransactionPaymentArgs with _$TransactionPaymentArgs {
+  const factory TransactionPaymentArgs({
+    required InstallmentModel installment,
+    DateTime? paidOn,
+  }) = _TransactionPaymentArgs;
+}
+
 @freezed
 sealed class TransactionCreationArgs with _$TransactionCreationArgs {
   factory TransactionCreationArgs({
@@ -166,9 +178,28 @@ sealed class TransactionFormState with _$TransactionFormState {
     // Enquanto isso o campo de conta não abre sozinho: abrir o seletor e
     // depois preencher o default por baixo seria pior que esperar.
     @Default(false) bool resolvingAccount,
+    // Agendamentos pendentes da categoria que este lançamento pode estar
+    // quitando. Sem esta busca, registrar um gasto que já estava agendado
+    // cria uma order nova e deixa a parcela pendente para trás: o planejado
+    // conta duas vezes no 50-30-20 e a parcela vira uma missão atrasada que
+    // nunca fecha.
+    @Default([]) List<InstallmentModel> pendingMatches,
+    @Default(false) bool loadingMatches,
+    // O usuário disse que é lançamento novo. A marca fica no estado para o
+    // nudge de F3.2 saber que a pergunta já foi feita e recusada.
+    @Default(false) bool dismissedMatch,
+    // Agendamento escolhido: a tela passa a editar esta parcela em vez de
+    // criar uma order.
+    InstallmentModel? matchedInstallment,
   }) = _TransactionFormState;
 
   bool get creation => formType == TransactionFormType.order && orderId == null;
+
+  /// Id do agendamento que este lançamento está quitando, quando há um.
+  String? get matchedInstallmentId => matchedInstallment?.id;
+
+  /// Há agendamento para oferecer e o usuário ainda não recusou a oferta.
+  bool get hasPendingMatches => !dismissedMatch && pendingMatches.isNotEmpty;
 
   /// Há um valor preenchido. Não tem relação com planejamento: distingue o
   /// lançamento com valor (campos de pagamento fazem sentido) do que ainda
@@ -200,6 +231,13 @@ sealed class TransactionFormState with _$TransactionFormState {
         accountIdTarget != persisted.accountIdTarget;
   }
 
+  /// Formulário de um lançamento novo.
+  ///
+  /// Sem status explícito vale `paid`: quem abre o formulário sem dizer nada
+  /// está registrando algo que já aconteceu ("acabei de gastar"). Agendar é a
+  /// escolha consciente, feita no ponto de entrada. O default anterior era
+  /// `pending`, e a consolidação de uma transação bancária — que por
+  /// definição já aconteceu — nascia como agendamento.
   factory TransactionFormState.creation({
     required OrderType type,
     InstallmentStatus? status,
@@ -210,27 +248,24 @@ sealed class TransactionFormState with _$TransactionFormState {
     DateTime? date,
     double? amount,
   }) {
+    final effectiveStatus = status ?? InstallmentStatus.paid;
+    final isPaid =
+        effectiveStatus == InstallmentStatus.paid ||
+        effectiveStatus == InstallmentStatus.settled;
+
     return TransactionFormState(
       formType: TransactionFormType.order,
       type: type,
       category: category,
       dueDate: date ?? DateTime.now(),
-      paidDate:
-          status == InstallmentStatus.paid ||
-              status == InstallmentStatus.settled
-          ? date ?? DateTime.now()
-          : null,
-      status: status ?? InstallmentStatus.pending,
+      paidDate: isPaid ? date ?? DateTime.now() : null,
+      status: effectiveStatus,
       installmentType: InstallmentType.single,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
       description: description ?? "",
       amount: amount ?? 0.0,
-      paidAmount:
-          status == InstallmentStatus.paid ||
-              status == InstallmentStatus.settled
-          ? amount ?? 0.0
-          : null,
+      paidAmount: isPaid ? amount ?? 0.0 : null,
     );
   }
 
@@ -251,9 +286,17 @@ sealed class TransactionFormState with _$TransactionFormState {
     );
   }
 
+  /// Formulário de uma parcela existente.
+  ///
+  /// [paidOn] força a data de pagamento. Serve ao casamento com agendamento:
+  /// o usuário está registrando o que gastou HOJE, então a parcela vencida no
+  /// mês passado é quitada com a data de hoje, não com o vencimento dela.
+  /// Sem [paidOn] vale a regra do fluxo de pagamento comum — quitar uma
+  /// parcela vencida assume a data do vencimento.
   factory TransactionFormState.updateInstallment(
     InstallmentModel installment, {
     InstallmentStatus? status,
+    DateTime? paidOn,
   }) {
     final effectiveStatus = status ?? installment.status;
 
@@ -263,9 +306,11 @@ sealed class TransactionFormState with _$TransactionFormState {
     if (status == InstallmentStatus.paid ||
         status == InstallmentStatus.settled) {
       paidAmount = installment.amount;
-      paidDate = installment.dueDate.isAfter(DateTime.now())
-          ? DateTime.now()
-          : installment.dueDate;
+      paidDate =
+          paidOn ??
+          (installment.dueDate.isAfter(DateTime.now())
+              ? DateTime.now()
+              : installment.dueDate);
     } else if (status == InstallmentStatus.pending) {
       paidAmount = null;
       paidDate = null;

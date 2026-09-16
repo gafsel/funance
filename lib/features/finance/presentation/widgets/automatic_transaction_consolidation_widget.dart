@@ -7,6 +7,7 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
+import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -103,8 +104,13 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
     WidgetRef ref,
     AutomaticTransactionModel transaction,
   ) {
+    // A transação bancária já aconteceu: consolidar é registrar um realizado,
+    // com a data da notificação como data de pagamento. Sem o status
+    // explícito o formulário abria como agendamento, e o extrato ganhava uma
+    // conta a pagar no lugar de um gasto.
     final queryParams = {
       'type': transaction.type.name,
+      'status': InstallmentStatus.paid.name,
       'description': transaction.description,
       'amount': transaction.amount.toString(),
       'date': transaction.date.toIso8601String(),

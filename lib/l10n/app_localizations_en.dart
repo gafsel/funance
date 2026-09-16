@@ -91,6 +91,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionMoreOptions => 'More Options';
 
   @override
+  String get transactionMatchTitle =>
+      'There is a scheduled entry in this category. Settle it?';
+
+  @override
+  String get transactionMatchSettle => 'Settle';
+
+  @override
+  String get transactionMatchDismiss => 'It is a new expense';
+
+  @override
+  String get transactionMatchDismissIncome => 'It is new income';
+
+  @override
   String get onboardingConceptXpTitle => 'Earn XP and level up';
 
   @override

@@ -16,16 +16,27 @@ class TransactionFormNotifier
   final FinanceService financeService;
   final AnalyticsService analytics;
 
+  /// Dia corrente, do relógio injetado. Define a janela de busca dos
+  /// agendamentos e a data de quitação quando um deles é escolhido.
+  final DateTime today;
+
+  /// Quantos agendamentos a oferta mostra. Mais que isso vira uma lista para
+  /// ler em vez de uma pergunta para responder.
+  static const int maxPendingMatches = 5;
+
   TransactionFormNotifier(
     super.initialState, {
     required this.financeService,
     required this.analytics,
-  }) : super() {
+    DateTime? today,
+  }) : today = today ?? DateTime.now(),
+       super() {
     if (state.creation) {
       // A conta é obrigatória também em agendamentos, então o formulário
       // tenta resolver um default antes de pedir ao usuário.
       state = state.copyWith(resolvingAccount: true);
       unawaited(_resolveDefaultAccount());
+      _lookForPendingMatches();
     }
 
     // A transferência pode chegar com as contas já preenchidas (extrato da
@@ -49,13 +60,26 @@ class TransactionFormNotifier
   void updateDueDate(DateTime value) => state = state.copyWith(dueDate: value);
 
   void updateCategory(CategoryModel? value) {
+    final changed = state.category?.id != value?.id;
     state = state.copyWith(category: value);
+
+    if (!state.creation || value == null) return;
 
     // Trocar a categoria muda qual é a "última conta usada": só vale a pena
     // reagir enquanto o usuário ainda não escolheu conta nenhuma.
-    if (state.creation && state.accountIdSource == null && value != null) {
+    if (state.accountIdSource == null) {
       state = state.copyWith(resolvingAccount: true);
       unawaited(_resolveDefaultAccount());
+    }
+
+    // E muda quais agendamentos podem ser este lançamento. Recusar a oferta
+    // de uma categoria não vale para a próxima.
+    if (changed) {
+      state = state.copyWith(
+        pendingMatches: const [],
+        dismissedMatch: false,
+      );
+      _lookForPendingMatches();
     }
   }
 
@@ -79,6 +103,67 @@ class TransactionFormNotifier
     unawaited(_resolveTransferAccounting());
   }
 
+  /// Procura agendamentos que este lançamento pode estar quitando.
+  ///
+  /// Só no caminho "Registrei": agendar em cima de um agendamento não é
+  /// casamento, é outra intenção. Transferência não tem categoria escolhível
+  /// e fica de fora.
+  void _lookForPendingMatches() {
+    if (state.type == OrderType.transfer ||
+        state.category == null ||
+        !_isPaid(state.status)) {
+      return;
+    }
+
+    state = state.copyWith(loadingMatches: true);
+    unawaited(_loadPendingMatches());
+  }
+
+  /// Parcelas pendentes da categoria no mês corrente e no anterior.
+  ///
+  /// A janela cobre o mês passado porque a conta que vence dia 5 costuma ser
+  /// paga com atraso, e é exatamente essa que o usuário está registrando.
+  Future<void> _loadPendingMatches() async {
+    final category = state.category;
+
+    try {
+      final chunk = await financeService.queryInstallments(
+        limit: maxPendingMatches,
+        categoryId: category!.id,
+        type: state.type,
+        status: InstallmentStatus.pending,
+        startDate: DateTime(today.year, today.month - 1, 1),
+        // Fim do dia para incluir o que vence no último dia do mês
+        // (referenceDate é normalizado às 12:00).
+        endDate: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
+      );
+
+      if (!mounted) return;
+      // Resposta atrasada de uma categoria que não é mais a escolhida não
+      // pode oferecer os agendamentos da categoria errada.
+      if (state.category?.id != category.id) return;
+
+      state = state.copyWith(
+        pendingMatches: chunk.items,
+        loadingMatches: false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      // Silencioso de propósito: sem a oferta, o lançamento segue como novo.
+      state = state.copyWith(loadingMatches: false);
+    }
+  }
+
+  /// O usuário escolheu quitar um agendamento em vez de criar um lançamento.
+  void selectMatch(InstallmentModel installment) {
+    state = state.copyWith(matchedInstallment: installment);
+  }
+
+  /// "É um gasto novo": a oferta some e não volta nesta categoria.
+  void dismissMatches() {
+    state = state.copyWith(dismissedMatch: true, loadingMatches: false);
+  }
+
   /// Conta padrão do lançamento: a última que o usuário usou na categoria
   /// escolhida e, na falta dela, a única conta do workspace.
   ///
@@ -91,13 +176,18 @@ class TransactionFormNotifier
       final categoryId = state.category?.id;
 
       if (categoryId != null) {
+        // Sem filtro de status na consulta porque o repositório aceita um só
+        // e "conta já usada" é paga OU liquidada; agendamento ainda não saiu
+        // de conta nenhuma e `removed` é lixo. O filtro vem depois, num lote
+        // maior para sobrar histórico real.
         final chunk = await financeService.queryInstallments(
-          limit: 10,
+          limit: 20,
           categoryId: categoryId,
           type: state.type,
         );
 
         resolved = chunk.items
+            .where((installment) => _isPaid(installment.status))
             .map((installment) => installment.accountIdSource)
             .nonNulls
             .firstOrNull;

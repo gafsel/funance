@@ -295,6 +295,7 @@ class FinanceViewProviders {
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
+          today: ref.watch(todayProvider),
         );
       });
 
@@ -322,18 +323,26 @@ class FinanceViewProviders {
         );
       });
 
+  /// Formulário de quitação de uma parcela.
+  ///
+  /// `args.paidOn` distingue quitar na data do vencimento (o fluxo comum, com
+  /// `paidOn` nulo) de "registrei hoje e isto era o agendamento", que vem do
+  /// casamento dentro do formulário de criação e paga com a data de hoje.
   static final transactionPaymentForm = StateNotifierProvider.autoDispose
-      .family<TransactionFormNotifier, TransactionFormState, InstallmentModel>((
-        ref,
-        installment,
-      ) {
+      .family<
+        TransactionFormNotifier,
+        TransactionFormState,
+        TransactionPaymentArgs
+      >((ref, args) {
         return TransactionFormNotifier(
           TransactionFormState.updateInstallment(
-            installment,
+            args.installment,
             status: InstallmentStatus.paid,
+            paidOn: args.paidOn,
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
+          today: ref.watch(todayProvider),
         );
       });
 
