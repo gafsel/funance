@@ -2334,8 +2334,9 @@ minuto.
 ## Ordem de rollout
 
 Os pacotes F1.4/F1.5/F1.8/F1.9 mudam formato de documento, consultas e ids. A
-ordem abaixo é a que evita janela quebrada — **nada disso foi executado contra o
-projeto real**.
+ordem abaixo é a que evita janela quebrada. Executada contra o projeto real em
+2026-09-17 (passos 0 a 10 e 12/13; o passo 11 ficou pendente de decisão sobre
+planejamentos duplicados no workspace a532d837).
 
 ```
 0. APP              publicar web + macOS SEM `currentAmount` no updateGoal
@@ -2345,14 +2346,16 @@ projeto real**.
 2. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
 3. migração          node lib/scripts/migrate_planning_summaries.js    (dry-run → --apply)
 
-   ── F1.10, dinheiro em centavos: ANTES do deploy das functions ────────────
-4. verificação       node lib/scripts/migrate_money_cents.js --all-workspaces --verify   (RETRATO ANTES)
-5. centavos          node lib/scripts/migrate_money_cents.js --all-workspaces            (dry-run)
+4. functions         firebase deploy --only functions
+                     ⏳ OBRIGATÓRIO antes da migração de centavos — ver "Lição de 2026-09-17"
+
+   ── F1.10, dinheiro em centavos: DEPOIS do deploy das functions ───────────
+5. verificação       node lib/scripts/migrate_money_cents.js --all-workspaces --verify   (RETRATO ANTES)
+6. centavos          node lib/scripts/migrate_money_cents.js --all-workspaces            (dry-run)
                      node lib/scripts/migrate_money_cents.js --all-workspaces --apply
-6. verificação       node lib/scripts/migrate_money_cents.js --all-workspaces --verify   (RETRATO DEPOIS)
+7. verificação       node lib/scripts/migrate_money_cents.js --all-workspaces --verify   (RETRATO DEPOIS)
    ──────────────────────────────────────────────────────────────────────────
 
-7. functions         firebase deploy --only functions
 8. correção          node lib/scripts/fix_empty_category.js            (levantamento → --apply, uma categoria por vez)
 9. backfill          node lib/scripts/backfill_next_invoice.js         (dry-run → --apply)
 10. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
@@ -2447,7 +2450,7 @@ caso — ele só existe para RECALCULAR o que já está gravado.
 O backfill não toca em saldo, sumário nem XP, então a ordem em relação ao
 rebuild é indiferente.
 
-**4, 5 e 6. Dinheiro em centavos, ANTES do deploy das functions.** O
+**5, 6 e 7. Dinheiro em centavos, DEPOIS do deploy das functions.** O
 `--verify` é leitura pura: rode-o **antes** para ter o retrato de partida (e
 descobrir se já existe alguma divergência plantada) e **depois** para provar que
 o backfill fechou. O que se compara é a linha por coleção: `soma_double` e
@@ -2455,13 +2458,27 @@ o backfill fechou. O que se compara é a linha por coleção: `soma_double` e
 a zero no segundo. As duas somas DIFERINDO é o único sinal que pede parada — ver
 [`migrate_money_cents.ts`](#migrate_money_centsts).
 
-> ⚠️ **A migração vem ANTES do deploy das functions**, e não depois. Ela roda do
-> **build local** com ADC (`GOOGLE_APPLICATION_CREDENTIALS` + `npm run build`),
-> então não depende de deploy nenhum — e o código novo nasce numa base que já
-> tem o inteiro em todo lugar. Na ordem inversa existiria uma janela em que as
-> functions novas escrevem sobre documentos sem `*Cents`: elas sabem lidar com
-> isso (a escrita é transacional e semeia o inteiro a partir do `double`), mas
-> é uma janela a menos para vigiar, de graça.
+> ⚠️ **Lição de 2026-09-17: a migração vem DEPOIS do deploy das functions.**
+> A primeira versão deste runbook mandava migrar antes, raciocinando com as
+> guardas novas (`ORDER_DERIVED_FIELDS`, `GOAL_DERIVED_FIELDS`, `*Cents` em
+> `INSTALLMENT_DERIVED_FIELDS`), que ignoram escritas só de `*Cents`. Só que
+> quem reage às 4.540 escritas da migração são as functions **que estão no ar
+> naquele momento** — e as antigas não conhecem os campos novos. Na execução
+> real, com a ordem invertida: `onInstallmentWritten` antigo rodou 2.378 vezes e
+> reprocessou `period_summaries` (a soma caiu de 27.106.686,75 para
+> 25.820.776,65), `onOrderWritten` antigo criou 1.074 entradas espúrias em
+> `orders/{id}/history`, e a gamificação antiga reavaliou badges/XP (sem dano:
+> são idempotentes por id). As fontes de verdade (orders, installments,
+> balance, accounts, goals, category_planning) não mudaram. Reparo aplicado:
+> deploy das functions novas → `rebuild_workspace --all-workspaces --apply`
+> (sumários de volta ao valor exato do retrato ANTES; segunda passada com zero
+> mudanças) → exclusão do history espúrio (com backup).
+>
+> Regra geral para QUALQUER migração que escreva em coleção com gatilho:
+> primeiro sobem as functions cujas guardas reconhecem a escrita da migração
+> como derivada; só depois a migração; e um `rebuild_workspace` dry-run no fim
+> como prova. As functions novas sabem lidar com documentos ainda sem `*Cents`
+> (a escrita de sumário é transacional e semeia o inteiro a partir do `double`).
 >
 > A ordem entre a migração e os passos 8/9 é indiferente — eles não tocam em
 > dinheiro. O que **não** pode inverter é migração antes do rebuild: é o rebuild
