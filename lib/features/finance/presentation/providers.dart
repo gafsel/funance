@@ -783,13 +783,19 @@ class PeriodSummaryViewProviders {
   static final monthSummary = StreamProvider.autoDispose
       .family<List<OverviewCategorySummary>, String>((ref, monthKey) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
-        final List<CategoryModel> categories = ref
-            .watch(CategoryViewProviders.allStream)
-            .when(
-              data: (data) => data,
-              error: (_, _) => [],
-              loading: () => [],
-            );
+        final categoriesAsync = ref.watch(CategoryViewProviders.allStream);
+
+        // Falha ao ler categorias PROPAGA. Virar lista vazia fazia o resumo do
+        // mês dizer "nenhuma categoria" — uma afirmação, e errada — em vez de
+        // deixar a tela mostrar o erro e oferecer tentar de novo.
+        if (categoriesAsync.hasError) {
+          return Stream<List<OverviewCategorySummary>>.error(
+            categoriesAsync.error!,
+            categoriesAsync.stackTrace ?? StackTrace.current,
+          );
+        }
+
+        final List<CategoryModel> categories = categoriesAsync.valueOrNull ?? [];
 
         final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
 
