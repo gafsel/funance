@@ -13,6 +13,7 @@ import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CoachingInsightCard extends ConsumerWidget {
   const CoachingInsightCard({super.key});
@@ -66,8 +67,7 @@ class CoachingInsightCard extends ConsumerWidget {
               ),
             ),
             TextButton(
-              onPressed: () =>
-                  ref.invalidate(CoachingViewProviders.lastInsight),
+              onPressed: () => Retry.lastInsight(ref),
               child: Text(l10n.retry),
             ),
           ],

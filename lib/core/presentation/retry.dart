@@ -56,6 +56,11 @@ class Retry {
     ref.invalidate(CoachingViewProviders.insightsHistory);
   }
 
+  /// O último insight, que é o que a Home mostra. Fonte: o serviço.
+  static void lastInsight(WidgetRef ref) {
+    ref.invalidate(CoachingViewProviders.lastInsight);
+  }
+
   static void coachingInsight(WidgetRef ref, String id) {
     ref.invalidate(CoachingViewProviders.insightById(id));
   }
