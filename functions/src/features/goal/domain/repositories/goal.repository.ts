@@ -1,3 +1,4 @@
+import { AccountType } from "../../../finance/domain/models/finance.models";
 import { GoalModel, GoalOutcome } from "../models/goal.model";
 
 export interface IGoalRepository {
@@ -53,6 +54,18 @@ export interface IGoalRepository {
     startDate: Date
   ): Promise<GoalBalances>;
   /**
+   * Saldo mais recente da conta — o que uma meta `saveMoney` de cofrinho
+   * (conta de investimento) persegue. `null` quando a conta não tem nenhum
+   * documento de saldo.
+   */
+  getCurrentBalance(workspaceId: string, accountId: string): Promise<number | null>;
+  /**
+   * `runtimeType` da conta, ou `null` quando a conta não existe (ou o campo
+   * está fora do enum). É o que decide se uma meta `saveMoney` mede SALDO
+   * (conta de investimento) ou APORTES desde o início (as demais).
+   */
+  getAccountType(workspaceId: string, accountId: string): Promise<AccountType | null>;
+  /**
    * Parcelas pagas/liquidadas que tocam a conta, desde `since` (por
    * `paidDate`). Usada só no recálculo total (script e criação de meta): o
    * gatilho de parcela trabalha com o delta do evento, sem varrer nada.
@@ -72,9 +85,10 @@ export interface GoalOutcomeStamp {
 
 export interface GoalBalances {
   /**
-   * Saldo no dia do início da meta — o documento daquele dia ou, se não
-   * houver, o mais recente ANTES dele. `null` quando a conta não tinha saldo
-   * gravado até lá.
+   * Marco zero da meta: o saldo no FIM DO DIA ANTERIOR ao início — o
+   * documento mais recente ESTRITAMENTE antes do `startDate`. O documento do
+   * próprio dia de início fica de fora de propósito: ele já inclui o que foi
+   * pago naquele dia. `null` quando a conta não tinha saldo gravado até lá.
    */
   startBalance: number | null;
   /** Saldo do último documento de `balance` da conta. */

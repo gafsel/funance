@@ -1,4 +1,5 @@
 import { recomputeGoals } from "../scripts/recompute_goals";
+import { AccountType } from "../features/finance/domain/models/finance.models";
 
 function firestoreWithWorkspaces(ids: string[]) {
     return {
@@ -21,6 +22,9 @@ function makeRepository(goalsByWorkspace: Record<string, any[]>) {
         updateGoalOutcome: jest.fn().mockResolvedValue(undefined),
         getCategoryActualByMonths: jest.fn().mockResolvedValue(0),
         getBalancesForGoal: jest.fn().mockResolvedValue({ startBalance: null, currentBalance: null }),
+        getCurrentBalance: jest.fn().mockResolvedValue(null),
+        // Conta corrente por padrão: `saveMoney` segue no caminho dos aportes.
+        getAccountType: jest.fn().mockResolvedValue(AccountType.checking),
         getPaidInstallmentsByAccountSince: jest.fn().mockResolvedValue([]),
     };
 }

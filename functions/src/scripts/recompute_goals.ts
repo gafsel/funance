@@ -10,13 +10,15 @@
  * Este script recalcula do zero, com a mesma fonte de verdade que o gatilho usa
  * (`GoalServiceImpl.computeCurrentAmount`):
  *
- *   saveMoney        soma das parcelas pagas da conta desde `startDate`
- *                    (crédito soma, débito subtrai)
+ *   saveMoney        conta de INVESTIMENTO (cofrinho): saldo atual da conta
+ *                    (piso zero) — o dinheiro guardado ali É o progresso;
+ *                    qualquer outro tipo de conta: soma das parcelas pagas
+ *                    desde `startDate` (crédito soma, débito subtrai)
  *   reduceCreditCard soma dos débitos da conta desde `startDate`
  *   reduceExpense    `actualAmount` da categoria nos `period_summaries` mensais
  *                    do período da meta
- *   payDebt          saldo atual da conta menos o saldo no `startDate`
- *                    (piso zero)
+ *   payDebt          saldo atual da conta menos o saldo no fim do dia ANTERIOR
+ *                    ao `startDate` (piso zero)
  *
  * Características:
  *  - DRY-RUN POR PADRÃO: só escreve com `--apply`.

@@ -323,7 +323,7 @@ export const DEFAULT_CONFIG: AIConfig = {
                 - housing: renegociação de aluguel/financiamento, revisão de tarifas de energia, internet e seguros.
             4. Recomendações não essenciais (dining_out, leisure, subscriptions_services...) podem propor redução/teto, sempre com o valor atual e o novo teto em R$.
             5. DIAGNÓSTICO DE ESTILO DE VIDA: dedique 1 slide comparando os grupos FORA da faixa (status above, ou savings_investments below) com as referências, citando o % da renda atual, a faixa de referência e o deltaMonthlyBRL. Deixe claro que as faixas são REFERÊNCIA, não regra. Tom respeitoso: NUNCA culpabilize gastos com saúde ou educação — nesses grupos, aponte apenas métodos de eficiência.
-            6. Se monthlyIncome for null: peça com tato, em 1 frase, que o usuário registre suas receitas para liberar o diagnóstico completo (pode usar actionPath "/transactions/form"), e limite o diagnóstico a % das despesas (pctOfExpenses) — não fale em % da renda.
+            6. Se monthlyIncome for null: peça com tato, em 1 frase, que o usuário registre suas receitas para liberar o diagnóstico completo (pode usar actionPath "/transactions/form?status=paid", já que a receita a registrar já foi recebida), e limite o diagnóstico a % das despesas (pctOfExpenses) — não fale em % da renda.
             7. CONTINUIDADE: analise o previousContext cronologicamente e, no primeiro slide, referencie a evolução ou persistência dos pontos já tratados ("Como vimos na semana passada...", "Parabéns por reduzir X..."). Não repita teoria já explicada (50/30/20, bola de neve etc.) — dê o próximo passo prático com os números atuais.
             8. Use forecastData e goalsData quando mudarem a prioridade (ex.: fatura alta chegando, meta atrasada), sempre com valores exatos.
 
@@ -344,8 +344,10 @@ export const DEFAULT_CONFIG: AIConfig = {
                     * "/planning-50-30-20" (para planejamento da regra 50-30-20)
                     * "/workspace/categories" (para gestão de categorias)
                     * "/workspace/accounts" (para gestão de contas)
-                    * "/transactions/form" (para novo lançamento/transação manual)
+                    * "/transactions/form?status=pending" (para AGENDAR/PLANEJAR um lançamento que ainda vai acontecer)
+                    * "/transactions/form?status=paid" (para REGISTRAR um lançamento que JÁ aconteceu)
                     * "/" (para a tela principal/Dashboard)
+                  REGRA OBRIGATÓRIA do formulário de lançamento: "/transactions/form" NUNCA pode vir sem "?status=". O formulário abre como "Registrei" (lançamento já efetivado) quando o status está ausente — use "?status=pending" sempre que a ação for planejar, agendar, reservar ou criar um teto para o futuro, e "?status=paid" só quando o usuário for registrar algo que já pagou ou recebeu. Opcionalmente acrescente "&type=expense", "&type=income" ou "&type=transfer".
 
             Retorne apenas um objeto JSON no formato:
             {

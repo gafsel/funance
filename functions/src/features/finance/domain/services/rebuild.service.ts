@@ -40,6 +40,7 @@ import {
     CategoryModel,
     categoryWithoutIdWarning,
     hasCategoryId,
+    isCategoryRefBroken,
 } from "../../../workspace/domain/models/category.model";
 import {
     AccountModel,
@@ -130,9 +131,14 @@ export interface RebuildReport {
         installments: number;
         installmentsRemoved: number;
         /**
-         * Parcelas com `category.id` vazio: contadas em saldo/XP, mas FORA dos
-         * `period_summaries`. Qualquer valor > 0 pede o script
-         * `fix_empty_category`.
+         * Parcelas com a referência de categoria QUEBRADA (`isCategoryRefBroken`):
+         * `category.id` vazio, ou categoria ausente numa parcela que não é
+         * transferência. Contadas em saldo/XP, mas FORA dos `period_summaries`.
+         * Qualquer valor > 0 pede o script `fix_empty_category`.
+         *
+         * Transferência sem categoria (fatura inclusive) NÃO entra: é o desenho
+         * normal dela, e contá-la fazia o relatório acusar dezenas de parcelas
+         * saudáveis.
          */
         installmentsWithoutCategory: number;
         accounts: number;
@@ -349,10 +355,10 @@ export class RebuildAccumulator {
             // `--apply` morria na escrita — o dry-run nem acusava, porque não
             // chega a montar a referência.
             //
-            // Uma transferência sem contrapartida virtual (nenhuma conta de
-            // dívida/investimento) já era ignorada antes e NÃO conta aqui: o
-            // contador é das parcelas com categoria quebrada.
-            if (!hasCategoryId(installment.category)) {
+            // Só a categoria QUEBRADA é contada e avisada (`isCategoryRefBroken`):
+            // uma transferência sem categoria — inclusive fatura, que também é
+            // `type: transfer` — é o estado normal dela e segue silenciosa.
+            if (isCategoryRefBroken(installment)) {
                 this.installmentsWithoutCategory++;
                 console.warn(categoryWithoutIdWarning(
                     "rebuild.service",

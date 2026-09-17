@@ -100,10 +100,10 @@ describe("rebuild_workspace — parseArgs", () => {
 });
 
 describe("rebuild_workspace — formatReport", () => {
-    it("sempre imprime a linha das parcelas sem categoria", () => {
+    it("sempre imprime a linha das parcelas com categoria quebrada", () => {
         const text = formatReport(report("w1", 0));
 
-        expect(text).toContain("parcelas sem categoria (category.id vazio, fora dos period_summaries)=0");
+        expect(text).toContain("parcelas com categoria quebrada (id vazio, ou ausente fora de transferência — fora dos period_summaries)=0");
         // Zero não pede ação nenhuma.
         expect(text).not.toContain("fix_empty_category");
     });
@@ -111,7 +111,7 @@ describe("rebuild_workspace — formatReport", () => {
     it("com parcelas quebradas, aponta o script de correção", () => {
         const text = formatReport(report("w1", 0, 0, 7));
 
-        expect(text).toContain("parcelas sem categoria (category.id vazio, fora dos period_summaries)=7");
+        expect(text).toContain("parcelas com categoria quebrada (id vazio, ou ausente fora de transferência — fora dos period_summaries)=7");
         expect(text).toContain("rode fix_empty_category e refaça o rebuild");
     });
 });

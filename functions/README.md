@@ -179,6 +179,33 @@ Regras comuns a todos os validadores:
 - **Enum fora da lista** cai no padrão do campo ou descarta o item, conforme o
   campo ser opcional ou definir a semântica.
 
+### `actionPath` dos slides de coaching
+
+O `actionPath` de um slide vira `context.push` no app, então ele é validado
+contra uma **allowlist de rotas** (`sanitizeActionPath`, em
+`coaching.service.ts` — a mesma lista que o prompt em `ai.config.ts` enumera).
+Rota fora da lista: o slide vai **sem botão**.
+
+A allowlist casa só o **caminho**; a **query string sobrevive filtrada**, um
+parâmetro conhecido por vez, com valor dentro da lista e em ordem
+determinística. Parâmetro ou valor desconhecido é descartado em silêncio — a IA
+alucina query string com a mesma facilidade com que alucina rota.
+
+**`/transactions/form` exige `?status=`.** Desde que o app passou a assumir
+`paid` por padrão, um path sem `status` abre o formulário já como "Registrei" —
+o lançamento dado como feito. As duas formas válidas são:
+
+| Intenção do slide | Path |
+|---|---|
+| agendar, planejar, reservar, criar teto para o futuro | `/transactions/form?status=pending` |
+| registrar algo que já foi pago ou recebido | `/transactions/form?status=paid` |
+
+Opcionalmente com `&type=expense|income|transfer`. O prompt instrui a IA nos
+dois casos; quando ela ainda assim omite o `status` (ou manda um valor fora da
+lista), o validador injeta **`pending`** — um slide de coaching propõe uma ação
+a TOMAR, e é mais seguro o usuário marcar como pago do que dar por registrado o
+que não aconteceu.
+
 ### Entrada do cliente
 
 `analyzeGoalFeasibility` valida o `goalPayload` **antes** de montar o prompt e
@@ -417,6 +444,24 @@ categoria sem id é tratada como **sem categoria** para efeito de sumário.
 | `summary.service.ts` (projetado e realizado) | a parcela **não entra** em `period_summaries`, com um `console.warn` **por parcela** citando workspace e parcela |
 | `rebuild.service.ts` (acumulador) | idem, e a parcela é contada em `scanned.installmentsWithoutCategory` no relatório |
 | `finance.repository.impl.ts` (`updatePeriodSummary`) | **defesa final**: lança erro citando workspace, período e nome da categoria, em vez de deixar o SDK explodir com uma mensagem sem contexto |
+| `finance.repository.impl.ts` (`applyPlanningImpacts`) | um `category_planning` com id vazio é **pulado com `console.warn`**, em vez de montar `categories[""]` e derrubar o gatilho/cron de planejamento inteiro |
+
+**Quem é avisado e contado** (`isCategoryRefBroken`, no mesmo arquivo). Ficar
+"sem categoria utilizável" não é defeito por si só: **transferência nunca tem
+categoria por desenho** — quem lhe dá chave de sumário é o caminho das
+categorias virtuais, e uma transferência sem contrapartida de
+dívida/investimento fica fora do sumário como sempre ficou. Fatura entra na
+mesma regra, porque também é `type: "transfer"`. A regra é:
+
+| Parcela | Avisa e conta? |
+|---|---|
+| `category = {id: "", name: "..."}` (qualquer `type`) | **sim** — é o defeito real |
+| categoria **ausente** e `type !== "transfer"` | **sim** |
+| categoria **ausente** e `type === "transfer"` (transferência, fatura) | **não** — silêncio |
+
+Antes desta regra o relatório de um rebuild de produção acusou **98 parcelas
+"sem categoria", todas transferências saudáveis**, e o log do gatilho enchia do
+mesmo falso positivo.
 
 **Saldo e XP continuam contando normalmente** — nenhum dos dois depende de
 categoria. O que essas parcelas perdem é só a linha no sumário, até serem
@@ -762,16 +807,37 @@ que ninguém atualizava.
 
 | Tipo | Fonte da verdade | Quando é recalculado |
 |---|---|---|
-| `saveMoney` | parcelas pagas da conta desde `startDate`: crédito soma, débito subtrai | **delta** do evento de parcela |
+| `saveMoney` em conta **de investimento** (cofrinho) | **saldo atual da conta** (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
+| `saveMoney` em qualquer outra conta | parcelas pagas da conta desde `startDate`: crédito soma, débito subtrai | **delta** do evento de parcela |
 | `reduceCreditCard` | parcelas pagas da conta desde `startDate`: só os débitos | **delta** do evento de parcela |
 | `reduceExpense` | `actualAmount` da categoria nos `period_summaries` **mensais** do período da meta | **recálculo total** quando uma parcela daquela categoria muda |
-| `payDebt` | `saldo atual da conta − saldo no startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
+| `payDebt` | `saldo atual da conta − saldo no fim do dia ANTERIOR ao startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
 
-Nos dois primeiros tipos e em `payDebt`, `currentAmount` é **conquista**: quanto
-já foi juntado ou amortizado, e alcançar o alvo é vencer. Em `reduceExpense` e
+Em `saveMoney` e `payDebt`, `currentAmount` é **conquista**: quanto já foi
+juntado ou amortizado, e alcançar o alvo é vencer. Em `reduceExpense` e
 `reduceCreditCard` ele é **gasto contra um teto**: passar do alvo é **estourar o
 orçamento**, e é por isso que a conclusão de uma meta não pode ser inferida
 desse número — ver "Contrato: meta ativa e desfecho".
+
+**Decisão — `saveMoney` de cofrinho mede SALDO, não aportes.** Quando a conta da
+meta é do tipo `investment` (cofrinho, reserva, caixinha), o progresso é o
+**saldo atual da conta**, com piso zero: o dinheiro que está lá **é** o que foi
+guardado, inclusive o que já estava antes de a meta existir. Somar apenas os
+aportes desde o `startDate` fazia uma meta criada hoje sobre um cofrinho cheio
+nascer em zero — caso real: meta "Disney 2030" na conta "Cofrinho Disney" com
+R$ 263,41 e `startDate` = hoje, mostrando **0 de 263,41 guardados**.
+
+Em qualquer outro tipo de conta (corrente, cartão, dívida) a regra continua
+sendo **o que entrou desde o início** — créditos menos débitos das parcelas
+pagas. Uma conta corrente tem saldo por mil motivos alheios à meta; ali o saldo
+não é progresso nenhum, só o aporte conta.
+
+A consequência operacional é a mesma de `payDebt`: `saveMoney` de cofrinho sai
+do caminho do **delta** e passa a ser **recálculo total** no gatilho de parcela,
+lendo o saldo mais recente da conta. O tipo da conta custa **uma leitura de
+documento por conta do evento**, reaproveitada por todas as metas dela e buscada
+só quando existe alguma `saveMoney`. Cofrinho sem nenhum saldo gravado mantém o
+progresso, em vez de zerá-lo.
 
 **Decisão — `reduceExpense` lê os sumários mensais, não as parcelas.** O
 documento mensal já é a consolidação que o próprio servidor mantém
@@ -796,9 +862,22 @@ documentos legados sem `dateKey`. Enquanto a migração de `dateKey` não rodar,
 
 **`payDebt` e o sinal do saldo.** O saldo de uma conta de dívida é **negativo**
 (é o que o app assume, ver `goal_form_provider.dart`), e amortizar aproxima o
-saldo de zero. Daí `amortizado = saldoAtual − saldoNoStartDate`, que é a mesma
+saldo de zero. Daí `amortizado = saldoAtual − saldoNoInício`, que é a mesma
 conta que "dívida no início − dívida hoje" em módulo. Dívida que **cresceu** não
 vira progresso negativo: o piso é zero.
+
+**O marco zero é o saldo no FIM DO DIA ANTERIOR ao início.** O documento diário
+guarda o saldo **acumulado ao fim do dia**, então o saldo do próprio
+`startDate` já inclui o que foi pago naquele dia. Ler `dateKey <= startKey`
+fazia o primeiro pagamento da meta nascer dentro do marco zero e sumir do
+progresso; o limite é **exclusivo** (`dateKey < startKey`, nos dois caminhos —
+query indexada e varredura legada). Caso real de produção: meta "Pagar dívida
+Itaú" com `startDate` 2026-06-22 e saldos `2026-06-08 = −19058,90` e
+`2026-06-22 = −15247,16`. O marco correto é **−19058,90** (progresso
+**11435,00**); o limite inclusivo tomava −15247,16 e mostrava 7623,00 — faltava
+exatamente o pagamento feito no dia 22. Uma meta que começa num dia **sem**
+documento de saldo não muda de comportamento: os dois limites caem no mesmo
+documento anterior.
 
 **Ordem dentro do gatilho de parcela.** O bloco `processGoalChange` roda
 **depois** de `processSummaryChange` e de `updateAccountBalance`
@@ -1428,7 +1507,9 @@ Recalcula o `currentAmount` de **todas** as metas pela regra nova (ver
 "Metas (`goals`): progresso automático nos quatro tipos"), usando a mesma
 função que o gatilho usa (`GoalServiceImpl.computeCurrentAmount`). Serve para a
 base legada, onde `reduceExpense` e `payDebt` estão paradas em zero desde
-sempre e as de conta podem ter derivado por um evento perdido.
+sempre e as de conta podem ter derivado por um evento perdido. É também o
+caminho para trazer as metas `saveMoney` de **cofrinho** para o saldo da conta:
+elas só se corrigem sozinhas no próximo evento de parcela daquela conta.
 
 - **Idempotente**: pula a meta cujo valor já bate (tolerância de 1 centavo).
 - **Dry-run por padrão**: só escreve com `--apply`.

@@ -390,3 +390,102 @@ describe("FinanceRepositoryImpl.updatePeriodSummary", () => {
         ).rejects.toThrow(/categoria sem id/);
     });
 });
+
+/**
+ * `applyPlanningImpacts` monta `categories[<id>]` direto. Sem guarda, UM
+ * `category_planning` com `category.id` vazio fazia o SDK rejeitar o lote
+ * inteiro ("Element at index 0 should not be an empty string") e derrubar com
+ * ele o gatilho de planejamento e o cron mensal — todos os outros meses e
+ * categorias junto. Mesma regra do resto do hotfix: pula com aviso.
+ */
+describe("FinanceRepositoryImpl.applyPlanningImpacts — categoria sem id", () => {
+    const CATEGORY: any = { id: "cat-mercado", name: "Mercado" };
+    const BROKEN: any = { id: "", name: "Supermercado" };
+
+    let sets: Array<{ id: string, data: any }>;
+    let warn: jest.SpyInstance;
+
+    const update = (category: any, generalPlannedDelta: number, month = 3): any =>
+        ({ year: 2026, month, category, generalPlannedDelta });
+
+    beforeEach(() => {
+        sets = [];
+        warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+
+        mockFirestoreState.collection = jest.fn(() => ({ doc: (id: string) => ({ id }) }));
+        mockFirestoreState.batch = () => ({
+            delete: jest.fn(),
+            update: jest.fn(),
+            set(ref: any, data: any) {
+                sets.push({ id: ref.id, data });
+            },
+            async commit() {
+                return undefined;
+            },
+        });
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+    });
+
+    it("pula a categoria sem id com aviso, em vez de montar `categories['']`", async () => {
+        await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [update(BROKEN, 150)]);
+
+        // Nenhuma escrita: era o único impacto do documento.
+        expect(sets).toEqual([]);
+        expect(warn).toHaveBeenCalledTimes(1);
+        const message = warn.mock.calls[0][0] as string;
+        expect(message).toContain("workspace=w1");
+        expect(message).toContain("documento=2026-03");
+        expect(message).toContain("Supermercado");
+    });
+
+    it("as outras categorias do MESMO documento continuam sendo gravadas", async () => {
+        await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [
+            update(BROKEN, 150),
+            update(CATEGORY, 200),
+        ]);
+
+        expect(sets).toHaveLength(1);
+        expect(Object.keys(sets[0].data.categories)).toEqual(["cat-mercado"]);
+        expect(sets[0].data.categories["cat-mercado"].generalPlannedAmount).toEqual({ __increment: 200 });
+        expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it("os outros MESES continuam sendo gravados", async () => {
+        await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [
+            update(BROKEN, 150, 3),
+            update(CATEGORY, 200, 4),
+            update(CATEGORY, 300, 5),
+        ]);
+
+        expect(sets.map((s) => s.id)).toEqual(["2026-04", "2026-05"]);
+    });
+
+    it("categoria AUSENTE cai na mesma guarda, sem estourar no agrupamento", async () => {
+        await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [
+            update(undefined, 150),
+            update(CATEGORY, 200),
+        ]);
+
+        expect(sets).toHaveLength(1);
+        expect(Object.keys(sets[0].data.categories)).toEqual(["cat-mercado"]);
+        expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it("os marcadores do planejamento continuam sendo gravados mesmo quando tudo é pulado", async () => {
+        const marks = { ref: { id: "planning-1" }, data: { lastSummaryMonth: "2026-03" } };
+
+        await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [update(BROKEN, 150)], marks as any);
+
+        expect(sets.map((s) => s.id)).toEqual(["planning-1"]);
+    });
+
+    it("sem categoria quebrada, nada é avisado", async () => {
+        await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [update(CATEGORY, 200)]);
+
+        expect(sets).toHaveLength(1);
+        expect(warn).not.toHaveBeenCalled();
+    });
+});

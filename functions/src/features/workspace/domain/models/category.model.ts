@@ -136,6 +136,45 @@ export function hasCategoryId<T extends { id?: string | null }>(
 }
 
 /**
+ * Valor de `OrderType.transfer`. Repetido aqui como literal porque o enum vive
+ * na feature `finance` e este modelo é de `workspace` — importar de lá inverte
+ * a direção da dependência. Coberto por teste contra `OrderType.transfer`.
+ */
+const TRANSFER_ORDER_TYPE = "transfer";
+
+/**
+ * A referência de categoria da parcela está QUEBRADA — merece aviso e contagem.
+ *
+ * Não confundir com `!hasCategoryId(...)`: "sem categoria utilizável" é um
+ * estado NORMAL para uma transferência. Transferências (e faturas, que também
+ * são `type: "transfer"`) nunca carregam categoria por desenho — quem lhes dá
+ * uma chave de sumário é o caminho das categorias virtuais
+ * (`resolveVirtualCategory`), e uma transferência sem contrapartida de
+ * dívida/investimento simplesmente fica fora do sumário, como sempre ficou.
+ * Tratá-las como defeito enchia o log e o relatório do rebuild de falso
+ * positivo: numa base de produção o rebuild acusou 98 parcelas "sem
+ * categoria", TODAS transferências saudáveis.
+ *
+ * Quebrado é só:
+ *
+ * 1. `category` existe mas o `id` está vazio (`{id: "", name: "Supermercado"}`)
+ *    — o defeito real da conciliação/transação automática, em qualquer tipo; ou
+ * 2. a categoria está AUSENTE numa parcela que não é transferência — uma
+ *    despesa/receita sem categoria nenhuma também não entra no sumário.
+ */
+export function isCategoryRefBroken(
+    installment: { type?: string | null; category?: { id?: string | null } | null }
+): boolean {
+    const category = installment.category;
+
+    if (category === null || category === undefined) {
+        return installment.type !== TRANSFER_ORDER_TYPE;
+    }
+
+    return !hasCategoryId(category);
+}
+
+/**
  * Mensagem única do aviso de categoria sem id, para o gatilho e o rebuild
  * falarem a mesma língua no log (`origem` distingue quem emitiu).
  */

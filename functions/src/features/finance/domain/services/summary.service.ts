@@ -25,6 +25,7 @@ import {
     CategoryModel,
     categoryWithoutIdWarning,
     hasCategoryId,
+    isCategoryRefBroken,
     VIRTUAL_DEBT_EXPENSE_CATEGORY,
     VIRTUAL_DEBT_INCOME_CATEGORY,
     VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
@@ -402,6 +403,10 @@ export class SummaryService {
      * o sumário: a parcela não entra em `period_summaries`. Avisa uma vez por
      * parcela — `warned` é o conjunto compartilhado pelas quatro chamadas do
      * mesmo evento.
+     *
+     * Só avisa quando a referência está de fato QUEBRADA (`isCategoryRefBroken`):
+     * transferência sem categoria — fatura inclusive — é o desenho normal e
+     * fica silenciosa.
      */
     private warnCategoryWithoutIdOnce(
         workspaceId: string,
@@ -409,6 +414,8 @@ export class SummaryService {
         category: CategoryModel | undefined,
         warned: Set<string>
     ): void {
+        if (!isCategoryRefBroken(inst)) return;
+
         const key = `${workspaceId}/${inst.id}`;
         if (warned.has(key)) return;
 

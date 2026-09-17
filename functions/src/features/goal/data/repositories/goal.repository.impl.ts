@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { AccountType } from "../../../finance/domain/models/finance.models";
 import {
     GoalBalances,
     GoalOutcomeStamp,
@@ -137,6 +138,16 @@ export class GoalRepositoryImpl implements IGoalRepository {
      * candidato. Numa base migrada esse intervalo é vazio; numa base legada ele
      * paga o preço da varredura até a migração de `dateKey` rodar — e é o único
      * caminho hoje, porque nada nesta base grava `dateKey` ainda.
+     *
+     * LIMITE DO SALDO INICIAL: o marco zero da meta é o saldo no FIM DO DIA
+     * ANTERIOR ao `startDate` (limite EXCLUSIVO), não o saldo do próprio dia de
+     * início. O documento diário guarda o saldo ACUMULADO ao fim do dia: se um
+     * pagamento cai no próprio dia de início, ele já está embutido no saldo de
+     * `startDate` e o progresso nasce comendo a primeira amortização. Caso real
+     * de produção: meta com `startDate` 2026-06-22, saldos `2026-06-08 =
+     * -19058,90` e `2026-06-22 = -15247,16` — o marco correto é -19058,90
+     * (progresso 11435,00), e o limite inclusivo devolvia -15247,16
+     * (progresso 7623,00, exatamente o pagamento do dia 22 perdido).
      */
     async getBalancesForGoal(
         workspaceId: string,
@@ -146,20 +157,55 @@ export class GoalRepositoryImpl implements IGoalRepository {
         const collection = this.balanceCollection(workspaceId, accountId);
 
         const [startBalance, currentBalance] = await Promise.all([
-            this.lastBalanceUpTo(collection, toDateKey(startDate)),
+            this.lastBalanceUpTo(collection, toDateKey(startDate), true),
             this.lastBalanceUpTo(collection, MAX_DATE_KEY),
         ]);
 
         return { startBalance, currentBalance };
     }
 
-    /** Saldo do último documento com id/`dateKey` <= `limitKey`. */
+    /**
+     * Saldo mais recente da conta — o progresso de uma meta `saveMoney` de
+     * cofrinho. Mesmo caminho duplo de `getBalancesForGoal`, mas UMA consulta:
+     * quem só quer o saldo de hoje não paga a varredura do marco zero.
+     */
+    async getCurrentBalance(workspaceId: string, accountId: string): Promise<number | null> {
+        return this.lastBalanceUpTo(this.balanceCollection(workspaceId, accountId), MAX_DATE_KEY);
+    }
+
+    /**
+     * `runtimeType` da conta. Vale um documento por recálculo de meta de conta
+     * — o preço de distinguir cofrinho (investimento) de conta corrente.
+     */
+    async getAccountType(workspaceId: string, accountId: string): Promise<AccountType | null> {
+        const doc = await this.db
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("accounts")
+            .doc(accountId)
+            .get();
+
+        if (!doc.exists) return null;
+
+        const raw = doc.data()?.runtimeType;
+        return isAccountType(raw) ? raw : null;
+    }
+
+    /**
+     * Saldo do último documento com id/`dateKey` até `limitKey`.
+     *
+     * Com `exclusive`, o próprio `limitKey` fica DE FORA (`<` em vez de `<=`) —
+     * é como o saldo inicial de uma meta lê "o fim do dia anterior ao início".
+     */
     private async lastBalanceUpTo(
         collection: admin.firestore.CollectionReference,
-        limitKey: string
+        limitKey: string,
+        exclusive = false
     ): Promise<number | null> {
+        const operator = exclusive ? "<" : "<=";
+
         const indexed = await collection
-            .where("dateKey", "<=", limitKey)
+            .where("dateKey", operator, limitKey)
             .orderBy("dateKey", "desc")
             .limit(1)
             .get();
@@ -168,7 +214,8 @@ export class GoalRepositoryImpl implements IGoalRepository {
         const legacy = await this.lastLegacyBalanceDoc(
             collection,
             candidate?.id ?? null,
-            limitKey
+            limitKey,
+            exclusive
         );
 
         const chosen = legacy ?? candidate;
@@ -178,18 +225,22 @@ export class GoalRepositoryImpl implements IGoalRepository {
         return Number.isFinite(value) ? value : null;
     }
 
-    /** Último documento por id no intervalo `(after, upTo]`, varrendo ascendente. */
+    /**
+     * Último documento por id no intervalo `(after, upTo]` — ou `(after, upTo)`
+     * com `exclusive` —, varrendo ascendente.
+     */
     private async lastLegacyBalanceDoc(
         collection: admin.firestore.CollectionReference,
         after: string | null,
-        upTo: string
+        upTo: string,
+        exclusive = false
     ): Promise<admin.firestore.QueryDocumentSnapshot | null> {
         const id = admin.firestore.FieldPath.documentId();
         let last: admin.firestore.QueryDocumentSnapshot | null = null;
         let cursor: admin.firestore.QueryDocumentSnapshot | null = null;
 
         for (;;) {
-            let query: admin.firestore.Query = collection.where(id, "<=", upTo);
+            let query: admin.firestore.Query = collection.where(id, exclusive ? "<" : "<=", upTo);
             if (after !== null) {
                 query = query.where(id, ">", after);
             }
@@ -287,6 +338,11 @@ function outcomePayload(stamp?: GoalOutcomeStamp | null): Record<string, any> {
     return stamp.outcome === GoalOutcome.success
         ? { outcome: GoalOutcome.success, completedAt: at }
         : { outcome: GoalOutcome.failed, failedAt: at };
+}
+
+/** `runtimeType` de conta dentro do enum — documento sujo/legado vira `null`. */
+function isAccountType(value: unknown): value is AccountType {
+    return typeof value === "string" && (Object.values(AccountType) as string[]).includes(value);
 }
 
 /**
