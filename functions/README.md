@@ -351,15 +351,17 @@ rollout) e se consolida ali, ou no primeiro cron mensal depois do deploy.
 | `invoice_sync.isSameNextInvoice` | `current.amount === next.amount` | comparação de inteiros |
 | `diffInstallmentForCascade` | `after.amount !== before.amount` | comparação de inteiros |
 
-**A única mudança de comportamento observável está no XP**, e ela é uma
-correção de inconsistência, não uma mudança de regra. A faixa morta continua
-sendo de **um centavo**, mas antes ela não valia sempre: em `double`,
-`0.02 − 0.01` dá `0.010000000000000002` (era punido) e `3.01 − 3.00` dá
-`0.009999999999999787` (não era). A **mesma** diferença de um centavo tinha dois
-vereditos, conforme os valores envolvidos. Hoje um centavo nunca conta, dois
-centavos sempre contam. Nenhum outro cálculo mudou de resultado: o teste de
-regressão são as 873 asserções unitárias e as 166 de integração, todas com os
-mesmos números de antes.
+**A mudança de comportamento no XP é uma correção de inconsistência**, não uma
+mudança de regra. A faixa morta continua sendo de **um centavo**, mas antes ela
+não valia sempre: em `double`, `0.02 − 0.01` dá `0.010000000000000002` (era
+punido) e `3.01 − 3.00` dá `0.009999999999999787` (não era). A **mesma**
+diferença de um centavo tinha dois vereditos, conforme os valores envolvidos.
+Hoje um centavo nunca conta, dois centavos sempre contam.
+
+**As duas mudanças de resultado do pacote, juntas:** esta e o arredondamento do
+rateio do planejado (seção acima). Fora delas, todo cálculo devolve os mesmos
+números de antes — é o que as 882 asserções unitárias e as 195 do emulador
+verificam, com os fixtures inalterados.
 
 ### `rebuild_workspace` com os dois campos
 
@@ -383,17 +385,28 @@ não produz. Do segundo rebuild em diante o número cai a zero.
 
 ### Contrato com o cliente Flutter
 
-**Nesta etapa (B), o app não muda.** Ele continua lendo e escrevendo o
-`double`, exatamente como hoje. Os campos `*Cents` existem ao lado, são
-**server-only** e as rules os rejeitam se o app tentar enviá-los — inclusive
-num formulário que serialize o documento inteiro. A negação é por **diferença de
-valor**: reenviar exatamente o que o servidor gravou é um no-op e passa.
+**Nesta etapa (B) o app segue lendo e escrevendo o `double`** — mas ele tem UMA
+mudança obrigatória, e ela precede o deploy.
 
-**Uma exceção que aperta o contrato:** `goals.currentAmount` passou a ser
-server-only no **update**. Quem o mantém é o servidor desde wp/gamification-2, o
-formulário já não pede esse valor e o app parou de enviá-lo; poder reescrevê-lo
-é poder declarar a própria meta cumprida, com os badges e o XP que vêm junto. O
-**create** continua aceitando — a meta nasce em zero pelo formulário.
+Os campos `*Cents` existem ao lado, são **server-only**, e as rules os rejeitam
+se o app tentar enviá-los — inclusive num formulário que serialize o documento
+inteiro. A negação é por **diferença de valor**: reenviar exatamente o que o
+servidor gravou é um no-op e passa. Como o app nunca produziu esses campos, isso
+sozinho não o afeta.
+
+> ⚠️ **O que MUDA para o app: `goals.currentAmount` passou a ser server-only no
+> update.** Quem o mantém é o servidor desde wp/gamification-2 e o formulário já
+> não pede esse valor — mas a build publicada hoje ainda o **reenvia** com o que
+> leu ao abrir a tela. Enquanto o valor não muda, passa; se um pagamento cair
+> entre abrir e salvar, a edição inteira é rejeitada e o usuário perde a
+> alteração que estava fazendo.
+>
+> Por isso o **passo 0** do [rollout](#ordem-de-rollout) é publicar o app sem
+> esse campo no `updateGoal`, e só então subir as rules. Não há versão tolerante
+> da regra: aceitar o número defasado desfaria um progresso que o servidor
+> acabou de calcular — poder reescrevê-lo é poder declarar a própria meta
+> cumprida, com os badges e o XP que vêm junto. O **create** continua aceitando:
+> a meta nasce em zero pelo formulário.
 
 **Na etapa C**, em duas escritas e uma leitura:
 
@@ -442,8 +455,11 @@ totais somados no cliente.
   planejamento e não ressincroniza a fatura — e uma mudança REAL ao lado do
   espelho continua passando;
 - `src/test/rules/firestore_rules.test.ts` — os `*Cents` negados ao cliente nas
-  cinco coleções (e o `currentAmount` da meta no update), com o reenvio do mesmo
-  valor tolerado.
+  cinco coleções e o `currentAmount` da meta no update, com o reenvio do mesmo
+  valor tolerado e o reenvio DEFASADO negado (o cenário do passo 0 do rollout).
+
+Ao todo: **882** asserções unitárias (`npm run test:unit`) e **195** no
+emulador (`npm run test:integration`), das quais **78** são de security rules.
 
 ## Configuração global
 
@@ -2322,6 +2338,8 @@ ordem abaixo é a que evita janela quebrada — **nada disso foi executado contr
 projeto real**.
 
 ```
+0. APP              publicar web + macOS SEM `currentAmount` no updateGoal
+                    ⏳ BLOQUEIA o passo 1 — ver o aviso abaixo
 1. rules + índices   firebase deploy --only firestore:rules,firestore:indexes
                      ⏳ ESPERAR os índices ficarem READY antes de seguir
 2. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
@@ -2343,7 +2361,27 @@ projeto real**.
 13. bússola           node lib/scripts/recompute_health.js                                       (dry-run → --apply)
 ```
 
-**1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
+**0. O app primeiro — e este passo BLOQUEIA o resto.**
+
+As rules de F1.10 negam `goals.currentAmount` no **update**. O app publicado
+hoje (`fix/fase-0`) lê o `currentAmount` ao abrir o formulário da meta e o
+**reenvia** ao salvar. Isso passa enquanto o valor não muda — a negação é por
+diferença —, mas se um pagamento cair entre abrir e salvar, o servidor grava o
+progresso novo e o formulário manda o valor velho: **a edição inteira é
+rejeitada**, e o usuário perde a alteração de nome, de prazo ou de alvo que
+estava fazendo.
+
+O app do pacote `wp/flutter-polish` já parou de enviar o campo. Publique-o
+(web + macOS) e só então suba as rules. Não há versão tolerante da regra: o
+formulário não edita esse valor, e aceitar o número defasado desfaria um
+progresso que o servidor acabou de calcular — que é exatamente o que a regra
+existe para impedir.
+
+O cenário está coberto em `src/test/rules/firestore_rules.test.ts` ("NEGA o
+reenvio de um `currentAmount` DEFASADO — e isso é o esperado"), junto do update
+sem o campo, que é o que o app publicado faz.
+
+**1. Rules e índices, depois do app.** O código novo consulta
 `balance.dateKey` (descendente) e `category_planning.summarizedUntil` (no grupo
 de coleções). Enquanto o índice estiver `CREATING`, essas consultas respondem
 `FAILED_PRECONDITION` e o gatilho de saldo/cron de planejamento falha. Confira
@@ -2828,7 +2866,10 @@ campos por coleção.
   presente que não é número finito (a string `"1000"`, um booleano, `NaN`) é
   contado em `inválidos`, listado por caminho e faz o `--verify` FALHAR. Gravar
   `amountCents: 0` porque o `double` era a string `"1000"` apagaria mil reais
-  com um número de cara legítima.
+  com um número de cara legítima. Um valor **acima do intervalo exato** de
+  centavos (`MoneyRangeError`) cai na mesma contagem, com o caminho do
+  documento: ele é um documento sujo, não um defeito do workspace, e derrubar a
+  varredura inteira por causa dele esconderia os outros 4.539.
 - **Checkpoint reiniciável, pela LISTA DE PENDENTES**:
   `config/cron_checkpoints.moneyCentsPendingWorkspaces` guarda os workspaces que
   ainda faltam — inclusive os que **falharam**. Um marcador de avanço ("o último
@@ -2875,6 +2916,27 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 | `--all-workspaces`  | percorre TODOS os workspaces (é o padrão sem `--workspace`)     |
 | `--page-size=<n>`   | documentos lidos por página (default 500)                       |
 | `--restart`         | ignora o checkpoint e recomeça do início                        |
+
+**Reparo dirigido.** `--workspace=<id> --apply` conserta UM workspace e o
+**remove da lista de pendentes** se ele fechar — o workspace consertado à mão
+não fica listado como pendente, e o runbook não passa a mentir sobre o que
+ainda falta. O que ele NÃO faz é fechar a varredura: os outros workspaces
+pendentes continuam lá, e quem os visita é a execução `--all-workspaces`. O
+roteiro depois de uma falha é:
+
+```bash
+# 1) a varredura falhou em <wid>; conserte a causa e repare só ele
+node lib/scripts/migrate_money_cents.js --project=<p> --workspace=<wid> --apply
+
+# 2) feche a base (o checkpoint já não lista <wid>; se sobrou alguém, é ele que roda)
+node lib/scripts/migrate_money_cents.js --project=<p> --all-workspaces --apply
+
+# 3) confira
+node lib/scripts/migrate_money_cents.js --project=<p> --all-workspaces --verify
+```
+
+Um dry-run ou um `--verify` dirigidos **nunca** tocam no checkpoint: eles não
+consertam nada.
 
 **O que o `--verify` responde.** Para cada coleção ele imprime `lidos`,
 `a_migrar`, `já_ok`, `divergentes`, `órfãos`, `inválidos` e **duas somas**:

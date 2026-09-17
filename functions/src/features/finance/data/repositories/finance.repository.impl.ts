@@ -274,8 +274,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         // `Partial<OrderModel>`: as chaves ausentes vêm como `undefined` e
         // significam "não mexer neste campo", nunca "apagar".
         // F1.10 — quem mexe no `amount` mexe no espelho inteiro na MESMA
-        // escrita. `updateInvoiceWithDelta` não passa por aqui: lá o valor é um
-        // `FieldValue.increment` e os dois campos já vão juntos.
+        // escrita. `updateInvoiceWithDelta` não passa por aqui: lá o total é
+        // lido e regravado dentro de uma transação, com os dois campos juntos.
         const patch: Partial<OrderModel> = order.amount !== undefined
             ? { ...order, amountCents: toCents(order.amount) }
             : order;
@@ -1073,13 +1073,14 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
      * mesmo evento é o `runIdempotency` do handler.
      *
      * CONCORRÊNCIA: o `delta` de cada dia é sempre exato (a transação serializa
-     * o dia) e a propagação usa `FieldValue.increment`, que é atômico. Resta uma
-     * janela estreita: se um segundo evento CRIAR um dia posterior no intervalo
-     * entre o commit desta transação e a consulta de propagação, esse dia nasce
-     * já com o efeito deste evento e recebe o incremento de novo. A janela é de
-     * milissegundos, só afeta o acumulado (nunca o `delta`) e o
-     * `rebuild_workspace.ts` recalcula a série inteira a partir das parcelas —
-     * é ele o conserto, e o teste de propriedade de
+     * o dia), e desde F1.10 a propagação também é transacional — cada página de
+     * dias é lida e reescrita no mesmo instante lógico. Resta a MESMA janela
+     * estreita de antes, que nenhuma das duas fecha: se um segundo evento CRIAR
+     * um dia posterior no intervalo entre o commit desta transação e a consulta
+     * de propagação, esse dia nasce já com o efeito deste evento e recebe o
+     * ajuste de novo. A janela é de milissegundos, só afeta o acumulado (nunca
+     * o `delta`) e o `rebuild_workspace.ts` recalcula a série inteira a partir
+     * das parcelas — é ele o conserto, e o teste de propriedade de
      * `rebuild.integration.test.ts` é quem vigia.
      */
     async updateAccountBalance(
@@ -1125,17 +1126,26 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     /**
-     * Soma `delta` ao saldo acumulado de todos os dias POSTERIORES a `dateKey`.
+     * Soma `deltaCents` ao saldo acumulado de todos os dias POSTERIORES a
+     * `dateKey`.
      *
      * Pagina por documentId ascendente: o id do documento É o `dateKey` (é o
      * contrato que o app usa para ler os últimos saldos), então a ordem é a
      * mesma de `orderBy("dateKey")` e a varredura enxerga também os documentos
      * legados, que ainda não têm o campo. Varredura ascendente não precisa de
-     * índice e é aceita pelo emulador.
+     * índice e é aceita pelo emulador. Aproveita a passagem para preencher o
+     * `dateKey` dos documentos legados.
      *
-     * A soma usa `FieldValue.increment`: a propagação roda fora de transação e
-     * dois eventos concorrentes podem tocar o mesmo dia futuro. Aproveita a
-     * passagem para preencher o `dateKey` dos documentos legados.
+     * **F1.10 — cada página é uma TRANSAÇÃO, e não mais um lote de
+     * `FieldValue.increment`.** O `increment` era atômico, mas num documento
+     * anterior à migração o `balanceCents` não existe e o incremento nasceria
+     * do ZERO: o inteiro — que é a fonte da verdade — passaria a discordar do
+     * `double` para sempre. A semente tem de vir do `double` GRAVADO, e ler a
+     * semente fora da escrita reabre a corrida que o `increment` fechava.
+     * Dentro da transação o valor lido e o gravado são do mesmo instante
+     * lógico: o Firestore aborta e repete se algum documento lido mudar antes
+     * do commit. As páginas são pequenas (100 dias) para manter estreita a
+     * janela de contenção.
      */
     private async propagateBalanceDelta(
         balancesColl: admin.firestore.CollectionReference,

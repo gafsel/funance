@@ -550,6 +550,106 @@ describe("ALTO 3 — o checkpoint não pode esconder um workspace que falhou", (
         expect(after.remaining).toBe(0);
     });
 
+    it("um --apply bem-sucedido FECHA: remaining zero e exit 0", async () => {
+        const workspaceId = newWorkspace("apply-fecha");
+        await seedSimple(workspaceId);
+
+        const applied = await migrateMoneyCents(firestore, { dryRun: false, workspaceId }, quiet);
+        const result = verdict(applied);
+
+        expect(applied.writesCommitted).toBeGreaterThan(0);
+        expect(applied.patched).toBeGreaterThan(0);
+        // `remaining` é o que AINDA falta DEPOIS da execução. Contar
+        // `migrated` também no apply fazia uma execução impecável sair com
+        // código 1 dizendo que faltava exatamente o que ela acabara de gravar.
+        expect(result.remaining).toBe(0);
+        expect(result.failed).toBe(0);
+        expect(result.reasons).toEqual([]);
+        expect(result.ok).toBe(true);
+    });
+
+    it("um --apply com falha NÃO fecha: o que não foi gravado continua faltando", async () => {
+        const gamma = `ws-cents-gamma-${Date.now()}`;
+        workspaces.push(gamma);
+        await seedSimple(gamma);
+        await firestore.collection(`workspaces/${gamma}/goals`).doc("g1")
+            .set({ name: "g", targetAmount: 10, currentAmount: 0, isDeleted: false });
+
+        const realCollection = firestore.collection.bind(firestore);
+        const realWorkspaces = realCollection("workspaces");
+        const spy = jest.spyOn(firestore, "collection").mockImplementation(((path: string) => {
+            if (path !== "workspaces") return realCollection(path);
+            return {
+                listDocuments: () => realWorkspaces.listDocuments(),
+                doc: (id: string) => {
+                    const ref = realWorkspaces.doc(id);
+                    if (id !== gamma) return ref;
+                    return {
+                        collection: (name: string) => {
+                            if (name === "goals") throw new Error("falha simulada");
+                            return ref.collection(name);
+                        },
+                    };
+                },
+            };
+        }) as any);
+
+        const applied = await migrateMoneyCents(firestore, { dryRun: false, workspaceId: gamma }, quiet);
+        spy.mockRestore();
+
+        const result = verdict(applied);
+        expect(result.failed).toBe(1);
+        expect(result.ok).toBe(false);
+        // A order foi lida antes da falha e conta como pendência: nada foi
+        // commitado para este workspace.
+        expect(result.remaining).toBeGreaterThan(0);
+    });
+
+    it("um valor absurdo é DENUNCIADO por documento, sem derrubar o workspace", async () => {
+        const workspaceId = newWorkspace("valor-absurdo");
+        await seedSimple(workspaceId);
+        // Acima de MAX_SAFE_CENTS: `toCents` lança `MoneyRangeError`.
+        await firestore.collection(`workspaces/${workspaceId}/orders`).doc("o-absurda")
+            .set({ amount: 1e15, description: "absurda" });
+
+        const summary = await migrateMoneyCents(firestore, { dryRun: false, workspaceId }, quiet);
+
+        // O workspace NÃO falhou — o documento sujo é que foi denunciado.
+        expect(summary.failed).toBe(0);
+        expect(summary.invalid).toBeGreaterThan(0);
+        expect(summary.collections.orders.invalidSamples.join(" ")).toContain("o-absurda");
+        // E a order saudável ao lado foi migrada assim mesmo.
+        expect((await firestore.doc(`workspaces/${workspaceId}/orders/o1`).get()).data()?.amountCents).toBe(100000);
+        // O verify reprova enquanto o documento sujo estiver lá.
+        expect(verdict(await migrateMoneyCents(firestore, { dryRun: true, verify: true, workspaceId }, quiet)).ok)
+            .toBe(false);
+    });
+
+    it("o reparo dirigido (--workspace --apply) tira o workspace da lista de pendentes", async () => {
+        const delta = `ws-cents-delta-${Date.now()}`;
+        workspaces.push(delta);
+        await seedSimple(delta);
+
+        // Simula o estado deixado por uma varredura que falhou nele.
+        await firestore.doc("config/cron_checkpoints")
+            .set({ [MONEY_CENTS_CHECKPOINT_FIELD]: [delta, "ws-outro"] }, { merge: true });
+
+        await migrateMoneyCents(firestore, { dryRun: false, workspaceId: delta }, quiet);
+
+        const checkpoint = (await firestore.doc("config/cron_checkpoints").get()).data();
+        // Sem isto, o workspace consertado à mão continuaria listado como
+        // pendente e o runbook mentiria sobre o que ainda falta.
+        expect(checkpoint?.[MONEY_CENTS_CHECKPOINT_FIELD]).toEqual(["ws-outro"]);
+
+        // Um dry-run dirigido não toca no checkpoint.
+        await migrateMoneyCents(firestore, { dryRun: true, workspaceId: "ws-outro" }, quiet);
+        expect((await firestore.doc("config/cron_checkpoints").get()).data()?.[MONEY_CENTS_CHECKPOINT_FIELD])
+            .toEqual(["ws-outro"]);
+
+        await firestore.doc("config/cron_checkpoints")
+            .set({ [MONEY_CENTS_CHECKPOINT_FIELD]: null }, { merge: true });
+    });
+
     it("--verify FALHA quando há campo monetário presente e não numérico", async () => {
         const workspaceId = newWorkspace("verify-sujo");
         await seedSimple(workspaceId);

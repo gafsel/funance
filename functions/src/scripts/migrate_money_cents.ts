@@ -71,7 +71,7 @@
 
 import * as admin from "firebase-admin";
 import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE } from "../core/utils/batch.utils";
-import { classifyMoney, readCents, toCents } from "../core/utils/money";
+import { classifyMoney, MoneyRangeError, readCents, toCents } from "../core/utils/money";
 import {
     BALANCE_CENTS_FIELDS,
     MONEY_CENTS_FIELDS,
@@ -147,14 +147,64 @@ export interface MigrateMoneyCentsSummary {
     /** Ids dos workspaces que falharam — eles FICAM no checkpoint. */
     failedWorkspaces: string[];
     /**
+     * Documentos que precisavam de `*Cents` e cuja escrita FECHOU (gravada, ou
+     * descartada porque o documento já não existia). Sempre 0 em dry-run e em
+     * `--verify`, que não escrevem nada.
+     */
+    patched: number;
+    /**
      * Workspaces que a próxima execução ainda vai visitar (os não processados
      * mais os que falharam). Vazio = a base está migrada.
      */
     pending: string[];
-    /** Documentos que ainda precisam de `*Cents` (soma de `migrated`). */
+    /**
+     * Documentos que AINDA precisam de `*Cents` **depois** desta execução.
+     *
+     * Em dry-run e em `--verify` é a soma de `migrated` — o que falta fazer.
+     * Em `--apply` é essa soma MENOS o que a execução fechou: um apply perfeito
+     * deixa zero. Contar `migrated` também no apply fazia uma execução
+     * impecável sair com código 1 e a mensagem "a execução NÃO fechou",
+     * dizendo que faltava exatamente o que ela acabara de gravar.
+     */
     remaining: number;
     /** Campos monetários presentes que NÃO são número finito. */
     invalid: number;
+}
+
+/**
+ * Atualiza a lista de pendentes depois de um workspace.
+ *
+ * Na varredura da base inteira, grava o que sobrou. Num **reparo dirigido**
+ * (`--workspace=X --apply`), grava a lista existente MENOS `X`: sem isso, o
+ * workspace consertado à mão continuaria listado como pendente e a execução
+ * seguinte da base o visitaria de novo — inofensivo, mas o runbook passaria a
+ * mentir sobre o que ainda falta. Um dry-run ou um `--verify` nunca tocam no
+ * checkpoint: eles não consertam nada.
+ */
+async function persistPending(
+    ref: admin.firestore.DocumentReference,
+    options: MigrateMoneyCentsOptions,
+    pending: Set<string>,
+    workspaceId: string
+): Promise<void> {
+    if (options.dryRun || options.verify) return;
+
+    if (!options.workspaceId) {
+        await writeCheckpoint(ref, [...pending]);
+        return;
+    }
+
+    // Reparo dirigido: o workspace só sai da lista se ele de fato fechou.
+    if (pending.has(workspaceId)) return;
+
+    const doc = await ref.get();
+    const stored = doc.exists ? doc.data()?.[MONEY_CENTS_CHECKPOINT_FIELD] : null;
+    if (!Array.isArray(stored)) return;
+
+    const next = stored.filter((id): id is string => typeof id === "string" && id !== workspaceId);
+    if (next.length === stored.length) return;
+
+    await writeCheckpoint(ref, next);
 }
 
 /**
@@ -467,7 +517,26 @@ async function scanCollection(
         for (const doc of snapshot.docs) {
             tally.scanned++;
             const data = doc.data() ?? {};
-            const result = inspect(data);
+
+            let result: CentsInspection;
+            try {
+                result = inspect(data);
+            }
+            catch (error) {
+                // `toCents` LANÇA para um valor fora do intervalo exato de
+                // centavos (`MoneyRangeError`). Isso é um DOCUMENTO sujo, não
+                // um defeito do workspace: derrubar a varredura inteira por
+                // causa de um valor absurdo esconderia os outros 4.539.
+                // Ele entra em `inválidos`, com o caminho, e reprova o verify.
+                if (error instanceof MoneyRangeError) {
+                    tally.invalid++;
+                    if (tally.invalidSamples.length < 20) {
+                        tally.invalidSamples.push(`${doc.ref.path} (${error.message})`);
+                    }
+                    continue;
+                }
+                throw error;
+            }
 
             tally.sumFromDoubleCents += result.doubleCents;
             tally.sumFromCents += result.storedCents;
@@ -521,6 +590,7 @@ export async function migrateMoneyCents(
         writesCommitted: 0,
         failed: 0,
         failedWorkspaces: [],
+        patched: 0,
         pending: [],
         remaining: 0,
         invalid: 0,
@@ -621,27 +691,32 @@ export async function migrateMoneyCents(
             const verb = options.dryRun || options.verify ? "a atualizar" : "atualizado(s)";
             log(`[migrate_money_cents] ${workspaceId}: ${found} documento(s) ${verb}.`);
 
+            // O workspace fechou: os documentos que ele precisava corrigir
+            // deixam de ser pendência. `commitPatches` já engoliu os que
+            // sumiram entre a leitura e a escrita — eles também não faltam.
+            if (!options.dryRun && !options.verify) {
+                summary.patched += found;
+            }
+
             // Concluído sem erro: sai da lista de pendentes.
             pending.delete(workspaceId);
 
-            if (!options.workspaceId && !options.dryRun && !options.verify) {
-                await writeCheckpoint(checkpointRef, [...pending]);
-            }
+            await persistPending(checkpointRef, options, pending, workspaceId);
         }
         catch (error) {
             summary.failed++;
             summary.failedWorkspaces.push(workspaceId);
             // NÃO sai de `pending`: a execução seguinte o visita de novo.
             log(`[migrate_money_cents] ${workspaceId}: FALHOU — ${error}`);
-            if (!options.workspaceId && !options.dryRun && !options.verify) {
-                await writeCheckpoint(checkpointRef, [...pending]);
-            }
+            await persistPending(checkpointRef, options, pending, workspaceId);
         }
     }
 
     summary.pending = [...pending].sort();
-    summary.remaining = Object.values(summary.collections).reduce((acc, t) => acc + t.migrated, 0);
     summary.invalid = Object.values(summary.collections).reduce((acc, t) => acc + t.invalid, 0);
+
+    const needed = Object.values(summary.collections).reduce((acc, t) => acc + t.migrated, 0);
+    summary.remaining = Math.max(0, needed - summary.patched);
 
     if (!options.workspaceId && !options.dryRun && !options.verify) {
         // Lista vazia = base migrada; o campo é zerado para a próxima execução

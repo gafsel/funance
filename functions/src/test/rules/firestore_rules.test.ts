@@ -1086,6 +1086,46 @@ describe("firestore.rules", () => {
             );
         });
 
+        it("NEGA o reenvio de um currentAmount DEFASADO — e isso é o esperado", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // Cenário real: o usuário abre o formulário da meta com
+            // `currentAmount: 0`, um pagamento cai nesse meio-tempo e o
+            // servidor grava 150, e o formulário salva reenviando o 0 que ele
+            // leu. A edição INTEIRA é negada.
+            //
+            // É o comportamento pretendido, e não um efeito colateral: o
+            // formulário não tem por que reenviar um campo que ele não edita, e
+            // aceitar o valor defasado desfaria um progresso que o servidor
+            // acabou de calcular. Quem resolve é o APP — o pacote
+            // wp/flutter-polish parou de enviar `currentAmount` no
+            // `updateGoal`, e ele é publicado ANTES do deploy destas rules
+            // (passo 0 do rollout). Enquanto isso não acontecer, a rule
+            // rejeitaria edições de meta de builds antigas.
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                await setDoc(
+                    doc(context.firestore(), `workspaces/${WORKSPACE_ID}/goals/goal-defasada`),
+                    goalDoc({ currentAmount: 150, currentAmountCents: 15000 })
+                );
+            });
+
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-defasada`),
+                    { name: "Reserva renomeada", currentAmount: 0 }
+                )
+            );
+
+            // O MESMO update sem o campo passa: é exatamente o que o app
+            // publicado no passo 0 faz.
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-defasada`),
+                    { name: "Reserva renomeada" }
+                )
+            );
+        });
+
         it("tolera o reenvio do MESMO currentAmount numa edição de meta", async () => {
             const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 
