@@ -29,6 +29,76 @@ npm run test:rules       # testes das security rules no emulador
 npm test                 # unit + integration
 ```
 
+## Contratos com o app
+
+Esta é a lista ÚNICA do que o servidor escreve e o app lê — e do que o app
+escreve e o servidor lê. Ela existe porque o contrato estava espalhado por uma
+dúzia de seções "Contrato com o cliente Flutter", uma por pacote: para saber se
+um campo podia mudar era preciso lembrar em qual pacote ele nasceu. As seções
+detalhadas continuam onde estavam, com o PORQUÊ de cada decisão; a tabela abaixo
+diz o QUE vale hoje e aponta para elas.
+
+Como ler a coluna **Escreve**: "servidor" significa que as security rules negam
+o campo ao cliente — não é convenção, é regra. Onde estiver "app", o servidor
+apenas reage ao que o cliente gravou.
+
+| Coleção / campo | Escreve | Lê | Desde | Detalhe |
+|---|---|---|---|---|
+| `workspaces/{w}/period_summaries/{YYYY \| YYYY-MM \| YYYY-Www}` — `{year, month\|null, week\|null, categories: {id: {generalPlannedAmount, specificPlannedAmount, actualAmount}}, runtimeType, lastUpdate}` | servidor | app | F1.4/F1.5/F1.9 (forma), F1.11 (tipada no backend) | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `accounts/{a}/balance/{YYYY-MM-DD}` — `dateKey`, `delta`, `balance` | servidor | app | F1.4 | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
+| `category_planning/{p}` — `summarizedUntil`, `appliedAmount`, `appliedFrom`, `appliedUntil` | servidor (rules negam os cinco campos ao cliente) | app (só lê) | F1.5 | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `workspaces/{w}.currentWeekId` — `YYYY-Www` | servidor | app | F1.9 | [Semana (F1.9)](#semana-uma-definição-só-f19) |
+| `weekly_xp/{YYYY-Www}` — `{year, week, xp}` | servidor | app | F1.9 (id), F2.3 (XP de planejar entra aqui) | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
+| `weekly_missions/{weekId}_{type}` — `{id, name, type, status, rewardXp, progress, target, weekId, createdAt, completedAt}` | servidor | app | F1.9 (id da semana), F1.11 (tipada no backend) | [Semana (F1.9)](#semana-uma-definição-só-f19) |
+| `accounts/{a}.nextInvoice` — `{dueDate, closingDate, cycleStart, cycleEnd, amount, orderId, installmentId, status, updatedAt}` | servidor | app | F1.8 | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
+| `orders`/`installments` — `cycleStart`, `cycleEnd`, `closingDate` (**só em fatura**) | servidor | app | F1.8 | [Contratos de `orders` e `installments`](#contratos-de-orders-e-installments) |
+| `installments.unplannedReason` — `"born_paid"` \| ausente | servidor | app | F2.3 | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
+| `workspaces/{w}.financialHealth` — `{score, tier, components, computedAt, monthKey}` | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
+| `workspaces/{w}/health_history/{YYYY-MM}` — a mesma forma | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
+| `workspaces/{w}.streaks` — `{missions: number, plan: number}` | servidor | app | F2.3 | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
+| `workspaces/{w}.weeklyStreaks` — `number`, **invariante** `=== streaks.missions` | servidor | app (build antiga) | anterior a F2.3; **o tipo não pode mudar** | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
+| `goals/{g}` — `outcome` (`success`\|`failed`\|`null`), `completedAt`, `failedAt` | servidor | app | wp/gamification-2 | [Meta ativa e desfecho](#contrato-meta-ativa-e-desfecho) |
+| `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
+| `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
+| `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3 | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor | ninguém (rules negam) | F5.1 | [Quotas de IA](#quotas-de-ia) |
+| `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
+| `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
+| `workspaces/{w}/financial_coaching/{id}` — `{message, summary, type, slides[], date, generatedBy}` | servidor | app | F1.11 (tipada no backend) | [`actionPath` dos slides](#actionpath-dos-slides-de-coaching) |
+| `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
+
+### O que o app precisa acompanhar
+
+Três pontos em que o app ainda não está alinhado com o servidor:
+
+1. **A allowlist de `actionPath`.** O backend passou a aceitar a UNIÃO das duas
+   listas — `/`, `/planning`, `/planning-50-30-20`, `/workspace/categories`,
+   `/workspace/accounts`, `/transactions/form` (sempre com `?status=`),
+   `/goals/form`, `/accounts/form`, `/category-details`, `/workspace/badges` e
+   `/coaching/history`. O cliente
+   (`coaching_slides_screen.dart`) precisa aceitar **exatamente esta lista**,
+   inclusive `/`, que hoje ele recusa. Enquanto não aceitar, um slide que
+   aponte para a tela principal chega com botão que não é desenhado. Ver
+   [`actionPath` dos slides](#actionpath-dos-slides-de-coaching).
+2. **`financialHealth` ausente** significa "ainda não calculei", não "score 0":
+   a bússola deve aparecer em carregamento, não na patente Aprendiz.
+3. **`streaks.plan`** é o contrato novo; `weeklyStreaks` continua sendo o
+   número de missões e **não pode mudar de tipo**.
+
+### `undefined` não é gravado
+
+Desde F1.11 o `ignoreUndefinedProperties` está **desligado** (`src/index.ts`):
+gravar `undefined` num documento **lança**. Onde o descarte é legítimo — um
+`Partial<Model>` em que a chave ausente quer dizer "não mexer", um campo que só
+existe em fatura — ele é explícito, via `stripUndefined`
+(`core/utils/firestore.utils.ts`), aplicado na camada de repositório.
+
+Consequência para quem escreve código novo: **um campo opcional que você não
+preencher simplesmente não existe no documento**, e um campo obrigatório que
+chegar `undefined` derruba a escrita em vez de sumir calado. Os testes de
+integração e os scripts rodam com a mesma configuração — sem isso o emulador
+perdoaria o que a produção rejeita.
+
 ## Configuração global
 
 `src/index.ts` define `setGlobalOptions` com os padrões dos triggers leves
@@ -41,6 +111,54 @@ As funções de IA sobrescrevem esses padrões com os presets de
 `AI_CALLABLE_OPTIONS_SHORT`, `AI_SCHEDULE_OPTIONS`): mais memória e timeout,
 porém `maxInstances` baixo, já que cada instância simultânea é uma chamada paga
 ao Gemini.
+
+## Tipagem: o que o compilador garante (F1.11)
+
+As interfaces de repositório eram o lugar onde a tipagem terminava. `IFinance`,
+`IGamification`, `IGoal`, `IWorkspace`, `IHealth` e `IRebuild` somavam 22
+assinaturas com `any`, e com elas coleções inteiras — `period_summaries`,
+`financial_coaching`, `planning_analysis`, `weekly_missions` — atravessavam o
+backend sem forma nenhuma. Nada disso era teórico:
+
+- o modelo `PeriodSummaryModel` descrevia um documento **por categoria**
+  (`YYYY-MM-categoryId`) que nunca existiu — por isso ninguém o importava, e
+  quem lia o sumário lia `any`;
+- a mesma "meta" circulava ora como documento cru (com `Timestamp`), ora como
+  `GoalModel` (com `Date`), e três laços que liam `paidDate` tinham três
+  tratamentos diferentes para o campo ausente;
+- o `ExistingDoc` do rebuild era `Record<string, any>` para as **três**
+  coleções comparadas: comparar `doc.data.xp` com um documento de saldo
+  compilava sem uma palavra.
+
+Hoje `tsc` pega acesso a campo inexistente nesses caminhos. Três regras que o
+código passou a seguir:
+
+1. **Documento cru e modelo são tipos DIFERENTES.** `GamificationGoal` e
+   `GamificationInstallment` descrevem o que está no Firestore (datas como
+   `RawFirestoreDate`, campos opcionais); `GoalModel` e `InstallmentModel`
+   descrevem o que o domínio manipula (datas como `Date`). Prometer `Date` num
+   documento cru é a mentira que produzia `NaN` silencioso.
+2. **Leitura normaliza; consumidor não repete `?? 0`.** `toPeriodSummaryDocument`,
+   `toCoachingAnalysisDocument` e `toPlanningAnalysisDocument` aplicam na
+   ENTRADA os padrões que antes estavam espalhados por cada leitor — e que, por
+   estarem espalhados, podiam faltar em um deles.
+3. **Escrita e leitura de um mesmo documento podem ter tipos diferentes.**
+   `weekly_missions` tem `WeeklyMissionWrite` (tudo obrigatório: quem cria é o
+   servidor) e `WeeklyMissionDocument` (tudo opcional: a missão pode ser de uma
+   versão anterior). Fundir os dois obrigaria a mentir num dos lados.
+
+### Flags do compilador
+
+`strict` já estava ligado. **`noImplicitAny` passou a `true`** — custo medido na
+adoção: **zero** erros, em produção e em teste.
+
+**`noUncheckedIndexedAccess` ficou de fora**, com o custo registrado: medido no
+mesmo momento, ele custava **47 erros no build de produção e 282 no de teste**
+(`map.get()`, `array[0]`, `Object.entries` sobre mapas de sumário). É um ganho
+real — um `map.get()` que devolve `undefined` é uma classe de defeito que hoje
+não é pega —, mas exigiria centenas de guardas mecânicas misturadas a este
+refactor. Um refactor que muda o que se lê em cada linha é o pior lugar
+possível para esconder uma mudança de comportamento. Fica como pacote próprio.
 
 ## SDK do Gemini e modelos
 
@@ -182,14 +300,45 @@ Regras comuns a todos os validadores:
 ### `actionPath` dos slides de coaching
 
 O `actionPath` de um slide vira `context.push` no app, então ele é validado
-contra uma **allowlist de rotas** (`sanitizeActionPath`, em
-`coaching.service.ts` — a mesma lista que o prompt em `ai.config.ts` enumera).
-Rota fora da lista: o slide vai **sem botão**.
+contra uma **allowlist de rotas**. A lista vive em UM lugar
+(`features/coaching/domain/models/coaching_action_path.model.ts`) e alimenta os
+dois consumidores: `sanitizeActionPath` (`coaching.service.ts`) e o trecho do
+prompt em `ai.config.ts`, que é **gerado** dela. Rota fora da lista: o slide vai
+**sem botão**.
+
+| Rota | Quando a IA deve usá-la |
+|---|---|
+| `/planning` | definir ou revisar o limite mensal de uma categoria |
+| `/planning-50-30-20` | rebalancear essencial/conforto/investimento |
+| `/transactions/form?status=pending` | agendar/planejar um lançamento futuro |
+| `/transactions/form?status=paid` | registrar algo que já aconteceu |
+| `/goals/form` | criar uma meta |
+| `/accounts/form` | cadastrar uma conta ou cartão |
+| `/workspace/categories` | criar, renomear ou reclassificar categorias |
+| `/workspace/accounts` | ver contas e saldos |
+| `/category-details` | ver o relatório de gasto por categoria |
+| `/workspace/badges` | ver conquistas |
+| `/coaching/history` | reler insights anteriores |
+| `/` | tela principal — só quando nenhuma outra servir |
+
+**Esta lista é a UNIÃO das duas que existiam.** Até F1.11 o backend aceitava
+`/` e recusava as cinco rotas de formulário/detalhe; o cliente fazia
+exatamente o contrário. As duas divergências eram **mudas**: a rota que o
+backend recusava saía sem botão (o slide pedia "crie uma meta" e não havia como
+ir criá-la) e a que o cliente não reconhecia chegava com um botão que não era
+desenhado. Nenhum dos dois casos gera erro, log ou teste vermelho.
+
+> **O cliente Flutter precisa aceitar exatamente esta lista**, inclusive `/`,
+> que hoje ele recusa (`coaching_slides_screen.dart`). É a única ponta que
+> falta — o pacote do app cuida dela.
 
 A allowlist casa só o **caminho**; a **query string sobrevive filtrada**, um
 parâmetro conhecido por vez, com valor dentro da lista e em ordem
 determinística. Parâmetro ou valor desconhecido é descartado em silêncio — a IA
-alucina query string com a mesma facilidade com que alucina rota.
+alucina query string com a mesma facilidade com que alucina rota. Só
+`/transactions/form` aceita query: `/planning` e `/category-details` leem `type`
+no app, mas o prompt não os oferece com parâmetro, e liberar no validador o que
+a IA não foi instruída a mandar só aumentaria a superfície da alucinação.
 
 **`/transactions/form` exige `?status=`.** Desde que o app passou a assumir
 `paid` por padrão, um path sem `status` abre o formulário já como "Registrei" —
