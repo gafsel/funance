@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { UserModel } from "../../domain/models/user.models";
 import { IUserRepository } from "../../domain/repositories/user.repository";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 export class UserRepositoryImpl implements IUserRepository {
     private firestore = admin.firestore();
@@ -32,15 +33,15 @@ export class UserRepositoryImpl implements IUserRepository {
     }
 
     async createUser(user: UserModel): Promise<void> {
-        await this.collection.doc(user.id).set({
+        await this.collection.doc(user.id).set(stripUndefined({
             ...user,
             createdAt: admin.firestore.Timestamp.fromDate(user.createdAt),
             lastLogin: user.lastLogin ? admin.firestore.Timestamp.fromDate(user.lastLogin) : null,
-        });
+        }));
     }
 
     async updateUser(id: string, user: Partial<UserModel>): Promise<void> {
-        const updateData: any = { ...user };
+        const updateData: Record<string, unknown> = stripUndefined({ ...user });
         if (user.createdAt) {
             updateData.createdAt = admin.firestore.Timestamp.fromDate(user.createdAt);
         }

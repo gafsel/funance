@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { CategoryModel } from "../../domain/models/category.model";
 import { ICategoryRepository } from "../../domain/repositories/category.repository";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 export class CategoryRepositoryImpl implements ICategoryRepository {
     private getCollection(workspaceId: string) {
@@ -10,16 +11,16 @@ export class CategoryRepositoryImpl implements ICategoryRepository {
     async createCategory(workspaceId: string, category: CategoryModel | Omit<CategoryModel, "id">): Promise<string> {
         if ("id" in category) {
             const { id, ...data } = category;
-            await this.getCollection(workspaceId).doc(id).set(data);
+            await this.getCollection(workspaceId).doc(id).set(stripUndefined(data));
             return id;
         }
-        const docRef = await this.getCollection(workspaceId).add(category);
+        const docRef = await this.getCollection(workspaceId).add(stripUndefined(category));
         return docRef.id;
     }
 
     async updateCategory(workspaceId: string, category: CategoryModel): Promise<void> {
         const { id, ...data } = category;
-        await this.getCollection(workspaceId).doc(id).update(data);
+        await this.getCollection(workspaceId).doc(id).update(stripUndefined(data));
     }
 
     async deleteCategory(workspaceId: string, categoryId: string): Promise<void> {

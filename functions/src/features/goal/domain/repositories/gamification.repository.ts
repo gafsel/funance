@@ -1,3 +1,6 @@
+import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
+import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
+
 /**
  * Linha achatada de um period_summary: uma entrada do mapa `categories` do
  * documento mensal, já com o join em `workspaces/{wid}/categories` feito
@@ -63,8 +66,8 @@ export interface WorkspaceStreaks {
  * `streaks` (mapa, quando existe) e o `weeklyStreaks` numérico, que é a única
  * fonte de `missions` num workspace que ainda não passou pelo cron novo.
  */
-export function readWorkspaceStreaks(workspaceData: any): WorkspaceStreaks {
-    const pick = (value: any) =>
+export function readWorkspaceStreaks(workspaceData: WorkspaceStreaksSource | null | undefined): WorkspaceStreaks {
+    const pick = (value: unknown) =>
         typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
 
     const map = workspaceData?.streaks;
@@ -76,11 +79,150 @@ export function readWorkspaceStreaks(workspaceData: any): WorkspaceStreaks {
     return { missions: pick(workspaceData?.weeklyStreaks), plan: 0 };
 }
 
+/**
+ * O mínimo de que `readWorkspaceStreaks` precisa: as DUAS gerações do campo.
+ *
+ * Os dois são opcionais e podem vir sujos (`null`, string) de um documento
+ * legado — é por isso que a função normaliza em vez de confiar no tipo.
+ */
+export interface WorkspaceStreaksSource {
+    /**
+     * Os valores são `unknown` DE PROPÓSITO. Este é o documento cru: um
+     * workspace antigo pode ter `weeklyStreaks` como string e um mapa
+     * `streaks` com `plan: null`. Prometer `number` aqui seria mentir
+     * justamente para a função que existe para limpar essa sujeira.
+     */
+    streaks?: { missions?: unknown, plan?: unknown } | null;
+    weeklyStreaks?: unknown;
+}
+
 /** Famílias de XP concedido UMA ÚNICA VEZ por categoria (`xpAwardedFor.<grupo>.<id>`). */
 export type XpOnceGroup = "planning" | "recurring";
 
+/**
+ * O documento do workspace do ponto de vista da GAMIFICAÇÃO.
+ *
+ * Tudo é opcional porque tudo é acumulado ao longo da vida do workspace: um
+ * workspace recém-criado não tem `xp`, nem badge, nem streak. O tipo é
+ * deliberadamente MENOR que `WorkspaceModel` — a gamificação não lê `members`
+ * nem `createdAt`, e declará-los aqui convidaria alguém a usá-los sem que o
+ * repositório converta os `Timestamp`.
+ */
+export interface GamificationWorkspace extends WorkspaceStreaksSource {
+    id: string;
+    /** `personal` | `business`. Ausente em documento legado. */
+    type?: string;
+    xp?: number;
+    level?: number;
+    /** `badgeId` -> instante ISO do desbloqueio. */
+    unlockedBadges?: Record<string, string>;
+    /** Marcadores de XP único: grupo -> chave -> instante ISO. Ver `awardXpOnce`. */
+    xpAwardedFor?: Partial<Record<XpOnceGroup, Record<string, string>>>;
+    onboardingCompleted?: boolean;
+}
+
+/**
+ * Uma META como ela é LIDA pela gamificação: o documento CRU, sem conversão de
+ * datas.
+ *
+ * Não é `GoalModel` de propósito. O `GoalModel` promete `startDate: Date` e
+ * `isDeleted: boolean`, e nada disso é verdade no documento cru — `deadline`
+ * chega como `Timestamp` e um documento legado pode não ter `isDeleted`. Quem
+ * precisa da data usa `toGoalDate`, que trata as três formas.
+ */
+export interface GamificationGoal {
+    /**
+     * Opcional porque o id NÃO está no documento: ele é o id do doc. O
+     * repositório o acrescenta; o gatilho, que já tem a meta na mão, passa o
+     * documento cru como veio.
+     */
+    id?: string;
+    name?: string;
+    isDeleted?: boolean;
+    /**
+     * Desfecho gravado pelo servidor. `null`/ausente = em andamento.
+     * `string`, e não `GoalOutcome`: o documento é cru e quem valida o valor é
+     * `resolveGoalOutcome`.
+     */
+    outcome?: string | null;
+    /** Instante do desfecho `success`, carimbado pelo servidor. */
+    completedAt?: RawFirestoreDate | null;
+    /** Instante do desfecho `failed`, carimbado pelo servidor. */
+    failedAt?: RawFirestoreDate | null;
+    deadline?: RawFirestoreDate | null;
+    startDate?: RawFirestoreDate | null;
+    currentAmount?: number;
+    targetAmount?: number;
+    /** Discriminador da union freezed do cliente (`payDebt`, `saveMoney`, ...). */
+    runtimeType?: string;
+    type?: string;
+    accountId?: string;
+    accountIdTarget?: string;
+    category?: { id?: string } | null;
+    categoryId?: string;
+}
+
+/**
+ * Uma PARCELA como ela é LIDA pela gamificação: o documento CRU.
+ *
+ * Mesma razão de `GamificationGoal` — `paidDate` e `dueDate` chegam como
+ * `Timestamp`, e `InstallmentModel` promete `Date`.
+ */
+export interface GamificationInstallment {
+    /** Ver `GamificationGoal.id`: o id mora no documento, não nos campos. */
+    id?: string;
+    status?: string;
+    type?: string;
+    amount?: number;
+    paidAmount?: number;
+    referenceAmount?: number;
+    dueDate?: RawFirestoreDate | null;
+    paidDate?: RawFirestoreDate | null;
+    category?: { id?: string; name?: string } | null;
+    accountIds?: string[];
+}
+
+/** As três missões semanais. O id do documento é `{weekId}_{type}`. */
+export type WeeklyMissionType = "consistency" | "discipline" | "organization";
+
+export type WeeklyMissionStatus = "pending" | "completed";
+
+/**
+ * O documento de `workspaces/{wid}/weekly_missions/{weekId}_{type}` como ele é
+ * GRAVADO na criação — aqui tudo é obrigatório, porque quem cria é o servidor
+ * e ele preenche tudo.
+ */
+export interface WeeklyMissionWrite {
+    /** Igual ao `type`. Redundante no documento, mas o app o lê. */
+    id: WeeklyMissionType;
+    /** Texto da missão (gerado pela IA, com fallback fixo). */
+    name: string;
+    type: WeeklyMissionType;
+    status: WeeklyMissionStatus;
+    rewardXp: number;
+    progress: number;
+    target: number;
+    /** `YYYY-Www`. É por ele que o cron avalia a semana fechada. */
+    weekId: string;
+    /** ISO-8601. */
+    createdAt: string;
+}
+
+/** O que uma atualização de progresso pode mexer. */
+export type WeeklyMissionUpdate = Partial<Pick<WeeklyMissionWrite, "progress" | "status" | "name" | "target" | "rewardXp">>;
+
+/**
+ * O documento como ele é LIDO. Tudo opcional: a missão pode ter sido gravada
+ * por uma versão anterior do servidor, e o chamador já aplica os padrões
+ * (`target || 3`, `rewardXp || 150`) que existem desde antes deste pacote.
+ */
+export interface WeeklyMissionDocument extends Partial<WeeklyMissionWrite> {
+    /** Carimbo da conclusão (`serverTimestamp`), só na missão concluída. */
+    completedAt?: RawFirestoreDate | null;
+}
+
 export interface IGamificationRepository {
-    getWorkspaceById(workspaceId: string): Promise<any | null>;
+    getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null>;
     addXp(workspaceId: string, amount: number, reason: string): Promise<void>;
     unlockBadge(
         workspaceId: string,
@@ -90,14 +232,17 @@ export interface IGamificationRepository {
     ): Promise<boolean>;
     getAccountsCount(workspaceId: string): Promise<number>;
     hasPaidTransaction(workspaceId: string): Promise<boolean>;
-    getCategoryPlannings(workspaceId: string): Promise<any[]>;
+    /** Planejamentos por categoria do workspace (documento cru + id). */
+    getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
     getCompletedReconciliationsCount(workspaceId: string, limit?: number): Promise<number>;
-    getGoals(workspaceId: string): Promise<any[]>;
-    getPaidInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<any[]>;
-    getWeeklyMission(workspaceId: string, weekId: string, type: string): Promise<any | null>;
-    createWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void>;
-    updateWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void>;
-    getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]>;
+    getGoals(workspaceId: string): Promise<GamificationGoal[]>;
+    /** Parcelas pagas/liquidadas com `paidDate` no intervalo (inclusive). */
+    getPaidInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<GamificationInstallment[]>;
+    getWeeklyMission(workspaceId: string, weekId: string, type: WeeklyMissionType): Promise<WeeklyMissionDocument | null>;
+    /** `create`: uma missão já existente NÃO é sobrescrita. */
+    createWeeklyMission(workspaceId: string, weekId: string, type: WeeklyMissionType, data: WeeklyMissionWrite): Promise<void>;
+    updateWeeklyMission(workspaceId: string, weekId: string, type: WeeklyMissionType, data: WeeklyMissionUpdate): Promise<void>;
+    getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<WeeklyMissionDocument[]>;
     /**
      * Grava `streaks` (mapa) e `weeklyStreaks` (número, = `missions`) na MESMA
      * transação, preservando as chaves não informadas. Os dois campos nunca
@@ -121,8 +266,8 @@ export interface IGamificationRepository {
     /** Linhas (categoria x mês) do period_summary, já achatadas e com join em categories. */
     getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<PeriodSummaryRow[]>;
     getCategoriesCount(workspaceId: string): Promise<number>;
-    getPaidInstallments(workspaceId: string): Promise<any[]>;
-    getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<any[]>;
+    getPaidInstallments(workspaceId: string): Promise<GamificationInstallment[]>;
+    getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<GamificationInstallment[]>;
     /**
      * Marca a missão como concluída e concede o XP na MESMA transação.
      * Retorna false (sem conceder nada) se a missão já estava concluída.
@@ -130,7 +275,7 @@ export interface IGamificationRepository {
     completeMissionAndAwardXp(
         workspaceId: string,
         weekId: string,
-        type: string,
+        type: WeeklyMissionType,
         progress: number,
         rewardXp: number,
         reason: string

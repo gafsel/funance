@@ -219,16 +219,100 @@ export interface CategoryPlanningMarks {
     appliedUntil: string | null;
 }
 
-export interface PeriodSummaryModel {
-    id: string; // YYYY-MM-categoryId ou YYYY-categoryId ou YYYY-Www-categoryId
+/** Granularidade de um documento de `period_summaries`. */
+export enum PeriodSummaryRuntimeType {
+    year = "year",
+    month = "month",
+    week = "week",
+}
+
+/**
+ * Uma linha do mapa `categories` de um `period_summaries`: os três totais de
+ * UMA categoria naquele período.
+ *
+ * Os três campos são OBRIGATÓRIOS no modelo, embora o documento cru possa não
+ * ter algum deles (um sumário que só recebeu `actualDelta` nasce sem
+ * `generalPlannedAmount`). Quem lê normaliza — ver `toPeriodSummaryDocument`.
+ * Deixá-los opcionais espalharia `?? 0` por todo consumidor e, pior,
+ * permitiria que um deles fosse esquecido numa soma.
+ */
+export interface PeriodSummaryCategoryTotals {
+    /** Limite da categoria (`category_planning`) rateado no período. */
+    generalPlannedAmount: number;
+    /** Soma das parcelas PROJETADAS que caem no período. */
+    specificPlannedAmount: number;
+    /** Soma do que de fato foi pago/recebido no período. */
+    actualAmount: number;
+}
+
+/**
+ * O documento REAL de `workspaces/{wid}/period_summaries/{id}`, onde o id é
+ * `YYYY`, `YYYY-MM` ou `YYYY-Www`.
+ *
+ * Há UM documento por período, com um mapa de categorias dentro — e não um
+ * documento por categoria, como dizia o modelo antigo (`PeriodSummaryModel`),
+ * que não correspondia a nada gravado e por isso nunca foi usado por ninguém.
+ *
+ * `month` e `week` são `null` (e não ausentes) quando não se aplicam: é assim
+ * que o servidor os grava, para que a consulta `where("month", "==", m)`
+ * encontre o documento mensal e ignore o anual.
+ */
+export interface PeriodSummaryDocument {
+    /** Id do documento — `YYYY`, `YYYY-MM` ou `YYYY-Www`. */
+    id: string;
     year: number;
-    month?: number;
-    week?: number;
-    category: CategoryModel;
-    generalPlannedAmount: number; // Da CategoryPlanning
-    specificPlannedAmount: number; // Das Installments projetadas
-    actualAmount: number; // Do Realizado
-    lastUpdate: Date;
+    /** 1-12 no documento mensal; `null` no anual e no semanal. */
+    month: number | null;
+    /** Número ISO da semana no documento semanal; `null` nos demais. */
+    week: number | null;
+    categories: Record<string, PeriodSummaryCategoryTotals>;
+    runtimeType: PeriodSummaryRuntimeType;
+    /** Carimbo da última escrita. `null` em documento legado sem o campo. */
+    lastUpdate: Date | null;
+}
+
+/** Número tolerante a campo ausente/sujo em documento legado. */
+function summaryNumber(value: unknown): number {
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+/**
+ * Documento cru -> `PeriodSummaryDocument`, com os totais NORMALIZADOS.
+ *
+ * Mora no modelo, e não no repositório, porque o job de reconstrução lê a
+ * mesma coleção por outro caminho e precisa da mesma leitura.
+ */
+export function toPeriodSummaryDocument(
+    id: string,
+    data: Record<string, unknown> | undefined
+): PeriodSummaryDocument {
+    const rawCategories = (data?.categories ?? {}) as Record<string, Record<string, unknown> | undefined>;
+    const categories: Record<string, PeriodSummaryCategoryTotals> = {};
+
+    for (const [categoryId, totals] of Object.entries(rawCategories)) {
+        categories[categoryId] = {
+            generalPlannedAmount: summaryNumber(totals?.generalPlannedAmount),
+            specificPlannedAmount: summaryNumber(totals?.specificPlannedAmount),
+            actualAmount: summaryNumber(totals?.actualAmount),
+        };
+    }
+
+    const rawRuntimeType = data?.runtimeType;
+    const runtimeType = (Object.values(PeriodSummaryRuntimeType) as string[]).includes(rawRuntimeType as string)
+        ? rawRuntimeType as PeriodSummaryRuntimeType
+        : PeriodSummaryRuntimeType.month;
+
+    const rawLastUpdate = data?.lastUpdate as { toDate?: () => Date } | undefined;
+
+    return {
+        id,
+        year: summaryNumber(data?.year),
+        month: typeof data?.month === "number" ? data.month : null,
+        week: typeof data?.week === "number" ? data.week : null,
+        categories,
+        runtimeType,
+        lastUpdate: typeof rawLastUpdate?.toDate === "function" ? rawLastUpdate.toDate() : null,
+    };
 }
 
 export enum AccountType {

@@ -407,6 +407,14 @@ export class SummaryService {
      * Só avisa quando a referência está de fato QUEBRADA (`isCategoryRefBroken`):
      * transferência sem categoria — fatura inclusive — é o desenho normal e
      * fica silenciosa.
+     *
+     * A checagem julga a categoria EFETIVA, que é a mesma que a guarda do
+     * chamador acabou de recusar — e não `inst.category`. Numa transferência,
+     * a categoria efetiva é a VIRTUAL (`resolveVirtualCategory`), e era aí que
+     * as duas discordavam: a guarda recusava a virtual, `isCategoryRefBroken`
+     * respondia sobre a original, via um `type === "transfer"` sem categoria e
+     * declarava tudo normal. A parcela ficava fora do sumário em SILÊNCIO,
+     * exatamente o caso que o aviso existe para denunciar.
      */
     private warnCategoryWithoutIdOnce(
         workspaceId: string,
@@ -414,7 +422,7 @@ export class SummaryService {
         category: CategoryModel | undefined,
         warned: Set<string>
     ): void {
-        if (!isCategoryRefBroken(inst)) return;
+        if (!isCategoryRefBroken({ type: inst.type, category })) return;
 
         const key = `${workspaceId}/${inst.id}`;
         if (warned.has(key)) return;
@@ -434,7 +442,16 @@ export class SummaryService {
 
         if (inst.type === OrderType.transfer) {
             const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);
-            if (!virtualData) return;
+            if (!virtualData) {
+                // Transferência sem contrapartida de dívida/investimento fica
+                // fora do sumário — o desenho normal, e por isso silencioso.
+                // Mas se ela carrega uma categoria QUEBRADA (`{id: ""}`), o
+                // defeito é real e precisa aparecer: sem esta chamada o
+                // `return` saía antes da guarda e o aviso nunca era emitido
+                // para uma transferência, contrariando `isCategoryRefBroken`.
+                this.warnCategoryWithoutIdOnce(workspaceId, inst, category, warned);
+                return;
+            }
             category = virtualData.category;
             // Se for destino (gasto), valor positivo (delta aumenta gasto). 
             // Se for origem (receita), valor negativo (delta aumenta receita - mas aqui o summary guarda valores absolutos de gasto?)
@@ -485,7 +502,11 @@ export class SummaryService {
 
         if (inst.type === OrderType.transfer) {
             const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);
-            if (!virtualData) return;
+            if (!virtualData) {
+                // Ver `updateSummaryProjetado`: só a categoria quebrada fala.
+                this.warnCategoryWithoutIdOnce(workspaceId, inst, category, warned);
+                return;
+            }
             category = virtualData.category;
         }
 

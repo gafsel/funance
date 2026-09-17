@@ -53,8 +53,11 @@ describe("GamificationRepositoryImpl.getCategoryPlannings", () => {
         const result = await new GamificationRepositoryImpl().getCategoryPlannings("w1");
 
         expect(mockFirestoreState.queried).toEqual(["workspaces/w1/category_planning"]);
+        // O `id` vem do DOCUMENTO (a coleção não o guarda como campo) e é o
+        // repositório que o acrescenta desde F1.11, para que a leitura caiba
+        // em `CategoryPlanningModel` em vez de `any[]`.
         expect(result).toEqual([
-            { amount: 300, category: { id: "c1", name: "Alimentação", allocation: "essential" } },
+            { id: "p1", amount: 300, category: { id: "c1", name: "Alimentação", allocation: "essential" } },
         ]);
     });
 });

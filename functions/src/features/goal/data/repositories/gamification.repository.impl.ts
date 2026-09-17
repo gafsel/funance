@@ -1,23 +1,32 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import {
+    GamificationGoal,
+    GamificationInstallment,
+    GamificationWorkspace,
     IGamificationRepository,
     PeriodSummaryRow,
+    WeeklyMissionDocument,
+    WeeklyMissionType,
+    WeeklyMissionUpdate,
+    WeeklyMissionWrite,
     WeeklySummaryRow,
     WorkspaceStreaks,
     XpOnceGroup,
     readWorkspaceStreaks,
 } from "../../domain/repositories/gamification.repository";
+import { CategoryPlanningModel, toPeriodSummaryDocument } from "../../../finance/domain/models/finance.models";
 import { calculateLevel } from "../../domain/services/gamification.service";
-import { isSystemCategory } from "../../../workspace/domain/models/category.model";
+import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
-    async getWorkspaceById(workspaceId: string): Promise<any | null> {
+    async getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null> {
         const doc = await admin.firestore().collection("workspaces").doc(workspaceId).get();
         if (!doc.exists) {
             return null;
         }
-        return { id: doc.id, ...doc.data() };
+        return { ...doc.data(), id: doc.id } as GamificationWorkspace;
     }
 
     async addXp(workspaceId: string, amount: number, reason: string): Promise<void> {
@@ -40,7 +49,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             const newXp = Math.max(0, currentXp + amount);
             const newLevel = calculateLevel(newXp);
 
-            const updateData: any = {
+            const updateData: Record<string, unknown> = {
                 xp: newXp,
                 level: newLevel,
             };
@@ -81,7 +90,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             }
 
             const data = doc.data()!;
-            const unlockedBadges = data.unlockedBadges || {};
+            const unlockedBadges: Record<string, string> = data.unlockedBadges || {};
 
             if (unlockedBadges[badgeId]) {
                 return;
@@ -94,7 +103,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             const newXp = Math.max(0, currentXp + xpReward);
             const newLevel = calculateLevel(newXp);
 
-            const updateData: any = {
+            const updateData: Record<string, unknown> = {
                 unlockedBadges,
                 xp: newXp,
                 level: newLevel,
@@ -134,7 +143,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         return snapshot.size >= 1;
     }
 
-    async getCategoryPlannings(workspaceId: string): Promise<any[]> {
+    async getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]> {
         // A coleção real é `category_planning` (singular) — é o nome usado pelo
         // cliente, pelo category_planning_handler, pelas rules e pelos índices.
         // Enquanto isto lia `category_plannings`, os badges planner,
@@ -143,9 +152,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/category_planning`)
             .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as CategoryPlanningModel));
     }
 
     async getCompletedReconciliationsCount(workspaceId: string, limit?: number): Promise<number> {
@@ -159,28 +166,24 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         return snapshot.size;
     }
 
-    async getGoals(workspaceId: string): Promise<any[]> {
+    async getGoals(workspaceId: string): Promise<GamificationGoal[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/goals`)
             .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as GamificationGoal));
     }
 
-    async getPaidInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<any[]> {
+    async getPaidInstallmentsInPeriod(workspaceId: string, start: Date, end: Date): Promise<GamificationInstallment[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/installments`)
             .where("status", "in", ["paid", "settled"])
             .where("paidDate", ">=", start)
             .where("paidDate", "<=", end)
             .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as GamificationInstallment));
     }
 
-    async getWeeklyMission(workspaceId: string, weekId: string, type: string): Promise<any | null> {
+    async getWeeklyMission(workspaceId: string, weekId: string, type: WeeklyMissionType): Promise<WeeklyMissionDocument | null> {
         const doc = await admin.firestore()
             .collection(`workspaces/${workspaceId}/weekly_missions`)
             .doc(`${weekId}_${type}`)
@@ -188,21 +191,21 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         if (!doc.exists) {
             return null;
         }
-        return doc.data();
+        return doc.data() as WeeklyMissionDocument;
     }
 
-    async createWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void> {
+    async createWeeklyMission(workspaceId: string, weekId: string, type: WeeklyMissionType, data: WeeklyMissionWrite): Promise<void> {
         try {
             // create() falha se o doc já existir — evita que escritas paralelas
             // sobrescrevam o progresso de uma missão já criada.
             await admin.firestore()
                 .collection(`workspaces/${workspaceId}/weekly_missions`)
                 .doc(`${weekId}_${type}`)
-                .create(data);
+                .create(stripUndefined(data));
         }
-        catch (e: any) {
+        catch (e: unknown) {
             // gRPC 6 = ALREADY_EXISTS
-            if (e?.code === 6) {
+            if ((e as { code?: number } | null)?.code === 6) {
                 logger.info(`[GamificationRepository] Weekly mission ${weekId}_${type} already exists for ${workspaceId}. Skipping create.`);
                 return;
             }
@@ -210,21 +213,19 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         }
     }
 
-    async updateWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void> {
+    async updateWeeklyMission(workspaceId: string, weekId: string, type: WeeklyMissionType, data: WeeklyMissionUpdate): Promise<void> {
         await admin.firestore()
             .collection(`workspaces/${workspaceId}/weekly_missions`)
             .doc(`${weekId}_${type}`)
-            .update(data);
+            .update(stripUndefined(data));
     }
 
-    async getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]> {
+    async getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<WeeklyMissionDocument[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/weekly_missions`)
             .where("weekId", "==", weekId)
             .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+        return snapshot.docs.map((doc) => doc.data() as WeeklyMissionDocument);
     }
 
     async updateWorkspaceStreaks(workspaceId: string, streaks: Partial<WorkspaceStreaks>): Promise<void> {
@@ -278,9 +279,9 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             return [];
         }
 
-        const categoriesById = new Map<string, any>();
+        const categoriesById = new Map<string, CategoryModel>();
         for (const doc of categoriesSnapshot.docs) {
-            const data = doc.data();
+            const data = doc.data() as CategoryModel;
             if (data.isDeleted === true) {
                 continue;
             }
@@ -288,8 +289,8 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         }
 
         const rows: WeeklySummaryRow[] = [];
-        const categories = summary.data()?.categories || {};
-        for (const [categoryId, raw] of Object.entries<any>(categories)) {
+        const { categories } = toPeriodSummaryDocument(summary.id, summary.data());
+        for (const [categoryId, raw] of Object.entries(categories)) {
             const category = categoriesById.get(categoryId);
             if (!category) {
                 // Sem o documento da categoria não há como classificar a linha.
@@ -299,8 +300,8 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
                 categoryId,
                 type: category.type,
                 isSystem: isSystemCategory(categoryId, category),
-                actualAmount: raw?.actualAmount || 0,
-                generalPlannedAmount: raw?.generalPlannedAmount || 0,
+                actualAmount: raw.actualAmount,
+                generalPlannedAmount: raw.generalPlannedAmount,
             });
         }
 
@@ -343,8 +344,8 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             }
 
             const data = doc.data()!;
-            const awardedFor = { ...(data.xpAwardedFor || {}) };
-            const groupMap = { ...(awardedFor[group] || {}) };
+            const awardedFor: Record<string, Record<string, string>> = { ...(data.xpAwardedFor || {}) };
+            const groupMap: Record<string, string> = { ...(awardedFor[group] || {}) };
 
             if (groupMap[key]) {
                 return;
@@ -358,7 +359,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             const newXp = Math.max(0, currentXp + xp);
             const newLevel = calculateLevel(newXp);
 
-            const updateData: any = { xpAwardedFor: awardedFor, xp: newXp, level: newLevel };
+            const updateData: Record<string, unknown> = { xpAwardedFor: awardedFor, xp: newXp, level: newLevel };
             if (newLevel > currentLevel) {
                 updateData.lastLevelUpAt = admin.firestore.FieldValue.serverTimestamp();
             }
@@ -392,9 +393,9 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             firestore.collection(`workspaces/${workspaceId}/categories`).get(),
         ]);
 
-        const categoriesById = new Map<string, any>();
+        const categoriesById = new Map<string, CategoryModel>();
         for (const doc of categoriesSnapshot.docs) {
-            const data = doc.data();
+            const data = doc.data() as CategoryModel;
             if (data.isDeleted === true) {
                 // Categorias excluídas não entram nas checagens de badge.
                 continue;
@@ -404,8 +405,8 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
 
         const rows: PeriodSummaryRow[] = [];
         for (const doc of snapshot.docs) {
-            const categories = doc.data().categories || {};
-            for (const [categoryId, raw] of Object.entries<any>(categories)) {
+            const { categories } = toPeriodSummaryDocument(doc.id, doc.data());
+            for (const [categoryId, raw] of Object.entries(categories)) {
                 const category = categoriesById.get(categoryId);
                 if (!category) {
                     // Sem o documento da categoria não há como classificar a
@@ -418,9 +419,9 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
                     type: category.type,
                     allocation: category.allocation,
                     isSystem: isSystemCategory(categoryId, category),
-                    actualAmount: raw?.actualAmount || 0,
-                    generalPlannedAmount: raw?.generalPlannedAmount || 0,
-                    specificPlannedAmount: raw?.specificPlannedAmount || 0,
+                    actualAmount: raw.actualAmount,
+                    generalPlannedAmount: raw.generalPlannedAmount,
+                    specificPlannedAmount: raw.specificPlannedAmount,
                 });
             }
         }
@@ -435,32 +436,28 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         return snapshot.size;
     }
 
-    async getPaidInstallments(workspaceId: string): Promise<any[]> {
+    async getPaidInstallments(workspaceId: string): Promise<GamificationInstallment[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/installments`)
             .where("status", "in", ["paid", "settled"])
             .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as GamificationInstallment));
     }
 
-    async getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<any[]> {
+    async getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<GamificationInstallment[]> {
         const snapshot = await admin.firestore()
             .collection(`workspaces/${workspaceId}/installments`)
             .where("status", "in", ["paid", "settled"])
             .where("paidDate", ">=", since)
             .get();
-        return snapshot.docs.map((doc) => {
-            return doc.data();
-        });
+        return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as GamificationInstallment));
     }
 
 
     async completeMissionAndAwardXp(
         workspaceId: string,
         weekId: string,
-        type: string,
+        type: WeeklyMissionType,
         progress: number,
         rewardXp: number,
         reason: string
@@ -504,7 +501,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
                 completedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            const updateData: any = { xp: newXp, level: newLevel };
+            const updateData: Record<string, unknown> = { xp: newXp, level: newLevel };
             if (newLevel > currentLevel) {
                 updateData.lastLevelUpAt = admin.firestore.FieldValue.serverTimestamp();
             }

@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { WorkspaceModel } from "../../domain/models/workspace.model";
-import { IWorkspaceRepository } from "../../domain/repositories/workspace.repository";
+import { IWorkspaceRepository, WorkspaceMember } from "../../domain/repositories/workspace.repository";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
     private collection = admin.firestore().collection("workspaces");
@@ -31,10 +32,10 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
     }
 
     async createWorkspace(workspace: Omit<WorkspaceModel, "id">): Promise<string> {
-        const docRef = await this.collection.add({
+        const docRef = await this.collection.add(stripUndefined({
             ...workspace,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        }));
         return docRef.id;
     }
 
@@ -58,10 +59,10 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         });
     }
 
-    async getMembersByIds(userIds: string[]): Promise<any[]> {
+    async getMembersByIds(userIds: string[]): Promise<WorkspaceMember[]> {
         if (userIds.length === 0) return [];
 
-        const members: any[] = [];
+        const members: WorkspaceMember[] = [];
         const db = admin.firestore();
         
         // Firestore 'in' query supports up to 30 elements

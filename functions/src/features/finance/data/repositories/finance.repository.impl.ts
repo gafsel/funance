@@ -12,8 +12,21 @@ import {
     PeriodSummaryUpdateModel,
     OrderStatus,
     InstallmentType,
-    OrderType, InstallmentStatus,
+    OrderType,
+    InstallmentStatus,
+    PeriodSummaryDocument,
+    toPeriodSummaryDocument,
 } from "../../domain/models/finance.models";
+import {
+    PlanningAnalysisDocument,
+    PlanningAnalysisWrite,
+    toPlanningAnalysisDocument,
+} from "../../domain/models/planning_analysis.model";
+import {
+    CoachingAnalysisDocument,
+    CoachingAnalysisWrite,
+    toCoachingAnalysisDocument,
+} from "../../../coaching/domain/models/coaching_analysis.model";
 import {
     CategoryPlanningPage,
     CategoryPlanningRef,
@@ -24,6 +37,7 @@ import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChun
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { getZonedParts } from "../../../../core/utils/timezone.utils";
 import { InvoiceService } from "../../domain/services/invoice.service";
+import { RawFirestoreDate, TimestampLike, stripUndefined } from "../../../../core/utils/firestore.utils";
 
 /**
  * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
@@ -51,6 +65,18 @@ function roundCents(value: number): number {
 
 /** Abaixo disso o delta de planejamento é ruído de ponto flutuante. */
 const PLANNING_DELTA_EPSILON = 1e-9;
+
+/**
+ * O que `updateInstallment` lê do documento JÁ GRAVADO para recalcular os
+ * campos derivados. As datas são `Timestamp` (é o documento cru) e os valores
+ * podem faltar — `paidAmount` só existe na parcela paga.
+ */
+interface StoredInstallmentDates {
+    dueDate: TimestampLike;
+    paidDate?: TimestampLike | null;
+    amount?: number;
+    paidAmount?: number | null;
+}
 
 interface PlanningCategoryBucket {
     category: CategoryModel;
@@ -116,19 +142,24 @@ function toNumber(value: unknown): number {
  */
 export function buildInstallmentDocument(
     installment: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">
-): Record<string, any> {
+): Record<string, unknown> {
     const referenceDate = installment.paidDate || installment.dueDate;
     const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null
         ? installment.paidAmount
         : installment.amount;
 
-    return {
+    // `stripUndefined`: a parcela tem uma dúzia de campos opcionais
+    // (`installmentNumber`, `category`, `isInvoice`, a janela do ciclo...) e o
+    // chamador monta o objeto com os que valem para o caso dele. Sem o
+    // descarte explícito, uma chave ausente chegaria ao SDK como `undefined` e
+    // — desligado o `ignoreUndefinedProperties` — derrubaria a criação inteira.
+    return stripUndefined({
         ...installment,
         dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
         paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
         referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
         referenceAmount: referenceAmount,
-    };
+    });
 }
 
 export class FinanceRepositoryImpl implements IFinanceRepository {
@@ -160,11 +191,15 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async createOrder(workspaceId: string, order: Omit<OrderModel, "id">, id?: string): Promise<string> {
         const collection = this.getOrdersCollection(workspaceId);
+        // `OrderModel` tem campos opcionais (`endMonth`, `installmentCount`,
+        // `category`, a janela do ciclo da fatura): o que o chamador não
+        // preencheu não vai para o documento.
+        const data = stripUndefined(order);
         if (id) {
-            await collection.doc(id).set(order);
+            await collection.doc(id).set(data);
             return id;
         }
-        const docRef = await collection.add(order);
+        const docRef = await collection.add(data);
         return docRef.id;
     }
 
@@ -184,7 +219,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void> {
-        await this.getOrdersCollection(workspaceId).doc(orderId).update(order);
+        // `Partial<OrderModel>`: as chaves ausentes vêm como `undefined` e
+        // significam "não mexer neste campo", nunca "apagar".
+        await this.getOrdersCollection(workspaceId).doc(orderId).update(stripUndefined(order));
     }
 
     /**
@@ -230,12 +267,12 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         });
     }
 
-    async createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void> {
+    async createOrderHistory(workspaceId: string, orderId: string, snapshot: Record<string, unknown>): Promise<void> {
         await this.getOrdersCollection(workspaceId)
             .doc(orderId)
             .collection("history")
             .add({
-                snapshot: snapshot,
+                snapshot: stripUndefined(snapshot),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
     }
@@ -325,8 +362,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             const doc = await transaction.get(docRef);
             if (!doc.exists) return;
 
-            const currentData = doc.data() as any;
-            const data = { ...installment } as any;
+            const currentData = doc.data() as StoredInstallmentDates;
+            const data: Record<string, unknown> = { ...installment };
 
             if (data.dueDate) {
                 data.dueDate = admin.firestore.Timestamp.fromDate(data.dueDate as Date);
@@ -355,7 +392,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 data.accountIds = Object.keys(installment.accounts || {});
             }
 
-            transaction.update(docRef, data);
+            // `Partial<InstallmentModel>`: chave ausente é "não mexer".
+            transaction.update(docRef, stripUndefined(data));
         });
     }
 
@@ -675,7 +713,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const operations: BatchOperation[] = [];
 
         for (const [docId, group] of groupPlanningUpdates(updates)) {
-            const categories: Record<string, any> = {};
+            const categories: Record<string, { generalPlannedAmount: admin.firestore.FieldValue }> = {};
 
             for (const bucket of group.categories.values()) {
                 if (Math.abs(bucket.delta) < PLANNING_DELTA_EPSILON) continue;
@@ -756,7 +794,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             actualDelta?: number
         },
         runtimeType: string
-    ): any {
+    ): Record<string, unknown> {
         return {
             year,
             month: month ?? null,
@@ -803,11 +841,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await docRef.set(updateData, { merge: true });
     }
 
-    async getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<any | null> {
+    async getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<PeriodSummaryDocument | null> {
         const { docRef } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
         const doc = await docRef.get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() };
+        return toPeriodSummaryDocument(doc.id, doc.data());
     }
 
     async getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null> {
@@ -975,7 +1013,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             if (snapshot.empty) return;
 
             const operations: BatchOperation[] = snapshot.docs.map((doc) => {
-                const data: Record<string, any> = {
+                const data: Record<string, unknown> = {
                     balance: admin.firestore.FieldValue.increment(delta),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 };
@@ -1009,7 +1047,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         balancesColl: admin.firestore.CollectionReference,
         dateKey: string,
         transaction?: admin.firestore.Transaction
-    ): Promise<{ id: string, balance: number, data: Record<string, any> } | null> {
+    ): Promise<{ id: string, balance: number, data: admin.firestore.DocumentData } | null> {
         const run = async (query: admin.firestore.Query) =>
             (transaction ? transaction.get(query) : query.get());
 
@@ -1083,7 +1121,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
 
-    async updateOrderCategory(workspaceId: string, category: CategoryModel) {
+    async updateOrderCategory(workspaceId: string, category: CategoryModel): Promise<void> {
         const snapshot = await this.getOrdersCollection(workspaceId)
             .where("category.id", "==", category.id)
             .get();
@@ -1098,7 +1136,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await commitInChunks(this.firestore, operations);
     }
 
-    async updateInstallmentCategory(workspaceId: string, category: CategoryModel) {
+    async updateInstallmentCategory(workspaceId: string, category: CategoryModel): Promise<void> {
         const snapshot = await this.getInstallmentsCollection(workspaceId)
             .where("category.id", "==", category.id)
             .get();
@@ -1191,7 +1229,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return collection.doc(canonicalId);
     }
 
-    async getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]> {
+    async getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<CoachingAnalysisDocument[]> {
         const snapshot = await admin.firestore()
             .collection("workspaces")
             .doc(workspaceId)
@@ -1200,30 +1238,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .limit(limit)
             .get();
 
-        return snapshot.docs.map(doc => {
-            const data = doc.data() as any;
-            let date = data.date;
-            if (date && typeof date.toDate === "function") {
-                date = date.toDate();
-            }
-            return {
-                id: doc.id,
-                ...data,
-                date
-            };
-        });
+        return snapshot.docs.map(doc => toCoachingAnalysisDocument(doc.id, doc.data()));
     }
 
-    async saveCoachingAnalysis(workspaceId: string, analysis: any): Promise<string> {
+    async saveCoachingAnalysis(workspaceId: string, analysis: CoachingAnalysisWrite): Promise<string> {
         const docRef = await admin.firestore()
             .collection("workspaces")
             .doc(workspaceId)
             .collection("financial_coaching")
             .add({
-                ...analysis,
-                date: analysis.date instanceof Date
-                    ? admin.firestore.Timestamp.fromDate(analysis.date)
-                    : admin.firestore.FieldValue.serverTimestamp(),
+                // `stripUndefined`: um slide sem botão não tem `actionPath` nem
+                // `actionLabel`, e as chaves ausentes não podem ir ao SDK.
+                ...stripUndefined(analysis),
+                date: admin.firestore.Timestamp.fromDate(analysis.date),
             });
         return docRef.id;
     }
@@ -1239,8 +1266,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getCoachingCategoryGroups(workspaceId: string): Promise<Record<string, { group: string; name: string }> | null> {
         const doc = await this.getCoachingMetaDocRef(workspaceId).get();
         if (!doc.exists) return null;
-        const data = doc.data() as any;
-        return data?.groups || null;
+        const data = doc.data();
+        return (data?.groups as Record<string, { group: string; name: string }> | undefined) || null;
     }
 
     async saveCoachingCategoryGroups(
@@ -1262,18 +1289,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .doc(monthKey);
     }
 
-    async getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<any | null> {
+    async getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<PlanningAnalysisDocument | null> {
         const doc = await this.getPlanningAnalysisDocRef(workspaceId, monthKey).get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() };
+        return toPlanningAnalysisDocument(doc.id, doc.data());
     }
 
-    async savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: any): Promise<void> {
+    async savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: PlanningAnalysisWrite): Promise<void> {
         await this.getPlanningAnalysisDocRef(workspaceId, monthKey).set({
-            ...analysis,
-            createdAt: analysis.createdAt instanceof Date
-                ? admin.firestore.Timestamp.fromDate(analysis.createdAt)
-                : admin.firestore.FieldValue.serverTimestamp(),
+            // `stripUndefined`: `suggestedAllocation` e `savingTip` são `null`
+            // explícitos, mas o payload passa por aqui inteiro e uma chave
+            // opcional futura não pode derrubar a gravação.
+            ...stripUndefined(analysis),
+            createdAt: admin.firestore.Timestamp.fromDate(analysis.createdAt),
         });
     }
 
@@ -1311,8 +1339,18 @@ function toAccountModel(id: string, data: admin.firestore.DocumentData): Account
             orderId: typeof raw.orderId === "string" ? raw.orderId : "",
             installmentId: typeof raw.installmentId === "string" ? raw.installmentId : null,
             status: raw.status ?? InstallmentStatus.pending,
-            updatedAt: toDateOrNull(raw.updatedAt) ?? undefined,
         };
+
+        // A chave só entra quando existe. `updatedAt: undefined` (o que este
+        // trecho fazia com `?? undefined`) é diferente de chave ausente: o
+        // modelo volta a ser gravado tal como veio em
+        // `automatic_transactions.suggestedAccount`, e com o
+        // `ignoreUndefinedProperties` desligado a escrita LANÇA. Como aquele
+        // enriquecimento engole os próprios erros, a sugestão sumia calada.
+        const updatedAt = toDateOrNull(raw.updatedAt);
+        if (updatedAt) {
+            account.nextInvoice.updatedAt = updatedAt;
+        }
     }
 
     return account;
@@ -1333,9 +1371,10 @@ function toInvoiceCycle(data: admin.firestore.DocumentData): Record<string, Date
     return cycle;
 }
 
-function toDateOrNull(value: any): Date | null {
+function toDateOrNull(value: RawFirestoreDate | null | undefined): Date | null {
     if (!value) return null;
-    if (typeof value.toDate === "function") return value.toDate();
-    const date = new Date(value);
+    const timestamp = value as { toDate?: () => Date };
+    if (typeof timestamp.toDate === "function") return timestamp.toDate();
+    const date = new Date(value as string | number | Date);
     return Number.isNaN(date.getTime()) ? null : date;
 }

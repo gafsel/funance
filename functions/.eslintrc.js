@@ -38,4 +38,27 @@ module.exports = {
         "brace-style": ["error", "stroustrup"],
         "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     },
+    overrides: [
+        {
+            // F1.11 — a CAMADA DE REPOSITÓRIO é a fronteira com o Firestore, e
+            // era ali que a tipagem terminava: 22 assinaturas com `any`, e com
+            // elas coleções inteiras atravessando o backend sem forma nenhuma.
+            //
+            // O `any` continua permitido no resto do código (montagem de
+            // prompt, payload de IA, mocks de teste), onde ele costuma ser o
+            // tipo honesto para "o que o modelo devolveu". Aqui, não: um
+            // documento do Firestore TEM forma, e escrevê-la é o que faz o
+            // compilador pegar o acesso a campo inexistente.
+            //
+            // Sem este override o pacote regride na primeira assinatura nova —
+            // e regride em silêncio, que é o que o F1.11 existe para acabar.
+            files: [
+                "src/features/*/domain/repositories/**/*.ts",
+                "src/features/*/data/repositories/**/*.ts",
+            ],
+            rules: {
+                "@typescript-eslint/no-explicit-any": "error",
+            },
+        },
+    ],
 };

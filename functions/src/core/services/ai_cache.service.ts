@@ -22,6 +22,7 @@
 
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
+import { stripUndefined } from "../utils/firestore.utils";
 
 /** Validade do cache. Documentado no README junto com a política de TTL. */
 export const AI_CACHE_TTL_DAYS = 7;
@@ -110,7 +111,9 @@ export class AiCacheServiceImpl implements IAiCacheService {
         try {
             await this.docRef(workspaceId, aiCacheKey(functionName, input)).set({
                 functionName,
-                payload,
+                // A resposta validada pode ter campos opcionais ausentes; o
+                // cache guarda o que existe, sem `undefined` no documento.
+                payload: stripUndefined(payload),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 expiresAt: admin.firestore.Timestamp.fromDate(
                     new Date(Date.now() + AI_CACHE_TTL_DAYS * DAY_MS)

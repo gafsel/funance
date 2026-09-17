@@ -1,6 +1,7 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
 import * as admin from "firebase-admin";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 /** Nome de ação ESTÁVEL da idempotência (ver core/services/idempotency.service.ts). */
 export const AUTOMATIC_TRANSACTION_ACTION = "enrichAutomaticTransaction";
@@ -58,7 +59,7 @@ export async function enrichAutomaticTransaction(
 
         if (!result) return;
 
-        const updateData: any = {};
+        const updateData: Record<string, unknown> = {};
 
         if (result.category) {
             // O validador (F5.2) já garante que `id` é ou um id REAL do
@@ -87,7 +88,13 @@ export async function enrichAutomaticTransaction(
                 .doc(workspaceId)
                 .collection("automatic_transactions")
                 .doc(transactionId)
-                .update(updateData);
+                // `stripUndefined`: `suggestedAccount` é um `AccountModel`
+                // inteiro, com meia dúzia de campos opcionais (`closingDay`,
+                // `limit`, `bankLogo`, o `updatedAt` de `nextInvoice`). Sem o
+                // descarte, uma conta que não preencha qualquer um deles
+                // derruba a escrita — e o `catch` deste handler transforma
+                // isso numa transação sem sugestão, sem nada no log do app.
+                .update(stripUndefined(updateData));
 
             console.log(`Transação automática ${transactionId} enriquecida com sucesso.`);
         }

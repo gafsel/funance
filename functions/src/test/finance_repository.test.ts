@@ -489,3 +489,88 @@ describe("FinanceRepositoryImpl.applyPlanningImpacts — categoria sem id", () =
         expect(warn).not.toHaveBeenCalled();
     });
 });
+
+/**
+ * `nextInvoice.updatedAt` numa conta SEM o carimbo.
+ *
+ * `toAccountModel` escrevia `updatedAt: toDateOrNull(...) ?? undefined`, o que
+ * não é o mesmo que não escrever a chave: o modelo saía com `updatedAt`
+ * presente e valendo `undefined`. Enquanto o `ignoreUndefinedProperties`
+ * estava ligado isso não doía; desligado (F1.11), regravar esse modelo — é o
+ * que `automatic_transactions.suggestedAccount` faz — passa a LANÇAR.
+ */
+describe("FinanceRepositoryImpl.getAccounts — `nextInvoice` sem `updatedAt`", () => {
+    const timestamp = (date: Date) => ({ toDate: () => date });
+
+    const accountDoc = (id: string, data: any) => ({ id, data: () => data });
+
+    const nextInvoiceRaw = (extra: Record<string, unknown> = {}) => ({
+        dueDate: timestamp(new Date("2026-04-10T12:00:00Z")),
+        closingDate: timestamp(new Date("2026-04-03T00:00:00Z")),
+        cycleStart: timestamp(new Date("2026-03-04T00:00:00Z")),
+        cycleEnd: timestamp(new Date("2026-04-03T23:59:59Z")),
+        amount: 1200,
+        orderId: "invoice-acc-1-2026-04-10",
+        installmentId: "inst-1",
+        status: InstallmentStatus.pending,
+        ...extra,
+    });
+
+    const mockAccounts = (docs: any[]) => {
+        mockFirestoreState.collection = jest.fn(() => ({
+            where: () => ({ async get() {
+                return { docs };
+            } }),
+        }));
+    };
+
+    it("omite a CHAVE em vez de gravá-la como `undefined`", async () => {
+        mockAccounts([accountDoc("acc-1", { name: "Cartão", nextInvoice: nextInvoiceRaw() })]);
+
+        const [account] = await new FinanceRepositoryImpl().getAccounts("w1");
+
+        // `toEqual` ignora chaves com valor `undefined`: quem responde a
+        // pergunta é `in`, porque é ele que o SDK do Firestore faz.
+        expect("updatedAt" in account.nextInvoice!).toBe(false);
+    });
+
+    it("mantém o carimbo quando ele existe", async () => {
+        const updatedAt = new Date("2026-04-01T09:00:00Z");
+        mockAccounts([accountDoc("acc-1", {
+            name: "Cartão",
+            nextInvoice: nextInvoiceRaw({ updatedAt: timestamp(updatedAt) }),
+        })]);
+
+        const [account] = await new FinanceRepositoryImpl().getAccounts("w1");
+
+        expect(account.nextInvoice!.updatedAt).toEqual(updatedAt);
+    });
+
+    it("o modelo devolvido sobrevive a um Firestore que recusa `undefined`", async () => {
+        mockAccounts([accountDoc("acc-1", { name: "Cartão", nextInvoice: nextInvoiceRaw() })]);
+
+        const [account] = await new FinanceRepositoryImpl().getAccounts("w1");
+
+        expect(() => assertNoUndefined(account)).not.toThrow();
+    });
+});
+
+/**
+ * O que o SDK do Firestore faz com `ignoreUndefinedProperties: false`: qualquer
+ * campo `undefined` derruba a escrita inteira. Reproduzido aqui para que o
+ * teste falhe pelo MESMO motivo que a produção falharia.
+ */
+export function assertNoUndefined(value: unknown, path = "raiz"): void {
+    if (value === undefined) {
+        throw new Error(`Cannot use "undefined" as a Firestore value (found in field ${path}).`);
+    }
+    if (value === null || typeof value !== "object") return;
+    if (value instanceof Date) return;
+    if (Array.isArray(value)) {
+        value.forEach((item, index) => assertNoUndefined(item, `${path}[${index}]`));
+        return;
+    }
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+        assertNoUndefined(item, `${path}.${key}`);
+    }
+}

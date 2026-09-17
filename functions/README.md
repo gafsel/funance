@@ -29,6 +29,76 @@ npm run test:rules       # testes das security rules no emulador
 npm test                 # unit + integration
 ```
 
+## Contratos com o app
+
+Esta é a lista ÚNICA do que o servidor escreve e o app lê — e do que o app
+escreve e o servidor lê. Ela existe porque o contrato estava espalhado por uma
+dúzia de seções "Contrato com o cliente Flutter", uma por pacote: para saber se
+um campo podia mudar era preciso lembrar em qual pacote ele nasceu. As seções
+detalhadas continuam onde estavam, com o PORQUÊ de cada decisão; a tabela abaixo
+diz o QUE vale hoje e aponta para elas.
+
+Como ler a coluna **Escreve**: "servidor" significa que as security rules negam
+o campo ao cliente — não é convenção, é regra. Onde estiver "app", o servidor
+apenas reage ao que o cliente gravou.
+
+| Coleção / campo | Escreve | Lê | Desde | Detalhe |
+|---|---|---|---|---|
+| `workspaces/{w}/period_summaries/{YYYY \| YYYY-MM \| YYYY-Www}` — `{year, month\|null, week\|null, categories: {id: {generalPlannedAmount, specificPlannedAmount, actualAmount}}, runtimeType, lastUpdate}` | servidor | app | F1.4/F1.5/F1.9 (forma), F1.11 (tipada no backend) | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `accounts/{a}/balance/{YYYY-MM-DD}` — `dateKey`, `delta`, `balance` | servidor | app | F1.4 | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
+| `category_planning/{p}` — `summarizedUntil`, `appliedAmount`, `appliedFrom`, `appliedUntil` e o legado `lastSummaryMonth` | servidor (rules negam os cinco campos ao cliente, no create e no update) | app (só lê) | F1.5 | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `workspaces/{w}.currentWeekId` — `YYYY-Www` | servidor | app | F1.9 | [Semana (F1.9)](#semana-uma-definição-só-f19) |
+| `weekly_xp/{YYYY-Www}` — `{year, week, xp}` | servidor | app | F1.9 (id), F2.3 (XP de planejar entra aqui) | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
+| `weekly_missions/{weekId}_{type}` — `{id, name, type, status, rewardXp, progress, target, weekId, createdAt, completedAt}` | servidor | app | F1.9 (id da semana), F1.11 (tipada no backend) | [Semana (F1.9)](#semana-uma-definição-só-f19) |
+| `accounts/{a}.nextInvoice` — `{dueDate, closingDate, cycleStart, cycleEnd, amount, orderId, installmentId, status, updatedAt}` | servidor | app | F1.8 | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
+| `orders`/`installments` — `cycleStart`, `cycleEnd`, `closingDate` (**só em fatura**) | servidor | app | F1.8 | [Contratos de `orders` e `installments`](#contratos-de-orders-e-installments) |
+| `installments.unplannedReason` — `"born_paid"` \| ausente | servidor | app | F2.3 | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
+| `workspaces/{w}.financialHealth` — `{score, tier, components, computedAt, monthKey}` | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
+| `workspaces/{w}/health_history/{YYYY-MM}` — a mesma forma | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
+| `workspaces/{w}.streaks` — `{missions: number, plan: number}` | servidor | app | F2.3 | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
+| `workspaces/{w}.weeklyStreaks` — `number`, **invariante** `=== streaks.missions` | servidor | app (build antiga) | anterior a F2.3; **o tipo não pode mudar** | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
+| `goals/{g}` — `outcome` (`success`\|`failed`\|`null`), `completedAt`, `failedAt` | servidor | app | wp/gamification-2 | [Meta ativa e desfecho](#contrato-meta-ativa-e-desfecho) |
+| `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
+| `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
+| `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3 | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor (rules negam a escrita ao cliente) | app — o membro **lê** para exibir o consumo | F5.1 | [Quotas de IA](#quotas-de-ia) |
+| `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
+| `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
+| `workspaces/{w}/financial_coaching/{id}` — `{message, summary, type, slides[], date, generatedBy}` | servidor | app | F1.11 (tipada no backend) | [`actionPath` dos slides](#actionpath-dos-slides-de-coaching) |
+| `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
+
+### O que o app precisa acompanhar
+
+Três pontos em que o app ainda não está alinhado com o servidor:
+
+1. **A allowlist de `actionPath`.** O backend passou a aceitar a UNIÃO das duas
+   listas — `/`, `/planning`, `/planning-50-30-20`, `/workspace/categories`,
+   `/workspace/accounts`, `/transactions/form` (sempre com `?status=`),
+   `/goals/form`, `/accounts/form`, `/category-details`, `/workspace/badges` e
+   `/coaching/history`. O cliente
+   (`coaching_slides_screen.dart`) precisa aceitar **exatamente esta lista**,
+   inclusive `/`, que hoje ele recusa. Enquanto não aceitar, um slide que
+   aponte para a tela principal chega com botão que não é desenhado. Ver
+   [`actionPath` dos slides](#actionpath-dos-slides-de-coaching).
+2. **`financialHealth` ausente** significa "ainda não calculei", não "score 0":
+   a bússola deve aparecer em carregamento, não na patente Aprendiz.
+3. **`streaks.plan`** é o contrato novo; `weeklyStreaks` continua sendo o
+   número de missões e **não pode mudar de tipo**.
+
+### `undefined` não é gravado
+
+Desde F1.11 o `ignoreUndefinedProperties` está **desligado** (`src/index.ts`):
+gravar `undefined` num documento **lança**. Onde o descarte é legítimo — um
+`Partial<Model>` em que a chave ausente quer dizer "não mexer", um campo que só
+existe em fatura — ele é explícito, via `stripUndefined`
+(`core/utils/firestore.utils.ts`), aplicado na camada de repositório.
+
+Consequência para quem escreve código novo: **um campo opcional que você não
+preencher simplesmente não existe no documento**, e um campo obrigatório que
+chegar `undefined` derruba a escrita em vez de sumir calado. Os testes de
+integração e os scripts rodam com a mesma configuração — sem isso o emulador
+perdoaria o que a produção rejeita.
+
 ## Configuração global
 
 `src/index.ts` define `setGlobalOptions` com os padrões dos triggers leves
@@ -41,6 +111,126 @@ As funções de IA sobrescrevem esses padrões com os presets de
 `AI_CALLABLE_OPTIONS_SHORT`, `AI_SCHEDULE_OPTIONS`): mais memória e timeout,
 porém `maxInstances` baixo, já que cada instância simultânea é uma chamada paga
 ao Gemini.
+
+## Tipagem: o que o compilador garante (F1.11)
+
+As interfaces de repositório eram o lugar onde a tipagem terminava. `IFinance`,
+`IGamification`, `IGoal`, `IWorkspace`, `IHealth` e `IRebuild` somavam 22
+assinaturas com `any`, e com elas coleções inteiras — `period_summaries`,
+`financial_coaching`, `planning_analysis`, `weekly_missions` — atravessavam o
+backend sem forma nenhuma. Nada disso era teórico:
+
+- o modelo `PeriodSummaryModel` descrevia um documento **por categoria**
+  (`YYYY-MM-categoryId`) que nunca existiu — por isso ninguém o importava, e
+  quem lia o sumário lia `any`;
+- a mesma "meta" circulava ora como documento cru (com `Timestamp`), ora como
+  `GoalModel` (com `Date`), e três laços que liam `paidDate` tinham três
+  tratamentos diferentes para o campo ausente;
+- o `ExistingDoc` do rebuild era `Record<string, any>` para as **três**
+  coleções comparadas: comparar `doc.data.xp` com um documento de saldo
+  compilava sem uma palavra.
+
+Hoje `tsc` pega acesso a campo inexistente nesses caminhos. Três regras que o
+código passou a seguir:
+
+1. **Documento cru e modelo são tipos DIFERENTES.** `GamificationGoal` e
+   `GamificationInstallment` descrevem o que está no Firestore (datas como
+   `RawFirestoreDate`, campos opcionais); `GoalModel` e `InstallmentModel`
+   descrevem o que o domínio manipula (datas como `Date`). Prometer `Date` num
+   documento cru é a mentira que produzia `NaN` silencioso.
+2. **Leitura normaliza; consumidor não repete `?? 0`.** `toPeriodSummaryDocument`,
+   `toCoachingAnalysisDocument` e `toPlanningAnalysisDocument` aplicam na
+   ENTRADA os padrões que antes estavam espalhados por cada leitor — e que, por
+   estarem espalhados, podiam faltar em um deles.
+3. **Escrita e leitura de um mesmo documento podem ter tipos diferentes.**
+   `weekly_missions` tem `WeeklyMissionWrite` (tudo obrigatório: quem cria é o
+   servidor) e `WeeklyMissionDocument` (tudo opcional: a missão pode ser de uma
+   versão anterior). Fundir os dois obrigaria a mentir num dos lados.
+
+### O que MUDOU de comportamento
+
+O pacote é um refactor, mas tipar um documento obriga a decidir coisas que o
+`any` deixava em aberto. Estas são as decisões com efeito observável — todas
+deliberadas, nenhuma incidental:
+
+**Escrita: a data deixou de ter fallback.** `saveCoachingAnalysis` e
+`savePlanningAnalysis` faziam
+`analysis.date instanceof Date ? Timestamp.fromDate(...) : serverTimestamp()`.
+Com `date`/`createdAt` obrigatórios e tipados como `Date` no contrato de
+escrita, o `serverTimestamp()` virou código morto e saiu: a conversão é
+incondicional. O efeito prático é nenhum (o único chamador sempre passou um
+`Date`), mas quem chamar amanhã com outra coisa **não compila**, em vez de
+gravar um carimbo do servidor onde se esperava a hora da geração.
+
+**Leitura: o documento é normalizado na entrada.** `getPeriodSummary`,
+`getLastCoachingAnalyses` e `getPlanningAnalysis` deixaram de devolver
+`{id, ...doc.data()}` cru e passam por um leitor (`toPeriodSummaryDocument`,
+`toCoachingAnalysisDocument`, `toPlanningAnalysisDocument`). Três consequências:
+
+- **campo fora do modelo SOME.** Um documento com uma chave que o modelo não
+  declara não a entrega mais ao serviço. É o preço de ter um contrato — e o
+  ponto: um campo que ninguém declarou é um campo que ninguém mantém;
+- **`runtimeType` ausente ou fora do enum vira `"month"`.** Todo documento
+  gravado pelo servidor tem o campo; o padrão cobre o legado, e `month` é o
+  caso dominante;
+- **total não numérico vira `0`.** `generalPlannedAmount`, `specificPlannedAmount`
+  e `actualAmount` são sempre `number` no modelo. Antes, um valor sujo chegava
+  ao consumidor como estava e só virava zero se aquele leitor tivesse lembrado
+  do `|| 0`.
+
+**Ordem do spread: o id do DOCUMENTO vence.** As leituras da gamificação
+passaram de `{id: doc.id, ...doc.data()}` (ou `doc.data()` puro) para
+`{...doc.data(), id: doc.id}`. Se um dia um documento de workspace, meta,
+parcela ou planejamento guardar um campo `id` diferente do id do documento, é o
+id do documento que prevalece — que é o que qualquer leitor espera de `.id`.
+Hoje nenhum desses documentos tem o campo, então o efeito é nulo; a exceção
+consciente é `weekly_missions`, cujo documento **tem** um campo `id` (o tipo da
+missão) que o app lê, e cuja leitura por isso não o sobrescreve.
+
+**`getCategoryPlannings` da gamificação passou a devolver o `id`.** Ele não é
+campo da coleção: é o id do documento, e era o que faltava para a leitura caber
+em `CategoryPlanningModel` em vez de `any[]`. Nenhum consumidor o lê.
+
+**Insight sem `message` e sem `summary` passa a ser GRAVADO com o texto
+padrão**, em vez de `summary: ""`. A resposta ao app é a mesma de antes, porque
+o `formatResponse` já caía nesse mesmo texto — o que muda é o documento, que
+deixa de guardar um vazio que ninguém queria ler.
+
+Fora da tipagem, duas outras mudanças deste pacote têm efeito observável e
+estão documentadas onde moram: a **allowlist de `actionPath`** passou a aceitar
+a união das rotas do servidor e do app (ver
+[`actionPath` dos slides](#actionpath-dos-slides-de-coaching)) e o **aviso de
+categoria sem id** passou a julgar a categoria efetiva, denunciando a
+transferência com categoria quebrada que antes saía calada (ver
+[Categoria sem id](#categoria-sem-id-fora-dos-sumários)).
+
+### Onde a regressão é barrada
+
+`@typescript-eslint/no-explicit-any` está **ligado como erro** para
+`src/features/*/domain/repositories/**` e `src/features/*/data/repositories/**`
+(override no `.eslintrc.js`). O `any` continua permitido no resto do código,
+onde às vezes ele é o tipo honesto para "o que o modelo devolveu"; na camada de
+repositório, não — um documento do Firestore tem forma, e escrevê-la é o que
+faz o compilador pegar o acesso a campo inexistente. Sem o override, o pacote
+regrediria na primeira assinatura nova, e regrediria em silêncio.
+
+Os **13** arquivos de teste de integração (`src/test/integration/*.integration.test.ts`;
+`setup.ts` não conta) rodam com `ignoreUndefinedProperties: false`, igual à
+produção. A execução do emulador reporta 14 suítes porque a de security rules
+entra no mesmo `jest.integration.config.js`.
+
+### Flags do compilador
+
+`strict` já estava ligado. **`noImplicitAny` passou a `true`** — custo medido na
+adoção: **zero** erros, em produção e em teste.
+
+**`noUncheckedIndexedAccess` ficou de fora**, com o custo registrado: medido no
+mesmo momento, ele custava **47 erros no build de produção e 282 no de teste**
+(`map.get()`, `array[0]`, `Object.entries` sobre mapas de sumário). É um ganho
+real — um `map.get()` que devolve `undefined` é uma classe de defeito que hoje
+não é pega —, mas exigiria centenas de guardas mecânicas misturadas a este
+refactor. Um refactor que muda o que se lê em cada linha é o pior lugar
+possível para esconder uma mudança de comportamento. Fica como pacote próprio.
 
 ## SDK do Gemini e modelos
 
@@ -182,14 +372,45 @@ Regras comuns a todos os validadores:
 ### `actionPath` dos slides de coaching
 
 O `actionPath` de um slide vira `context.push` no app, então ele é validado
-contra uma **allowlist de rotas** (`sanitizeActionPath`, em
-`coaching.service.ts` — a mesma lista que o prompt em `ai.config.ts` enumera).
-Rota fora da lista: o slide vai **sem botão**.
+contra uma **allowlist de rotas**. A lista vive em UM lugar
+(`features/coaching/domain/models/coaching_action_path.model.ts`) e alimenta os
+dois consumidores: `sanitizeActionPath` (`coaching.service.ts`) e o trecho do
+prompt em `ai.config.ts`, que é **gerado** dela. Rota fora da lista: o slide vai
+**sem botão**.
+
+| Rota | Quando a IA deve usá-la |
+|---|---|
+| `/planning` | definir ou revisar o limite mensal de uma categoria |
+| `/planning-50-30-20` | rebalancear essencial/conforto/investimento |
+| `/transactions/form?status=pending` | agendar/planejar um lançamento futuro |
+| `/transactions/form?status=paid` | registrar algo que já aconteceu |
+| `/goals/form` | criar uma meta |
+| `/accounts/form` | cadastrar uma conta ou cartão |
+| `/workspace/categories` | criar, renomear ou reclassificar categorias |
+| `/workspace/accounts` | ver contas e saldos |
+| `/category-details` | ver o relatório de gasto por categoria |
+| `/workspace/badges` | ver conquistas |
+| `/coaching/history` | reler insights anteriores |
+| `/` | tela principal — só quando nenhuma outra servir |
+
+**Esta lista é a UNIÃO das duas que existiam.** Até F1.11 o backend aceitava
+`/` e recusava as cinco rotas de formulário/detalhe; o cliente fazia
+exatamente o contrário. As duas divergências eram **mudas**: a rota que o
+backend recusava saía sem botão (o slide pedia "crie uma meta" e não havia como
+ir criá-la) e a que o cliente não reconhecia chegava com um botão que não era
+desenhado. Nenhum dos dois casos gera erro, log ou teste vermelho.
+
+> **O cliente Flutter precisa aceitar exatamente esta lista**, inclusive `/`,
+> que hoje ele recusa (`coaching_slides_screen.dart`). É a única ponta que
+> falta — o pacote do app cuida dela.
 
 A allowlist casa só o **caminho**; a **query string sobrevive filtrada**, um
 parâmetro conhecido por vez, com valor dentro da lista e em ordem
 determinística. Parâmetro ou valor desconhecido é descartado em silêncio — a IA
-alucina query string com a mesma facilidade com que alucina rota.
+alucina query string com a mesma facilidade com que alucina rota. Só
+`/transactions/form` aceita query: `/planning` e `/category-details` leem `type`
+no app, mas o prompt não os oferece com parâmetro, e liberar no validador o que
+a IA não foi instruída a mandar só aumentaria a superfície da alucinação.
 
 **`/transactions/form` exige `?status=`.** Desde que o app passou a assumir
 `paid` por padrão, um path sem `status` abre o formulário já como "Registrei" —
@@ -462,6 +683,17 @@ mesma regra, porque também é `type: "transfer"`. A regra é:
 Antes desta regra o relatório de um rebuild de produção acusou **98 parcelas
 "sem categoria", todas transferências saudáveis**, e o log do gatilho enchia do
 mesmo falso positivo.
+
+> **F1.11 fechou um buraco aqui.** O aviso decidia olhando `inst.category` — a
+> categoria ORIGINAL —, enquanto a guarda que o chamava tinha acabado de
+> recusar a categoria EFETIVA, que numa transferência é a VIRTUAL. Duas
+> perguntas diferentes sobre o mesmo evento. O efeito: uma transferência com
+> categoria quebrada (`{id: ""}`) e **sem** contrapartida de
+> dívida/investimento saía do serviço antes da guarda e ficava fora do sumário
+> **sem uma palavra no log** — exatamente a primeira linha da tabela acima, que
+> diz "sim, avisa, é o defeito real". Hoje o aviso julga sempre a categoria com
+> que a parcela saiu do sumário, e o caminho da transferência sem contrapartida
+> passa por ele. O silêncio da linha de baixo continua intacto.
 
 **Saldo e XP continuam contando normalmente** — nenhum dos dois depende de
 categoria. O que essas parcelas perdem é só a linha no sumário, até serem

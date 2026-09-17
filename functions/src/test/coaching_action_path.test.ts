@@ -17,6 +17,12 @@
 jest.mock("ofx-js", () => ({ parse: jest.fn() }));
 
 import { CoachingService, sanitizeActionPath } from "../features/coaching/domain/services/coaching.service";
+import {
+    ALLOWED_ACTION_PATHS,
+    COACHING_ACTION_ROUTES,
+    buildActionPathPromptList,
+} from "../features/coaching/domain/models/coaching_action_path.model";
+import { DEFAULT_CONFIG } from "../core/config/ai.config";
 
 describe("sanitizeActionPath — rotas", () => {
     it("aceita as rotas da allowlist sem query", () => {
@@ -27,9 +33,23 @@ describe("sanitizeActionPath — rotas", () => {
         expect(sanitizeActionPath("/")).toBe("/");
     });
 
+    /**
+     * As cinco rotas que o CLIENTE já aceitava e o backend recusava. Um slide
+     * que apontasse para qualquer uma delas saía do servidor sem botão — em
+     * silêncio, porque rota fora da allowlist não é erro, é ausência de ação.
+     */
+    it("aceita as rotas que só o cliente conhecia (a união de F1.11)", () => {
+        expect(sanitizeActionPath("/goals/form")).toBe("/goals/form");
+        expect(sanitizeActionPath("/accounts/form")).toBe("/accounts/form");
+        expect(sanitizeActionPath("/category-details")).toBe("/category-details");
+        expect(sanitizeActionPath("/workspace/badges")).toBe("/workspace/badges");
+        expect(sanitizeActionPath("/coaching/history")).toBe("/coaching/history");
+    });
+
     it("recusa rota alucinada, com ou sem query", () => {
         expect(sanitizeActionPath("/goals/new")).toBeNull();
         expect(sanitizeActionPath("/transactions")).toBeNull();
+        expect(sanitizeActionPath("/goals/form/new")).toBeNull();
         expect(sanitizeActionPath("https://exemplo.com/planning")).toBeNull();
         expect(sanitizeActionPath("/planning-50-30-20-turbo")).toBeNull();
         expect(sanitizeActionPath("")).toBeNull();
@@ -42,6 +62,37 @@ describe("sanitizeActionPath — rotas", () => {
 
     it("descarta query string em rota que não usa nenhuma", () => {
         expect(sanitizeActionPath("/planning?mes=3")).toBe("/planning");
+        // `/category-details` lê `type` no app, mas o prompt não o oferece:
+        // liberar aqui o que a IA não foi instruída a mandar só aumentaria a
+        // superfície da alucinação.
+        expect(sanitizeActionPath("/category-details?type=income")).toBe("/category-details");
+    });
+});
+
+/**
+ * A allowlist, o prompt e o validador saem da MESMA lista desde F1.11. Estes
+ * testes existem para que ela não volte a ser copiada: uma rota acrescentada
+ * ao prompt sem entrar no validador sairia sem botão, e o inverso ofereceria
+ * à IA uma rota que ela nunca foi instruída a usar.
+ */
+describe("allowlist, prompt e validador falam da mesma lista", () => {
+    it("toda rota da lista sobrevive ao validador", () => {
+        for (const route of COACHING_ACTION_ROUTES) {
+            expect(sanitizeActionPath(route.promptPath)).not.toBeNull();
+        }
+    });
+
+    it("o prompt do coaching enumera exatamente as rotas da allowlist", () => {
+        const prompt = DEFAULT_CONFIG.prompts.coaching;
+
+        expect(prompt).toContain(buildActionPathPromptList());
+        for (const path of ALLOWED_ACTION_PATHS) {
+            expect(prompt).toContain(`"${path}`);
+        }
+    });
+
+    it("não há rota duplicada na allowlist de caminhos", () => {
+        expect(new Set(ALLOWED_ACTION_PATHS).size).toBe(ALLOWED_ACTION_PATHS.length);
     });
 });
 

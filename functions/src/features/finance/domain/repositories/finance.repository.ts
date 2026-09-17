@@ -8,8 +8,18 @@ import {
     AccountModel,
     AccountBalanceModel,
     NextInvoiceModel,
-    PeriodSummaryUpdateModel, InstallmentStatus,
+    PeriodSummaryUpdateModel,
+    InstallmentStatus,
+    PeriodSummaryDocument,
 } from "../models/finance.models";
+import {
+    PlanningAnalysisDocument,
+    PlanningAnalysisWrite,
+} from "../models/planning_analysis.model";
+import {
+    CoachingAnalysisDocument,
+    CoachingAnalysisWrite,
+} from "../../../coaching/domain/models/coaching_analysis.model";
 
 /** Planejamento lido pelo cron: sabe de que workspace veio e onde mora. */
 export type CategoryPlanningRef = CategoryPlanningModel & {
@@ -45,7 +55,15 @@ export interface IFinanceRepository {
   getOrders(workspaceId: string, limit?: number): Promise<OrderModel[]>;
 
   // Order History
-  createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void>;
+  /**
+   * Cópia da order como ela ficou depois da escrita, para o histórico.
+   *
+   * O snapshot é o documento CRU do gatilho (`event.data.after.data()`) e não
+   * um `OrderModel`: ele é guardado como está, com `Timestamp` e tudo, porque
+   * o histórico existe para mostrar o que havia no documento naquele instante
+   * — converter empobreceria o registro.
+   */
+  createOrderHistory(workspaceId: string, orderId: string, snapshot: Record<string, unknown>): Promise<void>;
 
   // Installments
   /**
@@ -133,7 +151,12 @@ export interface IFinanceRepository {
         },
         week?: number
     ): Promise<void>;
-  getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<any | null>;
+  /**
+   * O documento de sumário do período, com os totais por categoria já
+   * NORMALIZADOS (ver `toPeriodSummaryDocument`). `null` quando o período
+   * ainda não tem documento.
+   */
+  getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<PeriodSummaryDocument | null>;
 
   // Accounts
   getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null>;
@@ -167,8 +190,10 @@ export interface IFinanceRepository {
   ): Promise<AccountBalanceModel | null>;
 
 
-  updateOrderCategory(workspaceId: string, category: CategoryModel): any;
-  updateInstallmentCategory(workspaceId: string, category: CategoryModel): any;
+  /** Reescreve a cópia embutida da categoria em todas as orders que a usam. */
+  updateOrderCategory(workspaceId: string, category: CategoryModel): Promise<void>;
+  /** Reescreve a cópia embutida da categoria em todas as parcelas que a usam. */
+  updateInstallmentCategory(workspaceId: string, category: CategoryModel): Promise<void>;
   updateInvoiceWithDelta(
     workspaceId: string,
     account: AccountModel,
@@ -176,9 +201,12 @@ export interface IFinanceRepository {
     delta: number
   ): Promise<void>;
 
-  // Coaching History
-  getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]>;
-  saveCoachingAnalysis(workspaceId: string, analysis: any): Promise<string>;
+  // Coaching History (workspaces/{wid}/financial_coaching — escrito apenas via
+  // Admin SDK; o cliente só lê)
+  /** Os `limit` insights mais recentes, do mais novo para o mais antigo. */
+  getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<CoachingAnalysisDocument[]>;
+  /** Grava o insight já validado. Devolve o id do documento criado. */
+  saveCoachingAnalysis(workspaceId: string, analysis: CoachingAnalysisWrite): Promise<string>;
 
   // Coaching Meta: cache de classificação de categorias em grupos macro
   // (workspaces/{wid}/coaching_meta/category_groups — escrito apenas via Admin SDK)
@@ -190,8 +218,8 @@ export interface IFinanceRepository {
 
   // Análise ideal 50-30-20 (workspaces/{wid}/planning_analysis/{yyyy-MM} —
   // escrita apenas via Admin SDK; o cliente só lê)
-  getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<any | null>;
-  savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: any): Promise<void>;
+  getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<PlanningAnalysisDocument | null>;
+  savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: PlanningAnalysisWrite): Promise<void>;
 
   // Accounts
   getAccounts(workspaceId: string): Promise<AccountModel[]>;

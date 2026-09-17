@@ -212,7 +212,7 @@ if (require.main === module) {
     }
 
     admin.initializeApp({ projectId });
-    admin.firestore().settings({ ignoreUndefinedProperties: true });
+    admin.firestore().settings({ ignoreUndefinedProperties: false });
 
     recomputeGoals(admin.firestore(), new GoalRepositoryImpl(), { dryRun, workspaceId })
         .then((summary) => process.exit(summary.failed > 0 ? 1 : 0))

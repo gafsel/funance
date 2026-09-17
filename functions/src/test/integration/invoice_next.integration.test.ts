@@ -97,7 +97,7 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
     beforeAll(async () => {
         if (admin.apps.length === 0) {
             admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-            admin.firestore().settings({ ignoreUndefinedProperties: true });
+            admin.firestore().settings({ ignoreUndefinedProperties: false });
         }
 
         firestore = admin.firestore();
