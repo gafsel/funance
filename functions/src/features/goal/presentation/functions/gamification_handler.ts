@@ -15,10 +15,16 @@ import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.
 import { GoalModel, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
 /**
- * Campos do doc do workspace escritos pela própria gamificação
- * (addXp/unlockBadge/updateWorkspaceStreaks). Escritas que alteram APENAS
- * estes campos não devem redisparar as checagens de badge — sem este guard,
- * cada unlock/addXp reativa onWorkspaceUpdated em cascata.
+ * Campos do doc do workspace escritos pelo próprio SERVIDOR
+ * (addXp/unlockBadge/updateWorkspaceStreaks e, desde F2.2, a Bússola da
+ * Liberdade). Escritas que alteram APENAS estes campos não devem redisparar as
+ * checagens de badge — sem este guard, cada unlock/addXp reativa
+ * onWorkspaceUpdated em cascata.
+ *
+ * `healthDirtyAt` é o caso mais crítico da lista: ele é carimbado a CADA
+ * escrita de parcela (ver `installment_handler`). Fora daqui, todo pagamento
+ * do usuário dispararia, de graça, a bateria inteira de checagens de badge do
+ * workspace.
  */
 const GAMIFICATION_ONLY_FIELDS = new Set([
     "xp",
@@ -26,6 +32,9 @@ const GAMIFICATION_ONLY_FIELDS = new Set([
     "unlockedBadges",
     "weeklyStreaks",
     "lastLevelUpAt",
+    // F2.2 — Bússola da Liberdade.
+    "financialHealth",
+    "healthDirtyAt",
 ]);
 
 /**
@@ -186,6 +195,7 @@ export const onCategoryPlanningWrittenGamification = onDocumentWritten(
 
             const after = event.data?.after.exists ? event.data.after.data() : null;
             await gamificationService.updateWeeklyMissionsProgress(workspaceId, "planning", after);
+
         });
     }
 );

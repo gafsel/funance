@@ -1133,6 +1133,195 @@ Nenhum índice novo: a consulta da próxima fatura
 (`accountIds` CONTAINS + `isInvoice` + `status` + `dueDate` ASC) já existia em
 `firebase/firestore.indexes.json`, porque era a mesma que o app fazia.
 
+## Bússola da Liberdade (F2.2)
+
+O jogo já premiava planejar — XP, badges, missões. O que não existia era um
+**placar**: nada no produto media a distância entre o usuário e a liberdade
+financeira. XP responde "você jogou bem esta semana"; a Bússola responde "você
+está a quantos passos de não depender mais do salário".
+
+É um número de **0 a 100**, recalculado pelo servidor, **sem IA** — ele precisa
+ser determinístico, senão a barra do app oscila sozinha e o placar perde o
+sentido.
+
+### Os quatro componentes
+
+| Componente | Pergunta que responde | Como é medido | Peso |
+|---|---|---|---|
+| **Fôlego** | quantos meses eu aguento sem receita? | saldo líquido (`checking` + `investment`) ÷ média de despesa realizada dos **3 meses anteriores**; 0 a 6+ meses → 0 a 100 | 30 |
+| **Poupança** | quanto do que entra eu guardo? | `(receita − despesa) / receita` do mês; −∞ a 30%+ → 0 a 100 | 25 |
+| **Disciplina** | eu respeito os limites que eu mesmo pus? | % das categorias com limite que fecharam o **mês anterior** dentro do limite | 25 |
+| **Alívio** | minha dívida está encolhendo? | variação do saldo somado de `debt` + `creditCard` contra o fim do mês anterior: encolheu → 100, estável → 50, cresceu → 0 | 20 |
+
+Os pesos somam 100 (há um teste para isso: um peso esquecido faria o índice
+nunca chegar a 100 e ninguém perceberia olhando o app). A regra de pontuação
+inteira é **função pura** em `features/health/domain/models/financial_health.model.ts`.
+
+### Patentes
+
+| Faixa | Patente |
+|---|---|
+| 0–19 | **Aprendiz** |
+| 20–39 | **Guardião** |
+| 40–59 | **Estrategista** |
+| 60–79 | **Mestre** |
+| 80–100 | **Livre** |
+
+### As janelas de tempo, e por que cada uma é o que é
+
+- **Fôlego ignora o mês corrente.** No dia 2 ele ainda não tem despesa
+  nenhuma; incluí-lo faria a reserva parecer infinita todo dia 1 e encolher ao
+  longo do mês. O divisor é **fixo em 3**, não "meses com movimento": quem tem
+  dois meses de histórico não tem uma despesa média baixa, tem pouco histórico.
+- **Poupança usa o mês CORRENTE** — é o mês que o usuário está jogando. Quando
+  ele ainda não tem receita lançada (tipicamente os primeiros dias), **recua
+  para o mês anterior**: a virada de mês não pode derrubar o placar de todo
+  mundo sozinha.
+- **Disciplina julga o mês ANTERIOR.** Um limite só pode ser julgado depois de
+  o mês fechar; reprovar quem ainda tem 20 dias para se ajustar seria mentira.
+  O limite comparado é o `category_planning.amount` vigente, e "dentro" é `<=`:
+  gastar exatamente o planejado é o alvo, não uma falha por um centavo.
+- **Alívio** compara a dívida de hoje com a do último instante do mês anterior.
+  Saldo de dívida é **negativo**, então amortizar aproxima de zero e o delta é
+  positivo. Há uma faixa morta de R$ 1,00: sem ela, um centavo de juros viraria
+  "a dívida aumentou" e derrubaria o componente de 50 para 0.
+
+### Casos de borda que o índice trata de propósito
+
+| Situação | O que acontece | Por quê |
+|---|---|---|
+| workspace **sem conta nenhuma** | retorno imediato do retrato zerado (score 0, Aprendiz) | sem conta não há saldo, dívida nem despesa; é o estado inicial, não um erro — o app desenha a bússola vazia em vez de uma tela de falha |
+| sem histórico de despesa | Fôlego = 0 | dividir por zero daria `Infinity`, e "reserva infinita" para quem acabou de chegar é uma mentira confortável |
+| receita zero no mês | Poupança = 0 | tratar "não ganhei nada" como 100% de poupança premiaria o mês vazio |
+| nenhuma categoria com limite | Disciplina = 0 | quem não planejou não tem disciplina a medir — e é esse zero que o app usa para convidar o usuário a criar o primeiro limite |
+| nenhuma conta de dívida | Alívio = 100 | quem não tem dívida não pode ser punido por não estar amortizando |
+| conta `isDeleted` | fora de tudo | o saldo dela é resíduo de um histórico que ninguém mantém (ver o aviso do rebuild) |
+| categoria de sistema/virtual | fora de receita, despesa e disciplina | não é escolha de consumo: com ela, um aporte para a poupança contaria como gasto |
+
+### Onde o retrato é gravado
+
+```
+workspaces/{w}.financialHealth          # o retrato corrente
+workspaces/{w}/health_history/{YYYY-MM} # um documento por mês
+```
+
+Os dois têm **a mesma forma**:
+
+| Campo | Tipo | Semântica |
+|---|---|---|
+| `score` | number | 0 a 100 |
+| `tier` | string | `aprendiz` \| `guardiao` \| `estrategista` \| `mestre` \| `livre` |
+| `components.folego` | map | `{value, score, months}` |
+| `components.poupanca` | map | `{value, score, rate}` |
+| `components.disciplina` | map | `{value, score, within, total}` |
+| `components.alivio` | map | `{value, score, delta}` |
+| `computedAt` | Timestamp | quando o retrato foi calculado |
+| `monthKey` | string | `YYYY-MM` do mês a que o retrato se refere |
+
+`value` é o valor **bruto** da métrica, na unidade do componente (meses, taxa,
+razão, variação em reais); o campo nomeado ao lado (`months`, `rate`, `delta`)
+é o mesmo número com o nome do contrato, para o app não precisar saber qual
+componente está lendo.
+
+O documento do histórico é **sobrescrito enquanto o mês corre** e congela
+quando o mês vira — a última escrita do mês já é o retrato de fechamento.
+
+`saveCurrent` usa `update`, e não `set(..., {merge: true})`: o retrato **nunca
+pode criar** um documento de workspace. Um workspace apagado entre a leitura e
+a escrita voltaria à vida com um único campo, e a lista de workspaces do
+usuário passaria a mostrar um fantasma.
+
+### Recálculo: marcar é barato, calcular é caro
+
+O índice lê os saldos de **todas** as contas, três meses de sumário e os
+planejamentos vigentes. Fazer isso a cada parcela paga transformaria um
+pagamento em dezenas de leituras — e uma conciliação de extrato com 80
+lançamentos, em 80 recálculos do mesmo número.
+
+Por isso o caminho é em dois tempos:
+
+1. **`markHealthDirty(workspaceId)`** — chamado de dentro do
+   `installment_handler`, logo depois dos blocos que escrevem o sumário e o
+   saldo. É **uma escrita, zero leituras** (`healthDirtyAt` = timestamp do
+   servidor). Fica **fora** do `runIdempotency` de propósito: reexecutar um
+   carimbo é inofensivo, e o índice não pode ficar desatualizado porque o
+   marcador daquele evento já estava gravado. Ele **nunca lança** para quem
+   chama — sujar a Bússola não pode derrubar um pagamento;
+2. **o cron `refreshFinancialHealth`** (a cada 15 minutos) recalcula os sujos,
+   respeitando um **intervalo mínimo de 10 minutos por workspace**. Um
+   workspace adiado pelo debounce **continua sujo** e entra no ciclo seguinte:
+   o marcador só é apagado quando o retrato é de fato recalculado, e é isso que
+   garante que nenhuma mudança se perde.
+
+A varredura consulta `where("healthDirtyAt", ">", epoch)`. O Firestore não
+consulta "campo que existe", mas `> epoch` só casa documentos que **têm** o
+campo — então o custo é o número de workspaces **sujos**, não o tamanho da
+base. É uma consulta de campo único, coberta pelo índice automático: **não há
+índice novo a criar**.
+
+O cursor da paginação é o próprio `healthDirtyAt` (a consulta ordena por ele),
+e não um checkpoint persistido: a fila se esvazia sozinha porque recalcular
+apaga o marcador, e o cursor por valor evita que um workspace adiado pelo
+debounce seja relido para sempre dentro da mesma execução.
+
+> **Empate de timestamp.** Dois workspaces marcados no mesmo microssegundo
+> podem fazer o `startAfter` pular um deles. Ele continua sujo e é pego no
+> ciclo seguinte, 15 minutos depois — o pior caso é atraso, nunca perda.
+
+### O cron mensal fecha o mês
+
+`closeFinancialHealthMonth` roda **todo dia 1 às 04:30** e faz duas passadas
+por workspace:
+
+1. `computeHealth` com `now` no **último instante do mês que acabou**,
+   gravando só o `health_history/{mês anterior}` — o retrato corrente não pode
+   ficar apontando para o passado;
+2. `computeHealth` com o `now` real, que reabre `financialHealth` e cria o
+   documento do mês novo.
+
+Existe porque a Bússola de um mês só está completa quando o mês acaba, e
+nenhum evento acontece no dia 1 para provocar essa última passada num workspace
+parado. Sem ele, o `health_history` de quem não abriu o app na virada ficaria
+congelado no retrato do dia 20, e o gráfico de evolução mostraria um degrau que
+nunca existiu.
+
+### Security rules
+
+- `workspaces/{w}.financialHealth` e `healthDirtyAt` caem na lista fechada
+  (`affectedKeys().hasOnly`) do `allow update` do workspace — o cliente não os
+  escreve nem os apaga. A criação também os nega explicitamente;
+- `workspaces/{w}/health_history/{YYYY-MM}`: **leitura por membro, escrita
+  negada**. É o placar do usuário; poder escrever ali seria reescrever a
+  própria história até a patente ficar bonita.
+
+### Testes
+
+- `src/test/financial_health.test.ts` — a regra de pontuação e os **quatro
+  cenários de perfil** (endividado, equilibrado, poupador, sem dados), mais as
+  janelas de tempo e o debounce;
+- `src/test/integration/financial_health.integration.test.ts` — emulador:
+  score determinístico a partir de saldos e sumários reais (inclusive um
+  documento de saldo **legado**, sem `dateKey`), segunda execução sem efeito,
+  virada de mês congelando o histórico, a varredura dos sujos e a garantia de
+  que um workspace inexistente não é criado pelo retrato.
+
+### Contrato com o cliente Flutter (F2.2)
+
+Os nomes abaixo são **contrato**: o pacote da Jornada depende deles.
+
+| Caminho | Forma | Quem escreve |
+|---|---|---|
+| `workspaces/{w}.financialHealth` | `{score, tier, components:{folego:{score,months}, poupanca:{score,rate}, disciplina:{score,within,total}, alivio:{score,delta}}, computedAt, monthKey}` | só o servidor |
+| `workspaces/{w}/health_history/{YYYY-MM}` | a mesma forma | só o servidor |
+
+Cada componente carrega também um `value` — o valor bruto da métrica, na
+unidade do componente — além do campo nomeado do contrato.
+
+> **`financialHealth` ausente** significa "ainda não calculei", não "score 0".
+> Isso acontece num workspace que nunca foi marcado como sujo e ainda não
+> passou pelo `recompute_health`. O app deve mostrar a bússola em carregamento,
+> e não a patente Aprendiz — que é um veredito, não um estado de espera.
+
 ## Crons de manutenção
 
 | Function                            | Agendamento               | Fuso              |
@@ -1144,6 +1333,8 @@ Nenhum índice novo: a consulta da próxima fatura
 | `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
 | `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `publishBadgeCatalog`               | `0 4 * * *` (diário)      | `America/Sao_Paulo` |
+| `refreshFinancialHealth`            | `*/15 * * * *` (15 min)   | `America/Sao_Paulo` |
+| `closeFinancialHealthMonth`         | `30 4 1 * *` (dia 1)      | `America/Sao_Paulo` |
 
 `generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
 uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha
@@ -1219,6 +1410,7 @@ projeto real**.
 5. backfill          node lib/scripts/backfill_next_invoice.js                                  (dry-run → --apply)
 6. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
 7. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
+8. bússola           node lib/scripts/recompute_health.js                                           (dry-run → --apply)
 ```
 
 **1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
@@ -1296,6 +1488,14 @@ valor errado**. A primeira execução depois do deploy é inevitável; rodar o
 > ⚠️ **O rebuild não é transacional.** Escolha uma janela sem uso e refaça o
 > dry-run imediatamente antes de cada `--apply`.
 
+**8. Bússola da Liberdade, por ÚLTIMO.** `recompute_health` lê saldos e
+`period_summaries`; rodá-lo antes do rebuild gravaria um placar calculado sobre
+os números que o rebuild ainda vai corrigir — e o usuário veria a patente mudar
+sozinha no dia seguinte. Ele é a primeira passada da base existente: sem ela, um
+workspace só ganha bússola quando alguém mexe nele, e quem tem três anos de
+histórico mas não abriu o app veria o estado vazio. Depois dele, o carimbo no
+gatilho + o cron de 15 minutos mantêm tudo em dia sozinhos.
+
 > ⚠️ **Contas apagadas logicamente.** `onAccountUpdated` apaga as
 > orders/parcelas da conta marcada como `isDeleted`, mas **não** a subcoleção
 > `balance`. Sem parcelas não há como reconstruir aquele histórico, então o
@@ -1320,6 +1520,7 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 | `migrate_balance_date_key.ts` | `dateKey`/`delta` nos saldos diários | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
 | `migrate_planning_summaries.ts` | marcadores do planejamento | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
 | `fix_empty_category.ts` | corrige `category.id` vazio em parcelas/orders | aqui |
+| `recompute_health.ts` | base inicial da Bússola da Liberdade | aqui |
 
 | `backfill_next_invoice.ts` | `nextInvoice` nas contas de cartão e a janela do ciclo nas faturas | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
 | `rebuild_workspace.ts` | reconstrói saldos, sumários e XP | aqui |
@@ -1563,6 +1764,59 @@ Saída de código: `0` se não houve falhas, `1` caso contrário.
 Coberto por testes com mocks em `src/test/fix_empty_category.test.ts` (flags,
 comparação de nome, dry-run, correção, recusa por nome divergente e
 idempotência).
+
+### `recompute_health.ts`
+
+Primeira passada da **Bússola da Liberdade** (F2.2) sobre a base existente:
+calcula e grava `workspaces/{w}.financialHealth` e o
+`health_history/{YYYY-MM}` do mês corrente de todos os workspaces.
+
+Existe porque o índice nasce de um cron que só recalcula workspaces **sujos**,
+e um workspace só fica sujo quando alguém mexe nele. Sem esta passada, quem não
+abrir o app não ganha bússola nenhuma — e o produto mostraria o estado vazio
+para um usuário com três anos de histórico. Depois dele, o caminho normal
+(carimbo no gatilho + cron de 15 minutos) mantém tudo em dia sozinho.
+
+- **Dry-run por padrão**: só escreve com `--apply`. O dry-run **calcula** o
+  índice (é leitura) e imprime o que gravaria, junto com o retrato atual quando
+  já existe — é assim que se revisa o efeito antes de aplicar.
+- **Idempotente**: o índice é determinístico dado `now`; recalcular não muda
+  nada se o estado do workspace não mudou.
+- **Isola falha**: um workspace que lança é contado e não derruba os demais.
+- **Não toca em XP, badge nem saldo**: ele só escreve o placar.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_health.js --project=<projectId>
+
+# 2) Um workspace só, para conferir o efeito
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_health.js --project=<projectId> --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_health.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+
+Resumo final: `workspaces`, `gravados`, `iguais` e `falhas`. Saída de código:
+`0` se não houve falhas, `1` caso contrário.
+
+> ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
+>
+> ⚠️ **Rode-o DEPOIS do rebuild.** Ele lê saldos e `period_summaries`; rodá-lo
+> antes gravaria um placar calculado sobre números que o rebuild ainda vai
+> corrigir, e o usuário veria a patente mudar sozinha no dia seguinte.
 
 ### `rebuild_workspace.ts`
 

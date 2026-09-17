@@ -159,6 +159,10 @@ describe("firestore.rules", () => {
                 type: "personal",
                 // MEMBER_UID é members[0], ou seja, o dono.
                 members: [MEMBER_UID, GUEST_UID],
+                // F2.2: o retrato já presente, para que apagá-lo seja uma
+                // alteração DE VERDADE no teste abaixo (um `deleteField()` num
+                // campo inexistente é um no-op e passaria).
+                financialHealth: { score: 55, tier: "estrategista", monthKey: "2026-08" },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
             await setDoc(
@@ -189,6 +193,11 @@ describe("firestore.rules", () => {
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`),
                 invoiceInstallmentDoc()
+            );
+            // F2.2: retrato da Bússola no workspace e um mês de histórico.
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`),
+                { score: 55, tier: "estrategista", monthKey: "2026-08", computedAt: Timestamp.fromDate(new Date(2026, 8, 1, 0)) }
             );
         });
     });
@@ -687,4 +696,70 @@ describe("firestore.rules", () => {
             )
         );
     });
+
+    describe("F2.2 — Bússola da Liberdade", () => {
+        it("permite que o membro LEIA o histórico mensal do índice", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                getDoc(doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`))
+            );
+        });
+
+        it("nega a leitura do histórico a quem não é membro", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            await assertFails(
+                getDoc(doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`))
+            );
+        });
+
+        it("nega que o membro ESCREVA no histórico — é placar, não diário", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-09`),
+                    { score: 100, tier: "livre", monthKey: "2026-09" }
+                )
+            );
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`),
+                    { score: 100, tier: "livre" }
+                )
+            );
+            await assertFails(
+                deleteDoc(doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`))
+            );
+        });
+
+        it("nega que o cliente escreva financialHealth ou healthDirtyAt no workspace", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            for (const patch of [
+                { financialHealth: { score: 100, tier: "livre", monthKey: "2026-09" } },
+                { healthDirtyAt: Timestamp.fromDate(new Date()) },
+                { financialHealth: deleteField() },
+            ]) {
+                await assertFails(updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), patch));
+            }
+        });
+
+        it("nega a criação de um workspace já com a bússola pronta", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            for (const extra of [
+                { financialHealth: { score: 100, tier: "livre", monthKey: "2026-09" } },
+                { healthDirtyAt: Timestamp.fromDate(new Date()) },
+            ]) {
+                await assertFails(
+                    setDoc(doc(db, "workspaces/ws-forjado"), {
+                        name: "Forjado", type: "personal", members: [OUTSIDER_UID], ...extra,
+                    })
+                );
+            }
+        });
+    });
 });
+

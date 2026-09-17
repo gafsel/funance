@@ -85,3 +85,17 @@ export const AI_SCHEDULE_OPTIONS: Omit<ScheduleOptions, "schedule"> = {
     timeoutSeconds: CRON_SCAN_TIMEOUT_SECONDS,
     maxInstances: 1,
 };
+
+/**
+ * Crons da Bússola da Liberdade (F2.2). NÃO são funções de IA: o índice é
+ * determinístico e não chama o Gemini. O que eles precisam é do mesmo timeout
+ * longo dos outros varredores — o padrão global de 60s mataria a varredura no
+ * meio do primeiro minuto — e de `maxInstances: 1`, porque duas execuções
+ * simultâneas recalculariam os mesmos workspaces e escreveriam uma por cima da
+ * outra.
+ */
+export const HEALTH_SCHEDULE_OPTIONS: Omit<ScheduleOptions, "schedule"> = {
+    memory: "512MiB",
+    timeoutSeconds: CRON_SCAN_TIMEOUT_SECONDS,
+    maxInstances: 1,
+};

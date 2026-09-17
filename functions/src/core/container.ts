@@ -39,6 +39,9 @@ import { IBadgeCatalogRepository } from "../features/goal/domain/repositories/ba
 import { BadgeCatalogRepositoryImpl } from "../features/goal/data/repositories/badge_catalog.repository.impl";
 import { BadgeCatalogService } from "../features/goal/domain/services/badge_catalog.service";
 import { GamificationRepositoryImpl } from "../features/goal/data/repositories/gamification.repository.impl";
+import { IHealthRepository } from "../features/health/domain/repositories/health.repository";
+import { HealthRepositoryImpl } from "../features/health/data/repositories/health.repository.impl";
+import { FinancialHealthService } from "../features/health/domain/services/financial_health.service";
 
 class Container {
     private static _workspaceRepository: IWorkspaceRepository;
@@ -69,6 +72,8 @@ class Container {
     private static _planningAnalysisService: PlanningAnalysisService;
     private static _badgeCatalogRepository: IBadgeCatalogRepository;
     private static _badgeCatalogService: BadgeCatalogService;
+    private static _healthRepository: IHealthRepository;
+    private static _financialHealthService: FinancialHealthService;
 
     static get idempotencyService(): IIdempotencyService {
         if (!this._idempotencyService) {
@@ -272,6 +277,22 @@ class Container {
             this._badgeCatalogService = new BadgeCatalogService(this.badgeCatalogRepository);
         }
         return this._badgeCatalogService;
+    }
+
+    /** F2.2 — insumos e persistência da Bússola da Liberdade. */
+    static get healthRepository(): IHealthRepository {
+        if (!this._healthRepository) {
+            this._healthRepository = new HealthRepositoryImpl();
+        }
+        return this._healthRepository;
+    }
+
+    /** F2.2 — cálculo do índice de saúde financeira (sem IA). */
+    static get financialHealthService(): FinancialHealthService {
+        if (!this._financialHealthService) {
+            this._financialHealthService = new FinancialHealthService(this.healthRepository);
+        }
+        return this._financialHealthService;
     }
 
     static get goalFeasibilityService(): GoalFeasibilityService {
