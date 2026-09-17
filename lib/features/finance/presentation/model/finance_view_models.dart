@@ -3,6 +3,7 @@ import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 import 'package:uuid/uuid.dart';
 
 part 'finance_view_models.freezed.dart';
@@ -471,6 +472,9 @@ sealed class TransactionFormState with _$TransactionFormState {
   }
 }
 
+/// Previsto e realizado de uma contrapartida virtual.
+typedef VirtualCategoryTotal = ({double planned, double realized});
+
 @freezed
 sealed class TransactionTotals with _$TransactionTotals {
   const factory TransactionTotals({
@@ -482,14 +486,16 @@ sealed class TransactionTotals with _$TransactionTotals {
     @Default(0.0) double realizedTransfers,
     @Default(0.0) double plannedInvoices,
     @Default(0.0) double realizedInvoices,
-    @Default(0.0) double plannedVirtualDebtExpense,
-    @Default(0.0) double realizedVirtualDebtExpense,
-    @Default(0.0) double plannedVirtualDebtIncome,
-    @Default(0.0) double realizedVirtualDebtIncome,
-    @Default(0.0) double plannedVirtualInvestmentExpense,
-    @Default(0.0) double realizedVirtualInvestmentExpense,
-    @Default(0.0) double plannedVirtualInvestmentIncome,
-    @Default(0.0) double realizedVirtualInvestmentIncome,
+
+    /// O que caiu em cada contrapartida virtual de transferência.
+    ///
+    /// Eram OITO campos planos — o produto cartesiano de
+    /// `{dívida, investimento} x {saída, entrada} x {previsto, realizado}` —
+    /// alimentados por um `switch` de quatro `case` sobre ids literais. Como o
+    /// eixo já é o enum [VirtualCategory], o mapa diz a mesma coisa em uma
+    /// linha e continua verdadeiro quando o servidor publicar a quinta.
+    @Default(<VirtualCategory, VirtualCategoryTotal>{})
+    Map<VirtualCategory, VirtualCategoryTotal> virtualTotals,
   }) = _TransactionTotals;
 
   const TransactionTotals._();

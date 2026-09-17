@@ -1,5 +1,6 @@
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 /// O texto que aparece quando o dado não trouxe nome.
@@ -20,6 +21,24 @@ extension CategoryDisplayName on CategoryModel {
   /// nome traduzível guardado em lugar nenhum).
   String displayName(AppLocalizations l10n) {
     if (id == CategoryModel.othersId) return l10n.categoryOthers;
+
+    // As categorias de SISTEMA são semeadas pelo backend com o nome em
+    // português (`category.model.ts:49,59,69,79` e `:39`), no Firestore de
+    // todo mundo. O fallback de `displayOr` nunca pegava, porque `name` não
+    // é vazio: quem usa o app em inglês lia "Empréstimo/Dívidas" no meio de
+    // uma tela em inglês. Resolver por id é o mesmo caminho de `others`.
+    final virtual = VirtualCategory.byId(id);
+    if (virtual != null) {
+      return switch (virtual.accountType) {
+        AccountType.debt => l10n.categoryVirtualDebt,
+        _ => l10n.categoryVirtualInvestment,
+      };
+    }
+
+    if (id == VirtualCategory.initialBalanceId) {
+      return l10n.categoryInitialBalance;
+    }
+
     return displayOr(name, l10n.noCategory);
   }
 }

@@ -893,6 +893,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get categoryVirtualDebt => 'Loans & debt';
+
+  @override
+  String get categoryVirtualInvestment => 'Investments';
+
+  @override
+  String get categoryInitialBalance => 'Initial balance';
+
+  @override
   String get categoryOthers => 'Others';
 
   @override

@@ -901,6 +901,15 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get categoryVirtualDebt => 'Empréstimo/Dívidas';
+
+  @override
+  String get categoryVirtualInvestment => 'Investimentos';
+
+  @override
+  String get categoryInitialBalance => 'Saldo Inicial';
+
+  @override
   String get categoryOthers => 'Outros';
 
   @override

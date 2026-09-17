@@ -324,6 +324,9 @@
   "categoryTypeExpense": "Expense",
   "categoryDeleteTitle": "Delete Category",
   "categoryDeleteConfirm": "Are you sure you want to delete the category \"{name}\"?",
+  "categoryVirtualDebt": "Loans & debt",
+  "categoryVirtualInvestment": "Investments",
+  "categoryInitialBalance": "Initial balance",
   "categoryOthers": "Others",
   "@categoryDeleteConfirm": {
     "placeholders": {

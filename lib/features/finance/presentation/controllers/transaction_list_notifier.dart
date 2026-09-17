@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:funances/features/home/presentation/widgets/history_period_filter.dart';
 import 'package:funances/core/list/infinite_list_notifier.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -81,49 +81,41 @@ class TransactionListNotifier
     var realizedTransfers = Money.zero;
     var plannedInvoices = Money.zero;
     var realizedInvoices = Money.zero;
-    var plannedVirtualDebtExpense = Money.zero;
-    var realizedVirtualDebtExpense = Money.zero;
-    var plannedVirtualDebtIncome = Money.zero;
-    var realizedVirtualDebtIncome = Money.zero;
-    var plannedVirtualInvestmentExpense = Money.zero;
-    var realizedVirtualInvestmentExpense = Money.zero;
-    var plannedVirtualInvestmentIncome = Money.zero;
-    var realizedVirtualInvestmentIncome = Money.zero;
+    final virtualPlanned = <VirtualCategory, Money>{};
+    final virtualRealized = <VirtualCategory, Money>{};
 
     for (final item in state.items) {
       final planned = item.amount.asMoney;
       final realized = (item.paidAmount ?? 0.0).asMoney;
-      final categoryId = item.category?.id;
+      final virtual = VirtualCategory.byId(item.category?.id);
 
-      switch (categoryId) {
-        case CategoryModel.virtualDebtExpenseId:
-          plannedVirtualDebtExpense += planned;
-          realizedVirtualDebtExpense += realized;
-        case CategoryModel.virtualDebtIncomeId:
-          plannedVirtualDebtIncome += planned;
-          realizedVirtualDebtIncome += realized;
-        case CategoryModel.virtualInvestmentExpenseId:
-          plannedVirtualInvestmentExpense += planned;
-          realizedVirtualInvestmentExpense += realized;
-        case CategoryModel.virtualInvestmentIncomeId:
-          plannedVirtualInvestmentIncome += planned;
-          realizedVirtualInvestmentIncome += realized;
-        default:
-          switch (item.type) {
-            case OrderType.income:
-              plannedIncomes += planned;
-              realizedIncomes += realized;
-            case OrderType.expense:
-              plannedExpenses += planned;
-              realizedExpenses += realized;
-            case OrderType.transfer:
-              // A fatura é uma transferência, mas ela tem a própria linha
-              // logo abaixo: contá-la aqui também a somaria duas vezes.
-              if (!item.isInvoice) {
-                plannedTransfers += planned;
-                realizedTransfers += realized;
-              }
-          }
+      if (virtual != null) {
+        virtualPlanned.update(
+          virtual,
+          (total) => total + planned,
+          ifAbsent: () => planned,
+        );
+        virtualRealized.update(
+          virtual,
+          (total) => total + realized,
+          ifAbsent: () => realized,
+        );
+      } else {
+        switch (item.type) {
+          case OrderType.income:
+            plannedIncomes += planned;
+            realizedIncomes += realized;
+          case OrderType.expense:
+            plannedExpenses += planned;
+            realizedExpenses += realized;
+          case OrderType.transfer:
+            // A fatura é uma transferência, mas ela tem a própria linha
+            // logo abaixo: contá-la aqui também a somaria duas vezes.
+            if (!item.isInvoice) {
+              plannedTransfers += planned;
+              realizedTransfers += realized;
+            }
+        }
       }
 
       if (item.isInvoice) {
@@ -141,17 +133,13 @@ class TransactionListNotifier
       realizedTransfers: realizedTransfers.toDouble(),
       plannedInvoices: plannedInvoices.toDouble(),
       realizedInvoices: realizedInvoices.toDouble(),
-      plannedVirtualDebtExpense: plannedVirtualDebtExpense.toDouble(),
-      realizedVirtualDebtExpense: realizedVirtualDebtExpense.toDouble(),
-      plannedVirtualDebtIncome: plannedVirtualDebtIncome.toDouble(),
-      realizedVirtualDebtIncome: realizedVirtualDebtIncome.toDouble(),
-      plannedVirtualInvestmentExpense:
-          plannedVirtualInvestmentExpense.toDouble(),
-      realizedVirtualInvestmentExpense:
-          realizedVirtualInvestmentExpense.toDouble(),
-      plannedVirtualInvestmentIncome: plannedVirtualInvestmentIncome.toDouble(),
-      realizedVirtualInvestmentIncome:
-          realizedVirtualInvestmentIncome.toDouble(),
+      virtualTotals: {
+        for (final virtual in virtualPlanned.keys)
+          virtual: (
+            planned: virtualPlanned[virtual]!.toDouble(),
+            realized: virtualRealized[virtual]!.toDouble(),
+          ),
+      },
     );
   }
 
