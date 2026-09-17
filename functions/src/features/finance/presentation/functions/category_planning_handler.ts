@@ -1,8 +1,14 @@
+import * as admin from "firebase-admin";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
-import { CATEGORY_PLANNING_DERIVED_FIELDS, CategoryPlanningModel } from "../../domain/models/finance.models";
+import {
+    CATEGORY_PLANNING_DERIVED_FIELDS,
+    CategoryPlanningModel,
+    MONEY_CENTS_FIELDS,
+} from "../../domain/models/finance.models";
+import { applyCentsPatch } from "../../../../core/utils/money_cents";
 
 export { CATEGORY_PLANNING_DERIVED_FIELDS };
 
@@ -26,6 +32,19 @@ export async function handleCategoryPlanningWritten(
     ctx: CategoryPlanningEventContext
 ): Promise<void> {
     const { workspaceId, planningId, eventId } = ctx;
+
+    // F1.10 — passo derivado: completa `amountCents`/`appliedAmountCents` a
+    // partir do `double`. Antes da guarda: uma escrita que só mexeu nos
+    // marcadores de F1.5 não tem impacto a reaplicar, mas o `appliedAmount`
+    // que ela acabou de gravar precisa do espelho inteiro.
+    if (afterData) {
+        await applyCentsPatch(
+            admin.firestore().collection(`workspaces/${workspaceId}/category_planning`).doc(planningId),
+            afterData,
+            MONEY_CENTS_FIELDS.category_planning,
+            "onCategoryPlanningWritten"
+        );
+    }
 
     // GUARDA POR CONTEÚDO (F1.5): depois de aplicar os impactos, o servidor
     // grava `summarizedUntil`/`appliedAmount`/`appliedFrom`/`appliedUntil` no

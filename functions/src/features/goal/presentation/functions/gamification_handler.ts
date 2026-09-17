@@ -1,3 +1,4 @@
+import * as admin from "firebase-admin";
 import { onDocumentWritten, onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
@@ -10,7 +11,12 @@ import {
 } from "../../../../core/config/functions.config";
 import { forEachWorkspacePaged } from "../../../../core/utils/cron_runner";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
-import { INSTALLMENT_DERIVED_FIELDS } from "../../../finance/domain/models/finance.models";
+import {
+    GOAL_DERIVED_FIELDS,
+    INSTALLMENT_DERIVED_FIELDS,
+    MONEY_CENTS_FIELDS,
+} from "../../../finance/domain/models/finance.models";
+import { applyCentsPatch } from "../../../../core/utils/money_cents";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
 import { GoalModel, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
@@ -300,9 +306,30 @@ export const onGoalWritten = onDocumentWritten(
     async (event) => {
         const workspaceId = event.params.workspaceId;
         const goalId = event.params.goalId;
+        const before = event.data?.before.exists ? event.data.before.data() : null;
         const after = event.data?.after.exists ? event.data.after.data() : null;
 
         if (!after) return;
+
+        // F1.10 — passo derivado: completa `targetAmountCents`/
+        // `currentAmountCents` a partir do `double` que o CLIENTE gravou.
+        await applyCentsPatch(
+            admin.firestore().collection(`workspaces/${workspaceId}/goals`).doc(goalId),
+            after,
+            MONEY_CENTS_FIELDS.goals,
+            "onGoalWritten"
+        );
+
+        // GUARDA POR CONTEÚDO (F1.10): a escrita acima gera um novo evento, e
+        // sem esta saída ele recalcularia o progresso e reavaliaria a bateria
+        // inteira de badges — para cada meta da base, durante a migração.
+        if (before && after) {
+            const changedFields = getChangedTopLevelFields(before, after);
+            if (changedFields.length > 0 && changedFields.every((field) => GOAL_DERIVED_FIELDS.has(field))) {
+                logger.info(`[onGoalWritten] Saída antecipada: ${goalId} mudou apenas espelhos inteiros [${changedFields.join(", ")}].`);
+                return;
+            }
+        }
 
         logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
 

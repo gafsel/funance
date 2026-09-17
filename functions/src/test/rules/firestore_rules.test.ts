@@ -109,6 +109,19 @@ const nextInvoiceDoc = () => ({
     status: "pending",
 });
 
+const orderDoc = (overrides: Record<string, unknown> = {}) => ({
+    amount: 502.4,
+    description: "Notebook",
+    dueDay: 10,
+    startMonth: "2026-03",
+    installmentType: "installment",
+    installmentCount: 3,
+    status: "active",
+    type: "expense",
+    accounts: { "acc-checking": "debt" },
+    ...overrides,
+});
+
 const installmentDoc = (overrides: Record<string, unknown> = {}) => ({
     orderId: ORDER_ID,
     amount: 167.47,
@@ -172,9 +185,14 @@ describe("firestore.rules", () => {
                 streaks: { missions: 2, plan: 3 },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
+            await setDoc(doc(db, `workspaces/${WORKSPACE_ID}/orders/${ORDER_ID}`), {
+                ...orderDoc(),
+                // F1.10: o espelho inteiro já gravado pelo servidor.
+                amountCents: 50240,
+            });
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
-                installmentDoc()
+                installmentDoc({ amountCents: 16747, referenceAmountCents: 16747 })
             );
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`),
@@ -956,6 +974,106 @@ describe("firestore.rules", () => {
                     { unplannedReason: null }
                 )
             );
+        });
+    });
+    describe("F1.10 — os espelhos inteiros (*Cents) são do SERVIDOR", () => {
+        // Nesta etapa o app não conhece os campos `*Cents`: ele lê e escreve o
+        // `double`, e o servidor completa o inteiro no passo derivado do
+        // gatilho. Se o cliente pudesse gravá-los, bastaria um `amount: 10` com
+        // `amountCents: 1` para que saldo, sumário e XP — que somam o INTEIRO —
+        // acreditassem em um centavo.
+
+        it("nega que o cliente crie uma order já com amountCents", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/orders/order-cents-forjada`),
+                    { ...orderDoc(), amountCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente altere o amountCents de uma order existente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/orders/${ORDER_ID}`), { amountCents: 1 })
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de uma parcela", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`);
+
+            await assertFails(updateDoc(ref, { amountCents: 1 }));
+            await assertFails(updateDoc(ref, { paidAmountCents: 1 }));
+            await assertFails(updateDoc(ref, { referenceAmountCents: 1 }));
+        });
+
+        it("tolera o reenvio do MESMO amountCents numa parcela (nada mudou)", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // A negação é por DIFERENÇA de valor: uma build futura que releia e
+            // reenvie o documento inteiro não é barrada por reenviar o que o
+            // servidor gravou.
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                    { amountCents: 16747, description: "Notebook novo" }
+                )
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de uma meta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`);
+
+            await assertFails(updateDoc(ref, { targetAmountCents: 1 }));
+            await assertFails(updateDoc(ref, { currentAmountCents: 999999 }));
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-cents-forjada`),
+                    { ...goalDoc(), targetAmountCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de um planejamento", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`);
+
+            await assertFails(updateDoc(ref, { amountCents: 1 }));
+            await assertFails(updateDoc(ref, { appliedAmountCents: 1 }));
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/category_planning/planning-cents-forjado`),
+                    { ...planningDoc(), amountCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de uma conta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/accounts/${CARD_ID}`);
+
+            await assertFails(updateDoc(ref, { initialBalanceCents: 1 }));
+            await assertFails(updateDoc(ref, { limitCents: 1 }));
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/accounts/acc-card-cents-forjado`),
+                    { ...cardDoc(), limitCents: 1 }
+                )
+            );
+        });
+
+        it("o membro LÊ os espelhos inteiros normalmente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            const snapshot = await assertSucceeds(
+                getDoc(doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`))
+            );
+            expect(snapshot.data()?.amountCents).toBe(16747);
         });
     });
 });

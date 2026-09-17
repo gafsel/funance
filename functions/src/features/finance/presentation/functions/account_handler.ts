@@ -1,6 +1,33 @@
+import * as admin from "firebase-admin";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
-import { AccountType } from "../../domain/models/finance.models";
+import { AccountType, MONEY_CENTS_FIELDS } from "../../domain/models/finance.models";
+import { applyCentsPatch } from "../../../../core/utils/money_cents";
+
+/**
+ * F1.10 — passo derivado da conta: completa `initialBalanceCents`/`limitCents`
+ * a partir do `double` que o CLIENTE gravou.
+ *
+ * A conta não precisa de guarda por conteúdo: as ações deste gatilho já são
+ * disparadas por uma LISTA DE PERMISSÃO estreita (`isDeleted`,
+ * `initialBalance`, `initialBalanceDate`, `closingDay`/`dueDay`/`runtimeType`),
+ * e nenhum campo `*Cents` está nela. A escrita abaixo reentra uma vez, não
+ * encontra nada a mudar e para.
+ */
+async function syncAccountCents(
+    workspaceId: string,
+    accountId: string,
+    data: Record<string, any> | undefined
+): Promise<void> {
+    if (!data) return;
+
+    await applyCentsPatch(
+        admin.firestore().collection(`workspaces/${workspaceId}/accounts`).doc(accountId),
+        data,
+        MONEY_CENTS_FIELDS.accounts,
+        "onAccountWritten"
+    );
+}
 
 export const onAccountUpdated = onDocumentUpdated(
     "workspaces/{workspaceId}/accounts/{accountId}",
@@ -14,6 +41,8 @@ export const onAccountUpdated = onDocumentUpdated(
         if (!before || !after) {
             return;
         }
+
+        await syncAccountCents(workspaceId, accountId, after);
 
         // Verifica se a conta foi marcada como excluída (soft delete)
         if (!before.isDeleted && after.isDeleted) {
@@ -88,6 +117,8 @@ export const onAccountCreated = onDocumentCreated(
         const financeService = container.financeService;
 
         const account = event.data?.data() as any;
+
+        await syncAccountCents(workspaceId, accountId, account);
 
         await container.idempotencyService.runIdempotency(event.id, "syncInitialBalance", async () => {
             await financeService.syncInitialBalance(workspaceId, accountId, account);
