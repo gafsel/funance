@@ -563,6 +563,62 @@ describe("RebuildService", () => {
             expect(warn.mock.calls[0][0]).toContain("parcela=a-quebrada");
         });
 
+        it("transferência sem categoria NÃO conta e NÃO avisa", async () => {
+            // Transferência entre duas contas CORRENTES: nenhuma contrapartida
+            // virtual (só conta de dívida/investimento gera uma), nenhuma
+            // categoria — o desenho normal. Numa base de produção o relatório
+            // acusou 98 "parcelas sem categoria" assim.
+            const POUPANCA: AccountModel = { ...CHECKING, id: "acc-poupanca", name: "Poupança" };
+            repository.accounts = [CHECKING, POUPANCA];
+            repository.installments = [
+                rawInstallment("t-transfer", {
+                    amount: 200, paidAmount: 200, status: InstallmentStatus.paid,
+                    type: OrderType.transfer,
+                    category: undefined,
+                    accounts: { [CHECKING.id]: "debt", [POUPANCA.id]: "credit" },
+                    accountIds: [CHECKING.id, POUPANCA.id],
+                    dueDate: ts(2026, 3, 10),
+                    paidDate: ts(2026, 3, 10),
+                }),
+                rawInstallment("t-fatura", {
+                    amount: 80, paidAmount: 80, status: InstallmentStatus.paid,
+                    // Fatura também viaja como `type: transfer`, sem categoria.
+                    type: OrderType.transfer,
+                    category: undefined,
+                    accounts: { [CHECKING.id]: "debt" },
+                    accountIds: [CHECKING.id],
+                    dueDate: ts(2026, 3, 11),
+                    paidDate: ts(2026, 3, 11),
+                }),
+            ];
+
+            const report = await apply();
+
+            expect(report.scanned.installments).toBe(2);
+            expect(report.scanned.installmentsWithoutCategory).toBe(0);
+            expect(warn).not.toHaveBeenCalled();
+        });
+
+        it("transferência com categoria de id VAZIO continua contando e avisando", async () => {
+            repository.installments = [
+                rawInstallment("t-quebrada", {
+                    amount: 200, paidAmount: 200, status: InstallmentStatus.paid,
+                    type: OrderType.transfer,
+                    category: { ...CATEGORY, id: "" },
+                    accounts: { [CHECKING.id]: "debt" },
+                    accountIds: [CHECKING.id],
+                    dueDate: ts(2026, 3, 10),
+                    paidDate: ts(2026, 3, 10),
+                }),
+            ];
+
+            const report = await apply();
+
+            expect(report.scanned.installmentsWithoutCategory).toBe(1);
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls[0][0]).toContain("parcela=t-quebrada");
+        });
+
         it("as parcelas boas do mesmo workspace continuam sendo somadas", async () => {
             repository.installments = [
                 brokenInstallment("a-quebrada"),

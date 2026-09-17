@@ -416,6 +416,24 @@ categoria sem id é tratada como **sem categoria** para efeito de sumário.
 | `summary.service.ts` (projetado e realizado) | a parcela **não entra** em `period_summaries`, com um `console.warn` **por parcela** citando workspace e parcela |
 | `rebuild.service.ts` (acumulador) | idem, e a parcela é contada em `scanned.installmentsWithoutCategory` no relatório |
 | `finance.repository.impl.ts` (`updatePeriodSummary`) | **defesa final**: lança erro citando workspace, período e nome da categoria, em vez de deixar o SDK explodir com uma mensagem sem contexto |
+| `finance.repository.impl.ts` (`applyPlanningImpacts`) | um `category_planning` com id vazio é **pulado com `console.warn`**, em vez de montar `categories[""]` e derrubar o gatilho/cron de planejamento inteiro |
+
+**Quem é avisado e contado** (`isCategoryRefBroken`, no mesmo arquivo). Ficar
+"sem categoria utilizável" não é defeito por si só: **transferência nunca tem
+categoria por desenho** — quem lhe dá chave de sumário é o caminho das
+categorias virtuais, e uma transferência sem contrapartida de
+dívida/investimento fica fora do sumário como sempre ficou. Fatura entra na
+mesma regra, porque também é `type: "transfer"`. A regra é:
+
+| Parcela | Avisa e conta? |
+|---|---|
+| `category = {id: "", name: "..."}` (qualquer `type`) | **sim** — é o defeito real |
+| categoria **ausente** e `type !== "transfer"` | **sim** |
+| categoria **ausente** e `type === "transfer"` (transferência, fatura) | **não** — silêncio |
+
+Antes desta regra o relatório de um rebuild de produção acusou **98 parcelas
+"sem categoria", todas transferências saudáveis**, e o log do gatilho enchia do
+mesmo falso positivo.
 
 **Saldo e XP continuam contando normalmente** — nenhum dos dois depende de
 categoria. O que essas parcelas perdem é só a linha no sumário, até serem

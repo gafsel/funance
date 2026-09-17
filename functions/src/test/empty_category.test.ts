@@ -20,7 +20,12 @@ import {
     InstallmentType,
     OrderType,
 } from "../features/finance/domain/models/finance.models";
-import { CategoryModel, CategoryType, hasCategoryId } from "../features/workspace/domain/models/category.model";
+import {
+    CategoryModel,
+    CategoryType,
+    hasCategoryId,
+    isCategoryRefBroken,
+} from "../features/workspace/domain/models/category.model";
 
 const WORKSPACE = "ws-1";
 
@@ -96,6 +101,40 @@ describe("hasCategoryId", () => {
     });
 });
 
+describe("isCategoryRefBroken — só a categoria QUEBRADA merece aviso", () => {
+    it("id vazio é defeito em qualquer tipo, transferência inclusive", () => {
+        expect(isCategoryRefBroken({ type: OrderType.expense, category: BROKEN_CATEGORY })).toBe(true);
+        expect(isCategoryRefBroken({ type: OrderType.income, category: BROKEN_CATEGORY })).toBe(true);
+        expect(isCategoryRefBroken({ type: OrderType.transfer, category: BROKEN_CATEGORY })).toBe(true);
+    });
+
+    it("categoria AUSENTE é defeito fora de transferência", () => {
+        expect(isCategoryRefBroken({ type: OrderType.expense })).toBe(true);
+        expect(isCategoryRefBroken({ type: OrderType.expense, category: null })).toBe(true);
+        expect(isCategoryRefBroken({ type: OrderType.income, category: undefined })).toBe(true);
+        // Sem `type` nenhum também é defeito: só transferência tem passe livre.
+        expect(isCategoryRefBroken({})).toBe(true);
+    });
+
+    it("transferência sem categoria é o desenho NORMAL: silêncio", () => {
+        // Fatura também é `type: transfer` — entra na mesma isenção. Era daqui
+        // que vinham as 98 falsas "parcelas sem categoria" de um rebuild de
+        // produção.
+        expect(isCategoryRefBroken({ type: OrderType.transfer })).toBe(false);
+        expect(isCategoryRefBroken({ type: OrderType.transfer, category: null })).toBe(false);
+        expect(isCategoryRefBroken({ type: OrderType.transfer, category: undefined })).toBe(false);
+    });
+
+    it("o literal usado no modelo casa com OrderType.transfer", () => {
+        expect(OrderType.transfer).toBe("transfer");
+    });
+
+    it("categoria boa nunca é defeito", () => {
+        expect(isCategoryRefBroken({ type: OrderType.expense, category: CATEGORY })).toBe(false);
+        expect(isCategoryRefBroken({ type: OrderType.transfer, category: CATEGORY })).toBe(false);
+    });
+});
+
 describe("SummaryService com categoria de id vazio", () => {
     let repository: FakeRepository;
     let service: SummaryService;
@@ -153,5 +192,20 @@ describe("SummaryService com categoria de id vazio", () => {
 
         expect(repository.calls).toHaveLength(0);
         expect(warn).toHaveBeenCalledTimes(1);
+    });
+
+    it("transferência sem categoria fica fora do sumário EM SILÊNCIO", async () => {
+        // `getAccountById` do fake devolve null: nenhuma contrapartida virtual,
+        // que é o caso da esmagadora maioria das transferências. Antes isso
+        // enchia o log de falso positivo.
+        await service.processInstallmentChange(WORKSPACE, null, installment({
+            type: OrderType.transfer,
+            category: undefined,
+            accounts: { "acc-origem": "debt", "acc-destino": "credit" },
+            accountIds: ["acc-origem", "acc-destino"],
+        }));
+
+        expect(repository.calls).toHaveLength(0);
+        expect(warn).not.toHaveBeenCalled();
     });
 });

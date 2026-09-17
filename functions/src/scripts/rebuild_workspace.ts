@@ -119,7 +119,7 @@ export function formatReport(report: RebuildReport): string {
     return [
         `[rebuild_workspace] workspace=${report.workspaceId} modo=${report.mode} planejamento=${report.rebuildPlanning ? "RECALCULADO" : "preservado"} duração=${report.durationMs}ms`,
         `  lidos: parcelas=${report.scanned.installments} (removidas ignoradas=${report.scanned.installmentsRemoved}), contas=${report.scanned.accounts}, planejamentos=${report.scanned.categoryPlannings}`,
-        `  parcelas sem categoria (category.id vazio, fora dos period_summaries)=${report.scanned.installmentsWithoutCategory}${report.scanned.installmentsWithoutCategory > 0 ? " — rode fix_empty_category e refaça o rebuild" : ""}`,
+        `  parcelas com categoria quebrada (id vazio, ou ausente fora de transferência — fora dos period_summaries)=${report.scanned.installmentsWithoutCategory}${report.scanned.installmentsWithoutCategory > 0 ? " — rode fix_empty_category e refaça o rebuild" : ""}`,
         line("balance", report.diff.balances),
         line("period_summaries", report.diff.periodSummaries),
         line("weekly_xp", report.diff.weeklyXp),
