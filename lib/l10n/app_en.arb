@@ -1226,5 +1226,19 @@
         "type": "String"
       }
     }
+  },
+  "writeFailed": "A change could not be saved: {reason}",
+  "writeFailedReasonPermission": "you do not have permission for this change",
+  "writeFailedReasonNotFound": "the item no longer exists",
+  "writeFailedReasonTimeout": "the server did not respond",
+  "writeFailedReasonUnknown": "the server rejected the change",
+  "transactionSavePendingSync": "Saved on this device. Instalments appear when the connection is back.",
+  "@writeFailed": {
+    "description": "Aviso de escrita recusada pelo servidor depois de a tela ter seguido.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
   }
 }

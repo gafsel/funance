@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -126,10 +127,17 @@ class _FakeFinanceRepository implements IFinanceRepository {
 
   final List<OrderModel> savedOrders = [];
 
+  /// O que o servidor respondeu à criação. Os testes que exercitam o caminho
+  /// offline trocam isto por `pending`.
+  WriteOutcome addOrderOutcome = WriteOutcome.confirmed;
+
   @override
-  Future<OrderModel> addOrder(String workspaceId, OrderModel order) async {
+  Future<Written<OrderModel>> addOrder(
+    String workspaceId,
+    OrderModel order,
+  ) async {
     savedOrders.add(order);
-    return order;
+    return (value: order, outcome: addOrderOutcome);
   }
 
   @override
@@ -240,9 +248,10 @@ InstallmentModel _installment({
 FinanceService _financeService({
   List<InstallmentModel> installments = const [],
   List<AccountModel> accounts = const [],
+  IFinanceRepository? repository,
 }) => FinanceService(
   workspaceId: 'ws-test',
-  repository: _FakeFinanceRepository(installments: installments),
+  repository: repository ?? _FakeFinanceRepository(installments: installments),
   accountRepository: _FakeAccountRepository(accounts: accounts),
   categoryRepository: _FakeCategoryRepository(),
 );
@@ -338,6 +347,38 @@ List<Override> _overrides({
 ];
 
 void main() {
+  group('lançamento que o servidor ainda não confirmou', () {
+    /// Offline o pedido entra no cache local, mas as PARCELAS nascem de um
+    /// trigger no servidor: elas não existem em lugar nenhum enquanto a
+    /// escrita não subir. A tela lê parcelas, então dizer "salvo!" fazia o
+    /// usuário procurar na lista algo que ainda não estava lá — o lançamento
+    /// parecia ter sumido.
+    Future<TransactionFormNotifier> salvar(WriteOutcome outcome) async {
+      final repository = _FakeFinanceRepository()..addOrderOutcome = outcome;
+      final notifier = _notifierFor(
+        TransactionFormState.creation(type: OrderType.expense),
+        financeService: _financeService(repository: repository),
+      );
+      addTearDown(notifier.dispose);
+
+      await notifier.submit();
+
+      return notifier;
+    }
+
+    test('escrita pendente é reportada como pendente', () async {
+      final notifier = await salvar(WriteOutcome.pending);
+
+      expect(notifier.lastWriteOutcome, WriteOutcome.pending);
+    });
+
+    test('com o servidor confirmando, o save é um save normal', () async {
+      final notifier = await salvar(WriteOutcome.confirmed);
+
+      expect(notifier.lastWriteOutcome, WriteOutcome.confirmed);
+    });
+  });
+
   group('regra da cascata', () {
     test('não pergunta ao criar um lançamento', () {
       final notifier = _notifierFor(

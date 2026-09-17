@@ -2466,4 +2466,26 @@ class AppLocalizationsPt extends AppLocalizations {
   String compassHistoryPoint(String month, String score) {
     return '$month: $score de 100';
   }
+
+  @override
+  String writeFailed(String reason) {
+    return 'Uma alteração não pôde ser salva: $reason';
+  }
+
+  @override
+  String get writeFailedReasonPermission =>
+      'você não tem permissão para essa mudança';
+
+  @override
+  String get writeFailedReasonNotFound => 'o item não existe mais';
+
+  @override
+  String get writeFailedReasonTimeout => 'o servidor não respondeu';
+
+  @override
+  String get writeFailedReasonUnknown => 'o servidor recusou a alteração';
+
+  @override
+  String get transactionSavePendingSync =>
+      'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.';
 }

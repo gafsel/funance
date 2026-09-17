@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 
 /// Como está a conversa do app com o servidor.
 enum SyncStatus {
@@ -14,6 +16,24 @@ enum SyncStatus {
   offline,
 }
 
+/// Uid da sessão, como um fluxo.
+///
+/// A primeira versão disto lia `FirebaseAuth.instance.currentUser` UMA vez, no
+/// primeiro frame — antes de a sessão salva ser restaurada. Resultado: o uid
+/// era sempre nulo, o provider devolvia "online" fixo e ficava em cache para
+/// sempre; a tarja nunca aparecia, nem depois do login. Trocar de conta também
+/// deixava o observador preso ao uid antigo.
+///
+/// Observamos o `FirebaseAuth` direto, e não o provider de usuário da feature
+/// de auth, por dois motivos: é a fonte real do uid (o outro é derivado dele) e
+/// evita que `core` passe a depender de `features`.
+final _sessionUidProvider = StreamProvider<String?>((ref) {
+  return FirebaseAuth.instance
+      .authStateChanges()
+      .map((user) => user?.uid)
+      .distinct();
+});
+
 /// Estado de sincronização, lido do próprio Firestore.
 ///
 /// Não usamos um pacote de conectividade: ter Wi-Fi não é a mesma pergunta que
@@ -23,21 +43,40 @@ enum SyncStatus {
 /// ainda há escrita local por subir.
 ///
 /// O documento observado é o do próprio usuário: ele existe sempre que há
-/// sessão, é minúsculo e as rules já o liberam para o dono.
+/// sessão, é minúsculo e as rules já o liberam para o dono. O `ref.watch` do
+/// uid é o que faz o observador ser refeito a cada troca de sessão.
 final syncStatusProvider = StreamProvider<SyncStatus>((ref) {
-  final String? uid = FirebaseAuth.instance.currentUser?.uid;
+  final String? uid = ref.watch(_sessionUidProvider).valueOrNull;
 
   // Sem sessão não há o que sincronizar, e a tela de login não deve ganhar
   // uma tarja de "sem conexão".
-  if (uid == null) return Stream<SyncStatus>.value(SyncStatus.online);
+  if (uid == null) {
+    SyncStatusLatch.update(SyncStatus.online);
+    return Stream<SyncStatus>.value(SyncStatus.online);
+  }
 
   return FirebaseFirestore.instance
       .collection('users')
       .doc(uid)
       .snapshots(includeMetadataChanges: true)
       .map((snapshot) => syncStatusOf(snapshot.metadata))
-      .distinct();
+      .distinct()
+      // O `settleWrite` precisa saber se estamos offline para decidir quanto
+      // tempo esperar pelo servidor, e ele roda nos repositórios, longe de um
+      // `ref`. A trava guarda a última leitura para ele.
+      .map((status) {
+        SyncStatusLatch.update(status);
+        return status;
+      });
 });
+
+/// Quantas escritas foram dadas como pendentes e ainda não se resolveram.
+///
+/// Complementa o [syncStatusProvider]: os metadados do Firestore só falam do
+/// documento observado, e a escrita pendente pode estar em qualquer coleção.
+final pendingWriteCountProvider = StreamProvider<int>(
+  (ref) => PendingWrites.changes,
+);
 
 /// Traduz os metadados de um snapshot para o estado que a tarja mostra.
 ///
@@ -50,4 +89,38 @@ SyncStatus syncStatusOf(SnapshotMetadata metadata) {
   if (metadata.hasPendingWrites) return SyncStatus.pendingWrites;
 
   return SyncStatus.online;
+}
+
+/// O que a tarja deve mostrar, juntando as duas fontes.
+///
+/// [fromMetadata] fala do documento observado; [pendingCount] cobre escritas
+/// pendentes em qualquer outra coleção. Offline continua vencendo: é a
+/// informação acionável.
+SyncStatus effectiveSyncStatus(SyncStatus fromMetadata, int pendingCount) {
+  if (fromMetadata != SyncStatus.online) return fromMetadata;
+
+  return pendingCount > 0 ? SyncStatus.pendingWrites : SyncStatus.online;
+}
+
+/// Última leitura conhecida do estado de sincronização.
+///
+/// É um cache de algo observável, não uma segunda fonte de verdade: quem manda
+/// é o [syncStatusProvider], e isto existe só porque `settleWrite` roda dentro
+/// dos repositórios, onde não há `ref` para observar nada.
+///
+/// Fica em "online" enquanto ninguém tiver observado o provider. É o palpite
+/// certo para errar: na dúvida, esperamos a confirmação do servidor em vez de
+/// dar uma escrita como guardada.
+abstract final class SyncStatusLatch {
+  static SyncStatus _current = SyncStatus.online;
+
+  static SyncStatus get current => _current;
+
+  /// true quando o Firestore está respondendo pelo cache.
+  static bool get isOffline => _current == SyncStatus.offline;
+
+  static void update(SyncStatus status) => _current = status;
+
+  @visibleForTesting
+  static void reset() => _current = SyncStatus.online;
 }

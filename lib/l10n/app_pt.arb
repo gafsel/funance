@@ -1233,5 +1233,19 @@
         "type": "String"
       }
     }
+  },
+  "writeFailed": "Uma alteração não pôde ser salva: {reason}",
+  "writeFailedReasonPermission": "você não tem permissão para essa mudança",
+  "writeFailedReasonNotFound": "o item não existe mais",
+  "writeFailedReasonTimeout": "o servidor não respondeu",
+  "writeFailedReasonUnknown": "o servidor recusou a alteração",
+  "transactionSavePendingSync": "Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.",
+  "@writeFailed": {
+    "description": "Aviso de escrita recusada pelo servidor depois de a tela ter seguido.",
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:developer';
 import 'package:funances/core/files/picked_document.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -50,7 +51,12 @@ class AccountRepositoryImpl implements IAccountRepository {
     try {
       final data = account.toJson();
       data.remove('id');
-      final doc = await _getCollection(workspaceId).add(data);
+      // `doc()` gera o id localmente; o `add()` que havia aqui só
+      // devolvia a referência depois da resposta do servidor, e offline
+      // isso nunca chegava.
+      final doc = _getCollection(workspaceId).doc();
+      await settleWrite(doc.set(data));
+
       return account.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
@@ -66,7 +72,7 @@ class AccountRepositoryImpl implements IAccountRepository {
     try {
       final data = account.toJson();
       data.remove('id');
-      await _getCollection(workspaceId).doc(account.id).update(data);
+      await settleWrite(_getCollection(workspaceId).doc(account.id).update(data));
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

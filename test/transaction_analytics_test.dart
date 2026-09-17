@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
@@ -47,10 +48,10 @@ class FakeFinanceService extends FinanceService {
   final List<OrderModel> savedOrders = [];
 
   @override
-  Future<OrderModel> addOrder(OrderModel order) async {
+  Future<Written<OrderModel>> addOrder(OrderModel order) async {
     final saved = order.copyWith(id: 'order-salva');
     savedOrders.add(saved);
-    return saved;
+    return (value: saved, outcome: WriteOutcome.confirmed);
   }
 
   final List<InstallmentModel> savedInstallments = [];

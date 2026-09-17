@@ -4405,6 +4405,42 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{month}: {score} de 100'**
   String compassHistoryPoint(String month, String score);
+
+  /// Aviso de escrita recusada pelo servidor depois de a tela ter seguido.
+  ///
+  /// In pt, this message translates to:
+  /// **'Uma alteração não pôde ser salva: {reason}'**
+  String writeFailed(String reason);
+
+  /// No description provided for @writeFailedReasonPermission.
+  ///
+  /// In pt, this message translates to:
+  /// **'você não tem permissão para essa mudança'**
+  String get writeFailedReasonPermission;
+
+  /// No description provided for @writeFailedReasonNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'o item não existe mais'**
+  String get writeFailedReasonNotFound;
+
+  /// No description provided for @writeFailedReasonTimeout.
+  ///
+  /// In pt, this message translates to:
+  /// **'o servidor não respondeu'**
+  String get writeFailedReasonTimeout;
+
+  /// No description provided for @writeFailedReasonUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'o servidor recusou a alteração'**
+  String get writeFailedReasonUnknown;
+
+  /// No description provided for @transactionSavePendingSync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.'**
+  String get transactionSavePendingSync;
 }
 
 class _AppLocalizationsDelegate

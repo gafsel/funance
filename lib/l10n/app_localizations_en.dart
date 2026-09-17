@@ -2448,4 +2448,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String compassHistoryPoint(String month, String score) {
     return '$month: $score of 100';
   }
+
+  @override
+  String writeFailed(String reason) {
+    return 'A change could not be saved: $reason';
+  }
+
+  @override
+  String get writeFailedReasonPermission =>
+      'you do not have permission for this change';
+
+  @override
+  String get writeFailedReasonNotFound => 'the item no longer exists';
+
+  @override
+  String get writeFailedReasonTimeout => 'the server did not respond';
+
+  @override
+  String get writeFailedReasonUnknown => 'the server rejected the change';
+
+  @override
+  String get transactionSavePendingSync =>
+      'Saved on this device. Instalments appear when the connection is back.';
 }

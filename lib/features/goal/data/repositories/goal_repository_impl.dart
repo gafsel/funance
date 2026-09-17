@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/features/goal/data/models/goal_mapper.dart';
 import '../../domain/models/goal_model.dart';
@@ -54,7 +55,12 @@ class GoalRepositoryImpl implements IGoalRepository {
       // O id real é o gerado pelo Firestore. Devolver `goal.id` (vazio na
       // criação) fazia o segundo salvamento do mesmo formulário cair num
       // update com doc("").
-      final doc = await _getCollection(workspaceId).add(data);
+      // `doc()` gera o id localmente; o `add()` que havia aqui só
+      // devolvia a referência depois da resposta do servidor, e offline
+      // isso nunca chegava.
+      final doc = _getCollection(workspaceId).doc();
+      await settleWrite(doc.set(data));
+
       return goal.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
@@ -76,7 +82,7 @@ class GoalRepositoryImpl implements IGoalRepository {
       );
       data['deadline'] = Timestamp.fromDate(goal.deadline);
       data['startDate'] = Timestamp.fromDate(goal.startDate);
-      await _getCollection(workspaceId).doc(goal.id).update(data);
+      await settleWrite(_getCollection(workspaceId).doc(goal.id).update(data));
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -89,7 +95,9 @@ class GoalRepositoryImpl implements IGoalRepository {
   @override
   Future<void> deleteGoal(String workspaceId, String goalId) async {
     try {
-      await _getCollection(workspaceId).doc(goalId).update({'isDeleted': true});
+      await settleWrite(
+        _getCollection(workspaceId).doc(goalId).update({'isDeleted': true}),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

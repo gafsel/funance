@@ -1,85 +1,195 @@
 import 'dart:async';
 
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/firestore/offline_write.dart';
-import 'package:fake_async/fake_async.dart';
+import 'package:funances/core/firestore/sync_status.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 
 FirebaseFunctionsException _callableError(String code, [String? message]) =>
     FirebaseFunctionsException(code: code, message: message ?? '');
 
+/// Coleta o que a tarja receberia enquanto o corpo roda.
+List<WriteFailureReason> _collectFailures(void Function() body) {
+  final reasons = <WriteFailureReason>[];
+  final sub = WriteFailures.stream.listen((f) => reasons.add(f.reason));
+
+  try {
+    body();
+  } finally {
+    sub.cancel();
+  }
+
+  return reasons;
+}
+
 void main() {
-  group('settleWrite', () {
-    test('escrita confirmada pelo servidor completa na hora', () {
+  setUp(() {
+    SyncStatusLatch.reset();
+    PendingWrites.reset();
+  });
+
+  group('settleWrite offline', () {
+    test('desiste rápido e devolve "pendente", em vez de nunca', () {
       fakeAsync((async) {
-        final completer = Completer<void>();
-        bool done = false;
+        SyncStatusLatch.update(SyncStatus.offline);
 
-        settleWrite(completer.future).then((_) => done = true);
-
-        completer.complete();
-        async.flushMicrotasks();
-
-        expect(done, isTrue);
-      });
-    });
-
-    test('sem rede, a espera acaba no prazo em vez de nunca', () {
-      fakeAsync((async) {
         // O Firestore offline nunca completa este Future: o dado já está no
         // cache local, mas o servidor não confirmou. Era aqui que o botão
         // ficava girando para sempre.
         final nunca = Completer<void>();
-        bool done = false;
+        WriteOutcome? outcome;
 
-        settleWrite(
-          nunca.future,
-          grace: const Duration(seconds: 5),
-        ).then((_) => done = true);
+        settleWrite(nunca.future).then((o) => outcome = o);
 
-        async.elapse(const Duration(seconds: 4));
-        expect(done, isFalse, reason: 'antes do prazo ainda vale esperar');
+        async.elapse(const Duration(seconds: 1));
+        expect(outcome, isNull, reason: 'antes do prazo ainda vale esperar');
 
         async.elapse(const Duration(seconds: 2));
-        expect(done, isTrue);
+        expect(outcome, WriteOutcome.pending);
       });
     });
 
-    test('erro dentro do prazo continua chegando à tela', () {
+    test('offline não acusa falha: não há nada de errado em estar sem rede', () {
+      final reasons = _collectFailures(() {
+        fakeAsync((async) {
+          SyncStatusLatch.update(SyncStatus.offline);
+          settleWrite(Completer<void>().future);
+          async.elapse(const Duration(seconds: 5));
+        });
+      });
+
+      expect(reasons, isEmpty);
+    });
+
+    test('a escrita pendente entra na contagem que alimenta a tarja', () {
       fakeAsync((async) {
-        // Uma negativa das rules precisa virar erro visível, não "salvo".
+        SyncStatusLatch.update(SyncStatus.offline);
+
+        final write = Completer<void>();
+        settleWrite(write.future);
+        async.elapse(const Duration(seconds: 3));
+
+        expect(PendingWrites.count, 1);
+
+        // Rede voltou e o servidor confirmou.
+        write.complete();
+        async.flushMicrotasks();
+
+        expect(PendingWrites.count, 0);
+      });
+    });
+  });
+
+  group('settleWrite online', () {
+    test('negativa das rules com rede lenta ainda chega como ERRO', () {
+      fakeAsync((async) {
+        // Este era o furo: o prazo curto dava a escrita como salva, o
+        // permission-denied chegava depois e o item sumia da lista sem aviso.
         final falha = Completer<void>();
         Object? capturado;
 
-        settleWrite(falha.future).catchError((Object e) => capturado = e);
+        settleWrite(falha.future).catchError((Object e) {
+          capturado = e;
+          return WriteOutcome.pending;
+        });
 
+        async.elapse(const Duration(seconds: 12));
         falha.completeError(StateError('permission-denied'));
         async.elapse(const Duration(seconds: 1));
 
         expect(capturado, isA<StateError>());
+        expect(PendingWrites.count, 0);
       });
     });
 
-    test('erro depois do prazo não vira exceção sem dono', () {
+    test('confirmação rápida devolve "confirmado"', () {
       fakeAsync((async) {
-        final falha = Completer<void>();
-        bool done = false;
+        final write = Completer<void>();
+        WriteOutcome? outcome;
 
-        settleWrite(
-          falha.future,
-          grace: const Duration(seconds: 5),
-        ).then((_) => done = true);
+        settleWrite(write.future).then((o) => outcome = o);
 
-        async.elapse(const Duration(seconds: 6));
-        expect(done, isTrue);
+        write.complete();
+        async.flushMicrotasks();
 
-        // A tela já seguiu; o erro atrasado não tem para onde voltar e não
-        // pode derrubar a zona do app.
-        falha.completeError(StateError('tarde demais'));
-        async.elapse(const Duration(seconds: 1));
+        expect(outcome, WriteOutcome.confirmed);
+        expect(PendingWrites.count, 0);
       });
+    });
+
+    test('30 s sem resposta vira pendente E aviso visível', () {
+      late List<WriteFailureReason> reasons;
+      WriteOutcome? outcome;
+
+      reasons = _collectFailures(() {
+        fakeAsync((async) {
+          settleWrite(Completer<void>().future).then((o) => outcome = o);
+          async.elapse(const Duration(seconds: 31));
+        });
+      });
+
+      // Online e mudo por 30 s não é "sem rede": alguma coisa está errada e o
+      // usuário precisa saber que o que ele salvou não subiu.
+      expect(outcome, WriteOutcome.pending);
+      expect(reasons, [WriteFailureReason.tookTooLong]);
+    });
+  });
+
+  group('falha tardia', () {
+    test('vira aviso visível, e não só uma linha de log', () {
+      final reasons = _collectFailures(() {
+        fakeAsync((async) {
+          SyncStatusLatch.update(SyncStatus.offline);
+
+          final falha = Completer<void>();
+          settleWrite(falha.future);
+
+          async.elapse(const Duration(seconds: 3));
+          expect(PendingWrites.count, 1);
+
+          // A tela que salvou já seguiu; o erro não tem mais para onde voltar.
+          falha.completeError(StateError('permission-denied'));
+          async.elapse(const Duration(seconds: 1));
+
+          expect(PendingWrites.count, 0);
+        });
+      });
+
+      expect(reasons, [WriteFailureReason.permissionDenied]);
+    });
+
+    test('motivo desconhecido não some, só perde o detalhe', () {
+      expect(
+        writeFailureReasonOf(StateError('deu ruim')),
+        WriteFailureReason.unknown,
+      );
+      expect(
+        writeFailureReasonOf(StateError('not-found: sumiu')),
+        WriteFailureReason.notFound,
+      );
+    });
+  });
+
+  group('estado que a tarja mostra', () {
+    test('offline vence pendência: é a informação acionável', () {
+      expect(effectiveSyncStatus(SyncStatus.offline, 3), SyncStatus.offline);
+    });
+
+    test('pendência em outra coleção aparece mesmo com metadados "online"', () {
+      // Os metadados falam só do documento do usuário; a escrita pendente
+      // pode estar em qualquer coleção.
+      expect(
+        effectiveSyncStatus(SyncStatus.online, 1),
+        SyncStatus.pendingWrites,
+      );
+    });
+
+    test('sem pendência e online, a tarja não aparece', () {
+      expect(effectiveSyncStatus(SyncStatus.online, 0), SyncStatus.online);
     });
   });
 
@@ -105,7 +215,6 @@ void main() {
     });
 
     test('erro de negócio embrulhado mantém o diagnóstico', () {
-      // Os repositórios convertem para BusinessException guardando o original.
       final wrapped = BusinessException(
         ErrorCode.unknown,
         originalError: _callableError('unavailable'),

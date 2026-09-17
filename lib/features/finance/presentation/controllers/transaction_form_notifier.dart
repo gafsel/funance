@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:async';
 
 import 'package:funances/core/analytics/analytics_service.dart';
@@ -336,6 +337,13 @@ class TransactionFormNotifier
     );
   }
 
+  /// Se o SERVIDOR confirmou o último save.
+  ///
+  /// A tela precisa disso para escolher o que prometer: "pendente" significa
+  /// que as parcelas, que nascem de um trigger no servidor, ainda não existem.
+  /// Fica aqui, e não em `state`, porque `state` é do notifier.
+  WriteOutcome get lastWriteOutcome => state.lastWriteOutcome;
+
   @override
   Future<dynamic> submit() async {
     // `state.status` já é o status NOVO quando chegamos aqui — a UI chama
@@ -350,9 +358,12 @@ class TransactionFormNotifier
       if (state.creation) {
         final saved = await financeService.addOrder(order);
 
-        state = state.copyWith(orderId: saved.id);
+        state = state.copyWith(
+          orderId: saved.value.id,
+          lastWriteOutcome: saved.outcome,
+        );
 
-        result = saved;
+        result = saved.value;
       } else {
         await financeService.updateOrder(order);
 

@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/files/picked_document.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -54,7 +55,7 @@ class UserRepositoryImpl implements IUserRepository {
       data['lastLogin'] = Timestamp.fromDate(user.lastLogin!);
     }
 
-    await _collection.doc(user.id).set(data);
+    await settleWrite(_collection.doc(user.id).set(data));
   }
 
   @override
@@ -72,7 +73,7 @@ class UserRepositoryImpl implements IUserRepository {
       );
     }
 
-    await _collection.doc(id).update(updateData);
+    await settleWrite(_collection.doc(id).update(updateData));
   }
 
   @override

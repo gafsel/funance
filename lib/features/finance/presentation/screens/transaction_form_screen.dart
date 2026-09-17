@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -268,8 +269,26 @@ class TransactionFormScreen extends ConsumerWidget {
           if (result == null) return;
 
           unawaited(HapticFeedback.mediumImpact());
+
+          // O que prometer depende de o servidor ter confirmado. As parcelas
+          // do lançamento nascem de um trigger no servidor: enquanto a escrita
+          // estiver pendente elas não existem em lugar nenhum, e dizer
+          // "salvo!" faria o usuário procurar na lista algo que ainda não está
+          // lá — foi assim que o lançamento "sumia" offline.
+          final pendingSync =
+              notifier.lastWriteOutcome == WriteOutcome.pending;
+
           messenger.showSnackBar(
-            SnackBar(content: Text(l10n.transactionSaveSuccess)),
+            SnackBar(
+              content: Text(
+                pendingSync
+                    ? l10n.transactionSavePendingSync
+                    : l10n.transactionSaveSuccess,
+              ),
+              duration: pendingSync
+                  ? const Duration(seconds: 6)
+                  : const Duration(seconds: 4),
+            ),
           );
 
           // F3.2 — o convite é decidido ANTES do pop (o `ref` desta tela

@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/repositories/automatic_transaction_repository.dart';
@@ -26,12 +27,18 @@ class AutomaticTransactionRepositoryImpl implements IAutomaticTransactionReposit
 
   @override
   Future<void> saveTransaction(String workspaceId, AutomaticTransactionModel transaction) async {
-    await _getCollection(workspaceId).doc(transaction.id).set(transaction.toJson());
+    await settleWrite(
+      _getCollection(workspaceId).doc(transaction.id).set(transaction.toJson()),
+    );
   }
 
   @override
   Future<void> updateTransaction(String workspaceId, AutomaticTransactionModel transaction) async {
-    await _getCollection(workspaceId).doc(transaction.id).update(transaction.toJson());
+    await settleWrite(
+      _getCollection(
+        workspaceId,
+      ).doc(transaction.id).update(transaction.toJson()),
+    );
   }
 
   @override
@@ -44,12 +51,12 @@ class AutomaticTransactionRepositoryImpl implements IAutomaticTransactionReposit
     // Adiciona no novo workspace
     batch.set(_getCollection(toWorkspaceId).doc(transaction.id), transaction.toJson());
     
-    await batch.commit();
+    await settleWrite(batch.commit());
   }
 
   @override
   Future<void> deleteTransaction(String workspaceId, String id) async {
-    await _getCollection(workspaceId).doc(id).delete();
+    await settleWrite(_getCollection(workspaceId).doc(id).delete());
   }
 
   @override

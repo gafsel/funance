@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:funances/features/workspace/data/models/workspace_mapper.dart';
@@ -88,14 +89,14 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
       // Convert to Timestamp for Firestore
       data['createdAt'] = Timestamp.now();
 
-      DocumentReference docRef;
-      if (workspace.id.isEmpty) {
-        docRef = await _firestore.collection(_collection).add(data);
-      } else {
-        docRef = _firestore.collection(_collection).doc(workspace.id);
+      // `doc()` gera o id localmente: o `add()` que havia aqui só devolvia
+      // a referência depois da resposta do servidor, e offline isso nunca
+      // chegava.
+      final DocumentReference docRef = workspace.id.isEmpty
+          ? _firestore.collection(_collection).doc()
+          : _firestore.collection(_collection).doc(workspace.id);
 
-        await docRef.set(data);
-      }
+      await settleWrite(docRef.set(data));
 
       return workspace.copyWith(id: docRef.id);
     } catch (e, s) {
@@ -135,7 +136,9 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         'lastOnboardingStep': json['lastOnboardingStep'],
         'onboardingCompleted': json['onboardingCompleted'],
       };
-      await _firestore.collection(_collection).doc(workspace.id).update(data);
+      await settleWrite(
+        _firestore.collection(_collection).doc(workspace.id).update(data),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -157,7 +160,9 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   @override
   Future<void> deleteWorkspace(String workspaceId) async {
     try {
-      await _firestore.collection(_collection).doc(workspaceId).delete();
+      await settleWrite(
+        _firestore.collection(_collection).doc(workspaceId).delete(),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

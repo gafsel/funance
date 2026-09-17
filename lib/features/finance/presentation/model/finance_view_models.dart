@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -185,6 +186,10 @@ sealed class TransactionFormState with _$TransactionFormState {
     // A parcela como está persistida. É ela que responde "o que mudou neste
     // save" — `status`/`amount`/`dueDate` do estado já são os valores novos.
     InstallmentModel? original,
+    // Se o SERVIDOR confirmou o último save. "Pendente" muda o que a tela
+    // promete: as parcelas do lançamento nascem de um trigger no servidor e
+    // não existem enquanto a escrita não subir.
+    @Default(WriteOutcome.confirmed) WriteOutcome lastWriteOutcome,
     // Pool em que a transferência vai cair, para o aviso no formulário.
     TransferAccounting? transferAccounting,
     // Verdadeiro enquanto o formulário procura a conta padrão da categoria.

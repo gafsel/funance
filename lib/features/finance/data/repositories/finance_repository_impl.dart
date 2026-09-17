@@ -147,7 +147,10 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
-  Future<OrderModel> addOrder(String workspaceId, OrderModel order) async {
+  Future<Written<OrderModel>> addOrder(
+    String workspaceId,
+    OrderModel order,
+  ) async {
     try {
       final data = order.toJson();
       data.remove('id');
@@ -155,8 +158,9 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       // `add()` que havia aqui só devolvia a referência depois que o servidor
       // respondia, e offline isso nunca acontecia.
       final doc = _getWorkspaceDoc(workspaceId).collection('orders').doc();
-      await settleWrite(doc.set(data));
-      return order.copyWith(id: doc.id);
+      final WriteOutcome outcome = await settleWrite(doc.set(data));
+
+      return (value: order.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

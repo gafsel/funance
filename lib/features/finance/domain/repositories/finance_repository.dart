@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/model/core_models.dart';
 
 import '../models/category_planning_model.dart';
@@ -24,7 +25,13 @@ abstract class IFinanceRepository {
 
   Future<OrderModel?> getOrder(String workspaceId, String orderId);
 
-  Future<OrderModel> addOrder(String workspaceId, OrderModel order);
+  /// Cria o pedido e diz se o SERVIDOR confirmou.
+  ///
+  /// A diferença importa: as parcelas do pedido nascem de um trigger no
+  /// servidor. Enquanto a escrita estiver pendente, elas não existem em
+  /// lugar nenhum — nem no cache local — e as telas que as leem aparecem
+  /// vazias. Quem chama precisa poder contar isso ao usuário.
+  Future<Written<OrderModel>> addOrder(String workspaceId, OrderModel order);
 
   Future<void> updateOrder(String workspaceId, OrderModel order);
 

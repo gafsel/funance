@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/features/workspace/data/models/category_mapper.dart';
 import '../../domain/models/category_model.dart';
@@ -37,7 +38,12 @@ class CategoryRepositoryImpl implements ICategoryRepository {
     try {
       final data = category.toJson();
       data.remove('id');
-      final doc = await _getCollection(workspaceId).add(data);
+      // `doc()` gera o id localmente; o `add()` que havia aqui só
+      // devolvia a referência depois da resposta do servidor, e offline
+      // isso nunca chegava.
+      final doc = _getCollection(workspaceId).doc();
+      await settleWrite(doc.set(data));
+
       return category.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
@@ -56,7 +62,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
     try {
       final data = category.toJson();
       data.remove('id');
-      await _getCollection(workspaceId).doc(category.id).update(data);
+      await settleWrite(_getCollection(workspaceId).doc(category.id).update(data));
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -69,7 +75,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   @override
   Future<void> deleteCategory(String workspaceId, String categoryId) async {
     try {
-      await _getCollection(workspaceId).doc(categoryId).delete();
+      await settleWrite(_getCollection(workspaceId).doc(categoryId).delete());
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
