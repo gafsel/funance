@@ -1,6 +1,6 @@
 import 'dart:developer' as developer;
 import 'dart:async';
-import 'dart:io';
+import 'package:funances/core/platform/app_platform.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_notification_listener/flutter_notification_listener.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
@@ -29,7 +29,7 @@ class NotificationListenerService implements INotificationListenerService {
 
   @override
   Future<void> startListening() async {
-    if (!Platform.isAndroid) {
+    if (!AppPlatform.isAndroid) {
       return;
     }
 
@@ -51,7 +51,7 @@ class NotificationListenerService implements INotificationListenerService {
 
   @override
   Future<void> stopListening() async {
-    if (!Platform.isAndroid) {
+    if (!AppPlatform.isAndroid) {
       return;
     }
 
@@ -60,7 +60,7 @@ class NotificationListenerService implements INotificationListenerService {
 
   @override
   Future<bool> isPermissionGranted() async {
-    if (!Platform.isAndroid) {
+    if (!AppPlatform.isAndroid) {
       return false;
     }
 
@@ -69,7 +69,7 @@ class NotificationListenerService implements INotificationListenerService {
 
   @override
   Future<void> openPermissionSettings() async {
-    if (!Platform.isAndroid) {
+    if (!AppPlatform.isAndroid) {
       return;
     }
 
@@ -158,4 +158,28 @@ class NotificationListenerService implements INotificationListenerService {
     
     return null;
   }
+}
+
+/// Implementação inerte para toda plataforma que não é Android.
+///
+/// O `flutter_notification_listener` só tem lado nativo no Android; na web
+/// nem isso — tocar no canal de lá levanta `MissingPluginException`. Antes o
+/// serviço real era registrado em todo lugar e cada chamada precisava se
+/// defender sozinha. Agora quem não é Android recebe este objeto, e o
+/// provider deixa de ser o lugar onde a plataforma é decidida por acidente.
+class NoopNotificationListenerService implements INotificationListenerService {
+  const NoopNotificationListenerService();
+
+  @override
+  Future<void> startListening() async {}
+
+  @override
+  Future<void> stopListening() async {}
+
+  /// Sem permissão possível: a tela que pergunta isso não deve nem aparecer.
+  @override
+  Future<bool> isPermissionGranted() async => false;
+
+  @override
+  Future<void> openPermissionSettings() async {}
 }

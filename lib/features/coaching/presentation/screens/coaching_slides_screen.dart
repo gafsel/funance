@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/utils/color_extension.dart';
+import 'package:funances/core/widgets/simple_markdown.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -50,7 +50,10 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
   /// Rotas internas que um slide pode acionar. A IA pode alucinar um
   /// `actionPath` fora deste conjunto; nesse caso o botão não é exibido.
+  /// Precisa ser a MESMA lista de `coaching_action_path.model.ts` no backend
+  /// (ver functions/README.md, "Rotas do coaching").
   static const _allowedActionPaths = {
+    '/',
     '/planning',
     '/planning-50-30-20',
     '/goals/form',
@@ -141,33 +144,29 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
                               ),
                             ),
                             const SizedBox(height: 24),
-                            MarkdownBody(
+                            SimpleMarkdown(
                               data: slide.message,
-                              selectable: true,
-                              onTapLink: (text, href, title) {
+                              textAlign: TextAlign.center,
+                              onTapLink: (href) {
                                 // Só abre links http(s) válidos — a IA pode
                                 // gerar URLs malformadas ou de outros esquemas.
-                                final uri = href != null
-                                    ? Uri.tryParse(href)
-                                    : null;
+                                final uri = Uri.tryParse(href);
                                 if (uri != null &&
                                     (uri.scheme == 'https' ||
                                         uri.scheme == 'http')) {
                                   launchUrl(uri);
                                 }
                               },
-                              styleSheet: MarkdownStyleSheet(
-                                p: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                ),
-                                a: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: Colors.white,
-                                ),
-                                textAlign: WrapAlignment.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                              ),
+                              linkStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                                decorationColor: Colors.white,
                               ),
                             ),
                             if (slide.actionLabel != null &&

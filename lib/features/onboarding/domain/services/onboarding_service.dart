@@ -56,7 +56,7 @@ class OnboardingService {
       members: [user.id],
     );
 
-    return await workspaceRepository.createWorkspace(workspace);
+    return (await workspaceRepository.createWorkspace(workspace)).value;
   }
 
   Future<void> updateWorkspace(WorkspaceModel workspace) async {
@@ -106,15 +106,17 @@ class OnboardingService {
     await planningService.setLimits(
       month: today.monthKey,
       limits: suggestions.plannings
-          .map((planning) => (
-                category: planning.category,
-                amount: planning.amount,
-              ))
+          .map(
+            (planning) =>
+                (category: planning.category, amount: planning.amount),
+          )
           .toList(),
     );
 
     await Future.wait(
-      suggestions.goals.map((goal) => goalRepository.addGoal(workspace.id, goal)),
+      suggestions.goals.map(
+        (goal) => goalRepository.addGoal(workspace.id, goal),
+      ),
     );
   }
 }

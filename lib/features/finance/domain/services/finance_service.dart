@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
@@ -21,21 +22,24 @@ class FinanceService {
     required this.categoryRepository,
   });
 
-  Future<OrderModel> addOrder(OrderModel order) async {
+  Future<Written<OrderModel>> addOrder(OrderModel order) async {
     final processedOrder = await _processVirtualCategory(order);
     return await repository.addOrder(workspaceId, processedOrder);
   }
 
-  Future<void> updateOrder(OrderModel order) async {
+  Future<WriteOutcome> updateOrder(OrderModel order) async {
     final processedOrder = await _processVirtualCategory(order);
-    await repository.updateOrder(workspaceId, processedOrder);
+    return await repository.updateOrder(workspaceId, processedOrder);
   }
 
-  Future<void> updateInstallment(InstallmentModel installment) async {
+  Future<WriteOutcome> updateInstallment(InstallmentModel installment) async {
     final processedInstallment = await _processVirtualCategoryInstallment(
       installment,
     );
-    await repository.updateInstallment(workspaceId, processedInstallment);
+    return await repository.updateInstallment(
+      workspaceId,
+      processedInstallment,
+    );
   }
 
   Future<AccountModel> getAccount(String accountId) async {

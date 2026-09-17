@@ -1,11 +1,11 @@
-import 'dart:io';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
 
 class UserAvatar extends StatelessWidget {
   final String? displayName;
   final String? photoUrl;
-  final File? imageFile;
+  final PickedDocument? imageFile;
   final double radius;
   final VoidCallback? onEdit;
 
@@ -23,7 +23,9 @@ class UserAvatar extends StatelessWidget {
     ImageProvider? imageProvider;
 
     if (imageFile != null) {
-      imageProvider = FileImage(imageFile!);
+      // MemoryImage e não FileImage: o recorte chega em bytes, que é o
+      // que a web tem, e evita uma segunda leitura do disco fora dela.
+      imageProvider = MemoryImage(imageFile!.bytes);
     } else if (photoUrl != null && photoUrl!.isNotEmpty) {
       imageProvider = NetworkImage(photoUrl!);
     }

@@ -173,6 +173,40 @@ class AppLocalizationsEn extends AppLocalizations {
       'Google Sign-In configuration error. Please verify if the SHA-1 key has been added to the Firebase Console.';
 
   @override
+  String get errorSignInPopupBlocked =>
+      'Your browser blocked the Google window. We\'re signing you in on this tab instead — if nothing happens, allow pop-ups for this site and try again.';
+
+  @override
+  String get errorSignInCancelled => 'Sign-in cancelled.';
+
+  @override
+  String get errorSignInRedirecting => 'Redirecting to Google...';
+
+  @override
+  String get errorSignInUnauthorizedDomain =>
+      'This address is not authorized to sign in. Add the domain under Authentication > Settings > Authorized domains in the Firebase Console.';
+
+  @override
+  String get errorAccountExistsWithDifferentCredential =>
+      'An account with this email already exists using another method. Sign in with email and password.';
+
+  @override
+  String get errorSignInProviderDisabled =>
+      'This sign-in method is disabled for the project. Enable it under Authentication > Sign-in method.';
+
+  @override
+  String get offlineBannerOffline =>
+      'You\'re offline. Keep browsing and editing; we\'ll sync when the network is back.';
+
+  @override
+  String get offlineBannerPending =>
+      'Saved on this device. Syncing to the cloud...';
+
+  @override
+  String get errorOfflineCallable =>
+      'This action needs an internet connection. Reconnect and try again.';
+
+  @override
   String get onboardingWelcomeTitle => 'Welcome to Funances!';
 
   @override
@@ -2414,4 +2448,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String compassHistoryPoint(String month, String score) {
     return '$month: $score of 100';
   }
+
+  @override
+  String get writeFailedReasonPermission =>
+      'you do not have permission for this change';
+
+  @override
+  String get writeFailedReasonNotFound => 'the item no longer exists';
+
+  @override
+  String get writeFailedReasonTimeout => 'the server did not respond';
+
+  @override
+  String get writeFailedReasonUnknown => 'the server rejected the change';
+
+  @override
+  String get transactionSavePendingSync =>
+      'Saved on this device. Instalments appear when the connection is back.';
+
+  @override
+  String get uploadFolderNotSupported => 'Drop a file, not a folder.';
+
+  @override
+  String writeFailedEntity(String entity, String reason) {
+    return 'Could not save $entity: $reason';
+  }
+
+  @override
+  String get writeEntityTransaction => 'the transaction';
+
+  @override
+  String get writeEntityInstallment => 'the instalment';
+
+  @override
+  String get writeEntityPlanning => 'the plan';
+
+  @override
+  String get writeEntityAccount => 'the account';
+
+  @override
+  String get writeEntityCategory => 'the category';
+
+  @override
+  String get writeEntityGoal => 'the goal';
+
+  @override
+  String get writeEntityInvite => 'the invite';
+
+  @override
+  String get writeEntityWorkspace => 'the workspace';
+
+  @override
+  String get writeEntityProfile => 'the profile';
+
+  @override
+  String get writeEntityAutomaticTransaction => 'the automatic transaction';
+
+  @override
+  String get writeEntityReconciliation => 'the reconciliation';
+
+  @override
+  String get savePendingSync =>
+      'Saved on this device. It syncs when the connection is back.';
+
+  @override
+  String get accountSavePendingSync =>
+      'Saved on this device. Opening balance and invoice appear when the connection is back.';
 }

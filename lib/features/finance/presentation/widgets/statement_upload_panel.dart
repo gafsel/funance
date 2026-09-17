@@ -1,8 +1,11 @@
-import 'dart:io';
+import 'dart:io' show File;
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/platform/app_platform.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -10,7 +13,10 @@ import 'package:funances/features/finance/domain/services/statement_upload_limit
 
 class StatementUploadPanel extends StatefulWidget {
   final List<String> allowedExtensions;
-  final Function(File file, String name) onFileSelected;
+
+  /// Recebe o arquivo já lido. O painel entrega bytes, não caminho: é o que a
+  /// web tem para oferecer e o que o Storage quer em qualquer plataforma.
+  final void Function(PickedDocument document) onFileSelected;
   final String title;
   final String dragOverTitle;
   final String supportedFormatsText;
@@ -64,34 +70,123 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
     _borderAnimationController.stop();
   }
 
-  Future<void> _handleDroppedFiles(List<dynamic> files) async {
+  Future<void> _handleDroppedFiles(List<DropItem> files) async {
     if (files.isEmpty) return;
 
-    final dropped = files.first;
+    final DropItem dropped = files.first;
 
-    _accept(File(dropped.path as String), dropped.name as String);
+    // Pasta arrastada. `readAsBytes` numa pasta falha, e falhava calada: o
+    // usuário soltava a pasta e não acontecia nada.
+    if (dropped is DropItemDirectory) {
+      _warn(context.l10n.uploadFolderNotSupported);
+      return;
+    }
+
+    // O tamanho vem ANTES dos bytes: um extrato de 50 MB não precisa passar
+    // pela memória do app só para ser recusado.
+    final int declaredSize = await dropped.length();
+
+    if (!mounted || _rejectsDeclaredSize(declaredSize)) return;
+
+    // `readAsBytes` do desktop_drop funciona nas duas pontas: no desktop lê do
+    // disco, na web lê o blob que o navegador entregou.
+    final Uint8List bytes = await dropped.readAsBytes();
+
+    if (!mounted) return;
+
+    _accept(
+      PickedDocument(
+        name: dropped.name,
+        bytes: bytes,
+        // Na web o `path` do item arrastado é uma URL de blob, não um
+        // caminho. Guardá-la convidaria alguém a tentar abri-la mais tarde.
+        path: AppPlatform.hasFileSystem ? dropped.path : null,
+      ),
+    );
+  }
+
+  /// true quando o tamanho declarado já reprova o arquivo — e avisa.
+  ///
+  /// Zero significa "não sei": alguns seletores não declaram tamanho. Aí não
+  /// dá para decidir nada aqui, e quem resolve é a checagem final, sobre os
+  /// bytes de verdade.
+  ///
+  /// ONDE ISTO DE FATO ECONOMIZA MEMÓRIA: no arrastar-e-soltar e na escolha
+  /// fora da web. Na web o `file_picker` lê os bytes DENTRO de `pickFiles`,
+  /// antes de devolver qualquer coisa — não há caminho no navegador, então
+  /// não existe um "só os metadados" para pedir. Ali esta checagem apenas
+  /// evita o trabalho seguinte (validar, montar o documento, subir ao
+  /// Storage); o arquivo já passou pela memória.
+  bool _rejectsDeclaredSize(int size) {
+    if (size <= 0 || StatementUploadLimits.isWithinLimit(size)) return false;
+
+    _warn(
+      context.l10n.uploadFileTooLarge(
+        _humanSize(size),
+        StatementUploadLimits.maxMegabytes,
+      ),
+    );
+
+    return true;
   }
 
   Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: widget.allowedExtensions,
+      // Na web não existe caminho: os bytes são a única forma de receber o
+      // arquivo, e sem isto `bytes` e `path` vinham os dois nulos. Fora da
+      // web pedimos só o caminho, para poder recusar pelo tamanho ANTES de
+      // carregar o arquivo inteiro na memória.
+      withData: !AppPlatform.hasFileSystem,
     );
 
-    if (result == null || result.files.single.path == null) return;
+    if (result == null || result.files.isEmpty) return;
 
-    _accept(File(result.files.single.path!), result.files.single.name);
+    if (!mounted) return;
+
+    final PlatformFile picked = result.files.single;
+
+    if (_rejectsDeclaredSize(picked.size)) return;
+
+    final Uint8List? bytes = picked.bytes ?? _readFromDisk(picked.path);
+
+    if (bytes == null) {
+      _warn(context.l10n.uploadFileUnreadable);
+      return;
+    }
+
+    _accept(PickedDocument(name: picked.name, bytes: bytes, path: picked.path));
   }
 
-  /// Só entrega o arquivo para quem vai enviá-lo se ele existir, for de um
-  /// formato aceito e couber no limite da análise. Mandar para o Storage um
+  /// Plano B de desktop/mobile: o seletor pode devolver só o caminho.
+  ///
+  /// Na web nunca há caminho, e `AppPlatform.hasFileSystem` é constante de
+  /// compilação — o `dart:io` some do bundle do navegador.
+  ///
+  /// A leitura é síncrona de propósito: é um arquivo de no máximo 10 MB que o
+  /// usuário acabou de escolher, e o caminho assíncrono só adiantaria a
+  /// resposta de um diálogo que já fechou.
+  Uint8List? _readFromDisk(String? path) {
+    if (path == null || !AppPlatform.hasFileSystem) return null;
+
+    try {
+      return File(path).readAsBytesSync();
+    } catch (_) {
+      // Arquivo que sumiu entre a escolha e a leitura.
+      return null;
+    }
+  }
+
+  /// Só entrega o arquivo para quem vai enviá-lo se ele tiver conteúdo, for de
+  /// um formato aceito e couber no limite da análise. Mandar para o Storage um
   /// arquivo que o servidor vai recusar gasta a banda do usuário para
   /// terminar em erro.
-  void _accept(File file, String name) {
+  void _accept(PickedDocument document) {
     final l10n = context.l10n;
 
     if (!StatementUploadLimits.isAllowedExtension(
-      name,
+      document.name,
       widget.allowedExtensions,
     )) {
       _warn(
@@ -103,26 +198,24 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
     }
 
     // Arquivo que sumiu entre a escolha e o envio (pasta temporária limpa,
-    // download cancelado) não pode virar "0 byte", que passaria no limite e
-    // subiria um arquivo vazio para a análise.
-    if (!file.existsSync()) {
+    // download cancelado, blob revogado) chega aqui vazio. Zero byte passaria
+    // no limite e subiria um arquivo vazio para a análise.
+    if (document.sizeInBytes == 0) {
       _warn(l10n.uploadFileUnreadable);
       return;
     }
 
-    final bytes = file.lengthSync();
-
-    if (!StatementUploadLimits.isWithinLimit(bytes)) {
+    if (!StatementUploadLimits.isWithinLimit(document.sizeInBytes)) {
       _warn(
         l10n.uploadFileTooLarge(
-          _humanSize(bytes),
+          _humanSize(document.sizeInBytes),
           StatementUploadLimits.maxMegabytes,
         ),
       );
       return;
     }
 
-    widget.onFileSelected(file, name);
+    widget.onFileSelected(document);
   }
 
   void _warn(String message) {

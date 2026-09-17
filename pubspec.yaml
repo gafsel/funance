@@ -47,11 +47,24 @@ dependencies:
   logger: ^2.5.0
   json_annotation: ^4.9.0
   flutter_riverpod: ^2.6.1
-  google_sign_in: 6.2.1
+  # Fica na linha 6.x: a 7.x reescreve a API de entrada (`initialize()` +
+  # `authenticate()`) nas plataformas nativas, que é justamente onde este
+  # pacote ainda usa o plugin — e onde não temos como verificar a troca.
+  #
+  # Na web ele NÃO participa mais do login (quem fala com o Google é o
+  # `signInWithPopup` do Firebase Auth), mas o `google_sign_in_web` continua
+  # sendo registrado pelo Flutter e ainda baixa o `gsi/client` em toda sessão.
+  # É o preço de manter um único pacote para as outras plataformas: não há
+  # como desregistrar a implementação web de um plugin federado sem remover o
+  # plugin inteiro. São ~30 KB de um script do Google, sem efeito no login.
+  google_sign_in: ^6.2.1
   go_router: ^14.7.2
   flutter_localizations:
     sdk: flutter
-  flutter_slidable: ^4.0.3
+  # Só para `usePathUrlStrategy()`; entra por importação condicional e não
+  # chega aos builds nativos.
+  flutter_web_plugins:
+    sdk: flutter
   fl_chart: ^1.2.0
   file_picker: ^8.0.3
   cloud_functions: ^5.6.2
@@ -62,7 +75,6 @@ dependencies:
   rxdart: ^0.28.0
   confetti: ^0.8.0
   shared_preferences: ^2.3.4
-  flutter_markdown: ^0.7.7+1
   url_launcher: ^6.3.2
   flutter_notification_listener: ^1.4.0
   image_picker: ^1.2.2

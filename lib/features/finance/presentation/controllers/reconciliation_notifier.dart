@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -42,11 +42,11 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
     });
   }
 
-  Future<void> uploadFile(File file, {String? uploadId}) async {
-    state = state.copyWith(selectedFile: file);
+  Future<void> uploadFile(PickedDocument document, {String? uploadId}) async {
+    state = state.copyWith(selectedFile: document);
 
     final matches = await reconciliationService.loadMatchesForDocument(
-      file: file,
+      document: document,
       accountId: state.selectedAccount.id,
       uploadId: uploadId,
     );

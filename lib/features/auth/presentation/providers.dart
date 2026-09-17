@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:funances/features/auth/domain/services/auth_service.dart';
 import 'package:funances/features/auth/presentation/controller/login_form_notifier.dart';
@@ -20,6 +21,12 @@ class AuthDomainProviders {
 
   static final currentUser = Provider<UserModel?>((ref) {
     return ref.watch(user).value;
+  });
+
+  /// Erro que voltou junto com o redirect do Google, para a tela de login
+  /// mostrar assim que ela reaparecer.
+  static final redirectError = StreamProvider<ErrorCode>((ref) {
+    return ref.read(service).redirectErrors;
   });
 }
 

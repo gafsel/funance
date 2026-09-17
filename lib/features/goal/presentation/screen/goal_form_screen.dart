@@ -198,7 +198,13 @@ class _GoalAiAnalyzeButton extends ConsumerWidget {
                 // subia sem nenhum aviso na tela.
                 messenger.showSnackBar(
                   SnackBar(
-                    content: Text(callableErrorMessage(e, l10n.goalAiError)),
+                    content: Text(
+                      callableErrorMessage(
+                        e,
+                        l10n.goalAiError,
+                        offlineMessage: l10n.errorOfflineCallable,
+                      ),
+                    ),
                   ),
                 );
               }

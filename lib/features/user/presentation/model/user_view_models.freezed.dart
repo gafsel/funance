@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserProfileFormState {
 
- String get id; String get displayName; String get email; String? get photoUrl; File? get newPhotoFile; UserModel? get originalUser;
+ String get id; String get displayName; String get email; String? get photoUrl; PickedDocument? get newPhotoFile; UserModel? get originalUser;
 /// Create a copy of UserProfileFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $UserProfileFormStateCopyWith<$Res>  {
   factory $UserProfileFormStateCopyWith(UserProfileFormState value, $Res Function(UserProfileFormState) _then) = _$UserProfileFormStateCopyWithImpl;
 @useResult
 $Res call({
- String id, String displayName, String email, String? photoUrl, File? newPhotoFile, UserModel? originalUser
+ String id, String displayName, String email, String? photoUrl, PickedDocument? newPhotoFile, UserModel? originalUser
 });
 
 
@@ -69,7 +69,7 @@ as String,displayName: null == displayName ? _self.displayName : displayName // 
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,newPhotoFile: freezed == newPhotoFile ? _self.newPhotoFile : newPhotoFile // ignore: cast_nullable_to_non_nullable
-as File?,originalUser: freezed == originalUser ? _self.originalUser : originalUser // ignore: cast_nullable_to_non_nullable
+as PickedDocument?,originalUser: freezed == originalUser ? _self.originalUser : originalUser // ignore: cast_nullable_to_non_nullable
 as UserModel?,
   ));
 }
@@ -164,7 +164,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  File? newPhotoFile,  UserModel? originalUser)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfileFormState() when $default != null:
 return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser);case _:
@@ -185,7 +185,7 @@ return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newP
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  File? newPhotoFile,  UserModel? originalUser)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfileFormState():
 return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser);}
@@ -202,7 +202,7 @@ return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newP
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String email,  String? photoUrl,  File? newPhotoFile,  UserModel? originalUser)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfileFormState() when $default != null:
 return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser);case _:
@@ -224,7 +224,7 @@ class _UserProfileFormState implements UserProfileFormState {
 @override final  String displayName;
 @override final  String email;
 @override final  String? photoUrl;
-@override final  File? newPhotoFile;
+@override final  PickedDocument? newPhotoFile;
 @override final  UserModel? originalUser;
 
 /// Create a copy of UserProfileFormState
@@ -257,7 +257,7 @@ abstract mixin class _$UserProfileFormStateCopyWith<$Res> implements $UserProfil
   factory _$UserProfileFormStateCopyWith(_UserProfileFormState value, $Res Function(_UserProfileFormState) _then) = __$UserProfileFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String displayName, String email, String? photoUrl, File? newPhotoFile, UserModel? originalUser
+ String id, String displayName, String email, String? photoUrl, PickedDocument? newPhotoFile, UserModel? originalUser
 });
 
 
@@ -281,7 +281,7 @@ as String,displayName: null == displayName ? _self.displayName : displayName // 
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,newPhotoFile: freezed == newPhotoFile ? _self.newPhotoFile : newPhotoFile // ignore: cast_nullable_to_non_nullable
-as File?,originalUser: freezed == originalUser ? _self.originalUser : originalUser // ignore: cast_nullable_to_non_nullable
+as PickedDocument?,originalUser: freezed == originalUser ? _self.originalUser : originalUser // ignore: cast_nullable_to_non_nullable
 as UserModel?,
   ));
 }

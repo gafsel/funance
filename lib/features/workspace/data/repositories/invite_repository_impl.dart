@@ -1,4 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
+
 import '../../domain/models/invite_model.dart';
 import '../../domain/repositories/invite_repository.dart';
 
@@ -13,7 +16,10 @@ class InviteRepositoryImpl implements IInviteRepository {
     data['createdAt'] = Timestamp.fromDate(invite.createdAt);
     data['status'] = invite.status.name;
 
-    await _firestore.collection(_collection).add(data);
+    await settleWrite(
+      _firestore.collection(_collection).doc().set(data),
+      entity: WriteEntity.invite,
+    );
   }
 
   @override
@@ -43,20 +49,29 @@ class InviteRepositoryImpl implements IInviteRepository {
 
   @override
   Future<void> respondToInvite(String inviteId, InviteStatus status) async {
-    await _firestore.collection(_collection).doc(inviteId).update({
-      'status': status.name,
-    });
+    await settleWrite(
+      _firestore.collection(_collection).doc(inviteId).update({
+        'status': status.name,
+      }),
+      entity: WriteEntity.invite,
+    );
   }
 
   @override
   Future<void> resendInvite(String inviteId) async {
-    await _firestore.collection(_collection).doc(inviteId).update({
-      'createdAt': Timestamp.now(),
-    });
+    await settleWrite(
+      _firestore.collection(_collection).doc(inviteId).update({
+        'createdAt': Timestamp.now(),
+      }),
+      entity: WriteEntity.invite,
+    );
   }
 
   @override
   Future<void> cancelInvite(String inviteId) async {
-    await _firestore.collection(_collection).doc(inviteId).delete();
+    await settleWrite(
+      _firestore.collection(_collection).doc(inviteId).delete(),
+      entity: WriteEntity.invite,
+    );
   }
 }

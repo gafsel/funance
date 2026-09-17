@@ -16,11 +16,15 @@ enum OnboardingSteps { type, name, accounts, planning, invites, success, done }
 
 /// Sequências de semanas perfeitas do workspace.
 ///
-/// O campo `weeklyStreaks` do documento tem DOIS formatos em produção: um
-/// número (o histórico, escrito por `updateWorkspaceStreaks`) e um mapa
-/// `{missions, plan}` (o placar novo). O app aceita os dois — um `as int`
-/// direto derrubaria a Home de todo mundo no dia do deploy do backend, e o
-/// contrário aconteceria se o app fosse atualizado primeiro.
+/// A sequência mora em DOIS campos do documento, porque o backend escreve os
+/// dois: `weeklyStreaks` como NÚMERO (o histórico, que `updateWorkspaceStreaks`
+/// sempre gravou) e `streaks` como MAPA `{missions, plan}` (o placar novo, e o
+/// único lugar onde a sequência de planejamento existe).
+///
+/// O app lê os dois e continua aceitando `weeklyStreaks` em formato de mapa,
+/// que é como uma versão anterior do cliente o escrevia. Um `as int` direto
+/// derrubaria a Home de todo mundo no dia do deploy do backend, e ler só o
+/// mapa quebraria o app antes desse deploy.
 @freezed
 sealed class WorkspaceStreaks with _$WorkspaceStreaks {
   const factory WorkspaceStreaks({
@@ -34,6 +38,33 @@ sealed class WorkspaceStreaks with _$WorkspaceStreaks {
 
   factory WorkspaceStreaks.fromJson(Map<String, dynamic> json) =>
       _$WorkspaceStreaksFromJson(json);
+}
+
+/// Junta o campo de topo `streaks` com o `weeklyStreaks` antes da desserialização.
+///
+/// O `streaks` manda no que ele souber dizer: é o campo que o backend mantém
+/// e o único que conhece a sequência de planejamento. O que faltar nele vem do
+/// `weeklyStreaks`, que numa base anterior ao placar novo é tudo o que existe.
+Map<String, dynamic> mergeWorkspaceStreaks(Map<String, dynamic> json) {
+  final Object? top = json['streaks'];
+  if (top is! Map) return json;
+
+  final WorkspaceStreaks legacy = workspaceStreaksFromJson(
+    json['weeklyStreaks'],
+  );
+
+  int pick(String key, int fallback) {
+    final Object? value = top[key];
+    return value is num ? value.toInt() : fallback;
+  }
+
+  return <String, dynamic>{
+    ...json,
+    'weeklyStreaks': <String, dynamic>{
+      'missions': pick('missions', legacy.missions),
+      'plan': pick('plan', legacy.plan),
+    },
+  };
 }
 
 /// Lê `weeklyStreaks` nos dois formatos. Número vira [WorkspaceStreaks.missions]
@@ -59,6 +90,10 @@ WorkspaceStreaks workspaceStreaksFromJson(Object? raw) {
 /// criação do workspace grava o documento inteiro, e as rules exigem
 /// `weeklyStreaks == 0` ali — um mapa seria negado. O servidor sobrescreve com
 /// o formato dele no primeiro cálculo.
+///
+/// O `streaks` não sai no `toJson` por isso mesmo: ele é campo do servidor, e
+/// o app que o escrevesse na criação só conseguiria zerar o que o backend
+/// acabou de calcular.
 int workspaceStreaksToJson(WorkspaceStreaks streaks) => streaks.missions;
 
 @freezed
@@ -99,5 +134,5 @@ sealed class WorkspaceModel with _$WorkspaceModel {
   }
 
   factory WorkspaceModel.fromJson(Map<String, dynamic> json) =>
-      _$WorkspaceModelFromJson(json);
+      _$WorkspaceModelFromJson(mergeWorkspaceStreaks(json));
 }

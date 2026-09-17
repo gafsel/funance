@@ -404,6 +404,60 @@ abstract class AppLocalizations {
   /// **'Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.'**
   String get errorGoogleSignInConfig;
 
+  /// No description provided for @errorSignInPopupBlocked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu navegador bloqueou a janela do Google. Liberamos o login nesta mesma aba — se nada acontecer, permita pop-ups para este site e tente de novo.'**
+  String get errorSignInPopupBlocked;
+
+  /// No description provided for @errorSignInCancelled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Login cancelado.'**
+  String get errorSignInCancelled;
+
+  /// No description provided for @errorSignInRedirecting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Redirecionando para o Google...'**
+  String get errorSignInRedirecting;
+
+  /// No description provided for @errorSignInUnauthorizedDomain.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este endereço não está autorizado a fazer login. Adicione o domínio em Authentication > Settings > Authorized domains no Firebase Console.'**
+  String get errorSignInUnauthorizedDomain;
+
+  /// No description provided for @errorAccountExistsWithDifferentCredential.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já existe uma conta com este e-mail criada por outro método. Entre com e-mail e senha.'**
+  String get errorAccountExistsWithDifferentCredential;
+
+  /// No description provided for @errorSignInProviderDisabled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este método de login está desativado no projeto. Habilite-o em Authentication > Sign-in method.'**
+  String get errorSignInProviderDisabled;
+
+  /// No description provided for @offlineBannerOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão. Você continua vendo e editando; sincronizamos quando a rede voltar.'**
+  String get offlineBannerOffline;
+
+  /// No description provided for @offlineBannerPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo neste aparelho. Sincronizando com a nuvem...'**
+  String get offlineBannerPending;
+
+  /// No description provided for @errorOfflineCallable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta ação precisa de internet. Reconecte e tente de novo.'**
+  String get errorOfflineCallable;
+
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In pt, this message translates to:
@@ -4351,6 +4405,126 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{month}: {score} de 100'**
   String compassHistoryPoint(String month, String score);
+
+  /// No description provided for @writeFailedReasonPermission.
+  ///
+  /// In pt, this message translates to:
+  /// **'você não tem permissão para essa mudança'**
+  String get writeFailedReasonPermission;
+
+  /// No description provided for @writeFailedReasonNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'o item não existe mais'**
+  String get writeFailedReasonNotFound;
+
+  /// No description provided for @writeFailedReasonTimeout.
+  ///
+  /// In pt, this message translates to:
+  /// **'o servidor não respondeu'**
+  String get writeFailedReasonTimeout;
+
+  /// No description provided for @writeFailedReasonUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'o servidor recusou a alteração'**
+  String get writeFailedReasonUnknown;
+
+  /// No description provided for @transactionSavePendingSync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.'**
+  String get transactionSavePendingSync;
+
+  /// No description provided for @uploadFolderNotSupported.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arraste um arquivo, não uma pasta.'**
+  String get uploadFolderNotSupported;
+
+  /// Aviso de escrita recusada pelo servidor depois de a tela ter seguido.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível salvar {entity}: {reason}'**
+  String writeFailedEntity(String entity, String reason);
+
+  /// No description provided for @writeEntityTransaction.
+  ///
+  /// In pt, this message translates to:
+  /// **'o lançamento'**
+  String get writeEntityTransaction;
+
+  /// No description provided for @writeEntityInstallment.
+  ///
+  /// In pt, this message translates to:
+  /// **'a parcela'**
+  String get writeEntityInstallment;
+
+  /// No description provided for @writeEntityPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'o planejamento'**
+  String get writeEntityPlanning;
+
+  /// No description provided for @writeEntityAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'a conta'**
+  String get writeEntityAccount;
+
+  /// No description provided for @writeEntityCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'a categoria'**
+  String get writeEntityCategory;
+
+  /// No description provided for @writeEntityGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'a meta'**
+  String get writeEntityGoal;
+
+  /// No description provided for @writeEntityInvite.
+  ///
+  /// In pt, this message translates to:
+  /// **'o convite'**
+  String get writeEntityInvite;
+
+  /// No description provided for @writeEntityWorkspace.
+  ///
+  /// In pt, this message translates to:
+  /// **'o workspace'**
+  String get writeEntityWorkspace;
+
+  /// No description provided for @writeEntityProfile.
+  ///
+  /// In pt, this message translates to:
+  /// **'o perfil'**
+  String get writeEntityProfile;
+
+  /// No description provided for @writeEntityAutomaticTransaction.
+  ///
+  /// In pt, this message translates to:
+  /// **'a transação automática'**
+  String get writeEntityAutomaticTransaction;
+
+  /// No description provided for @writeEntityReconciliation.
+  ///
+  /// In pt, this message translates to:
+  /// **'a conciliação'**
+  String get writeEntityReconciliation;
+
+  /// No description provided for @savePendingSync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo neste dispositivo. Sincroniza quando a conexão voltar.'**
+  String get savePendingSync;
+
+  /// No description provided for @accountSavePendingSync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.'**
+  String get accountSavePendingSync;
 }
 
 class _AppLocalizationsDelegate

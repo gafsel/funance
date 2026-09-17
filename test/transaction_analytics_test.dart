@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -12,7 +13,6 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 
 import 'support/fake_analytics.dart';
-
 
 // Os repositórios nunca são tocados: o FinanceService de teste sobrescreve
 // todos os métodos usados no submit.
@@ -47,17 +47,19 @@ class FakeFinanceService extends FinanceService {
   final List<OrderModel> savedOrders = [];
 
   @override
-  Future<OrderModel> addOrder(OrderModel order) async {
+  Future<Written<OrderModel>> addOrder(OrderModel order) async {
     final saved = order.copyWith(id: 'order-salva');
     savedOrders.add(saved);
-    return saved;
+    return (value: saved, outcome: WriteOutcome.confirmed);
   }
 
   final List<InstallmentModel> savedInstallments = [];
 
   @override
-  Future<void> updateInstallment(InstallmentModel installment) async {
+  Future<WriteOutcome> updateInstallment(InstallmentModel installment) async {
     savedInstallments.add(installment);
+
+    return WriteOutcome.confirmed;
   }
 
   @override

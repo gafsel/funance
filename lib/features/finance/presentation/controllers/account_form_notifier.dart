@@ -1,8 +1,9 @@
 import 'dart:developer';
-import 'dart:io';
 
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
+import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -14,7 +15,8 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:uuid/uuid.dart';
 
-class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
+class AccountFormNotifier extends FormNotifier<AccountFormState, void>
+    with TracksWriteOutcome {
   final AccountService accountService;
   final CategoryService categoryService;
   final FinanceService financeService;
@@ -66,19 +68,19 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
   void updateOwnerIds(List<String> ownerIds) =>
       state = state.copyWith(ownerIds: ownerIds);
 
-  Future<void> updateFile(File? file, String? name) async {
+  Future<void> updateFile(PickedDocument? document) async {
     state = state.copyWith(
-      selectedFile: file,
-      processingStatus: file != null
+      selectedFile: document,
+      processingStatus: document != null
           ? AccountProcessingStatus.pending
           : AccountProcessingStatus.none,
       detectedOrders: [],
     );
 
-    if (file != null && name != null) {
+    if (document != null) {
       try {
         // 2. Chamar análise passando o storagePath
-        final analysis = await accountService.analyzeDocument(file);
+        final analysis = await accountService.analyzeDocument(document);
 
         final accountData = analysis.account;
 
@@ -120,10 +122,15 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
 
   @override
   Future<void> submit() async {
+    beginWrite();
+
     AccountModel account = state.asAccountModel();
 
     if (state.originalAccount == null) {
-      account = await accountService.create(account);
+      final created = await accountService.create(account);
+
+      account = created.value;
+      recordWrite(created.outcome);
 
       state = state.copyWith(originalAccount: account);
 
@@ -132,7 +139,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
         await analytics.logAccountCreated(account.type.name);
       } catch (_) {}
     } else {
-      await accountService.update(account);
+      recordWrite(await accountService.update(account));
     }
 
     // 1. Garantir que as categorias existam
@@ -162,9 +169,12 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
     }
 
     // 5. Salvar Orders e Plannings
-    await Future.wait(
+    final written = await Future.wait(
       processedOrders.map((order) => financeService.addOrder(order)),
     );
+    for (final w in written) {
+      recordWrite(w.outcome);
+    }
   }
 
   Future<CategoryModel> _findOrCreateCategory(
@@ -180,9 +190,9 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
         .firstOrNull;
 
     if (found == null) {
-      final newCategory = await categoryService.create(
+      final newCategory = (await categoryService.create(
         category.copyWith(id: const Uuid().v4()),
-      );
+      )).value;
 
       categories.add(newCategory);
 

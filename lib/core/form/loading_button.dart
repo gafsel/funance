@@ -170,6 +170,12 @@ class _LoadingButtonState extends State<LoadingButton> {
 
   Future<T?> _interceptor<T>(Future<T?> future) async {
     final ScaffoldMessengerState scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    // O redirecionamento é o único caso em que o giro CONTINUA: a aba está
+    // saindo para o Google, e devolver o botão ao normal daria a impressão de
+    // que o clique não pegou.
+    bool keepLoading = false;
+
     try {
       FocusScope.of(context).requestFocus(FocusNode());
 
@@ -179,6 +185,16 @@ class _LoadingButtonState extends State<LoadingButton> {
 
       return await future;
     } on BusinessException catch (ex) {
+      if (ex.code.isInformational) {
+        keepLoading = ex.code == ErrorCode.signInRedirecting;
+
+        // Nada aconteceu de errado: sem snackbar e sem relançar. "Nenhum
+        // resultado" é exatamente o que o usuário pediu ao desistir, e
+        // relançar transformaria isso num erro não tratado — que na web ainda
+        // viraria um evento de crash.
+        return null;
+      }
+
       scaffoldMessenger.showSnackBar(
         SnackBar(content: Text(ex.code.message(context))),
       );
@@ -192,7 +208,7 @@ class _LoadingButtonState extends State<LoadingButton> {
       );
       rethrow;
     } finally {
-      if (mounted) {
+      if (mounted && !keepLoading) {
         setState(() {
           _loading = false;
         });

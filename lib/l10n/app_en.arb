@@ -51,6 +51,15 @@
   "errorInvalidEmail": "The email address is not valid.",
   "errorNetworkRequestFailed": "Internet connection failure.",
   "errorGoogleSignInConfig": "Google Sign-In configuration error. Please verify if the SHA-1 key has been added to the Firebase Console.",
+  "errorSignInPopupBlocked": "Your browser blocked the Google window. We're signing you in on this tab instead — if nothing happens, allow pop-ups for this site and try again.",
+  "errorSignInCancelled": "Sign-in cancelled.",
+  "errorSignInRedirecting": "Redirecting to Google...",
+  "errorSignInUnauthorizedDomain": "This address is not authorized to sign in. Add the domain under Authentication > Settings > Authorized domains in the Firebase Console.",
+  "errorAccountExistsWithDifferentCredential": "An account with this email already exists using another method. Sign in with email and password.",
+  "errorSignInProviderDisabled": "This sign-in method is disabled for the project. Enable it under Authentication > Sign-in method.",
+  "offlineBannerOffline": "You're offline. Keep browsing and editing; we'll sync when the network is back.",
+  "offlineBannerPending": "Saved on this device. Syncing to the cloud...",
+  "errorOfflineCallable": "This action needs an internet connection. Reconnect and try again.",
   "onboardingWelcomeTitle": "Welcome to Funances!",
   "onboardingWelcomeDesc": "The app that transforms your financial management into a journey of achievements.",
   "onboardingNext": "Next",
@@ -1214,6 +1223,37 @@
         "type": "String"
       },
       "score": {
+        "type": "String"
+      }
+    }
+  },
+  "writeFailedReasonPermission": "you do not have permission for this change",
+  "writeFailedReasonNotFound": "the item no longer exists",
+  "writeFailedReasonTimeout": "the server did not respond",
+  "writeFailedReasonUnknown": "the server rejected the change",
+  "transactionSavePendingSync": "Saved on this device. Instalments appear when the connection is back.",
+  "uploadFolderNotSupported": "Drop a file, not a folder.",
+  "writeFailedEntity": "Could not save {entity}: {reason}",
+  "writeEntityTransaction": "the transaction",
+  "writeEntityInstallment": "the instalment",
+  "writeEntityPlanning": "the plan",
+  "writeEntityAccount": "the account",
+  "writeEntityCategory": "the category",
+  "writeEntityGoal": "the goal",
+  "writeEntityInvite": "the invite",
+  "writeEntityWorkspace": "the workspace",
+  "writeEntityProfile": "the profile",
+  "writeEntityAutomaticTransaction": "the automatic transaction",
+  "writeEntityReconciliation": "the reconciliation",
+  "savePendingSync": "Saved on this device. It syncs when the connection is back.",
+  "accountSavePendingSync": "Saved on this device. Opening balance and invoice appear when the connection is back.",
+  "@writeFailedEntity": {
+    "description": "Aviso de escrita recusada pelo servidor depois de a tela ter seguido.",
+    "placeholders": {
+      "entity": {
+        "type": "String"
+      },
+      "reason": {
         "type": "String"
       }
     }

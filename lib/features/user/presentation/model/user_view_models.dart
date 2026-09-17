@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 
@@ -11,7 +11,7 @@ sealed class UserProfileFormState with _$UserProfileFormState {
     required String displayName,
     required String email,
     String? photoUrl,
-    File? newPhotoFile,
+    PickedDocument? newPhotoFile,
     UserModel? originalUser,
   }) = _UserProfileFormState;
 

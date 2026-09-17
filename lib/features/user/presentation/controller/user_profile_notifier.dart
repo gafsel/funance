@@ -1,6 +1,6 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:flutter/material.dart';
+import 'package:funances/core/platform/app_platform.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/services/user_service.dart';
 import 'package:funances/features/user/presentation/model/user_view_models.dart';
@@ -38,7 +38,8 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
     if (pickedFile != null) {
       // O plugin image_cropper não suporta macOS.
       // Suporta Android, iOS e Web.
-      final bool supportsCropping = kIsWeb || Platform.isAndroid || Platform.isIOS;
+      final bool supportsCropping =
+          AppPlatform.isWeb || AppPlatform.isAndroid || AppPlatform.isIOS;
 
       if (supportsCropping) {
         final croppedFile = await ImageCropper().cropImage(
@@ -68,11 +69,23 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
         );
 
         if (croppedFile != null) {
-          state = state.copyWith(newPhotoFile: File(croppedFile.path));
+          state = state.copyWith(
+            newPhotoFile: PickedDocument(
+              // O recorte devolve um nome temporário; o do arquivo escolhido
+              // é o que preserva a extensão original.
+              name: pickedFile.name,
+              bytes: await croppedFile.readAsBytes(),
+            ),
+          );
         }
       } else {
         // Para plataformas sem suporte ao crop (como macOS), usamos a imagem direta
-        state = state.copyWith(newPhotoFile: File(pickedFile.path));
+        state = state.copyWith(
+          newPhotoFile: PickedDocument(
+            name: pickedFile.name,
+            bytes: await pickedFile.readAsBytes(),
+          ),
+        );
       }
     }
   }

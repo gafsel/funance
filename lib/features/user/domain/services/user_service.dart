@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/repositories/user_repository.dart';
 
@@ -11,8 +11,8 @@ class UserService {
     return await _repository.getUserById(id);
   }
 
-  Future<String> uploadAvatar(String userId, File file) async {
-    return await _repository.uploadUserAvatar(userId, file);
+  Future<String> uploadAvatar(String userId, PickedDocument image) async {
+    return await _repository.uploadUserAvatar(userId, image);
   }
 
   Future<void> updateProfile({

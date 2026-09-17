@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ReconciliationState {
 
- ReconciliationStep get step; AccountModel get selectedAccount; File? get selectedFile; List<ReconciliationMatch> get matches;
+ ReconciliationStep get step; AccountModel get selectedAccount; PickedDocument? get selectedFile; List<ReconciliationMatch> get matches;
 /// Create a copy of ReconciliationState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -45,7 +45,7 @@ abstract mixin class $ReconciliationStateCopyWith<$Res>  {
   factory $ReconciliationStateCopyWith(ReconciliationState value, $Res Function(ReconciliationState) _then) = _$ReconciliationStateCopyWithImpl;
 @useResult
 $Res call({
- ReconciliationStep step, AccountModel selectedAccount, File? selectedFile, List<ReconciliationMatch> matches
+ ReconciliationStep step, AccountModel selectedAccount, PickedDocument? selectedFile, List<ReconciliationMatch> matches
 });
 
 
@@ -67,7 +67,7 @@ class _$ReconciliationStateCopyWithImpl<$Res>
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as ReconciliationStep,selectedAccount: null == selectedAccount ? _self.selectedAccount : selectedAccount // ignore: cast_nullable_to_non_nullable
 as AccountModel,selectedFile: freezed == selectedFile ? _self.selectedFile : selectedFile // ignore: cast_nullable_to_non_nullable
-as File?,matches: null == matches ? _self.matches : matches // ignore: cast_nullable_to_non_nullable
+as PickedDocument?,matches: null == matches ? _self.matches : matches // ignore: cast_nullable_to_non_nullable
 as List<ReconciliationMatch>,
   ));
 }
@@ -159,7 +159,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ReconciliationStep step,  AccountModel selectedAccount,  File? selectedFile,  List<ReconciliationMatch> matches)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( ReconciliationStep step,  AccountModel selectedAccount,  PickedDocument? selectedFile,  List<ReconciliationMatch> matches)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ReconciliationState() when $default != null:
 return $default(_that.step,_that.selectedAccount,_that.selectedFile,_that.matches);case _:
@@ -180,7 +180,7 @@ return $default(_that.step,_that.selectedAccount,_that.selectedFile,_that.matche
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ReconciliationStep step,  AccountModel selectedAccount,  File? selectedFile,  List<ReconciliationMatch> matches)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( ReconciliationStep step,  AccountModel selectedAccount,  PickedDocument? selectedFile,  List<ReconciliationMatch> matches)  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationState():
 return $default(_that.step,_that.selectedAccount,_that.selectedFile,_that.matches);}
@@ -197,7 +197,7 @@ return $default(_that.step,_that.selectedAccount,_that.selectedFile,_that.matche
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ReconciliationStep step,  AccountModel selectedAccount,  File? selectedFile,  List<ReconciliationMatch> matches)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( ReconciliationStep step,  AccountModel selectedAccount,  PickedDocument? selectedFile,  List<ReconciliationMatch> matches)?  $default,) {final _that = this;
 switch (_that) {
 case _ReconciliationState() when $default != null:
 return $default(_that.step,_that.selectedAccount,_that.selectedFile,_that.matches);case _:
@@ -217,7 +217,7 @@ class _ReconciliationState implements ReconciliationState {
 
 @override@JsonKey() final  ReconciliationStep step;
 @override final  AccountModel selectedAccount;
-@override final  File? selectedFile;
+@override final  PickedDocument? selectedFile;
  final  List<ReconciliationMatch> _matches;
 @override@JsonKey() List<ReconciliationMatch> get matches {
   if (_matches is EqualUnmodifiableListView) return _matches;
@@ -256,7 +256,7 @@ abstract mixin class _$ReconciliationStateCopyWith<$Res> implements $Reconciliat
   factory _$ReconciliationStateCopyWith(_ReconciliationState value, $Res Function(_ReconciliationState) _then) = __$ReconciliationStateCopyWithImpl;
 @override @useResult
 $Res call({
- ReconciliationStep step, AccountModel selectedAccount, File? selectedFile, List<ReconciliationMatch> matches
+ ReconciliationStep step, AccountModel selectedAccount, PickedDocument? selectedFile, List<ReconciliationMatch> matches
 });
 
 
@@ -278,7 +278,7 @@ class __$ReconciliationStateCopyWithImpl<$Res>
 step: null == step ? _self.step : step // ignore: cast_nullable_to_non_nullable
 as ReconciliationStep,selectedAccount: null == selectedAccount ? _self.selectedAccount : selectedAccount // ignore: cast_nullable_to_non_nullable
 as AccountModel,selectedFile: freezed == selectedFile ? _self.selectedFile : selectedFile // ignore: cast_nullable_to_non_nullable
-as File?,matches: null == matches ? _self._matches : matches // ignore: cast_nullable_to_non_nullable
+as PickedDocument?,matches: null == matches ? _self._matches : matches // ignore: cast_nullable_to_non_nullable
 as List<ReconciliationMatch>,
   ));
 }

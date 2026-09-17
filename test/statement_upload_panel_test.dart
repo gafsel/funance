@@ -1,15 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/features/finance/domain/services/statement_upload_limits.dart';
 import 'package:funances/features/finance/presentation/widgets/statement_upload_panel.dart';
 import 'package:funances/l10n/app_localizations.dart';
-
-/// O que o painel entregou a quem vai enviar o arquivo.
-typedef Selection = ({File file, String name});
 
 /// Responde no lugar do seletor nativo de arquivos.
 ///
@@ -20,11 +19,11 @@ typedef Selection = ({File file, String name});
 class _FakeFilePicker extends FilePicker {
   _FakeFilePicker(this.picked);
 
-  /// Arquivo devolvido ao toque no botão. Nulo é o usuário que desistiu.
-  final File? picked;
+  /// O que o seletor devolve. Nulo é o usuário que desistiu.
+  final PlatformFile? picked;
 
-  /// Nome que o seletor informa, que nem sempre é o do caminho.
-  String? name;
+  /// O que o painel pediu ao seletor, para o teste conferir.
+  bool? askedForData;
 
   @override
   Future<FilePickerResult?> pickFiles({
@@ -41,18 +40,12 @@ class _FakeFilePicker extends FilePicker {
     bool lockParentWindow = false,
     bool readSequential = false,
   }) async {
+    askedForData = withData;
+
     final file = picked;
     if (file == null) return null;
 
-    return FilePickerResult([
-      PlatformFile(
-        path: file.path,
-        name: name ?? file.uri.pathSegments.last,
-        // O tamanho declarado pelo seletor é de propósito diferente do real:
-        // quem decide é o arquivo no disco, não o que o seletor disse.
-        size: 0,
-      ),
-    ]);
+    return FilePickerResult([file]);
   }
 }
 
@@ -68,21 +61,36 @@ Widget _app(StatementUploadPanel panel) => MaterialApp(
   home: Scaffold(body: panel),
 );
 
-StatementUploadPanel _panel(List<Selection> selected) => StatementUploadPanel(
-  allowedExtensions: const ['pdf', 'ofx'],
-  onFileSelected: (file, name) => selected.add((file: file, name: name)),
-  title: 'Envie o extrato',
-  dragOverTitle: 'Solte aqui',
-  supportedFormatsText: 'PDF ou OFX',
-  selectFileButtonText: 'Escolher arquivo',
+StatementUploadPanel _panel(List<PickedDocument> selected) =>
+    StatementUploadPanel(
+      allowedExtensions: const ['pdf', 'ofx'],
+      onFileSelected: selected.add,
+      title: 'Envie o extrato',
+      dragOverTitle: 'Solte aqui',
+      supportedFormatsText: 'PDF ou OFX',
+      selectFileButtonText: 'Escolher arquivo',
+    );
+
+/// O que o seletor devolve na WEB: bytes e nenhum caminho.
+///
+/// Era exatamente este caso que quebrava. O painel montava `File(path!)` com
+/// um caminho que não existe no navegador e media o arquivo com
+/// `existsSync()`/`lengthSync()`, que na web levantam `UnsupportedError`.
+PlatformFile _webPick(String name, int bytes) => PlatformFile(
+  name: name,
+  // O tamanho declarado pelo seletor é de propósito diferente do real: quem
+  // decide é o conteúdo, não o que o seletor disse.
+  size: 0,
+  bytes: Uint8List(bytes),
 );
 
-/// Grava um arquivo de verdade: o painel mede o tamanho pelo sistema de
-/// arquivos, então um fake em memória não provaria nada.
-File _fileOfSize(Directory dir, String name, int bytes) {
+/// O que o seletor devolve no DESKTOP/MOBILE quando não carrega os bytes:
+/// só o caminho de um arquivo que existe no disco.
+PlatformFile _diskPick(Directory dir, String name, int bytes) {
   final file = File('${dir.path}/$name')..createSync(recursive: true);
   file.writeAsBytesSync(List<int>.filled(bytes, 0));
-  return file;
+
+  return PlatformFile(name: name, size: 0, path: file.path);
 }
 
 void main() {
@@ -97,10 +105,14 @@ void main() {
   });
 
   /// Monta o painel, escolhe [file] no seletor e devolve o que foi entregue.
-  Future<List<Selection>> pick(WidgetTester tester, File? file) async {
-    FilePicker.platform = _FakeFilePicker(file);
+  Future<List<PickedDocument>> pick(
+    WidgetTester tester,
+    PlatformFile? file, {
+    _FakeFilePicker? picker,
+  }) async {
+    FilePicker.platform = picker ?? _FakeFilePicker(file);
 
-    final selected = <Selection>[];
+    final selected = <PickedDocument>[];
     await tester.pumpWidget(_app(_panel(selected)));
 
     await tester.tap(find.text('Escolher arquivo'));
@@ -109,51 +121,118 @@ void main() {
     return selected;
   }
 
-  testWidgets('arquivo de 11 MB não chega ao onFileSelected', (tester) async {
-    final grande = _fileOfSize(tempDir, 'extrato.pdf', 11 * 1024 * 1024);
+  group('seleção na web (bytes, sem caminho)', () {
+    testWidgets('fora da web o painel NÃO pede os bytes ao seletor', (
+      tester,
+    ) async {
+      // Os testes rodam na VM, que tem sistema de arquivos. Ali pedimos só o
+      // caminho: com os bytes, um arquivo de 50 MB passaria inteiro pela
+      // memória do app antes de qualquer checagem de tamanho.
+      final picker = _FakeFilePicker(_diskPick(tempDir, 'extrato.ofx', 16));
 
-    final selected = await pick(tester, grande);
+      await pick(tester, null, picker: picker);
 
-    expect(
-      selected,
-      isEmpty,
-      reason: 'o arquivo não pode subir para o Storage só para ser recusado',
-    );
-    // A mensagem diz o tamanho real, o limite e a saída (OFX).
-    expect(find.textContaining('11.0 MB'), findsOneWidget);
-    expect(find.textContaining('10 MB'), findsOneWidget);
-    expect(find.textContaining('OFX'), findsWidgets);
+      expect(picker.askedForData, isFalse);
+    });
+
+    testWidgets('arquivo sem caminho é entregue com os bytes', (tester) async {
+      final selected = await pick(tester, _webPick('extrato.ofx', 2048));
+
+      expect(selected, hasLength(1));
+      expect(selected.single.name, 'extrato.ofx');
+      expect(selected.single.path, isNull);
+      expect(selected.single.bytes, hasLength(2048));
+    });
+
+    testWidgets('o limite mede os bytes, não o que o seletor declarou', (
+      tester,
+    ) async {
+      final selected = await pick(
+        tester,
+        _webPick('extrato.pdf', 11 * 1024 * 1024),
+      );
+
+      expect(
+        selected,
+        isEmpty,
+        reason: 'o arquivo não pode subir para o Storage só para ser recusado',
+      );
+      // A mensagem diz o tamanho real, o limite e a saída (OFX).
+      expect(find.textContaining('11.0 MB'), findsOneWidget);
+      expect(find.textContaining('10 MB'), findsOneWidget);
+      expect(find.textContaining('OFX'), findsWidgets);
+    });
   });
 
-  testWidgets('arquivo dentro do limite é entregue', (tester) async {
-    final pequeno = _fileOfSize(tempDir, 'extrato.ofx', 2048);
+  group('seleção com caminho (desktop e mobile)', () {
+    testWidgets('sem bytes no resultado, o painel lê o arquivo do disco', (
+      tester,
+    ) async {
+      final selected = await pick(
+        tester,
+        _diskPick(tempDir, 'extrato.ofx', 2048),
+      );
 
-    final selected = await pick(tester, pequeno);
+      expect(selected, hasLength(1));
+      expect(selected.single.bytes, hasLength(2048));
+      expect(selected.single.path, isNotNull);
+    });
 
-    expect(selected, hasLength(1));
-    expect(selected.single.name, 'extrato.ofx');
+    testWidgets('arquivo que sumiu é recusado, não tratado como 0 byte', (
+      tester,
+    ) async {
+      final sumiu = PlatformFile(
+        name: 'nao-existe.pdf',
+        size: 0,
+        path: '${tempDir.path}/nao-existe.pdf',
+      );
+
+      final selected = await pick(tester, sumiu);
+
+      expect(
+        selected,
+        isEmpty,
+        reason: 'sem conteúdo não há o que analisar; 0 byte passaria no limite',
+      );
+      expect(find.text('Não foi possível ler o arquivo.'), findsOneWidget);
+    });
   });
 
-  testWidgets('arquivo inexistente é recusado, não tratado como 0 byte', (
-    tester,
-  ) async {
-    final sumiu = File('${tempDir.path}/nao-existe.pdf');
-    expect(sumiu.existsSync(), isFalse);
+  group('tamanho é conferido antes de ler o arquivo', () {
+    testWidgets('o que o seletor declara acima do limite é recusado na hora', (
+      tester,
+    ) async {
+      // Sem nem bytes nem caminho: se o painel tentasse LER para medir, este
+      // caso não teria como passar. É essa a diferença — a recusa acontece
+      // antes de qualquer leitura.
+      final gigante = PlatformFile(name: 'extrato.pdf', size: 11 * 1024 * 1024);
 
-    final selected = await pick(tester, sumiu);
+      final selected = await pick(tester, gigante);
 
-    expect(
-      selected,
-      isEmpty,
-      reason: 'sem arquivo não há o que analisar; 0 byte passaria no limite',
-    );
+      expect(selected, isEmpty);
+      expect(find.textContaining('11.0 MB'), findsOneWidget);
+    });
+
+    testWidgets('tamanho declarado como zero não reprova ninguém', (
+      tester,
+    ) async {
+      // Zero é "o seletor não sabe", não "arquivo vazio": quem decide nesse
+      // caso é a checagem final, sobre os bytes.
+      final selected = await pick(tester, _webPick('extrato.ofx', 2048));
+
+      expect(selected, hasLength(1));
+    });
+  });
+
+  testWidgets('arquivo vazio não vira análise de nada', (tester) async {
+    final selected = await pick(tester, _webPick('extrato.ofx', 0));
+
+    expect(selected, isEmpty);
     expect(find.text('Não foi possível ler o arquivo.'), findsOneWidget);
   });
 
   testWidgets('extensão fora da lista é recusada', (tester) async {
-    final planilha = _fileOfSize(tempDir, 'extrato.xlsx', 1024);
-
-    final selected = await pick(tester, planilha);
+    final selected = await pick(tester, _webPick('extrato.xlsx', 1024));
 
     expect(selected, isEmpty);
     expect(find.textContaining('Formato não suportado'), findsOneWidget);
@@ -167,5 +246,26 @@ void main() {
 
   test('o limite do painel é o mesmo do servidor', () {
     expect(StatementUploadLimits.maxBytes, 10 * 1024 * 1024);
+  });
+
+  group('PickedDocument', () {
+    test('a extensão sai do nome, em minúsculas', () {
+      final doc = PickedDocument(name: 'Extrato.PDF', bytes: Uint8List(1));
+
+      expect(doc.extension, 'pdf');
+    });
+
+    test('nome sem extensão não inventa uma', () {
+      final doc = PickedDocument(name: 'extrato', bytes: Uint8List(1));
+
+      expect(doc.extension, '');
+    });
+
+    test('o tamanho é o dos bytes', () {
+      expect(
+        PickedDocument(name: 'a.ofx', bytes: Uint8List(77)).sizeInBytes,
+        77,
+      );
+    });
   });
 }

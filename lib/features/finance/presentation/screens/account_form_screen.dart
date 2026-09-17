@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/chip_form_field.dart';
@@ -9,7 +8,6 @@ import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
-import 'package:funances/core/utils/file_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
@@ -53,6 +51,7 @@ class AccountFormScreen extends ConsumerWidget {
               submitLabel: l10n.saveButton,
               onCancel: () => Navigator.pop(context),
               onSuccess: (_) => Navigator.pop(context),
+              pendingSyncMessage: l10n.accountSavePendingSync,
               fieldsBuilder: (context, snapshot) {
                 final state = snapshot.model;
                 final notifier = snapshot.notifier;
@@ -81,17 +80,26 @@ class AccountFormScreen extends ConsumerWidget {
                   ],
                   if (state.registrationMethod ==
                       AccountRegistrationMethod.document) ...[
-                    FullWidthItem(Text(l10n.accountDocumentDescription, style: descriptionStyle)),
+                    FullWidthItem(
+                      Text(
+                        l10n.accountDocumentDescription,
+                        style: descriptionStyle,
+                      ),
+                    ),
                     FullWidthItem(
                       state.selectedFile != null
                           ? Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: AppColors.deepTurquoise.withValues(alpha: 0.3),
+                                  color: AppColors.deepTurquoise.withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                                 borderRadius: BorderRadius.circular(12),
-                                color: AppColors.deepTurquoise.withValues(alpha: 0.05),
+                                color: AppColors.deepTurquoise.withValues(
+                                  alpha: 0.05,
+                                ),
                               ),
                               child: ListTile(
                                 contentPadding: EdgeInsets.zero,
@@ -100,7 +108,7 @@ class AccountFormScreen extends ConsumerWidget {
                                   color: AppColors.deepTurquoise,
                                 ),
                                 title: Text(
-                                  state.selectedFile!.fileName,
+                                  state.selectedFile!.name,
                                   style: labelStyle,
                                 ),
                                 subtitle:
@@ -114,19 +122,21 @@ class AccountFormScreen extends ConsumerWidget {
                                         ),
                                       )
                                     : state.processingStatus ==
-                                            AccountProcessingStatus.failed
-                                        ? Text(
-                                            state.errorMessage ??
-                                                l10n.errorUnknown,
-                                            style: TextStyle(
-                                              color: theme.colorScheme.error,
-                                              fontSize: 10,
-                                            ),
-                                          )
-                                        : null,
+                                          AccountProcessingStatus.failed
+                                    ? Text(
+                                        state.errorMessage ?? l10n.errorUnknown,
+                                        style: TextStyle(
+                                          color: theme.colorScheme.error,
+                                          fontSize: 10,
+                                        ),
+                                      )
+                                    : null,
                                 trailing: IconButton(
-                                  icon: const Icon(Icons.close, color: Colors.red),
-                                  onPressed: () => notifier.updateFile(null, null),
+                                  icon: const Icon(
+                                    Icons.close,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () => notifier.updateFile(null),
                                 ),
                               ),
                             )
@@ -134,22 +144,21 @@ class AccountFormScreen extends ConsumerWidget {
                               allowedExtensions: const ['pdf', 'ofx'],
                               title: l10n.accountDropFile,
                               dragOverTitle: l10n.statementDragOverTitle,
-                              supportedFormatsText: l10n.accountDocumentAcceptedTypes,
+                              supportedFormatsText:
+                                  l10n.accountDocumentAcceptedTypes,
                               selectFileButtonText: l10n.accountSelectFile,
-                              onFileSelected: (file, name) {
-                                final extension = name.split('.').last.toLowerCase();
+                              onFileSelected: (document) {
+                                final extension = document.extension;
                                 showLoadingModal(
                                   context,
-                                  notifier.updateFile(file, name),
+                                  notifier.updateFile(document),
                                   child: AnalysisLoadingView(
-                                    firstPhaseDuration:
-                                        extension == 'ofx'
-                                            ? const Duration(seconds: 20)
-                                            : const Duration(minutes: 1),
-                                    totalDuration:
-                                        extension == 'ofx'
-                                            ? const Duration(seconds: 45)
-                                            : const Duration(minutes: 5),
+                                    firstPhaseDuration: extension == 'ofx'
+                                        ? const Duration(seconds: 20)
+                                        : const Duration(minutes: 1),
+                                    totalDuration: extension == 'ofx'
+                                        ? const Duration(seconds: 45)
+                                        : const Duration(minutes: 5),
                                   ),
                                 );
                               },
@@ -171,7 +180,11 @@ class AccountFormScreen extends ConsumerWidget {
                   ] else ...[
                     if (state.creation)
                       FullWidthItem(
-                          Text(l10n.accountManualDescription, style: descriptionStyle)),
+                        Text(
+                          l10n.accountManualDescription,
+                          style: descriptionStyle,
+                        ),
+                      ),
                     ..._buildManualFields(
                       context,
                       ref,
@@ -356,7 +369,9 @@ class AccountFormScreen extends ConsumerWidget {
                 onSelected: () => notifier.updateBankLogo(BankLogo.none),
                 label: "Personalizado",
               ),
-              ...BankLogo.values.where((l) => l != BankLogo.none).map(
+              ...BankLogo.values
+                  .where((l) => l != BankLogo.none)
+                  .map(
                     (logo) => _BankLogoOption(
                       logo: logo,
                       isSelected: state.bankLogo == logo,
@@ -519,11 +534,15 @@ class _BankLogoOption extends StatelessWidget {
         height: 60,
         decoration: BoxDecoration(
           border: Border.all(
-            color: isSelected ? Theme.of(context).primaryColor : Colors.grey.withValues(alpha: 0.3),
+            color: isSelected
+                ? Theme.of(context).primaryColor
+                : Colors.grey.withValues(alpha: 0.3),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(8),
-          color: isSelected ? Theme.of(context).primaryColor.withValues(alpha: 0.1) : null,
+          color: isSelected
+              ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+              : null,
         ),
         child: logo == BankLogo.none
             ? Center(
@@ -540,7 +559,8 @@ class _BankLogoOption extends StatelessWidget {
                 child: Image.asset(
                   'assets/logos/${logo.name}.png',
                   fit: BoxFit.fitWidth,
-                  errorBuilder: (context, error, stackTrace) => const Icon(Icons.help_outline),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Icon(Icons.help_outline),
                 ),
               ),
       ),

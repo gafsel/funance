@@ -1,9 +1,11 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
 
-class CategoryFormNotifier extends FormNotifier<CategoryFormState, void> {
+class CategoryFormNotifier extends FormNotifier<CategoryFormState, void>
+    with TracksWriteOutcome {
   final CategoryService service;
 
   CategoryFormNotifier({required this.service, CategoryModel? initialCategory})
@@ -19,14 +21,19 @@ class CategoryFormNotifier extends FormNotifier<CategoryFormState, void> {
 
   @override
   Future<void> submit() async {
+    beginWrite();
+
     var category = state.asModel();
 
     if (state.creation) {
-      category = await service.create(category);
+      final created = await service.create(category);
+
+      category = created.value;
+      recordWrite(created.outcome);
 
       state = state.copyWith(category: category);
     } else {
-      await service.update(category);
+      recordWrite(await service.update(category));
     }
   }
 }

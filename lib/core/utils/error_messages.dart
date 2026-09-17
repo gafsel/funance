@@ -32,6 +32,18 @@ extension ErrorCodeExtension on ErrorCode {
         return l10n.signUpFailed;
       case ErrorCode.signInFailed:
         return l10n.signInFailed;
+      case ErrorCode.signInPopupBlocked:
+        return l10n.errorSignInPopupBlocked;
+      case ErrorCode.signInCancelled:
+        return l10n.errorSignInCancelled;
+      case ErrorCode.signInRedirecting:
+        return l10n.errorSignInRedirecting;
+      case ErrorCode.signInUnauthorizedDomain:
+        return l10n.errorSignInUnauthorizedDomain;
+      case ErrorCode.accountExistsWithDifferentCredential:
+        return l10n.errorAccountExistsWithDifferentCredential;
+      case ErrorCode.signInProviderDisabled:
+        return l10n.errorSignInProviderDisabled;
     }
   }
 }

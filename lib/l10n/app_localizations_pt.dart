@@ -174,6 +174,40 @@ class AppLocalizationsPt extends AppLocalizations {
       'Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.';
 
   @override
+  String get errorSignInPopupBlocked =>
+      'Seu navegador bloqueou a janela do Google. Liberamos o login nesta mesma aba — se nada acontecer, permita pop-ups para este site e tente de novo.';
+
+  @override
+  String get errorSignInCancelled => 'Login cancelado.';
+
+  @override
+  String get errorSignInRedirecting => 'Redirecionando para o Google...';
+
+  @override
+  String get errorSignInUnauthorizedDomain =>
+      'Este endereço não está autorizado a fazer login. Adicione o domínio em Authentication > Settings > Authorized domains no Firebase Console.';
+
+  @override
+  String get errorAccountExistsWithDifferentCredential =>
+      'Já existe uma conta com este e-mail criada por outro método. Entre com e-mail e senha.';
+
+  @override
+  String get errorSignInProviderDisabled =>
+      'Este método de login está desativado no projeto. Habilite-o em Authentication > Sign-in method.';
+
+  @override
+  String get offlineBannerOffline =>
+      'Sem conexão. Você continua vendo e editando; sincronizamos quando a rede voltar.';
+
+  @override
+  String get offlineBannerPending =>
+      'Salvo neste aparelho. Sincronizando com a nuvem...';
+
+  @override
+  String get errorOfflineCallable =>
+      'Esta ação precisa de internet. Reconecte e tente de novo.';
+
+  @override
   String get onboardingWelcomeTitle => 'Boas-vindas ao Funances!';
 
   @override
@@ -2432,4 +2466,70 @@ class AppLocalizationsPt extends AppLocalizations {
   String compassHistoryPoint(String month, String score) {
     return '$month: $score de 100';
   }
+
+  @override
+  String get writeFailedReasonPermission =>
+      'você não tem permissão para essa mudança';
+
+  @override
+  String get writeFailedReasonNotFound => 'o item não existe mais';
+
+  @override
+  String get writeFailedReasonTimeout => 'o servidor não respondeu';
+
+  @override
+  String get writeFailedReasonUnknown => 'o servidor recusou a alteração';
+
+  @override
+  String get transactionSavePendingSync =>
+      'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.';
+
+  @override
+  String get uploadFolderNotSupported => 'Arraste um arquivo, não uma pasta.';
+
+  @override
+  String writeFailedEntity(String entity, String reason) {
+    return 'Não foi possível salvar $entity: $reason';
+  }
+
+  @override
+  String get writeEntityTransaction => 'o lançamento';
+
+  @override
+  String get writeEntityInstallment => 'a parcela';
+
+  @override
+  String get writeEntityPlanning => 'o planejamento';
+
+  @override
+  String get writeEntityAccount => 'a conta';
+
+  @override
+  String get writeEntityCategory => 'a categoria';
+
+  @override
+  String get writeEntityGoal => 'a meta';
+
+  @override
+  String get writeEntityInvite => 'o convite';
+
+  @override
+  String get writeEntityWorkspace => 'o workspace';
+
+  @override
+  String get writeEntityProfile => 'o perfil';
+
+  @override
+  String get writeEntityAutomaticTransaction => 'a transação automática';
+
+  @override
+  String get writeEntityReconciliation => 'a conciliação';
+
+  @override
+  String get savePendingSync =>
+      'Salvo neste dispositivo. Sincroniza quando a conexão voltar.';
+
+  @override
+  String get accountSavePendingSync =>
+      'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.';
 }

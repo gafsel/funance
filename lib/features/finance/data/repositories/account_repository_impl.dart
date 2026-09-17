@@ -1,13 +1,17 @@
 import 'dart:developer';
-import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
+
 import '../../domain/models/reconciliation_model.dart';
 import '../../domain/models/account_model.dart';
-import 'package:funances/core/exceptions/business_exception.dart';
 import '../models/account_mapper.dart';
 import '../models/finance_mapper.dart';
 
@@ -43,15 +47,23 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Future<AccountModel> createAccount(
+  Future<Written<AccountModel>> createAccount(
     String workspaceId,
     AccountModel account,
   ) async {
     try {
       final data = account.toJson();
       data.remove('id');
-      final doc = await _getCollection(workspaceId).add(data);
-      return account.copyWith(id: doc.id);
+      // `doc()` gera o id localmente; o `add()` que havia aqui só
+      // devolvia a referência depois da resposta do servidor, e offline
+      // isso nunca chegava.
+      final doc = _getCollection(workspaceId).doc();
+      final WriteOutcome outcome = await settleWrite(
+        doc.set(data),
+        entity: WriteEntity.account,
+      );
+
+      return (value: account.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -62,11 +74,17 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Future<void> updateAccount(String workspaceId, AccountModel account) async {
+  Future<WriteOutcome> updateAccount(
+    String workspaceId,
+    AccountModel account,
+  ) async {
     try {
       final data = account.toJson();
       data.remove('id');
-      await _getCollection(workspaceId).doc(account.id).update(data);
+      return await settleWrite(
+        _getCollection(workspaceId).doc(account.id).update(data),
+        entity: WriteEntity.account,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -153,12 +171,12 @@ class AccountRepositoryImpl implements IAccountRepository {
   Future<String> uploadAccountFile(
     String workspaceId,
     String accountId,
-    File file,
+    PickedDocument document,
   ) async {
     try {
       // Por enquanto, apenas simula o upload retornando o nome do arquivo
       // Em produção, isso integraria com o Firebase Storage
-      return file.path.split('/').last;
+      return document.name;
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -171,17 +189,19 @@ class AccountRepositoryImpl implements IAccountRepository {
   @override
   Future<AccountDocumentAnalysisResult> analyseDocument(
     String workspaceId,
-    File file,
+    PickedDocument document,
   ) async {
     try {
-      final String name = file.path.split("/").last;
+      final String name = document.name;
 
       // 1. Upload para o Storage
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final storagePath =
           'workspaces/$workspaceId/account_analysis/${_auth.currentUser!.uid}_${timestamp}_$name';
 
-      await _storage.ref().child(storagePath).putFile(file);
+      // `putData` e não `putFile`: o `putFile` quer um `dart:io.File`, que na
+      // web não existe. Os bytes servem nas duas plataformas.
+      await _storage.ref().child(storagePath).putData(document.bytes);
 
       final callable = _functions.httpsCallable(
         'analyzeAccountDocument',
@@ -208,18 +228,18 @@ class AccountRepositoryImpl implements IAccountRepository {
   @override
   Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
     String workspaceId,
-    File file, {
+    PickedDocument document, {
     String? uploadId,
   }) async {
     try {
-      final String name = file.path.split("/").last;
+      final String name = document.name;
 
       // 1. Upload para o Storage
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final storagePath =
           'workspaces/$workspaceId/reconciliation/${_auth.currentUser!.uid}_${timestamp}_$name';
 
-      await _storage.ref().child(storagePath).putData(file.readAsBytesSync());
+      await _storage.ref().child(storagePath).putData(document.bytes);
 
       final callable = _functions.httpsCallable(
         'analyzeReconciliationDocument',

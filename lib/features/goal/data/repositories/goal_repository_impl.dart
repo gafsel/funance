@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/features/goal/data/models/goal_mapper.dart';
+
 import '../../domain/models/goal_model.dart';
 import '../../domain/repositories/goal_repository.dart';
-import 'package:funances/core/exceptions/business_exception.dart';
 
 class GoalRepositoryImpl implements IGoalRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -35,11 +38,13 @@ class GoalRepositoryImpl implements IGoalRepository {
     return _getCollection(workspaceId)
         .where('isDeleted', isEqualTo: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => doc.toGoalModel()).toList());
+        .map(
+          (snapshot) => snapshot.docs.map((doc) => doc.toGoalModel()).toList(),
+        );
   }
 
   @override
-  Future<GoalModel> addGoal(String workspaceId, GoalModel goal) async {
+  Future<Written<GoalModel>> addGoal(String workspaceId, GoalModel goal) async {
     try {
       final data = goal.toJson();
       data.remove('id');
@@ -54,8 +59,16 @@ class GoalRepositoryImpl implements IGoalRepository {
       // O id real é o gerado pelo Firestore. Devolver `goal.id` (vazio na
       // criação) fazia o segundo salvamento do mesmo formulário cair num
       // update com doc("").
-      final doc = await _getCollection(workspaceId).add(data);
-      return goal.copyWith(id: doc.id);
+      // `doc()` gera o id localmente; o `add()` que havia aqui só
+      // devolvia a referência depois da resposta do servidor, e offline
+      // isso nunca chegava.
+      final doc = _getCollection(workspaceId).doc();
+      final WriteOutcome outcome = await settleWrite(
+        doc.set(data),
+        entity: WriteEntity.goal,
+      );
+
+      return (value: goal.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -66,7 +79,7 @@ class GoalRepositoryImpl implements IGoalRepository {
   }
 
   @override
-  Future<void> updateGoal(String workspaceId, GoalModel goal) async {
+  Future<WriteOutcome> updateGoal(String workspaceId, GoalModel goal) async {
     try {
       final data = goal.toJson();
       data.remove('id');
@@ -76,7 +89,10 @@ class GoalRepositoryImpl implements IGoalRepository {
       );
       data['deadline'] = Timestamp.fromDate(goal.deadline);
       data['startDate'] = Timestamp.fromDate(goal.startDate);
-      await _getCollection(workspaceId).doc(goal.id).update(data);
+      return await settleWrite(
+        _getCollection(workspaceId).doc(goal.id).update(data),
+        entity: WriteEntity.goal,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -89,7 +105,10 @@ class GoalRepositoryImpl implements IGoalRepository {
   @override
   Future<void> deleteGoal(String workspaceId, String goalId) async {
     try {
-      await _getCollection(workspaceId).doc(goalId).update({'isDeleted': true});
+      await settleWrite(
+        _getCollection(workspaceId).doc(goalId).update({'isDeleted': true}),
+        entity: WriteEntity.goal,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

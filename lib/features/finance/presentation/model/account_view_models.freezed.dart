@@ -292,7 +292,7 @@ $AccountModelCopyWith<$Res>? get account {
 /// @nodoc
 mixin _$AccountFormState {
 
- AccountModel? get originalAccount; String get name; double get initialBalance; DateTime get initialBalanceDate; String get color; String get icon; AccountType get type; double? get limit; int? get dueDay; int? get closingDay; double? get interestRate; BankLogo get bankLogo; List<String> get ownerIds; File? get selectedFile; AccountProcessingStatus get processingStatus; String? get errorMessage; AccountRegistrationMethod get registrationMethod; List<OrderModel> get detectedOrders;
+ AccountModel? get originalAccount; String get name; double get initialBalance; DateTime get initialBalanceDate; String get color; String get icon; AccountType get type; double? get limit; int? get dueDay; int? get closingDay; double? get interestRate; BankLogo get bankLogo; List<String> get ownerIds; PickedDocument? get selectedFile; AccountProcessingStatus get processingStatus; String? get errorMessage; AccountRegistrationMethod get registrationMethod; List<OrderModel> get detectedOrders;
 /// Create a copy of AccountFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -323,7 +323,7 @@ abstract mixin class $AccountFormStateCopyWith<$Res>  {
   factory $AccountFormStateCopyWith(AccountFormState value, $Res Function(AccountFormState) _then) = _$AccountFormStateCopyWithImpl;
 @useResult
 $Res call({
- AccountModel? originalAccount, String name, double initialBalance, DateTime initialBalanceDate, String color, String icon, AccountType type, double? limit, int? dueDay, int? closingDay, double? interestRate, BankLogo bankLogo, List<String> ownerIds, File? selectedFile, AccountProcessingStatus processingStatus, String? errorMessage, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders
+ AccountModel? originalAccount, String name, double initialBalance, DateTime initialBalanceDate, String color, String icon, AccountType type, double? limit, int? dueDay, int? closingDay, double? interestRate, BankLogo bankLogo, List<String> ownerIds, PickedDocument? selectedFile, AccountProcessingStatus processingStatus, String? errorMessage, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders
 });
 
 
@@ -356,7 +356,7 @@ as int?,interestRate: freezed == interestRate ? _self.interestRate : interestRat
 as double?,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
 as BankLogo,ownerIds: null == ownerIds ? _self.ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
 as List<String>,selectedFile: freezed == selectedFile ? _self.selectedFile : selectedFile // ignore: cast_nullable_to_non_nullable
-as File?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
+as PickedDocument?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
 as AccountProcessingStatus,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,registrationMethod: null == registrationMethod ? _self.registrationMethod : registrationMethod // ignore: cast_nullable_to_non_nullable
 as AccountRegistrationMethod,detectedOrders: null == detectedOrders ? _self.detectedOrders : detectedOrders // ignore: cast_nullable_to_non_nullable
@@ -454,7 +454,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AccountModel? originalAccount,  String name,  double initialBalance,  DateTime initialBalanceDate,  String color,  String icon,  AccountType type,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  BankLogo bankLogo,  List<String> ownerIds,  File? selectedFile,  AccountProcessingStatus processingStatus,  String? errorMessage,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AccountModel? originalAccount,  String name,  double initialBalance,  DateTime initialBalanceDate,  String color,  String icon,  AccountType type,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  BankLogo bankLogo,  List<String> ownerIds,  PickedDocument? selectedFile,  AccountProcessingStatus processingStatus,  String? errorMessage,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AccountFormState() when $default != null:
 return $default(_that.originalAccount,_that.name,_that.initialBalance,_that.initialBalanceDate,_that.color,_that.icon,_that.type,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.bankLogo,_that.ownerIds,_that.selectedFile,_that.processingStatus,_that.errorMessage,_that.registrationMethod,_that.detectedOrders);case _:
@@ -475,7 +475,7 @@ return $default(_that.originalAccount,_that.name,_that.initialBalance,_that.init
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AccountModel? originalAccount,  String name,  double initialBalance,  DateTime initialBalanceDate,  String color,  String icon,  AccountType type,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  BankLogo bankLogo,  List<String> ownerIds,  File? selectedFile,  AccountProcessingStatus processingStatus,  String? errorMessage,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AccountModel? originalAccount,  String name,  double initialBalance,  DateTime initialBalanceDate,  String color,  String icon,  AccountType type,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  BankLogo bankLogo,  List<String> ownerIds,  PickedDocument? selectedFile,  AccountProcessingStatus processingStatus,  String? errorMessage,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders)  $default,) {final _that = this;
 switch (_that) {
 case _AccountFormState():
 return $default(_that.originalAccount,_that.name,_that.initialBalance,_that.initialBalanceDate,_that.color,_that.icon,_that.type,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.bankLogo,_that.ownerIds,_that.selectedFile,_that.processingStatus,_that.errorMessage,_that.registrationMethod,_that.detectedOrders);}
@@ -492,7 +492,7 @@ return $default(_that.originalAccount,_that.name,_that.initialBalance,_that.init
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AccountModel? originalAccount,  String name,  double initialBalance,  DateTime initialBalanceDate,  String color,  String icon,  AccountType type,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  BankLogo bankLogo,  List<String> ownerIds,  File? selectedFile,  AccountProcessingStatus processingStatus,  String? errorMessage,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AccountModel? originalAccount,  String name,  double initialBalance,  DateTime initialBalanceDate,  String color,  String icon,  AccountType type,  double? limit,  int? dueDay,  int? closingDay,  double? interestRate,  BankLogo bankLogo,  List<String> ownerIds,  PickedDocument? selectedFile,  AccountProcessingStatus processingStatus,  String? errorMessage,  AccountRegistrationMethod registrationMethod,  List<OrderModel> detectedOrders)?  $default,) {final _that = this;
 switch (_that) {
 case _AccountFormState() when $default != null:
 return $default(_that.originalAccount,_that.name,_that.initialBalance,_that.initialBalanceDate,_that.color,_that.icon,_that.type,_that.limit,_that.dueDay,_that.closingDay,_that.interestRate,_that.bankLogo,_that.ownerIds,_that.selectedFile,_that.processingStatus,_that.errorMessage,_that.registrationMethod,_that.detectedOrders);case _:
@@ -529,7 +529,7 @@ class _AccountFormState extends AccountFormState {
   return EqualUnmodifiableListView(_ownerIds);
 }
 
-@override final  File? selectedFile;
+@override final  PickedDocument? selectedFile;
 @override@JsonKey() final  AccountProcessingStatus processingStatus;
 @override final  String? errorMessage;
 @override@JsonKey() final  AccountRegistrationMethod registrationMethod;
@@ -571,7 +571,7 @@ abstract mixin class _$AccountFormStateCopyWith<$Res> implements $AccountFormSta
   factory _$AccountFormStateCopyWith(_AccountFormState value, $Res Function(_AccountFormState) _then) = __$AccountFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- AccountModel? originalAccount, String name, double initialBalance, DateTime initialBalanceDate, String color, String icon, AccountType type, double? limit, int? dueDay, int? closingDay, double? interestRate, BankLogo bankLogo, List<String> ownerIds, File? selectedFile, AccountProcessingStatus processingStatus, String? errorMessage, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders
+ AccountModel? originalAccount, String name, double initialBalance, DateTime initialBalanceDate, String color, String icon, AccountType type, double? limit, int? dueDay, int? closingDay, double? interestRate, BankLogo bankLogo, List<String> ownerIds, PickedDocument? selectedFile, AccountProcessingStatus processingStatus, String? errorMessage, AccountRegistrationMethod registrationMethod, List<OrderModel> detectedOrders
 });
 
 
@@ -604,7 +604,7 @@ as int?,interestRate: freezed == interestRate ? _self.interestRate : interestRat
 as double?,bankLogo: null == bankLogo ? _self.bankLogo : bankLogo // ignore: cast_nullable_to_non_nullable
 as BankLogo,ownerIds: null == ownerIds ? _self._ownerIds : ownerIds // ignore: cast_nullable_to_non_nullable
 as List<String>,selectedFile: freezed == selectedFile ? _self.selectedFile : selectedFile // ignore: cast_nullable_to_non_nullable
-as File?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
+as PickedDocument?,processingStatus: null == processingStatus ? _self.processingStatus : processingStatus // ignore: cast_nullable_to_non_nullable
 as AccountProcessingStatus,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,registrationMethod: null == registrationMethod ? _self.registrationMethod : registrationMethod // ignore: cast_nullable_to_non_nullable
 as AccountRegistrationMethod,detectedOrders: null == detectedOrders ? _self._detectedOrders : detectedOrders // ignore: cast_nullable_to_non_nullable
