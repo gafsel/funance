@@ -1,7 +1,7 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:async';
 
 import 'package:funances/core/analytics/analytics_service.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -13,7 +13,8 @@ import 'package:funances/features/home/domain/services/mission_service.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 class TransactionFormNotifier
-    extends FormNotifier<TransactionFormState, dynamic> {
+    extends FormNotifier<TransactionFormState, dynamic>
+    with TracksWriteOutcome {
   final FinanceService financeService;
   final AnalyticsService analytics;
 
@@ -76,10 +77,7 @@ class TransactionFormNotifier
     // E muda quais agendamentos podem ser este lançamento. Recusar a oferta
     // de uma categoria não vale para a próxima.
     if (changed) {
-      state = state.copyWith(
-        pendingMatches: const [],
-        dismissedMatch: false,
-      );
+      state = state.copyWith(pendingMatches: const [], dismissedMatch: false);
       _lookForPendingMatches();
     }
   }
@@ -151,10 +149,7 @@ class TransactionFormNotifier
       final matches = [...chunk.items]
         ..sort((a, b) => a.referenceDate.compareTo(b.referenceDate));
 
-      state = state.copyWith(
-        pendingMatches: matches,
-        loadingMatches: false,
-      );
+      state = state.copyWith(pendingMatches: matches, loadingMatches: false);
     } catch (_) {
       if (!mounted) return;
       // Silencioso de propósito: sem a oferta, o lançamento segue como novo.
@@ -337,15 +332,10 @@ class TransactionFormNotifier
     );
   }
 
-  /// Se o SERVIDOR confirmou o último save.
-  ///
-  /// A tela precisa disso para escolher o que prometer: "pendente" significa
-  /// que as parcelas, que nascem de um trigger no servidor, ainda não existem.
-  /// Fica aqui, e não em `state`, porque `state` é do notifier.
-  WriteOutcome get lastWriteOutcome => state.lastWriteOutcome;
-
   @override
   Future<dynamic> submit() async {
+    beginWrite();
+
     // `state.status` já é o status NOVO quando chegamos aqui — a UI chama
     // updateStatus (ou monta o form já com status: paid) antes do submit.
     // Quem responde "como estava antes" é o status persistido da parcela.
@@ -358,21 +348,19 @@ class TransactionFormNotifier
       if (state.creation) {
         final saved = await financeService.addOrder(order);
 
-        state = state.copyWith(
-          orderId: saved.value.id,
-          lastWriteOutcome: saved.outcome,
-        );
+        recordWrite(saved.outcome);
+        state = state.copyWith(orderId: saved.value.id);
 
         result = saved.value;
       } else {
-        await financeService.updateOrder(order);
+        recordWrite(await financeService.updateOrder(order));
 
         result = order;
       }
     } else {
       final installment = state.asInstallmentModel();
 
-      await financeService.updateInstallment(installment);
+      recordWrite(await financeService.updateInstallment(installment));
 
       result = installment;
     }
@@ -398,7 +386,8 @@ class TransactionFormNotifier
       // Só conta como pagamento a submissão que de fato quitou a parcela:
       // reeditar uma parcela já paga não emite installment_paid de novo.
       final isInstallment = state.formType == TransactionFormType.installment;
-      final justPaid = isInstallment && !wasAlreadyPaid && _isPaid(state.status);
+      final justPaid =
+          isInstallment && !wasAlreadyPaid && _isPaid(state.status);
 
       if (justPaid) {
         await analytics.logInstallmentPaid();

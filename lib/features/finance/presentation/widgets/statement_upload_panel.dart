@@ -110,6 +110,13 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
   /// Zero significa "não sei": alguns seletores não declaram tamanho. Aí não
   /// dá para decidir nada aqui, e quem resolve é a checagem final, sobre os
   /// bytes de verdade.
+  ///
+  /// ONDE ISTO DE FATO ECONOMIZA MEMÓRIA: no arrastar-e-soltar e na escolha
+  /// fora da web. Na web o `file_picker` lê os bytes DENTRO de `pickFiles`,
+  /// antes de devolver qualquer coisa — não há caminho no navegador, então
+  /// não existe um "só os metadados" para pedir. Ali esta checagem apenas
+  /// evita o trabalho seguinte (validar, montar o documento, subir ao
+  /// Storage); o arquivo já passou pela memória.
   bool _rejectsDeclaredSize(int size) {
     if (size <= 0 || StatementUploadLimits.isWithinLimit(size)) return false;
 
@@ -149,9 +156,7 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
       return;
     }
 
-    _accept(
-      PickedDocument(name: picked.name, bytes: bytes, path: picked.path),
-    );
+    _accept(PickedDocument(name: picked.name, bytes: bytes, path: picked.path));
   }
 
   /// Plano B de desktop/mobile: o seletor pode devolver só o caminho.

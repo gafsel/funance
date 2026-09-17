@@ -11,8 +11,9 @@ import 'package:funances/core/widgets/simple_markdown.dart';
 List<(String, TextStyle?)> _spans(WidgetTester tester) {
   final out = <(String, TextStyle?)>[];
 
-  for (final SelectableText field
-      in tester.widgetList<SelectableText>(find.byType(SelectableText))) {
+  for (final SelectableText field in tester.widgetList<SelectableText>(
+    find.byType(SelectableText),
+  )) {
     final TextSpan root = field.textSpan!;
 
     root.visitChildren((span) {
@@ -164,6 +165,31 @@ void main() {
       await _pump(tester, '- Corte o delivery\n- Reveja assinaturas');
 
       expect(_plainText(tester), '•  Corte o delivery\n•  Reveja assinaturas');
+    });
+
+    testWidgets('lista ordenada mantém a numeração do texto', (tester) async {
+      await _pump(tester, '1. Corte o delivery\n2. Reveja assinaturas');
+
+      expect(
+        _plainText(tester),
+        '1.  Corte o delivery\n2.  Reveja assinaturas',
+      );
+    });
+
+    testWidgets('a numeração vem do texto, não de uma contagem nossa', (
+      tester,
+    ) async {
+      // Se a IA escreveu 1, 2, 5, é isso que ela quis dizer; renumerar seria
+      // inventar conteúdo.
+      await _pump(tester, '1. Um\n2. Dois\n5. Cinco');
+
+      expect(_plainText(tester), '1.  Um\n2.  Dois\n5.  Cinco');
+    });
+
+    testWidgets('ponto depois de palavra não vira lista', (tester) async {
+      await _pump(tester, 'Economize R\$ 300. Isso ajuda.');
+
+      expect(_plainText(tester), 'Economize R\$ 300. Isso ajuda.');
     });
   });
 

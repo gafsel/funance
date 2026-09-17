@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
-
 import 'package:go_router/go_router.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
@@ -59,10 +59,16 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
     if (trimmed.isEmpty || trimmed == workspace.name) return;
 
     try {
-      await ref
+      final WriteOutcome outcome = await ref
           .read(WorkspaceDomainProviders.repository)
           .updateWorkspace(workspace.copyWith(name: trimmed));
       // O watch em tempo real do workspace atualiza a UI automaticamente.
+
+      // O nome novo já aparece pelo cache local; o que ainda não aconteceu é
+      // os outros membros o verem.
+      if (outcome == WriteOutcome.pending) {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.savePendingSync)));
+      }
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(l10n.errorUnknown)));
     }
@@ -146,10 +152,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
               return ListView(
                 padding: EdgeInsets.only(bottom: isTab ? 120 : 0),
                 children: [
-                  _buildSectionHeader(
-                    context,
-                    l10n.profileTitle,
-                  ),
+                  _buildSectionHeader(context, l10n.profileTitle),
                   ListTile(
                     leading: const Icon(Icons.person_outline),
                     title: Text(l10n.profileEditTitle),

@@ -1,5 +1,5 @@
-
 import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 
 import '../models/account_model.dart';
@@ -10,9 +10,12 @@ abstract class IAccountRepository {
     AccountType? type,
   });
 
-  Future<AccountModel> createAccount(String workspaceId, AccountModel account);
+  Future<Written<AccountModel>> createAccount(
+    String workspaceId,
+    AccountModel account,
+  );
 
-  Future<void> updateAccount(String workspaceId, AccountModel account);
+  Future<WriteOutcome> updateAccount(String workspaceId, AccountModel account);
 
   Future<AccountModel> getAccount(String workspaceId, String accountId);
 

@@ -1,9 +1,11 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/features/workspace/data/models/category_mapper.dart';
+
 import '../../domain/models/category_model.dart';
 import '../../domain/repositories/category_repository.dart';
-import 'package:funances/core/exceptions/business_exception.dart';
 
 class CategoryRepositoryImpl implements ICategoryRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -31,7 +33,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   }
 
   @override
-  Future<CategoryModel> createCategory(
+  Future<Written<CategoryModel>> createCategory(
     String workspaceId,
     CategoryModel category,
   ) async {
@@ -42,9 +44,12 @@ class CategoryRepositoryImpl implements ICategoryRepository {
       // devolvia a referência depois da resposta do servidor, e offline
       // isso nunca chegava.
       final doc = _getCollection(workspaceId).doc();
-      await settleWrite(doc.set(data));
+      final WriteOutcome outcome = await settleWrite(
+        doc.set(data),
+        entity: WriteEntity.category,
+      );
 
-      return category.copyWith(id: doc.id);
+      return (value: category.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -55,14 +60,17 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   }
 
   @override
-  Future<void> updateCategory(
+  Future<WriteOutcome> updateCategory(
     String workspaceId,
     CategoryModel category,
   ) async {
     try {
       final data = category.toJson();
       data.remove('id');
-      await settleWrite(_getCollection(workspaceId).doc(category.id).update(data));
+      return await settleWrite(
+        _getCollection(workspaceId).doc(category.id).update(data),
+        entity: WriteEntity.category,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -75,7 +83,10 @@ class CategoryRepositoryImpl implements ICategoryRepository {
   @override
   Future<void> deleteCategory(String workspaceId, String categoryId) async {
     try {
-      await settleWrite(_getCollection(workspaceId).doc(categoryId).delete());
+      await settleWrite(
+        _getCollection(workspaceId).doc(categoryId).delete(),
+        entity: WriteEntity.category,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

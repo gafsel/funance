@@ -46,10 +46,7 @@ void main() {
     });
 
     test('fechar a janela é desistência, não falha', () {
-      expect(
-        authErrorCode('popup-closed-by-user'),
-        ErrorCode.signInCancelled,
-      );
+      expect(authErrorCode('popup-closed-by-user'), ErrorCode.signInCancelled);
       expect(
         authErrorCode('cancelled-popup-request'),
         ErrorCode.signInCancelled,

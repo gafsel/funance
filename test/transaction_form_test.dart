@@ -1,4 +1,3 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -6,10 +5,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
-import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/core/time/clock.dart';
+import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
@@ -22,10 +22,10 @@ import 'package:funances/features/finance/presentation/controllers/transaction_f
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
-import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
-import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -131,6 +131,9 @@ class _FakeFinanceRepository implements IFinanceRepository {
   /// offline trocam isto por `pending`.
   WriteOutcome addOrderOutcome = WriteOutcome.confirmed;
 
+  /// O mesmo, para as edições.
+  WriteOutcome updateOutcome = WriteOutcome.confirmed;
+
   @override
   Future<Written<OrderModel>> addOrder(
     String workspaceId,
@@ -146,6 +149,19 @@ class _FakeFinanceRepository implements IFinanceRepository {
     String? startMonth,
     String? endMonth,
   }) async => const [];
+
+  @override
+  Future<WriteOutcome> updateOrder(String workspaceId, OrderModel order) async {
+    return updateOutcome;
+  }
+
+  @override
+  Future<WriteOutcome> updateInstallment(
+    String workspaceId,
+    InstallmentModel entry,
+  ) async {
+    return updateOutcome;
+  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -271,10 +287,7 @@ TransactionFormNotifier _notifierFor(
   today: _hoje,
 );
 
-Widget _hostedForm(
-  Widget screen, {
-  required List<Override> overrides,
-}) {
+Widget _hostedForm(Widget screen, {required List<Override> overrides}) {
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
@@ -302,23 +315,21 @@ InstallmentModel _agendamentoDeMarco() => _installment(
   installmentCount: null,
 );
 
-Widget _hostedRouter(
-  GoRouter router, {
-  required List<Override> overrides,
-}) => ProviderScope(
-  overrides: overrides,
-  child: MaterialApp.router(
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-    supportedLocales: AppLocalizations.supportedLocales,
-    locale: const Locale('pt'),
-    routerConfig: router,
-  ),
-);
+Widget _hostedRouter(GoRouter router, {required List<Override> overrides}) =>
+    ProviderScope(
+      overrides: overrides,
+      child: MaterialApp.router(
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('pt'),
+        routerConfig: router,
+      ),
+    );
 
 List<Override> _overrides({
   List<AccountModel> accounts = const [],
@@ -374,6 +385,45 @@ void main() {
 
     test('com o servidor confirmando, o save é um save normal', () async {
       final notifier = await salvar(WriteOutcome.confirmed);
+
+      expect(notifier.lastWriteOutcome, WriteOutcome.confirmed);
+    });
+
+    test('a EDIÇÃO também reporta pendência', () async {
+      // Só o ramo de criação gravava o resultado; editar offline dizia
+      // "salvo!" com a mesma cara de sempre.
+      final repository = _FakeFinanceRepository()
+        ..updateOutcome = WriteOutcome.pending;
+      final notifier = _notifierFor(
+        TransactionFormState.updateInstallment(_installment()),
+        financeService: _financeService(repository: repository),
+      );
+      addTearDown(notifier.dispose);
+
+      await notifier.submit();
+
+      expect(notifier.lastWriteOutcome, WriteOutcome.pending);
+    });
+
+    test('um save novo não herda o resultado do anterior', () async {
+      // Sem zerar no início do submit, quem salvasse offline e depois com
+      // rede continuaria vendo "salvo neste dispositivo".
+      final repository = _FakeFinanceRepository()
+        ..addOrderOutcome = WriteOutcome.pending;
+      final notifier = _notifierFor(
+        TransactionFormState.creation(type: OrderType.expense),
+        financeService: _financeService(repository: repository),
+      );
+      addTearDown(notifier.dispose);
+
+      await notifier.submit();
+      expect(notifier.lastWriteOutcome, WriteOutcome.pending);
+
+      // A rede voltou.
+      repository.addOrderOutcome = WriteOutcome.confirmed;
+      repository.updateOutcome = WriteOutcome.confirmed;
+
+      await notifier.submit();
 
       expect(notifier.lastWriteOutcome, WriteOutcome.confirmed);
     });
@@ -603,26 +653,29 @@ void main() {
       expect(notifier.state.accountIdSource, 'acc-unica');
     });
 
-    test('não escolhe nada quando há várias contas e nenhum histórico', () async {
-      final notifier = _notifierFor(
-        TransactionFormState.creation(
-          type: OrderType.expense,
-          category: _category(),
-        ),
-        financeService: _financeService(
-          accounts: [
-            _account(id: 'acc-1', name: 'Nubank'),
-            _account(id: 'acc-2', name: 'Itaú'),
-          ],
-        ),
-      );
-      addTearDown(notifier.dispose);
+    test(
+      'não escolhe nada quando há várias contas e nenhum histórico',
+      () async {
+        final notifier = _notifierFor(
+          TransactionFormState.creation(
+            type: OrderType.expense,
+            category: _category(),
+          ),
+          financeService: _financeService(
+            accounts: [
+              _account(id: 'acc-1', name: 'Nubank'),
+              _account(id: 'acc-2', name: 'Itaú'),
+            ],
+          ),
+        );
+        addTearDown(notifier.dispose);
 
-      await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
 
-      expect(notifier.state.accountIdSource, isNull);
-      expect(notifier.state.resolvingAccount, isFalse);
-    });
+        expect(notifier.state.accountIdSource, isNull);
+        expect(notifier.state.resolvingAccount, isFalse);
+      },
+    );
 
     test('a conta vinda do ponto de entrada não é sobrescrita', () async {
       final notifier = _notifierFor(
@@ -726,9 +779,7 @@ void main() {
     });
 
     test('agendar não oferece casamento', () async {
-      final repository = _FakeFinanceRepository(
-        installments: [agendamento()],
-      );
+      final repository = _FakeFinanceRepository(installments: [agendamento()]);
 
       final notifier = _notifierFor(
         TransactionFormState.creation(
@@ -795,10 +846,10 @@ void main() {
 
       // O atrasado vem primeiro: é o candidato mais provável e é o que vira
       // missão vencida se ficar para trás.
-      expect(
-        notifier.state.pendingMatches.map((match) => match.id),
-        ['inst-fevereiro', 'inst-marco'],
-      );
+      expect(notifier.state.pendingMatches.map((match) => match.id), [
+        'inst-fevereiro',
+        'inst-marco',
+      ]);
     });
 
     test('desfazer o casamento devolve o que já estava digitado', () async {
@@ -1305,20 +1356,21 @@ void main() {
       expect(find.text('Lançar Despesa'), findsOneWidget);
       expect(find.text('Agendar Despesa'), findsNothing);
 
-      final state = ProviderScope.containerOf(
-        tester.element(find.byType(TransactionFormScreen)),
-      ).read(
-        FinanceViewProviders.creationForm(
-          TransactionCreationArgs(
-            type: OrderType.expense,
-            status: InstallmentStatus.paid,
-            category: _category(),
-            description: 'Compra',
-            amount: 87.9,
-            date: DateTime(2026, 3, 12, 10, 30),
-          ),
-        ),
-      );
+      final state =
+          ProviderScope.containerOf(
+            tester.element(find.byType(TransactionFormScreen)),
+          ).read(
+            FinanceViewProviders.creationForm(
+              TransactionCreationArgs(
+                type: OrderType.expense,
+                status: InstallmentStatus.paid,
+                category: _category(),
+                description: 'Compra',
+                amount: 87.9,
+                date: DateTime(2026, 3, 12, 10, 30),
+              ),
+            ),
+          );
 
       expect(state.status, InstallmentStatus.paid);
       expect(state.paidDate, DateTime(2026, 3, 12, 10, 30));

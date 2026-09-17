@@ -74,9 +74,7 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final block in blocks) _render(block, bodyStyle),
-      ],
+      children: [for (final block in blocks) _render(block, bodyStyle)],
     );
   }
 
@@ -113,10 +111,7 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
               ),
             ),
           ),
-          child: _text(
-            text,
-            bodyStyle.copyWith(fontStyle: FontStyle.italic),
-          ),
+          child: _text(text, bodyStyle.copyWith(fontStyle: FontStyle.italic)),
         ),
       ),
       MarkdownParagraph(:final text) => _text(text, bodyStyle),
@@ -162,7 +157,8 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
       return _link(linkText, match.group(_linkHref)!, bodyStyle);
     }
 
-    final String? strongEm = match.group(_strongEmStar) ?? match.group(_strongEmUnderscore);
+    final String? strongEm =
+        match.group(_strongEmStar) ?? match.group(_strongEmUnderscore);
     if (strongEm != null) {
       return TextSpan(
         text: strongEm,
@@ -173,7 +169,8 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
       );
     }
 
-    final String? strong = match.group(_strongStar) ?? match.group(_strongUnderscore);
+    final String? strong =
+        match.group(_strongStar) ?? match.group(_strongUnderscore);
     if (strong != null) {
       return TextSpan(
         text: strong,
@@ -299,10 +296,21 @@ List<MarkdownBlock> parseMarkdownBlocks(String data) {
 
     flushQuote();
 
-    // O marcador é desenhado pelo app: a sintaxe do Markdown ("- ", "* ") não
-    // é o que o usuário deve ler.
+    // O marcador é desenhado pelo app: a sintaxe do Markdown ("- ", "* ",
+    // "1. ") não é o que o usuário deve ler.
     final RegExpMatch? bullet = _bullet.firstMatch(line);
-    paragraph.add(bullet == null ? line : '•  ${bullet.group(1)}');
+    if (bullet != null) {
+      paragraph.add('•  ${bullet.group(1)}');
+      continue;
+    }
+
+    // Lista ordenada. O número vem do texto, e não de uma contagem nossa:
+    // se a IA escreveu "1., 2., 5.", é isso que ela quis dizer — renumerar
+    // seria inventar.
+    final RegExpMatch? ordered = _ordered.firstMatch(line);
+    paragraph.add(
+      ordered == null ? line : '${ordered.group(1)}.  ${ordered.group(2)}',
+    );
   }
 
   flushQuote();
@@ -317,6 +325,9 @@ List<MarkdownBlock> parseMarkdownBlocks(String data) {
 
 /// Linha de lista: "- item" ou "* item", com recuo opcional.
 final RegExp _bullet = RegExp(r'^\s*[-*]\s+(.*)$');
+
+/// Linha de lista ordenada: "1. item", com recuo opcional.
+final RegExp _ordered = RegExp(r'^\s*(\d{1,3})[.)]\s+(.*)$');
 
 /// Título: de "#" a "######".
 final RegExp _heading = RegExp(r'^\s*(#{1,6})\s+(.*)$');

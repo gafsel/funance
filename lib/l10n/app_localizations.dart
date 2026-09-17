@@ -4406,12 +4406,6 @@ abstract class AppLocalizations {
   /// **'{month}: {score} de 100'**
   String compassHistoryPoint(String month, String score);
 
-  /// Aviso de escrita recusada pelo servidor depois de a tela ter seguido.
-  ///
-  /// In pt, this message translates to:
-  /// **'Uma alteração não pôde ser salva: {reason}'**
-  String writeFailed(String reason);
-
   /// No description provided for @writeFailedReasonPermission.
   ///
   /// In pt, this message translates to:
@@ -4447,6 +4441,90 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Arraste um arquivo, não uma pasta.'**
   String get uploadFolderNotSupported;
+
+  /// Aviso de escrita recusada pelo servidor depois de a tela ter seguido.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível salvar {entity}: {reason}'**
+  String writeFailedEntity(String entity, String reason);
+
+  /// No description provided for @writeEntityTransaction.
+  ///
+  /// In pt, this message translates to:
+  /// **'o lançamento'**
+  String get writeEntityTransaction;
+
+  /// No description provided for @writeEntityInstallment.
+  ///
+  /// In pt, this message translates to:
+  /// **'a parcela'**
+  String get writeEntityInstallment;
+
+  /// No description provided for @writeEntityPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'o planejamento'**
+  String get writeEntityPlanning;
+
+  /// No description provided for @writeEntityAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'a conta'**
+  String get writeEntityAccount;
+
+  /// No description provided for @writeEntityCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'a categoria'**
+  String get writeEntityCategory;
+
+  /// No description provided for @writeEntityGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'a meta'**
+  String get writeEntityGoal;
+
+  /// No description provided for @writeEntityInvite.
+  ///
+  /// In pt, this message translates to:
+  /// **'o convite'**
+  String get writeEntityInvite;
+
+  /// No description provided for @writeEntityWorkspace.
+  ///
+  /// In pt, this message translates to:
+  /// **'o workspace'**
+  String get writeEntityWorkspace;
+
+  /// No description provided for @writeEntityProfile.
+  ///
+  /// In pt, this message translates to:
+  /// **'o perfil'**
+  String get writeEntityProfile;
+
+  /// No description provided for @writeEntityAutomaticTransaction.
+  ///
+  /// In pt, this message translates to:
+  /// **'a transação automática'**
+  String get writeEntityAutomaticTransaction;
+
+  /// No description provided for @writeEntityReconciliation.
+  ///
+  /// In pt, this message translates to:
+  /// **'a conciliação'**
+  String get writeEntityReconciliation;
+
+  /// No description provided for @savePendingSync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo neste dispositivo. Sincroniza quando a conexão voltar.'**
+  String get savePendingSync;
+
+  /// No description provided for @accountSavePendingSync.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.'**
+  String get accountSavePendingSync;
 }
 
 class _AppLocalizationsDelegate

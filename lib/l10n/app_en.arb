@@ -1227,19 +1227,35 @@
       }
     }
   },
-  "writeFailed": "A change could not be saved: {reason}",
   "writeFailedReasonPermission": "you do not have permission for this change",
   "writeFailedReasonNotFound": "the item no longer exists",
   "writeFailedReasonTimeout": "the server did not respond",
   "writeFailedReasonUnknown": "the server rejected the change",
   "transactionSavePendingSync": "Saved on this device. Instalments appear when the connection is back.",
-  "@writeFailed": {
+  "uploadFolderNotSupported": "Drop a file, not a folder.",
+  "writeFailedEntity": "Could not save {entity}: {reason}",
+  "writeEntityTransaction": "the transaction",
+  "writeEntityInstallment": "the instalment",
+  "writeEntityPlanning": "the plan",
+  "writeEntityAccount": "the account",
+  "writeEntityCategory": "the category",
+  "writeEntityGoal": "the goal",
+  "writeEntityInvite": "the invite",
+  "writeEntityWorkspace": "the workspace",
+  "writeEntityProfile": "the profile",
+  "writeEntityAutomaticTransaction": "the automatic transaction",
+  "writeEntityReconciliation": "the reconciliation",
+  "savePendingSync": "Saved on this device. It syncs when the connection is back.",
+  "accountSavePendingSync": "Saved on this device. Opening balance and invoice appear when the connection is back.",
+  "@writeFailedEntity": {
     "description": "Aviso de escrita recusada pelo servidor depois de a tela ter seguido.",
     "placeholders": {
+      "entity": {
+        "type": "String"
+      },
       "reason": {
         "type": "String"
       }
     }
-  },
-  "uploadFolderNotSupported": "Drop a file, not a folder."
+  }
 }

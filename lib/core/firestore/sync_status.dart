@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 
 /// Como está a conversa do app com o servidor.
 enum SyncStatus {
@@ -18,6 +18,10 @@ enum SyncStatus {
 
 /// Uid da sessão, como um fluxo.
 ///
+/// Público para o teste poder trocar a sessão sem um FirebaseAuth vivo — é a
+/// única costura por onde se verifica que o observador é REFEITO ao trocar de
+/// conta, que era justamente o que estava quebrado.
+///
 /// A primeira versão disto lia `FirebaseAuth.instance.currentUser` UMA vez, no
 /// primeiro frame — antes de a sessão salva ser restaurada. Resultado: o uid
 /// era sempre nulo, o provider devolvia "online" fixo e ficava em cache para
@@ -27,11 +31,29 @@ enum SyncStatus {
 /// Observamos o `FirebaseAuth` direto, e não o provider de usuário da feature
 /// de auth, por dois motivos: é a fonte real do uid (o outro é derivado dele) e
 /// evita que `core` passe a depender de `features`.
-final _sessionUidProvider = StreamProvider<String?>((ref) {
+final sessionUidProvider = StreamProvider<String?>((ref) {
   return FirebaseAuth.instance
       .authStateChanges()
       .map((user) => user?.uid)
       .distinct();
+});
+
+/// Esquece o que pertencia à sessão anterior.
+///
+/// Só roda de novo quando o uid MUDA — logout, login, troca de conta. Uma
+/// escrita pendente, um estado de sincronização ou uma falha de escrita eram
+/// do usuário que saiu: contá-los mostraria ao próximo uma tarja que não é
+/// dele.
+///
+/// É um provider à parte, e não um trecho do [syncStatusProvider], porque
+/// assim se verifica sozinho: o outro precisa de um Firestore vivo para
+/// existir, este precisa só de um uid.
+final sessionResetProvider = Provider<void>((ref) {
+  ref.watch(sessionUidProvider);
+
+  PendingWrites.reset();
+  SyncStatusLatch.reset();
+  WriteFailures.clear();
 });
 
 /// Estado de sincronização, lido do próprio Firestore.
@@ -46,14 +68,13 @@ final _sessionUidProvider = StreamProvider<String?>((ref) {
 /// sessão, é minúsculo e as rules já o liberam para o dono. O `ref.watch` do
 /// uid é o que faz o observador ser refeito a cada troca de sessão.
 final syncStatusProvider = StreamProvider<SyncStatus>((ref) {
-  final String? uid = ref.watch(_sessionUidProvider).valueOrNull;
+  final String? uid = ref.watch(sessionUidProvider).valueOrNull;
+
+  ref.watch(sessionResetProvider);
 
   // Sem sessão não há o que sincronizar, e a tela de login não deve ganhar
   // uma tarja de "sem conexão".
-  if (uid == null) {
-    SyncStatusLatch.update(SyncStatus.online);
-    return Stream<SyncStatus>.value(SyncStatus.online);
-  }
+  if (uid == null) return Stream<SyncStatus>.value(SyncStatus.online);
 
   return FirebaseFirestore.instance
       .collection('users')
@@ -121,6 +142,9 @@ abstract final class SyncStatusLatch {
 
   static void update(SyncStatus status) => _current = status;
 
-  @visibleForTesting
+  /// Volta ao palpite inicial.
+  ///
+  /// Na troca de sessão: o estado de sincronização de uma conta não diz nada
+  /// sobre a próxima.
   static void reset() => _current = SyncStatus.online;
 }

@@ -1,3 +1,4 @@
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/domain/services/goal_service.dart';
@@ -11,13 +12,12 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 /// o valor para não zerá-lo numa edição, mas nada aqui o altera — por isso o
 /// notifier também não precisa mais do `AccountService`, que só existia para
 /// preencher esse campo com o saldo da conta escolhida.
-class GoalFormNotifier extends FormNotifier<GoalFormState, void> {
+class GoalFormNotifier extends FormNotifier<GoalFormState, void>
+    with TracksWriteOutcome {
   final GoalService goalService;
 
-  GoalFormNotifier({
-    required this.goalService,
-    GoalModel? initialGoal,
-  }) : super(GoalFormState.initial(initialGoal));
+  GoalFormNotifier({required this.goalService, GoalModel? initialGoal})
+    : super(GoalFormState.initial(initialGoal));
 
   void updateName(String value) => state = state.copyWith(name: value);
 
@@ -40,14 +40,17 @@ class GoalFormNotifier extends FormNotifier<GoalFormState, void> {
 
   @override
   Future<void> submit() async {
+    beginWrite();
+
     final goal = state.asGoalModel();
 
     if (state.creation) {
       final saved = await goalService.addGoal(goal);
 
-      state = state.copyWith(id: saved.id);
+      recordWrite(saved.outcome);
+      state = state.copyWith(id: saved.value.id);
     } else {
-      await goalService.updateGoal(goal);
+      recordWrite(await goalService.updateGoal(goal));
     }
   }
 }

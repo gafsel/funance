@@ -171,9 +171,11 @@ class ReconciliationService {
       if (tx.category == null) return tx;
 
       final matchedCategory = categories
-          .where((c) =>
-              c.type == tx.category!.type &&
-              _compareCategoryNames(c.name, tx.category!.name))
+          .where(
+            (c) =>
+                c.type == tx.category!.type &&
+                _compareCategoryNames(c.name, tx.category!.name),
+          )
           .firstOrNull;
 
       if (matchedCategory != null) {
@@ -249,7 +251,8 @@ class ReconciliationService {
     for (final match in matches) {
       // Tratar remoção de itens órfãos descartados/ignorados
       if (match.status == ReconciliationMatchStatus.ignored) {
-        if (match.documentTransaction == null && match.systemInstallment != null) {
+        if (match.documentTransaction == null &&
+            match.systemInstallment != null) {
           await financeService.cancelInstallment(match.systemInstallment!.id);
         }
         continue;
@@ -258,7 +261,8 @@ class ReconciliationService {
       if (match.status == ReconciliationMatchStatus.matched ||
           match.status == ReconciliationMatchStatus.suggested) {
         // Apenas atualizar/liquidar se for um match vinculado a documento (ignorar orphans mantidos)
-        if (match.systemInstallment != null && match.documentTransaction != null) {
+        if (match.systemInstallment != null &&
+            match.documentTransaction != null) {
           final installment = match.systemInstallment!;
           final type = match.customType ?? installment.type;
 
@@ -282,19 +286,22 @@ class ReconciliationService {
             final existingTargetAccountId = sysInst?.accounts.keys
                 .where((key) => key != selectedAccount.id)
                 .firstOrNull;
-            var resolvedTargetAccountId = match.targetAccountId ?? existingTargetAccountId;
+            var resolvedTargetAccountId =
+                match.targetAccountId ?? existingTargetAccountId;
             if (resolvedTargetAccountId == selectedAccount.id) {
               resolvedTargetAccountId = existingTargetAccountId;
             }
 
             if (isCredit) {
               newAccounts[selectedAccount.id] = AccountImpact.credit;
-              if (resolvedTargetAccountId != null && resolvedTargetAccountId != selectedAccount.id) {
+              if (resolvedTargetAccountId != null &&
+                  resolvedTargetAccountId != selectedAccount.id) {
                 newAccounts[resolvedTargetAccountId] = AccountImpact.debt;
               }
             } else {
               newAccounts[selectedAccount.id] = AccountImpact.debt;
-              if (resolvedTargetAccountId != null && resolvedTargetAccountId != selectedAccount.id) {
+              if (resolvedTargetAccountId != null &&
+                  resolvedTargetAccountId != selectedAccount.id) {
                 newAccounts[resolvedTargetAccountId] = AccountImpact.credit;
               }
             }
@@ -434,9 +441,9 @@ class ReconciliationService {
         .firstOrNull;
 
     if (found == null) {
-      final newCategory = await categoryService.create(
+      final newCategory = (await categoryService.create(
         category.copyWith(id: const Uuid().v4()),
-      );
+      )).value;
       return newCategory;
     }
 

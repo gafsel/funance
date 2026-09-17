@@ -2450,11 +2450,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String writeFailed(String reason) {
-    return 'A change could not be saved: $reason';
-  }
-
-  @override
   String get writeFailedReasonPermission =>
       'you do not have permission for this change';
 
@@ -2473,4 +2468,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uploadFolderNotSupported => 'Drop a file, not a folder.';
+
+  @override
+  String writeFailedEntity(String entity, String reason) {
+    return 'Could not save $entity: $reason';
+  }
+
+  @override
+  String get writeEntityTransaction => 'the transaction';
+
+  @override
+  String get writeEntityInstallment => 'the instalment';
+
+  @override
+  String get writeEntityPlanning => 'the plan';
+
+  @override
+  String get writeEntityAccount => 'the account';
+
+  @override
+  String get writeEntityCategory => 'the category';
+
+  @override
+  String get writeEntityGoal => 'the goal';
+
+  @override
+  String get writeEntityInvite => 'the invite';
+
+  @override
+  String get writeEntityWorkspace => 'the workspace';
+
+  @override
+  String get writeEntityProfile => 'the profile';
+
+  @override
+  String get writeEntityAutomaticTransaction => 'the automatic transaction';
+
+  @override
+  String get writeEntityReconciliation => 'the reconciliation';
+
+  @override
+  String get savePendingSync =>
+      'Saved on this device. It syncs when the connection is back.';
+
+  @override
+  String get accountSavePendingSync =>
+      'Saved on this device. Opening balance and invoice appear when the connection is back.';
 }

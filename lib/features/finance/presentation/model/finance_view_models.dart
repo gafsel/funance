@@ -1,4 +1,3 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -57,7 +56,8 @@ sealed class CategoryPlanning503020Item with _$CategoryPlanning503020Item {
     @Default(false) bool isDirty,
   }) = _CategoryPlanning503020Item;
 
-  double get effectiveAmount => generalAmount > 0 ? generalAmount : specificAmount;
+  double get effectiveAmount =>
+      generalAmount > 0 ? generalAmount : specificAmount;
 }
 
 @freezed
@@ -73,7 +73,8 @@ sealed class CategoryPlanning503020State with _$CategoryPlanning503020State {
 }
 
 @freezed
-sealed class Planning503020DistributionGroup with _$Planning503020DistributionGroup {
+sealed class Planning503020DistributionGroup
+    with _$Planning503020DistributionGroup {
   const factory Planning503020DistributionGroup({
     @Default(0.0) double plannedAmount,
     @Default(0.0) double actualAmount,
@@ -186,10 +187,6 @@ sealed class TransactionFormState with _$TransactionFormState {
     // A parcela como está persistida. É ela que responde "o que mudou neste
     // save" — `status`/`amount`/`dueDate` do estado já são os valores novos.
     InstallmentModel? original,
-    // Se o SERVIDOR confirmou o último save. "Pendente" muda o que a tela
-    // promete: as parcelas do lançamento nascem de um trigger no servidor e
-    // não existem enquanto a escrita não subir.
-    @Default(WriteOutcome.confirmed) WriteOutcome lastWriteOutcome,
     // Pool em que a transferência vai cair, para o aviso no formulário.
     TransferAccounting? transferAccounting,
     // Verdadeiro enquanto o formulário procura a conta padrão da categoria.

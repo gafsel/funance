@@ -205,10 +205,7 @@ void main() {
       // Sem nem bytes nem caminho: se o painel tentasse LER para medir, este
       // caso não teria como passar. É essa a diferença — a recusa acontece
       // antes de qualquer leitura.
-      final gigante = PlatformFile(
-        name: 'extrato.pdf',
-        size: 11 * 1024 * 1024,
-      );
+      final gigante = PlatformFile(name: 'extrato.pdf', size: 11 * 1024 * 1024);
 
       final selected = await pick(tester, gigante);
 

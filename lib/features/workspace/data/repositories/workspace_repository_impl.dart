@@ -1,11 +1,12 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:funances/features/workspace/data/models/workspace_mapper.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/data/models/workspace_mapper.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
-import 'package:funances/core/exceptions/business_exception.dart';
 
 class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   final _firestore = FirebaseFirestore.instance;
@@ -80,7 +81,9 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   }
 
   @override
-  Future<WorkspaceModel> createWorkspace(WorkspaceModel workspace) async {
+  Future<Written<WorkspaceModel>> createWorkspace(
+    WorkspaceModel workspace,
+  ) async {
     try {
       final data = workspace.toJson();
 
@@ -96,9 +99,12 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
           ? _firestore.collection(_collection).doc()
           : _firestore.collection(_collection).doc(workspace.id);
 
-      await settleWrite(docRef.set(data));
+      final WriteOutcome outcome = await settleWrite(
+        docRef.set(data),
+        entity: WriteEntity.workspace,
+      );
 
-      return workspace.copyWith(id: docRef.id);
+      return (value: workspace.copyWith(id: docRef.id), outcome: outcome);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -124,7 +130,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
   }
 
   @override
-  Future<void> updateWorkspace(WorkspaceModel workspace) async {
+  Future<WriteOutcome> updateWorkspace(WorkspaceModel workspace) async {
     try {
       // Grava apenas os campos editáveis pelo usuário. Campos de gamificação
       // (xp, level, unlockedBadges, weeklyStreaks, lastLevelUpAt) e members
@@ -136,8 +142,9 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         'lastOnboardingStep': json['lastOnboardingStep'],
         'onboardingCompleted': json['onboardingCompleted'],
       };
-      await settleWrite(
+      return await settleWrite(
         _firestore.collection(_collection).doc(workspace.id).update(data),
+        entity: WriteEntity.workspace,
       );
     } catch (e, s) {
       throw BusinessException(
@@ -162,6 +169,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
     try {
       await settleWrite(
         _firestore.collection(_collection).doc(workspaceId).delete(),
+        entity: WriteEntity.workspace,
       );
     } catch (e, s) {
       throw BusinessException(

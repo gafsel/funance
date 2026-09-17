@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:funances/core/firestore/sync_status.dart';
 import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/core/observability/crash_reporter.dart';
@@ -49,10 +48,14 @@ const Duration _onlineGrace = Duration(seconds: 30);
 /// prometer a coisa certa ao usuário. Um "pendente" não é sucesso pleno: há
 /// efeito de servidor — as parcelas de um lançamento, por exemplo — que só
 /// acontece quando a escrita sobe.
-Future<WriteOutcome> settleWrite(Future<void> write, {Duration? grace}) {
-  final bool wasOffline = SyncStatusLatch.isOffline;
+Future<WriteOutcome> settleWrite(
+  Future<void> write, {
+  required WriteEntity entity,
+  Duration? grace,
+}) {
+  final bool startedOffline = SyncStatusLatch.isOffline;
   final Duration deadline =
-      grace ?? (wasOffline ? _offlineGrace : _onlineGrace);
+      grace ?? (startedOffline ? _offlineGrace : _onlineGrace);
 
   final Completer<WriteOutcome> settled = Completer<WriteOutcome>();
   final Timer timer = Timer(deadline, () {
@@ -60,10 +63,18 @@ Future<WriteOutcome> settleWrite(Future<void> write, {Duration? grace}) {
 
     PendingWrites.add();
 
-    // Estávamos online e mesmo assim o servidor não respondeu em 30s. Não dá
-    // para chamar isso de "sem rede": alguma coisa está errada e o usuário
-    // precisa saber que o que ele salvou ainda não subiu.
-    if (!wasOffline) WriteFailures.report(WriteFailureReason.tookTooLong);
+    // O estado é reconsultado AGORA, e não o do começo da escrita: em 30 s a
+    // rede cai com facilidade. Quem começou online e terminou offline não fez
+    // nada de errado, e um aviso vermelho nesse caso culparia o usuário por
+    // uma queda de conexão.
+    final bool stillOnline = !startedOffline && !SyncStatusLatch.isOffline;
+
+    // Online do início ao fim e mesmo assim o servidor ficou mudo por 30 s.
+    // Isso não é "sem rede": alguma coisa está errada e o usuário precisa
+    // saber que o que ele salvou ainda não subiu.
+    if (stillOnline) {
+      WriteFailures.report(entity, WriteFailureReason.tookTooLong);
+    }
 
     settled.complete(WriteOutcome.pending);
   });
@@ -92,7 +103,7 @@ Future<WriteOutcome> settleWrite(Future<void> write, {Duration? grace}) {
       // então vai para a tarja — que vive acima de todas as rotas — em vez de
       // morrer num log que ninguém lê.
       PendingWrites.resolve();
-      WriteFailures.report(writeFailureReasonOf(error));
+      WriteFailures.report(entity, writeFailureReasonOf(error));
       CrashReporter.recordError(error, stack);
     },
   );
@@ -132,9 +143,40 @@ abstract final class PendingWrites {
     if (_controller.hasListener) _controller.add(_count);
   }
 
-  @visibleForTesting
+  /// Zera a contagem.
+  ///
+  /// Na troca de sessão: o que estava pendente pertencia ao usuário anterior.
   static void reset() {
     _count = 0;
     _emit();
+  }
+}
+
+/// Guarda o resultado da última escrita de um formulário.
+///
+/// A tela precisa saber se o servidor confirmou para escolher o que prometer:
+/// "salvo" e "salvo neste dispositivo" são promessas diferentes.
+///
+/// Fica no notifier e não no estado do formulário de propósito: o estado
+/// descreve o que a tela DESENHA, e isto é um fato sobre o último save. Um
+/// campo de estado ainda seria carregado para frente por `copyWith` — que é
+/// justamente como um save confirmado acabava herdando o "pendente" do save
+/// anterior.
+mixin TracksWriteOutcome {
+  WriteOutcome _lastWriteOutcome = WriteOutcome.confirmed;
+
+  /// Se o SERVIDOR confirmou o último save.
+  WriteOutcome get lastWriteOutcome => _lastWriteOutcome;
+
+  /// true quando o último save ficou só no cache local.
+  bool get lastWriteIsPending => _lastWriteOutcome == WriteOutcome.pending;
+
+  /// Começa um save. Cada um responde por si.
+  void beginWrite() => _lastWriteOutcome = WriteOutcome.confirmed;
+
+  /// Registra o pior resultado do save: um formulário pode escrever mais de
+  /// uma vez, e basta uma escrita pendente para a promessa mudar.
+  void recordWrite(WriteOutcome outcome) {
+    if (outcome == WriteOutcome.pending) _lastWriteOutcome = outcome;
   }
 }

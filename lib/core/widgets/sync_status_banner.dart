@@ -8,9 +8,6 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
-/// Quanto tempo o aviso de falha fica na tela antes de sair sozinho.
-const Duration _failureDuration = Duration(seconds: 8);
-
 /// Tarja que diz, sem interromper nada, que o app está trabalhando pelo cache
 /// — e que avisa quando uma escrita dada como salva acabou recusada.
 ///
@@ -34,7 +31,6 @@ class SyncStatusBanner extends ConsumerStatefulWidget {
 
 class _SyncStatusBannerState extends ConsumerState<SyncStatusBanner> {
   StreamSubscription<WriteFailure>? _failures;
-  Timer? _hideFailure;
   WriteFailure? _failure;
 
   @override
@@ -46,25 +42,22 @@ class _SyncStatusBannerState extends ConsumerState<SyncStatusBanner> {
   @override
   void dispose() {
     _failures?.cancel();
-    _hideFailure?.cancel();
     super.dispose();
   }
 
+  /// O aviso FICA até o usuário dispensar.
+  ///
+  /// Ele some sozinho antes durava 8 s, e 8 s é tempo de mais nada: quem
+  /// estava com o app no bolso ou noutra aba perdia a única notícia de que
+  /// uma alteração não foi salva. Não é um aviso de rotina — é a informação
+  /// de que algo que a pessoa achava guardado não está.
   void _showFailure(WriteFailure failure) {
     if (!mounted) return;
 
     setState(() => _failure = failure);
-
-    _hideFailure?.cancel();
-    _hideFailure = Timer(_failureDuration, () {
-      if (mounted) setState(() => _failure = null);
-    });
   }
 
-  void _dismissFailure() {
-    _hideFailure?.cancel();
-    setState(() => _failure = null);
-  }
+  void _dismissFailure() => setState(() => _failure = null);
 
   @override
   Widget build(BuildContext context) {
@@ -185,7 +178,10 @@ class _FailureStrip extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                l10n.writeFailed(writeFailureText(l10n, failure.reason)),
+                l10n.writeFailedEntity(
+                  writeEntityText(l10n, failure.entity),
+                  writeFailureText(l10n, failure.reason),
+                ),
                 style: const TextStyle(
                   color: AppColors.pureWhite,
                   fontSize: 13,
@@ -213,6 +209,23 @@ class _FailureStrip extends StatelessWidget {
       ),
     );
   }
+}
+
+/// O que não pôde ser salvo, em texto para o usuário.
+String writeEntityText(AppLocalizations l10n, WriteEntity entity) {
+  return switch (entity) {
+    WriteEntity.transaction => l10n.writeEntityTransaction,
+    WriteEntity.installment => l10n.writeEntityInstallment,
+    WriteEntity.planning => l10n.writeEntityPlanning,
+    WriteEntity.account => l10n.writeEntityAccount,
+    WriteEntity.category => l10n.writeEntityCategory,
+    WriteEntity.goal => l10n.writeEntityGoal,
+    WriteEntity.invite => l10n.writeEntityInvite,
+    WriteEntity.workspace => l10n.writeEntityWorkspace,
+    WriteEntity.profile => l10n.writeEntityProfile,
+    WriteEntity.automaticTransaction => l10n.writeEntityAutomaticTransaction,
+    WriteEntity.reconciliation => l10n.writeEntityReconciliation,
+  };
 }
 
 /// Motivo da recusa, em texto para o usuário.

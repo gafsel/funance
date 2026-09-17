@@ -1,8 +1,9 @@
 import 'dart:developer';
 
-import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/core/model/core_models.dart';
 
 import '../../domain/models/category_planning_model.dart';
@@ -111,7 +112,9 @@ class FinanceRepositoryImpl implements IFinanceRepository {
             .toList();
       }
 
-      log("Firestore returned ${snapshot.docs.length} docs, after filter: ${items.length} items. Descending: $descending");
+      log(
+        "Firestore returned ${snapshot.docs.length} docs, after filter: ${items.length} items. Descending: $descending",
+      );
 
       return QueryChunk(items: items, nextChunckRef: snapshot.docs.lastOrNull);
     } catch (e, s) {
@@ -158,7 +161,10 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       // `add()` que havia aqui só devolvia a referência depois que o servidor
       // respondia, e offline isso nunca acontecia.
       final doc = _getWorkspaceDoc(workspaceId).collection('orders').doc();
-      final WriteOutcome outcome = await settleWrite(doc.set(data));
+      final WriteOutcome outcome = await settleWrite(
+        doc.set(data),
+        entity: WriteEntity.transaction,
+      );
 
       return (value: order.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
@@ -171,14 +177,15 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
-  Future<void> updateOrder(String workspaceId, OrderModel order) async {
+  Future<WriteOutcome> updateOrder(String workspaceId, OrderModel order) async {
     try {
       final data = order.toJson();
       data.remove('id');
-      await settleWrite(
+      return await settleWrite(
         _getWorkspaceDoc(
           workspaceId,
         ).collection('orders').doc(order.id).update(data),
+        entity: WriteEntity.transaction,
       );
     } catch (e, s) {
       throw BusinessException(
@@ -193,7 +200,10 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   Future<void> deleteOrder(String workspaceId, String orderId) async {
     try {
       await settleWrite(
-        _getWorkspaceDoc(workspaceId).collection('orders').doc(orderId).delete(),
+        _getWorkspaceDoc(
+          workspaceId,
+        ).collection('orders').doc(orderId).delete(),
+        entity: WriteEntity.transaction,
       );
     } catch (e, s) {
       throw BusinessException(
@@ -226,7 +236,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
-  Future<void> updateInstallment(
+  Future<WriteOutcome> updateInstallment(
     String workspaceId,
     InstallmentModel entry,
   ) async {
@@ -264,10 +274,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
 
       data['referenceAmount'] = entry.referenceAmount;
-      await settleWrite(
+      return await settleWrite(
         _getWorkspaceDoc(
           workspaceId,
         ).collection('installments').doc(entry.id).update(data),
+        entity: WriteEntity.installment,
       );
     } catch (e, s) {
       throw BusinessException(
@@ -301,6 +312,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         _getWorkspaceDoc(
           workspaceId,
         ).collection('category_planning').doc().set(data),
+        entity: WriteEntity.planning,
       );
     } catch (e, s) {
       throw BusinessException(
@@ -323,6 +335,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         _getWorkspaceDoc(
           workspaceId,
         ).collection('category_planning').doc(planning.id).update(data),
+        entity: WriteEntity.planning,
       );
     } catch (e, s) {
       throw BusinessException(

@@ -33,7 +33,7 @@ abstract class IFinanceRepository {
   /// vazias. Quem chama precisa poder contar isso ao usuário.
   Future<Written<OrderModel>> addOrder(String workspaceId, OrderModel order);
 
-  Future<void> updateOrder(String workspaceId, OrderModel order);
+  Future<WriteOutcome> updateOrder(String workspaceId, OrderModel order);
 
   Future<void> deleteOrder(String workspaceId, String orderId);
 
@@ -43,7 +43,10 @@ abstract class IFinanceRepository {
     String? orderId,
   });
 
-  Future<void> updateInstallment(String workspaceId, InstallmentModel entry);
+  Future<WriteOutcome> updateInstallment(
+    String workspaceId,
+    InstallmentModel entry,
+  );
 
   Future<InstallmentModel> getInstallment(
     String workspaceId,

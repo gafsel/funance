@@ -1,8 +1,9 @@
 import 'dart:developer';
 
-import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
+import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -14,7 +15,8 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:uuid/uuid.dart';
 
-class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
+class AccountFormNotifier extends FormNotifier<AccountFormState, void>
+    with TracksWriteOutcome {
   final AccountService accountService;
   final CategoryService categoryService;
   final FinanceService financeService;
@@ -120,10 +122,15 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
 
   @override
   Future<void> submit() async {
+    beginWrite();
+
     AccountModel account = state.asAccountModel();
 
     if (state.originalAccount == null) {
-      account = await accountService.create(account);
+      final created = await accountService.create(account);
+
+      account = created.value;
+      recordWrite(created.outcome);
 
       state = state.copyWith(originalAccount: account);
 
@@ -180,9 +187,9 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
         .firstOrNull;
 
     if (found == null) {
-      final newCategory = await categoryService.create(
+      final newCategory = (await categoryService.create(
         category.copyWith(id: const Uuid().v4()),
-      );
+      )).value;
 
       categories.add(newCategory);
 

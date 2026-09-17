@@ -1,5 +1,5 @@
-
 import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
@@ -21,12 +21,12 @@ class AccountService {
     return workspaceRepository.getWorkspaceMembers(workspaceId);
   }
 
-  Future<AccountModel> create(AccountModel account) async {
+  Future<Written<AccountModel>> create(AccountModel account) async {
     return await repository.createAccount(workspaceId, account);
   }
 
-  Future<void> update(AccountModel account) async {
-    await repository.updateAccount(workspaceId, account);
+  Future<WriteOutcome> update(AccountModel account) async {
+    return await repository.updateAccount(workspaceId, account);
   }
 
   Future<void> delete(String accountId) async {
@@ -39,7 +39,10 @@ class AccountService {
         .map((balance) => balance ?? AccountBalanceModel.zero());
   }
 
-  Stream<AccountBalanceModel> getAccountBalanceAtDate(String accountId, DateTime date) {
+  Stream<AccountBalanceModel> getAccountBalanceAtDate(
+    String accountId,
+    DateTime date,
+  ) {
     return repository
         .getLatestAccountBalanceBeforeDate(workspaceId, accountId, date)
         .map((balance) => balance ?? AccountBalanceModel.zero(date: date));

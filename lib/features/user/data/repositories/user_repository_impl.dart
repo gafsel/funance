@@ -1,7 +1,8 @@
-import 'package:funances/core/firestore/offline_write.dart';
-import 'package:funances/core/files/picked_document.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/repositories/user_repository.dart';
 import 'package:uuid/uuid.dart';
@@ -55,7 +56,10 @@ class UserRepositoryImpl implements IUserRepository {
       data['lastLogin'] = Timestamp.fromDate(user.lastLogin!);
     }
 
-    await settleWrite(_collection.doc(user.id).set(data));
+    await settleWrite(
+      _collection.doc(user.id).set(data),
+      entity: WriteEntity.profile,
+    );
   }
 
   @override
@@ -73,7 +77,10 @@ class UserRepositoryImpl implements IUserRepository {
       );
     }
 
-    await settleWrite(_collection.doc(id).update(updateData));
+    await settleWrite(
+      _collection.doc(id).update(updateData),
+      entity: WriteEntity.profile,
+    );
   }
 
   @override

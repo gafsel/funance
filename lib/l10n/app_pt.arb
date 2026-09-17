@@ -1234,19 +1234,35 @@
       }
     }
   },
-  "writeFailed": "Uma alteração não pôde ser salva: {reason}",
   "writeFailedReasonPermission": "você não tem permissão para essa mudança",
   "writeFailedReasonNotFound": "o item não existe mais",
   "writeFailedReasonTimeout": "o servidor não respondeu",
   "writeFailedReasonUnknown": "o servidor recusou a alteração",
   "transactionSavePendingSync": "Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.",
-  "@writeFailed": {
+  "uploadFolderNotSupported": "Arraste um arquivo, não uma pasta.",
+  "writeFailedEntity": "Não foi possível salvar {entity}: {reason}",
+  "writeEntityTransaction": "o lançamento",
+  "writeEntityInstallment": "a parcela",
+  "writeEntityPlanning": "o planejamento",
+  "writeEntityAccount": "a conta",
+  "writeEntityCategory": "a categoria",
+  "writeEntityGoal": "a meta",
+  "writeEntityInvite": "o convite",
+  "writeEntityWorkspace": "o workspace",
+  "writeEntityProfile": "o perfil",
+  "writeEntityAutomaticTransaction": "a transação automática",
+  "writeEntityReconciliation": "a conciliação",
+  "savePendingSync": "Salvo neste dispositivo. Sincroniza quando a conexão voltar.",
+  "accountSavePendingSync": "Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.",
+  "@writeFailedEntity": {
     "description": "Aviso de escrita recusada pelo servidor depois de a tela ter seguido.",
     "placeholders": {
+      "entity": {
+        "type": "String"
+      },
       "reason": {
         "type": "String"
       }
     }
-  },
-  "uploadFolderNotSupported": "Arraste um arquivo, não uma pasta."
+  }
 }

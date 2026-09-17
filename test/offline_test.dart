@@ -12,16 +12,23 @@ import 'package:funances/core/firestore/write_failures.dart';
 FirebaseFunctionsException _callableError(String code, [String? message]) =>
     FirebaseFunctionsException(code: code, message: message ?? '');
 
-/// Coleta o que a tarja receberia enquanto o corpo roda.
-List<WriteFailureReason> _collectFailures(void Function() body) {
+/// Roda [body] com a tarja já ouvindo, e devolve o que ela recebeu.
+///
+/// O `flushMicrotasks` antes do corpo não é enfeite: a assinatura de um
+/// `Stream.multi` só fica ativa no microtask seguinte ao `listen`, e sem ele o
+/// evento seria guardado para o próximo assinante em vez de entregue a este.
+List<WriteFailureReason> _failuresDuring(void Function(FakeAsync) body) {
   final reasons = <WriteFailureReason>[];
-  final sub = WriteFailures.stream.listen((f) => reasons.add(f.reason));
 
-  try {
-    body();
-  } finally {
+  fakeAsync((async) {
+    final sub = WriteFailures.stream.listen((f) => reasons.add(f.reason));
+    async.flushMicrotasks();
+
+    body(async);
+
+    async.flushMicrotasks();
     sub.cancel();
-  }
+  });
 
   return reasons;
 }
@@ -30,6 +37,7 @@ void main() {
   setUp(() {
     SyncStatusLatch.reset();
     PendingWrites.reset();
+    WriteFailures.clear();
   });
 
   group('settleWrite offline', () {
@@ -43,7 +51,10 @@ void main() {
         final nunca = Completer<void>();
         WriteOutcome? outcome;
 
-        settleWrite(nunca.future).then((o) => outcome = o);
+        settleWrite(
+          nunca.future,
+          entity: WriteEntity.transaction,
+        ).then((o) => outcome = o);
 
         async.elapse(const Duration(seconds: 1));
         expect(outcome, isNull, reason: 'antes do prazo ainda vale esperar');
@@ -53,24 +64,28 @@ void main() {
       });
     });
 
-    test('offline não acusa falha: não há nada de errado em estar sem rede', () {
-      final reasons = _collectFailures(() {
-        fakeAsync((async) {
+    test(
+      'offline não acusa falha: não há nada de errado em estar sem rede',
+      () {
+        final reasons = _failuresDuring((async) {
           SyncStatusLatch.update(SyncStatus.offline);
-          settleWrite(Completer<void>().future);
+          settleWrite(
+            Completer<void>().future,
+            entity: WriteEntity.transaction,
+          );
           async.elapse(const Duration(seconds: 5));
         });
-      });
 
-      expect(reasons, isEmpty);
-    });
+        expect(reasons, isEmpty);
+      },
+    );
 
     test('a escrita pendente entra na contagem que alimenta a tarja', () {
       fakeAsync((async) {
         SyncStatusLatch.update(SyncStatus.offline);
 
         final write = Completer<void>();
-        settleWrite(write.future);
+        settleWrite(write.future, entity: WriteEntity.transaction);
         async.elapse(const Duration(seconds: 3));
 
         expect(PendingWrites.count, 1);
@@ -92,7 +107,9 @@ void main() {
         final falha = Completer<void>();
         Object? capturado;
 
-        settleWrite(falha.future).catchError((Object e) {
+        settleWrite(falha.future, entity: WriteEntity.transaction).catchError((
+          Object e,
+        ) {
           capturado = e;
           return WriteOutcome.pending;
         });
@@ -111,7 +128,10 @@ void main() {
         final write = Completer<void>();
         WriteOutcome? outcome;
 
-        settleWrite(write.future).then((o) => outcome = o);
+        settleWrite(
+          write.future,
+          entity: WriteEntity.transaction,
+        ).then((o) => outcome = o);
 
         write.complete();
         async.flushMicrotasks();
@@ -122,14 +142,14 @@ void main() {
     });
 
     test('30 s sem resposta vira pendente E aviso visível', () {
-      late List<WriteFailureReason> reasons;
       WriteOutcome? outcome;
 
-      reasons = _collectFailures(() {
-        fakeAsync((async) {
-          settleWrite(Completer<void>().future).then((o) => outcome = o);
-          async.elapse(const Duration(seconds: 31));
-        });
+      final reasons = _failuresDuring((async) {
+        settleWrite(
+          Completer<void>().future,
+          entity: WriteEntity.transaction,
+        ).then((o) => outcome = o);
+        async.elapse(const Duration(seconds: 31));
       });
 
       // Online e mudo por 30 s não é "sem rede": alguma coisa está errada e o
@@ -137,26 +157,44 @@ void main() {
       expect(outcome, WriteOutcome.pending);
       expect(reasons, [WriteFailureReason.tookTooLong]);
     });
+
+    test('se a rede caiu no meio, o silêncio deixa de ser culpa de alguém', () {
+      // Começou online e terminou offline. Em 30 s a conexão cai com
+      // facilidade, e uma tarja vermelha aqui culparia o usuário por isso.
+      WriteOutcome? outcome;
+
+      final reasons = _failuresDuring((async) {
+        settleWrite(
+          Completer<void>().future,
+          entity: WriteEntity.transaction,
+        ).then((o) => outcome = o);
+
+        async.elapse(const Duration(seconds: 10));
+        SyncStatusLatch.update(SyncStatus.offline);
+        async.elapse(const Duration(seconds: 21));
+      });
+
+      expect(outcome, WriteOutcome.pending);
+      expect(reasons, isEmpty);
+    });
   });
 
   group('falha tardia', () {
     test('vira aviso visível, e não só uma linha de log', () {
-      final reasons = _collectFailures(() {
-        fakeAsync((async) {
-          SyncStatusLatch.update(SyncStatus.offline);
+      final reasons = _failuresDuring((async) {
+        SyncStatusLatch.update(SyncStatus.offline);
 
-          final falha = Completer<void>();
-          settleWrite(falha.future);
+        final falha = Completer<void>();
+        settleWrite(falha.future, entity: WriteEntity.transaction);
 
-          async.elapse(const Duration(seconds: 3));
-          expect(PendingWrites.count, 1);
+        async.elapse(const Duration(seconds: 3));
+        expect(PendingWrites.count, 1);
 
-          // A tela que salvou já seguiu; o erro não tem mais para onde voltar.
-          falha.completeError(StateError('permission-denied'));
-          async.elapse(const Duration(seconds: 1));
+        // A tela que salvou já seguiu; o erro não tem mais para onde voltar.
+        falha.completeError(StateError('permission-denied'));
+        async.elapse(const Duration(seconds: 1));
 
-          expect(PendingWrites.count, 0);
-        });
+        expect(PendingWrites.count, 0);
       });
 
       expect(reasons, [WriteFailureReason.permissionDenied]);

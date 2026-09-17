@@ -2,7 +2,11 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:funances/core/async/latched_events.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/sync_status.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/features/auth/domain/repositories/auth_repository.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
@@ -57,8 +61,16 @@ class AuthRepositoryImpl implements IAuthRepository {
   /// Firestore e a Home abre vazia.
   late final Future<void> _redirectSettled = _settlePendingRedirect();
 
-  final StreamController<ErrorCode> _redirectErrors =
-      StreamController<ErrorCode>.broadcast();
+  /// O erro do redirect nasce ANTES de a tela de login existir.
+  ///
+  /// Ele é lido no arranque do app, no mesmo gate que segura o splash; a
+  /// `LoginScreen` só monta depois disso. Com um `broadcast` comum, o evento
+  /// era publicado sem ouvinte e descartado — a tela reaparecia muda, que é
+  /// exatamente o bug que este caminho existia para resolver.
+  ///
+  /// `LatchedEvents` guarda o último evento e o entrega a quem assinar depois,
+  /// consumindo-o na entrega para o mesmo erro não reaparecer a cada visita.
+  final LatchedEvents<ErrorCode> _redirectErrors = LatchedEvents<ErrorCode>();
 
   @override
   Stream<ErrorCode> get redirectErrors => _redirectErrors.stream;
@@ -336,6 +348,14 @@ class AuthRepositoryImpl implements IAuthRepository {
         // Falha ao limpar a sessão Google não deve impedir o logout do app.
       }
     }
+
+    // Nada da sessão que termina deve sobrar para a próxima: uma escrita
+    // pendente, um erro de escrita ou um erro de login guardado pertencem a
+    // quem está saindo.
+    PendingWrites.reset();
+    SyncStatusLatch.reset();
+    WriteFailures.clear();
+    _redirectErrors.clear();
 
     await _firebaseAuth.signOut();
   }

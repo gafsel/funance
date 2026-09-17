@@ -1,4 +1,3 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -275,16 +274,17 @@ class TransactionFormScreen extends ConsumerWidget {
           // estiver pendente elas não existem em lugar nenhum, e dizer
           // "salvo!" faria o usuário procurar na lista algo que ainda não está
           // lá — foi assim que o lançamento "sumia" offline.
-          final pendingSync =
-              notifier.lastWriteOutcome == WriteOutcome.pending;
+          final pendingSync = notifier.lastWriteIsPending;
 
           messenger.showSnackBar(
             SnackBar(
-              content: Text(
-                pendingSync
-                    ? l10n.transactionSavePendingSync
-                    : l10n.transactionSaveSuccess,
-              ),
+              content: Text(switch ((pendingSync, before.creation)) {
+                (false, _) => l10n.transactionSaveSuccess,
+                // Só a CRIAÇÃO promete parcelas: numa edição elas já
+                // existem, e repetir a frase delas confundiria.
+                (true, true) => l10n.transactionSavePendingSync,
+                (true, false) => l10n.savePendingSync,
+              }),
               duration: pendingSync
                   ? const Duration(seconds: 6)
                   : const Duration(seconds: 4),

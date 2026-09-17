@@ -1,14 +1,17 @@
-import 'package:funances/core/firestore/offline_write.dart';
 import 'dart:developer';
-import 'package:funances/core/files/picked_document.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/files/picked_document.dart';
+import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
+
 import '../../domain/models/reconciliation_model.dart';
 import '../../domain/models/account_model.dart';
-import 'package:funances/core/exceptions/business_exception.dart';
 import '../models/account_mapper.dart';
 import '../models/finance_mapper.dart';
 
@@ -44,7 +47,7 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Future<AccountModel> createAccount(
+  Future<Written<AccountModel>> createAccount(
     String workspaceId,
     AccountModel account,
   ) async {
@@ -55,9 +58,12 @@ class AccountRepositoryImpl implements IAccountRepository {
       // devolvia a referência depois da resposta do servidor, e offline
       // isso nunca chegava.
       final doc = _getCollection(workspaceId).doc();
-      await settleWrite(doc.set(data));
+      final WriteOutcome outcome = await settleWrite(
+        doc.set(data),
+        entity: WriteEntity.account,
+      );
 
-      return account.copyWith(id: doc.id);
+      return (value: account.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -68,11 +74,17 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Future<void> updateAccount(String workspaceId, AccountModel account) async {
+  Future<WriteOutcome> updateAccount(
+    String workspaceId,
+    AccountModel account,
+  ) async {
     try {
       final data = account.toJson();
       data.remove('id');
-      await settleWrite(_getCollection(workspaceId).doc(account.id).update(data));
+      return await settleWrite(
+        _getCollection(workspaceId).doc(account.id).update(data),
+        entity: WriteEntity.account,
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

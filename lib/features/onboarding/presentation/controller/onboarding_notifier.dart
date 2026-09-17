@@ -210,9 +210,9 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     }).firstOrNull;
 
     if (found == null) {
-      final newCategory = await categoryService.create(
+      final newCategory = (await categoryService.create(
         category.copyWith(id: const Uuid().v4()),
-      );
+      )).value;
 
       categories.add(newCategory);
 

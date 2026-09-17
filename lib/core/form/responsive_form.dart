@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
@@ -46,6 +47,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     this.submitLabel,
     this.extraActions = const [],
     this.onSuccess,
+    this.pendingSyncMessage,
     this.onSubmit,
     this.submitEnabled,
     this.onCancel,
@@ -58,6 +60,14 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   final String? submitLabel;
   final List<Widget> extraActions;
   final ValueChanged<O?>? onSuccess;
+
+  /// Texto a mostrar quando o save ficou só no cache local.
+  ///
+  /// Sem isto vale o genérico. Um formulário cujo save tenha efeito de
+  /// servidor — a conta, cujo saldo inicial e primeira fatura nascem lá —
+  /// passa o seu, porque o genérico prometeria menos do que o usuário precisa
+  /// saber.
+  final String? pendingSyncMessage;
   final OnPressed<I, O, N>? onSubmit;
   final VoidCallback? onCancel;
   final bool Function(I state)? submitEnabled;
@@ -99,7 +109,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                             ...extraActions,
                             Spacer(),
                             _buildCancelButton(context, l10n),
-                            _buildSubmitButton(snapshot, l10n),
+                            _buildSubmitButton(context, snapshot, l10n),
                           ],
                         );
                       }
@@ -109,7 +119,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _buildSubmitButton(snapshot, l10n),
+                          _buildSubmitButton(context, snapshot, l10n),
                           ...extraActions,
                           _buildCancelButton(context, l10n),
                         ],
@@ -126,6 +136,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
   }
 
   LoadingButton _buildSubmitButton(
+    BuildContext context,
     FormBuilderSnapshot<I, O, N> snapshot,
     AppLocalizations l10n,
   ) {
@@ -144,7 +155,22 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
               }
 
               if (snapshot.validate()) {
+                // Capturado ANTES do save: `onSuccess` costuma fechar a tela,
+                // e o messenger do app sobrevive ao pop.
+                final messenger = ScaffoldMessenger.of(context);
+                final pendingText =
+                    pendingSyncMessage ?? context.l10n.savePendingSync;
+
                 final output = await loading(snapshot.notifier.submit());
+
+                // Um save que não chegou ao servidor não é "salvo!": o
+                // formulário fecha do mesmo jeito, mas dizendo a verdade
+                // sobre onde o dado está.
+                final Object notifier = snapshot.notifier;
+                if (notifier is TracksWriteOutcome &&
+                    notifier.lastWriteIsPending) {
+                  messenger.showSnackBar(SnackBar(content: Text(pendingText)));
+                }
 
                 onSuccess?.call(output);
               }
@@ -164,10 +190,7 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
 }
 
 class _ResponsiveGrid extends StatelessWidget {
-  const _ResponsiveGrid({
-    required this.children,
-    this.spacing = 0.0,
-  });
+  const _ResponsiveGrid({required this.children, this.spacing = 0.0});
 
   final List<Widget> children;
   final double spacing;

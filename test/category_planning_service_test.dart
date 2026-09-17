@@ -1,8 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
-import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/domain/repositories/period_summary_repository.dart';
+import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -75,8 +76,13 @@ class _FakeCategoryRepository implements ICategoryRepository {
       Stream.value(categories);
 
   @override
-  Future<void> updateCategory(String workspaceId, CategoryModel category) async {
+  Future<WriteOutcome> updateCategory(
+    String workspaceId,
+    CategoryModel category,
+  ) async {
     updated.add(category);
+
+    return WriteOutcome.confirmed;
   }
 
   @override

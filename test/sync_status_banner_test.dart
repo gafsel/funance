@@ -15,10 +15,7 @@ import 'package:funances/l10n/app_localizations.dart';
 const Key _bottomBar = Key('bottom-bar');
 const Key _fab = Key('fab');
 
-Widget _app({
-  required SyncStatus status,
-  int pending = 0,
-}) {
+Widget _app({required SyncStatus status, int pending = 0}) {
   return ProviderScope(
     overrides: [
       syncStatusProvider.overrideWith((ref) => Stream.value(status)),
@@ -59,13 +56,16 @@ Widget _app({
 /// São dois `pump`: o primeiro deixa o evento do stream ser entregue, o
 /// segundo desenha o quadro já com a tarja.
 Future<void> _report(WidgetTester tester, WriteFailureReason reason) async {
-  WriteFailures.report(reason);
+  WriteFailures.report(WriteEntity.transaction, reason);
   await tester.pump();
   await tester.pump();
 }
 
 void main() {
-  setUp(PendingWrites.reset);
+  setUp(() {
+    PendingWrites.reset();
+    WriteFailures.clear();
+  });
 
   testWidgets('online e sem pendência, a tarja não ocupa espaço nenhum', (
     tester,
@@ -125,6 +125,21 @@ void main() {
   });
 
   group('falha tardia de escrita', () {
+    testWidgets('a falha ANTERIOR à tarja não se perde', (tester) async {
+      // A escrita falha antes de a tarja existir: um broadcast comum
+      // descartaria o evento e ninguém saberia.
+      WriteFailures.report(
+        WriteEntity.transaction,
+        WriteFailureReason.permissionDenied,
+      );
+
+      await tester.pumpWidget(_app(status: SyncStatus.online));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.textContaining('você não tem permissão'), findsOneWidget);
+    });
+
     testWidgets('aparece mesmo sem nenhuma tela para mostrá-la', (
       tester,
     ) async {
@@ -135,21 +150,37 @@ void main() {
       // nem context para uma snackbar.
       await _report(tester, WriteFailureReason.permissionDenied);
 
-      expect(
-        find.textContaining('você não tem permissão'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('você não tem permissão'), findsOneWidget);
     });
 
-    testWidgets('sai sozinha depois de um tempo', (tester) async {
+    testWidgets('FICA até o usuário dispensar', (tester) async {
       await tester.pumpWidget(_app(status: SyncStatus.online));
       await tester.pump();
 
       await _report(tester, WriteFailureReason.tookTooLong);
       expect(find.textContaining('não respondeu'), findsOneWidget);
 
-      await tester.pump(const Duration(seconds: 9));
-      expect(find.textContaining('não respondeu'), findsNothing);
+      // Antes ela sumia em 8 s, e 8 s é tempo de mais nada: quem estava com o
+      // app no bolso ou noutra aba perdia a única notícia de que algo não foi
+      // salvo.
+      await tester.pump(const Duration(minutes: 5));
+      expect(find.textContaining('não respondeu'), findsOneWidget);
+    });
+
+    testWidgets('diz O QUE não foi salvo, não só que algo falhou', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(status: SyncStatus.online));
+      await tester.pump();
+
+      WriteFailures.report(
+        WriteEntity.account,
+        WriteFailureReason.permissionDenied,
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.textContaining('a conta'), findsOneWidget);
     });
 
     testWidgets('pode ser dispensada na hora', (tester) async {
