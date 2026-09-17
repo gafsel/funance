@@ -14,6 +14,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 class AccountsStep extends ConsumerWidget {
   const AccountsStep({super.key});
@@ -92,31 +93,21 @@ class AccountsStep extends ConsumerWidget {
 
   Widget _buildEmptyState(BuildContext context, OnboardingNotifier notifier) {
     final l10n = AppLocalizations.of(context)!;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.account_balance_outlined,
-            size: 64,
-            color: AppColors.pureWhite.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            l10n.onboardingAccountsEmpty,
-            style: const TextStyle(color: AppColors.pureWhite),
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: () => _showAddAccount(context, notifier),
-            icon: const Icon(Icons.add),
-            label: Text(l10n.onboardingAccountsAdd),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.paleGold,
-              side: const BorderSide(color: AppColors.paleGold),
-            ),
-          ),
-        ],
+
+    return EmptyState.centered(
+      icon: Icons.account_balance_outlined,
+      iconColor: AppColors.pureWhite.withValues(alpha: 0.3),
+      title: l10n.onboardingAccountsEmpty,
+      titleStyle: const TextStyle(color: AppColors.pureWhite),
+      mainAxisSize: MainAxisSize.min,
+      action: OutlinedButton.icon(
+        onPressed: () => _showAddAccount(context, notifier),
+        icon: const Icon(Icons.add),
+        label: Text(l10n.onboardingAccountsAdd),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.paleGold,
+          side: const BorderSide(color: AppColors.paleGold),
+        ),
       ),
     );
   }

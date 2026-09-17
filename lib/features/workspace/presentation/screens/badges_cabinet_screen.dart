@@ -7,6 +7,7 @@ import 'package:funances/features/workspace/presentation/widgets/badges/badge_th
 import 'package:funances/features/workspace/presentation/widgets/badges/level_header_card.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/xp_sources_section.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/core/widgets/section_header.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vitrine de conquistas
@@ -120,17 +121,26 @@ class BadgesCabinetView extends StatelessWidget {
           SliverToBoxAdapter(child: XpSourcesSection(sources: catalog.xpSources)),
         for (final category in catalog.categories) ...[
           SliverToBoxAdapter(
-            child: _SectionHeader(
-              icon: badgeCategoryIcon(category),
-              label: badgeCategoryLabel(l10n, category),
-              unlocked: catalog
-                  .ofCategory(category)
-                  .where((badge) => unlockedBadges.containsKey(badge.id))
-                  .length,
-              total: catalog.ofCategory(category).length,
-              color: category == BadgeCategory.advanced
-                  ? Colors.amber.shade700
-                  : Theme.of(context).colorScheme.primary,
+            child: Builder(
+              builder: (context) {
+                final color = category == BadgeCategory.advanced
+                    ? Colors.amber.shade700
+                    : Theme.of(context).colorScheme.primary;
+                final unlocked = catalog
+                    .ofCategory(category)
+                    .where((badge) => unlockedBadges.containsKey(badge.id))
+                    .length;
+
+                return SectionHeader.withIcon(
+                  icon: badgeCategoryIcon(category),
+                  title: badgeCategoryLabel(l10n, category),
+                  color: color,
+                  trailing: SectionHeaderCounter(
+                    label: '$unlocked / ${catalog.ofCategory(category).length}',
+                    color: color,
+                  ),
+                );
+              },
             ),
           ),
           BadgeGrid(
@@ -180,60 +190,6 @@ class _CatalogUnavailable extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final int unlocked;
-  final int total;
-  final Color color;
-
-  const _SectionHeader({
-    required this.icon,
-    required this.label,
-    required this.unlocked,
-    required this.total,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withValues(alpha: 0.25)),
-            ),
-            child: Text(
-              '$unlocked / $total',
-              style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-          ),
-        ],
       ),
     );
   }

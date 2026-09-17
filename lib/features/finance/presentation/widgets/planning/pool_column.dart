@@ -6,6 +6,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/planning/planning_category_card.dart';
 import 'package:funances/features/finance/presentation/widgets/planning/pool_header.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 /// Uma das três pools do 50-30-20.
 ///
@@ -144,11 +145,9 @@ class _PoolCategories extends ConsumerWidget {
         .toList();
 
     if (items.isEmpty) {
-      return Center(
-        child: Text(
-          l10n.planning503020EmptyPool,
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
+      return EmptyState.message(
+        l10n.planning503020EmptyPool,
+        style: Theme.of(context).textTheme.bodySmall,
       );
     }
 

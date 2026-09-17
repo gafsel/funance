@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
+import 'package:funances/core/widgets/section_header.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 /// "Como ganhar XP", lida de `config/badges.xpSources`.
@@ -22,30 +23,10 @@ class XpSourcesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.bolt, color: color, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  l10n.xpSourcesTitle,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        SectionHeader.withIcon(
+          icon: Icons.bolt,
+          title: l10n.xpSourcesTitle,
+          color: color,
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

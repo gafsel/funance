@@ -19,6 +19,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 typedef TransactionListViewNotifier =
     InfiniteListNotifier<TransactionQuery, InstallmentModel>;
@@ -98,12 +99,10 @@ class TransactionListView extends ConsumerWidget {
                   category: item.category,
                 );
               },
-              emptyStateBuilder: (context) => Center(
-                child: Text(
-                  l10n.noTransactionsInPeriod,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              emptyStateBuilder: (context) => EmptyState.message(
+                l10n.noTransactionsInPeriod,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
@@ -143,15 +142,13 @@ class TransactionListView extends ConsumerWidget {
           accountId: accountId,
         );
       },
-      emptyStateBuilder: (context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32.0),
-          child: Text(
-            l10n.noTransactionsInPeriod,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
+      // Mesma frase, mesmo estilo: o padding maior é o único resto da
+      // divergência que existia entre os dois vazios desta tela.
+      emptyStateBuilder: (context) => EmptyState.message(
+        l10n.noTransactionsInPeriod,
+        padding: const EdgeInsets.all(32.0),
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );

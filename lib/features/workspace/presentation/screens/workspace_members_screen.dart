@@ -8,6 +8,7 @@ import 'package:funances/features/workspace/domain/models/invite_model.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_members_notifier.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_members_view_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/widgets/section_header.dart';
 
 /// Quem participa do workspace e quem ainda não respondeu ao convite.
 ///
@@ -41,10 +42,10 @@ class WorkspaceMembersScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: [
-                _SectionHeader(l10n.membersSectionActive),
+                SectionHeader.label(l10n.membersSectionActive),
                 ..._buildMembers(context, state, notifier),
                 const Divider(height: 32),
-                _SectionHeader(l10n.membersSectionPending),
+                SectionHeader.label(l10n.membersSectionPending),
                 ..._buildInvites(context, state, notifier),
               ],
             ),
@@ -241,26 +242,6 @@ class WorkspaceMembersScreen extends ConsumerWidget {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
   }
 }
 

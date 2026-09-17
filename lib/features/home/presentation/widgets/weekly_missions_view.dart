@@ -14,6 +14,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 /// As missões da semana — as do SERVIDOR — e o checklist do que vence nela.
 ///
@@ -195,43 +196,10 @@ class _MissionsSoon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.deepTurquoise.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.hourglass_top_rounded,
-            size: 40,
-            color: AppColors.deepTurquoise,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.journeyMissionsSoonTitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.journeyMissionsSoonMessage,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
+    return EmptyState.card(
+      icon: Icons.hourglass_top_rounded,
+      title: l10n.journeyMissionsSoonTitle,
+      message: l10n.journeyMissionsSoonMessage,
     );
   }
 }
@@ -709,44 +677,13 @@ class _FloatingIcon {
 class _NoMissionsEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
-    return Container(
-      width: double.infinity,
+    return EmptyState.card(
+      icon: Icons.flag_outlined,
+      title: l10n.weeklyMissionsNone,
+      message: l10n.weeklyMissionsNoneDesc,
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: AppColors.deepTurquoise.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.flag_outlined,
-            size: 40,
-            color: AppColors.deepTurquoise,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.weeklyMissionsNone,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.weeklyMissionsNoneDesc,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

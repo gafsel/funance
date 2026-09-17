@@ -10,6 +10,7 @@ import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 class TeamStatusView extends ConsumerWidget {
   const TeamStatusView({super.key});
@@ -374,49 +375,19 @@ class _EmptyParty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
-    return Container(
-      width: double.infinity,
+    return EmptyState.card(
+      icon: Icons.shield_outlined,
+      title: l10n.partyEmptyTitle,
+      message: l10n.partyEmptyMessage,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.deepTurquoise.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.shield_outlined,
-            size: 40,
-            color: AppColors.deepTurquoise,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.partyEmptyTitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.partyEmptyMessage,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => context.push('/planning?type=expense'),
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(l10n.partyEmptyButton),
-          ),
-        ],
+      borderRadius: 16,
+      borderAlpha: 0.2,
+      action: FilledButton.icon(
+        onPressed: () => context.push('/planning?type=expense'),
+        icon: const Icon(Icons.add, size: 18),
+        label: Text(l10n.partyEmptyButton),
       ),
     );
   }

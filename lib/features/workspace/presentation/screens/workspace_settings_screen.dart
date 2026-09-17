@@ -7,6 +7,7 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/widgets/section_header.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
   const WorkspaceSettingsScreen({super.key});
@@ -153,7 +154,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
               return ListView(
                 padding: EdgeInsets.only(bottom: isTab ? 120 : 0),
                 children: [
-                  _buildSectionHeader(context, l10n.profileTitle),
+                  SectionHeader.label(l10n.profileTitle),
                   ListTile(
                     leading: const Icon(Icons.person_outline),
                     title: Text(l10n.profileEditTitle),
@@ -162,10 +163,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     },
                   ),
                   const Divider(),
-                  _buildSectionHeader(
-                    context,
-                    l10n.workspaceSettingsGeneralSection,
-                  ),
+                  SectionHeader.label(l10n.workspaceSettingsGeneralSection),
                   ListTile(
                     leading: const Icon(Icons.edit_outlined),
                     title: Text(l10n.workspaceSettingsEditName),
@@ -175,10 +173,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     onTap: () => _editWorkspaceName(context, ref, workspace),
                   ),
                   const Divider(),
-                  _buildSectionHeader(
-                    context,
-                    l10n.workspaceSettingsDataSection,
-                  ),
+                  SectionHeader.label(l10n.workspaceSettingsDataSection),
                   ListTile(
                     leading: const Icon(Icons.category_outlined),
                     title: Text(l10n.workspaceSettingsCategories),
@@ -196,10 +191,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                     },
                   ),
                   const Divider(),
-                  _buildSectionHeader(
-                    context,
-                    l10n.workspaceSettingsTeamSection,
-                  ),
+                  SectionHeader.label(l10n.workspaceSettingsTeamSection),
                   ListTile(
                     leading: const Icon(Icons.people_outline),
                     title: Text(l10n.workspaceSettingsMembers),
@@ -229,19 +221,6 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.workspaceSettingsTitle)),
       body: body,
-    );
-  }
-
-  Widget _buildSectionHeader(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        title.toUpperCase(),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
     );
   }
 

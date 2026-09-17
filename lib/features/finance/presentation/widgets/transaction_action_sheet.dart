@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
+import 'package:funances/core/widgets/section_header.dart';
 
 class TransactionActionSheet extends StatefulWidget {
   final Function(OrderType)? onSelect;
@@ -75,29 +76,26 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionTitle(
-                    context,
-                    l10n.transactionRealizedSection,
-                    l10n.transactionRealizedSubtitle,
-                    Icons.check_circle_outline,
+                  SectionHeader.sheet(
+                    title: l10n.transactionRealizedSection,
+                    subtitle: l10n.transactionRealizedSubtitle,
+                    icon: Icons.check_circle_outline,
                   ),
                   const SizedBox(height: 12),
                   _buildActionGrid(context, InstallmentStatus.paid),
                   const SizedBox(height: 32),
-                  _buildSectionTitle(
-                    context,
-                    l10n.transactionPlannedSection,
-                    l10n.transactionPlannedSubtitle,
-                    Icons.calendar_month_outlined,
+                  SectionHeader.sheet(
+                    title: l10n.transactionPlannedSection,
+                    subtitle: l10n.transactionPlannedSubtitle,
+                    icon: Icons.calendar_month_outlined,
                   ),
                   const SizedBox(height: 12),
                   _buildActionGrid(context, InstallmentStatus.pending),
                   const SizedBox(height: 32),
-                  _buildSectionTitle(
-                    context,
-                    l10n.planningSectionTitle,
-                    l10n.planningSectionSubtitle,
-                    Icons.insights_outlined,
+                  SectionHeader.sheet(
+                    title: l10n.planningSectionTitle,
+                    subtitle: l10n.planningSectionSubtitle,
+                    icon: Icons.insights_outlined,
                   ),
                   const SizedBox(height: 12),
                   _buildPlanningToolsGrid(context),
@@ -107,35 +105,6 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title, String subtitle, IconData icon) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: AppColors.antiqueGold, size: 22),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.antiqueGold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.pureWhite.withValues(alpha: 0.7),
-          ),
-        ),
-      ],
     );
   }
 
