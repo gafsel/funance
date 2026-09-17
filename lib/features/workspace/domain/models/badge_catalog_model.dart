@@ -68,6 +68,40 @@ sealed class BadgeCatalogItem with _$BadgeCatalogItem {
   }
 }
 
+/// Uma forma de ganhar XP, publicada pelo servidor em
+/// `config/badges.xpSources`.
+///
+/// O app não mantém uma tabela própria: quanto cada ação vale é regra do
+/// servidor, e uma cópia aqui sairia de sincronia no primeiro ajuste de
+/// balanceamento — exatamente o que aconteceu com o catálogo de badges.
+@freezed
+sealed class XpSource with _$XpSource {
+  const XpSource._();
+
+  const factory XpSource({
+    required String id,
+
+    /// Nome por idioma (`{pt: ..., en: ...}`). Use [nameIn].
+    @JsonKey(fromJson: localizedText)
+    @Default(<String, String>{})
+    Map<String, String> name,
+    @Default(0) int xp,
+
+    /// Descrição por idioma. Use [descriptionIn].
+    @JsonKey(fromJson: localizedText)
+    @Default(<String, String>{})
+    Map<String, String> description,
+  }) = _XpSource;
+
+  factory XpSource.fromJson(Map<String, dynamic> json) =>
+      _$XpSourceFromJson(json);
+
+  String nameIn(String locale) => BadgeCatalogItem._pick(name, locale);
+
+  String descriptionIn(String locale) =>
+      BadgeCatalogItem._pick(description, locale);
+}
+
 /// Aceita o texto do catálogo em dois formatos.
 ///
 /// Mapa por locale é o formato atual. String pura é o formato ANTIGO, que fica
@@ -99,6 +133,10 @@ sealed class BadgeCatalog with _$BadgeCatalog {
 
     /// XP mínimo de cada nível: `levelThresholds[n - 1]` abre o nível `n`.
     @Default(<int>[]) List<int> levelThresholds,
+
+    /// Como ganhar XP. Vazio enquanto o servidor não publicar a lista — a
+    /// seção simplesmente não aparece, em vez de mostrar um título vazio.
+    @Default(<XpSource>[]) List<XpSource> xpSources,
   }) = _BadgeCatalog;
 
   factory BadgeCatalog.fromJson(Map<String, dynamic> json) =>

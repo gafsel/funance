@@ -9,8 +9,19 @@ part 'finance_view_models.freezed.dart';
 
 @freezed
 sealed class CategoryPlanningArgs with _$CategoryPlanningArgs {
-  factory CategoryPlanningArgs({required CategoryType type}) =
-      _CategoryPlanningArgs;
+  factory CategoryPlanningArgs({
+    required CategoryType type,
+
+    /// Categoria que o usuário veio definir (F3.2: o nudge manda para cá
+    /// com a categoria do gasto que acabou de sair do plano). Ela sobe para
+    /// o topo da lista e nasce destacada — chegar numa lista de trinta
+    /// categorias e ter que procurar a sua seria desfazer o convite.
+    String? highlightCategoryId,
+
+    /// Valor sugerido para [highlightCategoryId], já preenchido. `null`
+    /// quando não há histórico para sugerir.
+    double? suggestedAmount,
+  }) = _CategoryPlanningArgs;
 }
 
 @freezed
@@ -28,6 +39,7 @@ sealed class CategoryPlanningState with _$CategoryPlanningState {
   factory CategoryPlanningState({
     @Default([]) List<CategoryPlanningFormItem> items,
     @Default(true) bool isLoading,
+    String? highlightCategoryId,
   }) = _CategoryPlanningState;
 }
 
@@ -120,6 +132,7 @@ sealed class TransactionCreationArgs with _$TransactionCreationArgs {
   factory TransactionCreationArgs({
     required OrderType type,
     InstallmentStatus? status,
+    InstallmentType? installmentType,
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
@@ -286,6 +299,12 @@ sealed class TransactionFormState with _$TransactionFormState {
   factory TransactionFormState.creation({
     required OrderType type,
     InstallmentStatus? status,
+
+    /// Avulso, parcelado ou recorrente. Vem de fora só quando o ponto de
+    /// entrada já sabe a resposta — hoje, o nudge de gasto não planejado,
+    /// que abre o formulário em "toda vez" porque foi isso que o usuário
+    /// acabou de escolher.
+    InstallmentType? installmentType,
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
@@ -305,7 +324,7 @@ sealed class TransactionFormState with _$TransactionFormState {
       dueDate: date ?? DateTime.now(),
       paidDate: isPaid ? date ?? DateTime.now() : null,
       status: effectiveStatus,
-      installmentType: InstallmentType.single,
+      installmentType: installmentType ?? InstallmentType.single,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
       description: description ?? "",

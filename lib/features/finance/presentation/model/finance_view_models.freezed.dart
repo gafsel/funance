@@ -14,7 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CategoryPlanningArgs {
 
- CategoryType get type;
+ CategoryType get type;/// Categoria que o usuário veio definir (F3.2: o nudge manda para cá
+/// com a categoria do gasto que acabou de sair do plano). Ela sobe para
+/// o topo da lista e nasce destacada — chegar numa lista de trinta
+/// categorias e ter que procurar a sua seria desfazer o convite.
+ String? get highlightCategoryId;/// Valor sugerido para [highlightCategoryId], já preenchido. `null`
+/// quando não há histórico para sugerir.
+ double? get suggestedAmount;
 /// Create a copy of CategoryPlanningArgs
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +31,16 @@ $CategoryPlanningArgsCopyWith<CategoryPlanningArgs> get copyWith => _$CategoryPl
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanningArgs&&(identical(other.type, type) || other.type == type));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanningArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.highlightCategoryId, highlightCategoryId) || other.highlightCategoryId == highlightCategoryId)&&(identical(other.suggestedAmount, suggestedAmount) || other.suggestedAmount == suggestedAmount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type);
+int get hashCode => Object.hash(runtimeType,type,highlightCategoryId,suggestedAmount);
 
 @override
 String toString() {
-  return 'CategoryPlanningArgs(type: $type)';
+  return 'CategoryPlanningArgs(type: $type, highlightCategoryId: $highlightCategoryId, suggestedAmount: $suggestedAmount)';
 }
 
 
@@ -45,7 +51,7 @@ abstract mixin class $CategoryPlanningArgsCopyWith<$Res>  {
   factory $CategoryPlanningArgsCopyWith(CategoryPlanningArgs value, $Res Function(CategoryPlanningArgs) _then) = _$CategoryPlanningArgsCopyWithImpl;
 @useResult
 $Res call({
- CategoryType type
+ CategoryType type, String? highlightCategoryId, double? suggestedAmount
 });
 
 
@@ -62,10 +68,12 @@ class _$CategoryPlanningArgsCopyWithImpl<$Res>
 
 /// Create a copy of CategoryPlanningArgs
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? highlightCategoryId = freezed,Object? suggestedAmount = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as CategoryType,
+as CategoryType,highlightCategoryId: freezed == highlightCategoryId ? _self.highlightCategoryId : highlightCategoryId // ignore: cast_nullable_to_non_nullable
+as String?,suggestedAmount: freezed == suggestedAmount ? _self.suggestedAmount : suggestedAmount // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -147,10 +155,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryType type)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CategoryType type,  String? highlightCategoryId,  double? suggestedAmount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CategoryPlanningArgs() when $default != null:
-return $default(_that.type);case _:
+return $default(_that.type,_that.highlightCategoryId,_that.suggestedAmount);case _:
   return orElse();
 
 }
@@ -168,10 +176,10 @@ return $default(_that.type);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryType type)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CategoryType type,  String? highlightCategoryId,  double? suggestedAmount)  $default,) {final _that = this;
 switch (_that) {
 case _CategoryPlanningArgs():
-return $default(_that.type);}
+return $default(_that.type,_that.highlightCategoryId,_that.suggestedAmount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -185,10 +193,10 @@ return $default(_that.type);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryType type)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CategoryType type,  String? highlightCategoryId,  double? suggestedAmount)?  $default,) {final _that = this;
 switch (_that) {
 case _CategoryPlanningArgs() when $default != null:
-return $default(_that.type);case _:
+return $default(_that.type,_that.highlightCategoryId,_that.suggestedAmount);case _:
   return null;
 
 }
@@ -200,10 +208,18 @@ return $default(_that.type);case _:
 
 
 class _CategoryPlanningArgs implements CategoryPlanningArgs {
-   _CategoryPlanningArgs({required this.type});
+   _CategoryPlanningArgs({required this.type, this.highlightCategoryId, this.suggestedAmount});
   
 
 @override final  CategoryType type;
+/// Categoria que o usuário veio definir (F3.2: o nudge manda para cá
+/// com a categoria do gasto que acabou de sair do plano). Ela sobe para
+/// o topo da lista e nasce destacada — chegar numa lista de trinta
+/// categorias e ter que procurar a sua seria desfazer o convite.
+@override final  String? highlightCategoryId;
+/// Valor sugerido para [highlightCategoryId], já preenchido. `null`
+/// quando não há histórico para sugerir.
+@override final  double? suggestedAmount;
 
 /// Create a copy of CategoryPlanningArgs
 /// with the given fields replaced by the non-null parameter values.
@@ -215,16 +231,16 @@ _$CategoryPlanningArgsCopyWith<_CategoryPlanningArgs> get copyWith => __$Categor
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanningArgs&&(identical(other.type, type) || other.type == type));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanningArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.highlightCategoryId, highlightCategoryId) || other.highlightCategoryId == highlightCategoryId)&&(identical(other.suggestedAmount, suggestedAmount) || other.suggestedAmount == suggestedAmount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type);
+int get hashCode => Object.hash(runtimeType,type,highlightCategoryId,suggestedAmount);
 
 @override
 String toString() {
-  return 'CategoryPlanningArgs(type: $type)';
+  return 'CategoryPlanningArgs(type: $type, highlightCategoryId: $highlightCategoryId, suggestedAmount: $suggestedAmount)';
 }
 
 
@@ -235,7 +251,7 @@ abstract mixin class _$CategoryPlanningArgsCopyWith<$Res> implements $CategoryPl
   factory _$CategoryPlanningArgsCopyWith(_CategoryPlanningArgs value, $Res Function(_CategoryPlanningArgs) _then) = __$CategoryPlanningArgsCopyWithImpl;
 @override @useResult
 $Res call({
- CategoryType type
+ CategoryType type, String? highlightCategoryId, double? suggestedAmount
 });
 
 
@@ -252,10 +268,12 @@ class __$CategoryPlanningArgsCopyWithImpl<$Res>
 
 /// Create a copy of CategoryPlanningArgs
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? highlightCategoryId = freezed,Object? suggestedAmount = freezed,}) {
   return _then(_CategoryPlanningArgs(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as CategoryType,
+as CategoryType,highlightCategoryId: freezed == highlightCategoryId ? _self.highlightCategoryId : highlightCategoryId // ignore: cast_nullable_to_non_nullable
+as String?,suggestedAmount: freezed == suggestedAmount ? _self.suggestedAmount : suggestedAmount // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -543,7 +561,7 @@ $CategoryModelCopyWith<$Res> get category {
 /// @nodoc
 mixin _$CategoryPlanningState {
 
- List<CategoryPlanningFormItem> get items; bool get isLoading;
+ List<CategoryPlanningFormItem> get items; bool get isLoading; String? get highlightCategoryId;
 /// Create a copy of CategoryPlanningState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -554,16 +572,16 @@ $CategoryPlanningStateCopyWith<CategoryPlanningState> get copyWith => _$Category
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanningState&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanningState&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.highlightCategoryId, highlightCategoryId) || other.highlightCategoryId == highlightCategoryId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),isLoading);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(items),isLoading,highlightCategoryId);
 
 @override
 String toString() {
-  return 'CategoryPlanningState(items: $items, isLoading: $isLoading)';
+  return 'CategoryPlanningState(items: $items, isLoading: $isLoading, highlightCategoryId: $highlightCategoryId)';
 }
 
 
@@ -574,7 +592,7 @@ abstract mixin class $CategoryPlanningStateCopyWith<$Res>  {
   factory $CategoryPlanningStateCopyWith(CategoryPlanningState value, $Res Function(CategoryPlanningState) _then) = _$CategoryPlanningStateCopyWithImpl;
 @useResult
 $Res call({
- List<CategoryPlanningFormItem> items, bool isLoading
+ List<CategoryPlanningFormItem> items, bool isLoading, String? highlightCategoryId
 });
 
 
@@ -591,11 +609,12 @@ class _$CategoryPlanningStateCopyWithImpl<$Res>
 
 /// Create a copy of CategoryPlanningState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? isLoading = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? items = null,Object? isLoading = null,Object? highlightCategoryId = freezed,}) {
   return _then(_self.copyWith(
 items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
 as List<CategoryPlanningFormItem>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,highlightCategoryId: freezed == highlightCategoryId ? _self.highlightCategoryId : highlightCategoryId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -677,10 +696,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<CategoryPlanningFormItem> items,  bool isLoading)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( List<CategoryPlanningFormItem> items,  bool isLoading,  String? highlightCategoryId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CategoryPlanningState() when $default != null:
-return $default(_that.items,_that.isLoading);case _:
+return $default(_that.items,_that.isLoading,_that.highlightCategoryId);case _:
   return orElse();
 
 }
@@ -698,10 +717,10 @@ return $default(_that.items,_that.isLoading);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<CategoryPlanningFormItem> items,  bool isLoading)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( List<CategoryPlanningFormItem> items,  bool isLoading,  String? highlightCategoryId)  $default,) {final _that = this;
 switch (_that) {
 case _CategoryPlanningState():
-return $default(_that.items,_that.isLoading);}
+return $default(_that.items,_that.isLoading,_that.highlightCategoryId);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -715,10 +734,10 @@ return $default(_that.items,_that.isLoading);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<CategoryPlanningFormItem> items,  bool isLoading)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( List<CategoryPlanningFormItem> items,  bool isLoading,  String? highlightCategoryId)?  $default,) {final _that = this;
 switch (_that) {
 case _CategoryPlanningState() when $default != null:
-return $default(_that.items,_that.isLoading);case _:
+return $default(_that.items,_that.isLoading,_that.highlightCategoryId);case _:
   return null;
 
 }
@@ -730,7 +749,7 @@ return $default(_that.items,_that.isLoading);case _:
 
 
 class _CategoryPlanningState implements CategoryPlanningState {
-   _CategoryPlanningState({final  List<CategoryPlanningFormItem> items = const [], this.isLoading = true}): _items = items;
+   _CategoryPlanningState({final  List<CategoryPlanningFormItem> items = const [], this.isLoading = true, this.highlightCategoryId}): _items = items;
   
 
  final  List<CategoryPlanningFormItem> _items;
@@ -741,6 +760,7 @@ class _CategoryPlanningState implements CategoryPlanningState {
 }
 
 @override@JsonKey() final  bool isLoading;
+@override final  String? highlightCategoryId;
 
 /// Create a copy of CategoryPlanningState
 /// with the given fields replaced by the non-null parameter values.
@@ -752,16 +772,16 @@ _$CategoryPlanningStateCopyWith<_CategoryPlanningState> get copyWith => __$Categ
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanningState&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanningState&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.highlightCategoryId, highlightCategoryId) || other.highlightCategoryId == highlightCategoryId));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),isLoading);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_items),isLoading,highlightCategoryId);
 
 @override
 String toString() {
-  return 'CategoryPlanningState(items: $items, isLoading: $isLoading)';
+  return 'CategoryPlanningState(items: $items, isLoading: $isLoading, highlightCategoryId: $highlightCategoryId)';
 }
 
 
@@ -772,7 +792,7 @@ abstract mixin class _$CategoryPlanningStateCopyWith<$Res> implements $CategoryP
   factory _$CategoryPlanningStateCopyWith(_CategoryPlanningState value, $Res Function(_CategoryPlanningState) _then) = __$CategoryPlanningStateCopyWithImpl;
 @override @useResult
 $Res call({
- List<CategoryPlanningFormItem> items, bool isLoading
+ List<CategoryPlanningFormItem> items, bool isLoading, String? highlightCategoryId
 });
 
 
@@ -789,11 +809,12 @@ class __$CategoryPlanningStateCopyWithImpl<$Res>
 
 /// Create a copy of CategoryPlanningState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? isLoading = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? items = null,Object? isLoading = null,Object? highlightCategoryId = freezed,}) {
   return _then(_CategoryPlanningState(
 items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
 as List<CategoryPlanningFormItem>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,highlightCategoryId: freezed == highlightCategoryId ? _self.highlightCategoryId : highlightCategoryId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -2743,7 +2764,7 @@ $InstallmentModelCopyWith<$Res> get installment {
 /// @nodoc
 mixin _$TransactionCreationArgs {
 
- OrderType get type; InstallmentStatus? get status; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget; String? get description; DateTime? get date; double? get amount;
+ OrderType get type; InstallmentStatus? get status; InstallmentType? get installmentType; CategoryModel? get category; String? get accountIdSource; String? get accountIdTarget; String? get description; DateTime? get date; double? get amount;
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2754,16 +2775,16 @@ $TransactionCreationArgsCopyWith<TransactionCreationArgs> get copyWith => _$Tran
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.description, description) || other.description == description)&&(identical(other.date, date) || other.date == date)&&(identical(other.amount, amount) || other.amount == amount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.description, description) || other.description == description)&&(identical(other.date, date) || other.date == date)&&(identical(other.amount, amount) || other.amount == amount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,status,category,accountIdSource,accountIdTarget,description,date,amount);
+int get hashCode => Object.hash(runtimeType,type,status,installmentType,category,accountIdSource,accountIdTarget,description,date,amount);
 
 @override
 String toString() {
-  return 'TransactionCreationArgs(type: $type, status: $status, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, description: $description, date: $date, amount: $amount)';
+  return 'TransactionCreationArgs(type: $type, status: $status, installmentType: $installmentType, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, description: $description, date: $date, amount: $amount)';
 }
 
 
@@ -2774,7 +2795,7 @@ abstract mixin class $TransactionCreationArgsCopyWith<$Res>  {
   factory $TransactionCreationArgsCopyWith(TransactionCreationArgs value, $Res Function(TransactionCreationArgs) _then) = _$TransactionCreationArgsCopyWithImpl;
 @useResult
 $Res call({
- OrderType type, InstallmentStatus? status, CategoryModel? category, String? accountIdSource, String? accountIdTarget, String? description, DateTime? date, double? amount
+ OrderType type, InstallmentStatus? status, InstallmentType? installmentType, CategoryModel? category, String? accountIdSource, String? accountIdTarget, String? description, DateTime? date, double? amount
 });
 
 
@@ -2791,11 +2812,12 @@ class _$TransactionCreationArgsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? status = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? description = freezed,Object? date = freezed,Object? amount = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? status = freezed,Object? installmentType = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? description = freezed,Object? date = freezed,Object? amount = freezed,}) {
   return _then(_self.copyWith(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as InstallmentStatus?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as InstallmentStatus?,installmentType: freezed == installmentType ? _self.installmentType : installmentType // ignore: cast_nullable_to_non_nullable
+as InstallmentType?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
 as String?,accountIdTarget: freezed == accountIdTarget ? _self.accountIdTarget : accountIdTarget // ignore: cast_nullable_to_non_nullable
 as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
@@ -2895,10 +2917,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  InstallmentType? installmentType,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TransactionCreationArgs() when $default != null:
-return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);case _:
+return $default(_that.type,_that.status,_that.installmentType,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);case _:
   return orElse();
 
 }
@@ -2916,10 +2938,10 @@ return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OrderType type,  InstallmentStatus? status,  InstallmentType? installmentType,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)  $default,) {final _that = this;
 switch (_that) {
 case _TransactionCreationArgs():
-return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);}
+return $default(_that.type,_that.status,_that.installmentType,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -2933,10 +2955,10 @@ return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  InstallmentStatus? status,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OrderType type,  InstallmentStatus? status,  InstallmentType? installmentType,  CategoryModel? category,  String? accountIdSource,  String? accountIdTarget,  String? description,  DateTime? date,  double? amount)?  $default,) {final _that = this;
 switch (_that) {
 case _TransactionCreationArgs() when $default != null:
-return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);case _:
+return $default(_that.type,_that.status,_that.installmentType,_that.category,_that.accountIdSource,_that.accountIdTarget,_that.description,_that.date,_that.amount);case _:
   return null;
 
 }
@@ -2948,11 +2970,12 @@ return $default(_that.type,_that.status,_that.category,_that.accountIdSource,_th
 
 
 class _TransactionCreationArgs implements TransactionCreationArgs {
-   _TransactionCreationArgs({required this.type, this.status, this.category, this.accountIdSource, this.accountIdTarget, this.description, this.date, this.amount});
+   _TransactionCreationArgs({required this.type, this.status, this.installmentType, this.category, this.accountIdSource, this.accountIdTarget, this.description, this.date, this.amount});
   
 
 @override final  OrderType type;
 @override final  InstallmentStatus? status;
+@override final  InstallmentType? installmentType;
 @override final  CategoryModel? category;
 @override final  String? accountIdSource;
 @override final  String? accountIdTarget;
@@ -2970,16 +2993,16 @@ _$TransactionCreationArgsCopyWith<_TransactionCreationArgs> get copyWith => __$T
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.description, description) || other.description == description)&&(identical(other.date, date) || other.date == date)&&(identical(other.amount, amount) || other.amount == amount));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TransactionCreationArgs&&(identical(other.type, type) || other.type == type)&&(identical(other.status, status) || other.status == status)&&(identical(other.installmentType, installmentType) || other.installmentType == installmentType)&&(identical(other.category, category) || other.category == category)&&(identical(other.accountIdSource, accountIdSource) || other.accountIdSource == accountIdSource)&&(identical(other.accountIdTarget, accountIdTarget) || other.accountIdTarget == accountIdTarget)&&(identical(other.description, description) || other.description == description)&&(identical(other.date, date) || other.date == date)&&(identical(other.amount, amount) || other.amount == amount));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,type,status,category,accountIdSource,accountIdTarget,description,date,amount);
+int get hashCode => Object.hash(runtimeType,type,status,installmentType,category,accountIdSource,accountIdTarget,description,date,amount);
 
 @override
 String toString() {
-  return 'TransactionCreationArgs(type: $type, status: $status, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, description: $description, date: $date, amount: $amount)';
+  return 'TransactionCreationArgs(type: $type, status: $status, installmentType: $installmentType, category: $category, accountIdSource: $accountIdSource, accountIdTarget: $accountIdTarget, description: $description, date: $date, amount: $amount)';
 }
 
 
@@ -2990,7 +3013,7 @@ abstract mixin class _$TransactionCreationArgsCopyWith<$Res> implements $Transac
   factory _$TransactionCreationArgsCopyWith(_TransactionCreationArgs value, $Res Function(_TransactionCreationArgs) _then) = __$TransactionCreationArgsCopyWithImpl;
 @override @useResult
 $Res call({
- OrderType type, InstallmentStatus? status, CategoryModel? category, String? accountIdSource, String? accountIdTarget, String? description, DateTime? date, double? amount
+ OrderType type, InstallmentStatus? status, InstallmentType? installmentType, CategoryModel? category, String? accountIdSource, String? accountIdTarget, String? description, DateTime? date, double? amount
 });
 
 
@@ -3007,11 +3030,12 @@ class __$TransactionCreationArgsCopyWithImpl<$Res>
 
 /// Create a copy of TransactionCreationArgs
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? status = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? description = freezed,Object? date = freezed,Object? amount = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? status = freezed,Object? installmentType = freezed,Object? category = freezed,Object? accountIdSource = freezed,Object? accountIdTarget = freezed,Object? description = freezed,Object? date = freezed,Object? amount = freezed,}) {
   return _then(_TransactionCreationArgs(
 type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as OrderType,status: freezed == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
-as InstallmentStatus?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as InstallmentStatus?,installmentType: freezed == installmentType ? _self.installmentType : installmentType // ignore: cast_nullable_to_non_nullable
+as InstallmentType?,category: freezed == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
 as CategoryModel?,accountIdSource: freezed == accountIdSource ? _self.accountIdSource : accountIdSource // ignore: cast_nullable_to_non_nullable
 as String?,accountIdTarget: freezed == accountIdTarget ? _self.accountIdTarget : accountIdTarget // ignore: cast_nullable_to_non_nullable
 as String?,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable

@@ -19,12 +19,23 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
   /// mesmo mês, inclusive na virada.
   final String month;
 
+  /// Categoria que o usuário veio definir, quando chegou por um atalho (o
+  /// nudge de gasto não planejado). Sobe para o topo da lista e nasce
+  /// destacada.
+  final String? highlightCategoryId;
+
+  /// Valor já preenchido para [highlightCategoryId]. Vem sugerido, não
+  /// gravado: o usuário ainda precisa salvar, e pode trocar o número antes.
+  final double? suggestedAmount;
+
   CategoryPlanningNotifier({
     required this.planningService,
     required this.categoryService,
     required this.analytics,
     required this.type,
     required DateTime date,
+    this.highlightCategoryId,
+    this.suggestedAmount,
   }) : month = date.monthKey,
        super(CategoryPlanningState(isLoading: true)) {
     _init();
@@ -45,14 +56,40 @@ class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void>
         final planning = plannings
             .where((p) => p.category.id == category.id)
             .firstOrNull;
+
+        final isHighlighted = category.id == highlightCategoryId;
+        final current = planning?.amount ?? 0.0;
+
+        // A sugestão só entra numa categoria que ainda NÃO tem limite: se o
+        // usuário já definiu um, sobrescrevê-lo com uma média seria desfazer
+        // a decisão dele sem perguntar.
+        final amount = isHighlighted && current <= 0
+            ? (suggestedAmount ?? 0.0)
+            : current;
+
         return CategoryPlanningFormItem(
           category: category,
-          amount: planning?.amount ?? 0.0,
+          amount: amount,
           planningId: planning?.id,
+          isDirty: amount != current,
         );
       }).toList();
 
-      state = state.copyWith(items: items, isLoading: false);
+      // A categoria que trouxe o usuário até aqui vem primeiro: numa lista de
+      // trinta, procurar a sua desfaz o convite que o trouxe.
+      if (highlightCategoryId != null) {
+        items.sort((a, b) {
+          final aFirst = a.category.id == highlightCategoryId ? 0 : 1;
+          final bFirst = b.category.id == highlightCategoryId ? 0 : 1;
+          return aFirst.compareTo(bFirst);
+        });
+      }
+
+      state = state.copyWith(
+        items: items,
+        isLoading: false,
+        highlightCategoryId: highlightCategoryId,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false);
     }

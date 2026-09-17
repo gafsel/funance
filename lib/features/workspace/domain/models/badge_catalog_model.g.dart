@@ -46,6 +46,24 @@ const _$BadgeCategoryEnumMap = {
   BadgeCategory.unknown: 'unknown',
 };
 
+_XpSource _$XpSourceFromJson(Map<String, dynamic> json) => _XpSource(
+  id: json['id'] as String,
+  name: json['name'] == null
+      ? const <String, String>{}
+      : localizedText(json['name']),
+  xp: (json['xp'] as num?)?.toInt() ?? 0,
+  description: json['description'] == null
+      ? const <String, String>{}
+      : localizedText(json['description']),
+);
+
+Map<String, dynamic> _$XpSourceToJson(_XpSource instance) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'xp': instance.xp,
+  'description': instance.description,
+};
+
 _BadgeCatalog _$BadgeCatalogFromJson(Map<String, dynamic> json) =>
     _BadgeCatalog(
       version: json['version'] as String? ?? '',
@@ -59,6 +77,11 @@ _BadgeCatalog _$BadgeCatalogFromJson(Map<String, dynamic> json) =>
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const <int>[],
+      xpSources:
+          (json['xpSources'] as List<dynamic>?)
+              ?.map((e) => XpSource.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <XpSource>[],
     );
 
 Map<String, dynamic> _$BadgeCatalogToJson(_BadgeCatalog instance) =>
@@ -66,4 +89,5 @@ Map<String, dynamic> _$BadgeCatalogToJson(_BadgeCatalog instance) =>
       'version': instance.version,
       'badges': instance.badges,
       'levelThresholds': instance.levelThresholds,
+      'xpSources': instance.xpSources,
     };
