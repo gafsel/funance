@@ -28,10 +28,10 @@ void main() {
     });
 
     test('valores inválidos caem no fallback sem lançar', () {
-      expect('blue'.asColor(), AppColors.deepTurquoise);
-      expect('#FFF'.asColor(), AppColors.deepTurquoise);
-      expect(''.asColor(), AppColors.deepTurquoise);
-      expect('rgba(1,2,3,0.5)'.asColor(), AppColors.deepTurquoise);
+      expect('blue'.asColor(), AppColors.surfaceDeep);
+      expect('#FFF'.asColor(), AppColors.surfaceDeep);
+      expect(''.asColor(), AppColors.surfaceDeep);
+      expect('rgba(1,2,3,0.5)'.asColor(), AppColors.surfaceDeep);
     });
 
     test('fallback customizado é respeitado', () {

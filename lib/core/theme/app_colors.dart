@@ -121,26 +121,6 @@ abstract final class AppColors {
   /// desligado, notch da barra — e não a ausência de decisão.
   static const Color transparent = Color(0x00000000);
 
-  // --- Apelidos legados ---
-  //
-  // Ponte temporária enquanto as features migram para os papéis acima. Cada
-  // commit de migração de feature apaga os usos correspondentes; o último
-  // commit do pacote apaga este bloco. Não use nenhum destes em código novo.
-
-  static const Color deepTurquoise = surfaceDeep;
-  static const Color vibrantTeal = tealInk;
-  static const Color pureWhite = paperLight;
-  static const Color successGold = gold;
-  static const Color antiqueGold = goldDeep;
-  static const Color paleGold = Color(0xFFFDF3BB);
-  static const Color darkNavy = inkLight;
-  static const Color brightCyan = teal;
-  static const Color limeGreen = progressStart;
-  static const Color coralOrange = warning;
-  static const Color deepPurple = violet;
-  static const Color error = danger;
-  static const Color softGrey = Color(0xFFEEEEEE);
-
   // --- Seleção de cor de categoria ---
 
   /// Paleta oferecida ao usuário para colorir categorias e contas. É a única

@@ -464,7 +464,7 @@ abstract final class AppTheme {
     onTertiary: AppColors.goldInk,
     tertiaryContainer: Color(0xFFFFF0BF),
     onTertiaryContainer: AppColors.goldInk,
-    // O erro do app era roxo (`AppColors.deepPurple`) enquanto o código
+    // O erro do app era roxo (um roxo) enquanto o código
     // chamava três vermelhos diferentes. Agora erro e destrutivo são o mesmo
     // token, e ele é o do `ColorScheme`.
     error: AppColors.danger,
