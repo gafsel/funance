@@ -1,44 +1,44 @@
 import 'package:flutter/material.dart';
+
 import 'app_colors.dart';
 
-class AppGradients {
-  /// Gradiente radial para fundos, do centro mais claro (vibrantTeal) para as bordas mais escuras (deepTurquoise).
-  static const RadialGradient backgroundGradient = RadialGradient(
-    colors: [
-      AppColors.vibrantTeal,
-      AppColors.deepTurquoise,
-    ],
-    center: Alignment.center,
-    radius: 0.8,
+/// Os gradientes da identidade. São quatro, e cada um tem um lugar.
+abstract final class AppGradients {
+  /// Fundo de herói: splash, login, onboarding, cabeçalho de detalhe. É o
+  /// cofre visto de dentro — mais claro no centro, fechando nas bordas.
+  static const RadialGradient background = RadialGradient(
+    colors: [AppColors.surfaceRaised, AppColors.surfaceDeep],
+    center: Alignment.topCenter,
+    radius: 1.1,
   );
 
-  /// Gradiente linear para barras de progresso, do Verde Limão (início) para o Ciano Brilhante (final).
-  static const LinearGradient progressGradient = LinearGradient(
-    colors: [
-      AppColors.limeGreen,
-      AppColors.brightCyan,
-    ],
-    begin: Alignment.centerLeft,
-    end: Alignment.centerRight,
-  );
-
-  /// Gradiente linear azul turquesa.
-  static const LinearGradient turquoiseBlue = LinearGradient(
-    colors: [
-      AppColors.vibrantTeal,
-      AppColors.brightCyan,
-    ],
+  /// Bloco de jogo sobre papel: a faixa escura que carrega XP, nível, missão
+  /// ou meta dentro de uma tela clara.
+  static const LinearGradient game = LinearGradient(
+    colors: [AppColors.surfaceDefault, AppColors.surfaceDeep],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  /// Gradiente para botões de sucesso/destaque usando tons de Ouro.
-  static const LinearGradient goldGradient = LinearGradient(
-    colors: [
-      AppColors.successGold,
-      AppColors.antiqueGold,
-    ],
+  /// Preenchimento de barra de progresso: verde no começo, teal no fim.
+  /// Quem está no início da barra não recebe a cor da chegada.
+  static const LinearGradient progress = LinearGradient(
+    colors: [AppColors.progressStart, AppColors.progressEnd],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  /// Ouro: recompensa, botão de celebração, moeda, aro de conquista.
+  static const LinearGradient gold = LinearGradient(
+    colors: [AppColors.gold, AppColors.goldDeep],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
+
+  // --- Apelidos legados (removidos ao fim do pacote wp/design) ---
+
+  static const RadialGradient backgroundGradient = background;
+  static const LinearGradient progressGradient = progress;
+  static const LinearGradient goldGradient = gold;
+  static const LinearGradient turquoiseBlue = game;
 }

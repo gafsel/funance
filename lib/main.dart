@@ -15,6 +15,7 @@ import 'package:funances/core/widgets/sync_status_banner.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_mode_provider.dart';
 import 'firebase_options.dart';
 
 void main() {
@@ -59,6 +60,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(ThemeProviders.mode);
 
     return MaterialApp.router(
       routerConfig: router,
@@ -74,7 +76,9 @@ class MyApp extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('pt', ''), Locale('en', '')],
-      theme: AppTheme.theme,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
     );
   }
 }

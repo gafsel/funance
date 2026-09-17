@@ -61,3 +61,6 @@ ui-debug.log
 pubsub-debug.log
 .firebase/
 emulator-data/
+
+# Diffs de golden gerados por `flutter test`; nunca versionados.
+test/goldens/failures/
