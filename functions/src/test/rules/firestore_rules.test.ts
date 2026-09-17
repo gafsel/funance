@@ -1067,6 +1067,38 @@ describe("firestore.rules", () => {
             );
         });
 
+        it("nega que o cliente reescreva o currentAmount de uma meta existente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // O progresso é do SERVIDOR desde wp/gamification-2; o formulário
+            // já não pede esse valor. Poder reescrevê-lo é poder declarar a
+            // própria meta cumprida — com os badges e o XP que vêm junto.
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`), { currentAmount: 999999 })
+            );
+        });
+
+        it("a meta ainda NASCE com currentAmount (zero) pelo formulário", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                setDoc(doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova-zero`), goalDoc({ currentAmount: 0 }))
+            );
+        });
+
+        it("tolera o reenvio do MESMO currentAmount numa edição de meta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // A negação é por DIFERENÇA de valor: editar o nome reenviando o
+            // documento inteiro continua passando.
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                    { name: "Reserva maior", currentAmount: 0 }
+                )
+            );
+        });
+
         it("o membro LÊ os espelhos inteiros normalmente", async () => {
             const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 

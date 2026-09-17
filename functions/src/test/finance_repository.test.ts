@@ -7,12 +7,14 @@
 const mockFirestoreState: any = {
     collection: null,
     batch: null,
+    runTransaction: null,
 };
 
 jest.mock("firebase-admin", () => {
     const firestore: any = () => ({
         collection: (...args: any[]) => mockFirestoreState.collection(...args),
         batch: () => mockFirestoreState.batch(),
+        runTransaction: (handler: any) => mockFirestoreState.runTransaction(handler),
     });
     firestore.Timestamp = { fromDate: (date: Date) => date };
     firestore.FieldValue = {
@@ -412,7 +414,26 @@ describe("FinanceRepositoryImpl.applyPlanningImpacts — categoria sem id", () =
         sets = [];
         warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
 
-        mockFirestoreState.collection = jest.fn(() => ({ doc: (id: string) => ({ id }) }));
+        // F1.10 — `applyPlanningImpacts` deixou de usar `FieldValue.increment`
+        // e passou a LER + ESCREVER dentro de uma transação. O documento
+        // devolvido aqui é um sumário VAZIO, que é o caso da primeira
+        // aplicação de um planejamento.
+        mockFirestoreState.collection = jest.fn(() => ({
+            doc: (id: string) => ({
+                id,
+                async set(data: any) {
+                    sets.push({ id, data });
+                },
+            }),
+        }));
+        mockFirestoreState.runTransaction = async (handler: any) => handler({
+            async getAll(...refs: any[]) {
+                return refs.map((ref) => ({ id: ref.id, exists: false, data: () => undefined }));
+            },
+            set(ref: any, data: any) {
+                sets.push({ id: ref.id, data });
+            },
+        });
         mockFirestoreState.batch = () => ({
             delete: jest.fn(),
             update: jest.fn(),
@@ -449,7 +470,11 @@ describe("FinanceRepositoryImpl.applyPlanningImpacts — categoria sem id", () =
 
         expect(sets).toHaveLength(1);
         expect(Object.keys(sets[0].data.categories)).toEqual(["cat-mercado"]);
-        expect(sets[0].data.categories["cat-mercado"].generalPlannedAmount).toEqual({ __increment: 200 });
+        // Valor ABSOLUTO (documento vazio + delta 200), não mais um increment.
+        expect(sets[0].data.categories["cat-mercado"]).toMatchObject({
+            generalPlannedAmount: 200,
+            generalPlannedAmountCents: 20000,
+        });
         expect(warn).toHaveBeenCalledTimes(1);
     });
 
@@ -475,7 +500,15 @@ describe("FinanceRepositoryImpl.applyPlanningImpacts — categoria sem id", () =
     });
 
     it("os marcadores do planejamento continuam sendo gravados mesmo quando tudo é pulado", async () => {
-        const marks = { ref: { id: "planning-1" }, data: { lastSummaryMonth: "2026-03" } };
+        const marks = {
+            ref: {
+                id: "planning-1",
+                async set(data: any) {
+                    sets.push({ id: "planning-1", data });
+                },
+            },
+            data: { lastSummaryMonth: "2026-03" },
+        };
 
         await new FinanceRepositoryImpl().applyPlanningImpacts("w1", [update(BROKEN, 150)], marks as any);
 

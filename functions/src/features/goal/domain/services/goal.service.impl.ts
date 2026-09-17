@@ -10,6 +10,7 @@ import {
     resolveGoalCategoryId,
     resolveGoalOutcome,
     resolveGoalType,
+    withCurrentAmount,
 } from "../models/goal.model";
 import { fromCents, resolveCents, sumCents, toCents } from "../../../../core/utils/money";
 
@@ -362,7 +363,10 @@ export class GoalServiceImpl implements IGoalService {
 
         const now = this.now();
         const outcome = resolveGoalOutcome(goal) === null
-            ? evaluateGoalOutcome({ ...goal, currentAmount: nextAmount }, now)
+            // `withCurrentAmount` e não `{ ...goal, currentAmount }`: o spread
+            // cru carregaria o `currentAmountCents` ANTIGO e o veredito sairia
+            // sobre o valor velho (F1.10).
+            ? evaluateGoalOutcome(withCurrentAmount(goal, nextAmount), now)
             : null;
         const stamp: GoalOutcomeStamp | null = outcome ? { outcome, at: now } : null;
 

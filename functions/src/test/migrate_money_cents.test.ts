@@ -68,11 +68,35 @@ describe("inspectFlatDoc — documento simples", () => {
         expect(result.patch).not.toHaveProperty("paidAmountCents");
     });
 
-    it("inteiro pendurado sem o double correspondente é APAGADO", () => {
+    it("inteiro pendurado sem o double correspondente é APAGADO e contado à parte", () => {
         const result = inspectFlatDoc({ amount: 50, paidAmountCents: 999 }, MONEY_CENTS_FIELDS.installments);
 
         expect(result.patch!.paidAmountCents).toEqual(DELETE_SENTINEL);
-        expect(result.divergent).toBe(true);
+        // Órfão tem contador PRÓPRIO: não é divergência de valor, e por isso
+        // também não entra nas somas que o `--verify` compara.
+        expect(result.orphans).toBe(1);
+        expect(result.divergent).toBe(false);
+        expect(result.doubleCents).toBe(5000);
+        expect(result.storedCents).toBe(5000);
+    });
+
+    it("campo monetário PRESENTE e não numérico é denunciado, nunca vira zero", () => {
+        // Gravar `amountCents: 0` porque o `double` era a string "1000"
+        // apagaria mil reais com um número de cara legítima.
+        const result = inspectFlatDoc({ amount: "1000" as any }, MONEY_CENTS_FIELDS.orders);
+
+        expect(result.invalid).toBe(1);
+        expect(result.patch).toBeNull();
+        expect(result.doubleCents).toBe(0);
+    });
+
+    it("um total de sumário não numérico também é denunciado", () => {
+        const result = inspectSummaryDoc({
+            categories: { mercado: { actualAmount: true as any, generalPlannedAmount: 10 } },
+        });
+
+        expect(result.invalid).toBe(1);
+        expect(result.patch).toEqual({ categories: { mercado: { generalPlannedAmountCents: 1000 } } });
     });
 
     it("inteiro que DISCORDA do double é reescrito e contado como divergência", () => {

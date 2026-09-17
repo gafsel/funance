@@ -17,7 +17,7 @@ import {
     InstallmentCascadeChanges,
     splitAmountIntoInstallments,
 } from "../features/finance/domain/services/finance.service";
-import { SummaryService } from "../features/finance/domain/services/summary.service";
+import { resolveAppliedWindow, SummaryService } from "../features/finance/domain/services/summary.service";
 import {
     CategoryPlanningModel,
     InstallmentModel,
@@ -25,8 +25,8 @@ import {
     InstallmentType,
     OrderType,
 } from "../features/finance/domain/models/finance.models";
-import { evaluateGoalOutcome } from "../features/goal/domain/models/goal.model";
-import { sumMoney, toCents } from "../core/utils/money";
+import { evaluateGoalOutcome, withCurrentAmount } from "../features/goal/domain/models/goal.model";
+import { classifyMoney, MoneyRangeError, sumMoney, toCents } from "../core/utils/money";
 
 const CATEGORY = { id: "cat-1", name: "Mercado", type: "expense" } as any;
 
@@ -224,5 +224,100 @@ describe("F1.10 — desfecho de meta sem folga de meio centavo", () => {
         const reducao = { runtimeType: "reduceExpense", targetAmount: 1000, deadline: prazo };
         expect(evaluateGoalOutcome({ ...reducao, currentAmount: 1000 }, hoje)).toBeNull();
         expect(evaluateGoalOutcome({ ...reducao, currentAmount: 1000.01 }, hoje)).toBe("failed");
+    });
+});
+
+describe("F1.10 — ALTO 2: o par não pode ser quebrado por um spread", () => {
+    function planning(over: Partial<CategoryPlanningModel> = {}): CategoryPlanningModel {
+        return {
+            id: "p1",
+            category: CATEGORY,
+            amount: 1000,
+            startMonth: "2026-01",
+            endMonth: "2026-01",
+            ...over,
+        } as CategoryPlanningModel;
+    }
+
+    it("o estorno usa o valor APLICADO, e não o amountCents novo do documento", async () => {
+        // O usuário editou o limite de R$ 1.000,00 para R$ 7.777,00: o
+        // documento já tem o valor NOVO (`amount`/`amountCents`), mas o que
+        // está lançado nos sumários é o ANTIGO (`appliedAmount`).
+        const before = planning({
+            amount: 7777,
+            amountCents: 777700,
+            summarizedUntil: "2026-12",
+            appliedAmount: 1000,
+            appliedAmountCents: 100000,
+            appliedFrom: "2026-01",
+            appliedUntil: "2026-01",
+        });
+
+        const calls: Array<{ updates: any[] }> = [];
+        const repository = {
+            applyPlanningImpacts: async (_w: string, updates: any[]) => {
+                calls.push({ updates });
+            },
+            getCategoryPlanningRef: () => ({ id: "p1" }),
+        };
+
+        await new SummaryService(repository as any)
+            .processCategoryPlanningChange("w1", before, null, new Date("2026-01-15T15:00:00.000Z"));
+
+        const monthly = calls[0].updates.find((u) => u.month === 1)!;
+        // `{ ...before, amount: 1000 }` carregaria `amountCents: 777700`, e
+        // `resolveCents` prefere o inteiro: o estorno cancelaria R$ 7.777,00
+        // que nunca foram aplicados.
+        expect(monthly.generalPlannedDelta).toBe(-1000);
+    });
+
+    it("a janela aplicada carrega o par inteiro", () => {
+        const window = resolveAppliedWindow(
+            planning({ appliedAmount: 0.1 + 0.2, summarizedUntil: "2026-12", appliedFrom: "2026-01", appliedUntil: "2026-01" }),
+            "2026-01",
+            "2026-12"
+        );
+
+        expect(window).toMatchObject({ amount: 0.3, amountCents: 30 });
+    });
+
+    it("withCurrentAmount atualiza o par; o spread cru não", () => {
+        const goal = { runtimeType: "saveMoney", targetAmount: 1000, currentAmount: 200, currentAmountCents: 20000 };
+
+        // O spread cru deixa o inteiro velho para trás, e é ele que manda.
+        expect(evaluateGoalOutcome({ ...goal, currentAmount: 1000 }, new Date("2026-01-15"))).toBeNull();
+
+        // Com o par coerente, o veredito sai sobre o valor NOVO.
+        expect(evaluateGoalOutcome(withCurrentAmount(goal, 1000), new Date("2026-01-15"))).toBe("success");
+    });
+});
+
+describe("F1.10 — BAIXO 11: fora do intervalo exato, toCents LANÇA", () => {
+    it("aceita o teto das rules com folga", () => {
+        // As rules limitam qualquer valor a ±1e12; 1e12 × 100 = 1e14 cabe.
+        expect(toCents(1e12)).toBe(1e14);
+    });
+
+    it("recusa o que não é mais inteiro exato, em vez de inventar um número", () => {
+        expect(() => toCents(1e15)).toThrow(MoneyRangeError);
+        expect(() => toCents(-1e15)).toThrow(/fora do intervalo exato/);
+    });
+});
+
+describe("F1.10 — MÉDIO 10: campo monetário sujo nunca vira zero calado", () => {
+    it("distingue ausente, número e presente-mas-inválido", () => {
+        expect(classifyMoney(undefined)).toMatchObject({ kind: "absent", cents: null });
+        expect(classifyMoney(null)).toMatchObject({ kind: "absent", cents: null });
+        expect(classifyMoney(10.5)).toMatchObject({ kind: "number", cents: 1050 });
+        expect(classifyMoney(NaN)).toMatchObject({ kind: "invalid", cents: null });
+        expect(classifyMoney(true)).toMatchObject({ kind: "invalid", cents: null });
+        expect(classifyMoney({})).toMatchObject({ kind: "invalid", cents: null });
+    });
+
+    it("string numérica é INVÁLIDA, mas o valor conversível é reportado", () => {
+        // O campo está no tipo errado e quem grava precisa saber: coagir calado
+        // transformaria um defeito de escrita em número aceito.
+        expect(classifyMoney("1000")).toEqual({ kind: "invalid", cents: null, coercible: 1000 });
+        expect(classifyMoney("abc")).toEqual({ kind: "invalid", cents: null, coercible: null });
     });
 });

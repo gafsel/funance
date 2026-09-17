@@ -59,6 +59,16 @@ const MAX_INSTALLMENTS_PER_UNIT = MAX_WRITES_PER_TRANSACTION - 1;
  */
 const BALANCE_PROPAGATION_PAGE_SIZE = DEFAULT_CHUNK_SIZE;
 
+/**
+ * Dias por TRANSAÇÃO na propagação (F1.10).
+ *
+ * Menor que a página de leitura de propósito: cada transação lê e reescreve os
+ * documentos, e quanto mais documentos ela toca, maior a chance de outro evento
+ * mexer num deles e forçar o retry do lote inteiro. Um pagamento retroativo de
+ * três anos vira ~10 transações em vez de uma.
+ */
+const BALANCE_PROPAGATION_CHUNK = 100;
+
 
 /**
  * O que `updateInstallment` lê do documento JÁ GRAVADO para recalcular os
@@ -79,6 +89,37 @@ interface PlanningCategoryBucket {
     /** F1.10 — o delta acumulado em CENTAVOS INTEIROS. */
     deltaCents: number;
 }
+
+/**
+ * Delta monetário de UMA categoria num documento de sumário, em centavos
+ * inteiros. Os três totais juntos porque a escrita é uma só.
+ */
+interface SummaryCategoryDelta {
+    category: CategoryModel;
+    generalCents: number;
+    specificCents: number;
+    actualCents: number;
+}
+
+/** Os deltas de UM documento de `period_summaries`, agrupados por categoria. */
+interface SummaryDocDelta {
+    year: number;
+    month: number | null;
+    week: number | null;
+    runtimeType: string;
+    categories: Map<string, SummaryCategoryDelta>;
+}
+
+/**
+ * Documentos de sumário lidos e escritos por TRANSAÇÃO.
+ *
+ * Um horizonte de planejamento de 12 meses gera ~66 documentos, que assim cabem
+ * numa transação só. O teto do Firestore é 500 ESCRITAS por transação; 100
+ * deixa folga e mantém estreita a janela de contenção — quanto mais documentos
+ * numa transação, maior a chance de outro gatilho tocar um deles e forçar o
+ * retry do lote inteiro.
+ */
+const SUMMARY_TRANSACTION_CHUNK = 100;
 
 interface PlanningSummaryGroup {
     year: number;
@@ -741,10 +782,10 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         updates: PeriodSummaryUpdateModel[],
         marks?: { ref: admin.firestore.DocumentReference, data: CategoryPlanningMarks }
     ): Promise<void> {
-        const operations: BatchOperation[] = [];
+        const deltas = new Map<string, SummaryDocDelta>();
 
         for (const [docId, group] of groupPlanningUpdates(updates)) {
-            const categories: Record<string, Record<string, admin.firestore.FieldValue>> = {};
+            const categories = new Map<string, SummaryCategoryDelta>();
 
             for (const bucket of group.categories.values()) {
                 // Delta ZERO exato — sem épsilon: em centavos inteiros não há
@@ -764,37 +805,115 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                     continue;
                 }
 
-                categories[bucket.category.id] = {
-                    generalPlannedAmount: admin.firestore.FieldValue.increment(fromCents(bucket.deltaCents)),
-                    generalPlannedAmountCents: admin.firestore.FieldValue.increment(bucket.deltaCents),
-                };
+                categories.set(bucket.category.id, {
+                    category: bucket.category,
+                    generalCents: bucket.deltaCents,
+                    specificCents: 0,
+                    actualCents: 0,
+                });
             }
 
-            if (Object.keys(categories).length === 0) continue;
+            if (categories.size === 0) continue;
 
-            operations.push({
-                op: "set",
-                ref: this.getPeriodSummariesCollection(workspaceId).doc(docId),
-                data: {
-                    year: group.year,
-                    month: group.month ?? null,
-                    week: group.week ?? null,
-                    categories,
-                    lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-                    runtimeType: group.runtimeType,
-                },
-                options: { merge: true },
+            deltas.set(docId, {
+                year: group.year,
+                month: group.month ?? null,
+                week: group.week ?? null,
+                runtimeType: group.runtimeType,
+                categories,
             });
         }
 
-        if (marks) {
-            operations.push({ op: "set", ref: marks.ref, data: { ...marks.data }, options: { merge: true } });
-        }
+        // Os impactos PRIMEIRO, os marcadores depois: se a aplicação falhar no
+        // meio, o planejamento não fica marcado como sumarizado sem eles.
+        await this.applySummaryDeltas(workspaceId, deltas);
 
-        await commitInChunks(this.firestore, operations);
+        if (marks) {
+            await marks.ref.set({ ...marks.data }, { merge: true });
+        }
     }
 
-    private getPeriodSummaryDocRef(workspaceId: string, year: number, month?: number, week?: number): { docRef: admin.firestore.DocumentReference, runtimeType: string } {
+    /**
+     * Aplica deltas monetários em `period_summaries` por LEITURA + ESCRITA
+     * ABSOLUTA, dentro de uma transação — e não por `FieldValue.increment`.
+     *
+     * **Por que o `increment` teve de sair (F1.10).** Incrementar um campo que
+     * não existe começa do ZERO. Num documento anterior à migração, que tem
+     * `actualAmount: 1000` e nenhum `actualAmountCents`, um delta de +25
+     * produzia `actualAmount: 1025` (certo) e `actualAmountCents: 2500`
+     * (errado) — e o inteiro é a FONTE DA VERDADE, então o número errado é
+     * justamente o que manda. Semear fora da transação não resolve: entre a
+     * leitura da semente e o commit, outro evento pode ter criado o campo.
+     *
+     * Dentro da transação, o valor lido e o valor escrito pertencem ao mesmo
+     * instante lógico: o Firestore aborta e repete a transação se qualquer
+     * documento lido mudar antes do commit. O preço é contenção onde antes não
+     * havia — um documento mensal tocado por dois pagamentos simultâneos faz um
+     * dos dois repetir. É um preço pequeno perto de gravar um total errado, e o
+     * `increment` continua onde não há dinheiro (o `xp` semanal).
+     *
+     * A escrita é `set(..., {merge: true})` com o mapa de categorias: só as
+     * categorias presentes no delta são tocadas, as demais ficam intactas.
+     */
+    private async applySummaryDeltas(
+        workspaceId: string,
+        deltas: Map<string, SummaryDocDelta>
+    ): Promise<void> {
+        if (deltas.size === 0) return;
+
+        const collection = this.getPeriodSummariesCollection(workspaceId);
+        const entries = [...deltas.entries()];
+
+        for (let i = 0; i < entries.length; i += SUMMARY_TRANSACTION_CHUNK) {
+            const chunk = entries.slice(i, i + SUMMARY_TRANSACTION_CHUNK);
+
+            await this.firestore.runTransaction(async (transaction) => {
+                const refs = chunk.map(([docId]) => collection.doc(docId));
+                // Numa transação TODAS as leituras vêm antes de qualquer
+                // escrita: `getAll` resolve o lote inteiro de uma vez.
+                const snapshots = await transaction.getAll(...refs);
+
+                chunk.forEach(([, delta], index) => {
+                    const snapshot = snapshots[index];
+                    const current = (snapshot.data()?.categories ?? {}) as Record<string, Record<string, unknown> | undefined>;
+                    const categories: Record<string, Record<string, number>> = {};
+
+                    for (const [categoryId, bucket] of delta.categories) {
+                        const stored = current[categoryId] ?? {};
+
+                        // O inteiro gravado manda; num documento ainda não
+                        // migrado ele não existe e o `double` responde.
+                        const general = resolveCents(toNumber(stored.generalPlannedAmount), stored.generalPlannedAmountCents)
+                            + bucket.generalCents;
+                        const specific = resolveCents(toNumber(stored.specificPlannedAmount), stored.specificPlannedAmountCents)
+                            + bucket.specificCents;
+                        const actual = resolveCents(toNumber(stored.actualAmount), stored.actualAmountCents)
+                            + bucket.actualCents;
+
+                        categories[categoryId] = {
+                            generalPlannedAmount: fromCents(general),
+                            specificPlannedAmount: fromCents(specific),
+                            actualAmount: fromCents(actual),
+                            generalPlannedAmountCents: general,
+                            specificPlannedAmountCents: specific,
+                            actualAmountCents: actual,
+                        };
+                    }
+
+                    transaction.set(refs[index], {
+                        year: delta.year,
+                        month: delta.month,
+                        week: delta.week,
+                        categories,
+                        lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
+                        runtimeType: delta.runtimeType,
+                    }, { merge: true });
+                });
+            });
+        }
+    }
+
+    private getPeriodSummaryDocRef(workspaceId: string, year: number, month?: number, week?: number): { docRef: admin.firestore.DocumentReference, docId: string, runtimeType: string } {
         let summaryId = "";
         let runtimeType = "";
 
@@ -813,48 +932,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         return {
             docRef: this.getPeriodSummariesCollection(workspaceId).doc(summaryId),
+            docId: summaryId,
             runtimeType
-        };
-    }
-
-    private buildPeriodSummaryUpdateData(
-        year: number,
-        month: number | undefined,
-        week: number | undefined,
-        category: CategoryModel,
-        data: {
-            generalPlannedDelta?: number,
-            specificPlannedDelta?: number,
-            actualDelta?: number
-        },
-        runtimeType: string
-    ): Record<string, unknown> {
-        // F1.10 — DUPLA ESCRITA. Cada total ganha um par: o `*Cents` inteiro,
-        // que é a fonte da verdade, e o `double` espelho. Os dois são
-        // `FieldValue.increment` pelo mesmo motivo de sempre (a escrita é um
-        // merge concorrente, e ler-somar-gravar perderia deltas); o inteiro,
-        // porém, não acumula erro. O delta chega em reais já arredondado a duas
-        // casas, então `toCents` é exato.
-        const generalCents = toCents(data.generalPlannedDelta ?? 0);
-        const specificCents = toCents(data.specificPlannedDelta ?? 0);
-        const actualCents = toCents(data.actualDelta ?? 0);
-
-        return {
-            year,
-            month: month ?? null,
-            week: week ?? null,
-            categories: {
-                [category.id]: {
-                    generalPlannedAmount: admin.firestore.FieldValue.increment(fromCents(generalCents)),
-                    specificPlannedAmount: admin.firestore.FieldValue.increment(fromCents(specificCents)),
-                    actualAmount: admin.firestore.FieldValue.increment(fromCents(actualCents)),
-                    generalPlannedAmountCents: admin.firestore.FieldValue.increment(generalCents),
-                    specificPlannedAmountCents: admin.firestore.FieldValue.increment(specificCents),
-                    actualAmountCents: admin.firestore.FieldValue.increment(actualCents),
-                },
-            },
-            lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
-            runtimeType: runtimeType,
         };
     }
 
@@ -882,10 +961,22 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             throw new Error(`[updatePeriodSummary] categoria sem id: workspace=${workspaceId} período=${year}/${month ?? "-"}/W${week ?? "-"} categoria="${name}". Categoria sem id não entra em period_summaries.`);
         }
 
-        const { docRef, runtimeType } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
-        const updateData = this.buildPeriodSummaryUpdateData(year, month, week, category, data, runtimeType);
+        const { docId, runtimeType } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
 
-        await docRef.set(updateData, { merge: true });
+        // F1.10 — o delta chega em reais JÁ arredondado a duas casas por quem o
+        // produziu, então `toCents` é exato.
+        await this.applySummaryDeltas(workspaceId, new Map([[docId, {
+            year,
+            month: month ?? null,
+            week: week ?? null,
+            runtimeType,
+            categories: new Map([[category.id, {
+                category,
+                generalCents: toCents(data.generalPlannedDelta ?? 0),
+                specificCents: toCents(data.specificPlannedDelta ?? 0),
+                actualCents: toCents(data.actualDelta ?? 0),
+            }]]),
+        }]]));
     }
 
     async getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<PeriodSummaryDocument | null> {
@@ -1053,51 +1144,57 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     ): Promise<void> {
         if (!deltaCents) return;
 
-        const delta = fromCents(deltaCents);
-
-        let cursor: admin.firestore.QueryDocumentSnapshot | null = null;
+        let cursorId: string | null = null;
 
         for (;;) {
+            // Uma página = uma TRANSAÇÃO. A consulta que escolhe os dias roda
+            // fora dela (uma query dentro da transação travaria o intervalo
+            // inteiro); o que a transação garante é que o valor LIDO de cada
+            // documento e o valor gravado são do mesmo instante lógico.
             let query: admin.firestore.Query = balancesColl
                 .where(admin.firestore.FieldPath.documentId(), ">", dateKey)
                 .orderBy(admin.firestore.FieldPath.documentId())
-                .limit(BALANCE_PROPAGATION_PAGE_SIZE);
+                .limit(BALANCE_PROPAGATION_CHUNK);
 
-            if (cursor) query = query.startAfter(cursor);
+            if (cursorId !== null) query = query.startAfter(cursorId);
 
-            const snapshot = await query.get();
-            if (snapshot.empty) return;
+            const page = await query.get();
+            if (page.empty) return;
 
-            const operations: BatchOperation[] = snapshot.docs.map((doc) => {
-                const current = doc.data() ?? {};
-                // F1.10 — os DOIS campos são incrementados, e os dois pelo
-                // mesmo motivo de antes: `FieldValue.increment` é atômico, e a
-                // propagação roda fora de transação. A diferença é que o
-                // incremento INTEIRO não acumula erro nenhum — enquanto o do
-                // `double` continua podendo escorregar no 15º dígito. Quando os
-                // dois discordam, é o inteiro que vale (`resolveCents`), e o
-                // `rebuild_workspace` reescreve o espelho a partir dele.
-                const data: Record<string, unknown> = {
-                    balance: admin.firestore.FieldValue.increment(delta),
-                    balanceCents: admin.firestore.FieldValue.increment(deltaCents),
-                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                };
-                // Documento anterior à migração: semeia `balanceCents` com o
-                // valor do espelho ANTES de incrementar, senão o incremento
-                // nasceria a partir de zero e o inteiro divergiria do double.
-                if (readCents(current.balanceCents) === null) {
-                    data.balanceCents = toCents(toNumber(current.balance)) + deltaCents;
-                }
-                if (!isDateKey(current.dateKey)) {
-                    data.dateKey = doc.id;
-                }
-                return { op: "update", ref: doc.ref, data };
+            const refs = page.docs.map((doc) => doc.ref);
+
+            await this.firestore.runTransaction(async (transaction) => {
+                const snapshots = await transaction.getAll(...refs);
+
+                snapshots.forEach((snapshot, index) => {
+                    // Documento apagado entre a consulta e a transação: não há
+                    // saldo a propagar, e um `set` o ressuscitaria.
+                    if (!snapshot.exists) return;
+
+                    const current = snapshot.data() ?? {};
+                    // F1.10 — o inteiro é a verdade. Num documento anterior à
+                    // migração ele não existe, e a SEMENTE vem do espelho —
+                    // dentro da transação, para que nenhuma escrita concorrente
+                    // caiba entre ler a semente e gravar o resultado. Fora da
+                    // transação (como era antes) o inteiro podia nascer do
+                    // delta e divergir do `double` para sempre.
+                    const balanceCents = resolveCents(toNumber(current.balance), current.balanceCents) + deltaCents;
+
+                    const data: Record<string, unknown> = {
+                        balance: fromCents(balanceCents),
+                        balanceCents,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    };
+                    if (!isDateKey(current.dateKey)) {
+                        data.dateKey = snapshot.id;
+                    }
+
+                    transaction.set(refs[index], data, { merge: true });
+                });
             });
 
-            await commitInChunks(this.firestore, operations, BALANCE_PROPAGATION_PAGE_SIZE);
-
-            if (snapshot.size < BALANCE_PROPAGATION_PAGE_SIZE) return;
-            cursor = snapshot.docs[snapshot.size - 1];
+            if (page.size < BALANCE_PROPAGATION_CHUNK) return;
+            cursorId = page.docs[page.size - 1].id;
         }
     }
 
@@ -1247,10 +1344,6 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const cycle = InvoiceService.calculateInvoiceCycleRange(dueDate, account);
 
         const orderData = {
-            // F1.10 — dupla escrita no total da fatura: o inteiro manda, o
-            // `double` é o espelho.
-            amount: admin.firestore.FieldValue.increment(fromCents(deltaCents)),
-            amountCents: admin.firestore.FieldValue.increment(deltaCents),
             dueDay: p.day,
             description: `Fatura ${account.name}`,
             startMonth: monthKey,
@@ -1266,7 +1359,22 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             closingDate: admin.firestore.Timestamp.fromDate(cycle.closingDate),
         };
 
-        await orderRef.set(orderData, { merge: true });
+        // F1.10 — LEITURA + ESCRITA ABSOLUTA numa transação, pelo mesmo motivo
+        // dos sumários: `increment` num `amountCents` que ainda não existe
+        // (order de fatura anterior à migração) faria o inteiro nascer do
+        // delta, e é o inteiro que manda. Dentro da transação o valor lido e o
+        // gravado são do mesmo instante lógico.
+        await this.firestore.runTransaction(async (transaction) => {
+            const snapshot = await transaction.get(orderRef);
+            const current = snapshot.data() ?? {};
+            const amountCents = resolveCents(toNumber(current.amount), current.amountCents) + deltaCents;
+
+            transaction.set(orderRef, {
+                ...orderData,
+                amount: fromCents(amountCents),
+                amountCents,
+            }, { merge: true });
+        });
     }
 
     /**

@@ -1,4 +1,4 @@
-import { resolveCents } from "../../../../core/utils/money";
+import { fromCents, resolveCents, toCents } from "../../../../core/utils/money";
 
 /**
  * Tipos de meta, com os valores REALMENTE persistidos no Firestore.
@@ -113,6 +113,22 @@ export function resolveGoalOutcome(goal: any): GoalOutcome | null {
  *
  * Uma meta sem `deadline` e sem `targetAmount` válido nunca desfecha sozinha.
  */
+/**
+ * A meta com um `currentAmount` NOVO — e o par inteiro junto (F1.10).
+ *
+ * Existe porque `{ ...goal, currentAmount: x }` é uma armadilha: o spread
+ * carrega o `currentAmountCents` ANTIGO, e `resolveCents` prefere o inteiro.
+ * O veredito sairia sobre o valor velho, calado. Todo lugar que projeta um
+ * progresso novo sobre uma meta passa por aqui.
+ */
+export function withCurrentAmount<T extends { currentAmount?: number, currentAmountCents?: number }>(
+    goal: T,
+    currentAmount: number
+): T {
+    const currentAmountCents = toCents(currentAmount);
+    return { ...goal, currentAmount: fromCents(currentAmountCents), currentAmountCents };
+}
+
 export function evaluateGoalOutcome(goal: any, now: Date = new Date()): GoalOutcome | null {
     // F1.10 — a comparação é em CENTAVOS INTEIROS. A folga de meio centavo que
     // existia aqui (`AMOUNT_EPSILON = 0.005`) era exatamente o arredondamento

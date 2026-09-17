@@ -7,9 +7,30 @@ import * as admin from "firebase-admin";
 import {
     MONEY_CENTS_CHECKPOINT_FIELD,
     migrateMoneyCents,
-} from "../../scripts/migrate_money_cents";
+    commitPatches, verdict } from "../../scripts/migrate_money_cents";
 import { applyCentsPatch } from "../../core/utils/money_cents";
 import { MONEY_CENTS_FIELDS } from "../../features/finance/domain/models/finance.models";
+import { FinanceRepositoryImpl } from "../../features/finance/data/repositories/finance.repository.impl";
+import { InvoiceService } from "../../features/finance/domain/services/invoice.service";
+import { CategoryModel, CategoryType } from "../../features/workspace/domain/models/category.model";
+
+const CATEGORY: CategoryModel = {
+    id: "cat-mercado",
+    name: "Mercado",
+    icon: "shopping_cart",
+    color: "#42A5F5",
+    type: CategoryType.expense,
+    isDeleted: false,
+    allocation: "essential",
+};
+
+/** Workspace mínimo com UMA order — o bastante para o verificador ter o que dizer. */
+async function seedSimple(workspaceId: string): Promise<void> {
+    await firestore.collection("workspaces").doc(workspaceId)
+        .set({ name: "Casa", type: "personal", members: ["u1"] });
+    await firestore.collection(`workspaces/${workspaceId}/orders`).doc("o1")
+        .set({ amount: 1000, description: "x" });
+}
 
 /**
  * F1.10, etapa B — a migração dos espelhos inteiros contra o emulador de
@@ -320,5 +341,260 @@ describe("passo derivado do gatilho — contra o emulador", () => {
 
         expect(written).toBe(false);
         expect((await ref.get()).exists).toBe(false);
+    });
+});
+
+describe("ALTO 1 — dinheiro nunca é incrementado sobre um *Cents ausente", () => {
+    /**
+     * O defeito: `FieldValue.increment` num campo que NÃO EXISTE começa do
+     * zero. Num documento anterior à migração, com `actualAmount: 1000` e sem
+     * `actualAmountCents`, um delta de +25 produzia `actualAmount: 1025`
+     * (certo) e `actualAmountCents: 2500` (errado) — e é o inteiro que manda.
+     */
+    it("period_summaries: o total parte do DOUBLE gravado, não de zero", async () => {
+        const workspaceId = newWorkspace("summary-seed");
+        const repository = new FinanceRepositoryImpl();
+        const ref = firestore.doc(`workspaces/${workspaceId}/period_summaries/2026-03`);
+
+        // Documento no formato ANTERIOR à etapa B: só o `double`.
+        await ref.set({
+            year: 2026,
+            month: 3,
+            week: null,
+            runtimeType: "month",
+            categories: { [CATEGORY.id]: { actualAmount: 1000, specificPlannedAmount: 500 } },
+        });
+
+        await repository.updatePeriodSummary(workspaceId, 2026, 3, CATEGORY, { actualDelta: 25 });
+
+        const totals = (await ref.get()).data()!.categories[CATEGORY.id];
+        expect(totals.actualAmount).toBe(1025);
+        // Sem a correção este número era 2500.
+        expect(totals.actualAmountCents).toBe(102500);
+        // Os totais que o delta não tocou também ficam coerentes.
+        expect(totals.specificPlannedAmount).toBe(500);
+        expect(totals.specificPlannedAmountCents).toBe(50000);
+    });
+
+    it("period_summaries: a segunda escrita soma sobre o inteiro, sem escorregar", async () => {
+        const workspaceId = newWorkspace("summary-acc");
+        const repository = new FinanceRepositoryImpl();
+        const ref = firestore.doc(`workspaces/${workspaceId}/period_summaries/2026-03`);
+
+        for (const delta of [0.1, 0.2]) {
+            await repository.updatePeriodSummary(workspaceId, 2026, 3, CATEGORY, { actualDelta: delta });
+        }
+
+        const totals = (await ref.get()).data()!.categories[CATEGORY.id];
+        expect(totals.actualAmountCents).toBe(30);
+        expect(totals.actualAmount).toBe(0.3);
+    });
+
+    it("period_summaries: só a categoria do delta é tocada", async () => {
+        const workspaceId = newWorkspace("summary-merge");
+        const repository = new FinanceRepositoryImpl();
+        const ref = firestore.doc(`workspaces/${workspaceId}/period_summaries/2026-03`);
+
+        await ref.set({
+            year: 2026, month: 3, week: null, runtimeType: "month",
+            categories: {
+                outra: { actualAmount: 77, actualAmountCents: 7700 },
+                [CATEGORY.id]: { actualAmount: 10, actualAmountCents: 1000 },
+            },
+        });
+
+        await repository.updatePeriodSummary(workspaceId, 2026, 3, CATEGORY, { actualDelta: 5 });
+
+        const categories = (await ref.get()).data()!.categories;
+        expect(categories[CATEGORY.id].actualAmountCents).toBe(1500);
+        expect(categories.outra).toEqual({ actualAmount: 77, actualAmountCents: 7700 });
+    });
+
+    it("applyPlanningImpacts: idem, sobre um sumário pré-migração", async () => {
+        const workspaceId = newWorkspace("planning-seed");
+        const repository = new FinanceRepositoryImpl();
+        const ref = firestore.doc(`workspaces/${workspaceId}/period_summaries/2026-03`);
+
+        await ref.set({
+            year: 2026, month: 3, week: null, runtimeType: "month",
+            categories: { [CATEGORY.id]: { generalPlannedAmount: 1000 } },
+        });
+
+        await repository.applyPlanningImpacts(workspaceId, [
+            { year: 2026, month: 3, category: CATEGORY, generalPlannedDelta: 25 },
+        ]);
+
+        const totals = (await ref.get()).data()!.categories[CATEGORY.id];
+        expect(totals.generalPlannedAmount).toBe(1025);
+        expect(totals.generalPlannedAmountCents).toBe(102500);
+    });
+
+    it("updateInvoiceWithDelta: a order de fatura pré-migração também", async () => {
+        const workspaceId = newWorkspace("invoice-seed");
+        const repository = new FinanceRepositoryImpl();
+
+        const account = {
+            id: "acc-card",
+            name: "Cartão",
+            runtimeType: "creditCard",
+            isDeleted: false,
+            initialBalance: 0,
+            closingDay: 5,
+            dueDay: 10,
+        } as any;
+
+        const dueDate = new Date("2026-03-10T15:00:00.000Z");
+        const orderId = InvoiceService.invoiceOrderId(account.id, dueDate);
+        const ref = firestore.doc(`workspaces/${workspaceId}/orders/${orderId}`);
+
+        // Fatura antiga: só o `double`.
+        await ref.set({ amount: 1000, description: "Fatura Cartão", isInvoice: true });
+
+        await repository.updateInvoiceWithDelta(workspaceId, account, dueDate, 2500);
+
+        const order = (await ref.get()).data()!;
+        expect(order.amount).toBe(1025);
+        expect(order.amountCents).toBe(102500);
+    });
+
+    it("propagateBalanceDelta: a semente do balanceCents vem da leitura", async () => {
+        const workspaceId = newWorkspace("propaga-seed");
+        const repository = new FinanceRepositoryImpl();
+        const balances = firestore.collection(`workspaces/${workspaceId}/accounts/acc1/balance`);
+
+        // Dia futuro no formato antigo: só `balance`.
+        await balances.doc("2026-03-20").set({ balance: 1000 });
+
+        await repository.updateAccountBalance(workspaceId, "acc1", new Date("2026-03-10T15:00:00.000Z"), -5000);
+
+        const propagated = (await balances.doc("2026-03-20").get()).data()!;
+        expect(propagated.balance).toBe(950);
+        // Sem a semente, o incremento nasceria de zero: -5000.
+        expect(propagated.balanceCents).toBe(95000);
+        expect(propagated.dateKey).toBe("2026-03-20");
+    });
+});
+
+describe("ALTO 3 — o checkpoint não pode esconder um workspace que falhou", () => {
+    it("um workspace que falha CONTINUA pendente e é revisitado", async () => {
+        const alpha = `ws-cents-alpha-${Date.now()}`;
+        const beta = `ws-cents-beta-${Date.now()}`;
+        workspaces.push(alpha, beta);
+
+        for (const id of [alpha, beta]) {
+            await firestore.collection("workspaces").doc(id).set({ name: id, type: "personal", members: ["u1"] });
+            await firestore.collection(`workspaces/${id}/orders`).doc("o1").set({ amount: 10, description: "x" });
+        }
+
+        // Primeira execução: a leitura de uma coleção de `alpha` falha.
+        const realCollection = firestore.collection.bind(firestore);
+        const realWorkspaces = realCollection("workspaces");
+        const spy = jest.spyOn(firestore, "collection").mockImplementation(((path: string) => {
+            if (path !== "workspaces") return realCollection(path);
+            return {
+                listDocuments: () => realWorkspaces.listDocuments(),
+                doc: (id: string) => {
+                    const ref = realWorkspaces.doc(id);
+                    if (id !== alpha) return ref;
+                    return {
+                        collection: (name: string) => {
+                            if (name === "goals") throw new Error("falha simulada em ws-alpha");
+                            return ref.collection(name);
+                        },
+                    };
+                },
+            };
+        }) as any);
+
+        const first = await migrateMoneyCents(firestore, { dryRun: false, restart: true }, quiet);
+        spy.mockRestore();
+
+        expect(first.failed).toBeGreaterThan(0);
+        expect(first.failedWorkspaces).toContain(alpha);
+        expect(first.pending).toContain(alpha);
+        // `beta` passou e saiu da lista.
+        expect(first.pending).not.toContain(beta);
+
+        const checkpoint = (await firestore.doc("config/cron_checkpoints").get()).data();
+        expect(checkpoint?.[MONEY_CENTS_CHECKPOINT_FIELD]).toContain(alpha);
+
+        // Segunda execução: retoma a LISTA DE PENDENTES e migra `alpha`.
+        // Com o marcador de avanço antigo (`id > último concluído`), `alpha`
+        // ficava atrás do marcador, a varredura via 0 workspaces, zerava o
+        // checkpoint e saía com código 0.
+        const second = await migrateMoneyCents(firestore, { dryRun: false }, quiet);
+
+        expect(second.workspaces).toBeGreaterThan(0);
+        expect(second.failed).toBe(0);
+        expect(second.pending).toEqual([]);
+        expect((await firestore.doc(`workspaces/${alpha}/orders/o1`).get()).data()?.amountCents).toBe(1000);
+    });
+
+    it("--verify FALHA quando ainda há documento a migrar, não só quando diverge", async () => {
+        const workspaceId = newWorkspace("verify-pendente");
+        await seedSimple(workspaceId);
+
+        const before = await migrateMoneyCents(firestore, { dryRun: true, verify: true, workspaceId }, quiet);
+        const beforeVerdict = verdict(before);
+
+        expect(beforeVerdict.divergent).toBe(0);
+        expect(beforeVerdict.remaining).toBeGreaterThan(0);
+        // É o ponto: "nenhuma divergência" numa base em que o inteiro sequer
+        // existe seria um atestado de saúde para o silêncio.
+        expect(beforeVerdict.ok).toBe(false);
+
+        await migrateMoneyCents(firestore, { dryRun: false, workspaceId }, quiet);
+
+        const after = verdict(await migrateMoneyCents(firestore, { dryRun: true, verify: true, workspaceId }, quiet));
+        expect(after.ok).toBe(true);
+        expect(after.remaining).toBe(0);
+    });
+
+    it("--verify FALHA quando há campo monetário presente e não numérico", async () => {
+        const workspaceId = newWorkspace("verify-sujo");
+        await seedSimple(workspaceId);
+        await migrateMoneyCents(firestore, { dryRun: false, workspaceId }, quiet);
+
+        await firestore.doc(`workspaces/${workspaceId}/orders/o1`).set({ amount: "1000", description: "sujo" });
+
+        const result = verdict(await migrateMoneyCents(firestore, { dryRun: true, verify: true, workspaceId }, quiet));
+
+        expect(result.invalid).toBeGreaterThan(0);
+        expect(result.ok).toBe(false);
+        expect(result.reasons.join(" ")).toContain("NÃO numéricos");
+    });
+
+    /**
+     * MÉDIO 5 — `batch.update` é ATÔMICO: se um documento sumiu entre a leitura
+     * e o commit, o lote inteiro é rejeitado com NOT_FOUND e os outros não são
+     * gravados. `commitPatches` degrada para escrita por documento.
+     *
+     * Por que não `set(..., {merge: true})`, que não falharia: ele CRIARIA o
+     * documento apagado — uma order fantasma com um único campo `amountCents`,
+     * que o app listaria. Um patch de espelho não ressuscita nada.
+     */
+    it("um lote com documento apagado no meio não perde os outros", async () => {
+        const workspaceId = newWorkspace("lote-parcial");
+        const orders = firestore.collection(`workspaces/${workspaceId}/orders`);
+
+        for (const id of ["o1", "o2", "o3"]) {
+            await orders.doc(id).set({ amount: 10, description: id });
+        }
+
+        const patches = ["o1", "o2", "o3", "sumiu"].map((id) => ({
+            op: "update" as const,
+            ref: orders.doc(id),
+            data: { amountCents: 1000 },
+        }));
+
+        const committed = await commitPatches(firestore, patches, quiet);
+
+        // Três gravados; o quarto (inexistente) é descartado, não propagado.
+        expect(committed).toBe(3);
+        for (const id of ["o1", "o2", "o3"]) {
+            expect((await orders.doc(id).get()).data()?.amountCents).toBe(1000);
+        }
+        // E o documento que não existia continua NÃO existindo.
+        expect((await orders.doc("sumiu").get()).exists).toBe(false);
     });
 });

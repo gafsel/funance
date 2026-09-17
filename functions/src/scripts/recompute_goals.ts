@@ -53,6 +53,7 @@ import * as admin from "firebase-admin";
 import { GoalRepositoryImpl } from "../features/goal/data/repositories/goal.repository.impl";
 import { GoalServiceImpl } from "../features/goal/domain/services/goal.service.impl";
 import { IGoalRepository } from "../features/goal/domain/repositories/goal.repository";
+import { resolveCents, toCents } from "../core/utils/money";
 import {
     GoalModel,
     GoalOutcome,
@@ -60,10 +61,9 @@ import {
     isGoalActive,
     resolveGoalOutcome,
     resolveGoalType,
+    withCurrentAmount,
 } from "../features/goal/domain/models/goal.model";
 
-/** Diferença abaixo da qual a meta é considerada já correta. */
-const AMOUNT_EPSILON = 0.005;
 
 export interface RecomputeOptions {
     dryRun: boolean;
@@ -144,18 +144,21 @@ export async function recomputeGoals(
                     continue;
                 }
 
+                // F1.10 — "mudou?" é comparação de CENTAVOS INTEIROS: a folga
+                // de meio centavo que existia aqui era o arredondamento que
+                // `toCents` agora faz de forma exata.
                 const current = Number(goal.currentAmount ?? 0);
-                const changed = Math.abs(computed - current) >= AMOUNT_EPSILON;
+                const changed = toCents(computed) !== resolveCents(current, goal.currentAmountCents);
 
                 // Desfecho pela MESMA regra do serviço, e só para meta que
                 // ainda não desfechou — o desfecho é terminal.
                 const outcome = resolveGoalOutcome(goal) === null
-                    ? evaluateGoalOutcome({ ...goal, currentAmount: computed })
+                    ? evaluateGoalOutcome(withCurrentAmount(goal, computed))
                     : null;
 
                 if (!changed && !outcome) {
                     summary.skipped++;
-                    if (isGoalActive({ ...goal, currentAmount: computed })) {
+                    if (isGoalActive(withCurrentAmount(goal, computed))) {
                         summary.active++;
                     }
                     continue;
@@ -181,7 +184,7 @@ export async function recomputeGoals(
                     );
                 }
 
-                const after = { ...goal, currentAmount: computed, outcome: outcome ?? goal.outcome };
+                const after = { ...withCurrentAmount(goal, computed), outcome: outcome ?? goal.outcome };
                 if (isGoalActive(after)) {
                     summary.active++;
                 }

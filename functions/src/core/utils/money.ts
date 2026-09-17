@@ -46,11 +46,26 @@ const SCALE = 100;
 const SIGNIFICANT_DIGITS = 15;
 
 /**
- * Maior valor em centavos que ainda é um inteiro exato em `double`.
- * Acima disso a soma de centavos deixaria de ser confiável — e é melhor o
- * chamador saber disso do que gravar um número já corrompido.
+ * Maior valor em centavos que ainda é um inteiro exato em `double`
+ * (2^53 − 1 ≈ R$ 90 trilhões).
+ *
+ * `toCents` **LANÇA** acima disso, em vez de devolver um número. A alternativa
+ * (clampar e logar) devolveria uma quantia inventada para quem pediu uma
+ * conversão exata — e o chamador é justamente quem grava dinheiro. Na prática
+ * o erro é inalcançável pelos caminhos normais: as security rules já limitam
+ * qualquer valor a ±1e12, e 1e12 × 100 = 1e14 cabe folgado aqui. Se ele
+ * disparar, é dado que entrou por fora das rules e precisa parar o processo,
+ * não seguir com um total silenciosamente errado.
  */
 export const MAX_SAFE_CENTS = Number.MAX_SAFE_INTEGER;
+
+/** Erro de `toCents` para um valor fora do intervalo exato. */
+export class MoneyRangeError extends Error {
+    constructor(public readonly value: number) {
+        super(`[money] valor fora do intervalo exato de centavos: ${value}. O máximo é ${MAX_SAFE_CENTS} centavos.`);
+        this.name = "MoneyRangeError";
+    }
+}
 
 /**
  * Valor monetário (reais) -> centavos INTEIROS, com arredondamento
@@ -61,6 +76,13 @@ export const MAX_SAFE_CENTS = Number.MAX_SAFE_INTEGER;
  * legado (`toNumber`, `summaryNumber`) — um valor que não é número não é
  * dinheiro.
  *
+ * ⚠️ **O zero aqui é um padrão de LEITURA, não um veredito.** O tipo já recusa
+ * uma string em tempo de compilação; o `0` cobre o `NaN` que chega de um
+ * documento sujo por um caminho `any`. Quem precisa SABER que o campo está
+ * sujo — a migração, que grava o inteiro definitivo — não pode se contentar
+ * com ele: use `classifyMoney`, que distingue "ausente" de "presente e
+ * inválido" e permite denunciar o segundo em vez de gravar zero calado.
+ *
  * ```
  * toCents(0.1 + 0.2) === 30      // e não 30.000000000000004
  * toCents(1.005)     === 101     // o literal decimal é a intenção
@@ -70,6 +92,11 @@ export const MAX_SAFE_CENTS = Number.MAX_SAFE_INTEGER;
  */
 export function toCents(value: number | null | undefined): number {
     if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+
+    // Fora do intervalo exato, LANÇA — ver `MAX_SAFE_CENTS`.
+    if (Math.abs(value) > MAX_SAFE_CENTS / SCALE) {
+        throw new MoneyRangeError(value);
+    }
 
     // `toPrecision` devolve string (eventualmente em notação exponencial, que
     // `Number` reinterpreta sem perda). É o passo que transforma
@@ -163,6 +190,59 @@ export function readCents(value: unknown): number | null {
     if (typeof value !== "number" || !Number.isInteger(value)) return null;
     if (Math.abs(value) > MAX_SAFE_CENTS) return null;
     return value;
+}
+
+/** O que um campo monetário CRU é, antes de virar centavos. */
+export type MoneyFieldKind =
+    /** A chave não existe (ou é `null`): ausente continua ausente. */
+    | "absent"
+    /** Número finito: converte. */
+    | "number"
+    /** Presente e NÃO conversível — string, booleano, mapa, `NaN`, `Infinity`. */
+    | "invalid";
+
+export interface MoneyClassification {
+    kind: MoneyFieldKind;
+    /** Centavos, só quando `kind === "number"`. */
+    cents: number | null;
+    /**
+     * Valor numérico efetivo. Para uma STRING NUMÉRICA (`"10.5"`) vem
+     * preenchido junto de `kind: "invalid"`: o dado é conversível, mas o campo
+     * está no tipo errado e quem grava precisa saber disso — coagir calado é o
+     * que transformaria um defeito de escrita em número aceito.
+     */
+    coercible: number | null;
+}
+
+/**
+ * Classifica um campo monetário cru, sem nunca devolver um zero silencioso.
+ *
+ * É a função que a migração usa: gravar `0` num `*Cents` porque o `double` era
+ * a string `"1000"` seria apagar mil reais com um número que parece legítimo.
+ */
+export function classifyMoney(value: unknown): MoneyClassification {
+    if (value === undefined || value === null) {
+        return { kind: "absent", cents: null, coercible: null };
+    }
+
+    if (typeof value === "number") {
+        if (!Number.isFinite(value)) {
+            return { kind: "invalid", cents: null, coercible: null };
+        }
+        return { kind: "number", cents: toCents(value), coercible: value };
+    }
+
+    // String numérica: conversível, mas ainda assim INVÁLIDA. O campo está no
+    // tipo errado, e o relatório precisa dizê-lo; a conversão fica disponível
+    // para quem for consertar o documento, não para quem grava por cima.
+    if (typeof value === "string" && value.trim().length > 0) {
+        const parsed = Number(value);
+        if (Number.isFinite(parsed)) {
+            return { kind: "invalid", cents: null, coercible: parsed };
+        }
+    }
+
+    return { kind: "invalid", cents: null, coercible: null };
 }
 
 /**

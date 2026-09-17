@@ -419,10 +419,14 @@ describe("processCategoryPlanningChange (F1.5)", () => {
             appliedFrom: "2026-09",
             appliedUntil: "2026-12",
         });
+        // F1.10 — a janela carrega o PAR: quem estorna precisa do inteiro, e
+        // um `amount` sem `amountCents` ao lado seria sobrescrito por um
+        // `amountCents` velho no spread do estorno.
         expect(resolveAppliedWindow(comMarcas, CURRENT, HORIZON)).toEqual({
             from: "2026-09",
             until: "2026-12",
             amount: 500,
+            amountCents: 50000,
         });
 
         // Marcado como sumarizado, mas sem nada aplicado: nada a estornar.

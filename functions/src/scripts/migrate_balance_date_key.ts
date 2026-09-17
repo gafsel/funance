@@ -52,6 +52,7 @@
 import * as admin from "firebase-admin";
 import { BatchOperation, commitInChunks } from "../core/utils/batch.utils";
 import { isDateKey } from "../core/utils/date_key";
+import { round2, toCents } from "../core/utils/money";
 
 export interface MigrateBalanceOptions {
     dryRun: boolean;
@@ -79,7 +80,7 @@ export interface MigrateBalanceSummary {
 const DEFAULT_PAGE_SIZE = 500;
 const EPSILON = 0.005;
 
-const roundCents = (value: number) => Math.round(value * 100) / 100;
+const roundCents = (value: number) => round2(value);
 
 function toNumber(value: unknown): number {
     const parsed = typeof value === "number" ? value : Number(value);
@@ -176,7 +177,17 @@ export async function migrateBalanceDateKey(
                             operations.push({
                                 op: "update",
                                 ref: doc.ref,
-                                data: { dateKey: doc.id, delta: expectedDelta },
+                                data: {
+                                    dateKey: doc.id,
+                                    delta: expectedDelta,
+                                    // F1.10 — o espelho inteiro sai na MESMA
+                                    // escrita. Sem isto o documento nasceria
+                                    // com `delta` novo e sem `deltaCents`, e a
+                                    // `migrate_money_cents` teria de passar
+                                    // atrás para completar.
+                                    deltaCents: toCents(expectedDelta),
+                                    balanceCents: toCents(balance),
+                                },
                             });
                         }
                     }

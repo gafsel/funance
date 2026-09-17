@@ -129,7 +129,7 @@ export function resolveAppliedWindow(
     planning: CategoryPlanningModel,
     currentMonth: string,
     horizon: string
-): (PlanningWindow & { amount: number }) | null {
+): (PlanningWindow & { amount: number, amountCents: number }) | null {
     const hasMarks = isMonthKey(planning.summarizedUntil) || planning.summarizedUntil === PLANNING_FULLY_SUMMARIZED;
 
     if (hasMarks) {
@@ -137,14 +137,22 @@ export function resolveAppliedWindow(
         // F1.10 — o que foi aplicado é estornado pelo valor INTEIRO quando ele
         // existe: o estorno tem de cancelar a aplicação ao centavo, senão sobra
         // resíduo no `generalPlannedAmount` a cada edição.
-        const amount = typeof planning.appliedAmount === "number"
-            ? fromCents(resolveCents(planning.appliedAmount, planning.appliedAmountCents))
-            : fromCents(resolveCents(planning.amount, planning.amountCents));
-        return { from: planning.appliedFrom, until: planning.appliedUntil, amount };
+        const amountCents = typeof planning.appliedAmount === "number"
+            ? resolveCents(planning.appliedAmount, planning.appliedAmountCents)
+            : resolveCents(planning.amount, planning.amountCents);
+        return {
+            from: planning.appliedFrom,
+            until: planning.appliedUntil,
+            amount: fromCents(amountCents),
+            amountCents,
+        };
     }
 
     const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, currentMonth, horizon);
-    return window ? { ...window, amount: planning.amount } : null;
+    if (!window) return null;
+
+    const amountCents = resolveCents(planning.amount, planning.amountCents);
+    return { ...window, amount: fromCents(amountCents), amountCents };
 }
 
 /** `summarizedUntil` depois de processar até `horizon`. */
@@ -182,8 +190,21 @@ export class SummaryService {
                 // O planejamento do estorno usa o intervalo APLICADO como
                 // período: se o usuário encurtou o período, o estorno ainda
                 // precisa alcançar os meses que ficaram de fora.
+                // F1.10 — `amountCents` vai JUNTO do `amount`. Sem ele, o
+                // spread carregaria o `before.amountCents` do documento (o
+                // valor NOVO, se o usuário acabou de editar o planejamento) e
+                // `resolveCents` prefere o inteiro: o estorno cancelaria uma
+                // quantia que nunca foi aplicada. Sobrescrever um `double`
+                // monetário sem sobrescrever o par inteiro é o erro que esta
+                // etapa tornou possível — e silencioso.
                 impacts.push(...this.calculatePlanningImpacts(
-                    { ...before, amount: applied.amount, startMonth: applied.from, endMonth: applied.until },
+                    {
+                        ...before,
+                        amount: applied.amount,
+                        amountCents: applied.amountCents,
+                        startMonth: applied.from,
+                        endMonth: applied.until,
+                    },
                     -1,
                     { from: applied.from, until: applied.until }
                 ));

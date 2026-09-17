@@ -246,6 +246,13 @@ service cloud.firestore {
         // O progresso é escrito pelo servidor, e o alvo em centavos é o que o
         // desfecho compara — um cliente que baixasse o alvo inteiro ganharia
         // a meta (e os badges) sem ter guardado nada.
+        //
+        // A meta nasce em ZERO pelo formulário, então `currentAmount` continua
+        // permitido no CREATE. No UPDATE ele passa a ser server-only: quem o
+        // mantém é o servidor desde wp/gamification-2, o formulário já não
+        // pede esse valor, e o app parou de enviá-lo. Poder reescrevê-lo é
+        // poder declarar a própria meta cumprida — com os badges e o XP que
+        // vêm junto.
         allow create: if isMember(workspaceId)
           && validGoal(request.resource.data)
           && !request.resource.data.keys().hasAny([
@@ -255,7 +262,8 @@ service cloud.firestore {
           && validGoal(request.resource.data)
           && !request.resource.data.diff(resource.data).affectedKeys()
                .hasAny([
-                 'outcome', 'completedAt', 'failedAt', 'targetAmountCents', 'currentAmountCents'
+                 'outcome', 'completedAt', 'failedAt',
+                 'currentAmount', 'targetAmountCents', 'currentAmountCents'
                ]);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }

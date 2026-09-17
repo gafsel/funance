@@ -404,8 +404,16 @@ export class FinanceService {
             // efetivo vive em paidAmount/referenceAmount): replicar o novo
             // planejado para ela reintroduziria um planejado já realizado.
             if (changes.amount && !isTargetPaid) {
-                installmentUpdate.amount = after.amount;
-                installmentUpdate.referenceAmount = after.amount;
+                // F1.10 — o par inteiro acompanha o `double` no MESMO objeto.
+                // O repositório o recalcula na escrita, mas este objeto também
+                // é usado no merge em memória logo abaixo (`updatedInstallments`),
+                // e um `amount` novo ao lado de um `amountCents` velho é
+                // exatamente a divergência que a etapa existe para impedir.
+                const amountCents = resolveCents(after.amount, after.amountCents);
+                installmentUpdate.amount = fromCents(amountCents);
+                installmentUpdate.referenceAmount = fromCents(amountCents);
+                installmentUpdate.amountCents = amountCents;
+                installmentUpdate.referenceAmountCents = amountCents;
             }
 
             if (changes.category) installmentUpdate.category = after.category;

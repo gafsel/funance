@@ -301,75 +301,127 @@ export const onReconciliationWritten = onDocumentWritten(
     }
 );
 
+export interface GoalEventContext {
+    workspaceId: string;
+    goalId: string;
+    eventId: string;
+}
+
+/**
+ * Corpo do gatilho de meta, como função pura (sem `CloudEvent`).
+ *
+ * Isolada assim ela pode ser chamada direto nos testes de integração — o
+ * emulador do Firestore não dispara triggers, então a única forma de verificar
+ * o encadeamento evento -> escrita derivada -> evento é invocar o handler com o
+ * par (before, after) que a escrita derivada produziria.
+ */
+export async function handleGoalWritten(
+    beforeData: Record<string, any> | null,
+    afterData: Record<string, any> | null,
+    ctx: GoalEventContext
+): Promise<void> {
+    const { workspaceId, goalId, eventId } = ctx;
+
+    if (!afterData) return;
+
+    // GUARDA POR CONTEÚDO (F1.10) — ANTES do passo derivado. A escrita dos
+    // espelhos inteiros gera um novo evento; sem esta saída ele recalcularia o
+    // progresso e reavaliaria a bateria inteira de badges, para cada meta da
+    // base, durante a migração.
+    //
+    // A guarda vem primeiro (e não depois, como na primeira versão) porque o
+    // passo derivado não tem nada a fazer num evento que só mexeu em `*Cents`:
+    // os espelhos já estão corretos, é essa escrita que os acabou de gravar.
+    if (beforeData && afterData) {
+        const changedFields = getChangedTopLevelFields(beforeData, afterData);
+        if (changedFields.length > 0 && changedFields.every((field) => GOAL_DERIVED_FIELDS.has(field))) {
+            logger.info(`[onGoalWritten] Saída antecipada: ${goalId} mudou apenas espelhos inteiros [${changedFields.join(", ")}].`);
+            return;
+        }
+    }
+
+    // F1.10 — passo derivado: completa `targetAmountCents`/`currentAmountCents`
+    // a partir do `double` que o CLIENTE gravou.
+    await applyCentsPatch(
+        admin.firestore().collection(`workspaces/${workspaceId}/goals`).doc(goalId),
+        afterData,
+        MONEY_CENTS_FIELDS.goals,
+        "onGoalWritten"
+    );
+
+    logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
+
+    // Progresso da meta recém-criada/editada.
+    //
+    // Sem isto, uma meta de categoria ou de dívida nasce em zero e só ganha
+    // vida no próximo pagamento — o usuário vê a barra vazia mesmo tendo
+    // histórico. O recálculo só escreve quando o valor MUDA, então a escrita
+    // que ele provoca não reentra: a segunda passada calcula o mesmo número e
+    // não grava nada.
+    //
+    // O modelo recalculado é GUARDADO: é ele, e não o documento cru do evento,
+    // que vai para as checagens de badge logo abaixo. `recomputeGoal` muta o
+    // objeto com o `currentAmount` novo e com o desfecho que acabou de
+    // carimbar; avaliar os badges sobre o `after` cru os faria julgar o valor
+    // ANTERIOR ao recálculo — e um badge de conclusão perdido nessa passagem só
+    // reapareceria na próxima escrita da meta, se houver alguma.
+    const goal: GoalModel = {
+        ...afterData,
+        id: goalId,
+        startDate: toGoalDate(afterData.startDate) ?? new Date(),
+        deadline: toGoalDate(afterData.deadline) ?? undefined,
+        // O desfecho já gravado precisa vir junto: é ele que impede o recálculo
+        // de carimbar um segundo desfecho por cima.
+        outcome: resolveGoalOutcome(afterData),
+        completedAt: toGoalDate(afterData.completedAt),
+        failedAt: toGoalDate(afterData.failedAt),
+    } as GoalModel;
+
+    await container.idempotencyService.runIdempotency(eventId, GAMIFICATION_ACTIONS.goalRecompute, async () => {
+        if (afterData.isDeleted === true) return;
+        try {
+            await container.goalService.recomputeGoal(workspaceId, goal);
+        }
+        catch (e) {
+            // Recalcular é melhor-esforço: não pode impedir os badges.
+            logger.error(`[onGoalWritten] Falha ao recalcular a meta ${goalId}:`, e);
+        }
+    });
+
+    await container.idempotencyService.runIdempotency(eventId, GAMIFICATION_ACTIONS.goalWritten, async () => {
+        const gamificationService = container.gamificationService;
+
+        // O documento como ele ficou DEPOIS do recálculo: `goal` carrega o
+        // `currentAmount`/`currentAmountCents` novos e o `outcome` carimbado.
+        const evaluated = {
+            ...afterData,
+            currentAmount: goal.currentAmount,
+            currentAmountCents: goal.currentAmountCents,
+            outcome: goal.outcome ?? afterData.outcome ?? null,
+            completedAt: goal.completedAt ?? afterData.completedAt ?? null,
+            failedAt: goal.failedAt ?? afterData.failedAt ?? null,
+        };
+
+        // Advanced goal badges
+        await gamificationService.checkGoalBadges(workspaceId, evaluated);
+
+        // Simple goal badges
+        await gamificationService.checkSimpleGoalBadges(workspaceId, evaluated);
+    });
+}
+
 export const onGoalWritten = onDocumentWritten(
     "workspaces/{workspaceId}/goals/{goalId}",
     async (event) => {
-        const workspaceId = event.params.workspaceId;
-        const goalId = event.params.goalId;
-        const before = event.data?.before.exists ? event.data.before.data() : null;
-        const after = event.data?.after.exists ? event.data.after.data() : null;
-
-        if (!after) return;
-
-        // F1.10 — passo derivado: completa `targetAmountCents`/
-        // `currentAmountCents` a partir do `double` que o CLIENTE gravou.
-        await applyCentsPatch(
-            admin.firestore().collection(`workspaces/${workspaceId}/goals`).doc(goalId),
-            after,
-            MONEY_CENTS_FIELDS.goals,
-            "onGoalWritten"
+        await handleGoalWritten(
+            event.data?.before.exists ? event.data.before.data() ?? null : null,
+            event.data?.after.exists ? event.data.after.data() ?? null : null,
+            {
+                workspaceId: event.params.workspaceId,
+                goalId: event.params.goalId,
+                eventId: event.id,
+            }
         );
-
-        // GUARDA POR CONTEÚDO (F1.10): a escrita acima gera um novo evento, e
-        // sem esta saída ele recalcularia o progresso e reavaliaria a bateria
-        // inteira de badges — para cada meta da base, durante a migração.
-        if (before && after) {
-            const changedFields = getChangedTopLevelFields(before, after);
-            if (changedFields.length > 0 && changedFields.every((field) => GOAL_DERIVED_FIELDS.has(field))) {
-                logger.info(`[onGoalWritten] Saída antecipada: ${goalId} mudou apenas espelhos inteiros [${changedFields.join(", ")}].`);
-                return;
-            }
-        }
-
-        logger.info(`[onGoalWritten] Triggered for workspaceId=${workspaceId}`);
-
-        // Progresso da meta recém-criada/editada.
-        //
-        // Sem isto, uma meta de categoria ou de dívida nasce em zero e só ganha
-        // vida no próximo pagamento — o usuário vê a barra vazia mesmo tendo
-        // histórico. O recálculo só escreve quando o valor MUDA, então a
-        // escrita que ele provoca não reentra: a segunda passada calcula o
-        // mesmo número e não grava nada.
-        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalRecompute, async () => {
-            if (after.isDeleted === true) return;
-            try {
-                await container.goalService.recomputeGoal(workspaceId, {
-                    ...after,
-                    id: goalId,
-                    startDate: toGoalDate(after.startDate) ?? new Date(),
-                    deadline: toGoalDate(after.deadline) ?? undefined,
-                    // O desfecho já gravado precisa vir junto: é ele que impede
-                    // o recálculo de carimbar um segundo desfecho por cima.
-                    outcome: resolveGoalOutcome(after),
-                    completedAt: toGoalDate(after.completedAt),
-                    failedAt: toGoalDate(after.failedAt),
-                } as GoalModel);
-            }
-            catch (e) {
-                // Recalcular é melhor-esforço: não pode impedir os badges.
-                logger.error(`[onGoalWritten] Falha ao recalcular a meta ${goalId}:`, e);
-            }
-        });
-
-        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.goalWritten, async () => {
-            const gamificationService = container.gamificationService;
-
-            // Advanced goal badges
-            await gamificationService.checkGoalBadges(workspaceId, after);
-
-            // Simple goal badges
-            await gamificationService.checkSimpleGoalBadges(workspaceId, after);
-        });
     }
 );
 
