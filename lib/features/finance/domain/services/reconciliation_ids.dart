@@ -101,8 +101,17 @@ abstract final class ReconciliationIds {
   ) {
     // Ordenar preserva a MULTIPLICIDADE: duas linhas idênticas entram duas
     // vezes, e um extrato com dois cafés não tem o mesmo resumo de um com um.
+    //
+    // Só entram as linhas CONFIRMADAS nesta sessão (tudo que não foi
+    // ignorado: casada, sugerida ou sem par — esta última vira lançamento):
+    // o servidor trata o resumo como create-only para a gamificação, então
+    // uma segunda sessão sobre o mesmo extrato — que casa as linhas que na
+    // primeira ficaram ignoradas — precisa produzir um documento NOVO para
+    // contar. Reconfirmar exatamente o mesmo conjunto continua caindo no
+    // mesmo id (e o servidor a ignora).
     final chaves =
         matches
+            .where((m) => m.status != ReconciliationMatchStatus.ignored)
             .map((m) => m.documentTransaction)
             .nonNulls
             .map((tx) => statementItemKey(accountId, tx))
