@@ -192,13 +192,21 @@ class _LoginForm extends StatelessWidget {
                         color: palette.ink,
                       ),
                     ),
-                    AppSpacing.gapXs,
-                    Text(
-                      l10n.loginSubtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: palette.ink2,
+                    // A promessa só entra aqui quando esta coluna é a única:
+                    // em duas colunas o herói ao lado já a diz, e a frase
+                    // aparecia DUAS VEZES na mesma tela — uma sob a marca,
+                    // outra sob o "Entrar". `showLogo` é o mesmo sinal para
+                    // as duas coisas porque é a mesma pergunta: esta coluna
+                    // carrega a marca?
+                    if (showLogo) ...[
+                      AppSpacing.gapXs,
+                      Text(
+                        l10n.loginSubtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: palette.ink2,
+                        ),
                       ),
-                    ),
+                    ],
                     AppSpacing.gapXl,
                     if (isSignUp) ...[
                       TextFormField(
