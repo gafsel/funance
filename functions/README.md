@@ -821,7 +821,8 @@ assim.
 `resolveInvoiceOrderRef` reconhece os dois: quando os ids **diferem** e só o
 antigo existe, o delta continua sendo somado nele. Criar a order canônica ao
 lado **duplicaria** a fatura daquele mês. Quando os ids coincidem — o caso da
-base atual — não há leitura extra nenhuma.
+base atual — não há leitura extra nenhuma. Os dois caminhos (legado existente,
+order inexistente) são cobertos em `invoice_next.integration.test.ts`.
 
 O `rebuild_workspace.ts` **não é afetado**: ele reconstrói saldo, sumário e XP a
 partir das `installments` e nunca resolve uma order de fatura por id.
@@ -832,7 +833,17 @@ partir das `installments` e nunca resolve uma order de fatura por id.
 request.resource.data)`) e no **update** (por diferença de valor, via
 `affectedKeys().hasAny`). Reenviar exatamente o que o servidor gravou é um
 no-op e passa; apagar o campo num `setDoc` que serialize a conta inteira é
-barrado. Coberto em `src/test/rules/firestore_rules.test.ts`.
+barrado.
+
+`installments.cycleStart`/`cycleEnd`/`closingDate` são negados da mesma forma no
+update — a janela decide quais compras a tela lista, e reescrevê-la no cliente
+traria de volta, por outro caminho, a regra duplicada que o pacote tirou. Vale a
+mesma exceção do `xp`: a build que grava o documento inteiro manda `null` nesses
+campos em toda parcela que não é fatura, e isso não é alteração de valor. O
+**create** de parcela não precisa de cláusula: a coleção não tem `allow create`
+nenhum.
+
+Tudo coberto em `src/test/rules/firestore_rules.test.ts`.
 
 ### Contrato com o cliente Flutter
 
@@ -856,6 +867,10 @@ Preenche `accounts/{id}.nextInvoice` nas contas de cartão existentes e a janela
 do ciclo (`cycleStart`/`cycleEnd`/`closingDate`) nas orders e parcelas de fatura
 já gravadas.
 
+- **Duas etapas independentes por cartão.** A janela do ciclo roda SEMPRE,
+  inclusive na conta que já tem `nextInvoice` — senão bastaria o cron das 03:45
+  passar uma vez para o histórico de faturas nunca mais ser preenchido. O resumo
+  é que pode ser pulado.
 - **Idempotente**: pula quem já tem os campos (`--force` recalcula).
 - **Dry-run por padrão**: só escreve com `--apply`.
 - **Sem regra própria**: usa a mesma consulta e o mesmo `InvoiceService` do
@@ -887,9 +902,11 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 | `--apply`         | executa as escritas                                            |
 | `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
 | `--workspace=<id>`| limita a execução a um único workspace                          |
-| `--force`         | recalcula também contas e faturas que já têm os campos          |
+| `--force`         | RECALCULA contas e faturas que já têm os campos (não é preciso para preencher o que falta) |
 
-Saída de código: `0` se não houve falhas, `1` caso contrário. Coberto por
+Resumo final: `workspaces`, `cartões`, `preenchidas` (resumos), `ignoradas`,
+`ciclos` (com quantos já tinham a janela) e `falhas`. Saída de código: `0` se não
+houve falhas, `1` caso contrário. Coberto por
 `src/test/backfill_next_invoice.test.ts`. **NÃO foi executado contra nenhum
 projeto.**
 
@@ -1018,12 +1035,22 @@ dos planejamentos. Ambas são idempotentes, dry-run por padrão e não mexem em
 `period_summaries`. Rodar a segunda também encerra a varredura de legados do
 cron mensal.
 
-**5. Backfill da fatura.** `backfill_next_invoice` preenche
-`accounts/{id}.nextInvoice` e a janela do ciclo das faturas já existentes. Pode
-rodar a qualquer momento depois do passo 2 — nada depende dele para funcionar,
-mas até ele rodar (ou até o cron das 03:45 passar) o app mostra "calculando" no
-lugar do valor da fatura e a tela de detalhe de uma fatura antiga não lista as
-compras. Ele não toca em saldo, sumário nem XP, então a ordem em relação ao
+**5. Backfill da fatura — rode LOGO depois do passo 2.** `backfill_next_invoice`
+preenche duas coisas independentes: `accounts/{id}.nextInvoice` e a janela do
+ciclo (`cycleStart`/`cycleEnd`/`closingDate`) das faturas já existentes.
+
+O resumo da conta tem uma segunda rede: o cron das 03:45 o preenche sozinho na
+primeira madrugada depois do deploy. **A janela do ciclo não tem.** Ela é o que
+faz a tela de detalhe listar as compras de uma fatura antiga; sem backfill, todo
+o histórico fica em "fatura em fechamento" para sempre. Rodar cedo encurta a
+janela em que o app mostra "calculando" no lugar do valor.
+
+Se o cron já passou, **o script continua servindo**: as duas etapas são
+independentes, e a janela é preenchida mesmo nas contas que já têm `nextInvoice`
+(o `skipped` do resumo não pula os ciclos). `--force` não é necessário nesse
+caso — ele só existe para RECALCULAR o que já está gravado.
+
+O backfill não toca em saldo, sumário nem XP, então a ordem em relação ao
 rebuild é indiferente.
 
 **6. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados

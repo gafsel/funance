@@ -71,6 +71,8 @@ export interface BackfillSummary {
     skipped: number;
     /** Faturas (order + parcela) que ganharam a janela do ciclo. */
     cyclesFilled: number;
+    /** Faturas que já tinham a janela e foram ignoradas. */
+    cyclesSkipped: number;
     /** Contas que falharam. */
     failed: number;
 }
@@ -85,7 +87,8 @@ export async function backfillNextInvoice(
     log: (message: string) => void = console.log
 ): Promise<BackfillSummary> {
     const summary: BackfillSummary = {
-        workspaces: 0, cards: 0, filled: 0, skipped: 0, cyclesFilled: 0, failed: 0,
+        workspaces: 0, cards: 0, filled: 0, skipped: 0,
+        cyclesFilled: 0, cyclesSkipped: 0, failed: 0,
     };
     const now = options.now ?? new Date();
 
@@ -131,14 +134,14 @@ export async function backfillNextInvoice(
             summary.cards++;
             const account = card.data();
 
-            if (account.nextInvoice && !options.force) {
-                summary.skipped++;
-                log(`[backfill_next_invoice] ${workspaceId}/${card.id}: já tem nextInvoice — ignorada.`);
-                continue;
-            }
-
+            // A janela do ciclo das faturas é INDEPENDENTE do resumo da conta,
+            // e por isso roda ANTES de qualquer skip. Basta o cron das 03:45
+            // passar uma vez — a primeira madrugada depois do deploy — para
+            // toda conta ganhar `nextInvoice`; se o skip valesse também aqui, o
+            // histórico de faturas ficaria para sempre em "fatura em
+            // fechamento", sem nada que o recuperasse.
             try {
-                summary.cyclesFilled += await backfillInvoiceCycles(
+                const cycles = await backfillInvoiceCycles(
                     firestore,
                     workspaceId,
                     card.id,
@@ -147,7 +150,21 @@ export async function backfillNextInvoice(
                     operations,
                     log
                 );
+                summary.cyclesFilled += cycles.filled;
+                summary.cyclesSkipped += cycles.skipped;
+            }
+            catch (error) {
+                summary.failed++;
+                log(`[backfill_next_invoice] ${workspaceId}/${card.id}: FALHOU ao preencher os ciclos — ${error}`);
+            }
 
+            if (account.nextInvoice && !options.force) {
+                summary.skipped++;
+                log(`[backfill_next_invoice] ${workspaceId}/${card.id}: já tem nextInvoice — resumo ignorado.`);
+                continue;
+            }
+
+            try {
                 const pending = await firestore
                     .collection("workspaces")
                     .doc(workspaceId)
@@ -225,7 +242,8 @@ export async function backfillNextInvoice(
     log(
         `[backfill_next_invoice] Resumo: workspaces=${summary.workspaces}, cartões=${summary.cards}, ` +
         `preenchidas=${summary.filled}, ignoradas=${summary.skipped}, ` +
-        `ciclos=${summary.cyclesFilled}, falhas=${summary.failed}.`
+        `ciclos=${summary.cyclesFilled} (${summary.cyclesSkipped} já tinham), ` +
+        `falhas=${summary.failed}.`
     );
     return summary;
 }
@@ -233,6 +251,10 @@ export async function backfillNextInvoice(
 /**
  * Preenche `cycleStart`/`cycleEnd`/`closingDate` nas faturas do cartão que
  * ainda não os têm (orders e parcelas criadas antes de F1.8).
+ *
+ * Roda para TODO cartão, tenha ele `nextInvoice` ou não: os dois preenchimentos
+ * respondem por coisas diferentes — o resumo fala da próxima fatura, a janela
+ * fala de cada fatura já existente, inclusive as que só o histórico abre.
  *
  * A janela é recalculada a partir do vencimento da própria fatura e da
  * configuração ATUAL do cartão — é a melhor aproximação disponível: a
@@ -247,7 +269,7 @@ async function backfillInvoiceCycles(
     options: BackfillOptions,
     operations: BatchOperation[],
     log: (message: string) => void
-): Promise<number> {
+): Promise<{ filled: number; skipped: number }> {
     const workspace = firestore.collection("workspaces").doc(workspaceId);
 
     const invoices = await workspace
@@ -257,10 +279,14 @@ async function backfillInvoiceCycles(
         .get();
 
     let filled = 0;
+    let skipped = 0;
 
     for (const doc of invoices.docs) {
         const data = doc.data();
-        if (data.cycleStart && data.cycleEnd && !options.force) continue;
+        if (data.cycleStart && data.cycleEnd && !options.force) {
+            skipped++;
+            continue;
+        }
 
         const dueDate: Date | null = data.dueDate?.toDate ? data.dueDate.toDate() : null;
         if (!dueDate) continue;
@@ -292,7 +318,7 @@ async function backfillInvoiceCycles(
         }
     }
 
-    return filled;
+    return { filled, skipped };
 }
 
 export function parseArgs(argv: string[]): BackfillOptions & { projectId?: string } {

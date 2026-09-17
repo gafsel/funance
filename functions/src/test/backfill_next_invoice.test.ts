@@ -186,7 +186,10 @@ describe("backfill_next_invoice", () => {
         );
 
         expect(writes).toHaveLength(0);
-        expect(summary).toEqual({ workspaces: 1, cards: 1, filled: 1, skipped: 0, cyclesFilled: 0, failed: 0 });
+        expect(summary).toEqual({
+            workspaces: 1, cards: 1, filled: 1, skipped: 0,
+            cyclesFilled: 0, cyclesSkipped: 0, failed: 0,
+        });
     });
 
     it("preenche a partir da fatura em aberto", async () => {
@@ -245,7 +248,10 @@ describe("backfill_next_invoice", () => {
             silent
         );
 
-        expect(summary).toEqual({ workspaces: 1, cards: 2, filled: 1, skipped: 1, cyclesFilled: 0, failed: 0 });
+        expect(summary).toEqual({
+            workspaces: 1, cards: 2, filled: 1, skipped: 1,
+            cyclesFilled: 0, cyclesSkipped: 0, failed: 0,
+        });
         expect(nextInvoiceWrites(writes).map((w) => w.accountId)).toEqual(["c2"]);
     });
 
@@ -369,6 +375,68 @@ describe("backfill_next_invoice", () => {
         );
 
         expect(summary.cyclesFilled).toBe(0);
+        expect(summary.cyclesSkipped).toBe(1);
         expect(cycleWrites(writes)).toHaveLength(0);
+    });
+
+    it("preenche a janela mesmo na conta que JÁ tem nextInvoice", async () => {
+        // O cenário real: o cron das 03:45 passou na primeira madrugada depois
+        // do deploy e gravou `nextInvoice` em todo cartão. Se o skip do resumo
+        // valesse também para a janela, o histórico de faturas ficaria para
+        // sempre em "fatura em fechamento".
+        const { firestore, writes } = createFakeFirestore({
+            w1: {
+                cards: [card("c1", { nextInvoice: { amount: 350 } })],
+                invoices: [{
+                    id: "inst-antiga",
+                    accountId: "c1",
+                    amount: 350,
+                    dueDate: spNoon("2025-03-10"),
+                    orderId: "invoice-c1-2025-03-10",
+                }],
+            },
+        });
+
+        const summary = await backfillNextInvoice(
+            firestore,
+            { dryRun: false, now: spNoon("2025-04-01") },
+            silent
+        );
+
+        // O resumo é pulado (já existe), mas a janela é gravada.
+        expect(summary.skipped).toBe(1);
+        expect(summary.filled).toBe(0);
+        expect(summary.cyclesFilled).toBe(1);
+        expect(nextInvoiceWrites(writes)).toHaveLength(0);
+
+        const cycles = cycleWrites(writes);
+        expect(cycles.map((w) => w.accountId).sort())
+            .toEqual(["inst-antiga", "order:invoice-c1-2025-03-10"]);
+        expect(toDateKey(cycles[0].data.cycleStart.toDate())).toBe("2025-02-05");
+        expect(toDateKey(cycles[0].data.cycleEnd.toDate())).toBe("2025-03-04");
+    });
+
+    it("no dry-run, a janela da conta com resumo também é só relatada", async () => {
+        const { firestore, writes } = createFakeFirestore({
+            w1: {
+                cards: [card("c1", { nextInvoice: { amount: 350 } })],
+                invoices: [{
+                    id: "inst-antiga",
+                    accountId: "c1",
+                    amount: 350,
+                    dueDate: spNoon("2025-03-10"),
+                    orderId: "invoice-c1-2025-03-10",
+                }],
+            },
+        });
+
+        const summary = await backfillNextInvoice(
+            firestore,
+            { dryRun: true, now: spNoon("2025-04-01") },
+            silent
+        );
+
+        expect(summary.cyclesFilled).toBe(1);
+        expect(writes).toHaveLength(0);
     });
 });
