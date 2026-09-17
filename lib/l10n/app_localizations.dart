@@ -2096,6 +2096,18 @@ abstract class AppLocalizations {
   /// **'Conciliação Bancária'**
   String get reconciliationTitle;
 
+  /// No description provided for @reconciliationAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar extrato'**
+  String get reconciliationAction;
+
+  /// No description provided for @reconciliationMissionCta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar extrato agora'**
+  String get reconciliationMissionCta;
+
   /// No description provided for @reconciliationTransactionsFound.
   ///
   /// In pt, this message translates to:

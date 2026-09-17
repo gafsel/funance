@@ -1129,6 +1129,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reconciliationTitle => 'Bank Reconciliation';
 
   @override
+  String get reconciliationAction => 'Reconcile statement';
+
+  @override
+  String get reconciliationMissionCta => 'Reconcile a statement now';
+
+  @override
   String reconciliationTransactionsFound(num count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

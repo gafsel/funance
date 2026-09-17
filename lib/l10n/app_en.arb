@@ -430,6 +430,8 @@
   },
   "saveButton": "Save",
   "reconciliationTitle": "Bank Reconciliation",
+  "reconciliationAction": "Reconcile statement",
+  "reconciliationMissionCta": "Reconcile a statement now",
   "reconciliationTransactionsFound": "{count, plural, =0{No transactions found} =1{1 transaction found} other{{count} transactions found}}",
   "@reconciliationTransactionsFound": {
     "placeholders": {

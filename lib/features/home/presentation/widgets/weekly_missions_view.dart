@@ -11,6 +11,7 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/installment_item.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 /// As missões da semana — as do SERVIDOR — e o checklist do que vence nela.
 ///
@@ -322,6 +323,28 @@ class _MissionCard extends StatelessWidget {
             Text(
               l10n.journeyMissionDone,
               style: theme.textTheme.labelSmall?.copyWith(color: accent),
+            ),
+          ],
+          // A missão de ORGANIZAÇÃO é a de pôr a casa em ordem, e conciliar o
+          // extrato é o caminho mais curto para isso — mas a conciliação
+          // morava escondida dentro da tela de uma conta. Enquanto a missão
+          // estiver aberta, ela traz o caminho junto.
+          if (mission.type == WeeklyMissionType.organization &&
+              !completed &&
+              !failed) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => context.push('/reconciliation'),
+                icon: const Icon(Icons.fact_check_outlined, size: 18),
+                label: Text(l10n.reconciliationMissionCta),
+                style: TextButton.styleFrom(
+                  foregroundColor: accent,
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
             ),
           ],
         ],

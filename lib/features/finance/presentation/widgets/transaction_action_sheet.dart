@@ -231,6 +231,20 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
                 context.push('/planning-50-30-20');
               },
             ),
+            // A conciliação era uma ação escondida dentro da tela de UMA conta:
+            // quem nunca entrou no extrato de uma conta nunca soube que ela
+            // existia. Aqui ela é uma ferramenta de estratégia como as outras,
+            // e a escolha da conta acontece depois.
+            _buildActionItem(
+              context,
+              icon: Icons.fact_check_outlined,
+              color: AppColors.vibrantTeal,
+              label: l10n.reconciliationAction,
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/reconciliation');
+              },
+            ),
           ],
         ),
       ),
