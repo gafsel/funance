@@ -1,6 +1,6 @@
 
-import 'dart:io';
 
+import 'package:funances/core/files/picked_document.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -49,7 +49,7 @@ sealed class AccountFormState with _$AccountFormState {
     double? interestRate,
     @Default(BankLogo.none) BankLogo bankLogo,
     @Default([]) List<String> ownerIds,
-    File? selectedFile,
+    PickedDocument? selectedFile,
     @Default(AccountProcessingStatus.none)
     AccountProcessingStatus processingStatus,
     String? errorMessage,

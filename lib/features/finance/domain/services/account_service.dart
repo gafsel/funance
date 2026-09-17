@@ -1,5 +1,5 @@
-import 'dart:io';
 
+import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
@@ -62,17 +62,19 @@ class AccountService {
         );
   }
 
-  Future<AccountDocumentAnalysisResult> analyzeDocument(File file) async {
-    return repository.analyseDocument(workspaceId, file);
+  Future<AccountDocumentAnalysisResult> analyzeDocument(
+    PickedDocument document,
+  ) async {
+    return repository.analyseDocument(workspaceId, document);
   }
 
   Future<List<ReconciliationTransaction>> analyzeReconciliationDocument(
-    File file, {
+    PickedDocument document, {
     String? uploadId,
   }) async {
     return repository.analyzeReconciliationDocument(
       workspaceId,
-      file,
+      document,
       uploadId: uploadId,
     );
   }

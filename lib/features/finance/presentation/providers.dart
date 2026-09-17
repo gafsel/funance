@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/platform/app_platform.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
@@ -63,9 +64,16 @@ class AutomaticTransactionDomainProviders {
     );
   });
 
+  /// O ouvinte de notificações é Android puro.
+  ///
+  /// Registrar o serviço real em toda plataforma fazia a web chamar um canal
+  /// que não existe (`MissingPluginException`) assim que a tela de transações
+  /// automáticas era construída.
   static final notificationService = Provider<INotificationListenerService>((
     ref,
   ) {
+    if (!AppPlatform.isAndroid) return const NoopNotificationListenerService();
+
     return NotificationListenerService(service: ref.watch(service));
   });
 }

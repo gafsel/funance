@@ -139,8 +139,8 @@ class ReconciliationScreen extends ConsumerWidget {
           dragOverTitle: l10n.statementDragOverTitle,
           supportedFormatsText: l10n.reconciliationSupportedFormats,
           selectFileButtonText: l10n.reconciliationChooseFile,
-          onFileSelected: (file, name) async {
-            final extension = name.split('.').last.toLowerCase();
+          onFileSelected: (document) async {
+            final extension = document.extension;
             final uploadId = const Uuid().v4();
             final messenger = ScaffoldMessenger.of(context);
             final progressStream = notifier.reconciliationService
@@ -149,7 +149,7 @@ class ReconciliationScreen extends ConsumerWidget {
             try {
               await showLoadingModal(
                 context,
-                notifier.uploadFile(file, uploadId: uploadId),
+                notifier.uploadFile(document, uploadId: uploadId),
                 child: AnalysisLoadingView(
                   title: l10n.reconciliationAnalyzing,
                   description: l10n.reconciliationAnalyzingDesc,

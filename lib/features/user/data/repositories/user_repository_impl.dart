@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
@@ -76,13 +76,30 @@ class UserRepositoryImpl implements IUserRepository {
   }
 
   @override
-  Future<String> uploadUserAvatar(String userId, File file) async {
-    final String extension = file.path.split('.').last;
+  Future<String> uploadUserAvatar(String userId, PickedDocument image) async {
+    final String extension = image.extension.isEmpty ? 'jpg' : image.extension;
     final String fileName = '${const Uuid().v4()}.$extension';
     final String path = 'users/$userId/avatar/$fileName';
 
     final ref = _storage.ref().child(path);
-    await ref.putFile(file);
+    // `putData` em vez de `putFile`: na web o recorte devolve um blob, e o
+    // `putFile` só sabe falar com `dart:io.File`.
+    await ref.putData(
+      image.bytes,
+      SettableMetadata(contentType: _avatarContentType(extension)),
+    );
     return await ref.getDownloadURL();
+  }
+
+  /// Sem `contentType` o Storage marca o avatar como
+  /// `application/octet-stream` e o navegador baixa o arquivo em vez de
+  /// exibi-lo na tag `img`.
+  static String _avatarContentType(String extension) {
+    return switch (extension) {
+      'png' => 'image/png',
+      'webp' => 'image/webp',
+      'heic' => 'image/heic',
+      _ => 'image/jpeg',
+    };
   }
 }

@@ -9,7 +9,6 @@ import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
-import 'package:funances/core/utils/file_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
@@ -100,7 +99,7 @@ class AccountFormScreen extends ConsumerWidget {
                                   color: AppColors.deepTurquoise,
                                 ),
                                 title: Text(
-                                  state.selectedFile!.fileName,
+                                  state.selectedFile!.name,
                                   style: labelStyle,
                                 ),
                                 subtitle:
@@ -126,7 +125,7 @@ class AccountFormScreen extends ConsumerWidget {
                                         : null,
                                 trailing: IconButton(
                                   icon: const Icon(Icons.close, color: Colors.red),
-                                  onPressed: () => notifier.updateFile(null, null),
+                                  onPressed: () => notifier.updateFile(null),
                                 ),
                               ),
                             )
@@ -136,11 +135,11 @@ class AccountFormScreen extends ConsumerWidget {
                               dragOverTitle: l10n.statementDragOverTitle,
                               supportedFormatsText: l10n.accountDocumentAcceptedTypes,
                               selectFileButtonText: l10n.accountSelectFile,
-                              onFileSelected: (file, name) {
-                                final extension = name.split('.').last.toLowerCase();
+                              onFileSelected: (document) {
+                                final extension = document.extension;
                                 showLoadingModal(
                                   context,
-                                  notifier.updateFile(file, name),
+                                  notifier.updateFile(document),
                                   child: AnalysisLoadingView(
                                     firstPhaseDuration:
                                         extension == 'ofx'

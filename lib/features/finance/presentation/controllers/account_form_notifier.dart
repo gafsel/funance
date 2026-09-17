@@ -1,6 +1,6 @@
 import 'dart:developer';
-import 'dart:io';
 
+import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/form/form_notifier.dart';
@@ -66,19 +66,19 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void> {
   void updateOwnerIds(List<String> ownerIds) =>
       state = state.copyWith(ownerIds: ownerIds);
 
-  Future<void> updateFile(File? file, String? name) async {
+  Future<void> updateFile(PickedDocument? document) async {
     state = state.copyWith(
-      selectedFile: file,
-      processingStatus: file != null
+      selectedFile: document,
+      processingStatus: document != null
           ? AccountProcessingStatus.pending
           : AccountProcessingStatus.none,
       detectedOrders: [],
     );
 
-    if (file != null && name != null) {
+    if (document != null) {
       try {
         // 2. Chamar análise passando o storagePath
-        final analysis = await accountService.analyzeDocument(file);
+        final analysis = await accountService.analyzeDocument(document);
 
         final accountData = analysis.account;
 

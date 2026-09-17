@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -131,7 +131,7 @@ class ReconciliationService {
   }
 
   Future<List<ReconciliationMatch>> loadMatchesForDocument({
-    required File file,
+    required PickedDocument document,
     required String accountId,
     String? uploadId,
   }) async {
@@ -148,7 +148,7 @@ class ReconciliationService {
     }
 
     final transactions = await accountService.analyzeReconciliationDocument(
-      file,
+      document,
       uploadId: uploadId,
     );
 

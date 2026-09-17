@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:funances/core/platform/app_platform.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,7 +25,7 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
 
     if (state.pendingTransactions.isEmpty) {
-      if (!Platform.isAndroid) return const SizedBox.shrink();
+      if (!AppPlatform.isAndroid) return const SizedBox.shrink();
       
       return FutureBuilder<bool>(
         future: notificationService.isPermissionGranted(),
