@@ -1,12 +1,51 @@
-import { AccountModel, CategoryPlanningModel, InstallmentModel } from "../models/finance.models";
+import {
+    AccountModel,
+    CategoryPlanningModel,
+    InstallmentModel,
+    PeriodSummaryCategoryTotals,
+} from "../models/finance.models";
 
 /**
  * Documento já existente no Firestore, lido para comparação com o estado
- * recalculado. `data` é o payload cru (sem conversão de Timestamps).
+ * recalculado. `data` é o payload CRU (sem conversão de Timestamps).
+ *
+ * Genérico porque as três coleções comparadas têm formatos diferentes, e o
+ * diff de cada uma só sabe ler a sua. Antes o tipo era `Record<string, any>`
+ * para as três: comparar `doc.data.xp` com um documento de saldo compilava sem
+ * uma palavra, e o resultado seria "divergente" para toda a coleção.
  */
-export interface ExistingDoc {
+export interface ExistingDoc<TData = Record<string, unknown>> {
     id: string;
-    data: Record<string, any>;
+    data: TData;
+}
+
+/**
+ * Saldo diário já gravado. Tudo opcional: documentos anteriores a F1.4 não têm
+ * `dateKey` nem `delta`, e é justamente essa ausência que o rebuild corrige.
+ */
+export interface ExistingBalanceData {
+    dateKey?: string;
+    delta?: number;
+    balance?: number;
+}
+
+/**
+ * Sumário já gravado. Os totais de cada categoria são `Partial` porque um
+ * documento pode ter recebido só um dos três incrementos.
+ */
+export interface ExistingSummaryData {
+    year?: number;
+    month?: number | null;
+    week?: number | null;
+    runtimeType?: string;
+    categories?: Record<string, Partial<PeriodSummaryCategoryTotals> | undefined>;
+}
+
+/** XP semanal já gravado. */
+export interface ExistingWeeklyXpData {
+    year?: number;
+    week?: number;
+    xp?: number;
 }
 
 /**
@@ -86,13 +125,13 @@ export interface IRebuildRepository {
     getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
 
     /** Documentos de saldo diário já gravados para a conta. */
-    getExistingBalances(workspaceId: string, accountId: string, pageSize: number): Promise<ExistingDoc[]>;
+    getExistingBalances(workspaceId: string, accountId: string, pageSize: number): Promise<ExistingDoc<ExistingBalanceData>[]>;
 
     /** Documentos de `period_summaries` já gravados. */
-    getExistingPeriodSummaries(workspaceId: string, pageSize: number): Promise<ExistingDoc[]>;
+    getExistingPeriodSummaries(workspaceId: string, pageSize: number): Promise<ExistingDoc<ExistingSummaryData>[]>;
 
     /** Documentos de `weekly_xp` já gravados. */
-    getExistingWeeklyXp(workspaceId: string, pageSize: number): Promise<ExistingDoc[]>;
+    getExistingWeeklyXp(workspaceId: string, pageSize: number): Promise<ExistingDoc<ExistingWeeklyXpData>[]>;
 
     /**
      * Aplica as escritas em lotes de no máximo `chunkSize` operações.

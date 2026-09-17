@@ -53,3 +53,23 @@ export function stripUndefined<T>(value: T): T {
     }
     return result as T;
 }
+
+/**
+ * Um `Timestamp` do Firestore, visto pela única coisa que interessa a quem lê:
+ * `toDate()`. Estrutural de propósito — os mocks dos testes unitários fingem um
+ * Timestamp com `{ toDate: () => new Date(...) }` e precisam continuar servindo.
+ */
+export interface TimestampLike {
+    toDate(): Date;
+}
+
+/**
+ * Uma data como ela CHEGA de um documento cru.
+ *
+ * O mesmo campo pode ser `Timestamp` (escrito pelo servidor), `Date` (escrito
+ * pelo Admin SDK sem conversão), string ISO (escrito pelo cliente antigo) ou
+ * um epoch em milissegundos. Declarar a união é o que impede o código de
+ * assumir uma das formas e quebrar nas outras — que foi exatamente o defeito
+ * que `toGoalDate` e seus irmãos existem para tratar.
+ */
+export type RawFirestoreDate = TimestampLike | Date | string | number;

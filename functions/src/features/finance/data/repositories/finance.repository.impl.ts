@@ -37,7 +37,7 @@ import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChun
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { getZonedParts } from "../../../../core/utils/timezone.utils";
 import { InvoiceService } from "../../domain/services/invoice.service";
-import { stripUndefined } from "../../../../core/utils/firestore.utils";
+import { RawFirestoreDate, TimestampLike, stripUndefined } from "../../../../core/utils/firestore.utils";
 
 /**
  * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
@@ -65,6 +65,18 @@ function roundCents(value: number): number {
 
 /** Abaixo disso o delta de planejamento é ruído de ponto flutuante. */
 const PLANNING_DELTA_EPSILON = 1e-9;
+
+/**
+ * O que `updateInstallment` lê do documento JÁ GRAVADO para recalcular os
+ * campos derivados. As datas são `Timestamp` (é o documento cru) e os valores
+ * podem faltar — `paidAmount` só existe na parcela paga.
+ */
+interface StoredInstallmentDates {
+    dueDate: TimestampLike;
+    paidDate?: TimestampLike | null;
+    amount?: number;
+    paidAmount?: number | null;
+}
 
 interface PlanningCategoryBucket {
     category: CategoryModel;
@@ -350,8 +362,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             const doc = await transaction.get(docRef);
             if (!doc.exists) return;
 
-            const currentData = doc.data() as any;
-            const data = { ...installment } as any;
+            const currentData = doc.data() as StoredInstallmentDates;
+            const data: Record<string, unknown> = { ...installment };
 
             if (data.dueDate) {
                 data.dueDate = admin.firestore.Timestamp.fromDate(data.dueDate as Date);
@@ -701,7 +713,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const operations: BatchOperation[] = [];
 
         for (const [docId, group] of groupPlanningUpdates(updates)) {
-            const categories: Record<string, any> = {};
+            const categories: Record<string, { generalPlannedAmount: admin.firestore.FieldValue }> = {};
 
             for (const bucket of group.categories.values()) {
                 if (Math.abs(bucket.delta) < PLANNING_DELTA_EPSILON) continue;
@@ -782,7 +794,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             actualDelta?: number
         },
         runtimeType: string
-    ): any {
+    ): Record<string, unknown> {
         return {
             year,
             month: month ?? null,
@@ -1001,7 +1013,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             if (snapshot.empty) return;
 
             const operations: BatchOperation[] = snapshot.docs.map((doc) => {
-                const data: Record<string, any> = {
+                const data: Record<string, unknown> = {
                     balance: admin.firestore.FieldValue.increment(delta),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 };
@@ -1035,7 +1047,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         balancesColl: admin.firestore.CollectionReference,
         dateKey: string,
         transaction?: admin.firestore.Transaction
-    ): Promise<{ id: string, balance: number, data: Record<string, any> } | null> {
+    ): Promise<{ id: string, balance: number, data: admin.firestore.DocumentData } | null> {
         const run = async (query: admin.firestore.Query) =>
             (transaction ? transaction.get(query) : query.get());
 
@@ -1254,8 +1266,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async getCoachingCategoryGroups(workspaceId: string): Promise<Record<string, { group: string; name: string }> | null> {
         const doc = await this.getCoachingMetaDocRef(workspaceId).get();
         if (!doc.exists) return null;
-        const data = doc.data() as any;
-        return data?.groups || null;
+        const data = doc.data();
+        return (data?.groups as Record<string, { group: string; name: string }> | undefined) || null;
     }
 
     async saveCoachingCategoryGroups(
@@ -1349,9 +1361,10 @@ function toInvoiceCycle(data: admin.firestore.DocumentData): Record<string, Date
     return cycle;
 }
 
-function toDateOrNull(value: any): Date | null {
+function toDateOrNull(value: RawFirestoreDate | null | undefined): Date | null {
     if (!value) return null;
-    if (typeof value.toDate === "function") return value.toDate();
-    const date = new Date(value);
+    const timestamp = value as { toDate?: () => Date };
+    if (typeof timestamp.toDate === "function") return timestamp.toDate();
+    const date = new Date(value as string | number | Date);
     return Number.isNaN(date.getTime()) ? null : date;
 }

@@ -1,8 +1,8 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 
-import { isSystemCategory } from "../../../workspace/domain/models/category.model";
-import { AccountType } from "../../../finance/domain/models/finance.models";
+import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
+import { AccountType, toPeriodSummaryDocument } from "../../../finance/domain/models/finance.models";
 import {
     AccountBalanceTotals,
     CategoryLimitOutcome,
@@ -10,6 +10,7 @@ import {
     MonthlyTotals,
 } from "../../domain/repositories/health.repository";
 import {
+    FinancialHealthComponents,
     FinancialHealthSnapshot,
     FinancialHealthTier,
     finiteOr,
@@ -154,11 +155,11 @@ export class HealthRepositoryImpl implements IHealthRepository {
      * join que a gamificação faz para classificar as linhas do sumário: o
      * `period_summaries` guarda só o id da categoria.
      */
-    private async categoriesById(workspaceId: string): Promise<Map<string, any>> {
+    private async categoriesById(workspaceId: string): Promise<Map<string, CategoryModel>> {
         const snapshot = await this.workspaceRef(workspaceId).collection("categories").get();
-        const map = new Map<string, any>();
+        const map = new Map<string, CategoryModel>();
         for (const doc of snapshot.docs) {
-            const data = doc.data();
+            const data = doc.data() as CategoryModel;
             if (data.isDeleted === true) continue;
             map.set(doc.id, data);
         }
@@ -175,9 +176,9 @@ export class HealthRepositoryImpl implements IHealthRepository {
         const actuals = new Map<string, number>();
         if (!doc.exists) return actuals;
 
-        const categories = doc.data()?.categories ?? {};
-        for (const [categoryId, raw] of Object.entries<any>(categories)) {
-            actuals.set(categoryId, finiteOr(raw?.actualAmount, 0));
+        const { categories } = toPeriodSummaryDocument(doc.id, doc.data());
+        for (const [categoryId, totals] of Object.entries(categories)) {
+            actuals.set(categoryId, totals.actualAmount);
         }
         return actuals;
     }
@@ -299,9 +300,9 @@ export class HealthRepositoryImpl implements IHealthRepository {
                 [HEALTH_FIELD]: toFirestore(snapshot),
             });
         }
-        catch (error: any) {
+        catch (error: unknown) {
             // gRPC 5 = NOT_FOUND
-            if (error?.code === 5) {
+            if ((error as { code?: number } | null)?.code === 5) {
                 logger.warn(`[HealthRepository] workspace ${workspaceId} não existe; retrato descartado.`);
                 return;
             }
@@ -339,8 +340,8 @@ export class HealthRepositoryImpl implements IHealthRepository {
                 [HEALTH_DIRTY_FIELD]: admin.firestore.FieldValue.serverTimestamp(),
             });
         }
-        catch (error: any) {
-            if (error?.code === 5) return; // workspace inexistente: nada a sujar
+        catch (error: unknown) {
+            if ((error as { code?: number } | null)?.code === 5) return; // workspace inexistente: nada a sujar
             throw error;
         }
     }
@@ -351,15 +352,15 @@ export class HealthRepositoryImpl implements IHealthRepository {
                 [HEALTH_DIRTY_FIELD]: admin.firestore.FieldValue.delete(),
             });
         }
-        catch (error: any) {
-            if (error?.code === 5) return;
+        catch (error: unknown) {
+            if ((error as { code?: number } | null)?.code === 5) return;
             throw error;
         }
     }
 }
 
 /** Retrato -> documento (o `computedAt` vira Timestamp). */
-export function toFirestore(snapshot: FinancialHealthSnapshot): Record<string, any> {
+export function toFirestore(snapshot: FinancialHealthSnapshot): Record<string, unknown> {
     return {
         score: snapshot.score,
         tier: snapshot.tier,
@@ -375,18 +376,20 @@ export function toFirestore(snapshot: FinancialHealthSnapshot): Record<string, a
 }
 
 /** Documento -> retrato. Devolve `null` para qualquer coisa fora do contrato. */
-export function fromFirestore(raw: any): FinancialHealthSnapshot | null {
+export function fromFirestore(raw: unknown): FinancialHealthSnapshot | null {
     if (!raw || typeof raw !== "object") return null;
-    if (typeof raw.monthKey !== "string") return null;
+    const data = raw as Record<string, unknown>;
+    if (typeof data.monthKey !== "string") return null;
 
-    const computedAt = raw.computedAt?.toDate ? raw.computedAt.toDate() : null;
+    const rawComputedAt = data.computedAt as { toDate?: () => Date } | undefined;
+    const computedAt = typeof rawComputedAt?.toDate === "function" ? rawComputedAt.toDate() : null;
     if (!computedAt) return null;
 
     return {
-        score: finiteOr(raw.score, 0),
-        tier: raw.tier as FinancialHealthTier,
-        components: raw.components,
+        score: finiteOr(data.score, 0),
+        tier: data.tier as FinancialHealthTier,
+        components: data.components as FinancialHealthComponents,
         computedAt,
-        monthKey: raw.monthKey,
+        monthKey: data.monthKey,
     };
 }

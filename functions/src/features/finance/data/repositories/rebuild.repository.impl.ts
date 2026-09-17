@@ -1,13 +1,22 @@
 import * as admin from "firebase-admin";
 import { AccountModel, CategoryPlanningModel, InstallmentModel } from "../../domain/models/finance.models";
-import { ExistingDoc, IRebuildRepository, RebuildWrite } from "../../domain/repositories/rebuild.repository";
+import {
+    ExistingBalanceData,
+    ExistingDoc,
+    ExistingSummaryData,
+    ExistingWeeklyXpData,
+    IRebuildRepository,
+    RebuildWrite,
+} from "../../domain/repositories/rebuild.repository";
 import { BatchOperation, commitInChunks } from "../../../../core/utils/batch.utils";
+import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
 
 /** Converte um Timestamp/Date/string em Date, do mesmo jeito que o gatilho `onInstallmentWritten`. */
-function toDate(raw: any): Date | undefined {
+function toDate(raw: RawFirestoreDate | null | undefined): Date | undefined {
     if (raw === null || raw === undefined) return undefined;
-    if (typeof raw.toDate === "function") return raw.toDate();
-    const date = new Date(raw);
+    const timestamp = raw as { toDate?: () => Date };
+    if (typeof timestamp.toDate === "function") return timestamp.toDate();
+    const date = new Date(raw as string | number | Date);
     return isNaN(date.getTime()) ? undefined : date;
 }
 
@@ -55,10 +64,10 @@ export class RebuildRepositoryImpl implements IRebuildRepository {
         }
     }
 
-    private async collectDocs(collection: admin.firestore.CollectionReference, pageSize: number): Promise<ExistingDoc[]> {
-        const docs: ExistingDoc[] = [];
+    private async collectDocs<TData>(collection: admin.firestore.CollectionReference, pageSize: number): Promise<ExistingDoc<TData>[]> {
+        const docs: ExistingDoc<TData>[] = [];
         await this.paginate(collection, pageSize, (doc) => {
-            docs.push({ id: doc.id, data: doc.data() });
+            docs.push({ id: doc.id, data: doc.data() as TData });
         });
         return docs;
     }
@@ -105,19 +114,19 @@ export class RebuildRepositoryImpl implements IRebuildRepository {
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as CategoryPlanningModel));
     }
 
-    async getExistingBalances(workspaceId: string, accountId: string, pageSize: number): Promise<ExistingDoc[]> {
-        return this.collectDocs(
+    async getExistingBalances(workspaceId: string, accountId: string, pageSize: number): Promise<ExistingDoc<ExistingBalanceData>[]> {
+        return this.collectDocs<ExistingBalanceData>(
             this.workspaceDoc(workspaceId).collection("accounts").doc(accountId).collection("balance"),
             pageSize
         );
     }
 
-    async getExistingPeriodSummaries(workspaceId: string, pageSize: number): Promise<ExistingDoc[]> {
-        return this.collectDocs(this.workspaceDoc(workspaceId).collection("period_summaries"), pageSize);
+    async getExistingPeriodSummaries(workspaceId: string, pageSize: number): Promise<ExistingDoc<ExistingSummaryData>[]> {
+        return this.collectDocs<ExistingSummaryData>(this.workspaceDoc(workspaceId).collection("period_summaries"), pageSize);
     }
 
-    async getExistingWeeklyXp(workspaceId: string, pageSize: number): Promise<ExistingDoc[]> {
-        return this.collectDocs(this.workspaceDoc(workspaceId).collection("weekly_xp"), pageSize);
+    async getExistingWeeklyXp(workspaceId: string, pageSize: number): Promise<ExistingDoc<ExistingWeeklyXpData>[]> {
+        return this.collectDocs<ExistingWeeklyXpData>(this.workspaceDoc(workspaceId).collection("weekly_xp"), pageSize);
     }
 
     async applyWrites(workspaceId: string, writes: RebuildWrite[], chunkSize: number): Promise<number> {

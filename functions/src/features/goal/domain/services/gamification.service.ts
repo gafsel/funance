@@ -8,7 +8,14 @@ import {
     CRON_SCAN_DEADLINE_MS,
     CRON_WORKSPACE_CONCURRENCY,
 } from "../../../../core/config/functions.config";
-import { IGamificationRepository, readWorkspaceStreaks } from "../repositories/gamification.repository";
+import {
+    GamificationGoal,
+    GamificationInstallment,
+    IGamificationRepository,
+    readWorkspaceStreaks,
+} from "../repositories/gamification.repository";
+import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
+import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
 import { GoalType, isAccumulationGoal, isGoalActive, isGoalCompleted, resolveGoalType } from "../models/goal.model";
 import {
     addCalendarDays,
@@ -25,7 +32,7 @@ import {
  * Um planning cobre o mês se startMonth <= mês <= endMonth (chaves "YYYY-MM").
  * Plannings sem período definido são considerados sempre ativos.
  */
-function planningCoversMonth(planning: any, monthKey: string): boolean {
+function planningCoversMonth(planning: Partial<Pick<CategoryPlanningModel, "startMonth" | "endMonth">>, monthKey: string): boolean {
     const start = planning.startMonth || "0000-00";
     const end = planning.endMonth || "9999-12";
     return start <= monthKey && monthKey <= end;
@@ -33,13 +40,31 @@ function planningCoversMonth(planning: any, monthKey: string): boolean {
 
 /**
  * Converte um campo de data cru do Firestore (Timestamp, string ISO ou Date).
+ *
+ * É a ÚNICA conversão do módulo: até F1.11 o mesmo `raw?.toDate ? ... : ...`
+ * estava copiado em três laços, cada um com um tratamento ligeiramente
+ * diferente para o campo ausente.
  */
-function toDate(raw: any): Date | null {
+function toDate(raw: RawFirestoreDate | null | undefined): Date | null {
     if (!raw) {
         return null;
     }
-    const date = raw?.toDate ? raw.toDate() : new Date(raw);
+    const timestamp = raw as { toDate?: () => Date };
+    const date = typeof timestamp.toDate === "function" ? timestamp.toDate() : new Date(raw as string | number | Date);
     return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * O documento que disparou o evento.
+ *
+ * Só o ramo de CONCILIAÇÃO lê o conteúdo; os de transação e planejamento
+ * releem o estado do workspace e ignoram o documento. Por isso os dois campos
+ * são os da conciliação — e opcionais, porque o gatilho também dispara com o
+ * documento apagado.
+ */
+export interface WeeklyMissionEventData {
+    status?: string;
+    totalTransactionsProcessed?: number;
 }
 
 export function calculateLevel(xp: number): number {
@@ -643,7 +668,7 @@ export class GamificationService {
         }
     }
 
-    async checkGoalBadges(workspaceId: string, goalDoc: any): Promise<void> {
+    async checkGoalBadges(workspaceId: string, goalDoc: GamificationGoal): Promise<void> {
         // `status` NÃO existe no documento de meta (o cliente nunca gravou um).
         // Conclusão é o desfecho `outcome == "success"` gravado pelo servidor —
         // ver `isGoalCompleted`. Meta de redução com o teto estourado tem
@@ -675,7 +700,7 @@ export class GamificationService {
     async updateWeeklyMissionsProgress(
         workspaceId: string,
         eventType: "transaction" | "reconciliation" | "planning",
-        eventData: any
+        eventData: WeeklyMissionEventData | null | undefined
     ): Promise<void> {
         const now = new Date();
         // Fronteiras de semana calculadas no fuso America/Sao_Paulo (util único).
@@ -771,7 +796,10 @@ export class GamificationService {
                     if (!rawDate) {
                         continue;
                     }
-                    const date = rawDate?.toDate ? rawDate.toDate() : new Date(rawDate);
+                    const date = toDate(rawDate);
+                    if (!date) {
+                        continue;
+                    }
                     const day = getDayIndexInTz(date);
 
                     if (inst.type === "expense") {
@@ -820,16 +848,16 @@ export class GamificationService {
             }
         }
         else if (eventType === "reconciliation") {
-            const recDoc = eventData;
+            const recDoc = eventData ?? {};
             const orgData = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "organization");
             if (orgData && orgData.status !== "completed") {
                 const target = orgData.target || 5;
-                if (recDoc.status === "completed" && recDoc.totalTransactionsProcessed >= target) {
+                if (recDoc.status === "completed" && (recDoc.totalTransactionsProcessed ?? 0) >= target) {
                     await this.gamificationRepository.completeMissionAndAwardXp(
                         workspaceId,
                         weekId,
                         "organization",
-                        recDoc.totalTransactionsProcessed,
+                        recDoc.totalTransactionsProcessed ?? 0,
                         orgData.rewardXp || 200,
                         "Missão Semanal de Organização Concluída"
                     );
@@ -1429,7 +1457,7 @@ export class GamificationService {
         }
     }
 
-    async checkSimpleGoalBadges(workspaceId: string, goalDoc: any): Promise<void> {
+    async checkSimpleGoalBadges(workspaceId: string, goalDoc: GamificationGoal): Promise<void> {
         const data = goalDoc;
 
         // Early-return por badge já desbloqueado: evita abrir transações e
@@ -1539,7 +1567,7 @@ export class GamificationService {
         }
     }
 
-    async checkSimpleTransactionBadges(workspaceId: string, installmentData: any): Promise<void> {
+    async checkSimpleTransactionBadges(workspaceId: string, installmentData: GamificationInstallment): Promise<void> {
         const type: string = installmentData.type || "";
         const amount: number = Math.abs(installmentData.referenceAmount || installmentData.amount || 0);
 
@@ -1619,9 +1647,7 @@ export class GamificationService {
             if (isLocked("first_month") || isLocked("two_months_active")) {
                 const paidDates = new Set<string>();
                 for (const d of settledSnap) {
-                    const pd = d.paidDate?.toDate
-                        ? d.paidDate.toDate()
-                        : (d.paidDate ? new Date(d.paidDate) : null);
+                    const pd = toDate(d.paidDate);
                     if (pd) {
                         paidDates.add(getMonthKeyInTz(pd));
                     }
@@ -1728,9 +1754,7 @@ export class GamificationService {
 
         const activeDays = new Set<string>();
         for (const d of weekSnap) {
-            const pd = d.paidDate?.toDate
-                ? d.paidDate.toDate()
-                : (d.paidDate ? new Date(d.paidDate) : null);
+            const pd = toDate(d.paidDate);
             if (pd) {
                 const parts = getZonedParts(pd);
                 activeDays.add(`${parts.year}-${parts.month}-${parts.day}`);

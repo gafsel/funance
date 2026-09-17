@@ -49,7 +49,12 @@ import {
     InstallmentStatus,
     OrderType,
 } from "../models/finance.models";
-import { ExistingDoc, IRebuildRepository, RebuildWrite } from "../repositories/rebuild.repository";
+import {
+    ExistingDoc,
+    ExistingSummaryData,
+    IRebuildRepository,
+    RebuildWrite,
+} from "../repositories/rebuild.repository";
 import { FinanceService } from "./finance.service";
 import {
     intersectPlanningWindow,
@@ -726,7 +731,7 @@ export class RebuildService {
      * `generalPlannedAmount`), evitando uma segunda varredura da coleção.
      */
     private diffSummaries(
-        existing: ExistingDoc[],
+        existing: ExistingDoc<ExistingSummaryData>[],
         target: TargetState,
         epsilon: number,
         sampleLimit: number
@@ -881,12 +886,12 @@ export function parsePeriodId(docId: string): PeriodIdParts | null {
  * gravado é zero NÃO são copiadas: se nada mais as sustenta, elas somem do
  * documento como residual.
  */
-export function preserveGeneralPlanned(target: TargetState, existing: ExistingDoc[], epsilon: number): void {
+export function preserveGeneralPlanned(target: TargetState, existing: ExistingDoc<ExistingSummaryData>[], epsilon: number): void {
     for (const doc of existing) {
         const parts = parsePeriodId(doc.id);
         if (!parts) continue;
 
-        const categories: Record<string, any> = doc.data?.categories || {};
+        const categories = doc.data?.categories ?? {};
 
         for (const [categoryId, totals] of Object.entries(categories)) {
             const general = Number(totals?.generalPlannedAmount ?? 0);
@@ -923,7 +928,7 @@ export interface SummaryComparison {
 }
 
 /** Compara o documento gravado com o alvo, separando o que é residual. */
-export function compareSummary(current: ExistingDoc, expected: TargetSummaryDoc, epsilon: number): SummaryComparison {
+export function compareSummary(current: ExistingDoc<ExistingSummaryData>, expected: TargetSummaryDoc, epsilon: number): SummaryComparison {
     const data = current.data || {};
     let different = false;
     let generalPlannedChanged = false;
@@ -934,7 +939,7 @@ export function compareSummary(current: ExistingDoc, expected: TargetSummaryDoc,
     if ((data.week ?? null) !== expected.week) different = true;
     if ((data.runtimeType ?? null) !== expected.runtimeType) different = true;
 
-    const currentCategories: Record<string, any> = data.categories || {};
+    const currentCategories = data.categories ?? {};
 
     for (const [categoryId, expectedTotals] of Object.entries(expected.categories)) {
         const currentTotals = currentCategories[categoryId];
@@ -981,17 +986,17 @@ export function compareSummary(current: ExistingDoc, expected: TargetSummaryDoc,
 }
 
 /** `true` se todas as categorias do documento estão zeradas. */
-function isZeroedSummary(doc: ExistingDoc, epsilon: number): boolean {
-    const categories: Record<string, any> = doc.data?.categories || {};
+function isZeroedSummary(doc: ExistingDoc<ExistingSummaryData>, epsilon: number): boolean {
+    const categories = doc.data?.categories ?? {};
 
-    return Object.values(categories).every((totals: any) =>
+    return Object.values(categories).every((totals) =>
         numbersEqual(totals?.generalPlannedAmount ?? 0, 0, epsilon) &&
         numbersEqual(totals?.specificPlannedAmount ?? 0, 0, epsilon) &&
         numbersEqual(totals?.actualAmount ?? 0, 0, epsilon)
     );
 }
 
-function numbersEqual(current: any, expected: number, epsilon: number): boolean {
+function numbersEqual(current: unknown, expected: number, epsilon: number): boolean {
     const value = typeof current === "number" ? current : Number(current);
     if (!Number.isFinite(value)) return false;
     return Math.abs(value - expected) <= epsilon;

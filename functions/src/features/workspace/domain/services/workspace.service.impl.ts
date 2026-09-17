@@ -1,5 +1,5 @@
 import { IWorkspaceService } from "./workspace.service";
-import { IWorkspaceRepository } from "../repositories/workspace.repository";
+import { IWorkspaceRepository, WorkspaceMember } from "../repositories/workspace.repository";
 import { HttpsError } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { assertWorkspaceOwner } from "../../../../core/services/workspace_access.service";
@@ -8,7 +8,7 @@ export class WorkspaceServiceImpl implements IWorkspaceService {
     constructor(private workspaceRepository: IWorkspaceRepository) {
     }
 
-    async getWorkspaceMembers(workspaceId: string, requesterUserId: string): Promise<any[]> {
+    async getWorkspaceMembers(workspaceId: string, requesterUserId: string): Promise<WorkspaceMember[]> {
         const workspace = await this.workspaceRepository.getWorkspaceById(workspaceId);
 
         if (!workspace) {
