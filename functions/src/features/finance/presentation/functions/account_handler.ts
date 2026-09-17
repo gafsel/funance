@@ -48,7 +48,10 @@ export const onAccountUpdated = onDocumentUpdated(
         //
         // A guarda é ESTREITA de propósito: a própria escrita de `nextInvoice`
         // dispara este gatilho, e sincronizar em toda atualização faria a conta
-        // se realimentar em laço.
+        // se realimentar em laço. É também por isso que não existe uma lista de
+        // "campos derivados da conta" como a das parcelas: aqui a proteção é
+        // por LISTA DE PERMISSÃO, que já exclui `nextInvoice` por construção —
+        // duas defesas para o mesmo laço seriam uma a mais para manter.
         const invoiceConfigChanged = before.closingDay !== after.closingDay
             || before.dueDay !== after.dueDay
             || before.runtimeType !== after.runtimeType;

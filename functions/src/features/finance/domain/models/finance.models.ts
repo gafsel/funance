@@ -240,15 +240,6 @@ export interface NextInvoiceModel {
     updatedAt?: Date;
 }
 
-/**
- * Campos de `accounts/{id}` que só o servidor escreve. Um `onAccountUpdated`
- * cujo diff caiba aqui é o eco da sincronização anterior — reprocessá-lo
- * gravaria de novo e o gatilho se realimentaria em laço.
- */
-export const ACCOUNT_DERIVED_FIELDS = new Set([
-    "nextInvoice",
-]);
-
 export interface AccountModel {
     id: string;
     name: string;
