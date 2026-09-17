@@ -12,6 +12,8 @@ import 'package:funances/features/home/presentation/widgets/installment_item.dar
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// As missões da semana — as do SERVIDOR — e o checklist do que vence nela.
 ///
@@ -476,9 +478,11 @@ class _WeekChecklist extends ConsumerWidget {
         children: [
           Icon(Icons.cloud_off_outlined, color: theme.colorScheme.error),
           const SizedBox(width: 8),
-          Expanded(child: Text(l10n.errorUnknown)),
+          // "Erro inesperado" era a única coisa que este erro não era: sem
+          // rede, o texto agora fala em conexão.
+          Expanded(child: Text(errorMessageFor(context, e))),
           TextButton(
-            onPressed: () => ref.invalidate(MissionViewProviders.mission),
+            onPressed: () => Retry.missions(ref),
             child: Text(l10n.retry),
           ),
         ],

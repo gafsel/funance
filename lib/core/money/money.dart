@@ -20,18 +20,21 @@ class Money implements Comparable<Money> {
   /// Converte o `double` que veio do Firestore, arredondando para o centavo
   /// mais próximo. É o ÚNICO ponto onde um valor monetário é arredondado.
   ///
-  /// O recorte em 15 dígitos significativos antes do `round` não é preciosismo
-  /// e não é opcional: `1.005 * 100` dá 100.49999999999999 em ponto flutuante,
-  /// e arredondar isso devolveria R$ 1,00 para um valor que o usuário digitou
-  /// como 1,005 — o mesmo vale para 2,675. Quinze dígitos é a precisão que um
-  /// `double` realmente carrega; o que vem depois é ruído da representação, e
-  /// é justamente o ruído que empurrava o número para o lado errado. É a mesma
-  /// regra do servidor (pacote de centavos: recorte em 15 dígitos
-  /// significativos seguido de arredondamento half-away-from-zero), para que
-  /// cliente e backend nunca discordem em um centavo.
+  /// A regra: recorte em 15 dígitos significativos ANTES do arredondamento, e
+  /// empate para longe do zero.
   ///
-  /// O empate vai para LONGE do zero (1,005 → 101; -1,005 → -101), como o
-  /// `round` do Dart e o do servidor.
+  /// O recorte não é preciosismo e não é opcional. `1.005 * 100` dá
+  /// 100.49999999999999 em ponto flutuante, e arredondar isso devolveria
+  /// R$ 1,00 para um valor que o usuário digitou como 1,005; o mesmo vale
+  /// para 2,675. Quinze dígitos é a precisão que um `double` realmente
+  /// carrega — o que vem depois é ruído da representação, e é justamente o
+  /// ruído que empurrava o número para o lado errado.
+  ///
+  /// Com isso: 1,005 → 101 centavos, -1,005 → -101 (o empate vai para longe
+  /// do zero dos dois lados) e 0.1 + 0.2 → 30, não 30,000000000000004.
+  ///
+  /// A paridade com o servidor está documentada em `functions/README.md`
+  /// (seção "Dinheiro em centavos").
   factory Money.fromDouble(double value) {
     if (!value.isFinite) return zero;
 

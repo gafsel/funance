@@ -910,6 +910,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reconciliationTitle => 'Conciliação Bancária';
 
   @override
+  String get unnamedWorkspace => 'Workspace sem nome';
+
+  @override
+  String get accountManagementEmptyOfType =>
+      'Você ainda não tem contas deste tipo.';
+
+  @override
   String get bankLogoOther => 'Outros';
 
   @override

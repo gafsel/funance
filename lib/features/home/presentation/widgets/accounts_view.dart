@@ -128,14 +128,24 @@ class AccountsView extends ConsumerWidget {
         trailing: totalError != null
             // Sem o saldo, a linha diz que não sabe — e oferece tentar de
             // novo — em vez de escrever R$ 0,00 com cara de saldo.
-            ? IconButton(
-                icon: Icon(
-                  Icons.cloud_off,
-                  size: 18,
-                  color: theme.colorScheme.error,
+            // O texto completo do erro fica no tooltip: a linha do grupo não
+            // comporta a frase inteira, mas também não pode virar só um ícone
+            // sem nome — nem R$ 0,00, que era o que havia aqui.
+            ? Tooltip(
+                message: errorMessageFor(context, totalError),
+                child: TextButton.icon(
+                  icon: Icon(
+                    Icons.cloud_off,
+                    size: 16,
+                    color: theme.colorScheme.error,
+                  ),
+                  label: Text(l10n.retry),
+                  onPressed: () => Retry.accounts(ref),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ),
-                tooltip: errorMessageFor(context, totalError),
-                onPressed: () => Retry.accounts(ref),
               )
             : showMonthlyTotal
             ? Text(

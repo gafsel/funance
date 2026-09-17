@@ -902,6 +902,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reconciliationTitle => 'Bank Reconciliation';
 
   @override
+  String get unnamedWorkspace => 'Unnamed workspace';
+
+  @override
+  String get accountManagementEmptyOfType =>
+      'You don\'t have accounts of this type yet.';
+
+  @override
   String get bankLogoOther => 'Other';
 
   @override

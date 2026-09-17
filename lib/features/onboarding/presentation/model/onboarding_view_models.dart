@@ -14,5 +14,15 @@ sealed class OnboardingState with _$OnboardingState {
     required WorkspaceModel workspace,
     @Default([]) List<String> inviteEmails,
     PlanningSuggestions? planningSuggestions,
+
+    /// O documento do workspace já EXISTE no Firestore.
+    ///
+    /// Não dá para deduzir isso do id: `WorkspaceModel.empty()` já nasce com
+    /// um uuid, então "tem id" não quer dizer "foi gravado". Enquanto o
+    /// workspace nascia junto com a ENTRADA no passo do nome, a diferença não
+    /// aparecia; agora que ele nasce ao SAIR desse passo — com o nome que o
+    /// usuário digitou —, tentar atualizar antes disso seria um `update()`
+    /// num documento que não existe.
+    @Default(false) bool workspaceCreated,
   }) = _OnboardingState;
 }

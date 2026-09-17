@@ -397,6 +397,8 @@
   },
   "saveButton": "Salvar",
   "reconciliationTitle": "Conciliação Bancária",
+  "unnamedWorkspace": "Workspace sem nome",
+  "accountManagementEmptyOfType": "Você ainda não tem contas deste tipo.",
   "bankLogoOther": "Outros",
   "accountsMine": "Minhas contas",
   "accountsOfMember": "Contas de {name}",

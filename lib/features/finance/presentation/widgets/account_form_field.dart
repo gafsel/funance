@@ -7,6 +7,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountFormField extends ConsumerWidget {
   const AccountFormField({
@@ -170,8 +171,9 @@ class AccountFormField extends ConsumerWidget {
                   IconButton(
                     icon: const Icon(Icons.refresh, size: 18),
                     tooltip: l10n.retry,
-                    onPressed: () =>
-                        ref.invalidate(AccountViewProviders.byId(accountId!)),
+                    // `byId` deriva de `all`: invalidar o derivado deixaria
+                    // o erro cacheado da lista de contas de pé.
+                    onPressed: () => Retry.accounts(ref),
                   ),
                 ],
               ),

@@ -6,6 +6,7 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
   const WorkspaceSettingsScreen({super.key});
@@ -106,7 +107,7 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       icon: Icons.edit_outlined,
                       title: l10n.workspaceSettingsEditName,
                       description: l10n.workspaceSettingsEditNameDesc,
-                      subtitle: workspace.name,
+                      subtitle: displayOr(workspace.name, l10n.unnamedWorkspace),
                       onTap: () => _editWorkspaceName(context, ref, workspace),
                     ),
                     _buildGridItem(
@@ -168,7 +169,9 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                   ListTile(
                     leading: const Icon(Icons.edit_outlined),
                     title: Text(l10n.workspaceSettingsEditName),
-                    subtitle: Text(workspace.name),
+                    subtitle: Text(
+                      displayOr(workspace.name, l10n.unnamedWorkspace),
+                    ),
                     onTap: () => _editWorkspaceName(context, ref, workspace),
                   ),
                   const Divider(),

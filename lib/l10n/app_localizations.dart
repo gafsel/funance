@@ -1712,6 +1712,18 @@ abstract class AppLocalizations {
   /// **'Conciliação Bancária'**
   String get reconciliationTitle;
 
+  /// No description provided for @unnamedWorkspace.
+  ///
+  /// In pt, this message translates to:
+  /// **'Workspace sem nome'**
+  String get unnamedWorkspace;
+
+  /// No description provided for @accountManagementEmptyOfType.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você ainda não tem contas deste tipo.'**
+  String get accountManagementEmptyOfType;
+
   /// No description provided for @bankLogoOther.
   ///
   /// In pt, this message translates to:

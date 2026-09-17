@@ -18,6 +18,7 @@ import 'package:funances/features/workspace/presentation/screens/workspace_setti
 import 'package:funances/features/workspace/presentation/widgets/workspace_level_indicator.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:confetti/confetti.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -373,7 +374,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           const SizedBox(width: 8),
           Flexible(
             child: Text(
-              currentWorkspace?.name ?? l10n.homeNoWorkspaceSelected,
+              currentWorkspace == null
+                  ? l10n.homeNoWorkspaceSelected
+                  : displayOr(currentWorkspace.name, l10n.unnamedWorkspace),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -423,7 +426,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                           color: isSelected ? AppColors.vibrantTeal : null,
                         ),
                         title: Text(
-                          workspace.name,
+                          displayOr(workspace.name, l10n.unnamedWorkspace),
                           style: TextStyle(
                             fontWeight: isSelected ? FontWeight.bold : null,
                             color: isSelected ? AppColors.vibrantTeal : null,

@@ -48,7 +48,15 @@ class AccountManagementScreen extends ConsumerWidget {
                 };
 
           if (accountsByType.isEmpty) {
-            return Center(child: Text(l10n.accountManagementEmpty));
+            // Filtrada por tipo, "você ainda não tem contas" seria falso: o
+            // usuário pode ter cinco contas correntes e nenhum cartão.
+            return Center(
+              child: Text(
+                initialType == null
+                    ? l10n.accountManagementEmpty
+                    : l10n.accountManagementEmptyOfType,
+              ),
+            );
           }
 
           return LayoutBuilder(

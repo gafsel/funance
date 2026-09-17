@@ -334,6 +334,8 @@
   },
   "saveButton": "Save",
   "reconciliationTitle": "Bank Reconciliation",
+  "unnamedWorkspace": "Unnamed workspace",
+  "accountManagementEmptyOfType": "You don't have accounts of this type yet.",
   "bankLogoOther": "Other",
   "accountsMine": "My accounts",
   "accountsOfMember": "{name}'s accounts",
