@@ -9,6 +9,7 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class TeamStatusView extends ConsumerWidget {
   const TeamStatusView({super.key});
@@ -124,7 +125,7 @@ class TeamStatusView extends ConsumerWidget {
           const SizedBox(height: 12),
           ErrorView(
             message: l10n.partyErrorMessage,
-            onRetry: () => ref.invalidate(MissionViewProviders.mission),
+            onRetry: () => Retry.missions(ref),
           ),
         ],
       ),

@@ -10,6 +10,7 @@ import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// Seção de metas da Jornada.
 ///
@@ -94,7 +95,7 @@ class GoalsSection extends ConsumerWidget {
                   error: (e, _) => ErrorView.forError(
                     context,
                     e,
-                    onRetry: () => ref.invalidate(GoalViewProvider.goalsStream),
+                    onRetry: () => Retry.goals(ref),
                   ),
                 ),
       ],

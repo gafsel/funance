@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../domain/models/account_model.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -142,7 +143,7 @@ class AccountManagementScreen extends ConsumerWidget {
             child: ErrorView.forError(
               context,
               err,
-              onRetry: () => ref.invalidate(AccountViewProviders.byTypeMap),
+              onRetry: () => Retry.accounts(ref),
             ),
           ),
         ),

@@ -7,6 +7,8 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/monthly_available_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/utils/date_extension.dart';
 
 /// O cabeçalho da Jornada: um número que responde "quanto posso gastar até o
 /// fim do mês".
@@ -27,7 +29,10 @@ class JourneyHeader extends ConsumerWidget {
       loading: () => const _HeaderShell(child: _HeaderLoading()),
       error: (error, stack) => _HeaderShell(
         child: _HeaderError(
-          onRetry: () => ref.invalidate(JourneyViewProviders.monthlyAvailable),
+          // O "quanto sobra" vem do resumo do mês, que vem das categorias:
+          // invalidar só o último da fila relia o erro cacheado do pai.
+          onRetry: () =>
+              Retry.monthlyAvailable(ref, ref.read(todayProvider).monthKey),
         ),
       ),
       data: (available) {

@@ -8,7 +8,7 @@ import 'package:funances/features/home/presentation/model/overview_view_model.da
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/core/widgets/error_view.dart';
-import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CategoryReportDetailScreen extends ConsumerWidget {
   final CategoryType type;
@@ -39,9 +39,7 @@ class CategoryReportDetailScreen extends ConsumerWidget {
                   child: ErrorView.forError(
                     context,
                     asyncState.error,
-                    onRetry: () => ref.invalidate(
-                      PeriodSummaryViewProviders.monthSummary(period.monthKey),
-                    ),
+                    onRetry: () => Retry.monthSummary(ref, period.monthKey),
                   ),
                 )
               : const CircularProgressIndicator(),

@@ -7,6 +7,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CategoryPickerSheet extends ConsumerWidget {
   final CategoryType? categoryType;
@@ -64,7 +65,7 @@ class CategoryPickerSheet extends ConsumerWidget {
           child: ErrorView.forError(
             context,
             categoriesAsync.error,
-            onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+            onRetry: () => Retry.categories(ref),
           ),
         ),
       );

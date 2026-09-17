@@ -16,6 +16,7 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// Lançamento em duas telas: escolher a categoria e preencher o formulário.
 ///
@@ -240,7 +241,7 @@ class _CategorySelectionStep extends ConsumerWidget {
                 child: ErrorView.forError(
                   context,
                   err,
-                  onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+                  onRetry: () => Retry.monthSummary(ref, period.monthKey),
                 ),
               ),
             ),
@@ -253,7 +254,7 @@ class _CategorySelectionStep extends ConsumerWidget {
             child: ErrorView.forError(
               context,
               err,
-              onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+              onRetry: () => Retry.categories(ref),
             ),
           ),
         ),

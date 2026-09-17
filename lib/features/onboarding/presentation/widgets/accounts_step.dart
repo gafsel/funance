@@ -13,6 +13,7 @@ import 'package:funances/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountsStep extends ConsumerWidget {
   const AccountsStep({super.key});
@@ -59,7 +60,7 @@ class AccountsStep extends ConsumerWidget {
                 child: ErrorView.forError(
                   context,
                   e,
-                  onRetry: () => ref.invalidate(AccountViewProviders.all),
+                  onRetry: () => Retry.accounts(ref),
                 ),
               ),
             ),

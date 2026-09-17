@@ -8,6 +8,7 @@ import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CoachingHistoryScreen extends ConsumerWidget {
   const CoachingHistoryScreen({super.key});
@@ -73,8 +74,7 @@ class CoachingHistoryScreen extends ConsumerWidget {
               child: ErrorView.forError(
                 context,
                 err,
-                onRetry: () =>
-                    ref.invalidate(CoachingViewProviders.insightsHistory),
+                onRetry: () => Retry.coaching(ref),
               ),
             ),
           ),

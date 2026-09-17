@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/money/money.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountsView extends ConsumerWidget {
   const AccountsView({super.key});
@@ -46,7 +47,7 @@ class AccountsView extends ConsumerWidget {
         child: ErrorView.forError(
           context,
           e,
-          onRetry: () => ref.invalidate(AccountViewProviders.byTypeMap),
+          onRetry: () => Retry.accounts(ref),
         ),
       ),
     );

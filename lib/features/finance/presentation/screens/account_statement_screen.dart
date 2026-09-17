@@ -17,6 +17,7 @@ import 'package:funances/features/finance/presentation/widgets/transaction_filte
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountStatementScreen extends ConsumerStatefulWidget {
   final String accountId;
@@ -58,8 +59,9 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
             child: ErrorView.forError(
               context,
               error,
-              onRetry: () =>
-                  ref.invalidate(AccountViewProviders.byId(widget.accountId)),
+              // `byId` deriva de `all`: invalidar o derivado deixava o erro
+              // cacheado da lista de contas de pé.
+              onRetry: () => Retry.accounts(ref),
             ),
           ),
         ),

@@ -16,8 +16,8 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
-import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class OverviewTab extends ConsumerWidget {
   const OverviewTab({super.key});
@@ -191,9 +191,7 @@ class CategorySummaryView extends ConsumerWidget {
         child: ErrorView.forError(
           context,
           asyncState.error,
-          onRetry: () => ref.invalidate(
-            PeriodSummaryViewProviders.monthSummary(period.monthKey),
-          ),
+          onRetry: () => Retry.monthSummary(ref, period.monthKey),
         ),
       );
     }
@@ -634,9 +632,7 @@ class BalanceSummaryView extends ConsumerWidget {
       return ErrorView.forError(
         context,
         asyncState.error,
-        onRetry: () => ref.invalidate(
-          PeriodSummaryViewProviders.monthSummary(period.monthKey),
-        ),
+        onRetry: () => Retry.monthSummary(ref, period.monthKey),
       );
     }
 

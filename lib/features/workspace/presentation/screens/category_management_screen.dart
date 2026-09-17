@@ -9,6 +9,7 @@ import 'package:funances/l10n/app_localizations.dart';
 
 import '../providers.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CategoryManagementScreen extends ConsumerStatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -197,7 +198,7 @@ class _CategoryList extends ConsumerWidget {
           child: ErrorView.forError(
             context,
             err,
-            onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+            onRetry: () => Retry.categories(ref),
           ),
         ),
       ),

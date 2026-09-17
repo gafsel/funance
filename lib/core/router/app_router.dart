@@ -41,6 +41,7 @@ import 'package:funances/features/workspace/presentation/screens/invite_list_scr
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// Notifica o GoRouter quando auth/workspace/convites mudam, sem recriar o
 /// router (recriar o router descarta a pilha de navegação inteira).
@@ -279,6 +280,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           return EntityRoute<CategoryModel>(
             provider: CategoryViewProviders.byId(id),
+            onRetry: Retry.categories,
             builder: (context, category) =>
                 CategoryFormScreen(category: category),
           );
@@ -301,6 +303,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (accountId != null) {
             return EntityRoute<AccountModel>(
               provider: AccountViewProviders.byId(accountId),
+              onRetry: Retry.accounts,
               builder: (context, account) =>
                   AccountFormScreen(account: account),
             );
@@ -322,6 +325,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           provider: FinanceViewProviders.installmentById(
             state.pathParameters['id']!,
           ),
+          onRetry: (ref) =>
+              Retry.installment(ref, state.pathParameters['id']!),
           builder: (context, invoice) => InvoiceDetailScreen(invoice: invoice),
         ),
       ),
@@ -337,6 +342,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (installmentId != null) {
             return EntityRoute<InstallmentModel>(
               provider: FinanceViewProviders.installmentById(installmentId),
+              onRetry: (ref) => Retry.installment(ref, installmentId),
               builder: (context, installment) =>
                   TransactionFormScreen.updateInstallment(
                     installment: installment,
@@ -358,6 +364,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           if (categoryId != null) {
             return EntityRoute<CategoryModel>(
               provider: CategoryViewProviders.byId(categoryId),
+              onRetry: Retry.categories,
               builder: (context, category) =>
                   _transactionCreation(state, type, status, category),
             );
@@ -416,6 +423,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
           return EntityRoute<GoalModel>(
             provider: GoalViewProvider.goalById(id),
+            onRetry: Retry.goals,
             builder: (context, goal) => GoalFormScreen(goal: goal),
           );
         },
@@ -425,6 +433,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => EntityRoute<GoalModel>(
           provider: GoalViewProvider.goalById(state.pathParameters['id']!),
           title: context.l10n.goalDetailsTitle,
+          onRetry: Retry.goals,
           builder: (context, goal) => GoalDetailScreen(goal: goal),
         ),
       ),
@@ -439,6 +448,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return EntityRoute<AccountModel>(
             provider: AccountViewProviders.byId(accountId),
             title: context.l10n.reconciliationTitle,
+            onRetry: Retry.accounts,
             builder: (context, account) =>
                 ReconciliationScreen(account: account),
           );
@@ -456,6 +466,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           provider: CoachingViewProviders.insightById(
             idParam(state.uri, 'id')!,
           ),
+          onRetry: (ref) =>
+              Retry.coachingInsight(ref, idParam(state.uri, 'id')!),
           builder: (context, coaching) =>
               CoachingSlidesScreen(coaching: coaching),
         ),

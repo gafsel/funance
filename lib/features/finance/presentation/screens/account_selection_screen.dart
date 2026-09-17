@@ -11,6 +11,7 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountSelectionScreen extends ConsumerWidget {
   final String title;
@@ -295,7 +296,7 @@ class AccountSelectionScreen extends ConsumerWidget {
             child: ErrorView.forError(
               context,
               err,
-              onRetry: () => ref.invalidate(WorkspaceViewProviders.members),
+              onRetry: () => Retry.members(ref),
             ),
           ),
         );
@@ -309,7 +310,7 @@ class AccountSelectionScreen extends ConsumerWidget {
         child: ErrorView.forError(
           context,
           err,
-          onRetry: () => ref.invalidate(AccountViewProviders.all),
+          onRetry: () => Retry.accounts(ref),
         ),
       ),
     );

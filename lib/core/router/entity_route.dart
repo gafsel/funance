@@ -22,6 +22,7 @@ class EntityRoute<T> extends ConsumerWidget {
     required this.provider,
     required this.builder,
     this.title,
+    this.onRetry,
   });
 
   /// O provider que busca a entidade. `data(null)` significa "não existe".
@@ -32,6 +33,13 @@ class EntityRoute<T> extends ConsumerWidget {
   /// Título da barra usada nos estados de carregamento, erro e ausência — a
   /// tela final tem o seu próprio.
   final String? title;
+
+  /// Como reexecutar a leitura. O padrão invalida só [provider], o que basta
+  /// quando ele É a fonte; quando é um derivado (a conta que sai da lista de
+  /// contas, a meta que sai da lista de metas), a rota passa a função de
+  /// `Retry` que invalida a fonte — senão o botão relê o erro cacheado do pai
+  /// e nada acontece.
+  final void Function(WidgetRef ref)? onRetry;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,7 +59,8 @@ class EntityRoute<T> extends ConsumerWidget {
             child: ErrorView.forError(
               context,
               error,
-              onRetry: () => ref.invalidate(provider),
+              onRetry: () =>
+                  onRetry == null ? ref.invalidate(provider) : onRetry!(ref),
             ),
           ),
         ),

@@ -8,6 +8,8 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/utils/date_extension.dart';
 
 class Planning503020DistributionCard extends ConsumerWidget {
   const Planning503020DistributionCard({super.key});
@@ -29,8 +31,10 @@ class Planning503020DistributionCard extends ConsumerWidget {
         child: ErrorView.forError(
           context,
           e,
-          onRetry: () => ref.invalidate(
-            FinanceViewProviders.planning503020Distribution(overviewDate),
+          onRetry: () => Retry.planning503020(
+            ref,
+            overviewDate,
+            overviewDate.monthKey,
           ),
         ),
       ),

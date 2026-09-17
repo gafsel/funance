@@ -16,6 +16,7 @@ import 'package:funances/features/finance/presentation/widgets/transaction_payme
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
   final InstallmentModel invoice;
@@ -320,11 +321,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     error: (err, _) => ErrorView.forError(
                       context,
                       err,
-                      onRetry: () => ref.invalidate(
-                        FinanceViewProviders.invoicePieChart(
-                          invoice.invoiceKey,
-                        ),
-                      ),
+                      onRetry: () => Retry.invoiceChart(ref, invoice.invoiceKey),
                     ),
                   ),
                 ),
