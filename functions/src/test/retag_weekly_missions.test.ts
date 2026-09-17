@@ -202,6 +202,33 @@ describe("retag_weekly_missions", () => {
         expect(written[0].data.templateKey).toBe("personal_organization_reconcile_items");
     });
 
+    it("ao CARIMBAR, params.target é o alvo do documento, não o do template", async () => {
+        // A missão antiga pode ter nascido com um alvo escolhido pela IA. Se o
+        // `params` disser "5 categorias" enquanto o `target` gravado é 4, a
+        // frase e a barra se contradizem na tela do usuário.
+        const legacy = { ...legacyMission("consistency", "completed"), target: 4 };
+        const firestore = buildFirestore({
+            w1: { type: "business", missions: { [`${WEEK_ID}_consistency`]: legacy } },
+        });
+
+        await retagWeeklyMissions(firestore, { dryRun: false, now: NOW }, silent);
+
+        expect(written[0].data.params).toEqual({ target: 4 });
+    });
+
+    it("ao SUBSTITUIR, o alvo passa a ser o do template (a missão é outra)", async () => {
+        const legacy = { ...legacyMission("organization"), target: 9 };
+        const firestore = buildFirestore({
+            w1: { type: "business", missions: { [`${WEEK_ID}_organization`]: legacy } },
+        });
+
+        await retagWeeklyMissions(firestore, { dryRun: false, now: NOW }, silent);
+
+        const template = selectMissionTemplate("business", "organization", WEEK_ID)!;
+        expect(written[0].data.target).toBe(template.target);
+        expect(written[0].data.params).toEqual({ target: template.target });
+    });
+
     it("é idempotente: missão já carimbada é pulada (e --force recarimba)", async () => {
         const tagged = { ...legacyMission("consistency"), templateKey: "personal_consistency_plan_limits" };
         const firestore = buildFirestore({

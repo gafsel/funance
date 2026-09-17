@@ -64,6 +64,7 @@ export const GAMIFICATION_ACTIONS = {
     orderWritten: "gamification:orderWritten",
     categoryWritten: "gamification:categoryWritten",
     reconciliationWritten: "gamification:reconciliationWritten",
+    automaticTransactionTriaged: "gamification:automaticTransactionTriaged",
     goalWritten: "gamification:goalWritten",
     goalRecompute: "gamification:goalRecompute",
 } as const;
@@ -298,6 +299,56 @@ export const onReconciliationWritten = onDocumentWritten(
             // 3. Update weekly mission progress
             await gamificationService.updateWeeklyMissionsProgress(workspaceId, "reconciliation", after);
         });
+    }
+);
+
+/**
+ * A missão corporativa de triagem diz "categorizar OU DESCARTAR", e só metade
+ * disso chegava aqui.
+ *
+ * Consolidar um lançamento automático cria uma transação de verdade, e é a
+ * escrita dessa transação que move a missão. Descartar não cria nada: vira um
+ * `isIgnored: true` no próprio documento, e nenhum gatilho de gamificação
+ * observava esta coleção (o único que existe é o de ENRIQUECIMENTO, e ele é
+ * `onDocumentCreated`). O usuário limpava a caixa de entrada e a barra não
+ * andava.
+ *
+ * A guarda é por CONTEÚDO, e é o que torna o gatilho barato: o app reescreve o
+ * documento inteiro a cada edição (`update(transaction.toJson())`), e sem ela
+ * uma troca de categoria ou a chegada da sugestão da IA — que o próprio
+ * servidor grava — dispararia a avaliação. Só a mudança de ESTADO de triagem
+ * passa.
+ */
+export const onAutomaticTransactionTriaged = onDocumentUpdated(
+    "workspaces/{workspaceId}/automatic_transactions/{transactionId}",
+    async (event) => {
+        const workspaceId = event.params.workspaceId;
+        const before = event.data?.before.data();
+        const after = event.data?.after.data();
+
+        if (!before || !after) return;
+
+        const wasTriaged = before.isConsolidated === true || before.isIgnored === true;
+        const isTriaged = after.isConsolidated === true || after.isIgnored === true;
+
+        // Só a TRANSIÇÃO para triado interessa. Voltar atrás (destriar) não
+        // desconta progresso: missão semanal não anda para trás — a mesma
+        // regra que já vale para a missão concluída, que nunca é estornada.
+        if (wasTriaged || !isTriaged) return;
+
+        logger.info(`[onAutomaticTransactionTriaged] Triggered for workspaceId=${workspaceId}`);
+
+        await container.idempotencyService.runIdempotency(
+            event.id,
+            GAMIFICATION_ACTIONS.automaticTransactionTriaged,
+            async () => {
+                await container.gamificationService.updateWeeklyMissionsProgress(
+                    workspaceId,
+                    "auto_transaction",
+                    null
+                );
+            }
+        );
     }
 );
 

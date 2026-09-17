@@ -32,9 +32,24 @@ export interface PeriodSummaryRow {
 
 /**
  * Uma linha do `period_summaries` SEMANAL (`{YYYY-Www}`), já com o join em
- * `categories`. É a fonte do XP semanal de F2.3: `generalPlannedAmount` é a
- * proporção semanal do limite da categoria (ver F1.5) e `actualAmount` é o que
- * de fato foi gasto naquela semana.
+ * `categories`. É a fonte do XP semanal de F2.3 e das missões corporativas de
+ * margem e receita.
+ *
+ * **Os dois "planejados" são coisas diferentes, e confundi-los custou caro.**
+ *
+ * - `generalPlannedAmount` é o LIMITE da categoria (`category_planning`)
+ *   rateado no período (F1.5). É um teto de DESPESA: uma categoria de receita
+ *   normalmente tem zero aqui, porque ninguém põe "limite" numa receita.
+ * - `specificPlannedAmount` é a soma das PARCELAS PROJETADAS que caem no
+ *   período — é onde mora a receita PREVISTA (a nota a receber agendada por
+ *   `dueDate`) e também a despesa já agendada.
+ *
+ * A primeira versão das missões corporativas leu só o `general` para saber a
+ * receita prevista da semana, e em produção (workspace a70134c1, 2026-W37) a
+ * categoria "Serviços" tinha `generalPlanned = 0`, `specificPlanned = 15850` e
+ * `actual = 3850`: a receita prevista existia e o servidor via zero. A missão
+ * de receita nunca avaliava e a de margem concluía de graça. Por isso os três
+ * totais viajam aqui — e em CENTAVOS, que é a fonte da verdade (F1.10).
  */
 export interface WeeklySummaryRow {
     categoryId: string;
@@ -42,6 +57,12 @@ export interface WeeklySummaryRow {
     isSystem: boolean;
     actualAmount: number;
     generalPlannedAmount: number;
+    /** Parcelas projetadas do período. É aqui que mora a receita PREVISTA. */
+    specificPlannedAmount: number;
+    /** F1.10 — os mesmos totais em centavos inteiros. São eles que mandam. */
+    actualAmountCents: number;
+    generalPlannedAmountCents: number;
+    specificPlannedAmountCents: number;
 }
 
 /**
@@ -346,17 +367,33 @@ export interface IGamificationRepository {
      */
     getCompletedReconciliationsInPeriod(workspaceId: string, start: Date, end: Date): Promise<number>;
     /**
-     * Lançamentos automáticos do workspace (a caixa de entrada das
-     * notificações), **sem filtro de data**.
+     * Lançamentos automáticos numa JANELA de data.
      *
-     * O filtro é feito em memória pelo serviço, e não na consulta, porque
-     * `date` é gravado pelo app como string ISO (`toJson` do freezed, sem
-     * conversor) e um `where("date", ">=", <Timestamp>)` devolveria ZERO
-     * documentos em silêncio — o Firestore ordena por tipo antes de ordenar
-     * por valor. A leitura é limitada por `limit` para que um workspace com
-     * anos de notificações não vire uma varredura por evento.
+     * `startIso`/`endIso` são carimbos de RELÓGIO LOCAL
+     * (`YYYY-MM-DDTHH:mm:ss.SSS`, sem fuso), comparados como STRING, porque é
+     * exatamente assim que o app grava o campo: `AutomaticTransactionModel.date`
+     * é um `DateTime` serializado pelo `toJson` do freezed, sem conversor, e
+     * sai no horário local sem sufixo. Num formato de largura fixa a ordem
+     * lexicográfica é a ordem cronológica, então o Firestore consegue filtrar.
+     *
+     * **Um `where` por `Timestamp` devolveria ZERO documentos, em silêncio** —
+     * o Firestore ordena por TIPO antes de ordenar por valor, e Timestamp e
+     * String são tipos diferentes. Foi o que motivou a primeira versão a ler a
+     * coleção inteira com `limit(500)` e filtrar em memória; numa caixa de
+     * entrada com 532 documentos (ordenados por UUID, porque não havia
+     * `orderBy`), os 12 da semana simplesmente não entravam na página, a
+     * missão ficava em zero para sempre e cada evento custava 500 leituras.
+     *
+     * O chamador ainda confere a janela em memória: a folga que ele pede nas
+     * bordas cobre o documento legado gravado em UTC (com sufixo `Z`), que a
+     * comparação de string sozinha classificaria com três horas de erro.
      */
-    getAutomaticTransactions(workspaceId: string, limit: number): Promise<AutomaticTransactionRow[]>;
+    getAutomaticTransactions(
+        workspaceId: string,
+        startIso: string,
+        endIso: string,
+        limit: number
+    ): Promise<AutomaticTransactionRow[]>;
 }
 
 /**

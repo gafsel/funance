@@ -73,6 +73,26 @@ export interface MissionParams {
     target?: number;
 }
 
+/**
+ * O que o sorteio da semana sabe sobre o workspace.
+ *
+ * São os totais PLANEJADOS da semana, em centavos, lidos do
+ * `period_summaries/{YYYY-Www}` no momento da geração. Só isso: o contexto
+ * existe para peneirar templates impossíveis, não para escolher missão por
+ * heurística — a escolha continua sendo o hash, que é o que a torna
+ * reproduzível fora do gatilho (o script de retag chega ao mesmo template).
+ */
+export interface MissionSelectionContext {
+    plannedIncomeCents: number;
+    plannedExpenseCents: number;
+}
+
+/** Contexto vazio: nada planejado. É o que vale quando ninguém informa um. */
+export const EMPTY_MISSION_CONTEXT: MissionSelectionContext = {
+    plannedIncomeCents: 0,
+    plannedExpenseCents: 0,
+};
+
 export interface MissionTemplate {
     /**
      * Identidade ESTÁVEL do template (`templateKey` no documento). É por ela
@@ -114,13 +134,36 @@ export interface MissionTemplate {
      * inventar outra missão — que foi exatamente o defeito de produção. Ver
      * `validateWeeklyMissionNames`.
      *
+     * **São termos em PORTUGUÊS, e só.** O prompt pede o nome em português
+     * (`ai.config.ts`, regra 6 de `weeklyMissions`) e o documento grava `name`
+     * em português para a build instalada; o inglês do catálogo é resolvido no
+     * app a partir de `nameKey` + `params`, sem passar pela IA. O dia em que o
+     * prompt passar a pedir outro idioma, este campo vira um mapa por locale —
+     * até lá, um `aiRequiredTerms` genérico seria um nome mentindo sobre o que
+     * o campo cobre.
+     *
      * Os termos são RADICAIS, não palavras inteiras: "centro" (e não "centro
      * de custo") para casar com "centros de custo", "concilia" para casar com
      * "conciliar" e "conciliação". Exigir a flexão exata reprovaria o texto
      * certo só por estar no plural — e a consequência de reprovar é perder o
      * tempero, não a missão, mas perdê-lo em toda resposta esvazia a chamada.
      */
-    aiRequiredTerms: string[];
+    aiRequiredTermsPt: string[];
+    /**
+     * Quando o template PODE ser sorteado para a semana.
+     *
+     * Ausente == sempre elegível. Existe porque duas missões corporativas
+     * dependem de um dado que pode simplesmente não existir naquela semana: a
+     * de receita prevista precisa de receita prevista, e a de margem precisa
+     * dos dois lados do plano. Sem a peneira, o hash sorteava uma missão que o
+     * avaliador nunca conseguiria medir — uma missão em 0% a semana inteira,
+     * que ainda por cima impede a semana perfeita e zera a streak.
+     *
+     * A peneira roda ANTES do hash: o sorteio acontece entre os elegíveis, de
+     * modo que a semana sem receita prevista recebe a outra missão do mesmo
+     * tipo, e não um buraco.
+     */
+    isEligible?: (context: MissionSelectionContext) => boolean;
 }
 
 /**
@@ -225,7 +268,7 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         progressRule: "planned_categories",
         actionPath: "/planning",
         params: ["target"],
-        aiRequiredTerms: ["limite"],
+        aiRequiredTermsPt: ["limite"],
     },
     {
         key: "personal_discipline_top_category",
@@ -242,7 +285,7 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         actionPath: "/planning",
         params: ["category", "target"],
         fallbackParams: { category: { pt: "de maior gasto", en: "highest-spending" } },
-        aiRequiredTerms: ["dia"],
+        aiRequiredTermsPt: ["dia"],
     },
     {
         key: "personal_organization_reconcile_items",
@@ -258,7 +301,7 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         progressRule: "reconciled_statement_items",
         actionPath: "/reconciliation",
         params: ["target"],
-        aiRequiredTerms: ["concilia", "extrato"],
+        aiRequiredTermsPt: ["concilia", "extrato"],
     },
 
     // ── EMPRESA ──────────────────────────────────────────────────────────────
@@ -276,7 +319,7 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         progressRule: "planned_categories",
         actionPath: "/planning",
         params: ["target"],
-        aiRequiredTerms: ["limite", "centro"],
+        aiRequiredTermsPt: ["limite", "centro"],
     },
     {
         key: "business_consistency_income_forecast",
@@ -292,7 +335,9 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         progressRule: "income_received_vs_planned",
         actionPath: "/planning",
         params: ["target"],
-        aiRequiredTerms: ["receita"],
+        aiRequiredTermsPt: ["receita"],
+        // Sem receita prevista na semana não há de que receber 80%.
+        isEligible: (context) => context.plannedIncomeCents > 0,
     },
     {
         key: "business_discipline_top_cost_center",
@@ -309,7 +354,7 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         actionPath: "/planning",
         params: ["category", "target"],
         fallbackParams: { category: { pt: "de maior peso", en: "heaviest" } },
-        aiRequiredTerms: ["centro", "dia"],
+        aiRequiredTermsPt: ["centro", "dia"],
     },
     {
         key: "business_discipline_margin",
@@ -325,7 +370,9 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         progressRule: "weekly_margin_above_plan",
         actionPath: "/planning",
         params: [],
-        aiRequiredTerms: ["margem"],
+        aiRequiredTermsPt: ["margem"],
+        // Margem planejada exige os DOIS lados do plano.
+        isEligible: (context) => context.plannedIncomeCents > 0 && context.plannedExpenseCents > 0,
     },
     {
         key: "business_organization_reconcile_statements",
@@ -333,15 +380,19 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         type: "organization",
         nameKey: "missionBusinessOrganizationReconcileStatements",
         name: {
-            pt: "Conciliar {target} extratos das contas da empresa nesta semana.",
-            en: "Reconcile {target} company account statements this week.",
+            pt: "Conciliar {target} extrato das contas da empresa nesta semana.",
+            en: "Reconcile {target} company account statement this week.",
         },
-        target: 2,
+        // Calibrado contra a única empresa real da base, que fez DUAS
+        // conciliações na vida inteira. Um alvo de 2 por semana era um alvo
+        // que ninguém jamais bateu — e uma missão inalcançável não ensina
+        // nada, só trava a semana perfeita e zera a streak.
+        target: 1,
         rewardXp: 200,
         progressRule: "reconciled_statements",
         actionPath: "/reconciliation",
         params: ["target"],
-        aiRequiredTerms: ["concilia", "extrato"],
+        aiRequiredTermsPt: ["concilia", "extrato"],
     },
     {
         key: "business_organization_categorize_auto",
@@ -352,12 +403,15 @@ export const MISSION_CATALOG: MissionTemplate[] = [
             pt: "Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.",
             en: "Categorise or dismiss {target} automatic entries before closing.",
         },
-        target: 10,
+        // Mesma calibração: a empresa real recebeu DOIS lançamentos
+        // automáticos na semana medida. Dez era metade de um mês de
+        // notificações.
+        target: 3,
         rewardXp: 200,
         progressRule: "categorized_auto_transactions",
         actionPath: "/workspace/categories",
         params: ["target"],
-        aiRequiredTerms: ["automatic"],
+        aiRequiredTermsPt: ["automatic"],
     },
     {
         key: "business_organization_invoice_on_time",
@@ -373,7 +427,7 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         progressRule: "invoice_paid_on_time",
         actionPath: "/workspace/accounts",
         params: ["target"],
-        aiRequiredTerms: ["fatura", "vencimento"],
+        aiRequiredTermsPt: ["fatura", "vencimento"],
     },
 ];
 
@@ -416,9 +470,15 @@ export function hashString(value: string): number {
 /**
  * Escolhe UM template por semana, por tipo de missão e por audiência.
  *
- * A escolha é uma função pura de `(weekId, audience, type)`: duas execuções do
- * gatilho na mesma semana — ou o script de retag rodando dias depois —
- * chegam ao MESMO template, sem precisar reler o que já foi gravado.
+ * A escolha é uma função pura de `(weekId, audience, type, context)`: duas
+ * execuções do gatilho na mesma semana — ou o script de retag rodando dias
+ * depois — chegam ao MESMO template, sem precisar reler o que já foi gravado.
+ *
+ * O `context` apenas PENEIRA (ver `MissionTemplate.isEligible`); quem escolhe
+ * continua sendo o hash. Se a peneira não deixar ninguém de pé, o sorteio
+ * volta a correr entre TODOS os candidatos: uma semana sem missão seria pior
+ * que uma missão difícil de medir, porque o card some da tela e a streak
+ * quebra sem explicação.
  *
  * Devolve `null` apenas se o catálogo não tiver nenhum candidato, o que hoje é
  * impossível (os dois tipos cobrem os três tipos de missão) e é coberto por
@@ -427,10 +487,21 @@ export function hashString(value: string): number {
 export function selectMissionTemplate(
     audience: WorkspaceAudience,
     type: WeeklyMissionType,
-    weekId: string
+    weekId: string,
+    context: MissionSelectionContext = EMPTY_MISSION_CONTEXT
 ): MissionTemplate | null {
-    const candidates = missionTemplatesFor(audience, type);
-    if (candidates.length === 0) return null;
+    const all = missionTemplatesFor(audience, type);
+    if (all.length === 0) return null;
+
+    const eligible = all.filter((template) => !template.isEligible || template.isEligible(context));
+    const candidates = eligible.length > 0 ? eligible : all;
+
+    // O hash corre sobre a lista PENEIRADA, e isso é deliberado: numa semana
+    // sem receita prevista, a consistência da empresa cai sempre na missão de
+    // centros de custo, e é isso que se quer. O preço é que a escolha só é
+    // reproduzível junto com o contexto — por isso o documento grava
+    // `templateKey`, e é ele (não um novo sorteio) que o avaliador de
+    // progresso usa depois.
     const index = hashString(`${weekId}|${audience}|${type}`) % candidates.length;
     return candidates[index];
 }

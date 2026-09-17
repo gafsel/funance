@@ -25,7 +25,10 @@ import { GoalType, isAccumulationGoal, isGoalActive, isGoalCompleted, resolveGoa
 import { BadgeAudience, resolveAudience } from "../models/audience.model";
 import {
     AUDIENCE_FORBIDDEN_TERMS,
+    EMPTY_MISSION_CONTEXT,
+    MISSION_CATALOG,
     MissionParams,
+    MissionSelectionContext,
     MissionProgressRule,
     MissionTemplate,
     WEEKLY_MISSION_TYPES,
@@ -42,6 +45,7 @@ import {
     getMonthRangeInTz,
     getWeekId,
     getZonedParts,
+    localMidnightInstant,
     startOfWeekInTz,
 } from "./gamification_time.util";
 
@@ -94,7 +98,24 @@ export interface WeeklyMissionEventData {
  * último evento da semana ter chegado DEPOIS de o sumário ter sido escrito —
  * uma corrida que a plataforma não promete ganhar.
  */
-export type MissionEventType = "transaction" | "reconciliation" | "planning" | "weekly_close";
+export type MissionEventType =
+    | "transaction"
+    | "reconciliation"
+    | "planning"
+    | "auto_transaction"
+    | "weekly_close";
+
+/** As origens que vêm de um gatilho de documento (tudo menos o fechamento). */
+export type MissionTriggerEvent = Exclude<MissionEventType, "weekly_close">;
+
+/** Todas as origens, em valor — `MissionEventType` é só o tipo. */
+const MISSION_EVENT_TYPES = [
+    "transaction",
+    "reconciliation",
+    "planning",
+    "auto_transaction",
+    "weekly_close",
+] as const satisfies readonly MissionEventType[];
 
 /**
  * Quais eventos podem MOVER cada regra.
@@ -110,13 +131,41 @@ const RULE_EVENT_SOURCES: Record<MissionProgressRule, MissionEventType[]> = {
     // recontá-los depois, nem no fechamento da semana.
     reconciled_statement_items: ["reconciliation"],
     reconciled_statements: ["reconciliation", "weekly_close"],
-    // A consolidação de um lançamento automático CRIA uma transação, e é essa
-    // escrita que chega aqui como evento.
-    categorized_auto_transactions: ["transaction", "weekly_close"],
+    // Consolidar um lançamento automático CRIA uma transação, e essa escrita
+    // chega como `transaction`. DESCARTAR não cria nada — só vira
+    // `isIgnored: true` no próprio documento —, e por isso existe a origem
+    // `auto_transaction`: sem ela, metade da missão (a metade "ou descartar")
+    // não movia a barra.
+    categorized_auto_transactions: ["transaction", "auto_transaction", "weekly_close"],
     invoice_paid_on_time: ["transaction", "weekly_close"],
     weekly_margin_above_plan: ["transaction", "weekly_close"],
     income_received_vs_planned: ["transaction", "weekly_close"],
 };
+
+/**
+ * Quais TIPOS de missão um evento pode mover — derivado do catálogo.
+ *
+ * Existe para não ler documento à toa. O gate de `RULE_EVENT_SOURCES` precisa
+ * do template, e o template vem do documento da missão: sem esta tabela, um
+ * evento de conciliação lia as TRÊS missões da semana só para descobrir que
+ * duas delas não tinham nada a ver com conciliação. Como a regra de um tipo de
+ * missão só pode sair dos templates DAQUELE tipo (em qualquer audiência), dá
+ * para responder "vale a pena ler?" antes de ler.
+ *
+ * É calculado do `MISSION_CATALOG`, e não escrito à mão, para um template novo
+ * não precisar lembrar de aparecer aqui.
+ */
+const TYPES_MOVABLE_BY_EVENT: Record<MissionEventType, Set<WeeklyMissionType>> = (() => {
+    const table = {} as Record<MissionEventType, Set<WeeklyMissionType>>;
+    for (const event of MISSION_EVENT_TYPES) {
+        table[event] = new Set(
+            MISSION_CATALOG
+                .filter((template) => RULE_EVENT_SOURCES[template.progressRule].includes(event))
+                .map((template) => template.type)
+        );
+    }
+    return table;
+})();
 
 /** Razão do XP, por tipo de missão (vai para o log da transação de XP). */
 const MISSION_COMPLETION_REASON: Record<WeeklyMissionType, string> = {
@@ -128,13 +177,17 @@ const MISSION_COMPLETION_REASON: Record<WeeklyMissionType, string> = {
 /**
  * Teto de lançamentos automáticos lidos por avaliação.
  *
- * A coleção é uma caixa de ENTRADA de notificações, não um histórico: o app
- * consolida ou descarta, e o que sobra é pequeno. O teto existe para o caso
- * patológico (um workspace que nunca triou nada) não transformar cada evento
- * de transação numa varredura — a consequência de bater no teto é a missão
+ * A leitura já é recortada pela JANELA da semana (mais um dia de folga em cada
+ * borda), então o teto só existe para o caso patológico — um workspace que
+ * receba centenas de notificações em nove dias. Bater nele faz a missão
  * subcontar, nunca a função estourar.
+ *
+ * Era 500 e valia para a coleção INTEIRA, sem `orderBy`: numa caixa com 532
+ * documentos o Firestore devolvia 500 ordenados por id, e os da semana ficavam
+ * de fora. 200 documentos em nove dias já é um volume que nenhum workspace
+ * real produziu.
  */
-const AUTOMATIC_TRANSACTIONS_SCAN_LIMIT = 500;
+const AUTOMATIC_TRANSACTIONS_SCAN_LIMIT = 200;
 
 /** Leituras compartilhadas entre as três missões de UMA avaliação. */
 interface MissionReads {
@@ -227,29 +280,50 @@ function aggregatePlannings(plannings: CategoryPlanningModel[], monthKey: string
     return result;
 }
 
-interface WeeklyTotals {
-    plannedIncome: number;
-    plannedExpense: number;
-    actualIncome: number;
-    actualExpense: number;
+/** Totais da semana em CENTAVOS INTEIROS (F1.10: o inteiro é quem manda). */
+export interface WeeklyTotals {
+    plannedIncomeCents: number;
+    plannedExpenseCents: number;
+    actualIncomeCents: number;
+    actualExpenseCents: number;
 }
 
 /**
  * Totais de receita e despesa da semana, a partir do `period_summaries`
- * semanal. Categorias de SISTEMA (saldo inicial, virtuais de transferência)
- * ficam de fora: elas não são decisão de ninguém e inflariam a margem.
+ * semanal.
+ *
+ * **Receita prevista é `specificPlannedAmount`, não `generalPlannedAmount`.**
+ * O `general` é o limite de `category_planning` rateado no período — um teto
+ * de DESPESA, que numa categoria de receita é zero. A receita PREVISTA são as
+ * parcelas projetadas que caem na semana, e elas vivem no `specific`. A
+ * primeira versão somou o `general` e, em produção (workspace a70134c1,
+ * 2026-W37), leu receita prevista ZERO numa semana com R$ 15.850 previstos em
+ * "Serviços" — a missão de receita nunca avaliava e a de margem concluía
+ * comparando com uma margem planejada negativa.
+ *
+ * Na DESPESA os dois SOMAM: a empresa pode ter teto de categoria (`general`) e
+ * compromissos já agendados (`specific`), e os dois são dinheiro que ela
+ * planejou gastar naquela semana.
+ *
+ * Categorias de SISTEMA (saldo inicial, virtuais de transferência) ficam de
+ * fora: elas não são decisão de ninguém e inflariam a margem.
  */
-function sumWeeklyTotals(rows: WeeklySummaryRow[]): WeeklyTotals {
-    const totals: WeeklyTotals = { plannedIncome: 0, plannedExpense: 0, actualIncome: 0, actualExpense: 0 };
+export function sumWeeklyTotals(rows: WeeklySummaryRow[]): WeeklyTotals {
+    const totals: WeeklyTotals = {
+        plannedIncomeCents: 0,
+        plannedExpenseCents: 0,
+        actualIncomeCents: 0,
+        actualExpenseCents: 0,
+    };
     for (const row of rows) {
         if (row.isSystem) continue;
         if (row.type === CategoryType.income) {
-            totals.plannedIncome += row.generalPlannedAmount || 0;
-            totals.actualIncome += row.actualAmount || 0;
+            totals.plannedIncomeCents += row.specificPlannedAmountCents || 0;
+            totals.actualIncomeCents += row.actualAmountCents || 0;
         }
         else if (row.type === CategoryType.expense) {
-            totals.plannedExpense += row.generalPlannedAmount || 0;
-            totals.actualExpense += row.actualAmount || 0;
+            totals.plannedExpenseCents += (row.generalPlannedAmountCents || 0) + (row.specificPlannedAmountCents || 0);
+            totals.actualExpenseCents += row.actualAmountCents || 0;
         }
     }
     return totals;
@@ -264,6 +338,55 @@ function atLeast(progress: number, target: number): MissionEvaluation {
 function dayKeyInTz(date: Date): string {
     const parts = getZonedParts(date);
     return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+const pad2 = (value: number) => String(value).padStart(2, "0");
+
+/**
+ * Carimbo de RELÓGIO LOCAL (`YYYY-MM-DDTHH:mm:ss.SSS`) do instante, no fuso do
+ * produto — no MESMO formato em que o app grava
+ * `automatic_transactions.date`. É o que permite comparar a janela da semana
+ * com o campo direto na consulta, como string.
+ */
+function localWallClockIso(date: Date): string {
+    const p = getZonedParts(date);
+    return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}.000`;
+}
+
+/** `YYYY-MM-DDTHH:mm` sem fuso nenhum — o formato que o freezed produz. */
+const NAIVE_LOCAL_DATETIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d{1,3}))?$/;
+
+/**
+ * Instante de um carimbo de `automatic_transactions`.
+ *
+ * O campo chega em três formas e as três significam coisas diferentes:
+ *
+ *  - **string SEM fuso** (`"2026-09-04T10:50:47.466"`) — o caso real, porque o
+ *    `toJson` do freezed serializa o `DateTime` local do aparelho sem sufixo.
+ *    `new Date(...)` num runtime UTC (que é o das functions) lê esse texto
+ *    como UTC e desloca TRÊS HORAS: um lançamento de domingo 01:00 em São
+ *    Paulo virava sábado 22:00 e caía na semana anterior, e um de sábado 23:00
+ *    pulava para a semana seguinte. Aqui ele é interpretado como horário de
+ *    São Paulo, que é o que ele é;
+ *  - **string COM fuso** (sufixo `Z` ou `±hh:mm`) — já é um instante; `Date`
+ *    resolve sozinho;
+ *  - **Timestamp do Firestore** — as rules aceitam, então pode existir.
+ */
+function automaticTransactionInstant(raw: RawFirestoreDate | null | undefined): Date | null {
+    if (typeof raw === "string") {
+        const match = raw.trim().match(NAIVE_LOCAL_DATETIME);
+        if (match) {
+            const [, year, month, day, hour, minute, second, millis] = match;
+            const midnight = localMidnightInstant(Number(year), Number(month), Number(day));
+            const offsetMs =
+                Number(hour) * 3_600_000 +
+                Number(minute) * 60_000 +
+                Number(second ?? 0) * 1_000 +
+                Number((millis ?? "0").padEnd(3, "0"));
+            return new Date(midnight.getTime() + offsetMs);
+        }
+    }
+    return toDate(raw);
 }
 
 export function calculateLevel(xp: number): number {
@@ -929,7 +1052,7 @@ export class GamificationService {
 
     async updateWeeklyMissionsProgress(
         workspaceId: string,
-        eventType: "transaction" | "reconciliation" | "planning",
+        eventType: MissionTriggerEvent,
         eventData: WeeklyMissionEventData | null | undefined
     ): Promise<void> {
         const now = new Date();
@@ -996,6 +1119,13 @@ export class GamificationService {
      */
     private async advanceWeeklyMissions(ctx: MissionEvaluationContext): Promise<void> {
         for (const type of WEEKLY_MISSION_TYPES) {
+            // Gate ANTES da leitura: nenhum template deste tipo de missão tem
+            // regra que este evento mova, então o documento nem é lido. Um
+            // evento de conciliação lia as três missões para descartar duas.
+            if (!TYPES_MOVABLE_BY_EVENT[ctx.eventType].has(type)) {
+                continue;
+            }
+
             const mission = ctx.preloaded && type in ctx.preloaded
                 ? ctx.preloaded[type] ?? null
                 : await this.gamificationRepository.getWeeklyMission(ctx.workspaceId, ctx.weekId, type);
@@ -1010,7 +1140,8 @@ export class GamificationService {
 
             const rule = template.progressRule;
             if (!RULE_EVENT_SOURCES[rule].includes(ctx.eventType)) {
-                // Este evento não toca no dado que a regra mede: nada a ler.
+                // O tipo de missão podia ser movido por este evento, mas o
+                // template SORTEADO para esta semana não é.
                 continue;
             }
 
@@ -1144,7 +1275,10 @@ export class GamificationService {
             const rows = await this.readAutomaticTransactions(ctx);
             let resolved = 0;
             for (const row of rows) {
-                const date = toDate(row.date);
+                // A consulta traz uma folga de um dia em cada borda (ver
+                // `readAutomaticTransactions`); a janela EXATA é conferida
+                // aqui, com a data lida no fuso certo.
+                const date = automaticTransactionInstant(row.date);
                 if (!date || date < ctx.startOfWeek || date > ctx.endOfWeek) continue;
                 // Consolidado (virou lançamento, com categoria escolhida) ou
                 // descartado de propósito. A sugestão da IA NÃO conta: ela
@@ -1177,24 +1311,34 @@ export class GamificationService {
         }
 
         case "weekly_margin_above_plan": {
-            const rows = await this.readWeeklySummary(ctx);
-            const totals = sumWeeklyTotals(rows);
-            // Sem plano não há "acima do planejado": a missão de margem
-            // pressupõe uma margem planejada, e premiar a sua ausência
-            // seria premiar não planejar.
-            if (totals.plannedIncome + totals.plannedExpense <= 0) return null;
-            const plannedMargin = totals.plannedIncome - totals.plannedExpense;
-            const actualMargin = totals.actualIncome - totals.actualExpense;
+            const totals = sumWeeklyTotals(await this.readWeeklySummary(ctx));
+            // Os DOIS lados do plano têm de existir.
+            //
+            // A guarda anterior era `receita + despesa <= 0`, e ela nunca
+            // disparava: bastava haver despesa planejada. Com a receita
+            // prevista lida do campo errado (sempre zero — ver
+            // `sumWeeklyTotals`), a "margem planejada" virava `-despesa`, um
+            // número NEGATIVO, e praticamente qualquer semana concluía a
+            // missão. Em produção isso pagou 250 XP numa semana em que a
+            // empresa recebeu 24% do que previa.
+            //
+            // "Margem acima da planejada" pressupõe uma margem planejada, e
+            // margem planejada pressupõe receita E despesa previstas.
+            if (totals.plannedIncomeCents <= 0 || totals.plannedExpenseCents <= 0) return null;
+            const plannedMargin = totals.plannedIncomeCents - totals.plannedExpenseCents;
+            const actualMargin = totals.actualIncomeCents - totals.actualExpenseCents;
             const reached = actualMargin >= plannedMargin;
             return { progress: reached ? target : 0, completed: reached };
         }
 
         case "income_received_vs_planned": {
-            const rows = await this.readWeeklySummary(ctx);
-            const totals = sumWeeklyTotals(rows);
-            if (totals.plannedIncome <= 0) return null;
+            const totals = sumWeeklyTotals(await this.readWeeklySummary(ctx));
+            if (totals.plannedIncomeCents <= 0) return null;
             // O alvo é um PERCENTUAL (80 = 80% da receita prevista).
-            const percent = Math.min(100, Math.floor((totals.actualIncome / totals.plannedIncome) * 100));
+            const percent = Math.min(
+                100,
+                Math.floor((totals.actualIncomeCents / totals.plannedIncomeCents) * 100)
+            );
             return atLeast(percent, target);
         }
         }
@@ -1238,8 +1382,16 @@ export class GamificationService {
     }
 
     private readAutomaticTransactions(ctx: MissionEvaluationContext): Promise<AutomaticTransactionRow[]> {
+        // Um dia de FOLGA em cada borda. A consulta compara strings de relógio
+        // local, e um documento legado gravado em UTC (sufixo `Z`) está até
+        // três horas deslocado nessa comparação; a folga garante que ele venha
+        // na página, e `automaticTransactionInstant` decide se ele entra de
+        // fato na semana. Custa alguns documentos, não uma varredura.
+        const margin = 24 * 60 * 60 * 1000;
         ctx.reads.automaticTransactions ??= this.gamificationRepository.getAutomaticTransactions(
             ctx.workspaceId,
+            localWallClockIso(new Date(ctx.startOfWeek.getTime() - margin)),
+            localWallClockIso(new Date(ctx.endOfWeek.getTime() + margin)),
             AUTOMATIC_TRANSACTIONS_SCAN_LIMIT
         );
         return ctx.reads.automaticTransactions;
@@ -1297,10 +1449,27 @@ export class GamificationService {
             logger.error("[GamificationService] Error fetching goals:", e);
         }
 
+        // Contexto do SORTEIO: os totais planejados da semana. Ele peneira os
+        // templates que não teriam como ser medidos — a missão de receita numa
+        // semana sem receita prevista, a de margem sem os dois lados do plano
+        // (ver `MissionTemplate.isEligible`). É uma leitura só, uma vez por
+        // semana por workspace, e evita uma missão travada em 0% por sete dias.
+        let context: MissionSelectionContext = EMPTY_MISSION_CONTEXT;
+        if (audience === "business") {
+            // Só a empresa tem template com `isEligible`; num workspace pessoal
+            // a leitura seria paga para nada.
+            try {
+                context = sumWeeklyTotals(await this.gamificationRepository.getWeeklySummaryRows(workspaceId, weekId));
+            }
+            catch (e) {
+                logger.error("[GamificationService] Falha ao ler o sumário da semana para o sorteio:", e);
+            }
+        }
+
         // 1. O CATÁLOGO escolhe — determinístico, sem rede.
         const planned = WEEKLY_MISSION_TYPES
             .map((type) => {
-                const template = selectMissionTemplate(audience, type, weekId);
+                const template = selectMissionTemplate(audience, type, weekId, context);
                 if (!template) return null;
                 const params: MissionParams = { target: template.target };
                 if (template.params.includes("category") && topCategory) {
@@ -1320,11 +1489,16 @@ export class GamificationService {
                     templateKey: entry.template.key,
                     baseName: entry.name,
                     target: entry.template.target,
-                    requiredTerms: entry.template.aiRequiredTerms,
+                    requiredTerms: entry.template.aiRequiredTermsPt,
                     forbiddenTerms: AUDIENCE_FORBIDDEN_TERMS[audience],
                     // O nome da categoria veio do Firestore: ele não conta como
-                    // vocabulário inventado pelo modelo.
-                    dataValues: topCategory ? [topCategory] : [],
+                    // vocabulário inventado pelo modelo — mas SÓ na missão que
+                    // de fato recebeu a categoria no texto. Passá-lo às três
+                    // abria uma brecha: a missão de conciliação da empresa
+                    // ganharia licença para dizer "alimentação" só porque
+                    // existe um centro de custo com esse nome, e é justamente
+                    // esse texto que o pacote existe para barrar.
+                    dataValues: entry.params.category ? [entry.params.category] : [],
                 }));
                 const validated = await this.aiRepository.generateWeeklyMissions(
                     workspaceId,

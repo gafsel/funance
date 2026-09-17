@@ -254,7 +254,20 @@ export async function retagWeeklyMissions(
                         continue;
                     }
 
-                    const params: MissionParams = { target: template.target };
+                    // Ao CARIMBAR, o alvo que vale é o do DOCUMENTO: a missão
+                    // antiga pode ter nascido com um alvo da IA diferente do
+                    // do template, e `params` existe para o app montar o texto
+                    // daquela missão — se ele disser "5 categorias" enquanto o
+                    // `target` gravado é 3, a barra e a frase se contradizem na
+                    // tela. Na SUBSTITUIÇÃO o alvo passa a ser o do template,
+                    // porque a missão inteira passa a ser a do template.
+                    const effectiveTarget = replace
+                        ? template.target
+                        : (typeof data.target === "number" && Number.isFinite(data.target)
+                            ? data.target
+                            : template.target);
+
+                    const params: MissionParams = { target: effectiveTarget };
                     if (template.params.includes("category")) {
                         const category = await resolveTopCategory();
                         if (category) params.category = category;

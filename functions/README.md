@@ -2399,14 +2399,55 @@ placeholders (`{category}`, `{target}`), `target`, `rewardXp`, `progressRule`,
 | business | consistency | `business_consistency_income_forecast` | receber N% da receita prevista da semana | `income_received_vs_planned` | 80 | 150 | `/planning` |
 | business | discipline | `business_discipline_top_cost_center` | manter o maior centro de custo no plano por N dias | `days_within_category_limit` | 5 | 250 | `/planning` |
 | business | discipline | `business_discipline_margin` | fechar a semana com margem acima da planejada | `weekly_margin_above_plan` | 1 | 250 | `/planning` |
-| business | organization | `business_organization_reconcile_statements` | conciliar N extratos das contas da empresa | `reconciled_statements` | 2 | 200 | `/reconciliation` |
-| business | organization | `business_organization_categorize_auto` | categorizar ou descartar N lançamentos automáticos | `categorized_auto_transactions` | 10 | 200 | `/workspace/categories` |
+| business | organization | `business_organization_reconcile_statements` | conciliar N extratos das contas da empresa | `reconciled_statements` | 1 | 200 | `/reconciliation` |
+| business | organization | `business_organization_categorize_auto` | categorizar ou descartar N lançamentos automáticos | `categorized_auto_transactions` | 3 | 200 | `/workspace/categories` |
 | business | organization | `business_organization_invoice_on_time` | pagar a fatura corporativa até o vencimento | `invoice_paid_on_time` | 1 | 200 | `/workspace/accounts` |
 
 **Pessoal mantém os três objetivos que já existiam** — são os que estão em
 produção e os que o jogo já sabe medir. O que mudou neles foi o TEXTO: os
 fallbacks diziam "Equipe planeja limites…" dentro de um workspace doméstico de
 uma pessoa só.
+
+**Os alvos corporativos são calibrados contra a base real**, não contra o que
+soa ambicioso. A única empresa da base fez **duas conciliações na vida inteira**
+e recebeu **dois lançamentos automáticos** na semana medida; os alvos originais
+(2 extratos e 10 lançamentos POR SEMANA) eram inalcançáveis, e missão
+inalcançável não ensina nada — ela só impede a semana perfeita e zera a streak
+de quem está fazendo tudo certo.
+
+### Elegibilidade: a peneira antes do sorteio
+
+Duas missões de empresa dependem de um dado que pode simplesmente não existir
+naquela semana. A de receita prevista precisa de receita prevista; a de margem
+precisa dos DOIS lados do plano. Sortear uma delas numa semana sem esse dado
+produz uma missão que o avaliador **não tem como medir**: 0% por sete dias,
+semana perfeita impossível e streak zerada, sem que o usuário tenha feito nada
+de errado.
+
+Por isso o template pode declarar `isEligible(context)`, e o contexto são os
+totais PLANEJADOS da semana, lidos uma vez na geração:
+
+| Template | Elegível quando |
+|---|---|
+| `business_consistency_income_forecast` | `plannedIncomeCents > 0` |
+| `business_discipline_margin` | `plannedIncomeCents > 0` **e** `plannedExpenseCents > 0` |
+
+A peneira roda **antes** do hash: numa semana sem receita prevista, a
+consistência da empresa cai sempre em "planejar centros de custo", que é o que
+se quer. Se a peneira não deixasse ninguém de pé, o sorteio voltaria a correr
+entre todos os candidatos — uma semana sem missão seria pior que uma missão
+difícil de medir, porque o card some da tela e a streak quebra sem explicação.
+Hoje isso não acontece: cada par audiência×tipo tem ao menos um template sem
+`isEligible`, e há teste para continuar assim.
+
+O contexto só é lido em workspace `business` — num pessoal nenhum template tem
+`isEligible`, e a leitura seria paga para nada.
+
+> **Uma empresa pode não fechar a semana perfeita numa semana sem receita
+> prevista.** A missão de receita some do sorteio (bom), mas a de margem
+> também, e sobra o par "centros de custo + maior centro de custo", que exige
+> plano. Um workspace de empresa que não planeja nada continua sem streak — e
+> isso é o produto funcionando, não um defeito: o jogo premia planejar.
 
 **A escolha da semana é um hash**, não um sorteio nem uma chamada de rede:
 `hashString(weekId|audience|type) % candidatos`. A variação entre semanas era o
@@ -2446,6 +2487,19 @@ passar nas quatro condições de `validateWeeklyMissionNames`:
    custo, fechamento contábil, DRE, CNPJ, folha de pagamento nem capital de
    giro.
 
+Mais duas recusas, que não são sobre audiência:
+
+5. **nome acima de 180 caracteres é REJEITADO, não truncado.** O texto cabe num
+   card e o prompt pede uma frase. Truncar no limite de texto livre (500)
+   entregava ao usuário uma missão cortada no meio — "Manter o centro de custo
+   Marketing dentro do pla" — como se fosse o objetivo dele;
+6. **texto com cara de injeção de prompt é rejeitado** ("ignore"/"ignorar"
+   junto de "instru…"). O prompt carrega dados que o usuário controla (nomes de
+   categoria e de meta), e o nome da missão vai para o Firestore e de lá para a
+   tela. Uma missão não tem motivo nenhum para falar em ignorar instruções: ou
+   o modelo repetiu o que leu num nome de categoria, ou repetiu o que alguém
+   plantou nele.
+
 Falhou qualquer uma: aquela missão volta `null` e vale o texto do catálogo.
 **O pior caso da IA passou a ser "o texto não ficou mais bonito", em vez de "a
 missão virou outra coisa".** A semana nunca fica sem missão, e uma falha de
@@ -2456,6 +2510,19 @@ rede no Gemini não muda nada além disso.
 > injetados no nome (`dataValues`) são removidos do texto antes da varredura de
 > vocabulário: a palavra estar ali é o Firestore falando, não o modelo
 > inventando.
+>
+> A licença é **por missão**, não por workspace: só a missão cujo template
+> declara `{category}` recebe o nome da categoria em `dataValues`. Passá-lo às
+> três daria à missão de conciliação permissão para dizer "alimentação" apenas
+> porque existe um centro de custo com esse nome — que é exatamente o texto que
+> o pacote existe para barrar.
+
+> **Os termos obrigatórios são em português, e o campo se chama
+> `aiRequiredTermsPt` para não mentir sobre isso.** O prompt pede o nome em
+> português e o documento grava `name` em português para a build instalada; o
+> inglês do catálogo é resolvido no app a partir de `nameKey` + `params`, sem
+> passar pela IA. No dia em que o prompt pedir outro idioma, o campo vira um
+> mapa por locale.
 
 ### As regras de progresso
 
@@ -2472,10 +2539,68 @@ TRANSAÇÃO (a fatura paga).
 | `days_within_category_limit` | dias JÁ decorridos em que a maior categoria ficou no limite diário | parcelas pagas na semana | transação, fechamento |
 | `reconciled_statement_items` | itens do extrato recém-conciliado | **o evento** | conciliação |
 | `reconciled_statements` | extratos concluídos na semana | `reconciliations` (`status` + `createdAt`) | conciliação, fechamento |
-| `categorized_auto_transactions` | lançamentos automáticos da semana já RESOLVIDOS | `automatic_transactions` | transação, fechamento |
+| `categorized_auto_transactions` | lançamentos automáticos da semana já RESOLVIDOS | `automatic_transactions` (faixa de `date`) | transação, **triagem**, fechamento |
 | `invoice_paid_on_time` | faturas pagas até o DIA do vencimento | parcelas pagas com `isInvoice` | transação, fechamento |
 | `weekly_margin_above_plan` | margem realizada ≥ margem planejada | `period_summaries/{YYYY-Www}` | transação, fechamento |
-| `income_received_vs_planned` | % da receita planejada que entrou | `period_summaries/{YYYY-Www}` | transação, fechamento |
+| `income_received_vs_planned` | % da receita **prevista** que entrou | `period_summaries/{YYYY-Www}` (`specificPlannedAmount`) | transação, fechamento |
+
+#### Os dois "planejados" do sumário não são a mesma coisa
+
+Esta foi a correção mais cara do pacote, e vale escrita por extenso.
+
+| Campo | O que é | Onde aparece |
+|---|---|---|
+| `generalPlannedAmount` | o LIMITE de `category_planning` rateado no período (F1.5) | teto de DESPESA; numa categoria de receita costuma ser **zero** |
+| `specificPlannedAmount` | a soma das PARCELAS PROJETADAS que caem no período | é aqui que mora a **receita prevista** (a nota a receber agendada por `dueDate`) e a despesa já agendada |
+
+A primeira versão das missões corporativas leu o `general` para saber a receita
+prevista da semana. Em produção (workspace a70134c1, 2026-W37) a categoria
+"Serviços" tinha `generalPlanned = 0`, `specificPlanned = 15.850` e
+`actual = 3.850`. Duas consequências, as duas silenciosas:
+
+- **a missão de receita nunca avaliava.** `plannedIncome` dava zero, a regra
+  devolvia `null` e a barra ficava em 0% a semana inteira — em metade das
+  semanas do ano, que é a fatia em que o hash escolhe essa missão;
+- **a missão de margem concluía de graça.** Com receita planejada zero, a
+  "margem planejada" virava `−despesa` (um número NEGATIVO) e qualquer margem
+  realizada passava. A guarda que deveria pegar isso era
+  `receita + despesa <= 0`, e ela nunca disparava, porque bastava haver
+  despesa planejada. Resultado real: 250 XP numa semana em que a empresa
+  recebeu 24% do que previa.
+
+Hoje `sumWeeklyTotals` usa o **`specific` para a receita** e a **soma dos dois
+para a despesa** (a empresa pode ter teto de categoria E compromissos já
+agendados, e os dois são dinheiro que ela planejou gastar). A conta é feita em
+**centavos inteiros**, como manda [F1.10](#dinheiro-em-centavos-f110). E a
+margem só é avaliada com os DOIS lados do plano presentes — "margem acima da
+planejada" pressupõe uma margem planejada.
+
+#### `automatic_transactions.date` é relógio local, sem fuso
+
+O app serializa `AutomaticTransactionModel.date` com o `toJson` do freezed, sem
+conversor: o campo chega como `"2026-09-04T10:50:47.466"` — horário local do
+aparelho, **sem sufixo**. Isso quebra de duas formas, e as duas apareceram:
+
+1. **`new Date(...)` no runtime das functions (UTC) desloca três horas.** Um
+   lançamento de domingo 01:00 em São Paulo virava sábado 22:00 e caía na
+   semana anterior; um de sábado 23:00 pulava para a semana seguinte.
+   `automaticTransactionInstant` interpreta o texto no fuso do produto, e trata
+   também as outras duas formas possíveis (string com `Z`/offset, e `Timestamp`,
+   que as rules aceitam).
+2. **`where("date", ">=", <Timestamp>)` devolveria ZERO documentos, calado** —
+   o Firestore ordena por TIPO antes de ordenar por valor. Por isso a consulta
+   compara **strings de relógio local**: num formato de largura fixa a ordem
+   lexicográfica é a ordem cronológica.
+
+A primeira versão desistiu da consulta e leu a coleção inteira com `limit(500)`
+e nenhum `orderBy`. Numa caixa de entrada com **532 documentos**, o Firestore
+devolvia 500 ordenados por id (UUID), os 12 da semana não entravam na página, a
+missão marcava zero para sempre — e cada evento de transação custava **500
+leituras**. Hoje a consulta é `where(date >= início) + where(date < fim) +
+orderBy(date) + limit(200)`, resolvida pelo índice de campo único que já existe
+(faixa e ordenação no mesmo campo não pedem índice composto). Os limites levam
+**um dia de folga em cada borda** para o documento legado gravado em UTC vir na
+página; a janela exata é conferida em memória.
 
 Cinco decisões que valem explicar:
 
@@ -2483,13 +2608,16 @@ Cinco decisões que valem explicar:
   `categoryId` de um lançamento automático é preenchido **pela própria IA** no
   gatilho de enriquecimento. Contá-lo faria a missão fechar sozinha, sem
   ninguém ter feito nada — XP por o servidor ter trabalhado.
-- **A data do lançamento automático é filtrada em MEMÓRIA.** O app grava
-  `date` como string ISO (`toJson` do freezed, sem conversor), e um
-  `where("date", ">=", <Timestamp>)` devolveria **zero** documentos em
-  silêncio: o Firestore ordena por tipo antes de ordenar por valor. A leitura
-  tem teto (`AUTOMATIC_TRANSACTIONS_SCAN_LIMIT = 500`) porque a coleção é uma
-  caixa de ENTRADA, não um histórico; bater no teto faz a missão subcontar,
-  nunca a função estourar.
+- **Descartar conta, e precisa de gatilho próprio.** Consolidar um lançamento
+  automático cria uma transação, e é essa escrita que move a barra. Descartar
+  não cria nada — vira `isIgnored: true` no próprio documento. Por isso existe
+  `onAutomaticTransactionTriaged` (`onDocumentUpdated` em
+  `automatic_transactions`), com guarda por CONTEÚDO: só a **transição para
+  triado** dispara. O app reescreve o documento inteiro a cada edição
+  (`update(toJson())`), então sem a guarda uma troca de categoria — ou a
+  sugestão que o próprio servidor grava — pagaria uma avaliação. Destriar não
+  desconta: missão semanal não anda para trás, pela mesma razão que a missão
+  concluída nunca é estornada.
 - **A fatura é comparada por DIA de calendário**, não por instante. O
   vencimento é gravado ao meio-dia no fuso do produto (ver
   [`nextInvoice`](#accountsaccountidnextinvoice)); comparar instantes
@@ -2518,6 +2646,42 @@ categoria chamada "Alimentação" — que podia não existir — e a missão ava
 sozinha. Hoje, sem categoria com limite, a regra não mede nada e o progresso
 não anda. É deliberado: o jogo premia planejar, e não havia plano.
 
+#### Custo de leitura por evento
+
+O avanço por regra lê mais que o `if/else` que ele substituiu, e a primeira
+versão exagerou: um evento de transação num workspace de empresa chegou a
+**~87 leituras** (500 delas só na varredura dos lançamentos automáticos, no
+pior caso). Três cortes trouxeram isso para dentro do aceitável:
+
+1. **Gate por tipo de missão ANTES de ler o documento.** `RULE_EVENT_SOURCES`
+   precisa do template, e o template vem do documento — então um evento de
+   conciliação lia as três missões da semana para descartar duas.
+   `TYPES_MOVABLE_BY_EVENT`, derivado do catálogo, responde "vale a pena ler?"
+   sem ler: a regra de um tipo de missão só pode sair dos templates daquele
+   tipo.
+2. **A consulta dos lançamentos automáticos virou faixa** (acima): de 500 para
+   os documentos da semana.
+3. **O join do sumário semanal só toca nas categorias do sumário.**
+   `getWeeklySummaryRows` varria a coleção INTEIRA de categorias para
+   classificar as poucas que se moveram na semana — barato no cron (uma vez por
+   workspace), caro quando margem e receita passaram a ser avaliadas a cada
+   transação. Hoje é um `getAll` nos ids presentes no sumário.
+
+Leituras por evento, num workspace de empresa (ordem de grandeza; `C` =
+planejamentos, `P` = parcelas pagas na semana, `k` = categorias com movimento
+na semana, `A` = lançamentos automáticos da semana):
+
+| Evento | Missões lidas | Dados | Total típico |
+|---|---|---|---|
+| planejamento | 1 (consistência) | `C` ≈ 10 | **~11** |
+| conciliação | 2 (existência + organização) | 1 (`count()`) | **~3** |
+| triagem (`auto_transaction`) | 2 (existência + organização) | `A` ≈ 12 | **~14** |
+| transação, semana "plano" | 3 | `C` + `P` + `A` ≈ 10+5+12 | **~30** |
+| transação, semana "sumário" | 3 | (1 + `k`) + `P` ≈ 7+5 | **~15** |
+
+As leituras são memoizadas por avaliação: as duas missões de empresa que leem o
+sumário semanal na mesma semana pagam **uma** leitura, não duas.
+
 #### O que ficou de fora, e o dado que falta
 
 - **"Conciliar 100% dos extratos DAS CONTAS".** O documento de
@@ -2527,16 +2691,19 @@ não anda. É deliberado: o jogo premia planejar, e não havia plano.
   contas foram conciliadas, e "100%" não tem denominador. Implementado no
   lugar: **contar extratos concluídos na semana**, que é mensurável hoje. Para
   o 100%, o app precisa passar a gravar `accountId` no resumo da conciliação.
-- **"Categorizar 100% dos lançamentos automáticos".** O denominador é móvel (a
-  caixa de entrada cresce durante a semana) e não há gatilho de gamificação em
-  `automatic_transactions` — o handler existente é `onDocumentCreated`, e a
-  categorização acontece num **update**. Implementado no lugar: **contar N
-  resolvidos na semana**. Para o 100%, faltam um gatilho de update naquela
-  coleção e um denominador congelado no início da semana.
+- **"Categorizar 100% dos lançamentos automáticos".** O gatilho de update já
+  existe (`onAutomaticTransactionTriaged`), mas o denominador continua móvel: a
+  caixa de entrada cresce durante a semana, e "100% do que chegou até agora" é
+  um alvo que anda para trás toda vez que chega uma notificação nova.
+  Implementado no lugar: **contar N resolvidos na semana** (N = 3). Para o
+  100%, falta congelar o denominador — um contador no documento da missão,
+  incrementado pelo gatilho de criação.
 - **`reconciled_statements` exige índice composto** em `reconciliations`
   (`status` ASC, `createdAt` ASC), acrescentado a `firestore.indexes.json`.
   Ele precisa estar READY **antes** do deploy das functions — ver a ordem de
-  rollout.
+  rollout. A consulta dos lançamentos automáticos, ao contrário, **não** pede
+  índice novo: faixa e ordenação caem no mesmo campo, que o índice de campo
+  único já cobre.
 
 ### Coaching: tom por tipo
 

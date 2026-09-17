@@ -43,6 +43,17 @@ export const MAX_DEADLINE_MONTHS = 600;
 export const MAX_INSTALLMENT_COUNT = 480;
 /** Alvo máximo de uma missão semanal. */
 export const MAX_MISSION_TARGET = 100;
+/**
+ * Tamanho máximo do NOME de uma missão semanal — e, diferente do resto deste
+ * arquivo, o excedente é REJEITADO, não truncado.
+ *
+ * O nome cabe num card e o prompt pede uma frase de até 180 caracteres. Truncar
+ * 500 caracteres em 500 (o limite de texto livre) entregava ao usuário uma
+ * missão cortada no meio — "Manter o centro de custo Marketing dentro do pla" —
+ * como se fosse o objetivo dele. Rejeitar devolve o texto do catálogo, que está
+ * sempre inteiro e sempre certo.
+ */
+export const MAX_MISSION_NAME_LENGTH = 180;
 
 const DEFAULT_ICON = "category";
 const DEFAULT_COLOR = "#4A8C9C";
@@ -687,10 +698,29 @@ export function validateWeeklyMissionNames(
             return discards.drop(`missão ${expected.type} mudou o alvo (${target} != ${expected.target})`);
         }
 
+        // Trunca no limite de texto livre só para NORMALIZAR (controles,
+        // espaços) — o comprimento é julgado logo abaixo, e reprovado.
         const name = cleanString(item.name, MAX_TEXT_LENGTH);
         if (!name) return discards.drop(`missão ${expected.type} sem nome`);
+        if (name.length > MAX_MISSION_NAME_LENGTH) {
+            return discards.drop(
+                `missão ${expected.type} com nome de ${name.length} caracteres (máximo ${MAX_MISSION_NAME_LENGTH})`
+            );
+        }
 
         const folded = foldTerm(name);
+
+        // O nome vai para o Firestore e de lá para a tela, e o prompt carrega
+        // dados do usuário (nomes de categoria e de meta) que ele não controla
+        // — é a superfície clássica de injeção. Um texto de missão não tem
+        // motivo nenhum para falar em "ignorar instruções": ou o modelo repetiu
+        // o que leu num nome de categoria, ou repetiu o que alguém plantou
+        // nele. Nos dois casos o catálogo é a resposta certa.
+        if (folded.includes("ignore") || folded.includes("ignorar")) {
+            if (folded.includes("instru")) {
+                return discards.drop(`missão ${expected.type} com texto de injeção de prompt`);
+            }
+        }
 
         const missing = expected.requiredTerms.filter((term) => !folded.includes(foldTerm(term)));
         if (missing.length > 0) {
