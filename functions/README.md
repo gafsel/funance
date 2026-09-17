@@ -360,7 +360,7 @@ Hoje um centavo nunca conta, dois centavos sempre contam.
 
 **As duas mudanças de resultado do pacote, juntas:** esta e o arredondamento do
 rateio do planejado (seção acima). Fora delas, todo cálculo devolve os mesmos
-números de antes — é o que as 882 asserções unitárias e as 195 do emulador
+números de antes — é o que as 882 asserções unitárias e as 196 do emulador
 verificam, com os fixtures inalterados.
 
 ### `rebuild_workspace` com os dois campos
@@ -458,7 +458,7 @@ totais somados no cliente.
   cinco coleções e o `currentAmount` da meta no update, com o reenvio do mesmo
   valor tolerado e o reenvio DEFASADO negado (o cenário do passo 0 do rollout).
 
-Ao todo: **882** asserções unitárias (`npm run test:unit`) e **195** no
+Ao todo: **882** asserções unitárias (`npm run test:unit`) e **196** no
 emulador (`npm run test:integration`), das quais **78** são de security rules.
 
 ## Configuração global
@@ -2963,8 +2963,21 @@ O veredito é explícito, e ele só passa quando **as três** contagens são zer
 - **depois** as duas continuam batendo, `a_migrar` é zero e o veredito é
   `VERIFY: OK`.
 
-Resumo final: `workspaces`, `escritas`, `falhas`, `pendentes`, a lista dos
-workspaces que falharam e a linha por coleção. Saída de código:
+Resumo final: `workspaces`, `escritas`, `falhas`, `pendentes`, `a_migrar`,
+`órfãos`, `inválidos`, a lista dos workspaces que falharam e a linha por
+coleção. Um `--apply` que fecha termina com uma linha afirmativa:
+
+```
+[migrate_money_cents] ✔ Migração FECHADA: 4540 documento(s) corrigido(s), 0 pendente(s), 0 divergência(s), 0 campo(s) inválido(s).
+```
+
+> **As contagens do veredito são do estado DEPOIS da execução.** As linhas por
+> coleção são de ANTES da escrita (é o que a varredura viu); `a_migrar`,
+> `divergentes` e `órfãos` do resumo descontam o que o `--apply` corrigiu. Sem
+> isso, uma execução que consertou uma divergência sairia com código 1
+> reclamando exatamente dela.
+
+Saída de código:
 
 | Modo | Sai 0 quando |
 |---|---|

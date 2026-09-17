@@ -568,6 +568,38 @@ describe("ALTO 3 — o checkpoint não pode esconder um workspace que falhou", (
         expect(result.ok).toBe(true);
     });
 
+    it("um apply que CORRIGE uma divergência também fecha", async () => {
+        const workspaceId = newWorkspace("apply-divergente");
+        await seedSimple(workspaceId);
+        // Inteiro plantado errado: R$ 1.000,00 no double, 1 centavo no inteiro.
+        await firestore.doc(`workspaces/${workspaceId}/orders/o1`).update({ amountCents: 1 });
+        // E um órfão: inteiro pendurado sem o `double` correspondente.
+        await firestore.collection(`workspaces/${workspaceId}/goals`).doc("g1")
+            .set({ name: "g", targetAmount: 10, isDeleted: false, currentAmountCents: 999 });
+
+        const antes = verdict(await migrateMoneyCents(firestore, { dryRun: true, verify: true, workspaceId }, quiet));
+        expect(antes.divergent).toBe(1);
+        expect(antes.ok).toBe(false);
+
+        const applied = await migrateMoneyCents(firestore, { dryRun: false, workspaceId }, quiet);
+        const result = verdict(applied);
+
+        // As contagens por coleção são de ANTES da escrita; o veredito olha o
+        // estado DEPOIS. Sem recontar, um apply que consertou a divergência
+        // saía com exit 1 reclamando dela.
+        expect(result.divergent).toBe(0);
+        expect(result.remaining).toBe(0);
+        expect(applied.orphans).toBe(0);
+        expect(result.ok).toBe(true);
+
+        expect((await firestore.doc(`workspaces/${workspaceId}/orders/o1`).get()).data()?.amountCents).toBe(100000);
+        expect((await firestore.doc(`workspaces/${workspaceId}/goals/g1`).get()).data()?.currentAmountCents)
+            .toBeUndefined();
+
+        const depois = verdict(await migrateMoneyCents(firestore, { dryRun: true, verify: true, workspaceId }, quiet));
+        expect(depois.ok).toBe(true);
+    });
+
     it("um --apply com falha NÃO fecha: o que não foi gravado continua faltando", async () => {
         const gamma = `ws-cents-gamma-${Date.now()}`;
         workspaces.push(gamma);
@@ -617,7 +649,11 @@ describe("ALTO 3 — o checkpoint não pode esconder um workspace que falhou", (
         // O workspace NÃO falhou — o documento sujo é que foi denunciado.
         expect(summary.failed).toBe(0);
         expect(summary.invalid).toBeGreaterThan(0);
-        expect(summary.collections.orders.invalidSamples.join(" ")).toContain("o-absurda");
+        // "fora de faixa", e não "não numérico": o valor É um número, grande
+        // demais para caber em centavos inteiros exatos.
+        const sample = summary.collections.orders.invalidSamples.join(" ");
+        expect(sample).toContain("o-absurda");
+        expect(sample).toContain("fora de faixa");
         // E a order saudável ao lado foi migrada assim mesmo.
         expect((await firestore.doc(`workspaces/${workspaceId}/orders/o1`).get()).data()?.amountCents).toBe(100000);
         // O verify reprova enquanto o documento sujo estiver lá.

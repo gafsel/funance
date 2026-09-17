@@ -153,6 +153,13 @@ export interface MigrateMoneyCentsSummary {
      */
     patched: number;
     /**
+     * Divergências e órfãos que a escrita CONSERTOU. Mesma razão de `patched`:
+     * as contagens por coleção são de ANTES da escrita, e em `--apply` um
+     * documento corrigido não pode continuar contando como defeito aberto.
+     */
+    divergentPatched: number;
+    orphansPatched: number;
+    /**
      * Workspaces que a próxima execução ainda vai visitar (os não processados
      * mais os que falharam). Vazio = a base está migrada.
      */
@@ -169,6 +176,8 @@ export interface MigrateMoneyCentsSummary {
     remaining: number;
     /** Campos monetários presentes que NÃO são número finito. */
     invalid: number;
+    /** Campos `*Cents` órfãos AINDA pendurados depois desta execução. */
+    orphans: number;
 }
 
 /**
@@ -531,7 +540,11 @@ async function scanCollection(
                 if (error instanceof MoneyRangeError) {
                     tally.invalid++;
                     if (tally.invalidSamples.length < 20) {
-                        tally.invalidSamples.push(`${doc.ref.path} (${error.message})`);
+                        // "fora de faixa", e não "não numérico": o valor É um
+                        // número — grande demais para caber em centavos
+                        // inteiros exatos. Confundir os dois manda quem opera
+                        // procurar uma string onde há um `1e15`.
+                        tally.invalidSamples.push(`${doc.ref.path} (fora de faixa: ${error.value})`);
                     }
                     continue;
                 }
@@ -591,9 +604,12 @@ export async function migrateMoneyCents(
         failed: 0,
         failedWorkspaces: [],
         patched: 0,
+        divergentPatched: 0,
+        orphansPatched: 0,
         pending: [],
         remaining: 0,
         invalid: 0,
+        orphans: 0,
     };
 
     for (const name of MIGRATED_COLLECTIONS) {
@@ -648,8 +664,12 @@ export async function migrateMoneyCents(
 
         // Documentos já contados como "a migrar" ANTES deste workspace: a
         // diferença é o número que ele reporta.
-        const migratedSoFar = () => Object.values(summary.collections).reduce((acc, t) => acc + t.migrated, 0);
+        const totalOf = (field: "migrated" | "divergent" | "orphans") =>
+            Object.values(summary.collections).reduce((acc, t) => acc + t[field], 0);
+        const migratedSoFar = () => totalOf("migrated");
         const before = migratedSoFar();
+        const divergentBefore = totalOf("divergent");
+        const orphansBefore = totalOf("orphans");
 
         try {
             const flat = (fields: Readonly<Record<string, string>>) =>
@@ -696,6 +716,10 @@ export async function migrateMoneyCents(
             // sumiram entre a leitura e a escrita — eles também não faltam.
             if (!options.dryRun && !options.verify) {
                 summary.patched += found;
+                // Divergência e órfão são SUBCONJUNTOS do que foi corrigido:
+                // se o workspace fechou, eles fecharam com ele.
+                summary.divergentPatched += totalOf("divergent") - divergentBefore;
+                summary.orphansPatched += totalOf("orphans") - orphansBefore;
             }
 
             // Concluído sem erro: sai da lista de pendentes.
@@ -715,8 +739,14 @@ export async function migrateMoneyCents(
     summary.pending = [...pending].sort();
     summary.invalid = Object.values(summary.collections).reduce((acc, t) => acc + t.invalid, 0);
 
-    const needed = Object.values(summary.collections).reduce((acc, t) => acc + t.migrated, 0);
-    summary.remaining = Math.max(0, needed - summary.patched);
+    const total = (field: "migrated" | "divergent" | "orphans") =>
+        Object.values(summary.collections).reduce((acc, t) => acc + t[field], 0);
+
+    // Tudo que o veredito olha é o estado DEPOIS desta execução: as contagens
+    // por coleção são de antes da escrita, e em `--apply` um defeito corrigido
+    // não pode continuar contando como aberto.
+    summary.remaining = Math.max(0, total("migrated") - summary.patched);
+    summary.orphans = Math.max(0, total("orphans") - summary.orphansPatched);
 
     if (!options.workspaceId && !options.dryRun && !options.verify) {
         // Lista vazia = base migrada; o campo é zerado para a próxima execução
@@ -748,7 +778,8 @@ export function verdict(summary: MigrateMoneyCentsSummary): {
     failed: number;
     reasons: string[];
 } {
-    const divergent = Object.values(summary.collections).reduce((acc, t) => acc + t.divergent, 0);
+    const counted = Object.values(summary.collections).reduce((acc, t) => acc + t.divergent, 0);
+    const divergent = Math.max(0, counted - summary.divergentPatched);
     const reasons: string[] = [];
 
     if (summary.failed > 0) {
@@ -784,7 +815,8 @@ function logSummary(
 ): void {
     log(
         `[migrate_money_cents] Resumo — workspaces=${summary.workspaces}, escritas=${summary.writesCommitted}, ` +
-        `falhas=${summary.failed}, pendentes=${summary.pending.length}.`
+        `falhas=${summary.failed}, pendentes=${summary.pending.length}, ` +
+        `a_migrar=${summary.remaining}, órfãos=${summary.orphans}, inválidos=${summary.invalid}.`
     );
 
     if (summary.failedWorkspaces.length > 0) {
@@ -817,7 +849,10 @@ function logSummary(
             log(`[migrate_money_cents]     divergente: ${path}`);
         }
         for (const path of tally.invalidSamples) {
-            log(`[migrate_money_cents]     campo monetário INVÁLIDO (não numérico): ${path}`);
+            // A amostra já diz "(fora de faixa: ...)" quando for esse o caso; o
+            // resto é campo presente que não é número.
+            const kind = path.includes("(fora de faixa:") ? "" : " (não numérico)";
+            log(`[migrate_money_cents]     campo monetário INVÁLIDO${kind}: ${path}`);
         }
     }
 
@@ -833,9 +868,17 @@ function logSummary(
         return;
     }
 
-    if (!result.ok && !options.dryRun) {
-        log(`[migrate_money_cents] ⚠️  A execução NÃO fechou: ${result.reasons.join("; ")}. Rode de novo.`);
+    if (options.dryRun) return;
+
+    if (result.ok) {
+        log(
+            `[migrate_money_cents] ✔ Migração FECHADA: ${summary.patched} documento(s) corrigido(s), ` +
+            `${summary.pending.length} pendente(s), 0 divergência(s), 0 campo(s) inválido(s).`
+        );
+        return;
     }
+
+    log(`[migrate_money_cents] ⚠️  A execução NÃO fechou: ${result.reasons.join("; ")}. Rode de novo.`);
 }
 
 export function parseArgs(argv: string[]): MigrateMoneyCentsOptions & { projectId?: string } {
