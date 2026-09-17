@@ -241,35 +241,43 @@ class AppPoolBar extends StatelessWidget {
 
     return Semantics(
       label: spoken.isEmpty ? null : spoken,
-      child: ClipRRect(
-        borderRadius: AppRadius.brXs,
-        child: SizedBox(
-          height: height,
-          child: Stack(
-            children: [
-              Positioned.fill(child: ColoredBox(color: palette.line)),
-              if (visible.isNotEmpty)
-                Row(
-                  children: [
-                    for (var i = 0; i < visible.length; i++) ...[
-                      Expanded(
-                        flex: (visible[i].fraction * 1000).round(),
-                        child: ColoredBox(
-                          color: visible[i].color,
-                          child: _label(context, visible[i]),
+      // Os rótulos DESENHADOS ficam de fora da árvore de acessibilidade: o
+      // `label` acima já diz as faixas todas, e sem isto o leitor de tela
+      // lia a barra duas vezes — "Essenciais 62%, Conforto 25%, Futuro 3%" e
+      // logo depois "Essenciais 62%. Conforto 25%.", só as largas o
+      // bastante para terem rótulo na tela. Pior que a repetição era a
+      // incoerência: a segunda leitura omitia justamente o pool estreito.
+      child: ExcludeSemantics(
+        child: ClipRRect(
+          borderRadius: AppRadius.brXs,
+          child: SizedBox(
+            height: height,
+            child: Stack(
+              children: [
+                Positioned.fill(child: ColoredBox(color: palette.line)),
+                if (visible.isNotEmpty)
+                  Row(
+                    children: [
+                      for (var i = 0; i < visible.length; i++) ...[
+                        Expanded(
+                          flex: (visible[i].fraction * 1000).round(),
+                          child: ColoredBox(
+                            color: visible[i].color,
+                            child: _label(context, visible[i]),
+                          ),
                         ),
-                      ),
-                      if (i < visible.length - 1) SizedBox(width: gap),
+                        if (i < visible.length - 1) SizedBox(width: gap),
+                      ],
+                      // O resto do trilho, quando os pools não somam o total.
+                      if (total < 1)
+                        Expanded(
+                          flex: ((1 - total) * 1000).round(),
+                          child: const SizedBox.shrink(),
+                        ),
                     ],
-                    // O resto do trilho, quando os pools não somam o total.
-                    if (total < 1)
-                      Expanded(
-                        flex: ((1 - total) * 1000).round(),
-                        child: const SizedBox.shrink(),
-                      ),
-                  ],
-                ),
-            ],
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -291,11 +299,9 @@ class AppPoolBar extends StatelessWidget {
         label,
         maxLines: 1,
         overflow: TextOverflow.clip,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: segment.color.computeLuminance() < 0.5
-              ? AppColors.inkInverse
-              : AppColors.inkLight,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.labelSmall?.copyWith(color: AppColors.inkOn(segment.color)),
       ),
     );
   }

@@ -147,9 +147,9 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
     return LoadingButton.filled(
       style: FilledButton.styleFrom(
         backgroundColor: submitButtonColor,
-        foregroundColor: (submitButtonColor?.computeLuminance() ?? 0) < .5
-            ? AppColors.inkInverse
-            : AppColors.inkLight,
+        foregroundColor: submitButtonColor == null
+            ? null
+            : AppColors.inkOn(submitButtonColor!),
       ),
       onPressed: (submitEnabled?.call(snapshot.model) ?? true)
           ? (loading) async {

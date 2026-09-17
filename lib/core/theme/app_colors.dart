@@ -146,4 +146,40 @@ abstract final class AppColors {
     Color(0xFF795548),
     Color(0xFF607D8B),
   ];
+
+  // --- Tinta sobre uma cor arbitrária ---
+
+  /// A tinta legível sobre [background]: [inkInverse] ou [inkLight], a que
+  /// tiver MAIS contraste.
+  ///
+  /// Cinco lugares do app decidiam isso com `computeLuminance() < 0.5`, e os
+  /// cinco erravam do mesmo jeito. O corte em 0.5 responde "esta cor é
+  /// escura?", que não é a pergunta: a pergunta é "qual das minhas duas
+  /// tintas se enxerga melhor aqui?". As duas coincidem quando as tintas são
+  /// preto e branco puros; as nossas não são — a tinta escura é um
+  /// azul-petróleo (#0A2329) e a clara é quase branca —, e a assimetria entre
+  /// elas desloca o ponto de virada bem abaixo de 0.5.
+  ///
+  /// O estrago era concreto e cobria justamente as cores mais usadas: os três
+  /// pools do 50/30/20 têm luminância abaixo de 0.5, então **todos** recebiam
+  /// tinta clara. O pool30, um âmbar, ficava em 2.06:1 — abaixo de qualquer
+  /// piso de acessibilidade — quando com a tinta escura daria 7.58:1. Idem
+  /// para `success`, `warning` e `danger`, que aparecem em pílula e em chip
+  /// de cabeçalho.
+  ///
+  /// Por razão de contraste (WCAG 2.1), não por luminância:
+  /// `(claro + 0.05) / (escuro + 0.05)`.
+  static Color inkOn(Color background) =>
+      _contrast(background, inkInverse) >= _contrast(background, inkLight)
+      ? inkInverse
+      : inkLight;
+
+  /// Razão de contraste entre duas cores, de 1 (iguais) a 21 (preto/branco).
+  static double _contrast(Color a, Color b) {
+    final la = a.computeLuminance();
+    final lb = b.computeLuminance();
+    final lighter = la > lb ? la : lb;
+    final darker = la > lb ? lb : la;
+    return (lighter + 0.05) / (darker + 0.05);
+  }
 }

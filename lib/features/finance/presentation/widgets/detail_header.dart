@@ -77,11 +77,15 @@ class SliverDetailHeader extends StatelessWidget {
     final mq = MediaQuery.of(context);
     final isSmallWidth = AppBreakpoints.of(width).isCompact;
     final effectiveBgColor = backgroundColor ?? theme.colorScheme.primary;
-    final isDarkBg = effectiveBgColor.computeLuminance() < 0.5;
     // A cor do fundo vem de DADO (a cor da conta, da meta, da categoria), e
     // por isso a tinta não pode vir da paleta do tema: ela tem que contrastar
     // com ESTE fundo, claro ou escuro, em qualquer tema.
-    final contentColor = isDarkBg ? AppColors.inkInverse : AppColors.inkLight;
+    final contentColor = AppColors.inkOn(effectiveBgColor);
+    // "Escuro" aqui quer dizer "pediu a tinta clara" — é a MESMA decisão que
+    // escolheu a tinta, e não um segundo corte que pode discordar dela. Os
+    // véus abaixo seguem junto: sobre fundo escuro um branco a 10% aparece,
+    // sobre fundo claro o mesmo branco some.
+    final isDarkBg = contentColor == AppColors.inkInverse;
 
     // A altura pedida pelas telas é a do CONTEÚDO. O widget soma o que varia
     // por dispositivo — status bar/notch e escala de fonte do sistema — e
@@ -365,8 +369,8 @@ class SliverDetailHeader extends StatelessWidget {
     final theme = Theme.of(context);
     // A pílula continua desenhada aqui (e não com `StatusPill`) porque o
     // chamador manda o FUNDO dela como dado — `StatusPill` recebe o acento.
-    final isDarkBg = (chip.backgroundColor ?? bgColor).computeLuminance() < 0.5;
-    final ink = isDarkBg ? AppColors.inkInverse : AppColors.inkLight;
+    final ink = AppColors.inkOn(chip.backgroundColor ?? bgColor);
+    final isDarkBg = ink == AppColors.inkInverse;
 
     return Container(
       padding: const EdgeInsets.symmetric(

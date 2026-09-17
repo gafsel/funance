@@ -65,9 +65,7 @@ class ColorFormField extends StatelessWidget {
                           size: 16,
                           // A marca precisa aparecer sobre a cor escolhida
                           // pelo usuário, que pode ser clara ou escura.
-                          color: color.computeLuminance() < 0.5
-                              ? AppColors.inkInverse
-                              : AppColors.inkLight,
+                          color: AppColors.inkOn(color),
                         )
                       : null,
                 ),
