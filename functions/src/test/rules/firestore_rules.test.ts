@@ -159,10 +159,12 @@ describe("firestore.rules", () => {
                 type: "personal",
                 // MEMBER_UID é members[0], ou seja, o dono.
                 members: [MEMBER_UID, GUEST_UID],
-                // F2.2: o retrato já presente, para que apagá-lo seja uma
-                // alteração DE VERDADE no teste abaixo (um `deleteField()` num
-                // campo inexistente é um no-op e passaria).
+                // F2.2/F2.3: campos do servidor já presentes, para que apagá-los
+                // seja uma alteração DE VERDADE nos testes abaixo (um
+                // `deleteField()` num campo inexistente é um no-op e passaria).
                 financialHealth: { score: 55, tier: "estrategista", monthKey: "2026-08" },
+                xpAwardedFor: { planning: { mercado: "2026-08-01T00:00:00.000Z" } },
+                weeklyStreaks: { missions: 2, plan: 3 },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
             await setDoc(
@@ -746,12 +748,13 @@ describe("firestore.rules", () => {
             }
         });
 
-        it("nega a criação de um workspace já com a bússola pronta", async () => {
+        it("nega a criação de um workspace já com bússola ou marcadores de XP", async () => {
             const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
 
             for (const extra of [
                 { financialHealth: { score: 100, tier: "livre", monthKey: "2026-09" } },
                 { healthDirtyAt: Timestamp.fromDate(new Date()) },
+                { xpAwardedFor: { planning: { mercado: "2026-01-01" } } },
             ]) {
                 await assertFails(
                     setDoc(doc(db, "workspaces/ws-forjado"), {
@@ -760,6 +763,55 @@ describe("firestore.rules", () => {
                 );
             }
         });
+
+        it("permite criar o workspace com weeklyStreaks no formato antigo E no novo", async () => {
+            // F2.3: o campo virou mapa. O app antigo manda 0, o novo pode
+            // mandar o mapa vazio — os dois são o estado inicial.
+            const dbAntigo = testEnv.authenticatedContext("user-antigo").firestore();
+            await assertSucceeds(
+                setDoc(doc(dbAntigo, "workspaces/ws-streak-antigo"), {
+                    name: "Antigo", type: "personal", members: ["user-antigo"], weeklyStreaks: 0,
+                })
+            );
+
+            const dbNovo = testEnv.authenticatedContext("user-novo").firestore();
+            await assertSucceeds(
+                setDoc(doc(dbNovo, "workspaces/ws-streak-novo"), {
+                    name: "Novo", type: "personal", members: ["user-novo"], weeklyStreaks: {},
+                })
+            );
+
+            // Mas nunca com uma sequência já pronta.
+            const dbForja = testEnv.authenticatedContext("user-forja").firestore();
+            await assertFails(
+                setDoc(doc(dbForja, "workspaces/ws-streak-forjado"), {
+                    name: "Forjado", type: "personal", members: ["user-forja"], weeklyStreaks: { plan: 40 },
+                })
+            );
+        });
+    });
+
+    describe("F2.3 — unplannedReason", () => {
+        it("nega que o cliente grave ou apague o motivo do XP zero", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                    { unplannedReason: "born_paid" }
+                )
+            );
+        });
+
+        it("tolera o null da build que grava o doc inteiro numa parcela sem o campo", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                    { unplannedReason: null }
+                )
+            );
+        });
     });
 });
-

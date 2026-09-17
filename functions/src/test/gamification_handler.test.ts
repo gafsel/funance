@@ -56,7 +56,10 @@ describe("gamification_handler — guarda por conteúdo na parcela", () => {
             .toEqual([
                 // F1.8: a janela do ciclo da fatura é escrita pelo servidor.
                 "closingDate", "cycleEnd", "cycleStart",
-                "lastUpdate", "replicationCascade", "updatedAt", "xp",
+                "lastUpdate", "replicationCascade",
+                // F2.3: gravado na mesma escrita do xp.
+                "unplannedReason",
+                "updatedAt", "xp",
             ]);
     });
 

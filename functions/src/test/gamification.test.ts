@@ -440,7 +440,8 @@ describe("Weekly cron — evaluates the PREVIOUS full week", () => {
 
         // Semana anterior: 02/08 (domingo) a 08/08 => W31.
         expect(mockRepository.getWeeklyMissionsByWeek).toHaveBeenCalledWith("w1", "2026-W31");
-        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", 3);
+        // F2.3: `weeklyStreaks` virou mapa; o cron semanal só toca `missions`.
+        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 3 });
 
         // O badge financial_synapsis foi removido: o cron não precisa mais
         // varrer as parcelas pagas da semana.
@@ -457,7 +458,7 @@ describe("Weekly cron — evaluates the PREVIOUS full week", () => {
 
         await service.evaluateWeeklyMissionsCron("w1");
 
-        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", 0);
+        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 0 });
     });
 
     it("checks mission badges (previously dead code) after evaluating the week", async () => {

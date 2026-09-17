@@ -896,6 +896,7 @@ config/badges
   version: string            # hash do conteúdo (16 hex)
   badges: [{ id, name: {pt, en}, icon, xpReward, category, description: {pt, en} }]
   levelThresholds: number[]  # XP mínimo de cada nível, 20 níveis
+  xpSources: [{ id, name: {pt, en}, xp, description: {pt, en} }]   # F2.3
   updatedAt: timestamp
 ```
 
@@ -909,9 +910,16 @@ config/badges
 - `icon` é o nome do ícone Material (o app mapeia nome → `IconData`).
 - `levelThresholds[n-1]` é o XP que abre o nível `n` — a tabela é a inversa
   fiel de `calculateLevel` (`300 * (2^(n-1) - 1)`), coberta por teste.
-- `version` é o **hash do conteúdo**: ninguém precisa lembrar de incrementar
-  nada. Mudou um nome, um XP ou um limiar, muda o hash e a próxima execução
-  publica.
+- `xpSources` (F2.3) é a tabela "como ganhar XP" que o app exibe — ver
+  [XP que premia planejar](#xp-que-premia-planejar-f23). Ela mora aqui, e não
+  num documento por workspace, porque é configuração do PRODUTO: os valores são
+  iguais para todo mundo e mudam por deploy. **`workspaces/{w}.xpSources` não
+  existe.**
+- `xpReward: 0` é um valor **legítimo**: desde F2.3 os badges de contagem
+  continuam na vitrine como conquista, mas não pagam mais XP.
+- `version` é o **hash do conteúdo** (badges + limiares + `xpSources`): ninguém
+  precisa lembrar de incrementar nada. Mudou um nome, um XP, um limiar ou uma
+  fonte de XP, muda o hash e a próxima execução publica.
 
 **Quem publica:** o cron diário `publishBadgeCatalog` (`maxInstances: 1`), que
 lê a versão publicada e só escreve se ela mudou. É o caminho mais simples que
@@ -1305,7 +1313,166 @@ nunca existiu.
   virada de mês congelando o histórico, a varredura dos sujos e a garantia de
   que um workspace inexistente não é criado pelo retrato.
 
-### Contrato com o cliente Flutter (F2.2)
+## XP que premia planejar (F2.3)
+
+O propósito do produto é ensinar planejamento. O XP dizia outra coisa: quase
+todo ele vinha de badges de **contagem** — cadastrar cinco contas, registrar
+cem transações, completar um ano de workspace. Um usuário que lançasse cem
+transações desorganizadas subia de nível mais rápido do que quem manteve três
+limites em dia por dois meses.
+
+F2.3 move o XP para onde o produto quer que ele esteja.
+
+### A tabela de fontes de XP
+
+| Fonte | XP | Quando |
+|---|---|---|
+| **Lançamento planejado pago** | 15 | pagar um lançamento que estava planejado (regra antiga, inalterada) |
+| **Categoria dentro do limite** | 20 | por categoria com limite que fecha a semana sem estourar |
+| **Semana redonda** | 50 | bônus quando **todas** as categorias com limite fecham dentro |
+| **Sequência no plano** | 10 × streak | semanas consecutivas dentro do plano, **teto de 100** |
+| **Limite criado** | 30 | ao definir o primeiro limite de uma categoria — **uma vez por categoria** |
+| **Recorrência criada** | 30 | ao criar o primeiro lançamento recorrente de uma categoria — **uma vez por categoria** |
+| **Missão semanal** | 150–250 | por missão concluída (regra antiga, inalterada) |
+| **Gasto não planejado** | **0** | a parcela que nasce paga (ver `unplannedReason`) |
+
+Os valores vivem em `XP_VALUES`/`XP_SOURCES` (`gamification.service.ts`) e são
+**publicados** em `config/badges.xpSources` — é a tabela que o app mostra na
+tela "como ganhar XP". Mudar um número muda o hash do catálogo e o cron
+`publishBadgeCatalog` republica sozinho.
+
+> **`workspaces/{w}.xpSources` NÃO existe.** A tabela é configuração do
+> produto, igual para todo mundo, e muda por deploy, não por usuário.
+
+### Badges de contagem: XP zero, conquista mantida
+
+Dezoito badges passaram a `xpReward: 0` — eles **continuam existindo** na
+vitrine, continuam sendo desbloqueados e continuam contando como conquista;
+só não pagam mais XP:
+
+`two_accounts`, `three_accounts`, `five_accounts`, `five_transactions`,
+`twenty_transactions`, `fifty_transactions`, `hundred_transactions`,
+`five_categories`, `ten_categories`, `three_categories_month`,
+`five_categories_month`, `round_number`, `workspace_one_year`,
+`first_category`, `first_income`, `first_expense`, `first_transfer`,
+`first_month`.
+
+O corte foi na **contagem**, não no mérito: `under_control`, `golden_rule`,
+`planner`, `iron_consistency` e os badges de meta continuam pagando.
+
+### O XP semanal, a partir dos sumários
+
+`evaluateWeeklyPlanXp` roda dentro do `weeklyGamificationCron` (segunda,
+03:00) e avalia a **semana anterior**, já encerrada, lendo
+`period_summaries/{YYYY-Www}` — o mesmo documento que o app mostra.
+`generalPlannedAmount` é a proporção semanal do limite mensal (ver F1.5) e
+`actualAmount` é o realizado da semana.
+
+Categorias de **sistema** e de **receita** ficam de fora; só entram as de
+despesa com `generalPlannedAmount > 0`.
+
+- **Sem nenhuma categoria com limite, a streak ZERA.** "Semanas dentro do
+  plano" pressupõe um plano: apagar todos os limites não pode ser uma forma de
+  congelar a sequência indefinidamente;
+- **Estourar um limite zera a streak**, mas o XP das categorias que ficaram em
+  dia continua sendo pago — a semana não foi redonda, e ainda assim a categoria
+  em dia foi mérito;
+- é **idempotente** pela chave `workspaceId_weekId` (ação `weeklyPlanXp`): uma
+  reexecução do cron não paga de novo.
+
+### `weeklyStreaks` virou um MAPA
+
+```
+weeklyStreaks: { missions: number, plan: number }
+```
+
+Era um número só (a sequência de semanas com todas as missões concluídas). Com
+o streak de **plano** passaram a ser dois, e o contrato com o app é
+`weeklyStreaks.plan`.
+
+- O valor **legado** (número) é lido como `{missions: n, plan: 0}`: nenhuma
+  sequência é perdida na virada;
+- a escrita é **read-modify-write do campo inteiro, dentro de uma transação**,
+  e nunca `update({"weeklyStreaks.plan": n})`. Num documento legado, onde o
+  campo ainda é um número, o caminho pontilhado o converteria em mapa e apagaria
+  a sequência de missões sem avisar ninguém. A transação também é o que impede
+  que o cron de missões e o de plano, que rodam na mesma execução, sobrescrevam
+  um ao outro;
+- as rules aceitam `0` (app antigo) **e** o mapa vazio (app novo) na criação —
+  as duas formas são o estado inicial —, mas nunca uma sequência já pronta.
+
+### XP único por categoria
+
+| Gatilho | Marcador | XP |
+|---|---|---|
+| `onCategoryPlanningWrittenGamification` | `xpAwardedFor.planning.<categoryId>` | 30 |
+| `onOrderWrittenGamification` (**novo**) | `xpAwardedFor.recurring.<categoryId>` | 30 |
+
+O marcador e o XP vão na **mesma transação** (igual ao `unlockBadge`): é o
+Firestore que serializa a disputa, então duas escritas paralelas do mesmo
+planejamento pagam uma vez só. Sem o marcador, apagar e recriar o mesmo limite
+renderia 30 XP a cada vez, e o jogo passaria a premiar mexer no formulário em
+vez de planejar.
+
+O mapa `xpAwardedFor` é reescrito **inteiro**, nunca por caminho pontilhado: um
+id de categoria com ponto viraria dois níveis de aninhamento e o marcador nunca
+mais casaria.
+
+Não pagam nada: limite **zerado** (é desligar o planejamento, não criar um),
+categoria **sem id** ou **de sistema**, order **avulsa/parcelada**, **fatura**
+(criada pelo servidor — premiar seria dar XP por ter cartão) e order
+**cancelada**. Limite e recorrência são contadores **independentes**: a mesma
+categoria pode render pelos dois, porque são dois atos de planejamento
+diferentes.
+
+`onOrderWrittenGamification` é novo e observa a mesma coleção que o
+`onOrderWritten` de finanças, com um nome de ação próprio
+(`gamification:orderWritten`) para que os dois não disputem a chave de
+idempotência quando a plataforma entregar o mesmo `event.id` para ambos. Ele
+sai antes da idempotência quando a order não é recorrente: a maioria das
+escritas não é, e nenhuma delas precisa custar um documento em `_idempotency`.
+
+### `installments.unplannedReason`: a punição deixa de ser muda
+
+`calculateXp` devolve **0** quando o planejado (`amount`) é zero — o caso da
+parcela que **nasce paga** (saldo inicial, compra já liquidada no cartão), em
+que `syncInstallments` zera o planejado de propósito para a cobrança contar
+como não planejada. A regra não mudou; o que mudou é que ela **passou a se
+explicar**.
+
+```
+installment.unplannedReason: "born_paid" | ausente
+```
+
+- É gravado na **mesma escrita** do `xp` e do `replicationCascade: none` (uma
+  escrita só, no caso 2 de `updateXpOnInstallmentChange`);
+- entrou em `INSTALLMENT_DERIVED_FIELDS`. Fora dali, toda parcela que nasce
+  paga dispararia o gatilho inteiro de novo — sumário, meta, saldo, fatura,
+  XP — só para registrar o motivo do zero;
+- a **fatura fica de fora**, mesmo com planejado zero: o valor dela é a soma
+  das compras do ciclo, mantida pelo servidor, e não um planejamento que o
+  usuário deixou de fazer. Marcá-la convidaria o app a pedir um limite para
+  algo que já é consequência de outros lançamentos;
+- as rules negam ao cliente gravar ou apagar o campo, com a mesma exceção do
+  `xp`: uma build que grave o documento inteiro manda `null` nas parcelas que
+  não têm o campo, e isso não é alteração de valor.
+
+O app (outro pacote) usa esse motivo para mostrar o nudge que converte o gasto
+em limite ou recorrência — e **essa conversão rende XP**, pelas duas fontes de
+30 acima. É o ciclo que fecha a punição: o gasto não planejado vale zero, e a
+saída do zero é planejar.
+
+### Testes
+
+- `src/test/plan_xp.test.ts` — XP semanal (dentro/fora do limite, bônus de
+  semana redonda, streak crescendo, zerando e batendo no teto), XP único por
+  categoria, `unplannedReason` e o catálogo publicado;
+- `src/test/integration/plan_xp.integration.test.ts` — emulador: fixtures reais
+  de sumário semanal, migração do `weeklyStreaks` legado, concessão única
+  **concorrente** (três chamadas paralelas pagam uma vez) e `unplannedReason`
+  de fato gravado na parcela.
+
+### Contrato com o cliente Flutter (F2.2 + F2.3)
 
 Os nomes abaixo são **contrato**: o pacote da Jornada depende deles.
 
@@ -1313,9 +1480,18 @@ Os nomes abaixo são **contrato**: o pacote da Jornada depende deles.
 |---|---|---|
 | `workspaces/{w}.financialHealth` | `{score, tier, components:{folego:{score,months}, poupanca:{score,rate}, disciplina:{score,within,total}, alivio:{score,delta}}, computedAt, monthKey}` | só o servidor |
 | `workspaces/{w}/health_history/{YYYY-MM}` | a mesma forma | só o servidor |
+| `workspaces/{w}.weeklyStreaks` | `{missions: number, plan: number}` | só o servidor |
+| `installments.unplannedReason` | `"born_paid"` \| ausente | só o servidor |
+| `config/badges.xpSources` | `[{id, name:{pt,en}, xp, description:{pt,en}}]` | só o servidor |
 
 Cada componente carrega também um `value` — o valor bruto da métrica, na
 unidade do componente — além do campo nomeado do contrato.
+
+> ⚠️ **`weeklyStreaks` mudou de tipo.** Era um número; virou um mapa. Um app
+> que leia `weeklyStreaks` como `int` quebra depois deste deploy. O servidor
+> aceita o valor legado na LEITURA (número → `{missions: n, plan: 0}`), mas o
+> que ele grava daqui em diante é sempre o mapa — a versão do app que lê o
+> streak precisa subir junto.
 
 > **`financialHealth` ausente** significa "ainda não calculei", não "score 0".
 > Isso acontece num workspace que nunca foi marcado como sujo e ainda não

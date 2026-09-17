@@ -1,6 +1,13 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
-import { IGamificationRepository, PeriodSummaryRow } from "../../domain/repositories/gamification.repository";
+import {
+    IGamificationRepository,
+    PeriodSummaryRow,
+    WeeklySummaryRow,
+    WorkspaceStreaks,
+    XpOnceGroup,
+    readWorkspaceStreaks,
+} from "../../domain/repositories/gamification.repository";
 import { calculateLevel } from "../../domain/services/gamification.service";
 import { isSystemCategory } from "../../../workspace/domain/models/category.model";
 
@@ -61,6 +68,13 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         // Badge + XP na MESMA transação: se qualquer parte falhar, nada é
         // persistido (antes, o addXp fora da transação podia se perder).
         await db.runTransaction(async (transaction) => {
+            // O flag é RESETADO a cada tentativa. `runTransaction` reexecuta
+            // este callback quando há disputa pelo documento, e uma tentativa
+            // que só sai cedo (porque a concorrente já concedeu) não escreve
+            // nada — sem o reset, o `true` da tentativa anterior sobreviveria e
+            // o chamador acharia que concedeu duas vezes.
+            unlocked = false;
+
             const doc = await transaction.get(workspaceRef);
             if (!doc.exists) {
                 return;
@@ -213,11 +227,142 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         });
     }
 
-    async updateWorkspaceStreaks(workspaceId: string, streaks: number): Promise<void> {
-        await admin.firestore()
-            .collection("workspaces")
-            .doc(workspaceId)
-            .update({ weeklyStreaks: streaks });
+    async updateWorkspaceStreaks(workspaceId: string, streaks: Partial<WorkspaceStreaks>): Promise<void> {
+        const db = admin.firestore();
+        const workspaceRef = db.collection("workspaces").doc(workspaceId);
+
+        // Read-modify-write do campo INTEIRO dentro de uma transação. Duas
+        // razões, e as duas doem:
+        //  - `update({"weeklyStreaks.plan": n})` num documento legado, onde o
+        //    campo ainda é um NÚMERO, troca o número por um mapa e apaga a
+        //    sequência de missões sem avisar ninguém;
+        //  - o cron semanal grava `missions` e o XP de plano grava `plan` na
+        //    mesma execução; sem a transação, o segundo sobrescreveria o
+        //    primeiro.
+        await db.runTransaction(async (transaction) => {
+            const doc = await transaction.get(workspaceRef);
+            if (!doc.exists) {
+                return;
+            }
+
+            const current = readWorkspaceStreaks(doc.data()!.weeklyStreaks);
+            const next: WorkspaceStreaks = {
+                missions: streaks.missions ?? current.missions,
+                plan: streaks.plan ?? current.plan,
+            };
+
+            transaction.update(workspaceRef, { weeklyStreaks: next });
+        });
+    }
+
+    async getWeeklySummaryRows(workspaceId: string, weekId: string): Promise<WeeklySummaryRow[]> {
+        const firestore = admin.firestore();
+
+        // O documento semanal é lido pelo ID (`{YYYY-Www}`), não por
+        // `where(year, week)`: o id É a chave e uma leitura direta não precisa
+        // de índice nenhum.
+        const [summary, categoriesSnapshot] = await Promise.all([
+            firestore.doc(`workspaces/${workspaceId}/period_summaries/${weekId}`).get(),
+            firestore.collection(`workspaces/${workspaceId}/categories`).get(),
+        ]);
+
+        if (!summary.exists) {
+            return [];
+        }
+
+        const categoriesById = new Map<string, any>();
+        for (const doc of categoriesSnapshot.docs) {
+            const data = doc.data();
+            if (data.isDeleted === true) {
+                continue;
+            }
+            categoriesById.set(doc.id, data);
+        }
+
+        const rows: WeeklySummaryRow[] = [];
+        const categories = summary.data()?.categories || {};
+        for (const [categoryId, raw] of Object.entries<any>(categories)) {
+            const category = categoriesById.get(categoryId);
+            if (!category) {
+                // Sem o documento da categoria não há como classificar a linha.
+                continue;
+            }
+            rows.push({
+                categoryId,
+                type: category.type,
+                isSystem: isSystemCategory(categoryId, category),
+                actualAmount: raw?.actualAmount || 0,
+                generalPlannedAmount: raw?.generalPlannedAmount || 0,
+            });
+        }
+
+        // Ordem estável: o XP concedido não pode depender da ordem em que o
+        // Firestore devolveu as chaves do mapa.
+        rows.sort((a, b) => a.categoryId.localeCompare(b.categoryId));
+        return rows;
+    }
+
+    async awardXpOnce(
+        workspaceId: string,
+        group: XpOnceGroup,
+        key: string,
+        xp: number,
+        reason: string
+    ): Promise<boolean> {
+        const db = admin.firestore();
+        const workspaceRef = db.collection("workspaces").doc(workspaceId);
+        let awarded = false;
+
+        // Marcador + XP na MESMA transação, igual ao `unlockBadge`. O marcador
+        // é o que torna a concessão única por categoria: sem ele, apagar e
+        // recriar o mesmo limite renderia 30 XP a cada vez, e o jogo passaria a
+        // premiar mexer no formulário em vez de planejar.
+        //
+        // O mapa `xpAwardedFor` é reescrito INTEIRO (nunca por caminho
+        // pontilhado): um id de categoria com ponto viraria dois níveis de
+        // aninhamento e o marcador nunca mais casaria.
+        await db.runTransaction(async (transaction) => {
+            // O flag é RESETADO a cada tentativa. `runTransaction` reexecuta
+            // este callback quando há disputa pelo documento, e uma tentativa
+            // que só sai cedo (porque a concorrente já concedeu) não escreve
+            // nada — sem o reset, o `true` da tentativa anterior sobreviveria e
+            // o chamador acharia que concedeu duas vezes.
+            awarded = false;
+
+            const doc = await transaction.get(workspaceRef);
+            if (!doc.exists) {
+                return;
+            }
+
+            const data = doc.data()!;
+            const awardedFor = { ...(data.xpAwardedFor || {}) };
+            const groupMap = { ...(awardedFor[group] || {}) };
+
+            if (groupMap[key]) {
+                return;
+            }
+
+            groupMap[key] = new Date().toISOString();
+            awardedFor[group] = groupMap;
+
+            const currentXp = data.xp || 0;
+            const currentLevel = data.level || 1;
+            const newXp = Math.max(0, currentXp + xp);
+            const newLevel = calculateLevel(newXp);
+
+            const updateData: any = { xpAwardedFor: awardedFor, xp: newXp, level: newLevel };
+            if (newLevel > currentLevel) {
+                updateData.lastLevelUpAt = admin.firestore.FieldValue.serverTimestamp();
+            }
+
+            transaction.update(workspaceRef, updateData);
+            awarded = true;
+        });
+
+        if (awarded) {
+            logger.info(`[GamificationRepository] XP único ${group}/${key} para ${workspaceId} (+${xp} XP: ${reason}).`);
+        }
+        return awarded;
     }
 
     async getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<PeriodSummaryRow[]> {
@@ -320,6 +465,13 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         let completed = false;
 
         await db.runTransaction(async (transaction) => {
+            // O flag é RESETADO a cada tentativa. `runTransaction` reexecuta
+            // este callback quando há disputa pelo documento, e uma tentativa
+            // que só sai cedo (porque a concorrente já concedeu) não escreve
+            // nada — sem o reset, o `true` da tentativa anterior sobreviveria e
+            // o chamador acharia que concedeu duas vezes.
+            completed = false;
+
             const missionDoc = await transaction.get(missionRef);
             const workspaceDoc = await transaction.get(workspaceRef);
 

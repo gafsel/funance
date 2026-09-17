@@ -22,6 +22,20 @@ export interface BadgeCatalogDocument {
      * é o XP que abre o nível `n`. Substitui a fórmula duplicada no app.
      */
     levelThresholds: number[];
+    /**
+     * F2.3 — a tabela "como ganhar XP" que o app exibe.
+     *
+     * Ela mora no catálogo, e não num documento por workspace, porque é
+     * configuração do PRODUTO: os valores são os mesmos para todo mundo e
+     * mudam por deploy, não por usuário. Não existe (nem vai existir)
+     * `workspaces/{w}.xpSources`.
+     */
+    xpSources: {
+        id: string;
+        name: LocalizedText;
+        xp: number;
+        description: LocalizedText;
+    }[];
 }
 
 export interface IBadgeCatalogRepository {

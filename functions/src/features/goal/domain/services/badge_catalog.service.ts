@@ -5,7 +5,7 @@ import {
     IBadgeCatalogRepository,
     LocalizedText,
 } from "../repositories/badge_catalog.repository";
-import { BADGES } from "./gamification.service";
+import { BADGES, XP_SOURCES } from "./gamification.service";
 import { BADGE_STRINGS_EN } from "./badge_catalog.i18n";
 
 /** Quantos níveis o app precisa desenhar. */
@@ -47,10 +47,21 @@ export function buildBadgeCatalog(): BadgeCatalogDocument {
 
     const levelThresholds = buildLevelThresholds();
 
+    // F2.3 — a tabela de fontes de XP viaja no MESMO documento dos badges, e
+    // entra no hash da versão: mudar quanto vale uma semana dentro do plano
+    // republica o catálogo sozinho, igual a mudar o XP de um badge.
+    const xpSources = XP_SOURCES.map((source) => ({
+        id: source.id,
+        name: { ...source.name },
+        xp: source.xp,
+        description: { ...source.description },
+    }));
+
     return {
-        version: catalogVersion(badges, levelThresholds),
+        version: catalogVersion(badges, levelThresholds, xpSources),
         badges,
         levelThresholds,
+        xpSources,
     };
 }
 
@@ -63,8 +74,8 @@ function localized(pt: string, en?: string): LocalizedText {
  * incrementar: mudou um nome, um XP ou um limiar, muda o hash e a próxima
  * execução publica.
  */
-function catalogVersion(badges: unknown[], levelThresholds: number[]): string {
-    const payload = JSON.stringify({ badges, levelThresholds });
+function catalogVersion(badges: unknown[], levelThresholds: number[], xpSources: unknown[]): string {
+    const payload = JSON.stringify({ badges, levelThresholds, xpSources });
     return crypto.createHash("sha256").update(payload).digest("hex").slice(0, 16);
 }
 

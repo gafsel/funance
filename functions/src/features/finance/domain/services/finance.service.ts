@@ -9,7 +9,8 @@ import {
     OrderModel,
     OrderStatus,
     OrderType,
-    ReplicationCascade
+    ReplicationCascade,
+    resolveUnplannedReason
 } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 import { CategoryType, INITIAL_BALANCE_CATEGORY } from "../../../workspace/domain/models/category.model";
@@ -535,9 +536,17 @@ export class FinanceService {
             // de origem (senão a próxima escrita qualquer a reexecuta). Como
             // ambos são campos derivados, o evento resultante desta escrita cai
             // na guarda por conteúdo do handler e sai cedo.
+            //
+            // F2.3 — a punição por gasto não planejado deixa de ser MUDA. O
+            // `xp: 0` de uma parcela que nasce paga sempre existiu, mas o
+            // usuário não tinha como saber o porquê; `unplannedReason` viaja na
+            // MESMA escrita (e é campo derivado, pelo mesmo motivo) para o app
+            // poder explicar e oferecer a conversão em limite/recorrência.
+            const unplannedReason = resolveUnplannedReason(after);
             await this.financeRepository.updateInstallment(workspaceId, after.id, {
                 xp,
                 replicationCascade: ReplicationCascade.none,
+                ...(unplannedReason ? { unplannedReason } : {}),
             });
             await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, xp);
             await container.gamificationService.addXp(workspaceId, xp, "Transação paga");
