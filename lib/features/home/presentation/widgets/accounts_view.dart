@@ -11,6 +11,7 @@ import 'package:funances/features/finance/presentation/widgets/account_logo.dart
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/money/money.dart';
 
 class AccountsView extends ConsumerWidget {
   const AccountsView({super.key});
@@ -61,12 +62,12 @@ class AccountsView extends ConsumerWidget {
     final theme = Theme.of(context);
     final locale = context.locale;
 
-    double total = 0;
+    var total = Money.zero;
     // Só o total somado de saldos pode estar carregando: os saldos chegam por
     // stream e mostrar R$ 0,00 enquanto isso é um número errado com cara de
     // definitivo.
     bool isTotalLoading = false;
-    final Map<String, double> totalsByMonth = {};
+    final Map<String, Money> totalsByMonth = {};
 
     if (type == AccountType.creditCard) {
       for (final account in accounts) {
@@ -83,16 +84,17 @@ class AccountsView extends ConsumerWidget {
           continue;
         }
 
-        total += nextInvoice.amount;
+        final invoiceAmount = nextInvoice.amount.asMoney;
+        total += invoiceAmount;
         final monthKey = nextInvoice.dueDate.formated('MMMM', locale);
         totalsByMonth[monthKey] =
-            (totalsByMonth[monthKey] ?? 0) + nextInvoice.amount;
+            (totalsByMonth[monthKey] ?? Money.zero) + invoiceAmount;
       }
     } else {
       final totalAsync = ref.watch(
         AccountViewProviders.latestBalanceByType(type),
       );
-      total = totalAsync.valueOrNull ?? 0;
+      total = (totalAsync.valueOrNull ?? 0).asMoney;
       isTotalLoading = totalAsync.isLoading && !totalAsync.hasValue;
     }
 
@@ -119,7 +121,7 @@ class AccountsView extends ConsumerWidget {
                 sortedMonthKeys
                     .map(
                       (month) =>
-                          '${month.capitalize()}: ${totalsByMonth[month]!.asCurrency(locale: locale)}',
+                          '${month.capitalize()}: ${totalsByMonth[month]!.format(locale: locale)}',
                     )
                     .join(" | "),
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -133,7 +135,7 @@ class AccountsView extends ConsumerWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Text(
-                total.asCurrency(locale: locale),
+                total.format(locale: locale),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),

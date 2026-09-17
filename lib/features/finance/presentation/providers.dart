@@ -51,6 +51,7 @@ import 'package:funances/features/home/presentation/model/overview_view_model.da
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/money/money.dart';
 
 class AutomaticTransactionDomainProviders {
   static final repository = Provider<IAutomaticTransactionRepository>((ref) {
@@ -294,10 +295,8 @@ class AccountViewProviders {
         return Rx.combineLatestList(
           accounts.map((account) => service.getLatestAccountBalance(account.id)),
         ).map(
-          (balances) => balances.fold<double>(
-            0,
-            (total, balance) => total + balance.balance,
-          ),
+          (balances) =>
+              Money.sumOf(balances, (balance) => balance.balance).toDouble(),
         );
       });
 
@@ -663,14 +662,14 @@ class FinanceViewProviders {
         // Calculando renda total prevista (simplificado: soma de todos os planejamentos se tivéssemos acesso fácil,
         // mas aqui vamos focar na soma das despesas planejadas para referência ou usar um valor fixo se o sistema permitir.
         // Para o 50-30-20, o ideal é baseado no TOTAL planejado para o mês.
-        final totalPlanned = state.items.fold<double>(
-          0,
-          (sum, item) => sum + item.effectiveAmount,
-        );
-        final totalActual = state.items.fold<double>(
-          0,
-          (sum, item) => sum + item.actualAmount,
-        );
+        final totalPlanned = Money.sumOf(
+          state.items,
+          (item) => item.effectiveAmount,
+        ).toDouble();
+        final totalActual = Money.sumOf(
+          state.items,
+          (item) => item.actualAmount,
+        ).toDouble();
         final totalIncome = state.totalIncomes;
 
         final actualPercentage = totalIncome > 0
@@ -708,14 +707,14 @@ class FinanceViewProviders {
           planning503020GlobalProgress.select((state) => state.totalIncome),
         );
 
-        final currentTotal = items.fold<double>(
-          0,
-          (sum, item) => sum + item.effectiveAmount,
-        );
-        final currentActual = items.fold<double>(
-          0,
-          (sum, item) => sum + item.actualAmount,
-        );
+        final currentTotal = Money.sumOf(
+          items,
+          (item) => item.effectiveAmount,
+        ).toDouble();
+        final currentActual = Money.sumOf(
+          items,
+          (item) => item.actualAmount,
+        ).toDouble();
         final idealValue = totalIncome * allocation.idealPercentage;
         final currentPercentage = totalPlanned > 0
             ? (currentTotal / totalPlanned)

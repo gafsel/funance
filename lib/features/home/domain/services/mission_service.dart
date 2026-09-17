@@ -8,6 +8,7 @@ import 'package:funances/features/workspace/domain/services/category_service.dar
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:funances/core/money/money.dart';
 
 /// O CHECKLIST da semana (parcelas pendentes, atrasadas e pagas) e a saúde da
 /// Party por categoria.
@@ -231,14 +232,14 @@ class MissionService {
             .toList();
 
         if (expenseMissions.isNotEmpty) {
-          totalPlanned = expenseMissions.fold<double>(
-            0,
-            (sum, m) => sum + m.weeklyPlannedAmount,
-          );
-          totalActual = expenseMissions.fold<double>(
-            0,
-            (sum, m) => sum + m.weeklyActualAmount,
-          );
+          totalPlanned = Money.sumOf(
+            expenseMissions,
+            (m) => m.weeklyPlannedAmount,
+          ).toDouble();
+          totalActual = Money.sumOf(
+            expenseMissions,
+            (m) => m.weeklyActualAmount,
+          ).toDouble();
 
           final totalProgress = totalPlanned > 0
               ? totalActual / totalPlanned

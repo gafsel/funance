@@ -3,6 +3,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/money/money.dart';
 
 part 'monthly_available_model.freezed.dart';
 
@@ -67,35 +68,35 @@ sealed class MonthlyAvailable with _$MonthlyAvailable {
     required List<OverviewCategorySummary> summaries,
     required List<InstallmentModel> pendingInstallments,
   }) {
-    var expectedIncome = 0.0;
-    var realizedExpenses = 0.0;
-    var plannedExpenses = 0.0;
+    var expectedIncome = Money.zero;
+    var realizedExpenses = Money.zero;
+    var plannedExpenses = Money.zero;
 
     for (final summary in summaries) {
       if (summary.category.isSystem) continue;
 
       if (summary.category.type == CategoryType.income) {
-        expectedIncome += summary.plannedAmount;
+        expectedIncome += summary.plannedAmount.asMoney;
       } else {
-        realizedExpenses += summary.actualAmount;
-        plannedExpenses += summary.plannedAmount;
+        realizedExpenses += summary.actualAmount.asMoney;
+        plannedExpenses += summary.plannedAmount.asMoney;
       }
     }
 
-    var pendingExpenses = 0.0;
+    var pendingExpenses = Money.zero;
     for (final installment in pendingInstallments) {
       if (installment.type != OrderType.expense) continue;
       if (installment.status != InstallmentStatus.pending) continue;
       if (installment.category?.isSystem ?? false) continue;
 
-      pendingExpenses += installment.referenceAmount;
+      pendingExpenses += installment.referenceAmount.asMoney;
     }
 
     return MonthlyAvailable(
-      expectedIncome: expectedIncome,
-      realizedExpenses: realizedExpenses,
-      pendingExpenses: pendingExpenses,
-      plannedExpenses: plannedExpenses,
+      expectedIncome: expectedIncome.toDouble(),
+      realizedExpenses: realizedExpenses.toDouble(),
+      pendingExpenses: pendingExpenses.toDouble(),
+      plannedExpenses: plannedExpenses.toDouble(),
     );
   }
 }

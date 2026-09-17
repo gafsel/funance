@@ -9,6 +9,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:uuid/uuid.dart';
 import 'finance_service.dart';
+import 'package:funances/core/money/money.dart';
 
 class ReconciliationService {
   final String workspaceId;
@@ -68,11 +69,15 @@ class ReconciliationService {
     );
 
     for (final docTx in docTransactions) {
+      // Mesmo valor é MESMO valor: em centavos inteiros a comparação é
+      // exata. A tolerância de um centavo que havia aqui não descrevia
+      // nenhuma regra de negócio — era só o medo do resto do `double`.
+      final docAmount = docTx.amount.asMoney;
+
       // Tentar encontrar uma correspondência exata (data e valor)
       InstallmentModel? match = availableInstallments.where((inst) {
         final dateDiff = inst.referenceDate.difference(docTx.date).inDays.abs();
-        return dateDiff <= 1 &&
-            (inst.referenceAmount - docTx.amount).abs() < 0.01;
+        return dateDiff <= 1 && inst.referenceAmount.asMoney == docAmount;
       }).firstOrNull;
 
       if (match != null) {
@@ -91,8 +96,7 @@ class ReconciliationService {
               .difference(docTx.date)
               .inDays
               .abs();
-          return dateDiff <= 7 &&
-              (inst.referenceAmount - docTx.amount).abs() < 0.01;
+          return dateDiff <= 7 && inst.referenceAmount.asMoney == docAmount;
         }).firstOrNull;
 
         if (match != null) {

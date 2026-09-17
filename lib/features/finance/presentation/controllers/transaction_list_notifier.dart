@@ -7,6 +7,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/core/money/money.dart';
 
 class TransactionListNotifier
     extends InfiniteListNotifier<TransactionQuery, InstallmentModel> {
@@ -64,85 +65,93 @@ class TransactionListNotifier
     super.dispose();
   }
 
+  /// Os totais da lista, somados em centavos.
+  ///
+  /// Eram dezesseis acumuladores `double` percorrendo o mesmo laço. Numa lista
+  /// de um mês inteiro, o resto do ponto flutuante aparecia como um centavo de
+  /// diferença entre o cabeçalho e a soma das linhas — e ninguém sabia dizer
+  /// qual dos dois estava certo. [Money] soma em `int`; o `toDouble()` só
+  /// acontece na saída, porque os modelos ainda falam `double`.
   TransactionTotals get totals {
-    double plannedIncomes = 0;
-    double realizedIncomes = 0;
-    double plannedExpenses = 0;
-    double realizedExpenses = 0;
-    double plannedTransfers = 0;
-    double realizedTransfers = 0;
-    double plannedInvoices = 0;
-    double realizedInvoices = 0;
-    double plannedVirtualDebtExpense = 0;
-    double realizedVirtualDebtExpense = 0;
-    double plannedVirtualDebtIncome = 0;
-    double realizedVirtualDebtIncome = 0;
-    double plannedVirtualInvestmentExpense = 0;
-    double realizedVirtualInvestmentExpense = 0;
-    double plannedVirtualInvestmentIncome = 0;
-    double realizedVirtualInvestmentIncome = 0;
+    var plannedIncomes = Money.zero;
+    var realizedIncomes = Money.zero;
+    var plannedExpenses = Money.zero;
+    var realizedExpenses = Money.zero;
+    var plannedTransfers = Money.zero;
+    var realizedTransfers = Money.zero;
+    var plannedInvoices = Money.zero;
+    var realizedInvoices = Money.zero;
+    var plannedVirtualDebtExpense = Money.zero;
+    var realizedVirtualDebtExpense = Money.zero;
+    var plannedVirtualDebtIncome = Money.zero;
+    var realizedVirtualDebtIncome = Money.zero;
+    var plannedVirtualInvestmentExpense = Money.zero;
+    var realizedVirtualInvestmentExpense = Money.zero;
+    var plannedVirtualInvestmentIncome = Money.zero;
+    var realizedVirtualInvestmentIncome = Money.zero;
 
     for (final item in state.items) {
+      final planned = item.amount.asMoney;
+      final realized = (item.paidAmount ?? 0.0).asMoney;
       final categoryId = item.category?.id;
-      final isVirtualDebtExpense =
-          categoryId == CategoryModel.virtualDebtExpenseId;
-      final isVirtualDebtIncome =
-          categoryId == CategoryModel.virtualDebtIncomeId;
-      final isVirtualInvestmentExpense =
-          categoryId == CategoryModel.virtualInvestmentExpenseId;
-      final isVirtualInvestmentIncome =
-          categoryId == CategoryModel.virtualInvestmentIncomeId;
 
-      if (isVirtualDebtExpense) {
-        plannedVirtualDebtExpense += item.amount;
-        realizedVirtualDebtExpense += item.paidAmount ?? 0.0;
-      } else if (isVirtualDebtIncome) {
-        plannedVirtualDebtIncome += item.amount;
-        realizedVirtualDebtIncome += item.paidAmount ?? 0.0;
-      } else if (isVirtualInvestmentExpense) {
-        plannedVirtualInvestmentExpense += item.amount;
-        realizedVirtualInvestmentExpense += item.paidAmount ?? 0.0;
-      } else if (isVirtualInvestmentIncome) {
-        plannedVirtualInvestmentIncome += item.amount;
-        realizedVirtualInvestmentIncome += item.paidAmount ?? 0.0;
-      } else {
-        if (item.type == OrderType.income) {
-          plannedIncomes += item.amount;
-          realizedIncomes += item.paidAmount ?? 0.0;
-        } else if (item.type == OrderType.expense) {
-          plannedExpenses += item.amount;
-          realizedExpenses += item.paidAmount ?? 0.0;
-        } else if (item.type == OrderType.transfer) {
-          if (!item.isInvoice) {
-            plannedTransfers += item.amount;
-            realizedTransfers += item.paidAmount ?? 0.0;
+      switch (categoryId) {
+        case CategoryModel.virtualDebtExpenseId:
+          plannedVirtualDebtExpense += planned;
+          realizedVirtualDebtExpense += realized;
+        case CategoryModel.virtualDebtIncomeId:
+          plannedVirtualDebtIncome += planned;
+          realizedVirtualDebtIncome += realized;
+        case CategoryModel.virtualInvestmentExpenseId:
+          plannedVirtualInvestmentExpense += planned;
+          realizedVirtualInvestmentExpense += realized;
+        case CategoryModel.virtualInvestmentIncomeId:
+          plannedVirtualInvestmentIncome += planned;
+          realizedVirtualInvestmentIncome += realized;
+        default:
+          switch (item.type) {
+            case OrderType.income:
+              plannedIncomes += planned;
+              realizedIncomes += realized;
+            case OrderType.expense:
+              plannedExpenses += planned;
+              realizedExpenses += realized;
+            case OrderType.transfer:
+              // A fatura é uma transferência, mas ela tem a própria linha
+              // logo abaixo: contá-la aqui também a somaria duas vezes.
+              if (!item.isInvoice) {
+                plannedTransfers += planned;
+                realizedTransfers += realized;
+              }
           }
-        }
       }
 
       if (item.isInvoice) {
-        plannedInvoices += item.amount;
-        realizedInvoices += item.paidAmount ?? 0.0;
+        plannedInvoices += planned;
+        realizedInvoices += realized;
       }
     }
 
     return TransactionTotals(
-      plannedIncomes: plannedIncomes,
-      realizedIncomes: realizedIncomes,
-      plannedExpenses: plannedExpenses,
-      realizedExpenses: realizedExpenses,
-      plannedTransfers: plannedTransfers,
-      realizedTransfers: realizedTransfers,
-      plannedInvoices: plannedInvoices,
-      realizedInvoices: realizedInvoices,
-      plannedVirtualDebtExpense: plannedVirtualDebtExpense,
-      realizedVirtualDebtExpense: realizedVirtualDebtExpense,
-      plannedVirtualDebtIncome: plannedVirtualDebtIncome,
-      realizedVirtualDebtIncome: realizedVirtualDebtIncome,
-      plannedVirtualInvestmentExpense: plannedVirtualInvestmentExpense,
-      realizedVirtualInvestmentExpense: realizedVirtualInvestmentExpense,
-      plannedVirtualInvestmentIncome: plannedVirtualInvestmentIncome,
-      realizedVirtualInvestmentIncome: realizedVirtualInvestmentIncome,
+      plannedIncomes: plannedIncomes.toDouble(),
+      realizedIncomes: realizedIncomes.toDouble(),
+      plannedExpenses: plannedExpenses.toDouble(),
+      realizedExpenses: realizedExpenses.toDouble(),
+      plannedTransfers: plannedTransfers.toDouble(),
+      realizedTransfers: realizedTransfers.toDouble(),
+      plannedInvoices: plannedInvoices.toDouble(),
+      realizedInvoices: realizedInvoices.toDouble(),
+      plannedVirtualDebtExpense: plannedVirtualDebtExpense.toDouble(),
+      realizedVirtualDebtExpense: realizedVirtualDebtExpense.toDouble(),
+      plannedVirtualDebtIncome: plannedVirtualDebtIncome.toDouble(),
+      realizedVirtualDebtIncome: realizedVirtualDebtIncome.toDouble(),
+      plannedVirtualInvestmentExpense:
+          plannedVirtualInvestmentExpense.toDouble(),
+      realizedVirtualInvestmentExpense:
+          realizedVirtualInvestmentExpense.toDouble(),
+      plannedVirtualInvestmentIncome: plannedVirtualInvestmentIncome.toDouble(),
+      realizedVirtualInvestmentIncome:
+          realizedVirtualInvestmentIncome.toDouble(),
     );
   }
 

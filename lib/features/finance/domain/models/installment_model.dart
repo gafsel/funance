@@ -65,9 +65,15 @@ sealed class InstallmentModel with _$InstallmentModel {
   @JsonKey(includeToJson: true)
   List<String> get accountIds => accounts.keys.toList();
 
-  @DateTimeTwelvePmNullableConverter()
+  /// A data que vale para relatório e consulta: a de pagamento, se houver, ou
+  /// a de vencimento.
+  ///
+  /// `atNoon` aqui não é detalhe: o converter freezed NÃO se aplica a um
+  /// getter (o `@DateTimeTwelvePmNullableConverter()` que ficava nesta linha
+  /// era ignorado pelo gerador), e por isso o repositório normalizava a hora
+  /// de novo, por conta própria, na hora de gravar. Uma regra, um lugar.
   @JsonKey(includeToJson: true)
-  DateTime get referenceDate => paidDate ?? dueDate;
+  DateTime get referenceDate => atNoon(paidDate ?? dueDate);
 
   @JsonKey(includeToJson: true)
   double get referenceAmount => paidAmount ?? amount;

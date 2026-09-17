@@ -4,6 +4,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/money/money.dart';
 
 class ExpenseSummaryNotifier extends Notifier<SummaryState> {
   @override
@@ -110,42 +111,40 @@ SummaryState _buildSummary(
   // Limitar a 10 registros e agrupar o resto em "Outros"
   List<OverviewCategorySummary> displaySummaries = [];
 
-  double specificPlannedAmountOthers = 0;
-  double generalPlannedAmountOthers = 0;
-  double actualAmountOthers = 0;
+  var specificPlannedAmountOthers = Money.zero;
+  var generalPlannedAmountOthers = Money.zero;
+  var actualAmountOthers = Money.zero;
 
   if (limit && sortedSummaries.length > 10) {
     displaySummaries = sortedSummaries.sublist(0, 9);
     final others = sortedSummaries.sublist(9);
 
-    for (var s in others) {
-      specificPlannedAmountOthers += s.specificPlannedAmount;
-      generalPlannedAmountOthers += s.generalPlannedAmount;
-      actualAmountOthers += s.actualAmount;
-    }
+    // "Outros" precisa fechar com a diferença entre o total e as nove linhas
+    // mostradas. Somado em double, sobrava um centavo que não era de
+    // ninguém — em centavos inteiros, a conta bate.
+    specificPlannedAmountOthers = Money.sumOf(
+      others,
+      (s) => s.specificPlannedAmount,
+    );
+    generalPlannedAmountOthers = Money.sumOf(
+      others,
+      (s) => s.generalPlannedAmount,
+    );
+    actualAmountOthers = Money.sumOf(others, (s) => s.actualAmount);
   } else {
     displaySummaries = sortedSummaries;
   }
 
-  double totalAmount = 0;
-  if (viewType == SummaryViewType.planning) {
-    totalAmount = filteredSummaries.fold<double>(
-      0,
-      (sum, item) => sum + item.plannedAmount,
-    );
-  } else {
-    totalAmount = filteredSummaries.fold<double>(
-      0,
-      (sum, item) => sum + item.actualAmount,
-    );
-  }
+  final totalAmount = viewType == SummaryViewType.planning
+      ? Money.sumOf(filteredSummaries, (item) => item.plannedAmount)
+      : Money.sumOf(filteredSummaries, (item) => item.actualAmount);
 
   return SummaryState(
     summary: displaySummaries,
-    actualAmountOthers: actualAmountOthers,
-    specificPlannedAmountOthers: specificPlannedAmountOthers,
-    generalPlannedAmountOthers: generalPlannedAmountOthers,
-    totalAmount: totalAmount,
+    actualAmountOthers: actualAmountOthers.toDouble(),
+    specificPlannedAmountOthers: specificPlannedAmountOthers.toDouble(),
+    generalPlannedAmountOthers: generalPlannedAmountOthers.toDouble(),
+    totalAmount: totalAmount.toDouble(),
   );
 }
 
@@ -157,24 +156,26 @@ class BalanceSummaryNotifier extends Notifier<BalanceState> {
         .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
         .value ?? [];
 
-    double totalPlannedIncomes = 0;
-    double totalActualIncomes = 0;
-    double totalPlannedExpenses = 0;
-    double totalActualExpenses = 0;
+    var totalPlannedIncomes = Money.zero;
+    var totalActualIncomes = Money.zero;
+    var totalPlannedExpenses = Money.zero;
+    var totalActualExpenses = Money.zero;
 
     for (var s in summaries) {
       if (s.category.type == CategoryType.income) {
-        totalPlannedIncomes += s.plannedAmount;
-        totalActualIncomes += s.actualAmount;
+        totalPlannedIncomes += s.plannedAmount.asMoney;
+        totalActualIncomes += s.actualAmount.asMoney;
       } else if (s.category.type == CategoryType.expense) {
-        totalPlannedExpenses += s.plannedAmount;
-        totalActualExpenses += s.actualAmount;
+        totalPlannedExpenses += s.plannedAmount.asMoney;
+        totalActualExpenses += s.actualAmount.asMoney;
       }
     }
 
+    // O saldo é a subtração de duas somas. Em double, "sobrou zero" podia
+    // aparecer como -0,000000001 e a tela pintava de vermelho um mês fechado.
     return BalanceState(
-      totalPlanned: totalPlannedIncomes - totalPlannedExpenses,
-      totalActual: totalActualIncomes - totalActualExpenses,
+      totalPlanned: (totalPlannedIncomes - totalPlannedExpenses).toDouble(),
+      totalActual: (totalActualIncomes - totalActualExpenses).toDouble(),
     );
   }
 }

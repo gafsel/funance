@@ -28,6 +28,7 @@ import 'package:funances/features/finance/presentation/widgets/analysis_loading_
 import 'package:funances/features/finance/presentation/widgets/statement_upload_panel.dart';
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/money/money.dart';
 
 /// Escolha da conta antes de conciliar.
 ///
@@ -228,16 +229,13 @@ class ReconciliationScreen extends ConsumerWidget {
         .toList();
     final suggestedCount = suggestedMatches.length;
 
-    final suggestedAmount = suggestedMatches.fold<double>(0.0, (
-      accumulated,
-      m,
-    ) {
-      final amount =
+    final suggestedAmount = Money.sumOf(
+      suggestedMatches,
+      (m) =>
           m.documentTransaction?.amount ??
           m.systemInstallment?.referenceAmount ??
-          0.0;
-      return accumulated + amount;
-    });
+          0.0,
+    ).toDouble();
 
     final canConfirm = state.matches.every(
       (m) =>

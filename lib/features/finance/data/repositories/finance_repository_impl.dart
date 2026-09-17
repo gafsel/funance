@@ -13,6 +13,23 @@ import '../../domain/repositories/finance_repository.dart';
 import '../models/installment_mapper.dart';
 import '../models/order_mapper.dart';
 
+
+/// Troca o ISO que o converter produziu por um `Timestamp`, SEM tocar na hora.
+///
+/// A regra do meio-dia mora num lugar só: `DateTimeTwelvePmConverter`. Este
+/// arquivo a repetia campo a campo, recalculando `DateTime(ano, mês, dia, 12)`
+/// em cima de um valor que já vinha normalizado — duas cópias da mesma regra,
+/// das quais só uma seria lembrada no dia em que a regra mudasse.
+///
+/// Campo ausente ou nulo passa intacto: num `update`, `paidDate: null` é a
+/// forma de limpar a data de pagamento.
+void _isoToTimestamp(Map<String, dynamic> data, String field) {
+  final value = data[field];
+  if (value is String) {
+    data[field] = Timestamp.fromDate(DateTime.parse(value));
+  }
+}
+
 class FinanceRepositoryImpl implements IFinanceRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -223,33 +240,13 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       // não tem o campo conta como alteração e é negado pelas rules.
       data.remove('xp');
 
-      final normalizedDueDate = DateTime(
-        entry.dueDate.year,
-        entry.dueDate.month,
-        entry.dueDate.day,
-        12,
-      );
-      data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
+      // As três datas já saíram do `toJson` normalizadas para o meio-dia —
+      // quem faz isso é o converter freezed. Aqui só falta o TIPO: o Firestore
+      // guarda `Timestamp` e a consulta por `referenceDate` depende disso.
+      _isoToTimestamp(data, 'dueDate');
+      _isoToTimestamp(data, 'paidDate');
+      _isoToTimestamp(data, 'referenceDate');
 
-      if (entry.paidDate != null) {
-        final normalizedPaidDate = DateTime(
-          entry.paidDate!.year,
-          entry.paidDate!.month,
-          entry.paidDate!.day,
-          12,
-        );
-        data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
-      }
-
-      final normalizedReferenceDate = DateTime(
-        entry.referenceDate.year,
-        entry.referenceDate.month,
-        entry.referenceDate.day,
-        12,
-      );
-      data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
-
-      data['referenceAmount'] = entry.referenceAmount;
       return await settleWrite(
         _getWorkspaceDoc(
           workspaceId,

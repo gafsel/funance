@@ -1,19 +1,25 @@
 import 'package:json_annotation/json_annotation.dart';
 
+/// O dia, ao meio-dia — a ÚNICA definição de "data de calendário" do app.
+///
+/// Vencimento, pagamento e competência são datas, não instantes: guardá-las a
+/// 00:00 faz qualquer conversão de fuso para oeste escorregar para o dia
+/// anterior, e a parcela do dia 1º aparecer em julho. O meio-dia é a folga de
+/// doze horas para cada lado que impede isso.
+///
+/// Esta função existe para que a regra não seja reescrita em nenhum outro
+/// lugar: os converters abaixo e o `referenceDate` do lançamento chamam ela.
+DateTime atNoon(DateTime date) =>
+    DateTime(date.year, date.month, date.day, 12);
+
 class DateTimeTwelvePmConverter implements JsonConverter<DateTime, String> {
   const DateTimeTwelvePmConverter();
 
   @override
-  DateTime fromJson(String json) {
-    final date = DateTime.parse(json).toLocal();
-    return DateTime(date.year, date.month, date.day, 12);
-  }
+  DateTime fromJson(String json) => atNoon(DateTime.parse(json).toLocal());
 
   @override
-  String toJson(DateTime date) {
-    final normalizedDate = DateTime(date.year, date.month, date.day, 12);
-    return normalizedDate.toIso8601String();
-  }
+  String toJson(DateTime date) => atNoon(date).toIso8601String();
 }
 
 /// Converte um instante ISO preservando o INSTANTE, só trazendo-o para o fuso
@@ -49,16 +55,10 @@ class DateTimeTwelvePmNullableConverter implements JsonConverter<DateTime?, Stri
   const DateTimeTwelvePmNullableConverter();
 
   @override
-  DateTime? fromJson(String? json) {
-    if (json == null) return null;
-    final date = DateTime.parse(json).toLocal();
-    return DateTime(date.year, date.month, date.day, 12);
-  }
+  DateTime? fromJson(String? json) =>
+      json == null ? null : atNoon(DateTime.parse(json).toLocal());
 
   @override
-  String? toJson(DateTime? date) {
-    if (date == null) return null;
-    final normalizedDate = DateTime(date.year, date.month, date.day, 12);
-    return normalizedDate.toIso8601String();
-  }
+  String? toJson(DateTime? date) =>
+      date == null ? null : atNoon(date).toIso8601String();
 }
