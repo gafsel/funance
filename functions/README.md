@@ -65,6 +65,7 @@ apenas reage ao que o cliente gravou.
 | `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}`, com **`audience`** em cada badge e cada `xpSource` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3; `audience` em wp/missions-by-type | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `workspaces/{w}/automatic_transactions/{id}` — `date` é **string** de relógio local (`YYYY-MM-DDTHH:mm:ss.SSS`), nunca `Timestamp` | app | servidor | wp/missions-by-type (as rules passaram a exigir o tipo) | [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace) |
 | `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor (rules negam a escrita ao cliente) | app — o membro **lê** para exibir o consumo | F5.1 | [Quotas de IA](#quotas-de-ia) |
 | `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
 | `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
@@ -2443,6 +2444,38 @@ Hoje isso não acontece: cada par audiência×tipo tem ao menos um template sem
 O contexto só é lido em workspace `business` — num pessoal nenhum template tem
 `isEligible`, e a leitura seria paga para nada.
 
+> **Quem consulta o catálogo precisa passar o MESMO contexto.** A peneira roda
+> antes do hash, então o contexto passou a fazer parte da escolha: sortear sem
+> ele é sortear entre um conjunto maior de candidatos e chegar a outro
+> template. O `retag_weekly_missions` sorteava sem contexto e divergia do
+> gerador em **52 das 53 semanas** do ano (nos dois tipos que têm peneira) —
+> ele carimbaria `top_cost_center` numa semana em que o gerador escolheu
+> `margin`, e o documento passaria a descrever uma missão que não é a que está
+> na tela. Hoje o script lê o sumário do MESMO lugar (`period_summaries/{weekId}`
+> + `categories`) e soma com a MESMA função (`sumWeeklyTotals`), e há um teste
+> que roda os dois caminhos de código sobre os mesmos dados, nos quatro
+> contextos, numa semana em que a peneira de fato troca o template.
+
+**`isEligible` NÃO cobre as missões de `organization`** — é uma lacuna
+consciente, não um esquecimento. As três corporativas de organização
+(conciliar extrato, triar lançamentos automáticos, pagar a fatura no prazo) são
+**prospectivas**: elas pedem algo que o usuário ainda vai fazer durante a
+semana. Uma peneira pelo que já aconteceu NAQUELA JANELA as tornaria
+permanentemente inelegíveis, porque no instante da geração a semana está vazia
+por definição — seria trocar "missão difícil de medir" por "missão que nunca é
+sorteada".
+
+A peneira correta para elas é de **capacidade**, não de janela: só ofereça
+"pagar a fatura" a quem tem cartão, "conciliar extrato" a quem tem conta, e
+"triar lançamentos automáticos" a quem usa a captura por notificação. São fatos
+ESTÁVEIS do workspace, e por isso convergem entre gerador e retag. O que
+impediu de implementar agora foi o critério de custo: são três leituras que o
+gerador **ainda não faz** (contagem de contas, contas de cartão, e um
+`limit(1)` em `automatic_transactions`), enquanto a peneira de receita/margem
+reaproveita o sumário que ele já lê. Fica como pacote próprio, com o efeito
+conhecido: hoje uma empresa sem cartão de crédito recebe "fechar a fatura
+corporativa no prazo" a cada três semanas, e não tem como cumpri-la.
+
 > **Uma empresa pode não fechar a semana perfeita numa semana sem receita
 > prevista.** A missão de receita some do sorteio (bom), mas a de margem
 > também, e sobra o par "centros de custo + maior centro de custo", que exige
@@ -2451,9 +2484,11 @@ O contexto só é lido em workspace `business` — num pessoal nenhum template t
 
 **A escolha da semana é um hash**, não um sorteio nem uma chamada de rede:
 `hashString(weekId|audience|type) % candidatos`. A variação entre semanas era o
-argumento para usar IA na geração, e ela sai daqui de graça, reproduzível e
-igual em qualquer processo — o gatilho, o cron e o script de retag chegam ao
-mesmo template sem reler o que já foi gravado. Um teste percorre as 53 semanas
+argumento para usar IA na geração, e ela sai daqui de graça e igual em qualquer
+processo — o gatilho, o cron e o script de retag chegam ao mesmo template
+**desde que recebam o mesmo contexto** (ver acima), sem precisar reler o que já
+foi gravado. Para o avaliador de progresso a questão nem se coloca: ele usa o
+`templateKey` GRAVADO no documento, nunca um sorteio novo. Um teste percorre as 53 semanas
 do ano e exige que o hash alcance TODOS os candidatos de cada par; um hash que
 agrupasse tudo numa posição tornaria o catálogo inútil sem quebrar nada.
 
@@ -2591,6 +2626,14 @@ aparelho, **sem sufixo**. Isso quebra de duas formas, e as duas apareceram:
    o Firestore ordena por TIPO antes de ordenar por valor. Por isso a consulta
    compara **strings de relógio local**: num formato de largura fixa a ordem
    lexicográfica é a ordem cronológica.
+
+   E é por isso que as **rules passaram a aceitar `date` SÓ como string**
+   (antes: `data.date is timestamp || isStr(...)`). O tipo errado não daria
+   erro em lugar nenhum — o documento simplesmente ficaria invisível para a
+   consulta, e a missão contaria menos do que o usuário fez. Recusar na porta o
+   que a consulta não enxerga é a única forma de isso não virar outro defeito
+   silencioso. O app já grava string; a mudança não fecha nenhum caminho que
+   ele use.
 
 A primeira versão desistiu da consulta e leu a coleção inteira com `limit(500)`
 e nenhum `orderBy`. Numa caixa de entrada com **532 documentos**, o Firestore

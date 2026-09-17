@@ -457,6 +457,53 @@ describe("firestore.rules", () => {
         });
     });
 
+    describe("automatic_transactions.date", () => {
+        const base = {
+            description: "PIX recebido",
+            amount: 250.5,
+            type: "income",
+            isConsolidated: false,
+            isIgnored: false,
+        };
+
+        it("aceita a data como STRING de relógio local (o formato que o app grava)", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/automatic_transactions/at-string`),
+                    { ...base, date: "2026-09-04T10:50:47.466" }
+                )
+            );
+        });
+
+        it("NEGA a data como Timestamp — ela ficaria invisível para a consulta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // A missão de triagem consulta por FAIXA de `date` comparando
+            // strings. O Firestore ordena por TIPO antes de por valor, então um
+            // documento com `timestamp` nunca entraria no resultado — sem erro,
+            // sem log, apenas sumindo do jogo. As rules passam a recusar na
+            // porta o que a consulta não consegue enxergar.
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/automatic_transactions/at-timestamp`),
+                    { ...base, date: Timestamp.fromDate(new Date(2026, 8, 4, 10, 50)) }
+                )
+            );
+        });
+
+        it("nega o update que TROCA a string por um Timestamp", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/automatic_transactions/at-update`);
+
+            await assertSucceeds(setDoc(ref, { ...base, date: "2026-09-04T10:50:47.466" }));
+            await assertFails(
+                setDoc(ref, { ...base, date: Timestamp.fromDate(new Date(2026, 8, 4, 10, 50)) })
+            );
+        });
+    });
+
     it("nega que o cliente escreva completedAt numa meta", async () => {
         const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
 

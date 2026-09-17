@@ -5,6 +5,8 @@
 
 import { parseArgs, retagWeeklyMissions } from "../scripts/retag_weekly_missions";
 import { buildMissionName, selectMissionTemplate } from "../features/goal/domain/models/mission_catalog";
+import { GamificationService } from "../features/goal/domain/services/gamification.service";
+import { CategoryType } from "../features/workspace/domain/models/category.model";
 
 /** Terça 2026-08-11 12:00 em São Paulo — semana 2026-W32. */
 const NOW = new Date("2026-08-11T15:00:00Z");
@@ -14,6 +16,9 @@ interface WorkspaceFixture {
     type?: string;
     missions: Record<string, Record<string, any>>;
     plannings?: Record<string, Record<string, any>>;
+    categories?: Record<string, Record<string, any>>;
+    /** Documentos de `period_summaries`, por id (`YYYY-Www`). */
+    summaries?: Record<string, Record<string, any>>;
 }
 
 let written: Array<{ id: string; data: Record<string, any> }>;
@@ -23,6 +28,18 @@ function buildFirestore(workspaces: Record<string, WorkspaceFixture>): any {
     const subcollection = (docs: Record<string, Record<string, any>>, workspaceId: string) => ({
         where() {
             return this;
+        },
+        doc(id: string) {
+            return {
+                async get() {
+                    const data = docs[id];
+                    return {
+                        id,
+                        exists: data !== undefined,
+                        data: () => (data ? { ...data } : undefined),
+                    };
+                },
+            };
         },
         async get() {
             const entries = Object.entries(docs);
@@ -48,6 +65,8 @@ function buildFirestore(workspaces: Record<string, WorkspaceFixture>): any {
                 collection: (name: string) => {
                     if (name === "weekly_missions") return subcollection(fixture.missions, id);
                     if (name === "category_planning") return subcollection(fixture.plannings ?? {}, id);
+                    if (name === "categories") return subcollection(fixture.categories ?? {}, id);
+                    if (name === "period_summaries") return subcollection(fixture.summaries ?? {}, id);
                     throw new Error(`subcoleção inesperada: ${name}`);
                 },
             },
@@ -319,5 +338,177 @@ describe("retag_weekly_missions — parseArgs", () => {
     it("ignora --page-size inválido", () => {
         expect(parseArgs(["--page-size=zero"]).pageSize).toBeUndefined();
         expect(parseArgs(["--page-size=-3"]).pageSize).toBeUndefined();
+    });
+});
+
+/**
+ * CONVERGÊNCIA gerador × retag.
+ *
+ * Os dois escolhem o template da semana pela MESMA função, mas com contextos
+ * que podem divergir: o gerador lê o sumário semanal, e o retag — até a
+ * reprovação do QA — não lia nada e sorteava entre TODOS os candidatos. O
+ * resultado eram dois templates diferentes para a mesma semana, e um documento
+ * descrevendo uma missão que não é a que está na tela.
+ *
+ * Este teste roda os DOIS caminhos de código de verdade, sobre os mesmos
+ * dados, nos quatro contextos possíveis de elegibilidade.
+ */
+describe("convergência gerador × retag", () => {
+    const CONTEXTOS = [
+        { nome: "sem plano nenhum", income: 0, expense: 0 },
+        { nome: "só receita prevista", income: 15850, expense: 0 },
+        { nome: "só despesa planejada", income: 0, expense: 4553.5 },
+        { nome: "plano completo", income: 15850, expense: 4553.5 },
+    ];
+
+    function summaryDoc(income: number, expense: number) {
+        const cents = (v: number) => Math.round(v * 100);
+        return {
+            year: 2026,
+            week: 32,
+            month: null,
+            runtimeType: "week",
+            categories: {
+                servicos: {
+                    generalPlannedAmount: 0,
+                    specificPlannedAmount: income,
+                    actualAmount: 0,
+                    generalPlannedAmountCents: 0,
+                    specificPlannedAmountCents: cents(income),
+                    actualAmountCents: 0,
+                },
+                custos: {
+                    generalPlannedAmount: expense,
+                    specificPlannedAmount: 0,
+                    actualAmount: 0,
+                    generalPlannedAmountCents: cents(expense),
+                    specificPlannedAmountCents: 0,
+                    actualAmountCents: 0,
+                },
+            },
+        };
+    }
+
+    function summaryRows(income: number, expense: number) {
+        const cents = (v: number) => Math.round(v * 100);
+        return [
+            {
+                categoryId: "servicos", type: CategoryType.income, isSystem: false,
+                generalPlannedAmount: 0, specificPlannedAmount: income, actualAmount: 0,
+                generalPlannedAmountCents: 0, specificPlannedAmountCents: cents(income), actualAmountCents: 0,
+            },
+            {
+                categoryId: "custos", type: CategoryType.expense, isSystem: false,
+                generalPlannedAmount: expense, specificPlannedAmount: 0, actualAmount: 0,
+                generalPlannedAmountCents: cents(expense), specificPlannedAmountCents: 0, actualAmountCents: 0,
+            },
+        ];
+    }
+
+    /** O que o GERADOR grava, rodando o serviço de verdade. */
+    async function gerar(income: number, expense: number): Promise<Record<string, string>> {
+        const created: Record<string, string> = {};
+        const repository = {
+            getWorkspaceById: jest.fn().mockResolvedValue({ id: "w1", type: "business" }),
+            getCategoryPlannings: jest.fn().mockResolvedValue([]),
+            getGoals: jest.fn().mockResolvedValue([]),
+            getWeeklySummaryRows: jest.fn().mockResolvedValue(summaryRows(income, expense)),
+            getWeeklyMission: jest.fn().mockResolvedValue(null),
+            createWeeklyMission: jest.fn(async (_w: string, _week: string, type: string, data: any) => {
+                created[type] = data.templateKey;
+            }),
+            updateWeeklyMission: jest.fn(),
+            completeMissionAndAwardXp: jest.fn(),
+            getPaidInstallmentsInPeriod: jest.fn().mockResolvedValue([]),
+            getCompletedReconciliationsInPeriod: jest.fn().mockResolvedValue(0),
+            getAutomaticTransactions: jest.fn().mockResolvedValue([]),
+        };
+        const service = new GamificationService(repository as any);
+        await service.updateWeeklyMissionsProgress("w1", "planning", {});
+        return created;
+    }
+
+    /** Uma semana em que a peneira MUDA a escolha nos dois tipos. */
+    const SEMANA_SENSIVEL = { weekId: "2026-W02", now: new Date("2026-01-13T15:00:00Z") };
+
+    /** O que o RETAG grava, rodando o script de verdade. */
+    async function retagar(
+        income: number,
+        expense: number,
+        weekId: string = WEEK_ID
+    ): Promise<Record<string, string>> {
+        written = [];
+        const missions: Record<string, any> = {};
+        for (const type of ["consistency", "discipline", "organization"]) {
+            missions[`${weekId}_${type}`] = { ...legacyMission(type), weekId };
+        }
+        const firestore = buildFirestore({
+            w1: {
+                type: "business",
+                missions,
+                categories: {
+                    servicos: { name: "Serviços", type: "income", isDeleted: false },
+                    custos: { name: "Custos", type: "expense", isDeleted: false },
+                },
+                summaries: { [weekId]: summaryDoc(income, expense) },
+            },
+        });
+
+        await retagWeeklyMissions(firestore, { dryRun: false, now: NOW, weekId }, silent);
+
+        const out: Record<string, string> = {};
+        for (const item of written) {
+            const type = item.id.split("_").pop()!;
+            out[type] = item.data.templateKey;
+        }
+        return out;
+    }
+
+    for (const contexto of CONTEXTOS) {
+        it(`escolhe o MESMO template nos dois caminhos: ${contexto.nome}`, async () => {
+            jest.useFakeTimers({ now: NOW });
+            try {
+                const doGerador = await gerar(contexto.income, contexto.expense);
+                const doRetag = await retagar(contexto.income, contexto.expense);
+                expect(doRetag).toEqual(doGerador);
+            }
+            finally {
+                jest.useRealTimers();
+            }
+        });
+    }
+
+    it("numa semana em que a peneira MUDA a escolha, os dois continuam juntos", async () => {
+        // Os quatro casos acima caem numa semana em que o hash escolheria o
+        // mesmo template com ou sem contexto — passariam mesmo com o retag
+        // ignorando o contexto. Esta semana é uma das 52 em que a peneira de
+        // fato troca o template, e é ela que prova a correção.
+        jest.useFakeTimers({ now: SEMANA_SENSIVEL.now });
+        try {
+            const doGerador = await gerar(15850, 4553.5);
+            expect(doGerador.consistency).toBe("business_consistency_income_forecast");
+            expect(doGerador.discipline).toBe("business_discipline_margin");
+
+            const doRetag = await retagar(15850, 4553.5, SEMANA_SENSIVEL.weekId);
+            expect(doRetag).toEqual(doGerador);
+        }
+        finally {
+            jest.useRealTimers();
+        }
+    });
+
+    it("sem plano, a mesma semana cai nos outros dois templates — nos dois caminhos", async () => {
+        jest.useFakeTimers({ now: SEMANA_SENSIVEL.now });
+        try {
+            const doGerador = await gerar(0, 0);
+            expect(doGerador.consistency).toBe("business_consistency_cost_centers");
+            expect(doGerador.discipline).toBe("business_discipline_top_cost_center");
+
+            const doRetag = await retagar(0, 0, SEMANA_SENSIVEL.weekId);
+            expect(doRetag).toEqual(doGerador);
+        }
+        finally {
+            jest.useRealTimers();
+        }
     });
 });

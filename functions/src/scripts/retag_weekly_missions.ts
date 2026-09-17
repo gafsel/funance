@@ -73,7 +73,9 @@ import { getWeekId, startOfWeekInTz } from "../core/utils/week.utils";
 import { getMonthKeyInTz } from "../core/utils/timezone.utils";
 import { resolveAudience } from "../features/goal/domain/models/audience.model";
 import {
+    EMPTY_MISSION_CONTEXT,
     MissionParams,
+    MissionSelectionContext,
     MissionTemplate,
     WEEKLY_MISSION_TYPES,
     WeeklyMissionType,
@@ -81,7 +83,10 @@ import {
     missionTemplatesFor,
     selectMissionTemplate,
 } from "../features/goal/domain/models/mission_catalog";
-import { CategoryPlanningModel } from "../features/finance/domain/models/finance.models";
+import { sumWeeklyTotals } from "../features/goal/domain/services/gamification.service";
+import { WeeklySummaryRow } from "../features/goal/domain/repositories/gamification.repository";
+import { CategoryModel, isSystemCategory } from "../features/workspace/domain/models/category.model";
+import { CategoryPlanningModel, toPeriodSummaryDocument } from "../features/finance/domain/models/finance.models";
 
 export interface RetagOptions {
     dryRun: boolean;
@@ -207,6 +212,68 @@ export async function retagWeeklyMissions(
                 // A categoria de maior limite só é lida quando algum template
                 // escolhido de fato usa o placeholder `{category}` — numa base
                 // grande isso poupa uma consulta por workspace.
+                // Contexto de ELEGIBILIDADE, lido do MESMO lugar que o gerador
+                // lê (`period_summaries/{weekId}` + `categories`) e somado pela
+                // MESMA função (`sumWeeklyTotals`).
+                //
+                // Sem ele, o retag sorteava entre TODOS os candidatos e o
+                // gerador entre os elegíveis — dois resultados diferentes para
+                // a mesma semana. Em produção, o retag carimbaria
+                // `top_cost_center` numa semana em que o gerador tinha
+                // escolhido `margin`, e o documento passaria a descrever uma
+                // missão que não é a que está na tela.
+                //
+                // A leitura é preguiçosa e só acontece em workspace `business`
+                // com missão a SUBSTITUIR: é o único caso em que o contexto
+                // muda alguma coisa (o carimbo usa o template pessoal, que é
+                // único por tipo).
+                let selectionContext: MissionSelectionContext | undefined;
+                const resolveSelectionContext = async (): Promise<MissionSelectionContext> => {
+                    if (selectionContext !== undefined) return selectionContext;
+
+                    const summaryDoc = await workspaceDoc.ref
+                        .collection("period_summaries")
+                        .doc(weekId)
+                        .get();
+                    if (!summaryDoc.exists) {
+                        selectionContext = EMPTY_MISSION_CONTEXT;
+                        return selectionContext;
+                    }
+
+                    // O script lê a coleção INTEIRA de categorias, enquanto o
+                    // repositório faz `getAll` nos ids do sumário. O resultado é
+                    // o mesmo; a diferença é de custo, e um script manual que
+                    // roda uma vez por semana pode pagá-la.
+                    const categoriesSnapshot = await workspaceDoc.ref.collection("categories").get();
+                    const categoriesById = new Map<string, CategoryModel>();
+                    for (const doc of categoriesSnapshot.docs) {
+                        const data = doc.data() as CategoryModel;
+                        if (data.isDeleted === true) continue;
+                        categoriesById.set(doc.id, data);
+                    }
+
+                    const rows: WeeklySummaryRow[] = [];
+                    const { categories } = toPeriodSummaryDocument(summaryDoc.id, summaryDoc.data());
+                    for (const [categoryId, raw] of Object.entries(categories)) {
+                        const category = categoriesById.get(categoryId);
+                        if (!category) continue;
+                        rows.push({
+                            categoryId,
+                            type: category.type,
+                            isSystem: isSystemCategory(categoryId, category),
+                            actualAmount: raw.actualAmount,
+                            generalPlannedAmount: raw.generalPlannedAmount,
+                            specificPlannedAmount: raw.specificPlannedAmount,
+                            actualAmountCents: raw.actualAmountCents ?? 0,
+                            generalPlannedAmountCents: raw.generalPlannedAmountCents ?? 0,
+                            specificPlannedAmountCents: raw.specificPlannedAmountCents ?? 0,
+                        });
+                    }
+
+                    selectionContext = sumWeeklyTotals(rows);
+                    return selectionContext;
+                };
+
                 let topCategory: string | null | undefined;
                 const resolveTopCategory = async (): Promise<string | null> => {
                     if (topCategory !== undefined) return topCategory;
@@ -247,7 +314,7 @@ export async function retagWeeklyMissions(
                     const replace = isOpen && audience === "business";
 
                     const template = replace
-                        ? selectMissionTemplate("business", type, weekId)
+                        ? selectMissionTemplate("business", type, weekId, await resolveSelectionContext())
                         : legacyTemplate(type);
                     if (!template) {
                         summary.skippedUnknownType++;
