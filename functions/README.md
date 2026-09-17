@@ -46,7 +46,7 @@ apenas reage ao que o cliente gravou.
 |---|---|---|---|---|
 | `workspaces/{w}/period_summaries/{YYYY \| YYYY-MM \| YYYY-Www}` — `{year, month\|null, week\|null, categories: {id: {generalPlannedAmount, specificPlannedAmount, actualAmount}}, runtimeType, lastUpdate}` | servidor | app | F1.4/F1.5/F1.9 (forma), F1.11 (tipada no backend) | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
 | `accounts/{a}/balance/{YYYY-MM-DD}` — `dateKey`, `delta`, `balance` | servidor | app | F1.4 | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
-| `category_planning/{p}` — `summarizedUntil`, `appliedAmount`, `appliedFrom`, `appliedUntil` | servidor (rules negam os cinco campos ao cliente) | app (só lê) | F1.5 | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
+| `category_planning/{p}` — `summarizedUntil`, `appliedAmount`, `appliedFrom`, `appliedUntil` e o legado `lastSummaryMonth` | servidor (rules negam os cinco campos ao cliente, no create e no update) | app (só lê) | F1.5 | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
 | `workspaces/{w}.currentWeekId` — `YYYY-Www` | servidor | app | F1.9 | [Semana (F1.9)](#semana-uma-definição-só-f19) |
 | `weekly_xp/{YYYY-Www}` — `{year, week, xp}` | servidor | app | F1.9 (id), F2.3 (XP de planejar entra aqui) | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
 | `weekly_missions/{weekId}_{type}` — `{id, name, type, status, rewardXp, progress, target, weekId, createdAt, completedAt}` | servidor | app | F1.9 (id da semana), F1.11 (tipada no backend) | [Semana (F1.9)](#semana-uma-definição-só-f19) |
@@ -61,7 +61,7 @@ apenas reage ao que o cliente gravou.
 | `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3 | [Catálogo de badges](#catálogo-de-badges-configbadges) |
-| `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor | ninguém (rules negam) | F5.1 | [Quotas de IA](#quotas-de-ia) |
+| `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor (rules negam a escrita ao cliente) | app — o membro **lê** para exibir o consumo | F5.1 | [Quotas de IA](#quotas-de-ia) |
 | `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
 | `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
 | `workspaces/{w}/financial_coaching/{id}` — `{message, summary, type, slides[], date, generatedBy}` | servidor | app | F1.11 (tipada no backend) | [`actionPath` dos slides](#actionpath-dos-slides-de-coaching) |
@@ -146,6 +146,78 @@ código passou a seguir:
    `weekly_missions` tem `WeeklyMissionWrite` (tudo obrigatório: quem cria é o
    servidor) e `WeeklyMissionDocument` (tudo opcional: a missão pode ser de uma
    versão anterior). Fundir os dois obrigaria a mentir num dos lados.
+
+### O que MUDOU de comportamento
+
+O pacote é um refactor, mas tipar um documento obriga a decidir coisas que o
+`any` deixava em aberto. Estas são as decisões com efeito observável — todas
+deliberadas, nenhuma incidental:
+
+**Escrita: a data deixou de ter fallback.** `saveCoachingAnalysis` e
+`savePlanningAnalysis` faziam
+`analysis.date instanceof Date ? Timestamp.fromDate(...) : serverTimestamp()`.
+Com `date`/`createdAt` obrigatórios e tipados como `Date` no contrato de
+escrita, o `serverTimestamp()` virou código morto e saiu: a conversão é
+incondicional. O efeito prático é nenhum (o único chamador sempre passou um
+`Date`), mas quem chamar amanhã com outra coisa **não compila**, em vez de
+gravar um carimbo do servidor onde se esperava a hora da geração.
+
+**Leitura: o documento é normalizado na entrada.** `getPeriodSummary`,
+`getLastCoachingAnalyses` e `getPlanningAnalysis` deixaram de devolver
+`{id, ...doc.data()}` cru e passam por um leitor (`toPeriodSummaryDocument`,
+`toCoachingAnalysisDocument`, `toPlanningAnalysisDocument`). Três consequências:
+
+- **campo fora do modelo SOME.** Um documento com uma chave que o modelo não
+  declara não a entrega mais ao serviço. É o preço de ter um contrato — e o
+  ponto: um campo que ninguém declarou é um campo que ninguém mantém;
+- **`runtimeType` ausente ou fora do enum vira `"month"`.** Todo documento
+  gravado pelo servidor tem o campo; o padrão cobre o legado, e `month` é o
+  caso dominante;
+- **total não numérico vira `0`.** `generalPlannedAmount`, `specificPlannedAmount`
+  e `actualAmount` são sempre `number` no modelo. Antes, um valor sujo chegava
+  ao consumidor como estava e só virava zero se aquele leitor tivesse lembrado
+  do `|| 0`.
+
+**Ordem do spread: o id do DOCUMENTO vence.** As leituras da gamificação
+passaram de `{id: doc.id, ...doc.data()}` (ou `doc.data()` puro) para
+`{...doc.data(), id: doc.id}`. Se um dia um documento de workspace, meta,
+parcela ou planejamento guardar um campo `id` diferente do id do documento, é o
+id do documento que prevalece — que é o que qualquer leitor espera de `.id`.
+Hoje nenhum desses documentos tem o campo, então o efeito é nulo; a exceção
+consciente é `weekly_missions`, cujo documento **tem** um campo `id` (o tipo da
+missão) que o app lê, e cuja leitura por isso não o sobrescreve.
+
+**`getCategoryPlannings` da gamificação passou a devolver o `id`.** Ele não é
+campo da coleção: é o id do documento, e era o que faltava para a leitura caber
+em `CategoryPlanningModel` em vez de `any[]`. Nenhum consumidor o lê.
+
+**Insight sem `message` e sem `summary` passa a ser GRAVADO com o texto
+padrão**, em vez de `summary: ""`. A resposta ao app é a mesma de antes, porque
+o `formatResponse` já caía nesse mesmo texto — o que muda é o documento, que
+deixa de guardar um vazio que ninguém queria ler.
+
+Fora da tipagem, duas outras mudanças deste pacote têm efeito observável e
+estão documentadas onde moram: a **allowlist de `actionPath`** passou a aceitar
+a união das rotas do servidor e do app (ver
+[`actionPath` dos slides](#actionpath-dos-slides-de-coaching)) e o **aviso de
+categoria sem id** passou a julgar a categoria efetiva, denunciando a
+transferência com categoria quebrada que antes saía calada (ver
+[Categoria sem id](#categoria-sem-id-fora-dos-sumários)).
+
+### Onde a regressão é barrada
+
+`@typescript-eslint/no-explicit-any` está **ligado como erro** para
+`src/features/*/domain/repositories/**` e `src/features/*/data/repositories/**`
+(override no `.eslintrc.js`). O `any` continua permitido no resto do código,
+onde às vezes ele é o tipo honesto para "o que o modelo devolveu"; na camada de
+repositório, não — um documento do Firestore tem forma, e escrevê-la é o que
+faz o compilador pegar o acesso a campo inexistente. Sem o override, o pacote
+regrediria na primeira assinatura nova, e regrediria em silêncio.
+
+Os **13** arquivos de teste de integração (`src/test/integration/*.integration.test.ts`;
+`setup.ts` não conta) rodam com `ignoreUndefinedProperties: false`, igual à
+produção. A execução do emulador reporta 14 suítes porque a de security rules
+entra no mesmo `jest.integration.config.js`.
 
 ### Flags do compilador
 
@@ -611,6 +683,17 @@ mesma regra, porque também é `type: "transfer"`. A regra é:
 Antes desta regra o relatório de um rebuild de produção acusou **98 parcelas
 "sem categoria", todas transferências saudáveis**, e o log do gatilho enchia do
 mesmo falso positivo.
+
+> **F1.11 fechou um buraco aqui.** O aviso decidia olhando `inst.category` — a
+> categoria ORIGINAL —, enquanto a guarda que o chamava tinha acabado de
+> recusar a categoria EFETIVA, que numa transferência é a VIRTUAL. Duas
+> perguntas diferentes sobre o mesmo evento. O efeito: uma transferência com
+> categoria quebrada (`{id: ""}`) e **sem** contrapartida de
+> dívida/investimento saía do serviço antes da guarda e ficava fora do sumário
+> **sem uma palavra no log** — exatamente a primeira linha da tabela acima, que
+> diz "sim, avisa, é o defeito real". Hoje o aviso julga sempre a categoria com
+> que a parcela saiu do sumário, e o caminho da transferência sem contrapartida
+> passa por ele. O silêncio da linha de baixo continua intacto.
 
 **Saldo e XP continuam contando normalmente** — nenhum dos dois depende de
 categoria. O que essas parcelas perdem é só a linha no sumário, até serem

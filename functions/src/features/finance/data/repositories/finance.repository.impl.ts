@@ -1339,8 +1339,18 @@ function toAccountModel(id: string, data: admin.firestore.DocumentData): Account
             orderId: typeof raw.orderId === "string" ? raw.orderId : "",
             installmentId: typeof raw.installmentId === "string" ? raw.installmentId : null,
             status: raw.status ?? InstallmentStatus.pending,
-            updatedAt: toDateOrNull(raw.updatedAt) ?? undefined,
         };
+
+        // A chave só entra quando existe. `updatedAt: undefined` (o que este
+        // trecho fazia com `?? undefined`) é diferente de chave ausente: o
+        // modelo volta a ser gravado tal como veio em
+        // `automatic_transactions.suggestedAccount`, e com o
+        // `ignoreUndefinedProperties` desligado a escrita LANÇA. Como aquele
+        // enriquecimento engole os próprios erros, a sugestão sumia calada.
+        const updatedAt = toDateOrNull(raw.updatedAt);
+        if (updatedAt) {
+            account.nextInvoice.updatedAt = updatedAt;
+        }
     }
 
     return account;
