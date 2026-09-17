@@ -73,6 +73,37 @@ async function seedCategory(
     });
 }
 
+/**
+ * Parcela paga — é daqui que sai a despesa realizada da janela móvel de 90
+ * dias do Fôlego (antes vinha dos `period_summaries` mensais, que não se
+ * encaixam numa janela móvel).
+ */
+async function seedPaidExpense(
+    workspaceId: string,
+    id: string,
+    dateKey: string,
+    amount: number,
+    extra: Record<string, any> = {}
+): Promise<void> {
+    const paidDate = admin.firestore.Timestamp.fromDate(new Date(`${dateKey}T15:00:00.000Z`));
+    await firestore.doc(`workspaces/${workspaceId}/installments/${id}`).set({
+        orderId: "o1",
+        amount,
+        paidAmount: amount,
+        referenceAmount: amount,
+        description: id,
+        status: "paid",
+        type: "expense",
+        installmentType: "single",
+        dueDate: paidDate,
+        referenceDate: paidDate,
+        paidDate,
+        accountIds: [],
+        category: { id: "mercado", name: "Mercado" },
+        ...extra,
+    });
+}
+
 async function seedMonthlySummary(
     workspaceId: string,
     monthKey: string,
@@ -134,9 +165,9 @@ describe("Bússola da Liberdade (integração com emulador do Firestore)", () =>
         await seedAccount(workspaceId, "inv", "investment", [
             { dateKey: "2026-09-01", balance: 8000, legacy: true },
         ]);
-        // Dívida ESTÁVEL entre o fim de agosto e hoje => Alívio 50.
+        // Dívida ESTÁVEL na janela móvel de 30 dias (11/08 a 10/09) => Alívio 50.
         await seedAccount(workspaceId, "cartao", "creditCard", [
-            { dateKey: "2026-08-31", balance: -2000 },
+            { dateKey: "2026-08-01", balance: -2000 },
             { dateKey: "2026-09-08", balance: -2000 },
         ]);
         // Conta APAGADA logicamente: o saldo dela é resíduo e não pode contar.
@@ -152,16 +183,29 @@ describe("Bússola da Liberdade (integração com emulador do Firestore)", () =>
         // Categoria de SISTEMA: fica fora de receita, despesa e disciplina.
         await seedCategory(workspaceId, "initial-balance", "income", { isSystem: true });
 
-        // Três meses de despesa de 4.000 => Fôlego = 12.000 / 4.000 = 3 => 50.
-        for (const monthKey of ["2026-08", "2026-07", "2026-06"]) {
-            await seedMonthlySummary(workspaceId, monthKey, {
-                salario: { actualAmount: 8000 },
-                mercado: { actualAmount: 3000 },
-                lazer: { actualAmount: 1000 },
-                "initial-balance": { actualAmount: 50000 },
-            });
-        }
+        // 12.000 de despesa realizada na janela de 90 dias (12/06 a 10/09):
+        // média mensal 4.000 => Fôlego = 12.000 / 4.000 = 3 meses => 50.
+        await seedPaidExpense(workspaceId, "exp-jul", "2026-07-10", 4000);
+        await seedPaidExpense(workspaceId, "exp-ago", "2026-08-10", 4000);
+        await seedPaidExpense(workspaceId, "exp-set", "2026-09-05", 4000);
+        // FORA da janela: 100 dias atrás, não pode entrar.
+        await seedPaidExpense(workspaceId, "exp-velha", "2026-06-01", 90000);
+        // Categoria de SISTEMA e FATURA: não são consumo do usuário.
+        await seedPaidExpense(workspaceId, "exp-sistema", "2026-09-06", 50000, {
+            category: { id: "initial-balance", name: "Saldo Inicial", isSystem: true },
+        });
+        await seedPaidExpense(workspaceId, "exp-fatura", "2026-09-07", 70000, { isInvoice: true });
+        // Parcela PENDENTE: realizado é só o que foi pago.
+        await seedPaidExpense(workspaceId, "exp-pendente", "2026-09-08", 80000, { status: "pending" });
+
+        // Receita/despesa do mês continuam vindo dos sumários mensais.
+        await seedMonthlySummary(workspaceId, "2026-08", {
+            salario: { actualAmount: 8000 },
+            mercado: { actualAmount: 4000 },
+        });
         // Mês corrente: (8000 − 6800) / 8000 = 15% => Poupança 50.
+        // A receita de setembro já é comparável à de agosto, então vale o mês
+        // corrente (o piso é 50% da receita do mês anterior).
         await seedMonthlySummary(workspaceId, "2026-09", {
             salario: { actualAmount: 8000 },
             mercado: { actualAmount: 5800 },
@@ -193,11 +237,11 @@ describe("Bússola da Liberdade (integração com emulador do Firestore)", () =>
         await seedAccount(workspaceId, "cc", "checking", [{ dateKey: "2026-09-01", balance: 9000 }]);
         await seedCategory(workspaceId, "salario", "income");
         await seedCategory(workspaceId, "mercado", "expense");
-        for (const monthKey of ["2026-08", "2026-07", "2026-06"]) {
-            await seedMonthlySummary(workspaceId, monthKey, {
-                salario: { actualAmount: 5000 }, mercado: { actualAmount: 3000 },
-            });
-        }
+        await seedPaidExpense(workspaceId, "exp-1", "2026-07-15", 3000);
+        await seedPaidExpense(workspaceId, "exp-2", "2026-08-15", 3000);
+        await seedMonthlySummary(workspaceId, "2026-08", {
+            salario: { actualAmount: 5000 }, mercado: { actualAmount: 3000 },
+        });
         await seedMonthlySummary(workspaceId, "2026-09", {
             salario: { actualAmount: 5000 }, mercado: { actualAmount: 4000 },
         });
@@ -226,7 +270,9 @@ describe("Bússola da Liberdade (integração com emulador do Firestore)", () =>
         await seedAccount(workspaceId, "cc", "checking", [{ dateKey: "2026-09-20", balance: 18000 }]);
         await seedCategory(workspaceId, "salario", "income");
         await seedCategory(workspaceId, "mercado", "expense");
-        for (const monthKey of ["2026-09", "2026-08", "2026-07", "2026-06"]) {
+        await seedPaidExpense(workspaceId, "exp-1", "2026-08-15", 6000);
+        await seedPaidExpense(workspaceId, "exp-2", "2026-09-15", 6000);
+        for (const monthKey of ["2026-09", "2026-08"]) {
             await seedMonthlySummary(workspaceId, monthKey, {
                 salario: { actualAmount: 10000 }, mercado: { actualAmount: 6000 },
             });
@@ -306,6 +352,62 @@ describe("Bússola da Liberdade (integração com emulador do Firestore)", () =>
         const roundTrip = await repository.getCurrent(workspaceId);
         expect(roundTrip!.score).toBe(later.snapshot!.score);
         expect(roundTrip!.monthKey).toBe(later.snapshot!.monthKey);
+    });
+
+    it("a VIRADA DO MÊS não mexe no score, com as consultas reais", async () => {
+        // O defeito que o QA reprovou: em 30/09 o usuário era Mestre e em
+        // 01/10, sem ter feito nada, virava Estrategista — porque as janelas
+        // de Fôlego e Alívio saltavam com o calendário. Aqui a prova roda
+        // contra o Firestore, passando pelas consultas de saldo e de parcela.
+        const workspaceId = newWorkspace("virada-score");
+        await seedWorkspace(workspaceId);
+        await seedCategory(workspaceId, "salario", "income");
+        await seedCategory(workspaceId, "mercado", "expense");
+
+        // Dívida encolhendo de forma constante ao longo dos meses.
+        const debtBalances: Array<{ dateKey: string, balance: number }> = [];
+        const cursor = new Date("2026-07-01T12:00:00.000Z");
+        let debt = -9000;
+        while (cursor <= new Date("2026-10-05T12:00:00.000Z")) {
+            debtBalances.push({ dateKey: cursor.toISOString().slice(0, 10), balance: debt });
+            debt += 20;
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+        }
+        await seedAccount(workspaceId, "cc", "checking", [{ dateKey: "2026-07-01", balance: 18000 }]);
+        await seedAccount(workspaceId, "divida", "debt", debtBalances);
+
+        // Despesa diária constante: a janela de 90 dias vê a mesma soma nos
+        // dois dias, enquanto meses de calendário trocariam 30 dias de uma vez.
+        const expenses = new Date("2026-06-01T12:00:00.000Z");
+        let n = 0;
+        while (expenses <= new Date("2026-10-05T12:00:00.000Z")) {
+            await seedPaidExpense(workspaceId, `exp-${n++}`, expenses.toISOString().slice(0, 10), 100);
+            expenses.setUTCDate(expenses.getUTCDate() + 1);
+        }
+
+        // Agosto e setembro fecharam iguais: a Disciplina — a única que troca
+        // de mês de propósito — dá a mesma nota nos dois dias.
+        await seedMonthlySummary(workspaceId, "2026-08", {
+            salario: { actualAmount: 9000 }, mercado: { actualAmount: 6300 },
+        });
+        await seedMonthlySummary(workspaceId, "2026-09", {
+            salario: { actualAmount: 9000 }, mercado: { actualAmount: 6300 },
+        });
+        await seedPlanning(workspaceId, "p-mercado", "mercado", 7000, "2026-01", "2026-12");
+
+        const service = new FinancialHealthService(new HealthRepositoryImpl(firestore));
+
+        const before = await service.computeHealth(workspaceId, new Date("2026-09-30T15:00:00.000Z"));
+        const after = await service.computeHealth(workspaceId, new Date("2026-10-01T15:00:00.000Z"));
+
+        expect(after.score).toBe(before.score);
+        expect(after.tier).toBe(before.tier);
+        expect(after.components.alivio.score).toBe(before.components.alivio.score);
+        expect(after.components.folego.score).toBe(before.components.folego.score);
+        expect(after.components.poupanca.score).toBe(before.components.poupanca.score);
+        // Só o mês de referência avança.
+        expect(before.monthKey).toBe("2026-09");
+        expect(after.monthKey).toBe("2026-10");
     });
 
     it("o cron de 15 min varre SÓ os sujos e esvazia a fila", async () => {

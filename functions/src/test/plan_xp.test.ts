@@ -27,15 +27,25 @@ import {
     resolveUnplannedReason,
 } from "../features/finance/domain/models/finance.models";
 import { buildBadgeCatalog } from "../features/goal/domain/services/badge_catalog.service";
+import { getWeekId } from "../core/utils/week.utils";
 
 /** Segunda-feira, 07/09/2026 03:00 em São Paulo — o horário do cron semanal. */
 const MONDAY_CRON = new Date("2026-09-07T06:00:00.000Z");
 /** A semana AVALIADA é a anterior: domingo 30/08 a sábado 05/09. */
 const EVALUATED_WEEK = "2026-W35";
 
+/** Escritas na barra semanal (`weekly_xp`) capturadas pelo writer injetado. */
+function makeWeeklyXp() {
+    const calls: Array<{ workspaceId: string, date: Date, xp: number }> = [];
+    const writer = jest.fn(async (workspaceId: string, date: Date, xp: number) => {
+        calls.push({ workspaceId, date, xp });
+    });
+    return { calls, writer, total: () => calls.reduce((sum, c) => sum + c.xp, 0) };
+}
+
 function makeRepository(overrides: Record<string, any> = {}) {
     return {
-        getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 0 }),
+        getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 0, streaks: { missions: 0, plan: 0 } }),
         addXp: jest.fn().mockResolvedValue(undefined),
         unlockBadge: jest.fn().mockResolvedValue(true),
         getWeeklySummaryRows: jest.fn().mockResolvedValue([]),
@@ -102,26 +112,36 @@ describe("XP semanal — categorias dentro do limite", () => {
                 row("mercado", 300, 250),
                 row("lazer", 100, 80),
             ]),
-            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: { missions: 2, plan: 3 } }),
+            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 2, streaks: { missions: 2, plan: 3 } }),
         });
+        const weekly = makeWeeklyXp();
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await new GamificationService(repository, undefined, undefined, weekly.writer)
+            .evaluateWeeklyPlanXp("w", MONDAY_CRON);
 
         // 2×20 + 50 + 10×4 (a streak sobe de 3 para 4).
         expect(totalXp(repository)).toBe(40 + 50 + 40);
         expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w", { plan: 4 });
+
+        // O MESMO XP entra na barra da semana AVALIADA, não na corrente: o
+        // mérito é daquela semana e é nela que a barra histórica o mostra.
+        expect(weekly.total()).toBe(130);
+        expect(getWeekId(weekly.calls[0].date)).toBe(EVALUATED_WEEK);
     });
 
     it("o bônus de streak tem teto de 100 XP", async () => {
         const repository = makeRepository({
             getWeeklySummaryRows: jest.fn().mockResolvedValue([row("mercado", 300, 250)]),
             // Streak alta: 10×30 seria 300, mas o teto é 100.
-            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: { missions: 0, plan: 29 } }),
+            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 0, streaks: { missions: 0, plan: 29 } }),
         });
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        const weekly = makeWeeklyXp();
+        await new GamificationService(repository, undefined, undefined, weekly.writer)
+            .evaluateWeeklyPlanXp("w", MONDAY_CRON);
 
         expect(totalXp(repository)).toBe(20 + 50 + XP_VALUES.weeklyPlanStreakCap);
+        expect(weekly.total()).toBe(20 + 50 + XP_VALUES.weeklyPlanStreakCap);
         expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w", { plan: 30 });
     });
 
@@ -131,7 +151,7 @@ describe("XP semanal — categorias dentro do limite", () => {
                 row("mercado", 300, 250),
                 row("lazer", 100, 400),
             ]),
-            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: { missions: 5, plan: 7 } }),
+            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 5, streaks: { missions: 5, plan: 7 } }),
         });
 
         await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
@@ -147,7 +167,7 @@ describe("XP semanal — categorias dentro do limite", () => {
         // pode ser uma forma de congelar a sequência.
         const repository = makeRepository({
             getWeeklySummaryRows: jest.fn().mockResolvedValue([row("mercado", 0, 250)]),
-            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: { missions: 0, plan: 6 } }),
+            getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 0, streaks: { missions: 0, plan: 6 } }),
         });
 
         await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
@@ -210,30 +230,63 @@ describe("XP semanal — categorias dentro do limite", () => {
     });
 });
 
-describe("weeklyStreaks — mapa novo, número legado", () => {
-    it("lê o número legado como sequência de missões, sem perder nada", () => {
-        expect(readWorkspaceStreaks(4)).toEqual({ missions: 4, plan: 0 });
+describe("streaks — campo novo, `weeklyStreaks` continua NÚMERO", () => {
+    it("lê o `weeklyStreaks` legado como sequência de missões, sem perder nada", () => {
+        expect(readWorkspaceStreaks({ weeklyStreaks: 4 })).toEqual({ missions: 4, plan: 0 });
     });
 
-    it("lê o mapa novo e tolera chaves ausentes ou inválidas", () => {
-        expect(readWorkspaceStreaks({ missions: 3, plan: 2 })).toEqual({ missions: 3, plan: 2 });
-        expect(readWorkspaceStreaks({ plan: 2 })).toEqual({ missions: 0, plan: 2 });
-        expect(readWorkspaceStreaks({ missions: "x", plan: null })).toEqual({ missions: 0, plan: 0 });
+    it("prefere o mapa `streaks` quando ele existe", () => {
+        expect(readWorkspaceStreaks({ streaks: { missions: 3, plan: 2 }, weeklyStreaks: 3 }))
+            .toEqual({ missions: 3, plan: 2 });
+    });
+
+    it("tolera chaves ausentes, tipos errados e workspace vazio", () => {
+        expect(readWorkspaceStreaks({ streaks: { plan: 2 } })).toEqual({ missions: 0, plan: 2 });
+        expect(readWorkspaceStreaks({ streaks: { missions: "x", plan: null } })).toEqual({ missions: 0, plan: 0 });
+        expect(readWorkspaceStreaks({})).toEqual({ missions: 0, plan: 0 });
         expect(readWorkspaceStreaks(undefined)).toEqual({ missions: 0, plan: 0 });
-        expect(readWorkspaceStreaks(-7)).toEqual({ missions: 0, plan: 0 });
+        expect(readWorkspaceStreaks({ weeklyStreaks: -7 })).toEqual({ missions: 0, plan: 0 });
     });
 });
 
 describe("XP único por categoria", () => {
     it("concede 30 XP ao criar o limite de uma categoria, com marcador", async () => {
         const repository = makeRepository();
-        const service = new GamificationService(repository);
+        const weekly = makeWeeklyXp();
+        const service = new GamificationService(repository, undefined, undefined, weekly.writer);
 
-        await service.awardPlanningCreationXp("w", { amount: 500, category: { id: "mercado" } });
+        await service.awardPlanningCreationXp("w", { amount: 500, category: { id: "mercado" } }, MONDAY_CRON);
 
         expect(repository.awardXpOnce).toHaveBeenCalledWith(
             "w", "planning", "mercado", XP_VALUES.planningCreated, expect.any(String)
         );
+        // Também na barra da semana CORRENTE — o limite foi criado agora.
+        expect(weekly.total()).toBe(XP_VALUES.planningCreated);
+        expect(getWeekId(weekly.calls[0].date)).toBe(getWeekId(MONDAY_CRON));
+    });
+
+    it("a barra semanal NÃO é creditada quando o XP único não saiu", async () => {
+        // Quem decide é a transação do repositório. Creditar a semana mesmo
+        // assim faria a segunda criação do mesmo limite inflar a barra sem
+        // inflar o total do workspace.
+        const repository = makeRepository({ awardXpOnce: jest.fn().mockResolvedValue(false) });
+        const weekly = makeWeeklyXp();
+        const service = new GamificationService(repository, undefined, undefined, weekly.writer);
+
+        expect(await service.awardPlanningCreationXp("w", { amount: 500, category: { id: "mercado" } })).toBe(false);
+        expect(weekly.writer).not.toHaveBeenCalled();
+    });
+
+    it("uma falha na barra semanal não desfaz o XP já concedido", async () => {
+        // O total do workspace é a fonte da verdade (é ele que move o nível);
+        // a barra é apresentação.
+        const repository = makeRepository();
+        const writer = jest.fn().mockRejectedValue(new Error("weekly_xp fora do ar"));
+        const service = new GamificationService(repository, undefined, undefined, writer);
+
+        await expect(
+            service.awardPlanningCreationXp("w", { amount: 500, category: { id: "mercado" } })
+        ).resolves.toBe(true);
     });
 
     it("a segunda criação do mesmo limite não paga de novo", async () => {
@@ -355,6 +408,9 @@ describe("Catálogo de XP publicado em config/badges", () => {
             "five_transactions", "twenty_transactions", "fifty_transactions", "hundred_transactions",
             "five_categories", "ten_categories", "three_categories_month", "five_categories_month",
             "first_category", "first_income", "first_expense", "first_transfer", "first_month",
+            // Segunda rodada (QA): o que sobrou de contagem pura.
+            "reconcile_five", "five_active_goals", "two_active_goals",
+            "two_months_active", "small_transactions_ten", "big_transaction",
         ];
 
         for (const id of zerados) {

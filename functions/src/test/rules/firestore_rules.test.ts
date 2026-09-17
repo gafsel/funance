@@ -164,7 +164,9 @@ describe("firestore.rules", () => {
                 // `deleteField()` num campo inexistente é um no-op e passaria).
                 financialHealth: { score: 55, tier: "estrategista", monthKey: "2026-08" },
                 xpAwardedFor: { planning: { mercado: "2026-08-01T00:00:00.000Z" } },
-                weeklyStreaks: { missions: 2, plan: 3 },
+                // `weeklyStreaks` continua NÚMERO; o mapa vive em `streaks`.
+                weeklyStreaks: 2,
+                streaks: { missions: 2, plan: 3 },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
             await setDoc(
@@ -755,6 +757,7 @@ describe("firestore.rules", () => {
                 { financialHealth: { score: 100, tier: "livre", monthKey: "2026-09" } },
                 { healthDirtyAt: Timestamp.fromDate(new Date()) },
                 { xpAwardedFor: { planning: { mercado: "2026-01-01" } } },
+                { streaks: { missions: 40, plan: 40 } },
             ]) {
                 await assertFails(
                     setDoc(doc(db, "workspaces/ws-forjado"), {
@@ -764,9 +767,11 @@ describe("firestore.rules", () => {
             }
         });
 
-        it("permite criar o workspace com weeklyStreaks no formato antigo E no novo", async () => {
-            // F2.3: o campo virou mapa. O app antigo manda 0, o novo pode
-            // mandar o mapa vazio — os dois são o estado inicial.
+        it("`weeklyStreaks` continua sendo um NÚMERO na criação", async () => {
+            // O app instalado desserializa este campo como `num?`. Aceitar um
+            // mapa aqui abriria a porta para o tipo que quebra toda build em
+            // campo — e é exatamente por isso que o mapa novo vive em
+            // `streaks`, negado ao cliente.
             const dbAntigo = testEnv.authenticatedContext("user-antigo").firestore();
             await assertSucceeds(
                 setDoc(doc(dbAntigo, "workspaces/ws-streak-antigo"), {
@@ -774,19 +779,27 @@ describe("firestore.rules", () => {
                 })
             );
 
-            const dbNovo = testEnv.authenticatedContext("user-novo").firestore();
-            await assertSucceeds(
-                setDoc(doc(dbNovo, "workspaces/ws-streak-novo"), {
-                    name: "Novo", type: "personal", members: ["user-novo"], weeklyStreaks: {},
+            const dbMapa = testEnv.authenticatedContext("user-mapa").firestore();
+            await assertFails(
+                setDoc(doc(dbMapa, "workspaces/ws-streak-mapa"), {
+                    name: "Mapa", type: "personal", members: ["user-mapa"], weeklyStreaks: {},
                 })
             );
 
-            // Mas nunca com uma sequência já pronta.
+            // E nunca com uma sequência já pronta.
             const dbForja = testEnv.authenticatedContext("user-forja").firestore();
             await assertFails(
                 setDoc(doc(dbForja, "workspaces/ws-streak-forjado"), {
-                    name: "Forjado", type: "personal", members: ["user-forja"], weeklyStreaks: { plan: 40 },
+                    name: "Forjado", type: "personal", members: ["user-forja"], weeklyStreaks: 40,
                 })
+            );
+        });
+
+        it("nega que o cliente escreva o mapa `streaks`", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), { streaks: { missions: 99, plan: 99 } })
             );
         });
     });

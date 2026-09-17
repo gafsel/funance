@@ -48,6 +48,16 @@ export async function handleCategoryPlanningWritten(
     await container.idempotencyService.runIdempotency(eventId, "processCategoryPlanningChange", async () => {
         await container.summaryService.processCategoryPlanningChange(workspaceId, before, after);
     });
+
+    // F2.2 — o limite é insumo DIRETO da Disciplina (quantas categorias com
+    // limite fecharam o mês dentro dele). Criar ou apagar um limite muda o
+    // denominador do componente, e sem este carimbo o índice só perceberia na
+    // próxima parcela paga — ou nunca, num mês em que o usuário só planejou.
+    //
+    // Fora da idempotência, como no gatilho de parcela: reexecutar um carimbo é
+    // inofensivo, e a guarda por conteúdo lá em cima já descartou o eco da
+    // escrita dos marcadores de F1.5.
+    await container.financialHealthService.markHealthDirty(workspaceId);
 }
 
 export const onCategoryPlanningWritten = onDocumentWritten(

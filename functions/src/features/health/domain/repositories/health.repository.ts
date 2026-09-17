@@ -50,6 +50,19 @@ export interface IHealthRepository {
     getMonthlyTotals(workspaceId: string, monthKey: string): Promise<MonthlyTotals>;
 
     /**
+     * Despesa REALIZADA no intervalo `[since, until]`, por `paidDate`, somada a
+     * partir das próprias parcelas (`paidAmount ?? amount`).
+     *
+     * Não sai dos `period_summaries` porque estes são MENSAIS, e uma janela
+     * móvel de 90 dias não se encaixa em meses de calendário — era exatamente
+     * essa borda que fazia o Fôlego pular na virada do mês.
+     */
+    getRealizedExpensesBetween(workspaceId: string, since: Date, until: Date): Promise<number>;
+
+    /** Retrato já gravado em `health_history/{monthKey}`, ou `null`. */
+    getHistory(workspaceId: string, monthKey: string): Promise<FinancialHealthSnapshot | null>;
+
+    /**
      * Categorias de DESPESA com limite vigente no mês (`category_planning` com
      * `amount > 0` cobrindo o mês) e o realizado de cada uma naquele mês.
      */

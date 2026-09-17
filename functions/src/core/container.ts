@@ -259,7 +259,13 @@ class Container {
             this._gamificationService = new GamificationService(
                 this.gamificationRepository,
                 this.aiRepository,
-                this.idempotencyService
+                this.idempotencyService,
+                // F2.3 — o XP que premia planejar entra na MESMA barra semanal
+                // do XP de pagamento. A seta é lazy de propósito: resolver
+                // `financeService` aqui construiria o serviço de finanças toda
+                // vez que a gamificação fosse pedida.
+                (workspaceId, date, deltaXp) =>
+                    this.financeService.updateWeeklyTotalXp(workspaceId, date, deltaXp)
             );
         }
         return this._gamificationService;

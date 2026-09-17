@@ -249,11 +249,11 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Registrar uma transação de valor exato sem centavos.",
     },
     big_transaction: {
-        id: "big_transaction", name: "Grande Negócio", icon: "payments", xpReward: 75, category: "savings",
+        id: "big_transaction", name: "Grande Negócio", icon: "payments", xpReward: 0, category: "savings",
         description: "Registrar uma transação individual acima de R$ 1.000.",
     },
     small_transactions_ten: {
-        id: "small_transactions_ten", name: "Detalhe Minucioso", icon: "grain", xpReward: 75, category: "savings",
+        id: "small_transactions_ten", name: "Detalhe Minucioso", icon: "grain", xpReward: 0, category: "savings",
         description: "Registrar 10 transações de valor inferior a R$ 10.",
     },
     income_registered: {
@@ -299,11 +299,11 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Concluir uma meta antes da data limite estabelecida.",
     },
     two_active_goals: {
-        id: "two_active_goals", name: "Ambicioso", icon: "offline_bolt", xpReward: 50, category: "goals",
+        id: "two_active_goals", name: "Ambicioso", icon: "offline_bolt", xpReward: 0, category: "goals",
         description: "Ter 2 metas ativas ao mesmo tempo.",
     },
     five_active_goals: {
-        id: "five_active_goals", name: "Multitarefas", icon: "dynamic_feed", xpReward: 100, category: "goals",
+        id: "five_active_goals", name: "Multitarefas", icon: "dynamic_feed", xpReward: 0, category: "goals",
         description: "Ter 5 metas ativas ao mesmo tempo.",
     },
     long_term_goal: {
@@ -337,7 +337,7 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Concluir a segunda conciliação bancária.",
     },
     reconcile_five: {
-        id: "reconcile_five", name: "Conciliador Hábil", icon: "sync_alt", xpReward: 100, category: "team",
+        id: "reconcile_five", name: "Conciliador Hábil", icon: "sync_alt", xpReward: 0, category: "team",
         description: "Concluir 5 conciliações bancárias ao total.",
     },
     mission_first: {
@@ -353,7 +353,7 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Criar planejamento para ao menos 5 categorias no mês.",
     },
     two_months_active: {
-        id: "two_months_active", name: "Constante", icon: "repeat", xpReward: 100, category: "team",
+        id: "two_months_active", name: "Constante", icon: "repeat", xpReward: 0, category: "team",
         description: "Registrar transações em 2 meses diferentes.",
     },
     workspace_one_year: {
@@ -478,15 +478,64 @@ export const XP_SOURCES: XpSourceConfig[] = [
     },
 ];
 
+/**
+ * Escrita do XP na barra semanal (`weekly_xp/{YYYY-Www}`).
+ *
+ * É INJETADA, e não importada: a implementação vive em
+ * `FinanceService.updateWeeklyTotalXp` (a única do projeto desde F1.9), mas
+ * alcançá-la por `import { container }` aqui arrastaria o container inteiro —
+ * e, com ele, o SDK do Gemini e o `ofx-js` — para dentro de qualquer arquivo
+ * que apenas leia o catálogo de badges. O container faz a ligação.
+ */
+export type WeeklyXpWriter = (workspaceId: string, date: Date, deltaXp: number) => Promise<void>;
+
 export class GamificationService {
     constructor(
         private gamificationRepository: IGamificationRepository,
         private aiRepository?: IAIRepository,
-        private idempotencyService?: IIdempotencyService
+        private idempotencyService?: IIdempotencyService,
+        private weeklyXpWriter?: WeeklyXpWriter
     ) { }
 
     async addXp(workspaceId: string, amount: number, reason: string): Promise<void> {
         await this.gamificationRepository.addXp(workspaceId, amount, reason);
+    }
+
+    /**
+     * F2.3 — XP que também entra na BARRA DA SEMANA (`weekly_xp/{YYYY-Www}`).
+     *
+     * O XP total do workspace e o XP semanal são dois contadores distintos: o
+     * primeiro move o nível, o segundo desenha a barra de progresso da semana.
+     * Só o pagamento de parcela alimentava o segundo — então a semana em que o
+     * usuário criou cinco limites e fechou todos dentro do plano aparecia
+     * VAZIA na barra, que é o oposto da mensagem do produto.
+     *
+     * `weekDate` é qualquer instante DENTRO da semana que deve receber o XP.
+     * Para o cron semanal isso é a semana AVALIADA (a que acabou), não a
+     * corrente: o XP é mérito daquela semana e é nela que a barra histórica
+     * precisa mostrá-lo.
+     *
+     * A escrita em `weekly_xp` é best-effort e vem DEPOIS do XP do workspace:
+     * o total é a fonte da verdade (é ele que move o nível), a barra é
+     * apresentação. Uma falha aqui não pode desfazer o XP já concedido nem
+     * derrubar o cron para os demais workspaces.
+     */
+    private async addXpWithWeekly(
+        workspaceId: string,
+        amount: number,
+        reason: string,
+        weekDate: Date
+    ): Promise<void> {
+        await this.addXp(workspaceId, amount, reason);
+
+        if (!this.weeklyXpWriter) return;
+
+        try {
+            await this.weeklyXpWriter(workspaceId, weekDate, amount);
+        }
+        catch (e) {
+            logger.error(`[GamificationService] XP ${amount} concedido a ${workspaceId}, mas a barra semanal não atualizou:`, e);
+        }
     }
 
     async unlockBadge(workspaceId: string, badgeId: string): Promise<boolean> {
@@ -905,8 +954,7 @@ export class GamificationService {
         });
     }
 
-    async evaluateWeeklyMissionsCron(workspaceId: string): Promise<void> {
-        const now = new Date();
+    async evaluateWeeklyMissionsCron(workspaceId: string, now: Date = new Date()): Promise<void> {
         // O cron roda na virada da semana (segunda de madrugada): a semana a
         // avaliar é a ANTERIOR, já completa. Avaliar a semana corrente (recém
         // iniciada e vazia) zeraria a streak permanentemente.
@@ -934,9 +982,10 @@ export class GamificationService {
             return;
         }
 
-        // F2.3: `weeklyStreaks` virou mapa (`{missions, plan}`). O leitor aceita
-        // o número legado, então nenhuma sequência se perde na virada.
-        const currentStreaks = readWorkspaceStreaks(workspaceData.weeklyStreaks);
+        // F2.3: os streaks vivem em `streaks` (mapa). O leitor cai no
+        // `weeklyStreaks` numérico quando o mapa ainda não existe, então
+        // nenhuma sequência se perde na virada.
+        const currentStreaks = readWorkspaceStreaks(workspaceData);
 
         if (allCompleted) {
             const missions = currentStreaks.missions + 1;
@@ -1011,7 +1060,7 @@ export class GamificationService {
             const workspaceData = await this.gamificationRepository.getWorkspaceById(workspaceId);
             if (!workspaceData) return;
 
-            const streaks = readWorkspaceStreaks(workspaceData.weeklyStreaks);
+            const streaks = readWorkspaceStreaks(workspaceData);
             const planStreak = allWithin ? streaks.plan + 1 : 0;
 
             if (planStreak !== streaks.plan) {
@@ -1035,8 +1084,14 @@ export class GamificationService {
 
             if (xp <= 0) return;
 
-            // Uma escrita só: `addXp` é transacional e recalcula o nível.
-            await this.addXp(workspaceId, xp, `Plano da semana ${weekId}: ${parts.join(", ")}`);
+            // O XP vai para o total do workspace E para a barra da semana
+            // AVALIADA — `previousWeekStart` é um instante dentro dela.
+            await this.addXpWithWeekly(
+                workspaceId,
+                xp,
+                `Plano da semana ${weekId}: ${parts.join(", ")}`,
+                previousWeekStart
+            );
         };
 
         if (this.idempotencyService) {
@@ -1056,7 +1111,7 @@ export class GamificationService {
      * limite seria uma máquina de XP, e o jogo passaria a premiar mexer no
      * formulário em vez de planejar.
      */
-    async awardPlanningCreationXp(workspaceId: string, planningDoc: any): Promise<boolean> {
+    async awardPlanningCreationXp(workspaceId: string, planningDoc: any, now: Date = new Date()): Promise<boolean> {
         if (!planningDoc) return false;
         // Limite zerado não é limite: é o usuário desligando o planejamento.
         if (!((planningDoc.amount || 0) > 0)) return false;
@@ -1065,13 +1120,50 @@ export class GamificationService {
         if (typeof categoryId !== "string" || categoryId.length === 0) return false;
         if (isSystemCategory(categoryId, planningDoc.category)) return false;
 
-        return this.gamificationRepository.awardXpOnce(
+        return this.awardOnceAndCredit(
             workspaceId,
             "planning",
             categoryId,
             XP_VALUES.planningCreated,
-            "Limite criado para uma categoria nova"
+            "Limite criado para uma categoria nova",
+            now
         );
+    }
+
+    /**
+     * Concede o XP único e, quando ele de fato saiu, credita a barra da semana.
+     *
+     * A ordem importa: quem decide se há XP é a TRANSAÇÃO do repositório (o
+     * marcador e o XP são gravados juntos). Só depois de ela dizer "sim" é que
+     * a barra semanal é tocada — creditar antes faria a segunda criação do
+     * mesmo limite inflar a semana sem inflar o total.
+     */
+    private async awardOnceAndCredit(
+        workspaceId: string,
+        group: "planning" | "recurring",
+        categoryId: string,
+        xp: number,
+        reason: string,
+        now: Date
+    ): Promise<boolean> {
+        const awarded = await this.gamificationRepository.awardXpOnce(
+            workspaceId,
+            group,
+            categoryId,
+            xp,
+            reason
+        );
+
+        if (!awarded) return false;
+        if (!this.weeklyXpWriter) return true;
+
+        try {
+            await this.weeklyXpWriter(workspaceId, now, xp);
+        }
+        catch (e) {
+            logger.error(`[GamificationService] XP único ${group}/${categoryId} concedido a ${workspaceId}, mas a barra semanal não atualizou:`, e);
+        }
+        return true;
     }
 
     /**
@@ -1084,7 +1176,7 @@ export class GamificationService {
      * Fatura e saldo inicial ficam de fora: são orders que o SERVIDOR cria, e
      * premiar o usuário por elas seria conceder XP por ter um cartão.
      */
-    async awardRecurringCreationXp(workspaceId: string, orderDoc: any): Promise<boolean> {
+    async awardRecurringCreationXp(workspaceId: string, orderDoc: any, now: Date = new Date()): Promise<boolean> {
         if (!orderDoc) return false;
         if (orderDoc.installmentType !== "recurring") return false;
         if (orderDoc.isInvoice === true) return false;
@@ -1094,12 +1186,13 @@ export class GamificationService {
         if (typeof categoryId !== "string" || categoryId.length === 0) return false;
         if (isSystemCategory(categoryId, orderDoc.category)) return false;
 
-        return this.gamificationRepository.awardXpOnce(
+        return this.awardOnceAndCredit(
             workspaceId,
             "recurring",
             categoryId,
             XP_VALUES.recurringCreated,
-            "Recorrência criada para uma categoria nova"
+            "Recorrência criada para uma categoria nova",
+            now
         );
     }
 

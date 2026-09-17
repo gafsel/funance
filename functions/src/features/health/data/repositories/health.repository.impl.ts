@@ -210,6 +210,42 @@ export class HealthRepositoryImpl implements IHealthRepository {
         return totals;
     }
 
+    async getRealizedExpensesBetween(workspaceId: string, since: Date, until: Date): Promise<number> {
+        // Os três filtros vão para o SERVIDOR (índice `status ASC + paidDate
+        // ASC`, que já existe em `firestore.indexes.json`). A máscara de campos
+        // evita baixar a parcela inteira: aqui só interessam tipo, valor e
+        // categoria.
+        const snapshot = await this.workspaceRef(workspaceId)
+            .collection("installments")
+            .where("status", "in", ["paid", "settled"])
+            .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))
+            .where("paidDate", "<=", admin.firestore.Timestamp.fromDate(until))
+            .select("type", "amount", "paidAmount", "isInvoice", "category.id", "category.isSystem")
+            .get();
+
+        let total = 0;
+        for (const doc of snapshot.docs) {
+            if (doc.get("type") !== "expense") continue;
+            // A parcela de FATURA é a consolidação das compras do ciclo (e é
+            // `transfer`, não `expense`); a guarda aqui é redundante de
+            // propósito, porque contá-la duplicaria todo gasto de cartão.
+            if (doc.get("isInvoice") === true) continue;
+
+            const categoryId = doc.get("category.id");
+            if (typeof categoryId === "string" &&
+                isSystemCategory(categoryId, { isSystem: doc.get("category.isSystem") })) {
+                // Saldo inicial e virtuais de transferência não são consumo.
+                continue;
+            }
+
+            const paid = doc.get("paidAmount");
+            const value = finiteOr(paid, finiteOr(doc.get("amount"), 0));
+            if (value > 0) total += value;
+        }
+
+        return total;
+    }
+
     async getCategoryLimitOutcomes(workspaceId: string, monthKey: string): Promise<CategoryLimitOutcome[]> {
         const [plannings, categories, actuals] = await Promise.all([
             this.workspaceRef(workspaceId).collection("category_planning").get(),
@@ -283,6 +319,14 @@ export class HealthRepositoryImpl implements IHealthRepository {
     async getCurrent(workspaceId: string): Promise<FinancialHealthSnapshot | null> {
         const doc = await this.workspaceRef(workspaceId).get();
         return fromFirestore(doc.data()?.[HEALTH_FIELD]);
+    }
+
+    async getHistory(workspaceId: string, monthKey: string): Promise<FinancialHealthSnapshot | null> {
+        const doc = await this.workspaceRef(workspaceId)
+            .collection(HEALTH_HISTORY_COLLECTION)
+            .doc(monthKey)
+            .get();
+        return doc.exists ? fromFirestore(doc.data()) : null;
     }
 
     async markDirty(workspaceId: string): Promise<void> {

@@ -17,12 +17,14 @@ jest.mock("ofx-js", () => ({ parse: jest.fn() }));
 
 import * as admin from "firebase-admin";
 
+import { container } from "../../core/container";
 import { GamificationRepositoryImpl } from "../../features/goal/data/repositories/gamification.repository.impl";
 import {
     GamificationService,
     XP_VALUES,
 } from "../../features/goal/domain/services/gamification.service";
 import { readWorkspaceStreaks } from "../../features/goal/domain/repositories/gamification.repository";
+import { getWeekId } from "../../core/utils/week.utils";
 import { FinanceRepositoryImpl } from "../../features/finance/data/repositories/finance.repository.impl";
 import { FinanceService } from "../../features/finance/domain/services/finance.service";
 import {
@@ -100,7 +102,7 @@ describe("XP que premia planejar (integração com emulador do Firestore)", () =
 
     it("cron semanal: paga por categoria em dia, bônus de semana redonda e streak", async () => {
         const workspaceId = newWorkspace("semana");
-        await seedWorkspace(workspaceId, { weeklyStreaks: { missions: 1, plan: 2 } });
+        await seedWorkspace(workspaceId, { weeklyStreaks: 1, streaks: { missions: 1, plan: 2 } });
         await seedCategory(workspaceId, "mercado", "expense");
         await seedCategory(workspaceId, "lazer", "expense");
         await seedCategory(workspaceId, "salario", "income");
@@ -120,12 +122,16 @@ describe("XP que premia planejar (integração com emulador do Firestore)", () =
         const workspace = await readWorkspace(workspaceId);
         // 2×20 (duas dentro) + 50 (todas) + 10×3 (a streak vai de 2 para 3).
         expect(workspace.xp).toBe(2 * XP_VALUES.weeklyCategoryWithinLimit + XP_VALUES.weeklyAllWithinLimit + 30);
-        expect(readWorkspaceStreaks(workspace.weeklyStreaks)).toEqual({ missions: 1, plan: 3 });
+        expect(readWorkspaceStreaks(workspace)).toEqual({ missions: 1, plan: 3 });
+        // INVARIANTE: o campo legado continua NÚMERO e igual a `missions` — é
+        // ele que o app instalado desserializa (`as num?`).
+        expect(typeof workspace.weeklyStreaks).toBe("number");
+        expect(workspace.weeklyStreaks).toBe(1);
     });
 
     it("cron semanal: estourar um limite zera a streak e paga só o que ficou em dia", async () => {
         const workspaceId = newWorkspace("estouro");
-        await seedWorkspace(workspaceId, { weeklyStreaks: { missions: 4, plan: 9 } });
+        await seedWorkspace(workspaceId, { weeklyStreaks: 4, streaks: { missions: 4, plan: 9 } });
         await seedCategory(workspaceId, "mercado", "expense");
         await seedCategory(workspaceId, "lazer", "expense");
 
@@ -140,7 +146,8 @@ describe("XP que premia planejar (integração com emulador do Firestore)", () =
         const workspace = await readWorkspace(workspaceId);
         expect(workspace.xp).toBe(XP_VALUES.weeklyCategoryWithinLimit);
         // A streak de PLANO zera; a de MISSÕES, que é outra coisa, sobrevive.
-        expect(readWorkspaceStreaks(workspace.weeklyStreaks)).toEqual({ missions: 4, plan: 0 });
+        expect(readWorkspaceStreaks(workspace)).toEqual({ missions: 4, plan: 0 });
+        expect(workspace.weeklyStreaks).toBe(4);
     });
 
     it("cron semanal: sem sumário da semana, nada acontece", async () => {
@@ -153,9 +160,15 @@ describe("XP que premia planejar (integração com emulador do Firestore)", () =
         expect((await readWorkspace(workspaceId)).xp).toBe(0);
     });
 
-    it("weeklyStreaks LEGADO (número) vira mapa sem perder a sequência de missões", async () => {
+    it("workspace LEGADO ganha `streaks` sem que `weeklyStreaks` mude de tipo", async () => {
+        // ESTE É O BLOQUEANTE DO QA. O app instalado desserializa
+        // `weeklyStreaks` como `num?` (`workspace_model.g.dart`): se o servidor
+        // gravasse um mapa ali, toda build em campo lançaria `TypeError` ao
+        // abrir o workspace — e o cron semanal escreve nesse campo em TODOS os
+        // workspaces, então a quebra chegaria a todo mundo na segunda-feira
+        // seguinte ao deploy, sem ação do usuário.
         const workspaceId = newWorkspace("legado");
-        // Formato antigo: um número solto.
+        // Formato antigo: um número solto, e nenhum mapa `streaks`.
         await seedWorkspace(workspaceId, { weeklyStreaks: 5 });
         await seedCategory(workspaceId, "mercado", "expense");
         await seedWeeklySummary(workspaceId, EVALUATED_WEEK, {
@@ -166,8 +179,68 @@ describe("XP que premia planejar (integração com emulador do Firestore)", () =
         await service.evaluateWeeklyPlanXp(workspaceId, MONDAY_CRON);
 
         const workspace = await readWorkspace(workspaceId);
+        // O campo legado continua NÚMERO — o app antigo segue lendo.
+        expect(typeof workspace.weeklyStreaks).toBe("number");
         // As 5 semanas de missões continuam lá; o plano começa em 1.
-        expect(workspace.weeklyStreaks).toEqual({ missions: 5, plan: 1 });
+        expect(workspace.weeklyStreaks).toBe(5);
+        expect(workspace.streaks).toEqual({ missions: 5, plan: 1 });
+    });
+
+    it("o cron de MISSÕES mantém os dois campos em sincronia", async () => {
+        const workspaceId = newWorkspace("missoes");
+        await seedWorkspace(workspaceId, { weeklyStreaks: 2, streaks: { missions: 2, plan: 7 } });
+        await firestore.doc(`workspaces/${workspaceId}/weekly_missions/${EVALUATED_WEEK}_consistency`)
+            .set({ weekId: EVALUATED_WEEK, status: "completed", type: "consistency" });
+
+        const service = new GamificationService(new GamificationRepositoryImpl());
+        await service.evaluateWeeklyMissionsCron(workspaceId, MONDAY_CRON);
+
+        const workspace = await readWorkspace(workspaceId);
+        expect(typeof workspace.weeklyStreaks).toBe("number");
+        // INVARIANTE: weeklyStreaks === streaks.missions, sempre.
+        expect(workspace.weeklyStreaks).toBe(workspace.streaks.missions);
+        expect(workspace.weeklyStreaks).toBe(3);
+        // E a sequência de PLANO não foi tocada pelo cron de missões.
+        expect(workspace.streaks.plan).toBe(7);
+    });
+
+    it("o XP de planejar também aparece na BARRA DA SEMANA (`weekly_xp`)", async () => {
+        // O XP total move o nível; o `weekly_xp` desenha a barra da semana. Só
+        // o pagamento de parcela alimentava o segundo, então a semana em que o
+        // usuário criou limites e fechou tudo dentro do plano aparecia VAZIA —
+        // o oposto da mensagem do produto.
+        //
+        // Aqui o serviço vem do CONTAINER, com o writer de verdade ligado.
+        const workspaceId = newWorkspace("barra");
+        await seedWorkspace(workspaceId);
+        await seedCategory(workspaceId, "mercado", "expense");
+        await seedWeeklySummary(workspaceId, EVALUATED_WEEK, {
+            mercado: { generalPlannedAmount: 700, actualAmount: 650 },
+        });
+
+        await container.gamificationService.evaluateWeeklyPlanXp(workspaceId, MONDAY_CRON);
+
+        // 20 (dentro) + 50 (todas) + 10 (streak 1) = 80.
+        const esperado = XP_VALUES.weeklyCategoryWithinLimit + XP_VALUES.weeklyAllWithinLimit + 10;
+        expect((await readWorkspace(workspaceId)).xp).toBe(esperado);
+
+        // O XP entra na semana AVALIADA, não na corrente: o mérito é daquela
+        // semana e é nela que a barra histórica precisa mostrá-lo.
+        const bar = await firestore.doc(`workspaces/${workspaceId}/weekly_xp/${EVALUATED_WEEK}`).get();
+        expect(bar.exists).toBe(true);
+        expect(bar.data()!.xp).toBe(esperado);
+
+        // E o XP único de limite cai na semana CORRENTE (foi criado agora).
+        await container.gamificationService.awardPlanningCreationXp(
+            workspaceId,
+            { amount: 900, category: { id: "lazer", name: "Lazer" } },
+            MONDAY_CRON
+        );
+
+        const currentWeek = getWeekId(MONDAY_CRON);
+        const currentBar = await firestore.doc(`workspaces/${workspaceId}/weekly_xp/${currentWeek}`).get();
+        expect(currentBar.data()!.xp).toBe(XP_VALUES.planningCreated);
+        expect((await readWorkspace(workspaceId)).xp).toBe(esperado + XP_VALUES.planningCreated);
     });
 
     it("XP único: a segunda criação do mesmo limite não paga nada", async () => {

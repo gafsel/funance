@@ -69,17 +69,16 @@ service cloud.firestore {
         && validWorkspaceBase(request.resource.data)
         && (!('xp' in request.resource.data) || request.resource.data.xp == 0)
         && (!('level' in request.resource.data) || request.resource.data.level == 1)
-        // F2.3: `weeklyStreaks` passou de número a MAPA (`{missions, plan}`).
-        // O app antigo cria com `0` e o novo pode criar com o mapa vazio; as
-        // duas formas são o estado inicial e nenhuma delas concede streak.
-        && (!('weeklyStreaks' in request.resource.data)
-            || request.resource.data.weeklyStreaks == 0
-            || (request.resource.data.weeklyStreaks is map && request.resource.data.weeklyStreaks.size() == 0))
+        // `weeklyStreaks` continua sendo um NÚMERO (ver F2.3): o app instalado
+        // o desserializa como `num?`, e trocar o tipo quebraria toda build em
+        // campo. O mapa novo vive em `streaks`, negado abaixo.
+        && (!('weeklyStreaks' in request.resource.data) || request.resource.data.weeklyStreaks == 0)
         && (!('unlockedBadges' in request.resource.data) || request.resource.data.unlockedBadges.size() == 0)
         && (!('lastLevelUpAt' in request.resource.data) || request.resource.data.lastLevelUpAt == null)
-        // F2.2/F2.3: a Bússola da Liberdade e os marcadores de XP único são
-        // exclusivos do servidor. O cliente não os semeia na criação.
-        && !request.resource.data.keys().hasAny(['financialHealth', 'healthDirtyAt', 'xpAwardedFor']);
+        // F2.2/F2.3: a Bússola da Liberdade, os marcadores de XP único e o mapa
+        // de streaks são exclusivos do servidor — o cliente não os semeia na
+        // criação (nem uma sequência já pronta).
+        && !request.resource.data.keys().hasAny(['financialHealth', 'healthDirtyAt', 'xpAwardedFor', 'streaks']);
 
       // Update: membros só podem alterar campos de apresentação/onboarding.
       // 'members' é imutável pelo cliente (o aceite de convite adiciona membros
@@ -91,9 +90,11 @@ service cloud.firestore {
       // em vez de calculá-la. Como a lista de affectedKeys abaixo é fechada
       // (hasOnly), qualquer escrita do cliente nesses campos já é negada.
       // F2.2/F2.3: o mesmo vale para 'financialHealth' (Bússola da Liberdade),
-      // 'healthDirtyAt' (marcador de recálculo) e 'xpAwardedFor' (XP único por
-      // categoria). São placar e contabilidade de XP: escrevê-los no cliente
-      // seria escolher a própria patente e conceder o próprio XP.
+      // 'healthDirtyAt' (marcador de recálculo), 'xpAwardedFor' (XP único por
+      // categoria) e 'streaks' (as sequências semanais). São placar e
+      // contabilidade de XP: escrevê-los no cliente seria escolher a própria
+      // patente e conceder o próprio XP. Como a lista de affectedKeys abaixo é
+      // fechada (hasOnly), todos já estão negados por construção.
       // 'createdAt' permitido apenas porque o fluxo de onboarding reescreve o doc
       // inteiro com um timestamp gerado no cliente logo após a criação.
       allow update: if request.auth != null

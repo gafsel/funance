@@ -33,13 +33,23 @@ export interface WeeklySummaryRow {
 }
 
 /**
- * F2.3 — os streaks semanais do workspace, agora um MAPA.
+ * F2.3 — os streaks semanais do workspace.
  *
- * `weeklyStreaks` era um número só: a sequência de semanas com todas as
- * missões concluídas. Com o streak de PLANO (semanas seguidas fechando dentro
- * dos limites) passaram a ser dois, e o contrato com o app é
- * `weeklyStreaks.plan`. O valor legado (número) é lido como
- * `{missions: n, plan: 0}` — nenhuma sequência é perdida na virada.
+ * `weeklyStreaks` era (e CONTINUA SENDO) um número: a sequência de semanas com
+ * todas as missões concluídas. Com o streak de PLANO (semanas seguidas
+ * fechando dentro dos limites) passaram a ser dois, e o novo campo `streaks`
+ * carrega os dois num mapa.
+ *
+ * **Por que não transformar `weeklyStreaks` num mapa.** O app instalado
+ * desserializa esse campo como número (`workspace_model.g.dart`: `as num?`).
+ * Trocar o tipo faria toda build em campo lançar `TypeError` ao ler o
+ * workspace — e o cron semanal escreve nesse campo em TODOS os workspaces, de
+ * modo que a quebra chegaria a todo mundo na segunda-feira seguinte ao deploy,
+ * sem nenhuma ação do usuário. Um campo novo ao lado não quebra ninguém: o app
+ * antigo o ignora.
+ *
+ * Os dois são escritos na MESMA transação e `weeklyStreaks === streaks.missions`
+ * é invariante. O contrato novo para o app é `streaks.plan`.
  */
 export interface WorkspaceStreaks {
     /** Semanas consecutivas com TODAS as missões semanais concluídas. */
@@ -48,17 +58,22 @@ export interface WorkspaceStreaks {
     plan: number;
 }
 
-/** Lê `weeklyStreaks` aceitando o formato legado (número) e o novo (mapa). */
-export function readWorkspaceStreaks(raw: any): WorkspaceStreaks {
-    if (typeof raw === "number" && Number.isFinite(raw)) {
-        return { missions: Math.max(0, Math.trunc(raw)), plan: 0 };
+/**
+ * Lê os streaks do documento do workspace, tolerando as duas gerações:
+ * `streaks` (mapa, quando existe) e o `weeklyStreaks` numérico, que é a única
+ * fonte de `missions` num workspace que ainda não passou pelo cron novo.
+ */
+export function readWorkspaceStreaks(workspaceData: any): WorkspaceStreaks {
+    const pick = (value: any) =>
+        typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
+
+    const map = workspaceData?.streaks;
+    if (map && typeof map === "object") {
+        return { missions: pick(map.missions), plan: pick(map.plan) };
     }
-    if (raw && typeof raw === "object") {
-        const pick = (value: any) =>
-            typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
-        return { missions: pick(raw.missions), plan: pick(raw.plan) };
-    }
-    return { missions: 0, plan: 0 };
+
+    // Sem o mapa, `missions` vem do campo legado e o plano começa em zero.
+    return { missions: pick(workspaceData?.weeklyStreaks), plan: 0 };
 }
 
 /** Famílias de XP concedido UMA ÚNICA VEZ por categoria (`xpAwardedFor.<grupo>.<id>`). */
@@ -84,11 +99,9 @@ export interface IGamificationRepository {
     updateWeeklyMission(workspaceId: string, weekId: string, type: string, data: any): Promise<void>;
     getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]>;
     /**
-     * Grava `weeklyStreaks` como MAPA, preservando as chaves não informadas.
-     * A escrita é read-modify-write do campo INTEIRO (nunca `weeklyStreaks.x`
-     * por caminho pontilhado): num documento legado, em que o campo ainda é um
-     * número, o caminho pontilhado o converteria em mapa silenciosamente e a
-     * sequência de missões iria para o lixo.
+     * Grava `streaks` (mapa) e `weeklyStreaks` (número, = `missions`) na MESMA
+     * transação, preservando as chaves não informadas. Os dois campos nunca
+     * podem divergir: o app antigo lê o número e o novo lê o mapa.
      */
     updateWorkspaceStreaks(workspaceId: string, streaks: Partial<WorkspaceStreaks>): Promise<void>;
     /** Linhas do `period_summaries` da SEMANA (`{YYYY-Www}`), com join em categories. */

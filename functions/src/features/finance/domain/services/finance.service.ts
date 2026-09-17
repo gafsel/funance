@@ -610,8 +610,16 @@ export class FinanceService {
      * (`core/utils/week.utils.ts`, fuso do produto). Antes havia aqui uma cópia
      * privada da aritmética, em UTC, que divergia das missões semanais no
      * sábado à noite.
+     *
+     * F2.3: deixou de ser privada. O XP que premia PLANEJAR (semana dentro do
+     * limite, limite criado, recorrência criada) precisa aparecer na mesma
+     * barra semanal do XP de pagamento — senão o app mostraria uma semana
+     * "vazia" justamente na semana em que o usuário mais planejou. A
+     * gamificação chama ESTA função em vez de escrever em `weekly_xp` por
+     * conta própria: duas implementações da mesma escrita foi exatamente o
+     * defeito que F1.9 eliminou.
      */
-    private async updateWeeklyTotalXp(workspaceId: string, date: Date, deltaXp: number): Promise<void> {
+    async updateWeeklyTotalXp(workspaceId: string, date: Date, deltaXp: number): Promise<void> {
         if (deltaXp === 0) return;
 
         const { year, week } = getWeekRef(date);

@@ -231,27 +231,35 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         const db = admin.firestore();
         const workspaceRef = db.collection("workspaces").doc(workspaceId);
 
-        // Read-modify-write do campo INTEIRO dentro de uma transação. Duas
-        // razões, e as duas doem:
-        //  - `update({"weeklyStreaks.plan": n})` num documento legado, onde o
-        //    campo ainda é um NÚMERO, troca o número por um mapa e apaga a
-        //    sequência de missões sem avisar ninguém;
-        //  - o cron semanal grava `missions` e o XP de plano grava `plan` na
-        //    mesma execução; sem a transação, o segundo sobrescreveria o
-        //    primeiro.
+        // DOIS campos, UMA transação:
+        //
+        //  - `streaks` é o mapa novo (`{missions, plan}`), que o app novo lê;
+        //  - `weeklyStreaks` continua sendo o NÚMERO de missões, porque o app
+        //    instalado o desserializa como `num?` e trocar o tipo faria toda
+        //    build em campo lançar `TypeError` ao abrir o workspace. Este cron
+        //    escreve em TODOS os workspaces: a quebra chegaria a todo mundo na
+        //    segunda-feira seguinte ao deploy, sem ação do usuário.
+        //
+        // A transação é o que mantém os dois consistentes e o que impede que o
+        // cron de missões e o de plano — que rodam na mesma execução — se
+        // sobrescrevam.
         await db.runTransaction(async (transaction) => {
             const doc = await transaction.get(workspaceRef);
             if (!doc.exists) {
                 return;
             }
 
-            const current = readWorkspaceStreaks(doc.data()!.weeklyStreaks);
+            const current = readWorkspaceStreaks(doc.data()!);
             const next: WorkspaceStreaks = {
                 missions: streaks.missions ?? current.missions,
                 plan: streaks.plan ?? current.plan,
             };
 
-            transaction.update(workspaceRef, { weeklyStreaks: next });
+            transaction.update(workspaceRef, {
+                streaks: next,
+                // INVARIANTE: weeklyStreaks === streaks.missions.
+                weeklyStreaks: next.missions,
+            });
         });
     }
 

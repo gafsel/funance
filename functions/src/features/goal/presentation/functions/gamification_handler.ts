@@ -35,8 +35,10 @@ const GAMIFICATION_ONLY_FIELDS = new Set([
     // F2.2 — Bússola da Liberdade.
     "financialHealth",
     "healthDirtyAt",
-    // F2.3 — marcadores de XP concedido uma única vez por categoria.
+    // F2.3 — marcadores de XP concedido uma única vez por categoria e o mapa
+    // de streaks semanais (escrito junto do `weeklyStreaks` numérico).
     "xpAwardedFor",
+    "streaks",
 ]);
 
 /**
