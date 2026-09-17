@@ -36,6 +36,9 @@ const INSTALLMENT_ID = "installment-rules";
 const PLANNING_ID = "planning-rules";
 const CARD_ID = "acc-card-rules";
 const INVOICE_INSTALLMENT_ID = "installment-fatura-rules";
+const WEEK_ID = "2026-W37";
+const MISSION_ID = `${WEEK_ID}_consistency`;
+const HEALTH_MONTH_ID = "2026-08";
 
 const planningDoc = (overrides: Record<string, unknown> = {}) => ({
     category: { id: "cat-moradia", name: "Moradia", icon: "home", color: "#42A5F5" },
@@ -189,6 +192,30 @@ describe("firestore.rules", () => {
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`),
                 invoiceInstallmentDoc()
+            );
+            // F2.4/F3.1: missões semanais e histórico da Bússola da Liberdade.
+            // Os dois são escritos só pelo Admin SDK; o app precisa LER.
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/weekly_missions/${MISSION_ID}`),
+                {
+                    id: "consistency",
+                    name: "Equipe planeja limites para pelo menos 3 categorias.",
+                    type: "consistency",
+                    status: "pending",
+                    rewardXp: 150,
+                    progress: 0,
+                    target: 3,
+                    weekId: WEEK_ID,
+                    createdAt: new Date().toISOString(),
+                }
+            );
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/health_history/${HEALTH_MONTH_ID}`),
+                { score: 62, tier: "estrategista", monthKey: HEALTH_MONTH_ID }
+            );
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/weekly_xp/${WEEK_ID}`),
+                { year: 2026, week: 37, xp: 175 }
             );
         });
     });
@@ -528,6 +555,115 @@ describe("firestore.rules", () => {
 
         await assertFails(getDoc(doc(db, "config/ai")));
         await assertFails(getDoc(doc(db, "config/cron_checkpoints")));
+    });
+
+    // ---- F2.4/F3.1: missões semanais e histórico do índice ------------------
+    //
+    // Sem estas regras as duas coleções caíam no `match /{document=**}` do fim
+    // do arquivo, que nega tudo: a Jornada não conseguia ler nem as missões que
+    // o GamificationService já vinha gerando havia meses.
+
+    describe("weekly_missions", () => {
+        const missionPath = `workspaces/${WORKSPACE_ID}/weekly_missions/${MISSION_ID}`;
+
+        it("permite que um membro leia as missões da semana", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            const snapshot = await assertSucceeds(getDoc(doc(db, missionPath)));
+            expect(snapshot.data()?.rewardXp).toBe(150);
+            expect(snapshot.data()?.weekId).toBe(WEEK_ID);
+        });
+
+        it("nega leitura para quem não é membro do workspace", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            await assertFails(getDoc(doc(db, missionPath)));
+        });
+
+        it("nega leitura para quem não está autenticado", async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+
+            await assertFails(getDoc(doc(db, missionPath)));
+        });
+
+        it("nega que o membro conclua a própria missão", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, missionPath), { status: "completed", progress: 3 })
+            );
+        });
+
+        it("nega que o membro crie uma missão", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/weekly_missions/${WEEK_ID}_inventada`),
+                    { type: "consistency", status: "completed", rewardXp: 99999, weekId: WEEK_ID }
+                )
+            );
+        });
+
+        it("nega que o membro apague uma missão", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(deleteDoc(doc(db, missionPath)));
+        });
+    });
+
+    describe("health_history", () => {
+        const historyPath = `workspaces/${WORKSPACE_ID}/health_history/${HEALTH_MONTH_ID}`;
+
+        it("permite que um membro leia o histórico do índice", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            const snapshot = await assertSucceeds(getDoc(doc(db, historyPath)));
+            expect(snapshot.data()?.score).toBe(62);
+        });
+
+        it("nega leitura para quem não é membro do workspace", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            await assertFails(getDoc(doc(db, historyPath)));
+        });
+
+        it("nega leitura para quem não está autenticado", async () => {
+            const db = testEnv.unauthenticatedContext().firestore();
+
+            await assertFails(getDoc(doc(db, historyPath)));
+        });
+
+        it("nega que o membro reescreva o próprio score", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(updateDoc(doc(db, historyPath), { score: 100 }));
+        });
+
+        it("nega que o membro crie um mês de histórico", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-09`),
+                    { score: 100, tier: "livre" }
+                )
+            );
+        });
+
+        it("nega que o membro apague um mês de histórico", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(deleteDoc(doc(db, historyPath)));
+        });
+    });
+
+    it("nega que o membro escreva o weekly_xp da semana", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/weekly_xp/${WEEK_ID}`), { xp: 99999 })
+        );
     });
 
     // ---- F1.8: nextInvoice da conta é do servidor ---------------------------

@@ -287,17 +287,20 @@ class TransactionFormScreen extends ConsumerWidget {
 
           navigator.pop(true);
 
-          if (nudge == null) return;
+          if (nudge == null || !sheetContext.mounted) return;
 
-          await nudgeService.markShown(nudge.category.id, today);
-
-          if (!sheetContext.mounted) return;
-
-          await UnplannedNudgeSheet.show(
+          final shown = await UnplannedNudgeSheet.show(
             sheetContext,
             nudge: nudge,
             analytics: analytics,
           );
+
+          // Marca só o que de fato apareceu: gravar antes de abrir fazia o
+          // usuário perder o convite do dia quando o sheet não chegava à tela
+          // (contexto já desmontado), sem nunca ter visto nada.
+          if (shown) {
+            await nudgeService.markShown(nudge.category.id, today);
+          }
         },
         bannerBuilder: (context, snapshot) {
           final state = snapshot.model;

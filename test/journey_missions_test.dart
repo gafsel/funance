@@ -229,34 +229,47 @@ void main() {
       expect(find.textContaining('7 de 5'), findsNothing);
     });
 
-    testWidgets('a barra da semana usa o weekly_xp do servidor', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _app(
-          _overrides(
-            repository: FakeJourneyRepository(
-              missions: [_mission, _doneMission],
-              xp: 175,
+    testWidgets(
+      'o XP da semana é um número honesto: sem barra e sem teto de missões',
+      (tester) async {
+        await tester.pumpWidget(
+          _app(
+            _overrides(
+              repository: FakeJourneyRepository(
+                missions: [_mission, _doneMission],
+                xp: 175,
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        await tester.pump();
 
-      final l10n = await AppLocalizations.delegate.load(
-        const Locale('pt', 'BR'),
-      );
+        final l10n = await AppLocalizations.delegate.load(
+          const Locale('pt', 'BR'),
+        );
 
-      expect(find.text(l10n.xpValue('175')), findsOneWidget);
-      // Teto = XP das missões da semana (150 + 200).
-      expect(find.text(l10n.journeyWeeklyXpGoal('350')), findsOneWidget);
+        expect(find.text(l10n.xpValue('175')), findsOneWidget);
+        // O rótulo diz de onde vem o número: `weekly_xp` só acumula XP de
+        // parcelas, enquanto o XP das missões é creditado em `workspaces.xp`.
+        expect(find.text(l10n.journeyWeeklyXpCaption), findsOneWidget);
 
-      final bar = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator).first,
-      );
-      expect(bar.value, closeTo(175 / 350, 0.0001));
-    });
+        // Nada de barra com o `weekly_xp` sobre a soma do XP das missões: os
+        // dois nunca se somam no servidor, então completar as três missões
+        // não moveria a barra e o teto seria uma promessa falsa.
+        expect(find.textContaining('350'), findsNothing);
+
+        // As únicas barras da tela são as das missões, cada uma com o próprio
+        // alvo — uma por missão com `target > 0`.
+        final bars = tester
+            .widgetList<LinearProgressIndicator>(
+              find.byType(LinearProgressIndicator),
+            )
+            .toList();
+        expect(bars, hasLength(2));
+        expect(bars.first.value, closeTo(1 / 3, 0.0001));
+        expect(bars.last.value, 1.0);
+      },
+    );
 
     testWidgets('sem weekly_xp publicado, diz que não há XP em vez de zero', (
       tester,

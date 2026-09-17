@@ -2231,11 +2231,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get journeyWeeklyXpEmpty => 'No XP yet this week';
 
   @override
-  String journeyWeeklyXpGoal(String total) {
-    return 'of $total XP in missions';
-  }
-
-  @override
   String get journeyMissionsSoonTitle => 'Your missions are on the way';
 
   @override
@@ -2378,11 +2373,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'There are not enough closed months to compare yet.';
 
   @override
-  String compassHistoryRange(String first, String last) {
-    return '$first → $last';
-  }
-
-  @override
   String get unplannedNudgeTitle => 'That spend was not in the plan';
 
   @override
@@ -2416,4 +2406,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get xpSourcesTitle => 'How to earn XP';
+
+  @override
+  String get journeyWeeklyXpCaption => 'XP earned this week from entries';
+
+  @override
+  String compassHistoryPoint(String month, String score) {
+    return '$month: $score of 100';
+  }
 }

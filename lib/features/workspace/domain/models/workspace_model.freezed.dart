@@ -13,9 +13,275 @@ part of 'workspace_model.dart';
 T _$identity<T>(T value) => value;
 
 /// @nodoc
+mixin _$WorkspaceStreaks {
+
+/// Semanas seguidas com as três missões concluídas.
+ int get missions;/// Semanas seguidas dentro do planejamento. Zero no formato antigo, que
+/// não contava isso.
+ int get plan;
+/// Create a copy of WorkspaceStreaks
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WorkspaceStreaksCopyWith<WorkspaceStreaks> get copyWith => _$WorkspaceStreaksCopyWithImpl<WorkspaceStreaks>(this as WorkspaceStreaks, _$identity);
+
+  /// Serializes this WorkspaceStreaks to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceStreaks&&(identical(other.missions, missions) || other.missions == missions)&&(identical(other.plan, plan) || other.plan == plan));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,missions,plan);
+
+@override
+String toString() {
+  return 'WorkspaceStreaks(missions: $missions, plan: $plan)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $WorkspaceStreaksCopyWith<$Res>  {
+  factory $WorkspaceStreaksCopyWith(WorkspaceStreaks value, $Res Function(WorkspaceStreaks) _then) = _$WorkspaceStreaksCopyWithImpl;
+@useResult
+$Res call({
+ int missions, int plan
+});
+
+
+
+
+}
+/// @nodoc
+class _$WorkspaceStreaksCopyWithImpl<$Res>
+    implements $WorkspaceStreaksCopyWith<$Res> {
+  _$WorkspaceStreaksCopyWithImpl(this._self, this._then);
+
+  final WorkspaceStreaks _self;
+  final $Res Function(WorkspaceStreaks) _then;
+
+/// Create a copy of WorkspaceStreaks
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? missions = null,Object? plan = null,}) {
+  return _then(_self.copyWith(
+missions: null == missions ? _self.missions : missions // ignore: cast_nullable_to_non_nullable
+as int,plan: null == plan ? _self.plan : plan // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [WorkspaceStreaks].
+extension WorkspaceStreaksPatterns on WorkspaceStreaks {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WorkspaceStreaks value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _WorkspaceStreaks() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WorkspaceStreaks value)  $default,){
+final _that = this;
+switch (_that) {
+case _WorkspaceStreaks():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WorkspaceStreaks value)?  $default,){
+final _that = this;
+switch (_that) {
+case _WorkspaceStreaks() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int missions,  int plan)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _WorkspaceStreaks() when $default != null:
+return $default(_that.missions,_that.plan);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int missions,  int plan)  $default,) {final _that = this;
+switch (_that) {
+case _WorkspaceStreaks():
+return $default(_that.missions,_that.plan);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int missions,  int plan)?  $default,) {final _that = this;
+switch (_that) {
+case _WorkspaceStreaks() when $default != null:
+return $default(_that.missions,_that.plan);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _WorkspaceStreaks implements WorkspaceStreaks {
+  const _WorkspaceStreaks({this.missions = 0, this.plan = 0});
+  factory _WorkspaceStreaks.fromJson(Map<String, dynamic> json) => _$WorkspaceStreaksFromJson(json);
+
+/// Semanas seguidas com as três missões concluídas.
+@override@JsonKey() final  int missions;
+/// Semanas seguidas dentro do planejamento. Zero no formato antigo, que
+/// não contava isso.
+@override@JsonKey() final  int plan;
+
+/// Create a copy of WorkspaceStreaks
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$WorkspaceStreaksCopyWith<_WorkspaceStreaks> get copyWith => __$WorkspaceStreaksCopyWithImpl<_WorkspaceStreaks>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$WorkspaceStreaksToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceStreaks&&(identical(other.missions, missions) || other.missions == missions)&&(identical(other.plan, plan) || other.plan == plan));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,missions,plan);
+
+@override
+String toString() {
+  return 'WorkspaceStreaks(missions: $missions, plan: $plan)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$WorkspaceStreaksCopyWith<$Res> implements $WorkspaceStreaksCopyWith<$Res> {
+  factory _$WorkspaceStreaksCopyWith(_WorkspaceStreaks value, $Res Function(_WorkspaceStreaks) _then) = __$WorkspaceStreaksCopyWithImpl;
+@override @useResult
+$Res call({
+ int missions, int plan
+});
+
+
+
+
+}
+/// @nodoc
+class __$WorkspaceStreaksCopyWithImpl<$Res>
+    implements _$WorkspaceStreaksCopyWith<$Res> {
+  __$WorkspaceStreaksCopyWithImpl(this._self, this._then);
+
+  final _WorkspaceStreaks _self;
+  final $Res Function(_WorkspaceStreaks) _then;
+
+/// Create a copy of WorkspaceStreaks
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? missions = null,Object? plan = null,}) {
+  return _then(_WorkspaceStreaks(
+missions: null == missions ? _self.missions : missions // ignore: cast_nullable_to_non_nullable
+as int,plan: null == plan ? _self.plan : plan // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$WorkspaceModel {
 
- String get id; String get name; WorkspaceType get type; List<String> get members; DateTime get createdAt; OnboardingSteps? get lastOnboardingStep; int get xp; int get level; DateTime? get lastLevelUpAt; Map<String, String> get unlockedBadges; bool get onboardingCompleted; int get weeklyStreaks;/// Semana corrente (`YYYY-Www`) segundo o SERVIDOR.
+ String get id; String get name; WorkspaceType get type; List<String> get members; DateTime get createdAt; OnboardingSteps? get lastOnboardingStep; int get xp; int get level; DateTime? get lastLevelUpAt; Map<String, String> get unlockedBadges; bool get onboardingCompleted;@JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson) WorkspaceStreaks get weeklyStreaks;/// Semana corrente (`YYYY-Www`) segundo o SERVIDOR.
 ///
 /// A identidade da semana é uma só e mora no backend
 /// (`week_sync.service.ts`): o app lê daqui em vez de calcular, porque as
@@ -55,11 +321,11 @@ abstract mixin class $WorkspaceModelCopyWith<$Res>  {
   factory $WorkspaceModelCopyWith(WorkspaceModel value, $Res Function(WorkspaceModel) _then) = _$WorkspaceModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted, int weeklyStreaks, String? currentWeekId
+ String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted,@JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson) WorkspaceStreaks weeklyStreaks, String? currentWeekId
 });
 
 
-
+$WorkspaceStreaksCopyWith<$Res> get weeklyStreaks;
 
 }
 /// @nodoc
@@ -86,11 +352,20 @@ as int,lastLevelUpAt: freezed == lastLevelUpAt ? _self.lastLevelUpAt : lastLevel
 as DateTime?,unlockedBadges: null == unlockedBadges ? _self.unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,onboardingCompleted: null == onboardingCompleted ? _self.onboardingCompleted : onboardingCompleted // ignore: cast_nullable_to_non_nullable
 as bool,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
-as int,currentWeekId: freezed == currentWeekId ? _self.currentWeekId : currentWeekId // ignore: cast_nullable_to_non_nullable
+as WorkspaceStreaks,currentWeekId: freezed == currentWeekId ? _self.currentWeekId : currentWeekId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
-
+/// Create a copy of WorkspaceModel
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WorkspaceStreaksCopyWith<$Res> get weeklyStreaks {
+  
+  return $WorkspaceStreaksCopyWith<$Res>(_self.weeklyStreaks, (value) {
+    return _then(_self.copyWith(weeklyStreaks: value));
+  });
+}
 }
 
 
@@ -169,7 +444,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks,  String? currentWeekId)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted, @JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson)  WorkspaceStreaks weeklyStreaks,  String? currentWeekId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkspaceModel() when $default != null:
 return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks,_that.currentWeekId);case _:
@@ -190,7 +465,7 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks,  String? currentWeekId)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted, @JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson)  WorkspaceStreaks weeklyStreaks,  String? currentWeekId)  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceModel():
 return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks,_that.currentWeekId);}
@@ -207,7 +482,7 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks,  String? currentWeekId)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted, @JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson)  WorkspaceStreaks weeklyStreaks,  String? currentWeekId)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceModel() when $default != null:
 return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks,_that.currentWeekId);case _:
@@ -222,7 +497,7 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_th
 @JsonSerializable()
 
 class _WorkspaceModel implements WorkspaceModel {
-  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt, this.lastOnboardingStep, this.xp = 0, this.level = 1, this.lastLevelUpAt, final  Map<String, String> unlockedBadges = const {}, this.onboardingCompleted = false, this.weeklyStreaks = 0, this.currentWeekId}): _members = members,_unlockedBadges = unlockedBadges;
+  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt, this.lastOnboardingStep, this.xp = 0, this.level = 1, this.lastLevelUpAt, final  Map<String, String> unlockedBadges = const {}, this.onboardingCompleted = false, @JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson) this.weeklyStreaks = const WorkspaceStreaks(), this.currentWeekId}): _members = members,_unlockedBadges = unlockedBadges;
   factory _WorkspaceModel.fromJson(Map<String, dynamic> json) => _$WorkspaceModelFromJson(json);
 
 @override final  String id;
@@ -248,7 +523,7 @@ class _WorkspaceModel implements WorkspaceModel {
 }
 
 @override@JsonKey() final  bool onboardingCompleted;
-@override@JsonKey() final  int weeklyStreaks;
+@override@JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson) final  WorkspaceStreaks weeklyStreaks;
 /// Semana corrente (`YYYY-Www`) segundo o SERVIDOR.
 ///
 /// A identidade da semana é uma só e mora no backend
@@ -291,11 +566,11 @@ abstract mixin class _$WorkspaceModelCopyWith<$Res> implements $WorkspaceModelCo
   factory _$WorkspaceModelCopyWith(_WorkspaceModel value, $Res Function(_WorkspaceModel) _then) = __$WorkspaceModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted, int weeklyStreaks, String? currentWeekId
+ String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted,@JsonKey(fromJson: workspaceStreaksFromJson, toJson: workspaceStreaksToJson) WorkspaceStreaks weeklyStreaks, String? currentWeekId
 });
 
 
-
+@override $WorkspaceStreaksCopyWith<$Res> get weeklyStreaks;
 
 }
 /// @nodoc
@@ -322,12 +597,21 @@ as int,lastLevelUpAt: freezed == lastLevelUpAt ? _self.lastLevelUpAt : lastLevel
 as DateTime?,unlockedBadges: null == unlockedBadges ? _self._unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,onboardingCompleted: null == onboardingCompleted ? _self.onboardingCompleted : onboardingCompleted // ignore: cast_nullable_to_non_nullable
 as bool,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
-as int,currentWeekId: freezed == currentWeekId ? _self.currentWeekId : currentWeekId // ignore: cast_nullable_to_non_nullable
+as WorkspaceStreaks,currentWeekId: freezed == currentWeekId ? _self.currentWeekId : currentWeekId // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
 
-
+/// Create a copy of WorkspaceModel
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WorkspaceStreaksCopyWith<$Res> get weeklyStreaks {
+  
+  return $WorkspaceStreaksCopyWith<$Res>(_self.weeklyStreaks, (value) {
+    return _then(_self.copyWith(weeklyStreaks: value));
+  });
+}
 }
 
 // dart format on

@@ -25,6 +25,24 @@ enum FreedomTier {
       _ => unknown,
     };
   }
+
+  /// Patente pela faixa do score.
+  ///
+  /// Usada quando o servidor publica o `score` sem um `tier` que o app
+  /// reconheça. A régua é do produto (0–19 Aprendiz, 20–39 Guardião, 40–59
+  /// Estrategista, 60–79 Mestre, 80–100 Livre) e é a mesma que o servidor
+  /// aplica — derivar aqui evita a tela mostrar um score alto ao lado de "Em
+  /// avaliação", que lê como se o índice não valesse.
+  ///
+  /// O `tier` do servidor continua tendo prioridade: se ele mudar a régua, a
+  /// tela acompanha sem depender de um deploy do app.
+  static FreedomTier forScore(double score) {
+    if (score >= 80) return livre;
+    if (score >= 60) return mestre;
+    if (score >= 40) return estrategista;
+    if (score >= 20) return guardiao;
+    return aprendiz;
+  }
 }
 
 /// Os quatro componentes do índice, na ordem em que a bússola os mostra.

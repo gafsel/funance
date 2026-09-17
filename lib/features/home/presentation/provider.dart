@@ -113,15 +113,17 @@ sealed class JourneyViewProviders {
       PeriodSummaryViewProviders.monthSummary(today.monthKey),
     );
 
+    // A janela é da regra, não da query: mora em `MonthlyAvailable` para
+    // poder ser verificada sem Firestore.
+    final window = MonthlyAvailable.pendingWindow(today);
+
     final pending = ref
         .watch(FinanceDomainProviders.service)
         .watchInstallments(
           type: OrderType.expense,
           status: InstallmentStatus.pending,
-          startDate: DateTime(today.year, today.month, 1),
-          // Dia 0 do mês seguinte é o último dia deste; o fim do dia entra
-          // porque `referenceDate` é normalizado às 12:00.
-          endDate: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
+          startDate: window.start,
+          endDate: window.end,
         );
 
     return summaries.when(

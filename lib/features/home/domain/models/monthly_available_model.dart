@@ -45,6 +45,19 @@ sealed class MonthlyAvailable with _$MonthlyAvailable {
   double get spentFraction =>
       plannedExpenses > 0 ? (realizedExpenses / plannedExpenses).clamp(0.0, 1.0) : 0.0;
 
+  /// Janela das parcelas pendentes que entram na conta: do primeiro instante
+  /// do dia 1 ao último instante do último dia do mês de [today].
+  ///
+  /// Pura e nomeada para ser testável sem Firestore: é ela que decide se a
+  /// conta que vence dia 3 do mês que vem entra no "disponível" deste mês (não
+  /// entra). O fim do dia é necessário porque `referenceDate` é normalizado às
+  /// 12:00 — cortar na meia-noite perderia tudo o que vence no último dia.
+  static ({DateTime start, DateTime end}) pendingWindow(DateTime today) => (
+    start: DateTime(today.year, today.month, 1),
+    // Dia 0 do mês seguinte é o último dia deste.
+    end: DateTime(today.year, today.month + 1, 0, 23, 59, 59),
+  );
+
   /// Calcula a partir do resumo do mês e das parcelas pendentes.
   ///
   /// Categorias de sistema ficam de fora: o saldo inicial de um cartão entra

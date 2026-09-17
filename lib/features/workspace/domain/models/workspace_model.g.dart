@@ -6,6 +6,15 @@ part of 'workspace_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_WorkspaceStreaks _$WorkspaceStreaksFromJson(Map<String, dynamic> json) =>
+    _WorkspaceStreaks(
+      missions: (json['missions'] as num?)?.toInt() ?? 0,
+      plan: (json['plan'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$WorkspaceStreaksToJson(_WorkspaceStreaks instance) =>
+    <String, dynamic>{'missions': instance.missions, 'plan': instance.plan};
+
 _WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
     _WorkspaceModel(
       id: json['id'] as String,
@@ -32,7 +41,9 @@ _WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
           ) ??
           const {},
       onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
-      weeklyStreaks: (json['weeklyStreaks'] as num?)?.toInt() ?? 0,
+      weeklyStreaks: json['weeklyStreaks'] == null
+          ? const WorkspaceStreaks()
+          : workspaceStreaksFromJson(json['weeklyStreaks']),
       currentWeekId: json['currentWeekId'] as String?,
     );
 
@@ -50,7 +61,7 @@ Map<String, dynamic> _$WorkspaceModelToJson(
   'lastLevelUpAt': instance.lastLevelUpAt?.toIso8601String(),
   'unlockedBadges': instance.unlockedBadges,
   'onboardingCompleted': instance.onboardingCompleted,
-  'weeklyStreaks': instance.weeklyStreaks,
+  'weeklyStreaks': workspaceStreaksToJson(instance.weeklyStreaks),
   'currentWeekId': instance.currentWeekId,
 };
 

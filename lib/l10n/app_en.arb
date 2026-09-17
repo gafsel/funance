@@ -1066,14 +1066,6 @@
   "@journeyWeeklyXpEmpty": {
     "description": "Shown instead of the weekly XP when the server's weekly_xp document does not exist yet."
   },
-  "journeyWeeklyXpGoal": "of {total} XP in missions",
-  "@journeyWeeklyXpGoal": {
-    "placeholders": {
-      "total": {
-        "type": "String"
-      }
-    }
-  },
   "journeyMissionsSoonTitle": "Your missions are on the way",
   "journeyMissionsSoonMessage": "Funances sets three new missions at the start of every week.",
   "journeyMissionProgress": "{progress} of {target}",
@@ -1181,17 +1173,6 @@
   },
   "compassHistoryTitle": "Last 6 months",
   "compassHistoryEmpty": "There are not enough closed months to compare yet.",
-  "compassHistoryRange": "{first} → {last}",
-  "@compassHistoryRange": {
-    "placeholders": {
-      "first": {
-        "type": "String"
-      },
-      "last": {
-        "type": "String"
-      }
-    }
-  },
   "unplannedNudgeTitle": "That spend was not in the plan",
   "unplannedNudgeMessage": "{category} has no limit this month. Want to decide what to do about it now?",
   "@unplannedNudgeMessage": {
@@ -1221,5 +1202,20 @@
   },
   "unplannedNudgeLimitDescNoHistory": "Choose how much this category may cost per month.",
   "unplannedNudgeDismiss": "Just this once",
-  "xpSourcesTitle": "How to earn XP"
+  "xpSourcesTitle": "How to earn XP",
+  "journeyWeeklyXpCaption": "XP earned this week from entries",
+  "@journeyWeeklyXpCaption": {
+    "description": "The server's weekly_xp only accumulates installment XP; mission XP goes to the workspace total. The label says where the number comes from so it does not imply a sum that does not exist."
+  },
+  "compassHistoryPoint": "{month}: {score} of 100",
+  "@compassHistoryPoint": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -516,6 +516,7 @@ class _CompassHistory extends ConsumerWidget {
           height: 72,
           width: double.infinity,
           child: CustomPaint(
+            key: const ValueKey('compass-sparkline'),
             painter: _SparklinePainter(
               scores: points.map((p) => p.score).toList(),
               color: compassScoreColor(points.last.score),
@@ -523,41 +524,81 @@ class _CompassHistory extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
+        // Os dois extremos, cada um com o SEU mês e o SEU score empilhados.
+        // Antes a linha era `06/2026   48 → 62   08/2026`: três textos do
+        // mesmo tamanho e cor, em que os números soltos no meio não diziam a
+        // qual mês pertenciam.
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              _monthLabel(points.first.monthKey),
-              style: theme.textTheme.labelSmall,
+            _HistoryEnd(point: points.first, alignEnd: false),
+            Icon(
+              Icons.arrow_right_alt_rounded,
+              size: 18,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
-            Text(
-              l10n.compassHistoryRange(
-                points.first.score.round().toString(),
-                points.last.score.round().toString(),
-              ),
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              _monthLabel(points.last.monthKey),
-              style: theme.textTheme.labelSmall,
-            ),
+            _HistoryEnd(point: points.last, alignEnd: true),
           ],
         ),
       ],
     );
   }
 
-  /// `YYYY-MM` vira `MM/YYYY`. Sem `DateFormat` porque a chave já é a
-  /// identidade do mês e não precisa passar por um `DateTime`.
-  static String _monthLabel(String monthKey) {
-    try {
-      final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
-      return '${month.toString().padLeft(2, '0')}/$year';
-    } catch (_) {
-      return monthKey;
-    }
+}
+
+/// Um extremo do histórico: o mês em cima, pequeno e apagado; o score embaixo,
+/// grande e na cor da faixa. Quem bate o olho lê o número; quem procura a
+/// data acha logo acima dela.
+class _HistoryEnd extends StatelessWidget {
+  const _HistoryEnd({required this.point, required this.alignEnd});
+
+  final FinancialHealthPoint point;
+  final bool alignEnd;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final month = monthLabel(point.monthKey);
+    final score = point.score.round().toString();
+
+    return Semantics(
+      label: l10n.compassHistoryPoint(month, score),
+      excludeSemantics: true,
+      child: Column(
+        crossAxisAlignment: alignEnd
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            month,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Text(
+            score,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: compassScoreColor(point.score),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// `YYYY-MM` vira `MM/YYYY`. Sem `DateFormat` porque a chave já é a
+/// identidade do mês e não precisa passar por um `DateTime`.
+String monthLabel(String monthKey) {
+  try {
+    final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
+    return '${month.toString().padLeft(2, '0')}/$year';
+  } catch (_) {
+    return monthKey;
   }
 }
 

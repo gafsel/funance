@@ -17,6 +17,7 @@ import 'package:funances/features/finance/presentation/screens/transaction_form_
 import 'package:funances/features/finance/presentation/widgets/unplanned_nudge_sheet.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 import 'support/fake_analytics.dart';
 
@@ -314,12 +315,10 @@ void main() {
   });
 
   group('UnplannedNudgeSheet', () {
-    Future<FakeAnalyticsService> pumpSheet(
+    Future<void> pumpSheet(
       WidgetTester tester, {
       double? suggestedLimit,
     }) async {
-      final analytics = FakeAnalyticsService();
-
       await tester.pumpWidget(
         MaterialApp(
           localizationsDelegates: const [
@@ -332,21 +331,12 @@ void main() {
           locale: _locale,
           home: Scaffold(
             body: UnplannedNudgeSheet(
-              analytics: analytics,
-              nudge: UnplannedNudge(
-                category: _mercado,
-                amount: 87.5,
-                dueDate: _today,
-                accountId: 'conta-1',
-                suggestedLimit: suggestedLimit,
-              ),
+              nudge: _nudge(suggestedLimit: suggestedLimit),
             ),
           ),
         ),
       );
       await tester.pump();
-
-      return analytics;
     }
 
     testWidgets('oferece as três saídas', (tester) async {
@@ -377,23 +367,216 @@ void main() {
         findsOneWidget,
       );
     });
+  });
 
-    testWidgets('cada saída emite o evento com a sua ação, sem valores', (
+  group('UnplannedNudgeSheet.show', () {
+    testWidgets('"Definir limite" registra a ação e abre o planejamento', (
       tester,
     ) async {
-      final analytics = await pumpSheet(tester, suggestedLimit: 370);
+      final host = await _pumpHost(tester, suggestedLimit: 370);
+
+      await tester.tap(find.byKey(const ValueKey('nudge-limit')));
+      await tester.pumpAndSettle();
+
+      expect(
+        host.analytics.find(AnalyticsEvents.unplannedNudgeShown),
+        isNotNull,
+      );
+      final event = host.analytics.find(
+        AnalyticsEvents.unplannedNudgeConverted,
+      );
+      expect(event!.params, {'action': UnplannedNudgeAction.limit});
+
+      expect(host.visited.last, startsWith('/planning'));
+      expect(host.visited.last, contains('categoryId=mercado'));
+      expect(host.visited.last, contains('suggested=370'));
+      expect(host.shown, isTrue);
+    });
+
+    testWidgets('"Transformar em recorrência" abre o formulário recorrente', (
+      tester,
+    ) async {
+      final host = await _pumpHost(tester);
+
+      await tester.tap(find.byKey(const ValueKey('nudge-recurring')));
+      await tester.pumpAndSettle();
+
+      final event = host.analytics.find(
+        AnalyticsEvents.unplannedNudgeConverted,
+      );
+      expect(event!.params, {'action': UnplannedNudgeAction.recurring});
+
+      expect(host.visited.last, startsWith('/transactions/form'));
+      expect(host.visited.last, contains('installmentType=recurring'));
+      expect(host.visited.last, contains('status=pending'));
+    });
+
+    testWidgets('"Só desta vez" registra a recusa e não navega', (
+      tester,
+    ) async {
+      final host = await _pumpHost(tester);
 
       await tester.tap(find.byKey(const ValueKey('nudge-dismiss')));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      final event = analytics.find(AnalyticsEvents.unplannedNudgeConverted);
-      expect(event, isNotNull);
+      final event = host.analytics.find(
+        AnalyticsEvents.unplannedNudgeConverted,
+      );
       expect(event!.params, {'action': UnplannedNudgeAction.dismissed});
       // Nada de valor monetário nem nome de categoria no analytics.
       expect(event.params.values.join(), isNot(contains('87')));
       expect(event.params.values.join(), isNot(contains('Mercado')));
+
+      expect(host.visited, isEmpty);
+    });
+
+    testWidgets(
+      'fechar pelo scrim conta como recusa — era a única resposta que o '
+      'funil não via',
+      (tester) async {
+        final host = await _pumpHost(tester);
+
+        // Toque bem no topo da tela: fora do sheet, no scrim.
+        await tester.tapAt(const Offset(10, 10));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(UnplannedNudgeSheet), findsNothing);
+
+        final event = host.analytics.find(
+          AnalyticsEvents.unplannedNudgeConverted,
+        );
+        expect(event, isNotNull);
+        expect(event!.params, {'action': UnplannedNudgeAction.dismissed});
+      },
+    );
+
+    testWidgets('arrastar o sheet para baixo também conta como recusa', (
+      tester,
+    ) async {
+      final host = await _pumpHost(tester);
+
+      await tester.drag(
+        find.byType(UnplannedNudgeSheet),
+        const Offset(0, 600),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(UnplannedNudgeSheet), findsNothing);
+
+      final event = host.analytics.find(
+        AnalyticsEvents.unplannedNudgeConverted,
+      );
+      expect(event!.params, {'action': UnplannedNudgeAction.dismissed});
+    });
+
+    testWidgets('contexto desmontado: não exibe, e nada é marcado', (
+      tester,
+    ) async {
+      final analytics = FakeAnalyticsService();
+
+      late BuildContext captured;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              captured = context;
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+
+      // Troca a árvore: o contexto capturado morre com ela.
+      await tester.pumpWidget(const Placeholder());
+      expect(captured.mounted, isFalse);
+
+      final shown = await UnplannedNudgeSheet.show(
+        captured,
+        nudge: _nudge(),
+        analytics: analytics,
+      );
+
+      expect(shown, isFalse, reason: 'sem sheet, sem marca de "já convidei"');
+      // E sem topo de funil para uma resposta que nunca foi pedida.
+      expect(analytics.events, isEmpty);
     });
   });
+}
+
+/// A tela que abre o convite, com um roteador de verdade: é ele que prova que
+/// as rotas do sheet existem e chegam com os parâmetros certos.
+class _Host {
+  _Host(this.analytics);
+
+  final FakeAnalyticsService analytics;
+  final List<String> visited = [];
+  bool shown = false;
+}
+
+UnplannedNudge _nudge({double? suggestedLimit}) => UnplannedNudge(
+  category: _mercado,
+  amount: 87.5,
+  dueDate: _today,
+  accountId: 'conta-1',
+  suggestedLimit: suggestedLimit,
+);
+
+Future<_Host> _pumpHost(WidgetTester tester, {double? suggestedLimit}) async {
+  final host = _Host(FakeAnalyticsService());
+
+  Widget stub(GoRouterState state) {
+    host.visited.add(state.uri.toString());
+    return const Scaffold(body: Text('destino'));
+  }
+
+  final router = GoRouter(
+    routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async {
+                host.shown = await UnplannedNudgeSheet.show(
+                  context,
+                  nudge: _nudge(suggestedLimit: suggestedLimit),
+                  analytics: host.analytics,
+                );
+              },
+              child: const Text('abrir'),
+            ),
+          ),
+        ),
+      ),
+      GoRoute(path: '/planning', builder: (context, state) => stub(state)),
+      GoRoute(
+        path: '/transactions/form',
+        builder: (context, state) => stub(state),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+
+  await tester.pumpWidget(
+    MaterialApp.router(
+      routerConfig: router,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [_locale],
+      locale: _locale,
+    ),
+  );
+
+  await tester.tap(find.text('abrir'));
+  await tester.pumpAndSettle();
+
+  expect(find.byType(UnplannedNudgeSheet), findsOneWidget);
+
+  return host;
 }
 
 class _ExplodingFinanceRepository implements IFinanceRepository {

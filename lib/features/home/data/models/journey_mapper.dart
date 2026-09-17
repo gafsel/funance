@@ -51,9 +51,14 @@ FinancialHealth? financialHealthFromMap(Object? raw) {
       ? Map<String, dynamic>.from(components)
       : const <String, dynamic>{};
 
+  // Um `tier` ausente ou desconhecido não deixa a tela sem patente: a faixa
+  // do score responde. Mostrar 84 pontos ao lado de "Em avaliação" faria o
+  // índice parecer inválido justamente para quem está indo bem.
+  final tier = FreedomTier.parse(data['tier']);
+
   return FinancialHealth(
     score: score,
-    tier: FreedomTier.parse(data['tier']),
+    tier: tier == FreedomTier.unknown ? FreedomTier.forScore(score) : tier,
     monthKey: data['monthKey'] as String?,
     computedAt: _dateOrNull(data['computedAt']),
     components: [
@@ -93,9 +98,11 @@ FinancialHealthPoint? healthPointFromMap(
   final score = _numOrNull(data['score']);
   if (score == null) return null;
 
+  final tier = FreedomTier.parse(data['tier']);
+
   return FinancialHealthPoint(
     monthKey: (data['monthKey'] as String?) ?? docId,
     score: score,
-    tier: FreedomTier.parse(data['tier']),
+    tier: tier == FreedomTier.unknown ? FreedomTier.forScore(score) : tier,
   );
 }

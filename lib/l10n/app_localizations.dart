@@ -4052,12 +4052,6 @@ abstract class AppLocalizations {
   /// **'Sem XP ainda nesta semana'**
   String get journeyWeeklyXpEmpty;
 
-  /// No description provided for @journeyWeeklyXpGoal.
-  ///
-  /// In pt, this message translates to:
-  /// **'de {total} XP em missões'**
-  String journeyWeeklyXpGoal(String total);
-
   /// No description provided for @journeyMissionsSoonTitle.
   ///
   /// In pt, this message translates to:
@@ -4292,12 +4286,6 @@ abstract class AppLocalizations {
   /// **'Ainda não há meses fechados suficientes para comparar.'**
   String get compassHistoryEmpty;
 
-  /// No description provided for @compassHistoryRange.
-  ///
-  /// In pt, this message translates to:
-  /// **'{first} → {last}'**
-  String compassHistoryRange(String first, String last);
-
   /// No description provided for @unplannedNudgeTitle.
   ///
   /// In pt, this message translates to:
@@ -4351,6 +4339,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Como ganhar XP'**
   String get xpSourcesTitle;
+
+  /// O weekly_xp do servidor só acumula XP de parcelas; o XP das missões vai para o total do workspace. O rótulo diz de onde vem o número para não sugerir uma soma que não existe.
+  ///
+  /// In pt, this message translates to:
+  /// **'XP ganho esta semana com lançamentos'**
+  String get journeyWeeklyXpCaption;
+
+  /// No description provided for @compassHistoryPoint.
+  ///
+  /// In pt, this message translates to:
+  /// **'{month}: {score} de 100'**
+  String compassHistoryPoint(String month, String score);
 }
 
 class _AppLocalizationsDelegate

@@ -304,7 +304,12 @@ $WorkspaceModelCopyWith<$Res>? get currentWorkspace {
 /// @nodoc
 mixin _$WorkspaceGamification {
 
- String? get workspaceId; int get xp; int get level; int get weeklyStreaks; Map<String, String> get unlockedBadges;
+ String? get workspaceId; int get xp; int get level;/// Semanas seguidas com as três missões da semana concluídas. É o que o
+/// fogo ao lado do título conta.
+ int get weeklyStreaks;/// Semanas seguidas dentro do planejamento. O placar do servidor começou
+/// a publicar isto junto com as missões; ainda não tem lugar na tela, mas
+/// entra no recorte para não ser descartado na leitura.
+ int get planStreak; Map<String, String> get unlockedBadges;
 /// Create a copy of WorkspaceGamification
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -315,16 +320,16 @@ $WorkspaceGamificationCopyWith<WorkspaceGamification> get copyWith => _$Workspac
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceGamification&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&const DeepCollectionEquality().equals(other.unlockedBadges, unlockedBadges));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceGamification&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&(identical(other.planStreak, planStreak) || other.planStreak == planStreak)&&const DeepCollectionEquality().equals(other.unlockedBadges, unlockedBadges));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,workspaceId,xp,level,weeklyStreaks,const DeepCollectionEquality().hash(unlockedBadges));
+int get hashCode => Object.hash(runtimeType,workspaceId,xp,level,weeklyStreaks,planStreak,const DeepCollectionEquality().hash(unlockedBadges));
 
 @override
 String toString() {
-  return 'WorkspaceGamification(workspaceId: $workspaceId, xp: $xp, level: $level, weeklyStreaks: $weeklyStreaks, unlockedBadges: $unlockedBadges)';
+  return 'WorkspaceGamification(workspaceId: $workspaceId, xp: $xp, level: $level, weeklyStreaks: $weeklyStreaks, planStreak: $planStreak, unlockedBadges: $unlockedBadges)';
 }
 
 
@@ -335,7 +340,7 @@ abstract mixin class $WorkspaceGamificationCopyWith<$Res>  {
   factory $WorkspaceGamificationCopyWith(WorkspaceGamification value, $Res Function(WorkspaceGamification) _then) = _$WorkspaceGamificationCopyWithImpl;
 @useResult
 $Res call({
- String? workspaceId, int xp, int level, int weeklyStreaks, Map<String, String> unlockedBadges
+ String? workspaceId, int xp, int level, int weeklyStreaks, int planStreak, Map<String, String> unlockedBadges
 });
 
 
@@ -352,12 +357,13 @@ class _$WorkspaceGamificationCopyWithImpl<$Res>
 
 /// Create a copy of WorkspaceGamification
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? workspaceId = freezed,Object? xp = null,Object? level = null,Object? weeklyStreaks = null,Object? unlockedBadges = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? workspaceId = freezed,Object? xp = null,Object? level = null,Object? weeklyStreaks = null,Object? planStreak = null,Object? unlockedBadges = null,}) {
   return _then(_self.copyWith(
 workspaceId: freezed == workspaceId ? _self.workspaceId : workspaceId // ignore: cast_nullable_to_non_nullable
 as String?,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
 as int,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
 as int,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
+as int,planStreak: null == planStreak ? _self.planStreak : planStreak // ignore: cast_nullable_to_non_nullable
 as int,unlockedBadges: null == unlockedBadges ? _self.unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
   ));
@@ -441,10 +447,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  Map<String, String> unlockedBadges)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  int planStreak,  Map<String, String> unlockedBadges)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkspaceGamification() when $default != null:
-return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.unlockedBadges);case _:
+return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.planStreak,_that.unlockedBadges);case _:
   return orElse();
 
 }
@@ -462,10 +468,10 @@ return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  Map<String, String> unlockedBadges)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  int planStreak,  Map<String, String> unlockedBadges)  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceGamification():
-return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.unlockedBadges);}
+return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.planStreak,_that.unlockedBadges);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -479,10 +485,10 @@ return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  Map<String, String> unlockedBadges)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? workspaceId,  int xp,  int level,  int weeklyStreaks,  int planStreak,  Map<String, String> unlockedBadges)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceGamification() when $default != null:
-return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.unlockedBadges);case _:
+return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that.planStreak,_that.unlockedBadges);case _:
   return null;
 
 }
@@ -494,13 +500,19 @@ return $default(_that.workspaceId,_that.xp,_that.level,_that.weeklyStreaks,_that
 
 
 class _WorkspaceGamification implements WorkspaceGamification {
-  const _WorkspaceGamification({this.workspaceId, this.xp = 0, this.level = 1, this.weeklyStreaks = 0, final  Map<String, String> unlockedBadges = const {}}): _unlockedBadges = unlockedBadges;
+  const _WorkspaceGamification({this.workspaceId, this.xp = 0, this.level = 1, this.weeklyStreaks = 0, this.planStreak = 0, final  Map<String, String> unlockedBadges = const {}}): _unlockedBadges = unlockedBadges;
   
 
 @override final  String? workspaceId;
 @override@JsonKey() final  int xp;
 @override@JsonKey() final  int level;
+/// Semanas seguidas com as três missões da semana concluídas. É o que o
+/// fogo ao lado do título conta.
 @override@JsonKey() final  int weeklyStreaks;
+/// Semanas seguidas dentro do planejamento. O placar do servidor começou
+/// a publicar isto junto com as missões; ainda não tem lugar na tela, mas
+/// entra no recorte para não ser descartado na leitura.
+@override@JsonKey() final  int planStreak;
  final  Map<String, String> _unlockedBadges;
 @override@JsonKey() Map<String, String> get unlockedBadges {
   if (_unlockedBadges is EqualUnmodifiableMapView) return _unlockedBadges;
@@ -519,16 +531,16 @@ _$WorkspaceGamificationCopyWith<_WorkspaceGamification> get copyWith => __$Works
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceGamification&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&const DeepCollectionEquality().equals(other._unlockedBadges, _unlockedBadges));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceGamification&&(identical(other.workspaceId, workspaceId) || other.workspaceId == workspaceId)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&(identical(other.planStreak, planStreak) || other.planStreak == planStreak)&&const DeepCollectionEquality().equals(other._unlockedBadges, _unlockedBadges));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,workspaceId,xp,level,weeklyStreaks,const DeepCollectionEquality().hash(_unlockedBadges));
+int get hashCode => Object.hash(runtimeType,workspaceId,xp,level,weeklyStreaks,planStreak,const DeepCollectionEquality().hash(_unlockedBadges));
 
 @override
 String toString() {
-  return 'WorkspaceGamification(workspaceId: $workspaceId, xp: $xp, level: $level, weeklyStreaks: $weeklyStreaks, unlockedBadges: $unlockedBadges)';
+  return 'WorkspaceGamification(workspaceId: $workspaceId, xp: $xp, level: $level, weeklyStreaks: $weeklyStreaks, planStreak: $planStreak, unlockedBadges: $unlockedBadges)';
 }
 
 
@@ -539,7 +551,7 @@ abstract mixin class _$WorkspaceGamificationCopyWith<$Res> implements $Workspace
   factory _$WorkspaceGamificationCopyWith(_WorkspaceGamification value, $Res Function(_WorkspaceGamification) _then) = __$WorkspaceGamificationCopyWithImpl;
 @override @useResult
 $Res call({
- String? workspaceId, int xp, int level, int weeklyStreaks, Map<String, String> unlockedBadges
+ String? workspaceId, int xp, int level, int weeklyStreaks, int planStreak, Map<String, String> unlockedBadges
 });
 
 
@@ -556,12 +568,13 @@ class __$WorkspaceGamificationCopyWithImpl<$Res>
 
 /// Create a copy of WorkspaceGamification
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? workspaceId = freezed,Object? xp = null,Object? level = null,Object? weeklyStreaks = null,Object? unlockedBadges = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? workspaceId = freezed,Object? xp = null,Object? level = null,Object? weeklyStreaks = null,Object? planStreak = null,Object? unlockedBadges = null,}) {
   return _then(_WorkspaceGamification(
 workspaceId: freezed == workspaceId ? _self.workspaceId : workspaceId // ignore: cast_nullable_to_non_nullable
 as String?,xp: null == xp ? _self.xp : xp // ignore: cast_nullable_to_non_nullable
 as int,level: null == level ? _self.level : level // ignore: cast_nullable_to_non_nullable
 as int,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
+as int,planStreak: null == planStreak ? _self.planStreak : planStreak // ignore: cast_nullable_to_non_nullable
 as int,unlockedBadges: null == unlockedBadges ? _self._unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,
   ));

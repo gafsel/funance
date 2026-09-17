@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/theme/app_colors.dart';
@@ -22,42 +24,102 @@ abstract final class UnplannedNudgeAction {
 /// maioria dos gastos avulsos é só isso — um gasto avulso — e um convite sem
 /// saída fácil vira um pedágio.
 class UnplannedNudgeSheet extends StatelessWidget {
-  const UnplannedNudgeSheet({
-    super.key,
-    required this.nudge,
-    required this.analytics,
-  });
+  const UnplannedNudgeSheet({super.key, required this.nudge});
 
   final UnplannedNudge nudge;
 
-  /// Recebido pronto, e não lido de um `ref`: o convite aparece DEPOIS que o
-  /// formulário saiu da pilha, e o `WidgetRef` daquela tela já morreu nesse
-  /// ponto.
-  final AnalyticsService analytics;
-
-  static Future<void> show(
+  /// Abre o convite e resolve o que o usuário escolheu.
+  ///
+  /// Todo o efeito colateral mora AQUI, e não nos botões, por dois motivos:
+  ///
+  /// 1. Fechar pelo scrim ou arrastando para baixo é uma resposta como
+  ///    qualquer outra — e era a única que não emitia evento nenhum, o que
+  ///    inflava artificialmente a taxa de conversão do funil. O sheet devolve
+  ///    a ação escolhida, e a ausência de resposta É `dismissed`.
+  /// 2. A navegação usa o contexto de QUEM ABRIU, que continua montado. Um
+  ///    `context.push` a partir do contexto do sheet já desativado procura o
+  ///    `InheritedGoRouter` num elemento morto.
+  ///
+  /// Devolve `true` se o sheet chegou a ser exibido — é o que autoriza o
+  /// chamador a marcar a categoria como já convidada hoje.
+  static Future<bool> show(
     BuildContext context, {
     required UnplannedNudge nudge,
     required AnalyticsService analytics,
   }) async {
-    // O "apareceu" é emitido aqui para nascer sempre pareado com a resposta:
-    // logar no chamador deixaria o funil com respostas sem topo se alguém
-    // esquecesse a chamada num caminho novo.
-    try {
-      await analytics.logUnplannedNudgeShown();
-    } catch (_) {
-      // Analytics não segura o convite.
-    }
+    if (!context.mounted) return false;
 
-    if (!context.mounted) return;
+    // O "apareceu" é emitido aqui para nascer sempre pareado com a resposta.
+    await _log(analytics.logUnplannedNudgeShown());
 
-    await showModalBottomSheet<void>(
+    if (!context.mounted) return false;
+
+    final action = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) =>
-          UnplannedNudgeSheet(nudge: nudge, analytics: analytics),
+      builder: (context) => UnplannedNudgeSheet(nudge: nudge),
     );
+
+    final chosen = action ?? UnplannedNudgeAction.dismissed;
+    await _log(analytics.logUnplannedNudgeConverted(chosen));
+
+    if (!context.mounted) return true;
+
+    // `push` só completa quando a tela de destino for fechada; o convite não
+    // espera por isso.
+    switch (chosen) {
+      case UnplannedNudgeAction.recurring:
+        unawaited(
+          context.push(
+            _recurringRoute(nudge),
+            extra: {'category': nudge.category},
+          ),
+        );
+      case UnplannedNudgeAction.limit:
+        unawaited(context.push(_limitRoute(nudge)));
+    }
+
+    return true;
+  }
+
+  /// Agendamento, não realizado: a recorrência é um compromisso para frente.
+  /// O gasto que acabou de ser lançado continua de pé, sozinho.
+  static String _recurringRoute(UnplannedNudge nudge) {
+    return Uri(
+      path: '/transactions/form',
+      queryParameters: {
+        'type': OrderType.expense.name,
+        'status': InstallmentStatus.pending.name,
+        'installmentType': InstallmentType.recurring.name,
+        'amount': nudge.amount.toString(),
+        // O dia da recorrência sai do vencimento do gasto que a inspirou.
+        'date': nudge.dueDate.toIso8601String(),
+        if (nudge.accountId != null) 'accountIdSource': nudge.accountId!,
+      },
+    ).toString();
+  }
+
+  static String _limitRoute(UnplannedNudge nudge) {
+    final suggestion = nudge.suggestedLimit;
+
+    return Uri(
+      path: '/planning',
+      queryParameters: {
+        'type': nudge.category.type.name,
+        'categoryId': nudge.category.id,
+        if (suggestion != null) 'suggested': suggestion.toString(),
+      },
+    ).toString();
+  }
+
+  /// Analytics nunca pode derrubar nem segurar o convite.
+  static Future<void> _log(Future<void> event) async {
+    try {
+      await event;
+    } catch (_) {
+      // Silencioso de propósito.
+    }
   }
 
   @override
@@ -104,7 +166,7 @@ class UnplannedNudgeSheet extends StatelessWidget {
               icon: Icons.event_repeat_rounded,
               title: l10n.unplannedNudgeRecurring,
               subtitle: l10n.unplannedNudgeRecurringDesc,
-              onTap: () => _toRecurring(context),
+              onTap: () => _choose(context, UnplannedNudgeAction.recurring),
             ),
             const SizedBox(height: 12),
             _Option(
@@ -116,14 +178,15 @@ class UnplannedNudgeSheet extends StatelessWidget {
                   : l10n.unplannedNudgeLimitDesc(
                       suggestion.asCurrency(locale: locale),
                     ),
-              onTap: () => _toLimit(context),
+              onTap: () => _choose(context, UnplannedNudgeAction.limit),
             ),
             const SizedBox(height: 8),
             Align(
               alignment: Alignment.center,
               child: TextButton(
                 key: const ValueKey('nudge-dismiss'),
-                onPressed: () => _dismiss(context),
+                onPressed: () =>
+                    _choose(context, UnplannedNudgeAction.dismissed),
                 child: Text(l10n.unplannedNudgeDismiss),
               ),
             ),
@@ -133,53 +196,9 @@ class UnplannedNudgeSheet extends StatelessWidget {
     );
   }
 
-  void _toRecurring(BuildContext context) {
-    _log(UnplannedNudgeAction.recurring);
-
-    // Agendamento, não realizado: a recorrência é um compromisso para frente.
-    // O gasto que acabou de ser lançado continua de pé, sozinho.
-    final uri = Uri(
-      path: '/transactions/form',
-      queryParameters: {
-        'type': OrderType.expense.name,
-        'status': InstallmentStatus.pending.name,
-        'installmentType': InstallmentType.recurring.name,
-        'amount': nudge.amount.toString(),
-        // O dia da recorrência sai do vencimento do gasto que a inspirou.
-        'date': nudge.dueDate.toIso8601String(),
-        if (nudge.accountId != null) 'accountIdSource': nudge.accountId!,
-      },
-    );
-
-    Navigator.of(context).pop();
-    context.push(uri.toString(), extra: {'category': nudge.category});
-  }
-
-  void _toLimit(BuildContext context) {
-    _log(UnplannedNudgeAction.limit);
-
-    final suggestion = nudge.suggestedLimit;
-    final uri = Uri(
-      path: '/planning',
-      queryParameters: {
-        'type': nudge.category.type.name,
-        'categoryId': nudge.category.id,
-        if (suggestion != null) 'suggested': suggestion.toString(),
-      },
-    );
-
-    Navigator.of(context).pop();
-    context.push(uri.toString());
-  }
-
-  void _dismiss(BuildContext context) {
-    _log(UnplannedNudgeAction.dismissed);
-    Navigator.of(context).pop();
-  }
-
-  /// Analytics nunca pode derrubar a navegação: a falha morre aqui.
-  void _log(String action) {
-    analytics.logUnplannedNudgeConverted(action).catchError((_) {});
+  /// Devolve a escolha para o [show], que é quem registra e navega.
+  void _choose(BuildContext context, String action) {
+    Navigator.of(context).pop(action);
   }
 }
 

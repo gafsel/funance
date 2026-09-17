@@ -1073,14 +1073,6 @@
   "@journeyWeeklyXpEmpty": {
     "description": "Mostrado no lugar do XP da semana quando o documento weekly_xp do servidor ainda não existe."
   },
-  "journeyWeeklyXpGoal": "de {total} XP em missões",
-  "@journeyWeeklyXpGoal": {
-    "placeholders": {
-      "total": {
-        "type": "String"
-      }
-    }
-  },
   "journeyMissionsSoonTitle": "Suas missões estão a caminho",
   "journeyMissionsSoonMessage": "O Funances monta três missões novas no começo de cada semana.",
   "journeyMissionProgress": "{progress} de {target}",
@@ -1188,17 +1180,6 @@
   },
   "compassHistoryTitle": "Últimos 6 meses",
   "compassHistoryEmpty": "Ainda não há meses fechados suficientes para comparar.",
-  "compassHistoryRange": "{first} → {last}",
-  "@compassHistoryRange": {
-    "placeholders": {
-      "first": {
-        "type": "String"
-      },
-      "last": {
-        "type": "String"
-      }
-    }
-  },
   "unplannedNudgeTitle": "Esse gasto não estava no plano",
   "unplannedNudgeMessage": "{category} ainda não tem limite neste mês. Quer decidir agora o que fazer com ela?",
   "@unplannedNudgeMessage": {
@@ -1228,5 +1209,20 @@
   },
   "unplannedNudgeLimitDescNoHistory": "Escolha quanto essa categoria pode custar por mês.",
   "unplannedNudgeDismiss": "Só desta vez",
-  "xpSourcesTitle": "Como ganhar XP"
+  "xpSourcesTitle": "Como ganhar XP",
+  "journeyWeeklyXpCaption": "XP ganho esta semana com lançamentos",
+  "@journeyWeeklyXpCaption": {
+    "description": "O weekly_xp do servidor só acumula XP de parcelas; o XP das missões vai para o total do workspace. O rótulo diz de onde vem o número para não sugerir uma soma que não existe."
+  },
+  "compassHistoryPoint": "{month}: {score} de 100",
+  "@compassHistoryPoint": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  }
 }

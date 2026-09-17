@@ -209,7 +209,9 @@ class BadgesCabinetScreen extends ConsumerWidget {
         workspaceName: workspace.name,
         level: workspace.level,
         xp: workspace.xp,
-        weeklyStreaks: workspace.weeklyStreaks,
+        // A vitrine conta a sequência de MISSÕES; a de planejamento ainda não
+        // tem lugar na tela.
+        weeklyStreaks: workspace.weeklyStreaks.missions,
         unlockedBadges: workspace.unlockedBadges,
       ),
     );
