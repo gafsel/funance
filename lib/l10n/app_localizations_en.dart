@@ -952,6 +952,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionNewTitle => 'New transaction';
 
   @override
+  String get planning503020IdealLabel => 'Ideal';
+
+  @override
+  String get planning503020MonthlyLimitLabel => 'Monthly Limit';
+
+  @override
   String get planning503020AlreadyPlanned => 'Already planned:';
 
   @override

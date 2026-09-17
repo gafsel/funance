@@ -426,6 +426,8 @@
   "accountOwnersLabel": "Titulares da conta",
   "reconciliationPickTransaction": "Selecionar lançamento",
   "transactionNewTitle": "Novo lançamento",
+  "planning503020IdealLabel": "Ideal",
+  "planning503020MonthlyLimitLabel": "Limite Mensal",
   "planning503020AlreadyPlanned": "Já previsto:",
   "loginTermsNotice": "Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.",
   "inviteEmailHint": "exemplo@email.com",

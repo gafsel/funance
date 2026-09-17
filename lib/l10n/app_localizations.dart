@@ -1802,6 +1802,18 @@ abstract class AppLocalizations {
   /// **'Novo lançamento'**
   String get transactionNewTitle;
 
+  /// No description provided for @planning503020IdealLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ideal'**
+  String get planning503020IdealLabel;
+
+  /// No description provided for @planning503020MonthlyLimitLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite Mensal'**
+  String get planning503020MonthlyLimitLabel;
+
   /// No description provided for @planning503020AlreadyPlanned.
   ///
   /// In pt, this message translates to:
