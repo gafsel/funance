@@ -1,11 +1,17 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/features/auth/domain/repositories/auth_repository.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/repositories/user_repository.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:rxdart/rxdart.dart';
+
+/// Prazo para o retorno de um `signInWithRedirect` se resolver.
+const Duration _redirectTimeout = Duration(seconds: 10);
 
 /// Códigos do Firebase Auth que significam "o navegador não deixou abrir a
 /// janela"; não são erro do usuário nem de configuração, e é neles que vale a
@@ -51,6 +57,12 @@ class AuthRepositoryImpl implements IAuthRepository {
   /// Firestore e a Home abre vazia.
   late final Future<void> _redirectSettled = _settlePendingRedirect();
 
+  final StreamController<ErrorCode> _redirectErrors =
+      StreamController<ErrorCode>.broadcast();
+
+  @override
+  Stream<ErrorCode> get redirectErrors => _redirectErrors.stream;
+
   @override
   Stream<UserModel?> get authStateChanges => Stream.fromFuture(_redirectSettled)
       .switchMap((_) => _firebaseAuth.authStateChanges())
@@ -63,15 +75,31 @@ class AuthRepositoryImpl implements IAuthRepository {
     if (!kIsWeb) return;
 
     try {
+      // Com prazo: o `authStateChanges` só emite depois disto, e o splash só
+      // sai depois dele. Sem prazo, um `getRedirectResult` que não responde
+      // (rede ruim, iframe do authDomain bloqueado) prenderia o app na tela
+      // de abertura para sempre.
       final UserCredential credential = await _firebaseAuth
-          .getRedirectResult();
+          .getRedirectResult()
+          .timeout(_redirectTimeout);
       final User? user = credential.user;
 
       if (user != null) await _handleUserPersistance(user);
-    } catch (_) {
-      // Sem redirect pendente — o caso comum — ou o redirect falhou. Em
-      // nenhum dos dois o app pode deixar de abrir: o stream de auth segue e
-      // a tela de login aparece.
+    } on TimeoutException {
+      // Sem resultado a tempo. A tela de login aparece e o usuário tenta de
+      // novo; não há erro para mostrar porque nada foi recusado.
+    } on FirebaseAuthException catch (e, s) {
+      // O redirect VOLTOU com erro — e-mail já usado por outro provedor,
+      // domínio não autorizado, provedor desligado. Antes isto era engolido
+      // por um `catch` vazio: a tela de login reaparecia muda e o usuário não
+      // tinha como saber por que não entrou.
+      _redirectErrors.add(authErrorCode(e.code, message: e.message));
+      CrashReporter.recordError(e, s);
+    } catch (e, s) {
+      // Sem redirect pendente é o caso comum e não chega aqui como exceção;
+      // o que chegar é falha inesperada. O app não pode deixar de abrir por
+      // causa dela.
+      CrashReporter.recordError(e, s);
     }
   }
 
@@ -127,7 +155,25 @@ class AuthRepositoryImpl implements IAuthRepository {
 
       // Bloqueador de popup ligado (ou navegador embutido, que nunca abre
       // janela). O redirect usa a própria aba e não depende de popup.
-      await _firebaseAuth.signInWithRedirect(provider);
+      try {
+        await _firebaseAuth.signInWithRedirect(provider);
+      } on FirebaseAuthException catch (redirectError, redirectStack) {
+        final ErrorCode code = authErrorCode(
+          redirectError.code,
+          message: redirectError.message,
+        );
+
+        // Se o redirect falhou por algo específico e acionável (domínio não
+        // autorizado, provedor desligado), essa é a informação útil. Se
+        // falhou por motivo que não sabemos nomear, o que sobrou de concreto
+        // é que o popup foi bloqueado — e liberar pop-up é o que o usuário
+        // pode fazer a respeito.
+        throw BusinessException(
+          code == ErrorCode.unknown ? ErrorCode.signInPopupBlocked : code,
+          originalError: redirectError,
+          stackTrace: redirectStack,
+        );
+      }
 
       // A aba já está saindo para o Google. Se o Future chegar a completar,
       // só resta avisar que o redirecionamento está em curso — devolver um

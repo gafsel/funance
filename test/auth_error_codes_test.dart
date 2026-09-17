@@ -8,6 +8,25 @@ import 'package:funances/features/auth/data/repositories/auth_repository_impl.da
 /// dono do app se ele precisa liberar pop-up, autorizar o domínio ou ligar o
 /// provedor no console.
 void main() {
+  group('o que é falha e o que não é', () {
+    test('desistir de entrar não é erro', () {
+      // Fechar a janela do Google é uma decisão do usuário. Isso subia como
+      // exceção e virava snackbar vermelha dizendo que algo deu errado.
+      expect(ErrorCode.signInCancelled.isInformational, isTrue);
+    });
+
+    test('estar a caminho do Google também não é', () {
+      expect(ErrorCode.signInRedirecting.isInformational, isTrue);
+    });
+
+    test('recusa de verdade continua sendo falha', () {
+      expect(ErrorCode.signInUnauthorizedDomain.isInformational, isFalse);
+      expect(ErrorCode.wrongPassword.isInformational, isFalse);
+      expect(ErrorCode.signInPopupBlocked.isInformational, isFalse);
+      expect(ErrorCode.unknown.isInformational, isFalse);
+    });
+  });
+
   group('códigos de popup da web', () {
     test('popup bloqueado tem código próprio, e não "erro inesperado"', () {
       expect(authErrorCode('popup-blocked'), ErrorCode.signInPopupBlocked);

@@ -35,6 +35,17 @@ enum ErrorCode {
   signInProviderDisabled,
 }
 
+extension ErrorCodeSeverity on ErrorCode {
+  /// Códigos que NÃO são falha.
+  ///
+  /// Fechar a janela do Google é uma decisão do usuário, e estar a caminho do
+  /// Google é o app funcionando. Os dois subiam como exceção e viravam
+  /// snackbar vermelha de erro, dizendo ao usuário que algo deu errado
+  /// justamente quando nada tinha dado.
+  bool get isInformational =>
+      this == ErrorCode.signInCancelled || this == ErrorCode.signInRedirecting;
+}
+
 class BusinessException implements Exception {
   final ErrorCode code;
   final String? message;

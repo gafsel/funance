@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/form/password_form_field.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
@@ -20,6 +22,20 @@ class LoginScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+
+    // O login por redirect recarrega a página inteira: quem pediu o login já
+    // não existe para receber o erro. Se o Google devolveu uma recusa, ela
+    // chega por aqui — sem isso, esta tela reaparecia muda e o usuário não
+    // tinha como saber por que não entrou.
+    ref.listen(AuthDomainProviders.redirectError, (_, next) {
+      final ErrorCode? code = next.valueOrNull;
+      if (code == null || code.isInformational) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(code.message(context))));
+    });
+
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 900;
     final isTablet = size.width > 600 && size.width <= 900;

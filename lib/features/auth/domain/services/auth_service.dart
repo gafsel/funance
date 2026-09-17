@@ -1,3 +1,4 @@
+import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/features/auth/domain/repositories/auth_repository.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 
@@ -30,6 +31,9 @@ class AuthService {
   }
 
   Stream<UserModel?> get authStateChanges => repository.authStateChanges;
+
+  /// Erros que chegaram no retorno de um `signInWithRedirect`.
+  Stream<ErrorCode> get redirectErrors => repository.redirectErrors;
 
   Future<void> signOut() async => await repository.signOut();
 }
