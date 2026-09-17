@@ -319,7 +319,7 @@ class LoginScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(height: 32),
                                       Text(
-                                        'Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.',
+                                        l10n.loginTermsNotice,
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 12,

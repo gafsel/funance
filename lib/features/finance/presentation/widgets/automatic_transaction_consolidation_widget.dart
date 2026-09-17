@@ -315,7 +315,7 @@ class _TransactionItem extends ConsumerWidget {
               if (otherWorkspaces.isNotEmpty)
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.swap_horiz, size: 20),
-                  tooltip: "Mover para outro Workspace",
+                  tooltip: l10n.automaticTransactionMoveWorkspace,
                   onSelected: onMove,
                   itemBuilder: (context) => otherWorkspaces
                       .map((w) => PopupMenuItem(

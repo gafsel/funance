@@ -408,7 +408,7 @@ class AccountFormScreen extends ConsumerWidget {
         MembersFormField(
           initialValue: state.ownerIds,
           onChanged: notifier.updateOwnerIds,
-          label: "Titulares da Conta",
+          label: context.l10n.accountOwnersLabel,
         ),
       ),
       if (state.creation) ...[

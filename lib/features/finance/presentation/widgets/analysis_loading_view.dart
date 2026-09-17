@@ -32,7 +32,7 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
   Timer? _secondPhaseTimer;
   // Só usamos a assinatura para cancelar, então o tipo do elemento é irrelevante.
   StreamSubscription<void>? _progressSubscription;
-  String? _currentMessage;
+  UploadStatus? _currentStatus;
 
   @override
   void initState() {
@@ -52,7 +52,7 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
         if (mounted && data != null) {
           setState(() {
             _currentProgress = data.progress;
-            _currentMessage = data.message;
+            _currentStatus = data.status;
           });
         }
       });
@@ -107,6 +107,18 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
     _progressSubscription?.cancel();
     super.dispose();
   }
+
+  /// Texto de cada fase da análise do extrato.
+  static String? _messageFor(AppLocalizations l10n, UploadStatus? status) =>
+      switch (status) {
+        UploadStatus.reading => l10n.uploadStatusReading,
+        UploadStatus.extracting => l10n.uploadStatusExtracting,
+        UploadStatus.searching => l10n.uploadStatusSearching,
+        UploadStatus.preparing => l10n.uploadStatusPreparing,
+        UploadStatus.completed => l10n.uploadStatusCompleted,
+        UploadStatus.error => l10n.uploadStatusError,
+        null => null,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +200,12 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
               ),
               const SizedBox(height: 16),
               Text(
-                _currentMessage ?? l10n.accountAnalysisProcessing,
+                // A frase vem do STATUS, traduzida aqui. O campo `message` do
+                // documento de upload é escrito em português tanto pelo app
+                // quanto pela função de extração: mostrá-lo cru era a única
+                // tela do app que ignorava o idioma do usuário.
+                _messageFor(l10n, _currentStatus) ??
+                    l10n.accountAnalysisProcessing,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: AppColors.pureWhite.withValues(alpha: 0.8),

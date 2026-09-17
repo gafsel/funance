@@ -53,7 +53,7 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('pt', 'BR'));
 
     // O título da seção continua na tela: a Party não some mais.
-    expect(find.text(l10n.partyTeamTitle), findsOneWidget);
+    expect(find.text(l10n.partyTitle), findsOneWidget);
     expect(find.text(l10n.partyEmptyTitle), findsOneWidget);
     expect(find.text(l10n.partyEmptyMessage), findsOneWidget);
     expect(find.text(l10n.partyEmptyButton), findsOneWidget);

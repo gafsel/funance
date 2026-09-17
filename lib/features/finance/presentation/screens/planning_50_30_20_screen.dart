@@ -1028,7 +1028,7 @@ class _CategoryCard extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Já previsto:',
+                  context.l10n.planning503020AlreadyPlanned,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.darkNavy.withValues(alpha: 0.7),
                   ),

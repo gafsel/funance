@@ -155,7 +155,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                             Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
-                                "Novo Lançamento",
+                                l10n.transactionNewTitle,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),

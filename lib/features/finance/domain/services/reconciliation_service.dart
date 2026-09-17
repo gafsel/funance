@@ -146,7 +146,10 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.reading,
           progress: 0.25,
-          message: '[Fase 1/4] 📄 Lendo o arquivo do extrato...',
+          // O texto que o usuário vê sai do `status`, traduzido na tela
+          // (`AnalysisLoadingView`). Aqui fica só um rastro técnico: escrever
+          // frase pronta no documento era escolher o idioma de quem lê.
+          message: 'phase 1/4: reading statement file',
         ),
       );
     }
@@ -163,7 +166,7 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.searching,
           progress: 0.75,
-          message: '[Fase 3/4] 🧠 Buscando parcelas e projeções no sistema...',
+          message: 'phase 3/4: searching matching installments',
         ),
       );
     }
@@ -196,7 +199,7 @@ class ReconciliationService {
           UploadProgressModel(
             status: UploadStatus.completed,
             progress: 1.00,
-            message: '[Fase 4/4] ⚡ Preparando sugestões de conciliação...',
+            message: 'phase 4/4: preparing suggestions',
           ),
         );
       }
@@ -224,7 +227,7 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.preparing,
           progress: 0.90,
-          message: '[Fase 4/4] ⚡ Preparando sugestões de conciliação...',
+          message: 'phase 4/4: preparing suggestions',
         ),
       );
     }
@@ -238,7 +241,7 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.completed,
           progress: 1.00,
-          message: '[Fase 4/4] ⚡ Preparando sugestões de conciliação...',
+          message: 'phase 4/4: preparing suggestions',
         ),
       );
     }

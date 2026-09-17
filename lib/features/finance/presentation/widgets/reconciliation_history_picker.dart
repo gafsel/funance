@@ -57,7 +57,7 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Selecionar Transação',
+                    context.l10n.reconciliationPickTransaction,
                     style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: AppColors.pureWhite,
