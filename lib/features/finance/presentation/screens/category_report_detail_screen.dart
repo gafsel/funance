@@ -7,6 +7,8 @@ import 'package:funances/features/finance/presentation/widgets/category_detail_t
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 
 class CategoryReportDetailScreen extends ConsumerWidget {
   final CategoryType type;
@@ -22,9 +24,32 @@ class CategoryReportDetailScreen extends ConsumerWidget {
         ? HomeViewProviders.summaryExpensesFull
         : HomeViewProviders.summaryIncomesFull;
     
-    final state = ref.watch(provider);
+    final asyncState = ref.watch(provider);
     final period = ref.watch(HomeViewProviders.period);
     final locale = context.locale;
+
+    if (!asyncState.hasValue) {
+      // Mesma regra da Visão Geral: nem tabela vazia, nem tela em branco.
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.categoryReportDetails)),
+        body: Center(
+          child: asyncState.hasError
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: ErrorView.forError(
+                    context,
+                    asyncState.error,
+                    onRetry: () => ref.invalidate(
+                      PeriodSummaryViewProviders.monthSummary(period.monthKey),
+                    ),
+                  ),
+                )
+              : const CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final state = asyncState.requireValue;
 
     final sortedSummaries = List<OverviewCategorySummary>.from(state.summary)
       ..sort((a, b) {

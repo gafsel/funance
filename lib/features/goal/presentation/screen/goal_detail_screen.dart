@@ -20,10 +20,17 @@ import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+/// Detalhe de uma meta.
+///
+/// Recebe a meta JÁ CARREGADA: quem busca pelo id é a rota, via [EntityRoute]
+/// (`/goals/:id`), que também responde por carregando, erro e "não existe
+/// mais". Antes esta tela fazia a própria leitura e, no erro, mostrava a
+/// exceção crua — `[cloud_firestore/unavailable] Failed to get document...` —
+/// que é texto de Crashlytics, não de usuário.
 class GoalDetailScreen extends ConsumerStatefulWidget {
-  final String goalId;
+  final GoalModel goal;
 
-  const GoalDetailScreen({super.key, required this.goalId});
+  const GoalDetailScreen({super.key, required this.goal});
 
   @override
   ConsumerState<GoalDetailScreen> createState() => _GoalDetailScreenState();
@@ -57,9 +64,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
         reduceCreditCard: (g) => g.accountId,
         payDebt: (g) => g.accountId,
       ),
-      categoryId: goal.mapOrNull(
-        reduceExpense: (g) => g.category.id,
-      ),
+      categoryId: goal.mapOrNull(reduceExpense: (g) => g.category.id),
       startDate: goal.startDate,
       endDate: goal.deadline,
     );
@@ -85,267 +90,247 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final goalAsync = ref.watch(GoalViewProvider.goalById(widget.goalId));
+    final goal = widget.goal;
     final allGoalsAsync = ref.watch(GoalViewProvider.goalsStream);
     final l10n = context.l10n;
     final theme = Theme.of(context);
 
-    return goalAsync.when(
-      data: (goal) {
-        if (goal == null) {
-          return Scaffold(
-            appBar: AppBar(title: Text(l10n.goalDetailsTitle)),
-            body: Center(child: Text(l10n.errorUnknown)),
-          );
-        }
+    _initQuery(goal);
 
-        _initQuery(goal);
+    final accountId = goal.mapOrNull(
+      saveMoney: (g) => g.accountId,
+      reduceCreditCard: (g) => g.accountId,
+      payDebt: (g) => g.accountId,
+    );
 
-        final accountId = goal.mapOrNull(
-          saveMoney: (g) => g.accountId,
-          reduceCreditCard: (g) => g.accountId,
-          payDebt: (g) => g.accountId,
-        );
+    final accountAsync = accountId != null
+        ? ref.watch(AccountViewProviders.byId(accountId))
+        : const AsyncValue<AccountModel?>.data(null);
 
-        final accountAsync = accountId != null
-            ? ref.watch(AccountViewProviders.byId(accountId))
-            : const AsyncValue<AccountModel?>.data(null);
+    final accountLogo = accountAsync.when(
+      data: (account) =>
+          account != null ? AccountLogo(account: account, size: 40) : null,
+      loading: () => null,
+      error: (_, _) => null,
+    );
 
-        final accountLogo = accountAsync.when(
-          data: (account) =>
-              account != null ? AccountLogo(account: account, size: 40) : null,
-          loading: () => null,
-          error: (_, _) => null,
-        );
+    final accountColor = accountAsync.when(
+      data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
+      loading: () => AppColors.deepTurquoise,
+      error: (_, _) => AppColors.deepTurquoise,
+    );
 
-        final accountColor = accountAsync.when(
-          data: (account) =>
-              account?.color.asColor() ?? AppColors.deepTurquoise,
-          loading: () => AppColors.deepTurquoise,
-          error: (_, _) => AppColors.deepTurquoise,
-        );
+    // Milestones só fazem sentido para metas de acúmulo (guardar/quitar):
+    // nas metas de redução, percent = gasto/limite — 100% é estourar o
+    // orçamento, não uma conquista.
+    final celebratesMilestones =
+        goal.mapOrNull(saveMoney: (_) => true, payDebt: (_) => true) ?? false;
 
-        // Milestones só fazem sentido para metas de acúmulo (guardar/quitar):
-        // nas metas de redução, percent = gasto/limite — 100% é estourar o
-        // orçamento, não uma conquista.
-        final celebratesMilestones =
-            goal.mapOrNull(
-              saveMoney: (_) => true,
-              payDebt: (_) => true,
-            ) ??
-            false;
+    final screenProgress = goal.calculateProgress();
+    final pct = (screenProgress.percent * 100).floor();
+    if (celebratesMilestones && pct != _lastCheckedPct) {
+      _lastCheckedPct = pct;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final allGoals = allGoalsAsync.valueOrNull ?? [];
+        _checkMilestonesAndCleanup(goal, screenProgress.percent, allGoals);
+      });
+    }
 
-        final screenProgress = goal.calculateProgress();
-        final pct = (screenProgress.percent * 100).floor();
-        if (celebratesMilestones && pct != _lastCheckedPct) {
-          _lastCheckedPct = pct;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted) return;
-            final allGoals = allGoalsAsync.valueOrNull ?? [];
-            _checkMilestonesAndCleanup(goal, screenProgress.percent, allGoals);
-          });
-        }
+    return Scaffold(
+      body: Stack(
+        children: [
+          NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              final progress = goal.calculateProgress();
 
-        return Scaffold(
-          body: Stack(
-            children: [
-              NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  final progress = goal.calculateProgress();
-
-                  return [
-                    SliverDetailHeader(
-                      title: goal.name,
-                      subtitle:
-                          goal.targetAmount.asCurrency(locale: context.locale),
-                      backgroundColor: goal.map(
-                        payDebt: (_) => accountColor,
-                        saveMoney: (_) => accountColor,
-                        reduceCreditCard: (_) => accountColor,
-                        reduceExpense: (re) => re.category.color.asColor(),
+              return [
+                SliverDetailHeader(
+                  title: goal.name,
+                  subtitle: goal.targetAmount.asCurrency(
+                    locale: context.locale,
+                  ),
+                  backgroundColor: goal.map(
+                    payDebt: (_) => accountColor,
+                    saveMoney: (_) => accountColor,
+                    reduceCreditCard: (_) => accountColor,
+                    reduceExpense: (re) => re.category.color.asColor(),
+                  ),
+                  logo: goal.map(
+                    payDebt: (_) => accountLogo,
+                    saveMoney: (_) => accountLogo,
+                    reduceCreditCard: (_) => accountLogo,
+                    reduceExpense: (re) =>
+                        CategoryIcon.forCategory(re.category),
+                  ),
+                  expandedHeight: 460,
+                  chips: [
+                    DetailHeaderChip(
+                      icon: Icons.calendar_today,
+                      label: DateFormat.yMMMd(
+                        context.locale,
+                      ).format(goal.deadline),
+                    ),
+                    DetailHeaderChip(
+                      icon: progress.getStatusIcon(),
+                      label: progress.getStatusText(l10n),
+                      backgroundColor: progress.getStatusColor(context),
+                    ),
+                    // Carimbo do servidor: só existe depois que a meta
+                    // alcançou o alvo pela primeira vez.
+                    if (goal.isClosed)
+                      DetailHeaderChip(
+                        icon: goal.outcomeIcon,
+                        label:
+                            goal.outcomeLabel(
+                              l10n,
+                              (date) =>
+                                  DateFormat.yMMMd(context.locale).format(date),
+                            ) ??
+                            '',
+                        backgroundColor: goal.outcome == null
+                            ? AppColors.antiqueGold
+                            : (goal.isCompleted
+                                  ? AppColors.limeGreen
+                                  : AppColors.error),
                       ),
-                      logo: goal.map(
-                        payDebt: (_) => accountLogo,
-                        saveMoney: (_) => accountLogo,
-                        reduceCreditCard: (_) => accountLogo,
-                        reduceExpense: (re) =>
-                            CategoryIcon.forCategory(re.category),
-                      ),
-                      expandedHeight: 460,
-                      chips: [
-                        DetailHeaderChip(
-                          icon: Icons.calendar_today,
-                          label: DateFormat.yMMMd(context.locale)
-                              .format(goal.deadline),
-                        ),
-                        DetailHeaderChip(
-                          icon: progress.getStatusIcon(),
-                          label: progress.getStatusText(l10n),
-                          backgroundColor: progress.getStatusColor(context),
-                        ),
-                        // Carimbo do servidor: só existe depois que a meta
-                        // alcançou o alvo pela primeira vez.
-                        if (goal.isClosed)
-                          DetailHeaderChip(
-                            icon: goal.outcomeIcon,
-                            label:
-                                goal.outcomeLabel(
-                                  l10n,
-                                  (date) => DateFormat.yMMMd(
-                                    context.locale,
-                                  ).format(date),
-                                ) ??
-                                '',
-                            backgroundColor: goal.outcome == null
-                                ? AppColors.antiqueGold
-                                : (goal.isCompleted
-                                      ? AppColors.limeGreen
-                                      : AppColors.error),
+                  ],
+                  actions: [
+                    DetailHeaderAction(
+                      icon: Icons.edit_outlined,
+                      label: l10n.editButton,
+                      onPressed: () =>
+                          context.push('/goals/form?id=${goal.id}'),
+                    ),
+                    DetailHeaderAction(
+                      icon: Icons.delete_outline,
+                      label: l10n.deleteButton,
+                      onPressed: () => _showDeleteConfirmation(context),
+                    ),
+                  ],
+                  bottomContent: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // --- Milestone badges ---
+                        if (celebratesMilestones) ...[
+                          _MilestoneBadges(
+                            currentPercent: progress.percent,
+                            statusColor: progress.getStatusColor(context),
                           ),
-                      ],
-                      actions: [
-                        DetailHeaderAction(
-                          icon: Icons.edit_outlined,
-                          label: l10n.editButton,
-                          onPressed: () =>
-                              context.push('/goals/form?id=${goal.id}'),
-                        ),
-                        DetailHeaderAction(
-                          icon: Icons.delete_outline,
-                          label: l10n.deleteButton,
-                          onPressed: () => _showDeleteConfirmation(context),
-                        ),
-                      ],
-                      bottomContent: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          const SizedBox(height: 16),
+                        ],
+                        // --- Barra de progresso ---
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // --- Milestone badges ---
-                            if (celebratesMilestones) ...[
-                              _MilestoneBadges(
-                                currentPercent: progress.percent,
-                                statusColor: progress.getStatusColor(context),
+                            Text(
+                              '${goal.amountLabel(l10n)}: '
+                              '${goal.currentAmount.asCurrency(locale: context.locale)}',
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                color: AppColors.pureWhite.withValues(
+                                  alpha: 0.9,
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                            ],
-                            // --- Barra de progresso ---
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${goal.amountLabel(l10n)}: '
-                                  '${goal.currentAmount.asCurrency(locale: context.locale)}',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: AppColors.pureWhite
-                                        .withValues(alpha: 0.9),
-                                  ),
-                                ),
-                                Text(
-                                  progress.percent
-                                      .asPercent(locale: context.locale),
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.brightCyan,
-                                  ),
-                                ),
-                              ],
                             ),
-                            const SizedBox(height: 8),
-                            Stack(
-                              children: [
-                                Container(
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        AppColors.pureWhite.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                                FractionallySizedBox(
-                                  widthFactor: progress.predictionPercent,
-                                  child: Container(
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.limeGreen,
-                                          progress
-                                              .getStatusColor(context)
-                                              .withValues(alpha: .5),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                ),
-                                FractionallySizedBox(
-                                  widthFactor: progress.percent,
-                                  child: Container(
-                                    height: 12,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          AppColors.limeGreen,
-                                          progress.getStatusColor(context),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            // --- Gráfico ideal vs. real ---
-                            _GoalProgressChart(
-                              goal: goal,
-                              progress: progress,
-                              statusColor: progress.getStatusColor(context),
+                            Text(
+                              progress.percent.asPercent(
+                                locale: context.locale,
+                              ),
+                              style: theme.textTheme.labelMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.brightCyan,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        Stack(
+                          children: [
+                            Container(
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: AppColors.pureWhite.withValues(
+                                  alpha: 0.1,
+                                ),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: progress.predictionPercent,
+                              child: Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.limeGreen,
+                                      progress
+                                          .getStatusColor(context)
+                                          .withValues(alpha: .5),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: progress.percent,
+                              child: Container(
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.limeGreen,
+                                      progress.getStatusColor(context),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // --- Gráfico ideal vs. real ---
+                        _GoalProgressChart(
+                          goal: goal,
+                          progress: progress,
+                          statusColor: progress.getStatusColor(context),
+                        ),
+                      ],
                     ),
-                  ];
-                },
-                body: TransactionListView(
-                  provider: FinanceViewProviders.goalTransactions(_query!),
-                  accountId: goal.mapOrNull(
-                    saveMoney: (g) => g.accountId,
-                    reduceCreditCard: (g) => g.accountId,
-                    payDebt: (g) => g.accountId,
                   ),
                 ),
+              ];
+            },
+            body: TransactionListView(
+              provider: FinanceViewProviders.goalTransactions(_query!),
+              accountId: goal.mapOrNull(
+                saveMoney: (g) => g.accountId,
+                reduceCreditCard: (g) => g.accountId,
+                payDebt: (g) => g.accountId,
               ),
-              // Confetti overlay
-              Align(
-                alignment: Alignment.topCenter,
-                child: ConfettiWidget(
-                  confettiController: _confettiController,
-                  blastDirectionality: BlastDirectionality.explosive,
-                  shouldLoop: false,
-                  numberOfParticles: 40,
-                  gravity: 0.2,
-                  colors: const [
-                    AppColors.limeGreen,
-                    AppColors.brightCyan,
-                    AppColors.successGold,
-                    AppColors.vibrantTeal,
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        );
-      },
-      error: (e, _) => Scaffold(
-        appBar: AppBar(title: Text(l10n.goalDetailsTitle)),
-        body: Center(child: Text(e.toString())),
-      ),
-      loading: () => Scaffold(
-        appBar: AppBar(title: Text(l10n.goalDetailsTitle)),
-        body: const Center(child: CircularProgressIndicator()),
+          // Confetti overlay
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              shouldLoop: false,
+              numberOfParticles: 40,
+              gravity: 0.2,
+              colors: const [
+                AppColors.limeGreen,
+                AppColors.brightCyan,
+                AppColors.successGold,
+                AppColors.vibrantTeal,
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -367,7 +352,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               Navigator.pop(context);
               await showLoadingModal(
                 context,
-                ref.read(GoalDomainProvider.service).deleteGoal(widget.goalId),
+                ref.read(GoalDomainProvider.service).deleteGoal(widget.goal.id),
               );
               if (context.mounted) context.pop();
             },
@@ -442,8 +427,7 @@ class _Badge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (reached)
-            const Icon(Icons.star, size: 12, color: Colors.white),
+          if (reached) const Icon(Icons.star, size: 12, color: Colors.white),
           if (reached) const SizedBox(width: 4),
           Text(
             label,
@@ -491,14 +475,11 @@ class _GoalProgressChart extends StatelessWidget {
     final elapsedDays = today.isAfter(end)
         ? totalDays
         : today.isBefore(start)
-            ? 0.0
-            : today.difference(start).inDays.toDouble();
+        ? 0.0
+        : today.difference(start).inDays.toDouble();
 
     // Linha ideal: de 0 → target linearmente
-    final idealSpots = [
-      FlSpot(0, 0),
-      FlSpot(totalDays, target),
-    ];
+    final idealSpots = [FlSpot(0, 0), FlSpot(totalDays, target)];
 
     // Linha real: de 0 no start → currentAmount no dia atual
     final realSpots = [
@@ -524,7 +505,10 @@ class _GoalProgressChart extends StatelessWidget {
               label: l10n.goalChartIdealLine,
             ),
             const SizedBox(width: 12),
-            _LegendDot(color: AppColors.limeGreen, label: l10n.goalChartRealLine),
+            _LegendDot(
+              color: AppColors.limeGreen,
+              label: l10n.goalChartRealLine,
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -535,11 +519,15 @@ class _GoalProgressChart extends StatelessWidget {
               gridData: FlGridData(show: false),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
-                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles:
-                    AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                leftTitles:
-                    AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,

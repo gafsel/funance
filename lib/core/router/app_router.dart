@@ -95,6 +95,33 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 /// um redirect para a home no meio da navegação de quem só apertou "atualizar".
 
 
+/// Id vindo da query. **Vazio é ausente.**
+///
+/// Uma tela montava `/accounts/form?id=${account?.id ?? ''}` e, sem conta,
+/// mandava `?id=` — que chegava aqui como o id `''`. A rota ia então procurar
+/// um documento de id vazio e mostrava "este item não existe mais" no lugar do
+/// formulário de criação. Tratar vazio como ausente é a diferença entre "não
+/// me disseram qual" e "me disseram um que não existe".
+@visibleForTesting
+String? idParam(Uri uri, String name) {
+  final value = uri.queryParameters[name]?.trim();
+  return (value == null || value.isEmpty) ? null : value;
+}
+
+/// O que a rota `/accounts/form` recebe pelo endereço.
+///
+/// Separado do `builder` para poder ser testado sem montar a tela: é aqui que
+/// se decide entre editar (id) e criar (com ou sem tipo sugerido).
+@visibleForTesting
+({String? accountId, AccountType? initialType}) accountFormArgs(Uri uri) {
+  final typeStr = uri.queryParameters['type'];
+
+  return (
+    accountId: idParam(uri, 'id'),
+    initialType: AccountType.values.where((e) => e.name == typeStr).firstOrNull,
+  );
+}
+
 /// O formulário de criação montado a partir do ENDEREÇO.
 ///
 /// Todos os parâmetros vêm da query — é o que faz um refresh no meio do
@@ -247,7 +274,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/workspace/categories/form',
         builder: (context, state) {
-          final id = state.uri.queryParameters['id'];
+          final id = idParam(state.uri, 'id');
           if (id == null) return const CategoryFormScreen();
 
           return EntityRoute<CategoryModel>(
@@ -268,12 +295,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accounts/form',
         builder: (context, state) {
-          final typeStr = state.uri.queryParameters['type'];
-          final initialType = AccountType.values
-              .where((e) => e.name == typeStr)
-              .firstOrNull;
+          final args = accountFormArgs(state.uri);
+          final accountId = args.accountId;
 
-          final accountId = state.uri.queryParameters['id'];
           if (accountId != null) {
             return EntityRoute<AccountModel>(
               provider: AccountViewProviders.byId(accountId),
@@ -282,7 +306,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             );
           }
 
-          return AccountFormScreen(initialType: initialType);
+          return AccountFormScreen(initialType: args.initialType);
         },
       ),
       GoRoute(
@@ -309,7 +333,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               .where((e) => e.name == statusStr)
               .firstOrNull;
 
-          final installmentId = state.uri.queryParameters['installmentId'];
+          final installmentId = idParam(state.uri, 'installmentId');
           if (installmentId != null) {
             return EntityRoute<InstallmentModel>(
               provider: FinanceViewProviders.installmentById(installmentId),
@@ -327,7 +351,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             orElse: () => OrderType.expense,
           );
 
-          final categoryId = state.uri.queryParameters['categoryId'];
+          final categoryId = idParam(state.uri, 'categoryId');
           final hasDescription =
               state.uri.queryParameters['description'] != null;
 
@@ -387,7 +411,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/goals/form',
         builder: (context, state) {
-          final id = state.uri.queryParameters['id'];
+          final id = idParam(state.uri, 'id');
           if (id == null) return const GoalFormScreen();
 
           return EntityRoute<GoalModel>(
@@ -398,21 +422,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/goals/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return GoalDetailScreen(goalId: id);
-        },
+        builder: (context, state) => EntityRoute<GoalModel>(
+          provider: GoalViewProvider.goalById(state.pathParameters['id']!),
+          title: context.l10n.goalDetailsTitle,
+          builder: (context, goal) => GoalDetailScreen(goal: goal),
+        ),
       ),
       GoRoute(
         path: '/reconciliation',
         builder: (context, state) {
-          final accountId = state.uri.queryParameters['accountId'];
+          final accountId = idParam(state.uri, 'accountId');
           if (accountId == null) {
             return const ReconciliationAccountPickerScreen();
           }
 
           return EntityRoute<AccountModel>(
             provider: AccountViewProviders.byId(accountId),
+            title: context.l10n.reconciliationTitle,
             builder: (context, account) =>
                 ReconciliationScreen(account: account),
           );
@@ -425,10 +451,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/coaching',
         redirect: (context, state) =>
-            state.uri.queryParameters['id'] == null ? '/coaching/history' : null,
+            idParam(state.uri, 'id') == null ? '/coaching/history' : null,
         builder: (context, state) => EntityRoute<CoachingModel>(
           provider: CoachingViewProviders.insightById(
-            state.uri.queryParameters['id']!,
+            idParam(state.uri, 'id')!,
           ),
           builder: (context, coaching) =>
               CoachingSlidesScreen(coaching: coaching),

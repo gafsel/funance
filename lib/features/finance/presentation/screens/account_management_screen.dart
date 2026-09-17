@@ -209,7 +209,22 @@ class AccountManagementScreen extends ConsumerWidget {
     AccountModel? account,
     AccountType? initialType,
   ]) {
-    context.push('/accounts/form?id=${account?.id ?? ''}');
+    // Sem conta é CRIAÇÃO: nada de `?id=` vazio, que a rota lia como o id ''
+    // e respondia "este item não existe mais" em cima do formulário novo. O
+    // tipo sugerido vai pela query, que é o que sobrevive a um refresh.
+    if (account != null) {
+      context.push('/accounts/form?id=${account.id}');
+      return;
+    }
+
+    context.push(
+      Uri(
+        path: '/accounts/form',
+        queryParameters: {
+          if (initialType != null) 'type': initialType.name,
+        },
+      ).toString(),
+    );
   }
 
   void _confirmDelete(

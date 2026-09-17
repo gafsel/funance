@@ -6,71 +6,90 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/core/money/money.dart';
 
-class ExpenseSummaryNotifier extends Notifier<SummaryState> {
+/// Os resumos do mês, com o ERRO preservado.
+///
+/// Estes notifiers liam `.value ?? []` do `monthSummary`: sem rede, o stream
+/// falhava, a lista vazia tomava o lugar do erro e a Visão Geral afirmava
+/// "nenhum lançamento no período" — com o saldo em R$ 0,00. `AsyncValue`
+/// carrega o erro até a tela, que agora mostra o ErrorView com "tentar de
+/// novo" no lugar do estado vazio.
+class ExpenseSummaryNotifier extends Notifier<AsyncValue<SummaryState>> {
   @override
-  SummaryState build() {
+  AsyncValue<SummaryState> build() {
     // Escutar mudanças no período e tipo de visualização
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
 
-    final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
-
-    return _buildSummary(
-      summaries.where((s) => s.category.type == CategoryType.expense).toList(),
-      viewType,
-    );
+    return ref
+        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
+        .whenData(
+          (summaries) => _buildSummary(
+            summaries
+                .where((s) => s.category.type == CategoryType.expense)
+                .toList(),
+            viewType,
+          ),
+        );
   }
 }
 
-class IncomeSummaryNotifier extends Notifier<SummaryState> {
+class IncomeSummaryNotifier extends Notifier<AsyncValue<SummaryState>> {
   @override
-  SummaryState build() {
+  AsyncValue<SummaryState> build() {
     // Escutar mudanças no período e tipo de visualização
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
 
-    final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
-
-    return _buildSummary(
-      summaries.where((s) => s.category.type == CategoryType.income).toList(),
-      viewType,
-    );
+    return ref
+        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
+        .whenData(
+          (summaries) => _buildSummary(
+            summaries
+                .where((s) => s.category.type == CategoryType.income)
+                .toList(),
+            viewType,
+          ),
+        );
   }
 }
 
-class ExpenseSummaryFullNotifier extends Notifier<SummaryState> {
+class ExpenseSummaryFullNotifier extends Notifier<AsyncValue<SummaryState>> {
   @override
-  SummaryState build() {
+  AsyncValue<SummaryState> build() {
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
 
-    final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
-
-    return _buildSummary(
-      summaries.where((s) => s.category.type == CategoryType.expense).toList(),
-      viewType,
-      limit: false,
-    );
+    return ref
+        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
+        .whenData(
+          (summaries) => _buildSummary(
+            summaries
+                .where((s) => s.category.type == CategoryType.expense)
+                .toList(),
+            viewType,
+            limit: false,
+          ),
+        );
   }
 }
 
-class IncomeSummaryFullNotifier extends Notifier<SummaryState> {
+class IncomeSummaryFullNotifier extends Notifier<AsyncValue<SummaryState>> {
   @override
-  SummaryState build() {
+  AsyncValue<SummaryState> build() {
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
 
-    final summaries =
-        ref.watch(PeriodSummaryViewProviders.monthSummary(period.monthKey)).value ?? [];
-
-    return _buildSummary(
-      summaries.where((s) => s.category.type == CategoryType.income).toList(),
-      viewType,
-      limit: false,
-    );
+    return ref
+        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
+        .whenData(
+          (summaries) => _buildSummary(
+            summaries
+                .where((s) => s.category.type == CategoryType.income)
+                .toList(),
+            viewType,
+            limit: false,
+          ),
+        );
   }
 }
 
@@ -148,14 +167,18 @@ SummaryState _buildSummary(
   );
 }
 
-class BalanceSummaryNotifier extends Notifier<BalanceState> {
+class BalanceSummaryNotifier extends Notifier<AsyncValue<BalanceState>> {
   @override
-  BalanceState build() {
+  AsyncValue<BalanceState> build() {
     final period = ref.watch(HomeViewProviders.period);
-    final summaries = ref
-        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
-        .value ?? [];
 
+    return ref
+        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
+        .whenData(_balanceOf);
+  }
+}
+
+BalanceState _balanceOf(List<OverviewCategorySummary> summaries) {
     var totalPlannedIncomes = Money.zero;
     var totalActualIncomes = Money.zero;
     var totalPlannedExpenses = Money.zero;
@@ -177,5 +200,4 @@ class BalanceSummaryNotifier extends Notifier<BalanceState> {
       totalPlanned: (totalPlannedIncomes - totalPlannedExpenses).toDouble(),
       totalActual: (totalActualIncomes - totalActualExpenses).toDouble(),
     );
-  }
 }

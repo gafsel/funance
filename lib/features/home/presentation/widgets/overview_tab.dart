@@ -15,6 +15,9 @@ import 'package:funances/features/home/presentation/widgets/summary_type_selecti
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/core/utils/date_extension.dart';
 
 class OverviewTab extends ConsumerWidget {
   const OverviewTab({super.key});
@@ -174,9 +177,34 @@ class CategorySummaryView extends ConsumerWidget {
     final provider = categoryType == CategoryType.expense
         ? HomeViewProviders.summaryExpenses
         : HomeViewProviders.summaryIncomes;
-    final state = ref.watch(provider);
+    final asyncState = ref.watch(provider);
+    final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
     final locale = context.locale;
+
+    // Sem rede, esta tela dizia "nenhum lançamento no período": a falha de
+    // leitura virava uma lista vazia e a lista vazia virava uma afirmação
+    // sobre o mês do usuário. O erro tem precedência sobre o estado vazio.
+    if (asyncState.hasError) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: ErrorView.forError(
+          context,
+          asyncState.error,
+          onRetry: () => ref.invalidate(
+            PeriodSummaryViewProviders.monthSummary(period.monthKey),
+          ),
+        ),
+      );
+    }
+
+    final state = asyncState.valueOrNull;
+    if (state == null) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     final summaries = [
       ...state.summary,
@@ -595,9 +623,36 @@ class BalanceSummaryView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final state = ref.watch(HomeViewProviders.summaryBalance);
+    final asyncState = ref.watch(HomeViewProviders.summaryBalance);
+    final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
     final locale = context.locale;
+
+    // R$ 0,00 é um número, e um número afirma. Enquanto o mês não chega — ou
+    // quando a leitura falha — o saldo não pode afirmar nada.
+    if (asyncState.hasError) {
+      return ErrorView.forError(
+        context,
+        asyncState.error,
+        onRetry: () => ref.invalidate(
+          PeriodSummaryViewProviders.monthSummary(period.monthKey),
+        ),
+      );
+    }
+
+    final state = asyncState.valueOrNull;
+    if (state == null) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
 
     final amount = viewType == SummaryViewType.planning
         ? state.totalPlanned
