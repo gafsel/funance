@@ -7,7 +7,7 @@ import {
     initializeTestEnvironment,
     RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, setLogLevel, Timestamp } from "firebase/firestore";
+import { deleteField, doc, getDoc, setDoc, updateDoc, setLogLevel, Timestamp } from "firebase/firestore";
 
 /**
  * Testes das security rules do Firestore (firebase/firestore.rules) contra o
@@ -23,6 +23,7 @@ const ORDER_ID = "order-rules";
 const INSTALLMENT_ID = "installment-rules";
 const PLANNING_ID = "planning-rules";
 const CARD_ID = "acc-card-rules";
+const INVOICE_INSTALLMENT_ID = "installment-fatura-rules";
 
 const planningDoc = (overrides: Record<string, unknown> = {}) => ({
     category: { id: "cat-moradia", name: "Moradia", icon: "home", color: "#42A5F5" },
@@ -43,6 +44,27 @@ const cardDoc = (overrides: Record<string, unknown> = {}) => ({
     limit: 5000,
     closingDay: 5,
     dueDay: 10,
+    ...overrides,
+});
+
+/** Parcela de FATURA, com a janela do ciclo que só o servidor escreve (F1.8). */
+const invoiceInstallmentDoc = (overrides: Record<string, unknown> = {}) => ({
+    orderId: `invoice-${CARD_ID}-2026-03-10`,
+    amount: 350.5,
+    referenceAmount: 350.5,
+    description: "Fatura Cartão",
+    status: "pending",
+    type: "transfer",
+    installmentType: "single",
+    dueDate: Timestamp.fromDate(new Date(2026, 2, 10, 12)),
+    referenceDate: Timestamp.fromDate(new Date(2026, 2, 10, 12)),
+    paidDate: null,
+    accounts: { [CARD_ID]: "credit" },
+    accountIds: [CARD_ID],
+    isInvoice: true,
+    cycleStart: Timestamp.fromDate(new Date(2026, 1, 5)),
+    cycleEnd: Timestamp.fromDate(new Date(2026, 2, 4, 23, 59, 59)),
+    closingDate: Timestamp.fromDate(new Date(2026, 2, 5)),
     ...overrides,
 });
 
@@ -112,6 +134,10 @@ describe("firestore.rules", () => {
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/accounts/${CARD_ID}`),
                 { ...cardDoc(), nextInvoice: nextInvoiceDoc() }
+            );
+            await setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`),
+                invoiceInstallmentDoc()
             );
         });
     });
@@ -309,6 +335,86 @@ describe("firestore.rules", () => {
             setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/accounts/${CARD_ID}`),
                 { ...cardDoc({ name: "Cartão renomeado" }), nextInvoice: nextInvoiceDoc() }
+            )
+        );
+    });
+
+    // ---- F1.8: a janela do ciclo da fatura é do servidor -------------------
+
+    it("permite que o membro leia a janela do ciclo da fatura", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        const snapshot = await assertSucceeds(
+            getDoc(doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`))
+        );
+        expect(snapshot.data()?.cycleStart).toBeDefined();
+    });
+
+    it("nega que o cliente altere a janela do ciclo de uma fatura", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        for (const patch of [
+            { cycleStart: Timestamp.fromDate(new Date(2026, 0, 1)) },
+            { cycleEnd: Timestamp.fromDate(new Date(2026, 5, 1)) },
+            { closingDate: Timestamp.fromDate(new Date(2026, 5, 1)) },
+        ]) {
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`),
+                    patch
+                )
+            );
+        }
+    });
+
+    it("nega que o cliente APAGUE a janela do ciclo de uma fatura", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertFails(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`),
+                { cycleStart: deleteField() }
+            )
+        );
+    });
+
+    it("permite pagar a fatura sem tocar na janela", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        await assertSucceeds(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/installments/${INVOICE_INSTALLMENT_ID}`),
+                {
+                    status: "paid",
+                    paidAmount: 350.5,
+                    paidDate: Timestamp.fromDate(new Date(2026, 2, 10, 12)),
+                }
+            )
+        );
+    });
+
+    it("tolera o null da build que grava o doc inteiro numa parcela comum", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        // Mesma exceção do xp: a parcela que NÃO é fatura não tem os campos, e
+        // um `null` neles não é alteração de valor nenhuma.
+        await assertSucceeds(
+            updateDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                { cycleStart: null, cycleEnd: null, closingDate: null }
+            )
+        );
+    });
+
+    it("nega que o cliente crie uma parcela de fatura com a janela pronta", async () => {
+        const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+        // `installments` não tem `allow create` nenhum: o create é negado
+        // mesmo, e carregar a janela do ciclo não abre exceção.
+        await assertFails(
+            setDoc(
+                doc(db, `workspaces/${WORKSPACE_ID}/installments/fatura-forjada`),
+                invoiceInstallmentDoc()
             )
         );
     });
