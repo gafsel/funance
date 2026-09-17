@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 ///
 /// Substitui o `flutter_markdown`, que foi descontinuado. Trazer um pacote
 /// novo para um único texto de slide seria trocar uma dependência morta por
-/// outra viva com o mesmo tamanho de superfície; o que este app precisa cabe
-/// em negrito, itálico, código, link e lista com marcador.
+/// outra viva com o mesmo tamanho de superfície.
+///
+/// A gramática segue o que a IA de fato emite: título, divisor, citação,
+/// lista, negrito, itálico, negrito-itálico, código e link.
 ///
 /// O que não estiver na gramática aparece literalmente, e isso é proposital:
 /// o texto vem de uma IA, e uma sintaxe inesperada deve virar um caractere a
@@ -65,44 +67,73 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
 
     final TextStyle bodyStyle =
         widget.style ?? DefaultTextStyle.of(context).style;
+    final List<MarkdownBlock> blocks = parseMarkdownBlocks(widget.data);
 
-    return SelectableText.rich(
-      TextSpan(
-        style: bodyStyle,
-        children: _buildSpans(bodyStyle),
-      ),
-      textAlign: widget.textAlign,
+    if (blocks.length == 1) return _render(blocks.single, bodyStyle);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final block in blocks) _render(block, bodyStyle),
+      ],
     );
   }
 
-  List<InlineSpan> _buildSpans(TextStyle bodyStyle) {
-    final List<InlineSpan> spans = <InlineSpan>[];
-    final List<String> lines = widget.data.split('\n');
-
-    for (int i = 0; i < lines.length; i++) {
-      final String line = lines[i];
-      final String? item = _bulletContent(line);
-
-      if (item == null) {
-        spans.addAll(_inlineSpans(line, bodyStyle));
-      } else {
-        // O marcador é desenhado pelo app: a sintaxe do Markdown ("- ", "* ")
-        // não é o que o usuário deve ler.
-        spans.add(const TextSpan(text: '•  '));
-        spans.addAll(_inlineSpans(item, bodyStyle));
-      }
-
-      if (i < lines.length - 1) spans.add(const TextSpan(text: '\n'));
-    }
-
-    return spans;
+  Widget _render(MarkdownBlock block, TextStyle bodyStyle) {
+    return switch (block) {
+      MarkdownDivider() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Divider(
+          height: 1,
+          color: (bodyStyle.color ?? Colors.grey).withValues(alpha: 0.4),
+        ),
+      ),
+      MarkdownHeading(:final text, :final level) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _text(
+          text,
+          bodyStyle.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: (bodyStyle.fontSize ?? 14) * _headingScale(level),
+          ),
+        ),
+      ),
+      // A citação é indentada e marcada por uma barra, como em qualquer
+      // leitor de Markdown: sem isso ela se confundiria com o texto ao redor.
+      MarkdownQuote(:final text) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Container(
+          padding: const EdgeInsets.only(left: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                width: 3,
+                color: (bodyStyle.color ?? Colors.grey).withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+          child: _text(
+            text,
+            bodyStyle.copyWith(fontStyle: FontStyle.italic),
+          ),
+        ),
+      ),
+      MarkdownParagraph(:final text) => _text(text, bodyStyle),
+    };
   }
 
-  /// O conteúdo de uma linha de lista, ou `null` se a linha não for uma.
-  static String? _bulletContent(String line) {
-    final RegExpMatch? match = _bullet.firstMatch(line);
+  static double _headingScale(int level) => switch (level) {
+    1 => 1.5,
+    2 => 1.3,
+    _ => 1.15,
+  };
 
-    return match?.group(1);
+  Widget _text(String source, TextStyle style) {
+    return SelectableText.rich(
+      TextSpan(style: style, children: _inlineSpans(source, style)),
+      textAlign: widget.textAlign,
+    );
   }
 
   List<InlineSpan> _inlineSpans(String text, TextStyle bodyStyle) {
@@ -126,10 +157,23 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
   }
 
   InlineSpan _spanFor(RegExpMatch match, TextStyle bodyStyle) {
-    final String? linkText = match.group(1);
-    if (linkText != null) return _link(linkText, match.group(2)!, bodyStyle);
+    final String? linkText = match.group(_linkText);
+    if (linkText != null) {
+      return _link(linkText, match.group(_linkHref)!, bodyStyle);
+    }
 
-    final String? strong = match.group(3) ?? match.group(4);
+    final String? strongEm = match.group(_strongEmStar) ?? match.group(_strongEmUnderscore);
+    if (strongEm != null) {
+      return TextSpan(
+        text: strongEm,
+        style: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontStyle: FontStyle.italic,
+        ),
+      );
+    }
+
+    final String? strong = match.group(_strongStar) ?? match.group(_strongUnderscore);
     if (strong != null) {
       return TextSpan(
         text: strong,
@@ -137,7 +181,7 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
       );
     }
 
-    final String? emphasis = match.group(5) ?? match.group(6);
+    final String? emphasis = match.group(_emStar) ?? match.group(_emUnderscore);
     if (emphasis != null) {
       return TextSpan(
         text: emphasis,
@@ -146,7 +190,7 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
     }
 
     return TextSpan(
-      text: match.group(7),
+      text: match.group(_code),
       style: const TextStyle(fontFamily: 'monospace'),
     );
   }
@@ -171,17 +215,156 @@ class _SimpleMarkdownState extends State<SimpleMarkdown> {
   }
 }
 
+/// Um trecho do texto com um tipo de bloco.
+///
+/// Público porque `parseMarkdownBlocks` é o que o teste exercita: é aqui que
+/// mora a decisão de o que é título, divisor e citação.
+sealed class MarkdownBlock {
+  const MarkdownBlock();
+}
+
+class MarkdownParagraph extends MarkdownBlock {
+  const MarkdownParagraph(this.text);
+  final String text;
+}
+
+class MarkdownHeading extends MarkdownBlock {
+  const MarkdownHeading(this.text, this.level);
+  final String text;
+  final int level;
+}
+
+class MarkdownQuote extends MarkdownBlock {
+  const MarkdownQuote(this.text);
+  final String text;
+}
+
+class MarkdownDivider extends MarkdownBlock {
+  const MarkdownDivider();
+}
+
+/// Quebra o texto em blocos.
+///
+/// Exposto para o teste: é aqui que mora a decisão de o que é título, divisor
+/// e citação, e ela vale mais verificada do que espiada pela árvore de
+/// widgets.
+@visibleForTesting
+List<MarkdownBlock> parseMarkdownBlocks(String data) {
+  final List<MarkdownBlock> blocks = <MarkdownBlock>[];
+  final List<String> paragraph = <String>[];
+  final List<String> quote = <String>[];
+
+  void flushParagraph() {
+    while (paragraph.isNotEmpty && paragraph.first.trim().isEmpty) {
+      paragraph.removeAt(0);
+    }
+    while (paragraph.isNotEmpty && paragraph.last.trim().isEmpty) {
+      paragraph.removeLast();
+    }
+    if (paragraph.isEmpty) return;
+
+    blocks.add(MarkdownParagraph(paragraph.join('\n')));
+    paragraph.clear();
+  }
+
+  void flushQuote() {
+    if (quote.isEmpty) return;
+
+    blocks.add(MarkdownQuote(quote.join('\n')));
+    quote.clear();
+  }
+
+  for (final String line in data.split('\n')) {
+    if (_divider.hasMatch(line)) {
+      flushQuote();
+      flushParagraph();
+      blocks.add(const MarkdownDivider());
+      continue;
+    }
+
+    final RegExpMatch? heading = _heading.firstMatch(line);
+    if (heading != null) {
+      flushQuote();
+      flushParagraph();
+      blocks.add(MarkdownHeading(heading.group(2)!, heading.group(1)!.length));
+      continue;
+    }
+
+    final RegExpMatch? quoted = _quote.firstMatch(line);
+    if (quoted != null) {
+      flushParagraph();
+      quote.add(quoted.group(1)!);
+      continue;
+    }
+
+    flushQuote();
+
+    // O marcador é desenhado pelo app: a sintaxe do Markdown ("- ", "* ") não
+    // é o que o usuário deve ler.
+    final RegExpMatch? bullet = _bullet.firstMatch(line);
+    paragraph.add(bullet == null ? line : '•  ${bullet.group(1)}');
+  }
+
+  flushQuote();
+  flushParagraph();
+
+  // Texto vazio ainda precisa render alguma coisa: quem chama espera um
+  // widget, não um espaço em branco na árvore.
+  if (blocks.isEmpty) blocks.add(const MarkdownParagraph(''));
+
+  return blocks;
+}
+
 /// Linha de lista: "- item" ou "* item", com recuo opcional.
 final RegExp _bullet = RegExp(r'^\s*[-*]\s+(.*)$');
 
-/// Marcações inline, na ordem em que precisam ser tentadas: o link vem antes
-/// do itálico para que o `*` dentro de uma URL não abra ênfase, e `**` antes
-/// de `*` pelo mesmo motivo.
+/// Título: de "#" a "######".
+final RegExp _heading = RegExp(r'^\s*(#{1,6})\s+(.*)$');
+
+/// Citação: "> texto".
+final RegExp _quote = RegExp(r'^\s*>\s?(.*)$');
+
+/// Divisor: três ou mais `-`, `*` ou `_` sozinhos na linha.
+///
+/// "sozinhos na linha" é o que separa `---` de `***Muito importante***`: o
+/// segundo tem texto em volta e é ênfase, não divisor.
+final RegExp _divider = RegExp(r'^\s*(?:-{3,}|\*{3,}|_{3,})\s*$');
+
+// Índices dos grupos de `_inline`, nomeados para o `_spanFor` não virar uma
+// contagem de parênteses.
+const int _linkText = 1;
+const int _linkHref = 2;
+const int _strongEmStar = 3;
+const int _strongEmUnderscore = 4;
+const int _strongStar = 5;
+const int _strongUnderscore = 6;
+const int _emStar = 7;
+const int _emUnderscore = 8;
+const int _code = 9;
+
+/// Fronteira de palavra para o `_`.
+///
+/// O CommonMark trata `_` e `*` de formas diferentes de propósito, e o motivo
+/// aparece em nome de variável e identificador: em
+/// "transport_fuel e groceries_market", o `_` NÃO abre ênfase, porque está
+/// colado a letras dos dois lados. Antes o app tratava isso como itálico e
+/// engolia os underscores, desfigurando o nome da categoria.
+const String _notWord = r'(?<![\p{L}\p{N}])';
+const String _notWordAfter = r'(?![\p{L}\p{N}])';
+
+/// Marcações inline, na ordem em que precisam ser tentadas.
+///
+/// O link vem antes de tudo para que `*` e `_` dentro de uma URL não abram
+/// ênfase; e as marcas triplas vêm antes das duplas, que vêm antes das
+/// simples, senão `***x***` seria lido como negrito seguido de lixo.
 final RegExp _inline = RegExp(
   r'\[([^\]]+)\]\(([^)\s]+)\)'
+  r'|\*\*\*([^*]+)\*\*\*'
+  '|${_notWord}___([^_]+)___$_notWordAfter'
   r'|\*\*([^*]+)\*\*'
-  r'|__([^_]+)__'
+  '|${_notWord}__([^_]+)__$_notWordAfter'
   r'|\*([^*]+)\*'
-  r'|_([^_]+)_'
+  '|${_notWord}_([^_]+)_$_notWordAfter'
   r'|`([^`]+)`',
+  unicode: true,
 );
