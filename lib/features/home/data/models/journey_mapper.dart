@@ -7,8 +7,7 @@ import '../../domain/models/weekly_mission_model.dart';
 /// ausente (missão criada por uma versão anterior) não pode derrubar a tela.
 double? _numOrNull(Object? raw) => raw is num ? raw.toDouble() : null;
 
-int _intOr(Object? raw, int fallback) =>
-    raw is num ? raw.toInt() : fallback;
+int _intOr(Object? raw, int fallback) => raw is num ? raw.toInt() : fallback;
 
 DateTime? _dateOrNull(Object? raw) {
   if (raw is Timestamp) return raw.toDate();
@@ -22,7 +21,10 @@ DateTime? _dateOrNull(Object? raw) {
 /// Aceita `rewardXp` (o nome que `gamification.service.ts` grava hoje) e `xp`
 /// (o nome do contrato do produto): o app lê os dois para não depender da
 /// ordem em que servidor e cliente forem para produção.
-WeeklyMissionModel weeklyMissionFromMap(String docId, Map<String, dynamic> data) {
+WeeklyMissionModel weeklyMissionFromMap(
+  String docId,
+  Map<String, dynamic> data,
+) {
   return WeeklyMissionModel(
     id: (data['id'] as String?) ?? docId,
     name: (data['name'] as String?) ?? '',
@@ -32,7 +34,26 @@ WeeklyMissionModel weeklyMissionFromMap(String docId, Map<String, dynamic> data)
     target: _intOr(data['target'], 0),
     progress: _intOr(data['progress'], 0),
     xp: _intOr(data['rewardXp'] ?? data['xp'], 0),
+    templateKey: (data['templateKey'] as String?) ?? '',
+    workspaceType: WorkspaceAudience.parse(data['workspaceType']),
+    actionPath: data['actionPath'] as String?,
+    nameKey: data['nameKey'] as String?,
+    params: _stringMap(data['params']),
   );
+}
+
+/// `params` do documento, sempre como `Map<String, String>`.
+///
+/// O servidor grava `target` como número e `category` como texto. Converter
+/// tudo para texto aqui evita que a frase da missão precise saber o tipo de
+/// cada token.
+Map<String, String> _stringMap(Object? raw) {
+  if (raw is! Map) return const {};
+  return {
+    for (final entry in raw.entries)
+      if (entry.key is String && entry.value != null)
+        entry.key as String: entry.value.toString(),
+  };
 }
 
 /// O índice a partir do mapa `financialHealth` do workspace.

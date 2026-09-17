@@ -1129,5 +1129,92 @@
   "themeModeLight": "Light",
   "themeModeDark": "Dark",
   "settingsCelebrationSound": "Sound on achievements",
-  "settingsCelebrationSoundDesc": "Off by default. Haptics stay on."
+  "settingsCelebrationSoundDesc": "Off by default. Haptics stay on.",
+  "missionPersonalConsistencyPlanLimits": "Set limits for at least {target} categories to organise the week.",
+  "@missionPersonalConsistencyPlanLimits": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionPersonalDisciplineTopCategory": "Keep the {category} category within its planned budget for {target} days.",
+  "@missionPersonalDisciplineTopCategory": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionPersonalOrganizationReconcileItems": "Fully reconcile a statement with at least {target} items.",
+  "@missionPersonalOrganizationReconcileItems": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessConsistencyCostCenters": "Plan the limit for {target} cost centres this month.",
+  "@missionBusinessConsistencyCostCenters": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessConsistencyIncomeForecast": "Confirm {target}% of the revenue forecast for the week.",
+  "@missionBusinessConsistencyIncomeForecast": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessDisciplineTopCostCenter": "Keep the {category} cost centre within plan for {target} days.",
+  "@missionBusinessDisciplineTopCostCenter": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessDisciplineMargin": "Close the week with margin (revenue − expense) above plan.",
+  "missionBusinessOrganizationReconcileStatements": "Reconcile {target} company account statement this week.",
+  "@missionBusinessOrganizationReconcileStatements": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessOrganizationCategorizeAuto": "Categorise or dismiss {target} automatic entries before closing.",
+  "@missionBusinessOrganizationCategorizeAuto": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessOrganizationInvoiceOnTime": "Close {target} corporate card invoice by paying before the due date.",
+  "@missionBusinessOrganizationInvoiceOnTime": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionFallbackCategoryPersonal": "highest-spending",
+  "missionFallbackCategoryBusiness": "heaviest",
+  "missionCtaPlanning": "Plan now",
+  "missionCtaPlanning503020": "Open the 50-30-20",
+  "missionCtaCategories": "See the Party",
+  "missionCtaAccounts": "See accounts",
+  "missionCtaCategoryDetails": "See category",
+  "missionCtaTransactionForm": "Add an entry"
 }

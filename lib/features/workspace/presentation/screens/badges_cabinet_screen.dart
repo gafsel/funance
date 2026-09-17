@@ -33,7 +33,13 @@ class BadgesCabinetScreen extends ConsumerWidget {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final catalog = catalogAsync.valueOrNull;
+    // A vitrine filtra pelo tipo do cofre: uma empresa não persegue "Regra de
+    // Ouro" e uma casa não persegue "conciliar 100% do extrato". O que já foi
+    // conquistado nunca some — ver `BadgeCatalog.forWorkspace`.
+    final catalog = catalogAsync.valueOrNull?.forWorkspace(
+      workspace.type,
+      workspace.unlockedBadges,
+    );
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.teamAchievementsTitle), elevation: 0),
@@ -118,7 +124,9 @@ class BadgesCabinetView extends StatelessWidget {
         // você já fez" sem nunca dizer o que rende pontos, e a régua estava
         // só na cabeça de quem escreveu o backend.
         if (catalog.xpSources.isNotEmpty)
-          SliverToBoxAdapter(child: XpSourcesSection(sources: catalog.xpSources)),
+          SliverToBoxAdapter(
+            child: XpSourcesSection(sources: catalog.xpSources),
+          ),
         for (final category in catalog.categories) ...[
           SliverToBoxAdapter(
             child: Builder(

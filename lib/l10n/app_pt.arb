@@ -1136,5 +1136,92 @@
   "themeModeLight": "Claro",
   "themeModeDark": "Escuro",
   "settingsCelebrationSound": "Som nas conquistas",
-  "settingsCelebrationSoundDesc": "Desligado por padrão. A vibração continua."
+  "settingsCelebrationSoundDesc": "Desligado por padrão. A vibração continua.",
+  "missionPersonalConsistencyPlanLimits": "Planejar limites para pelo menos {target} categorias e organizar a semana.",
+  "@missionPersonalConsistencyPlanLimits": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionPersonalDisciplineTopCategory": "Manter a categoria {category} dentro do orçamento planejado por {target} dias.",
+  "@missionPersonalDisciplineTopCategory": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionPersonalOrganizationReconcileItems": "Fazer a conciliação completa de um extrato com pelo menos {target} itens.",
+  "@missionPersonalOrganizationReconcileItems": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessConsistencyCostCenters": "Planejar o limite de {target} centros de custo para o mês.",
+  "@missionBusinessConsistencyCostCenters": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessConsistencyIncomeForecast": "Confirmar o recebimento de {target}% da receita prevista para a semana.",
+  "@missionBusinessConsistencyIncomeForecast": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessDisciplineTopCostCenter": "Manter o centro de custo {category} dentro do plano por {target} dias.",
+  "@missionBusinessDisciplineTopCostCenter": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessDisciplineMargin": "Fechar a semana com a margem (receita − despesa) acima da planejada.",
+  "missionBusinessOrganizationReconcileStatements": "Conciliar {target} extrato das contas da empresa nesta semana.",
+  "@missionBusinessOrganizationReconcileStatements": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessOrganizationCategorizeAuto": "Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.",
+  "@missionBusinessOrganizationCategorizeAuto": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionBusinessOrganizationInvoiceOnTime": "Fechar {target} fatura do cartão corporativo pagando até o vencimento.",
+  "@missionBusinessOrganizationInvoiceOnTime": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "missionFallbackCategoryPersonal": "de maior gasto",
+  "missionFallbackCategoryBusiness": "de maior peso",
+  "missionCtaPlanning": "Planejar agora",
+  "missionCtaPlanning503020": "Abrir o 50-30-20",
+  "missionCtaCategories": "Ver a Party",
+  "missionCtaAccounts": "Ver contas",
+  "missionCtaCategoryDetails": "Ver categoria",
+  "missionCtaTransactionForm": "Lançar agora"
 }

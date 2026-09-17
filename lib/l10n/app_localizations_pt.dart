@@ -2319,4 +2319,80 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get settingsCelebrationSoundDesc =>
       'Desligado por padrão. A vibração continua.';
+
+  @override
+  String missionPersonalConsistencyPlanLimits(String target) {
+    return 'Planejar limites para pelo menos $target categorias e organizar a semana.';
+  }
+
+  @override
+  String missionPersonalDisciplineTopCategory(String category, String target) {
+    return 'Manter a categoria $category dentro do orçamento planejado por $target dias.';
+  }
+
+  @override
+  String missionPersonalOrganizationReconcileItems(String target) {
+    return 'Fazer a conciliação completa de um extrato com pelo menos $target itens.';
+  }
+
+  @override
+  String missionBusinessConsistencyCostCenters(String target) {
+    return 'Planejar o limite de $target centros de custo para o mês.';
+  }
+
+  @override
+  String missionBusinessConsistencyIncomeForecast(String target) {
+    return 'Confirmar o recebimento de $target% da receita prevista para a semana.';
+  }
+
+  @override
+  String missionBusinessDisciplineTopCostCenter(
+    String category,
+    String target,
+  ) {
+    return 'Manter o centro de custo $category dentro do plano por $target dias.';
+  }
+
+  @override
+  String get missionBusinessDisciplineMargin =>
+      'Fechar a semana com a margem (receita − despesa) acima da planejada.';
+
+  @override
+  String missionBusinessOrganizationReconcileStatements(String target) {
+    return 'Conciliar $target extrato das contas da empresa nesta semana.';
+  }
+
+  @override
+  String missionBusinessOrganizationCategorizeAuto(String target) {
+    return 'Categorizar ou descartar $target lançamentos automáticos antes do fechamento.';
+  }
+
+  @override
+  String missionBusinessOrganizationInvoiceOnTime(String target) {
+    return 'Fechar $target fatura do cartão corporativo pagando até o vencimento.';
+  }
+
+  @override
+  String get missionFallbackCategoryPersonal => 'de maior gasto';
+
+  @override
+  String get missionFallbackCategoryBusiness => 'de maior peso';
+
+  @override
+  String get missionCtaPlanning => 'Planejar agora';
+
+  @override
+  String get missionCtaPlanning503020 => 'Abrir o 50-30-20';
+
+  @override
+  String get missionCtaCategories => 'Ver a Party';
+
+  @override
+  String get missionCtaAccounts => 'Ver contas';
+
+  @override
+  String get missionCtaCategoryDetails => 'Ver categoria';
+
+  @override
+  String get missionCtaTransactionForm => 'Lançar agora';
 }

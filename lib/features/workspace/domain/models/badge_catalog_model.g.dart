@@ -24,6 +24,13 @@ _BadgeCatalogItem _$BadgeCatalogItemFromJson(Map<String, dynamic> json) =>
       description: json['description'] == null
           ? const <String, String>{}
           : localizedText(json['description']),
+      audience:
+          $enumDecodeNullable(
+            _$BadgeAudienceEnumMap,
+            json['audience'],
+            unknownValue: BadgeAudience.both,
+          ) ??
+          BadgeAudience.both,
     );
 
 Map<String, dynamic> _$BadgeCatalogItemToJson(_BadgeCatalogItem instance) =>
@@ -34,6 +41,7 @@ Map<String, dynamic> _$BadgeCatalogItemToJson(_BadgeCatalogItem instance) =>
       'xpReward': instance.xpReward,
       'category': _$BadgeCategoryEnumMap[instance.category]!,
       'description': instance.description,
+      'audience': _$BadgeAudienceEnumMap[instance.audience]!,
     };
 
 const _$BadgeCategoryEnumMap = {
@@ -44,6 +52,12 @@ const _$BadgeCategoryEnumMap = {
   BadgeCategory.goals: 'goals',
   BadgeCategory.team: 'team',
   BadgeCategory.unknown: 'unknown',
+};
+
+const _$BadgeAudienceEnumMap = {
+  BadgeAudience.personal: 'personal',
+  BadgeAudience.business: 'business',
+  BadgeAudience.both: 'both',
 };
 
 _XpSource _$XpSourceFromJson(Map<String, dynamic> json) => _XpSource(

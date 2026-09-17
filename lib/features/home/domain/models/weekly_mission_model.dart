@@ -77,6 +77,26 @@ sealed class WeeklyMissionModel with _$WeeklyMissionModel {
     /// XP que a missão paga. O servidor chama o campo de `rewardXp`; o
     /// contrato do produto fala em `xp`. O mapper aceita os dois.
     @Default(0) int xp,
+
+    /// Chave do template no catálogo do servidor
+    /// (`personal_consistency_plan_limits`, ...). Identidade estável da
+    /// missão, independente do texto.
+    @Default('') String templateKey,
+
+    /// Para qual público a missão foi gerada. `null` num documento anterior
+    /// ao catálogo por tipo.
+    WorkspaceAudience? workspaceType,
+
+    /// Rota interna que cumpre a missão. O app só mostra o botão quando a
+    /// rota está na allowlist — ver `missionActionPathIsAllowed`.
+    String? actionPath,
+
+    /// Chave de tradução do nome. Quando ela existe e o app a conhece, o
+    /// nome é montado no idioma do usuário; `name` é o fallback.
+    String? nameKey,
+
+    /// Valores que preenchem a frase de [nameKey] (`target`, `category`).
+    @Default(<String, String>{}) Map<String, String> params,
   }) = _WeeklyMissionModel;
 
   /// Progresso de 0 a 1. Sem alvo declarado não há barra para desenhar:
@@ -90,4 +110,23 @@ sealed class WeeklyMissionModel with _$WeeklyMissionModel {
   /// Missão concluída conta o alvo cheio: o servidor grava o progresso com o
   /// valor que fechou a missão, que pode ser maior que o alvo.
   int get displayProgress => status.isCompleted ? target : progress;
+
+  /// O alvo como texto, para entrar na frase da missão.
+  ///
+  /// Prefere o `params.target` do DOCUMENTO e não o campo `target`: os dois
+  /// coincidem hoje, mas quem escreveu a frase foi o servidor, e é o valor
+  /// que ele mandou junto com ela que tem que aparecer nela.
+  String get targetLabel => params['target'] ?? target.toString();
+}
+
+/// Público da missão. Espelha `workspaceType` do catálogo do servidor.
+enum WorkspaceAudience {
+  personal,
+  business;
+
+  static WorkspaceAudience? parse(Object? raw) => switch (raw) {
+    'personal' => personal,
+    'business' => business,
+    _ => null,
+  };
 }

@@ -2301,4 +2301,80 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsCelebrationSoundDesc => 'Off by default. Haptics stay on.';
+
+  @override
+  String missionPersonalConsistencyPlanLimits(String target) {
+    return 'Set limits for at least $target categories to organise the week.';
+  }
+
+  @override
+  String missionPersonalDisciplineTopCategory(String category, String target) {
+    return 'Keep the $category category within its planned budget for $target days.';
+  }
+
+  @override
+  String missionPersonalOrganizationReconcileItems(String target) {
+    return 'Fully reconcile a statement with at least $target items.';
+  }
+
+  @override
+  String missionBusinessConsistencyCostCenters(String target) {
+    return 'Plan the limit for $target cost centres this month.';
+  }
+
+  @override
+  String missionBusinessConsistencyIncomeForecast(String target) {
+    return 'Confirm $target% of the revenue forecast for the week.';
+  }
+
+  @override
+  String missionBusinessDisciplineTopCostCenter(
+    String category,
+    String target,
+  ) {
+    return 'Keep the $category cost centre within plan for $target days.';
+  }
+
+  @override
+  String get missionBusinessDisciplineMargin =>
+      'Close the week with margin (revenue − expense) above plan.';
+
+  @override
+  String missionBusinessOrganizationReconcileStatements(String target) {
+    return 'Reconcile $target company account statement this week.';
+  }
+
+  @override
+  String missionBusinessOrganizationCategorizeAuto(String target) {
+    return 'Categorise or dismiss $target automatic entries before closing.';
+  }
+
+  @override
+  String missionBusinessOrganizationInvoiceOnTime(String target) {
+    return 'Close $target corporate card invoice by paying before the due date.';
+  }
+
+  @override
+  String get missionFallbackCategoryPersonal => 'highest-spending';
+
+  @override
+  String get missionFallbackCategoryBusiness => 'heaviest';
+
+  @override
+  String get missionCtaPlanning => 'Plan now';
+
+  @override
+  String get missionCtaPlanning503020 => 'Open the 50-30-20';
+
+  @override
+  String get missionCtaCategories => 'See the Party';
+
+  @override
+  String get missionCtaAccounts => 'See accounts';
+
+  @override
+  String get missionCtaCategoryDetails => 'See category';
+
+  @override
+  String get missionCtaTransactionForm => 'Add an entry';
 }

@@ -4189,6 +4189,114 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Desligado por padrão. A vibração continua.'**
   String get settingsCelebrationSoundDesc;
+
+  /// No description provided for @missionPersonalConsistencyPlanLimits.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar limites para pelo menos {target} categorias e organizar a semana.'**
+  String missionPersonalConsistencyPlanLimits(String target);
+
+  /// No description provided for @missionPersonalDisciplineTopCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter a categoria {category} dentro do orçamento planejado por {target} dias.'**
+  String missionPersonalDisciplineTopCategory(String category, String target);
+
+  /// No description provided for @missionPersonalOrganizationReconcileItems.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fazer a conciliação completa de um extrato com pelo menos {target} itens.'**
+  String missionPersonalOrganizationReconcileItems(String target);
+
+  /// No description provided for @missionBusinessConsistencyCostCenters.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar o limite de {target} centros de custo para o mês.'**
+  String missionBusinessConsistencyCostCenters(String target);
+
+  /// No description provided for @missionBusinessConsistencyIncomeForecast.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar o recebimento de {target}% da receita prevista para a semana.'**
+  String missionBusinessConsistencyIncomeForecast(String target);
+
+  /// No description provided for @missionBusinessDisciplineTopCostCenter.
+  ///
+  /// In pt, this message translates to:
+  /// **'Manter o centro de custo {category} dentro do plano por {target} dias.'**
+  String missionBusinessDisciplineTopCostCenter(String category, String target);
+
+  /// No description provided for @missionBusinessDisciplineMargin.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar a semana com a margem (receita − despesa) acima da planejada.'**
+  String get missionBusinessDisciplineMargin;
+
+  /// No description provided for @missionBusinessOrganizationReconcileStatements.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar {target} extrato das contas da empresa nesta semana.'**
+  String missionBusinessOrganizationReconcileStatements(String target);
+
+  /// No description provided for @missionBusinessOrganizationCategorizeAuto.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.'**
+  String missionBusinessOrganizationCategorizeAuto(String target);
+
+  /// No description provided for @missionBusinessOrganizationInvoiceOnTime.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fechar {target} fatura do cartão corporativo pagando até o vencimento.'**
+  String missionBusinessOrganizationInvoiceOnTime(String target);
+
+  /// No description provided for @missionFallbackCategoryPersonal.
+  ///
+  /// In pt, this message translates to:
+  /// **'de maior gasto'**
+  String get missionFallbackCategoryPersonal;
+
+  /// No description provided for @missionFallbackCategoryBusiness.
+  ///
+  /// In pt, this message translates to:
+  /// **'de maior peso'**
+  String get missionFallbackCategoryBusiness;
+
+  /// No description provided for @missionCtaPlanning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejar agora'**
+  String get missionCtaPlanning;
+
+  /// No description provided for @missionCtaPlanning503020.
+  ///
+  /// In pt, this message translates to:
+  /// **'Abrir o 50-30-20'**
+  String get missionCtaPlanning503020;
+
+  /// No description provided for @missionCtaCategories.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver a Party'**
+  String get missionCtaCategories;
+
+  /// No description provided for @missionCtaAccounts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver contas'**
+  String get missionCtaAccounts;
+
+  /// No description provided for @missionCtaCategoryDetails.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver categoria'**
+  String get missionCtaCategoryDetails;
+
+  /// No description provided for @missionCtaTransactionForm.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lançar agora'**
+  String get missionCtaTransactionForm;
 }
 
 class _AppLocalizationsDelegate
