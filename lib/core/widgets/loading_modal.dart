@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/core/observability/app_logger.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_radius.dart';
 
 // Gerenciador de estado global para as modais de carregamento
 final List<Future<dynamic>> _activeFutures = [];
@@ -56,14 +58,14 @@ Future<T> showLoadingModal<T>(
             child:
                 child ??
                 Dialog(
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: AppColors.transparent,
                   elevation: 0,
                   child: Center(
                     child: Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Theme.of(context).canvasColor,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppRadius.brLg,
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,

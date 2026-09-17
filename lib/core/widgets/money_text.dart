@@ -93,7 +93,7 @@ class MoneyText extends StatelessWidget {
         style ??
         (hero
             ? AppTypography.hero(palette.ink)
-            : theme.textTheme.bodyMedium ?? const TextStyle());
+            : theme.textTheme.bodyMedium ?? AppTypography.body14(palette.ink));
 
     return Text(
       text,

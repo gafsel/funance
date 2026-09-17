@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
 
 class IconFormField extends StatelessWidget {
   const IconFormField({
@@ -44,18 +46,19 @@ class IconFormField extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.deepTurquoise
-                        : Colors.grey.withAlpha(50),
-                    borderRadius: BorderRadius.circular(8),
-                    border: isSelected
-                        ? Border.all(color: Colors.white, width: 2)
-                        : null,
+                    color: isSelected ? AppColors.gold : context.palette.paper2,
+                    borderRadius: AppRadius.brSm,
+                    border: Border.all(
+                      color: isSelected ? AppColors.gold : context.palette.line,
+                      width: isSelected ? 2 : 1,
+                    ),
                   ),
                   child: Icon(
                     entry.value,
                     size: 20,
-                    color: isSelected ? Colors.white : Colors.grey,
+                    color: isSelected
+                        ? AppColors.goldInk
+                        : context.palette.ink2,
                   ),
                 ),
               );

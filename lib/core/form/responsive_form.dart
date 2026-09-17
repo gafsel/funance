@@ -144,8 +144,8 @@ class ResponsiveForm<I, O, N extends FormNotifier<I, O>>
       style: FilledButton.styleFrom(
         backgroundColor: submitButtonColor,
         foregroundColor: (submitButtonColor?.computeLuminance() ?? 0) < .5
-            ? AppColors.pureWhite
-            : AppColors.deepTurquoise,
+            ? AppColors.inkInverse
+            : AppColors.inkLight,
       ),
       onPressed: (submitEnabled?.call(snapshot.model) ?? true)
           ? (loading) async {

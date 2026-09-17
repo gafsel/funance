@@ -7,6 +7,7 @@ import 'package:funances/core/firestore/write_failures.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 /// Tarja que diz, sem interromper nada, que o app está trabalhando pelo cache
 /// — e que avisa quando uma escrita dada como salva acabou recusada.
@@ -112,9 +113,12 @@ class _StatusStrip extends StatelessWidget {
     final bool isOffline = status == SyncStatus.offline;
 
     return Material(
-      color: isOffline ? AppColors.darkNavy : AppColors.deepTurquoise,
+      color: isOffline ? AppColors.surfaceDeep : AppColors.surfaceDefault,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -122,7 +126,7 @@ class _StatusStrip extends StatelessWidget {
               const Icon(
                 Icons.cloud_off_outlined,
                 size: 18,
-                color: AppColors.pureWhite,
+                color: AppColors.inkInverse,
               )
             else
               const SizedBox(
@@ -131,20 +135,19 @@ class _StatusStrip extends StatelessWidget {
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    AppColors.pureWhite,
+                    AppColors.inkInverse,
                   ),
                 ),
               ),
-            const SizedBox(width: 12),
+            AppSpacing.gapSm,
             Flexible(
               child: Text(
                 isOffline
                     ? l10n.offlineBannerOffline
                     : l10n.offlineBannerPending,
-                style: const TextStyle(
-                  color: AppColors.pureWhite,
-                  fontSize: 13,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.inkInverse),
               ),
             ),
           ],
@@ -165,27 +168,30 @@ class _FailureStrip extends StatelessWidget {
     final l10n = context.l10n;
 
     return Material(
-      color: AppColors.error,
+      color: AppColors.danger,
       child: Padding(
-        padding: const EdgeInsets.only(left: 16, top: 10, bottom: 10),
+        padding: const EdgeInsets.only(
+          left: AppSpacing.md,
+          top: AppSpacing.sm,
+          bottom: AppSpacing.sm,
+        ),
         child: Row(
           children: [
             const Icon(
               Icons.error_outline,
               size: 18,
-              color: AppColors.pureWhite,
+              color: AppColors.inkInverse,
             ),
-            const SizedBox(width: 12),
+            AppSpacing.gapSm,
             Expanded(
               child: Text(
                 l10n.writeFailedEntity(
                   writeEntityText(l10n, failure.entity),
                   writeFailureText(l10n, failure.reason),
                 ),
-                style: const TextStyle(
-                  color: AppColors.pureWhite,
-                  fontSize: 13,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.inkInverse),
               ),
             ),
             // Sem `tooltip`: a tarja vive ACIMA do Navigator, e um tooltip
@@ -200,7 +206,7 @@ class _FailureStrip extends StatelessWidget {
                 icon: const Icon(
                   Icons.close,
                   size: 18,
-                  color: AppColors.pureWhite,
+                  color: AppColors.inkInverse,
                 ),
               ),
             ),

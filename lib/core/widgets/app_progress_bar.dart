@@ -77,7 +77,9 @@ class AppProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final fraction = value.isFinite ? value.clamp(0.0, 1.0) : 0.0;
-    final radius = BorderRadius.circular(size.height / 2);
+    // Pílula: o raio acompanha a altura sem precisar de um número por
+    // espessura — `brPill` satura na metade da menor dimensão.
+    const radius = AppRadius.brPill;
 
     final bar = ClipRRect(
       borderRadius: radius,

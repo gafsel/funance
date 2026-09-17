@@ -85,12 +85,40 @@ abstract final class AppTypography {
     labelSmall: _body(11, 14, FontWeight.w600, letterSpacing: 0.4),
   ).apply(bodyColor: ink, displayColor: ink);
 
+  /// Corpo de 14, para quando o `textTheme` não estiver disponível (um
+  /// `ThemeData` cru montado num teste, por exemplo).
+  static TextStyle body14(Color ink) =>
+      _body(14, 20, FontWeight.w400).copyWith(color: ink);
+
   /// Número grande de destaque — saldo do mês, valor da meta, total da fatura.
   static TextStyle hero(Color ink) => _display(
     32,
     38,
     FontWeight.w700,
   ).copyWith(color: ink, fontFeatures: tabular);
+
+  // --- Marcação de texto corrido ---
+  //
+  // São tokens de tipografia de verdade, e não estilo solto: "negrito",
+  // "itálico" e "código" são papéis do texto, não decisões de tela. Ficam
+  // aqui para que o renderizador de Markdown do coaching não precise
+  // declará-los inline — e para que trocar a fonte monoespaçada um dia seja
+  // uma linha, não uma caçada.
+
+  /// Negrito.
+  static const TextStyle strong = TextStyle(fontWeight: FontWeight.w700);
+
+  /// Itálico.
+  static const TextStyle emphasis = TextStyle(fontStyle: FontStyle.italic);
+
+  /// Negrito e itálico.
+  static const TextStyle strongEmphasis = TextStyle(
+    fontWeight: FontWeight.w700,
+    fontStyle: FontStyle.italic,
+  );
+
+  /// Trecho de código.
+  static const TextStyle code = TextStyle(fontFamily: 'monospace');
 
   /// Contador de nível, XP e patente: display, compacto, tabular.
   static TextStyle counter(Color ink) => _display(

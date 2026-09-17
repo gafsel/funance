@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_elevation.dart';
+import 'package:funances/core/theme/app_palette.dart';
 
 class ColorFormField extends StatelessWidget {
   const ColorFormField({
@@ -47,21 +49,26 @@ class ColorFormField extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: color,
                     shape: BoxShape.circle,
+                    // O aro de seleção é dourado e não branco: branco some
+                    // sobre as cores claras da paleta, e o ouro é o token de
+                    // "isto está escolhido" em todo o resto do app.
                     border: isSelected
-                        ? Border.all(color: Colors.white, width: 2)
+                        ? const Border.fromBorderSide(AppElevation.goldRim)
                         : null,
                     boxShadow: isSelected
-                        ? [
-                            const BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
-                          ]
+                        ? AppElevation.raised(context.palette.brightness)
                         : null,
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      ? Icon(
+                          Icons.check,
+                          size: 16,
+                          // A marca precisa aparecer sobre a cor escolhida
+                          // pelo usuário, que pode ser clara ou escura.
+                          color: color.computeLuminance() < 0.5
+                              ? AppColors.inkInverse
+                              : AppColors.inkLight,
+                        )
                       : null,
                 ),
               );

@@ -107,9 +107,9 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
               child: Center(child: CircularProgressIndicator()),
             );
           } else if (state.status == InfiniteListStatus.error) {
-            // Antes havia aqui um segundo error view, com `Colors.red` cru:
-            // toda lista paginada do app mostrava um erro visualmente
-            // diferente do resto. Agora é o mesmo componente.
+            // Antes havia aqui um SEGUNDO error view, com um vermelho cru do
+            // Material: toda lista paginada do app mostrava um erro
+            // visualmente diferente do resto. Agora é o mesmo componente.
             return Padding(
               padding: AppSpacing.allMd,
               child: ErrorView(

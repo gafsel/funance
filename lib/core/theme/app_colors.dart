@@ -114,6 +114,13 @@ abstract final class AppColors {
   static const Color progressStart = Color(0xFF86E07A);
   static const Color progressEnd = Color(0xFF2DD4C4);
 
+  /// Nenhuma superfície.
+  ///
+  /// É um token e não um `Colors.transparent` solto porque "transparente" é
+  /// uma decisão de composição — folha sobre o conteúdo, `surfaceTint`
+  /// desligado, notch da barra — e não a ausência de decisão.
+  static const Color transparent = Color(0x00000000);
+
   // --- Apelidos legados ---
   //
   // Ponte temporária enquanto as features migram para os papéis acima. Cada
