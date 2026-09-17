@@ -170,12 +170,18 @@ abstract final class AppColors {
   /// Por razão de contraste (WCAG 2.1), não por luminância:
   /// `(claro + 0.05) / (escuro + 0.05)`.
   static Color inkOn(Color background) =>
-      _contrast(background, inkInverse) >= _contrast(background, inkLight)
+      contrastRatio(background, inkInverse) >=
+          contrastRatio(background, inkLight)
       ? inkInverse
       : inkLight;
 
   /// Razão de contraste entre duas cores, de 1 (iguais) a 21 (preto/branco).
-  static double _contrast(Color a, Color b) {
+  ///
+  /// Público porque legibilidade é uma propriedade que se AFIRMA: um teste
+  /// que diz "esta tinta tem pelo menos 4.5:1 sobre este fundo" continua
+  /// valendo quando alguém ajustar o hexadecimal, enquanto um teste que
+  /// compara com a cor esperada só repete a constante.
+  static double contrastRatio(Color a, Color b) {
     final la = a.computeLuminance();
     final lb = b.computeLuminance();
     final lighter = la > lb ? la : lb;
