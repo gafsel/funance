@@ -34,12 +34,6 @@ class MissionService {
     Clock? now,
   }) : now = now ?? DateTime.now;
 
-  /// Semana corrente (domingo a sábado) que contém [reference].
-  ///
-  /// Os limites andam por calendário: somar `Duration(days: n)` são 24h
-  /// absolutas e escorrega uma hora na semana em que o horário de verão entra
-  /// ou sai, deixando de fora (ou incluindo a mais) os lançamentos da última
-  /// hora do sábado.
   /// O realizado respeitou o planejado da categoria?
   ///
   /// Era o ÚLTIMO ponto do checklist a comparar dinheiro em `double`, com uma
@@ -60,6 +54,12 @@ class MissionService {
     return type == CategoryType.expense ? actual <= planned : actual >= planned;
   }
 
+  /// Semana corrente (domingo a sábado) que contém [reference].
+  ///
+  /// Os limites andam por calendário: somar `Duration(days: n)` são 24h
+  /// absolutas e escorrega uma hora na semana em que o horário de verão entra
+  /// ou sai, deixando de fora (ou incluindo a mais) os lançamentos da última
+  /// hora do sábado.
   static ({DateTime start, DateTime end}) weekWindow(DateTime reference) {
     final start = ProductWeek.startOf(reference);
 
