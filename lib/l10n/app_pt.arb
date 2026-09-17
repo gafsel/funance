@@ -1068,5 +1068,161 @@
   "@invoiceCalculating": {
     "description": "Mostrado no lugar do valor da fatura enquanto o servidor ainda não publicou o resumo da próxima fatura do cartão."
   },
-  "invoiceCycleUnavailable": "Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar."
+  "invoiceCycleUnavailable": "Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar.",
+  "journeyWeeklyXpEmpty": "Sem XP ainda nesta semana",
+  "@journeyWeeklyXpEmpty": {
+    "description": "Mostrado no lugar do XP da semana quando o documento weekly_xp do servidor ainda não existe."
+  },
+  "journeyMissionsSoonTitle": "Suas missões estão a caminho",
+  "journeyMissionsSoonMessage": "O Funances monta três missões novas no começo de cada semana.",
+  "journeyMissionProgress": "{progress} de {target}",
+  "@journeyMissionProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "journeyMissionDone": "Missão cumprida",
+  "journeyMissionConsistency": "Consistência",
+  "journeyMissionDiscipline": "Disciplina",
+  "journeyMissionOrganization": "Organização",
+  "journeyMissionOther": "Missão",
+  "journeyChecklistTitle": "Checklist da semana",
+  "journeyAvailableTitle": "Disponível até o fim do mês",
+  "journeyAvailableSpent": "Realizado {actual} de {planned} previstos",
+  "@journeyAvailableSpent": {
+    "placeholders": {
+      "actual": {
+        "type": "String"
+      },
+      "planned": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyAvailablePending": "Ainda por pagar: {pending}",
+  "@journeyAvailablePending": {
+    "placeholders": {
+      "pending": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyAvailableNoIncome": "Sem expectativa de receita não dá para dizer quanto sobra.",
+  "journeyAvailableNoIncomeAction": "Defina sua expectativa de receita",
+  "journeyAvailableError": "Não consegui calcular o disponível agora.",
+  "compassTitle": "Bússola da Liberdade",
+  "compassCalibratingTitle": "Sua bússola está sendo calibrada",
+  "compassCalibratingMessage": "Assim que houver um mês fechado, seu índice aparece aqui.",
+  "compassScoreOf": "{score} de 100 • {tier}",
+  "@compassScoreOf": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      },
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "compassTierAprendiz": "Aprendiz",
+  "compassTierGuardiao": "Guardião",
+  "compassTierEstrategista": "Estrategista",
+  "compassTierMestre": "Mestre",
+  "compassTierLivre": "Livre",
+  "compassTierUnknown": "Em avaliação",
+  "compassFolego": "Fôlego",
+  "compassFolegoDesc": "Quanto tempo suas reservas seguram suas despesas se a renda parar.",
+  "compassFolegoDetail": "{months} meses de despesas guardados",
+  "@compassFolegoDetail": {
+    "placeholders": {
+      "months": {
+        "type": "String"
+      }
+    }
+  },
+  "compassPoupanca": "Poupança",
+  "compassPoupancaDesc": "Quanto da sua renda vira reserva ou investimento todo mês.",
+  "compassPoupancaDetail": "{rate} da renda guardada",
+  "@compassPoupancaDetail": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "compassDisciplina": "Disciplina",
+  "compassDisciplinaDesc": "Quantas categorias terminaram o mês dentro do limite que você definiu.",
+  "compassDisciplinaDetail": "{within} de {total} categorias dentro do limite",
+  "@compassDisciplinaDetail": {
+    "placeholders": {
+      "within": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "compassAlivio": "Alívio",
+  "compassAlivioDesc": "Quanto suas dívidas diminuíram desde o mês passado.",
+  "compassAlivioDetail": "{delta} em dívidas no mês",
+  "@compassAlivioDetail": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "compassHistoryTitle": "Últimos 6 meses",
+  "compassHistoryEmpty": "Ainda não há meses fechados suficientes para comparar.",
+  "unplannedNudgeTitle": "Esse gasto não estava no plano",
+  "unplannedNudgeMessage": "{category} ainda não tem limite neste mês. Quer decidir agora o que fazer com ela?",
+  "@unplannedNudgeMessage": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeRecurring": "Transformar em recorrência",
+  "unplannedNudgeRecurringDesc": "Se acontece todo mês, o Funances passa a lançar sozinho.",
+  "unplannedNudgeLimit": "Definir limite para {category}",
+  "@unplannedNudgeLimit": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeLimitDesc": "Sugestão de {amount}, pela sua média dos últimos meses.",
+  "@unplannedNudgeLimitDesc": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeLimitDescNoHistory": "Escolha quanto essa categoria pode custar por mês.",
+  "unplannedNudgeDismiss": "Só desta vez",
+  "xpSourcesTitle": "Como ganhar XP",
+  "journeyWeeklyXpCaption": "XP ganho esta semana com lançamentos",
+  "@journeyWeeklyXpCaption": {
+    "description": "O weekly_xp do servidor só acumula XP de parcelas; o XP das missões vai para o total do workspace. O rótulo diz de onde vem o número para não sugerir uma soma que não existe."
+  },
+  "compassHistoryPoint": "{month}: {score} de 100",
+  "@compassHistoryPoint": {
+    "placeholders": {
+      "month": {
+        "type": "String"
+      },
+      "score": {
+        "type": "String"
+      }
+    }
+  }
 }

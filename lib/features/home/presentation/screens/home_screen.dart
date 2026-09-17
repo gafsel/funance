@@ -8,6 +8,7 @@ import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
+import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
@@ -42,7 +43,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   void _onTabChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+
+    // Mantém o provider em dia com o gesto do usuário; sem isso, ir para a
+    // Visão Geral pela barra e depois pelo cabeçalho da Jornada não faria
+    // nada na segunda vez (o provider já estaria em 1).
+    final selected = ref.read(HomeViewProviders.selectedTab);
+    if (selected != _tabController.index) {
+      ref.read(HomeViewProviders.selectedTab.notifier).state =
+          _tabController.index;
+    }
   }
 
   @override
@@ -57,6 +68,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     // final workspaceState = ref.watch(workspaceNotifierProvider);
     final authUser = ref.watch(AuthDomainProviders.currentUser);
+
+    // Uma aba pedindo outra (o cabeçalho da Jornada leva à Visão Geral).
+    ref.listen(HomeViewProviders.selectedTab, (previous, next) {
+      if (next != _tabController.index &&
+          next >= 0 &&
+          next < _tabController.length) {
+        _tabController.animateTo(next);
+      }
+    });
 
     // Reage às atualizações em tempo real do workspace (XP, badges, nível
     // concedidos pelo servidor) com celebrações imediatas.

@@ -28,10 +28,13 @@ class InstallmentItem extends StatelessWidget {
     final isCompleted =
         inst.status == InstallmentStatus.settled ||
         inst.status == InstallmentStatus.paid;
-    final isSuccess = installmentInfo.earnedXp > 0;
-    final displayXp = isCompleted
-        ? (inst.xp ?? installmentInfo.earnedXp)
-        : installmentInfo.xpValue;
+
+    // O XP é o da PRÓPRIA parcela, escrito pelo servidor. Antes o app exibia
+    // um valor inventado (15 XP para quem paga, 5 para quem atrasa) que não
+    // correspondia a nada do que era de fato creditado; agora, sem XP no
+    // documento, o item simplesmente não fala de XP.
+    final xp = inst.xp;
+    final isSuccess = isCompleted && (xp == null || xp > 0);
 
     return InkWell(
       onTap: () {
@@ -94,18 +97,20 @@ class InstallmentItem extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      l10n.xpValue(displayXp.toInt().toString()),
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: isCompleted
-                            ? isSuccess
-                                  ? AppColors.success
-                                  : AppColors.error
-                            : theme.colorScheme.outline,
-                        fontWeight: isCompleted ? FontWeight.bold : null,
+                    if (xp != null) ...[
+                      Text(
+                        l10n.xpValue(xp.toInt().toString()),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: isCompleted
+                              ? isSuccess
+                                    ? AppColors.success
+                                    : AppColors.error
+                              : theme.colorScheme.outline,
+                          fontWeight: isCompleted ? FontWeight.bold : null,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
+                    ],
                     if (isCompleted)
                       Icon(
                         isSuccess

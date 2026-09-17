@@ -2243,4 +2243,193 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get invoiceCycleUnavailable =>
       'Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar.';
+
+  @override
+  String get journeyWeeklyXpEmpty => 'Sem XP ainda nesta semana';
+
+  @override
+  String get journeyMissionsSoonTitle => 'Suas missões estão a caminho';
+
+  @override
+  String get journeyMissionsSoonMessage =>
+      'O Funances monta três missões novas no começo de cada semana.';
+
+  @override
+  String journeyMissionProgress(int progress, int target) {
+    return '$progress de $target';
+  }
+
+  @override
+  String get journeyMissionDone => 'Missão cumprida';
+
+  @override
+  String get journeyMissionConsistency => 'Consistência';
+
+  @override
+  String get journeyMissionDiscipline => 'Disciplina';
+
+  @override
+  String get journeyMissionOrganization => 'Organização';
+
+  @override
+  String get journeyMissionOther => 'Missão';
+
+  @override
+  String get journeyChecklistTitle => 'Checklist da semana';
+
+  @override
+  String get journeyAvailableTitle => 'Disponível até o fim do mês';
+
+  @override
+  String journeyAvailableSpent(String actual, String planned) {
+    return 'Realizado $actual de $planned previstos';
+  }
+
+  @override
+  String journeyAvailablePending(String pending) {
+    return 'Ainda por pagar: $pending';
+  }
+
+  @override
+  String get journeyAvailableNoIncome =>
+      'Sem expectativa de receita não dá para dizer quanto sobra.';
+
+  @override
+  String get journeyAvailableNoIncomeAction =>
+      'Defina sua expectativa de receita';
+
+  @override
+  String get journeyAvailableError =>
+      'Não consegui calcular o disponível agora.';
+
+  @override
+  String get compassTitle => 'Bússola da Liberdade';
+
+  @override
+  String get compassCalibratingTitle => 'Sua bússola está sendo calibrada';
+
+  @override
+  String get compassCalibratingMessage =>
+      'Assim que houver um mês fechado, seu índice aparece aqui.';
+
+  @override
+  String compassScoreOf(String score, String tier) {
+    return '$score de 100 • $tier';
+  }
+
+  @override
+  String get compassTierAprendiz => 'Aprendiz';
+
+  @override
+  String get compassTierGuardiao => 'Guardião';
+
+  @override
+  String get compassTierEstrategista => 'Estrategista';
+
+  @override
+  String get compassTierMestre => 'Mestre';
+
+  @override
+  String get compassTierLivre => 'Livre';
+
+  @override
+  String get compassTierUnknown => 'Em avaliação';
+
+  @override
+  String get compassFolego => 'Fôlego';
+
+  @override
+  String get compassFolegoDesc =>
+      'Quanto tempo suas reservas seguram suas despesas se a renda parar.';
+
+  @override
+  String compassFolegoDetail(String months) {
+    return '$months meses de despesas guardados';
+  }
+
+  @override
+  String get compassPoupanca => 'Poupança';
+
+  @override
+  String get compassPoupancaDesc =>
+      'Quanto da sua renda vira reserva ou investimento todo mês.';
+
+  @override
+  String compassPoupancaDetail(String rate) {
+    return '$rate da renda guardada';
+  }
+
+  @override
+  String get compassDisciplina => 'Disciplina';
+
+  @override
+  String get compassDisciplinaDesc =>
+      'Quantas categorias terminaram o mês dentro do limite que você definiu.';
+
+  @override
+  String compassDisciplinaDetail(int within, int total) {
+    return '$within de $total categorias dentro do limite';
+  }
+
+  @override
+  String get compassAlivio => 'Alívio';
+
+  @override
+  String get compassAlivioDesc =>
+      'Quanto suas dívidas diminuíram desde o mês passado.';
+
+  @override
+  String compassAlivioDetail(String delta) {
+    return '$delta em dívidas no mês';
+  }
+
+  @override
+  String get compassHistoryTitle => 'Últimos 6 meses';
+
+  @override
+  String get compassHistoryEmpty =>
+      'Ainda não há meses fechados suficientes para comparar.';
+
+  @override
+  String get unplannedNudgeTitle => 'Esse gasto não estava no plano';
+
+  @override
+  String unplannedNudgeMessage(String category) {
+    return '$category ainda não tem limite neste mês. Quer decidir agora o que fazer com ela?';
+  }
+
+  @override
+  String get unplannedNudgeRecurring => 'Transformar em recorrência';
+
+  @override
+  String get unplannedNudgeRecurringDesc =>
+      'Se acontece todo mês, o Funances passa a lançar sozinho.';
+
+  @override
+  String unplannedNudgeLimit(String category) {
+    return 'Definir limite para $category';
+  }
+
+  @override
+  String unplannedNudgeLimitDesc(String amount) {
+    return 'Sugestão de $amount, pela sua média dos últimos meses.';
+  }
+
+  @override
+  String get unplannedNudgeLimitDescNoHistory =>
+      'Escolha quanto essa categoria pode custar por mês.';
+
+  @override
+  String get unplannedNudgeDismiss => 'Só desta vez';
+
+  @override
+  String get xpSourcesTitle => 'Como ganhar XP';
+
+  @override
+  String get journeyWeeklyXpCaption => 'XP ganho esta semana com lançamentos';
+
+  @override
+  String compassHistoryPoint(String month, String score) {
+    return '$month: $score de 100';
+  }
 }

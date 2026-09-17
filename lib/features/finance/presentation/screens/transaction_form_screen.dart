@@ -23,8 +23,38 @@ import 'package:funances/features/finance/presentation/widgets/account_form_fiel
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/replication_cascade_dialog.dart';
+import 'package:funances/features/finance/presentation/widgets/unplanned_nudge_sheet.dart';
+import 'package:funances/features/finance/domain/services/unplanned_nudge_service.dart';
+import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
+
+/// Traduz o estado do formulário na pergunta que o [UnplannedNudgeService]
+/// responde (F3.2).
+///
+/// Fica fora da tela para ser testável sem widget: o que decide o convite é
+/// esta combinação de sinais, não a renderização.
+Future<UnplannedNudge?> evaluateUnplannedNudge(
+  UnplannedNudgeService service,
+  TransactionFormState before,
+  DateTime today,
+) {
+  return service.evaluate(
+    category: before.category,
+    type: before.type,
+    status: before.status,
+    // Só lançamento novo: editar uma order antiga ou quitar uma parcela não
+    // é "gastei fora do plano agora".
+    isNewOrder: before.creation,
+    // Se o usuário casou com um agendamento, o gasto estava previsto — e
+    // nesse caminho quem salva nem é este formulário.
+    matchedPending: before.matchedInstallmentId != null,
+    amount: before.amount,
+    dueDate: before.dueDate,
+    today: today,
+    accountId: before.accountIdSource,
+  );
+}
 
 class TransactionFormScreen extends ConsumerWidget {
   final OrderType type;
@@ -37,6 +67,10 @@ class TransactionFormScreen extends ConsumerWidget {
   final String? description;
   final DateTime? dueDate;
   final double? amount;
+
+  /// Avulso, parcelado ou recorrente. Só o nudge de gasto não planejado
+  /// preenche: ele abre o formulário já em "toda vez".
+  final InstallmentType? installmentType;
 
   /// Data de quitação forçada. Só o casamento com agendamento usa: o usuário
   /// está registrando o que gastou hoje, então a parcela é paga hoje.
@@ -59,6 +93,7 @@ class TransactionFormScreen extends ConsumerWidget {
     this.description,
     this.dueDate,
     this.amount,
+    this.installmentType,
     this.paidOn,
     this.onUnmatch,
   });
@@ -66,6 +101,7 @@ class TransactionFormScreen extends ConsumerWidget {
   factory TransactionFormScreen.creation({
     required OrderType type,
     InstallmentStatus? status,
+    InstallmentType? installmentType,
     CategoryModel? category,
     String? accountIdSource,
     String? accountIdTarget,
@@ -76,6 +112,7 @@ class TransactionFormScreen extends ConsumerWidget {
     return TransactionFormScreen._(
       type: type,
       status: status,
+      installmentType: installmentType,
       category: category,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
@@ -117,6 +154,7 @@ class TransactionFormScreen extends ConsumerWidget {
     final creationArgs = TransactionCreationArgs(
       type: type,
       status: status,
+      installmentType: installmentType,
       category: category,
       accountIdSource: accountIdSource,
       accountIdTarget: accountIdTarget,
@@ -198,6 +236,14 @@ class TransactionFormScreen extends ConsumerWidget {
 
           final notifier = snapshot.notifier;
 
+          // Lidos no início do submit, e não no build: o convite de gasto não
+          // planejado acontece DEPOIS que esta tela sai da pilha, quando o
+          // `ref` dela já não responde. Lê-los no build criaria o serviço em
+          // toda abertura do formulário, inclusive nas que nunca salvam.
+          final nudgeService = ref.read(UnplannedNudgeDomainProviders.service);
+          final analytics = ref.read(analyticsServiceProvider);
+          final today = ref.read(todayProvider);
+
           ReplicationCascade cascade = ReplicationCascade.none;
 
           // `shouldAskCascade` já compara o estado com a parcela persistida:
@@ -213,6 +259,11 @@ class TransactionFormScreen extends ConsumerWidget {
 
           notifier.updateReplicationCascade(cascade);
 
+          // O estado ANTES do save: `submit()` grava o `orderId`, e a partir
+          // daí `creation` é falso — perguntar depois faria o convite nunca
+          // aparecer para o caso que ele existe para atender.
+          final before = snapshot.model;
+
           final result = await loading(notifier.submit());
           if (result == null) return;
 
@@ -221,7 +272,35 @@ class TransactionFormScreen extends ConsumerWidget {
             SnackBar(content: Text(l10n.transactionSaveSuccess)),
           );
 
+          // F3.2 — o convite é decidido ANTES do pop (o `ref` desta tela
+          // morre com ela) e mostrado DEPOIS (sobre ele, o usuário navega
+          // para a recorrência ou para o limite sem o formulário atrás).
+          final nudge = await evaluateUnplannedNudge(
+            nudgeService,
+            before,
+            today,
+          );
+
+          // O contexto do próprio Navigator sobrevive ao pop desta rota; o
+          // desta tela, não.
+          final sheetContext = navigator.context;
+
           navigator.pop(true);
+
+          if (nudge == null || !sheetContext.mounted) return;
+
+          final shown = await UnplannedNudgeSheet.show(
+            sheetContext,
+            nudge: nudge,
+            analytics: analytics,
+          );
+
+          // Marca só o que de fato apareceu: gravar antes de abrir fazia o
+          // usuário perder o convite do dia quando o sheet não chegava à tela
+          // (contexto já desmontado), sem nunca ter visto nada.
+          if (shown) {
+            await nudgeService.markShown(nudge.category.id, today);
+          }
         },
         bannerBuilder: (context, snapshot) {
           final state = snapshot.model;

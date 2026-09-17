@@ -135,6 +135,80 @@ void main() {
       expect(find.text(l10n.badgeCatalogUnavailableTitle), findsOneWidget);
       expect(find.text(l10n.badgeCatalogUnavailableMessage), findsOneWidget);
     });
+
+    testWidgets('"Como ganhar XP" sai do catálogo do servidor', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const BadgesCabinetView(
+            catalog: BadgeCatalog(
+              version: 'v1',
+              badges: [
+                BadgeCatalogItem(
+                  id: 'first_step',
+                  name: {'pt': 'Primeiro Passo'},
+                  icon: 'rocket_launch',
+                  xpReward: 100,
+                  category: BadgeCategory.advanced,
+                ),
+              ],
+              levelThresholds: [0, 300],
+              xpSources: [
+                XpSource(
+                  id: 'transaction_logged',
+                  name: {'pt': 'Registrar um lançamento'},
+                  xp: 5,
+                  description: {'pt': 'Cada gasto ou receita anotado.'},
+                ),
+                XpSource(
+                  id: 'weekly_mission',
+                  name: {'pt': 'Concluir uma missão semanal'},
+                  xp: 150,
+                ),
+              ],
+            ),
+            isLoading: false,
+            workspaceName: 'Casa',
+            level: 1,
+            xp: 0,
+            weeklyStreaks: 0,
+            unlockedBadges: {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final l10n = await AppLocalizations.delegate.load(
+        const Locale('pt', 'BR'),
+      );
+
+      expect(find.text(l10n.xpSourcesTitle), findsOneWidget);
+      expect(find.text('Registrar um lançamento'), findsOneWidget);
+      expect(find.text('Cada gasto ou receita anotado.'), findsOneWidget);
+      expect(find.text(l10n.xpValue('150')), findsOneWidget);
+    });
+
+    testWidgets('sem xpSources publicados, a seção some', (tester) async {
+      await tester.pumpWidget(
+        _app(
+          const BadgesCabinetView(
+            catalog: _catalog,
+            isLoading: false,
+            workspaceName: 'Casa',
+            level: 1,
+            xp: 0,
+            weeklyStreaks: 0,
+            unlockedBadges: {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final l10n = await AppLocalizations.delegate.load(
+        const Locale('pt', 'BR'),
+      );
+
+      expect(find.text(l10n.xpSourcesTitle), findsNothing);
+    });
   });
 
   group('BadgeCatalog', () {

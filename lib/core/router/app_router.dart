@@ -329,9 +329,20 @@ final routerProvider = Provider<GoRouter>((ref) {
             final dateStr = state.uri.queryParameters['date'];
             final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
 
+            // Só o nudge de gasto não planejado manda este parâmetro, para
+            // abrir o formulário já em "toda vez" — foi o que o usuário
+            // acabou de escolher, e obrigá-lo a repetir a escolha na tela
+            // seguinte seria perguntar duas vezes a mesma coisa.
+            final installmentTypeStr =
+                state.uri.queryParameters['installmentType'];
+            final installmentType = InstallmentType.values
+                .where((e) => e.name == installmentTypeStr)
+                .firstOrNull;
+
             return TransactionFormScreen.creation(
               type: type,
               status: status,
+              installmentType: installmentType,
               category: extraCategory,
               accountIdSource: state.uri.queryParameters['accountIdSource'],
               accountIdTarget: state.uri.queryParameters['accountIdTarget'],
@@ -356,7 +367,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             (e) => e.name == typeStr,
             orElse: () => CategoryType.expense,
           );
-          return CategoryPlanningScreen(type: type);
+
+          // O nudge de gasto não planejado chega aqui com a categoria e uma
+          // sugestão de valor: quem veio definir um limite específico não
+          // pode cair numa lista de trinta categorias sem saber qual era.
+          final suggestedStr = state.uri.queryParameters['suggested'];
+
+          return CategoryPlanningScreen(
+            type: type,
+            highlightCategoryId: state.uri.queryParameters['categoryId'],
+            suggestedAmount: suggestedStr != null
+                ? double.tryParse(suggestedStr)
+                : null,
+          );
         },
       ),
       GoRoute(

@@ -34,6 +34,12 @@ class BadgeCatalogRepositoryImpl implements IBadgeCatalogRepository {
               in (data['levelThresholds'] as List<dynamic>? ?? const []))
             if (raw is num) raw.toInt(),
         ],
+        // Mesma tolerância dos badges: uma fonte de XP malformada é
+        // descartada sozinha, sem derrubar a vitrine inteira.
+        xpSources: [
+          for (final raw in (data['xpSources'] as List<dynamic>? ?? const []))
+            if (raw is Map) ?_tryParseXpSource(raw),
+        ],
       );
     });
   }
@@ -42,6 +48,14 @@ class BadgeCatalogRepositoryImpl implements IBadgeCatalogRepository {
 BadgeCatalogItem? _tryParse(Map<dynamic, dynamic> raw) {
   try {
     return BadgeCatalogItem.fromJson(Map<String, dynamic>.from(raw));
+  } catch (_) {
+    return null;
+  }
+}
+
+XpSource? _tryParseXpSource(Map<dynamic, dynamic> raw) {
+  try {
+    return XpSource.fromJson(Map<String, dynamic>.from(raw));
   } catch (_) {
     return null;
   }

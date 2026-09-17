@@ -5,6 +5,16 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 
 part 'mission_model.freezed.dart';
 
+/// O CHECKLIST da semana: o que está pendente, o que atrasou e o que já foi
+/// pago, mais a saúde da Party por categoria.
+///
+/// NÃO é o sistema de missões. As missões são as do servidor
+/// (`weekly_missions`), e o XP da semana é o `weekly_xp` — os dois entram na
+/// tela por `JourneyViewProviders`. Este modelo não tem mais `totalXp`,
+/// `currentXp` nem `earnedXp`: eram valores inventados no cliente (15 XP por
+/// parcela paga, 5 por atrasada) que nunca bateram com o XP que o servidor de
+/// fato concedeu, e a barra de progresso da semana mostrava uma porcentagem
+/// que não existia em lugar nenhum.
 @freezed
 sealed class MissionModel with _$MissionModel {
   const factory MissionModel({
@@ -12,8 +22,6 @@ sealed class MissionModel with _$MissionModel {
     required List<InstallmentMission> completedInstallments,
     required List<InstallmentMission> overdueInstallments,
     required List<PlanningMission> planningMissions,
-    required double totalXp,
-    required double currentXp,
     required DateTime startDate,
     required DateTime endDate,
     @Default(PartyStatus.healthy) PartyStatus partyStatus,
@@ -24,16 +32,23 @@ sealed class MissionModel with _$MissionModel {
 
   const MissionModel._();
 
-  double get progressPercentage => totalXp > 0 ? (currentXp / totalXp) : 0;
+  /// Quantos itens do checklist já estão resolvidos.
+  int get completedCount => completedInstallments.length;
+
+  /// Tamanho do checklist da semana.
+  int get totalCount =>
+      pendingInstallments.length +
+      overdueInstallments.length +
+      completedInstallments.length;
 }
 
+/// Um item do checklist. O XP, quando existe, é o da PRÓPRIA parcela
+/// (`installment.xp`, escrito pelo servidor) — o cliente não arbitra XP.
 @freezed
 sealed class InstallmentMission with _$InstallmentMission {
   const factory InstallmentMission({
     required InstallmentModel installment,
-    required double xpValue,
     @Default(false) bool isAdherent,
-    @Default(0) double earnedXp,
   }) = _InstallmentMission;
 }
 
@@ -44,10 +59,8 @@ sealed class PlanningMission with _$PlanningMission {
     required PeriodSummaryCategoryModel summary,
     required double weeklyPlannedAmount,
     required double weeklyActualAmount,
-    required double xpValue,
     required double progress,
     required bool isAdherent,
-    required double earnedXp,
     @Default(1.0) double hp,
     @Default(ChallengeStatus.stable) ChallengeStatus status,
   }) = _PlanningMission;

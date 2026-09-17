@@ -209,7 +209,9 @@ class BadgesCabinetScreen extends ConsumerWidget {
         workspaceName: workspace.name,
         level: workspace.level,
         xp: workspace.xp,
-        weeklyStreaks: workspace.weeklyStreaks,
+        // A vitrine conta a sequência de MISSÕES; a de planejamento ainda não
+        // tem lugar na tela.
+        weeklyStreaks: workspace.weeklyStreaks.missions,
         unlockedBadges: workspace.unlockedBadges,
       ),
     );
@@ -278,6 +280,11 @@ class BadgesCabinetView extends StatelessWidget {
             ),
           ),
         ),
+        // Como ganhar XP vem ANTES das conquistas: a vitrine respondia "o que
+        // você já fez" sem nunca dizer o que rende pontos, e a régua estava
+        // só na cabeça de quem escreveu o backend.
+        if (catalog.xpSources.isNotEmpty)
+          SliverToBoxAdapter(child: _XpSourcesSection(sources: catalog.xpSources)),
         for (final category in catalog.categories) ...[
           SliverToBoxAdapter(
             child: _SectionHeader(
@@ -691,6 +698,100 @@ void showBadgeDetail(
     ),
   );
 }
+/// "Como ganhar XP", lida de `config/badges.xpSources`.
+///
+/// Sem a lista publicada a seção some inteira: um título sozinho seria pior do
+/// que a ausência, e uma tabela escrita no app repetiria o erro que o catálogo
+/// de badges já tinha custado.
+class _XpSourcesSection extends StatelessWidget {
+  const _XpSourcesSection({required this.sources});
+
+  final List<XpSource> sources;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final color = Colors.amber.shade700;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.bolt, color: color, size: 18),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.xpSourcesTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Column(
+            children: [
+              for (final source in sources)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              source.nameIn(locale),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (source.descriptionIn(locale).isNotEmpty)
+                              Text(
+                                source.descriptionIn(locale),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        l10n.xpValue(source.xp.toString()),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _SectionHeader extends StatelessWidget {
   final IconData icon;
   final String label;

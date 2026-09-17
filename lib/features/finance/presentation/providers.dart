@@ -9,6 +9,8 @@ import 'package:funances/features/finance/data/repositories/account_repository_i
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/finance_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/period_summary_repository_impl.dart';
+import 'package:funances/features/finance/data/repositories/unplanned_nudge_store.dart';
+import 'package:funances/features/finance/domain/services/unplanned_nudge_service.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -95,6 +97,22 @@ class CategoryPlanningDomainProviders {
       repository: ref.read(FinanceDomainProviders.repository),
     ),
   );
+}
+
+/// Decide o convite de gasto não planejado (F3.2).
+class UnplannedNudgeDomainProviders {
+  static final store = Provider<IUnplannedNudgeStore>(
+    (ref) => SharedPreferencesUnplannedNudgeStore(),
+  );
+
+  static final service = Provider<UnplannedNudgeService>((ref) {
+    return UnplannedNudgeService(
+      workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? '',
+      planningService: ref.watch(CategoryPlanningDomainProviders.service),
+      summaryService: ref.watch(PeriodSummaryDomainProviders.service),
+      store: ref.watch(store),
+    );
+  });
 }
 
 class AccountDomainProviders {
@@ -331,6 +349,7 @@ class FinanceViewProviders {
           TransactionFormState.creation(
             type: args.type,
             status: args.status,
+            installmentType: args.installmentType,
             category: args.category,
             accountIdSource: args.accountIdSource,
             accountIdTarget: args.accountIdTarget,
@@ -509,6 +528,8 @@ class FinanceViewProviders {
           analytics: ref.watch(analyticsServiceProvider),
           type: args.type,
           date: ref.watch(todayProvider),
+          highlightCategoryId: args.highlightCategoryId,
+          suggestedAmount: args.suggestedAmount,
         );
       });
 

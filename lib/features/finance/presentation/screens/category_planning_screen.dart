@@ -15,13 +15,27 @@ import 'package:funances/l10n/app_localizations.dart';
 class CategoryPlanningScreen extends ConsumerWidget {
   final CategoryType type;
 
-  const CategoryPlanningScreen({super.key, required this.type});
+  /// Categoria que o usuário veio definir (F3.2). Sobe para o topo e nasce
+  /// destacada, com [suggestedAmount] já preenchido quando há histórico.
+  final String? highlightCategoryId;
+  final double? suggestedAmount;
+
+  const CategoryPlanningScreen({
+    super.key,
+    required this.type,
+    this.highlightCategoryId,
+    this.suggestedAmount,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final provider = FinanceViewProviders.categoryPlanningForm(
-      CategoryPlanningArgs(type: type),
+      CategoryPlanningArgs(
+        type: type,
+        highlightCategoryId: highlightCategoryId,
+        suggestedAmount: suggestedAmount,
+      ),
     );
 
     return Scaffold(
@@ -68,18 +82,33 @@ class CategoryPlanningScreen extends ConsumerWidget {
       itemCount: state.items.length,
       itemBuilder: (context, index) {
         final item = state.items[index];
-        return _buildCategoryItem(context, item, notifier);
+        return _buildCategoryItem(
+          context,
+          item,
+          notifier,
+          isHighlighted: item.category.id == state.highlightCategoryId,
+        );
       },
     );
   }
 
-  Widget _buildCategoryItem(BuildContext context, CategoryPlanningFormItem item, CategoryPlanningNotifier notifier) {
+  Widget _buildCategoryItem(
+    BuildContext context,
+    CategoryPlanningFormItem item,
+    CategoryPlanningNotifier notifier, {
+    bool isHighlighted = false,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.pureWhite,
         borderRadius: BorderRadius.circular(16),
+        // A categoria que trouxe o usuário até aqui (pelo nudge de gasto não
+        // planejado) fica visivelmente marcada: ele veio decidir UMA coisa.
+        border: isHighlighted
+            ? Border.all(color: AppColors.successGold, width: 2)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),

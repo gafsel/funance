@@ -28,7 +28,14 @@ sealed class WorkspaceGamification with _$WorkspaceGamification {
     String? workspaceId,
     @Default(0) int xp,
     @Default(1) int level,
+    /// Semanas seguidas com as três missões da semana concluídas. É o que o
+    /// fogo ao lado do título conta.
     @Default(0) int weeklyStreaks,
+
+    /// Semanas seguidas dentro do planejamento. O placar do servidor começou
+    /// a publicar isto junto com as missões; ainda não tem lugar na tela, mas
+    /// entra no recorte para não ser descartado na leitura.
+    @Default(0) int planStreak,
     @Default({}) Map<String, String> unlockedBadges,
   }) = _WorkspaceGamification;
 }
@@ -38,7 +45,8 @@ extension WorkspaceGamificationExtension on WorkspaceModel {
     workspaceId: id,
     xp: xp,
     level: level,
-    weeklyStreaks: weeklyStreaks,
+    weeklyStreaks: weeklyStreaks.missions,
+    planStreak: weeklyStreaks.plan,
     unlockedBadges: unlockedBadges,
   );
 }

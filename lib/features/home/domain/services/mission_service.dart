@@ -9,6 +9,13 @@ import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:rxdart/rxdart.dart';
 
+/// O CHECKLIST da semana (parcelas pendentes, atrasadas e pagas) e a saúde da
+/// Party por categoria.
+///
+/// F2.4: este serviço não é mais um segundo sistema de missões. Ele não conta
+/// XP nem inventa alvo nenhum — quem define missão e XP é o servidor
+/// (`weekly_missions`, `weekly_xp`), lido por `JourneyService`. O que sobrou
+/// aqui é a leitura do que o usuário tem para fazer nesta semana.
 class MissionService {
   final FinanceService financeService;
   final PeriodSummaryService summaryService;
@@ -87,7 +94,6 @@ class MissionService {
       // Processar Plannings
       final planningMissions = <PlanningMission>[];
 
-      const planningXpValue = 0.0;
       for (final MapEntry<String, PeriodSummaryCategoryModel> entry
           in weeklySummaries?.categories.entries ?? []) {
         final summary = entry.value;
@@ -97,7 +103,6 @@ class MissionService {
         final progress = summary.actualAmount / summary.generalPlannedAmount;
 
         bool isAdherent = true;
-        const double earnedXp = 0;
 
         final category = categories
             .where((cat) => cat.id == entry.key)
@@ -160,10 +165,8 @@ class MissionService {
               weeklyActualAmount: summary.actualAmount,
               progress: progress,
               isAdherent: isAdherent,
-              earnedXp: earnedXp,
               hp: hp,
               status: status,
-              xpValue: planningXpValue,
             ),
           );
         }
@@ -178,14 +181,7 @@ class MissionService {
             (inst) =>
                 inst.status != InstallmentStatus.removed && inst.amount > 0,
           )
-          .map(
-            (inst) => InstallmentMission(
-              installment: inst,
-              xpValue: inst.xp?.toDouble() ?? 5.0,
-              isAdherent: false,
-              earnedXp: 0,
-            ),
-          )
+          .map((inst) => InstallmentMission(installment: inst))
           .toList();
       overdueMissions.sort(
         (a, b) =>
@@ -205,11 +201,7 @@ class MissionService {
             inst.status == InstallmentStatus.paid;
         final mission = InstallmentMission(
           installment: inst,
-          xpValue: inst.xp?.toDouble() ?? 15.0,
           isAdherent: isCompleted,
-          earnedXp: isCompleted
-              ? (inst.xp?.toDouble() ?? inst.xp?.toDouble() ?? 15.0)
-              : 0,
         );
         if (isCompleted) {
           completedMissions.add(mission);
@@ -225,21 +217,6 @@ class MissionService {
         (a, b) =>
             a.installment.description.compareTo(b.installment.description),
       );
-
-      // Novo cálculo de XP: baseado em installments e plannings (planejado vs realizado)
-      final totalXp = [
-        ...overdueMissions.map((m) => m.xpValue),
-        ...pendingMissions.map((m) => m.xpValue),
-        ...completedMissions.map((m) => m.xpValue),
-        ...planningMissions.map((m) => m.xpValue),
-      ].fold<double>(0, (sum, val) => sum + val);
-
-      final currentXp = [
-        ...overdueMissions.map((m) => m.earnedXp),
-        ...pendingMissions.map((m) => m.earnedXp),
-        ...completedMissions.map((m) => m.earnedXp),
-        ...planningMissions.map((m) => m.earnedXp),
-      ].fold<double>(0, (sum, val) => sum + val);
 
       // Calcular Status da Party
       double partyHp = 1.0;
@@ -295,8 +272,6 @@ class MissionService {
         completedInstallments: completedMissions,
         overdueInstallments: overdueMissions,
         planningMissions: planningMissions,
-        totalXp: totalXp,
-        currentXp: currentXp,
         startDate: startOfWeek,
         endDate: endOfWeek,
         partyHp: partyHp,

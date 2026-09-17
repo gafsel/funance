@@ -44,6 +44,19 @@ abstract class AnalyticsService {
   /// Um membro foi removido do workspace. Sem ids: o evento conta que a
   /// gestão de membros é usada, não quem removeu quem.
   Future<void> logMemberRemoved();
+
+  /// O convite de gasto não planejado (F3.2) apareceu. Sem categoria e sem
+  /// valor: o evento conta quantas vezes o app interveio, não em que o
+  /// usuário gastou.
+  Future<void> logUnplannedNudgeShown();
+
+  /// O que o usuário respondeu ao convite.
+  ///
+  /// [action] é `recurring`, `limit` ou `dismissed`. O "não" entra no mesmo
+  /// evento de propósito: sem ele o funil teria o topo sem o fundo, e um
+  /// evento separado só para a recusa dobraria o esquema para responder a
+  /// mesma pergunta.
+  Future<void> logUnplannedNudgeConverted(String action);
 }
 
 /// Nomes dos eventos, em snake_case, centralizados para não divergirem entre
@@ -58,6 +71,8 @@ abstract final class AnalyticsEvents {
   static const missionCompleted = 'mission_completed';
   static const reconciliationDone = 'reconciliation_done';
   static const memberRemoved = 'member_removed';
+  static const unplannedNudgeShown = 'unplanned_nudge_shown';
+  static const unplannedNudgeConverted = 'unplanned_nudge_converted';
 }
 
 class FirebaseAnalyticsService implements AnalyticsService {
@@ -104,6 +119,14 @@ class FirebaseAnalyticsService implements AnalyticsService {
 
   @override
   Future<void> logMemberRemoved() => _log(AnalyticsEvents.memberRemoved);
+
+  @override
+  Future<void> logUnplannedNudgeShown() =>
+      _log(AnalyticsEvents.unplannedNudgeShown);
+
+  @override
+  Future<void> logUnplannedNudgeConverted(String action) =>
+      _log(AnalyticsEvents.unplannedNudgeConverted, {'action': action});
 
   /// Analytics nunca pode derrubar um fluxo de negócio: qualquer falha de
   /// envio é engolida e apenas registrada localmente.
@@ -155,4 +178,10 @@ class NoopAnalyticsService implements AnalyticsService {
 
   @override
   Future<void> logMemberRemoved() async {}
+
+  @override
+  Future<void> logUnplannedNudgeShown() async {}
+
+  @override
+  Future<void> logUnplannedNudgeConverted(String action) async {}
 }
