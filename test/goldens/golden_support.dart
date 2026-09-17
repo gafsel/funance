@@ -55,7 +55,9 @@ Future<void> loadAppFonts() async {
   for (final entry in families.entries) {
     final loader = FontLoader(entry.key);
     for (final file in entry.value) {
-      final bytes = await File('assets/fonts/$file.ttf').readAsBytes();
+      // Leitura SÍNCRONA de propósito: dentro de `testWidgets` o relógio é
+      // falso e um `await` de I/O real nunca completa — o golden travava.
+      final bytes = File('assets/fonts/$file.ttf').readAsBytesSync();
       loader.addFont(
         Future<ByteData>.value(ByteData.sublistView(bytes)),
       );
