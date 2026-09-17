@@ -17,8 +17,6 @@ MissionModel _mission({List<PlanningMission> planningMissions = const []}) {
     completedInstallments: const [],
     overdueInstallments: const [],
     planningMissions: planningMissions,
-    totalXp: 100,
-    currentXp: 10,
     startDate: DateTime(2026, 1, 1),
     endDate: DateTime(2026, 1, 7),
   );

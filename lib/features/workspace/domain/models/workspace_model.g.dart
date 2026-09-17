@@ -33,6 +33,7 @@ _WorkspaceModel _$WorkspaceModelFromJson(Map<String, dynamic> json) =>
           const {},
       onboardingCompleted: json['onboardingCompleted'] as bool? ?? false,
       weeklyStreaks: (json['weeklyStreaks'] as num?)?.toInt() ?? 0,
+      currentWeekId: json['currentWeekId'] as String?,
     );
 
 Map<String, dynamic> _$WorkspaceModelToJson(
@@ -50,6 +51,7 @@ Map<String, dynamic> _$WorkspaceModelToJson(
   'unlockedBadges': instance.unlockedBadges,
   'onboardingCompleted': instance.onboardingCompleted,
   'weeklyStreaks': instance.weeklyStreaks,
+  'currentWeekId': instance.currentWeekId,
 };
 
 const _$WorkspaceTypeEnumMap = {

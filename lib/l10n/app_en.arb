@@ -1061,5 +1061,165 @@
   "@invoiceCalculating": {
     "description": "Shown instead of the invoice amount while the server has not published the card's next invoice summary yet."
   },
-  "invoiceCycleUnavailable": "We are closing this invoice. Purchases show up as soon as the calculation finishes."
+  "invoiceCycleUnavailable": "We are closing this invoice. Purchases show up as soon as the calculation finishes.",
+  "journeyWeeklyXpEmpty": "No XP yet this week",
+  "@journeyWeeklyXpEmpty": {
+    "description": "Shown instead of the weekly XP when the server's weekly_xp document does not exist yet."
+  },
+  "journeyWeeklyXpGoal": "of {total} XP in missions",
+  "@journeyWeeklyXpGoal": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyMissionsSoonTitle": "Your missions are on the way",
+  "journeyMissionsSoonMessage": "Funances sets three new missions at the start of every week.",
+  "journeyMissionProgress": "{progress} of {target}",
+  "@journeyMissionProgress": {
+    "placeholders": {
+      "progress": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "journeyMissionDone": "Mission complete",
+  "journeyMissionConsistency": "Consistency",
+  "journeyMissionDiscipline": "Discipline",
+  "journeyMissionOrganization": "Organization",
+  "journeyMissionOther": "Mission",
+  "journeyChecklistTitle": "This week's checklist",
+  "journeyAvailableTitle": "Available until the end of the month",
+  "journeyAvailableSpent": "{actual} spent of {planned} planned",
+  "@journeyAvailableSpent": {
+    "placeholders": {
+      "actual": {
+        "type": "String"
+      },
+      "planned": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyAvailablePending": "Still to pay: {pending}",
+  "@journeyAvailablePending": {
+    "placeholders": {
+      "pending": {
+        "type": "String"
+      }
+    }
+  },
+  "journeyAvailableNoIncome": "Without an income expectation we cannot tell what is left.",
+  "journeyAvailableNoIncomeAction": "Set your income expectation",
+  "journeyAvailableError": "We could not work out what is available right now.",
+  "compassTitle": "Freedom Compass",
+  "compassCalibratingTitle": "Your compass is being calibrated",
+  "compassCalibratingMessage": "As soon as a month closes, your score shows up here.",
+  "compassScoreOf": "{score} of 100 • {tier}",
+  "@compassScoreOf": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      },
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "compassTierAprendiz": "Apprentice",
+  "compassTierGuardiao": "Guardian",
+  "compassTierEstrategista": "Strategist",
+  "compassTierMestre": "Master",
+  "compassTierLivre": "Free",
+  "compassTierUnknown": "Being assessed",
+  "compassFolego": "Breath",
+  "compassFolegoDesc": "How long your savings cover your expenses if income stops.",
+  "compassFolegoDetail": "{months} months of expenses saved",
+  "@compassFolegoDetail": {
+    "placeholders": {
+      "months": {
+        "type": "String"
+      }
+    }
+  },
+  "compassPoupanca": "Savings",
+  "compassPoupancaDesc": "How much of your income becomes savings or investment each month.",
+  "compassPoupancaDetail": "{rate} of income saved",
+  "@compassPoupancaDetail": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "compassDisciplina": "Discipline",
+  "compassDisciplinaDesc": "How many categories ended the month within the limit you set.",
+  "compassDisciplinaDetail": "{within} of {total} categories within the limit",
+  "@compassDisciplinaDetail": {
+    "placeholders": {
+      "within": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "compassAlivio": "Relief",
+  "compassAlivioDesc": "How much your debts have shrunk since last month.",
+  "compassAlivioDetail": "{delta} in debt this month",
+  "@compassAlivioDetail": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "compassHistoryTitle": "Last 6 months",
+  "compassHistoryEmpty": "There are not enough closed months to compare yet.",
+  "compassHistoryRange": "{first} → {last}",
+  "@compassHistoryRange": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeTitle": "That spend was not in the plan",
+  "unplannedNudgeMessage": "{category} has no limit this month. Want to decide what to do about it now?",
+  "@unplannedNudgeMessage": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeRecurring": "Turn into a recurring entry",
+  "unplannedNudgeRecurringDesc": "If it happens every month, Funances starts logging it for you.",
+  "unplannedNudgeLimit": "Set a limit for {category}",
+  "@unplannedNudgeLimit": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeLimitDesc": "Suggested {amount}, from your average of recent months.",
+  "@unplannedNudgeLimitDesc": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "unplannedNudgeLimitDescNoHistory": "Choose how much this category may cost per month.",
+  "unplannedNudgeDismiss": "Just this once",
+  "xpSourcesTitle": "How to earn XP"
 }

@@ -287,6 +287,20 @@ service cloud.firestore {
         allow read: if isMember(workspaceId);
       }
 
+      // Missões semanais: escritas só pelo servidor (GamificationService).
+      // Sem esta regra o `match /{document=**}` do fim do arquivo negava a
+      // leitura, e a Jornada não conseguia mostrar as missões que o backend
+      // já vinha gerando havia meses.
+      match /weekly_missions/{missionId} {
+        allow read: if isMember(workspaceId);
+      }
+
+      // Histórico mensal da Bússola da Liberdade. O índice corrente vive no
+      // próprio doc do workspace; aqui ficam os meses fechados.
+      match /health_history/{monthId} {
+        allow read: if isMember(workspaceId);
+      }
+
       // Accounts: Membros podem ler, criar e atualizar (exclusão é lógica via isDeleted)
       match /accounts/{accountId} {
 

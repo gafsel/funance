@@ -15,7 +15,14 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkspaceModel {
 
- String get id; String get name; WorkspaceType get type; List<String> get members; DateTime get createdAt; OnboardingSteps? get lastOnboardingStep; int get xp; int get level; DateTime? get lastLevelUpAt; Map<String, String> get unlockedBadges; bool get onboardingCompleted; int get weeklyStreaks;
+ String get id; String get name; WorkspaceType get type; List<String> get members; DateTime get createdAt; OnboardingSteps? get lastOnboardingStep; int get xp; int get level; DateTime? get lastLevelUpAt; Map<String, String> get unlockedBadges; bool get onboardingCompleted; int get weeklyStreaks;/// Semana corrente (`YYYY-Www`) segundo o SERVIDOR.
+///
+/// A identidade da semana é uma só e mora no backend
+/// (`week_sync.service.ts`): o app lê daqui em vez de calcular, porque as
+/// duas aritméticas divergiam no sábado à noite e as missões da semana
+/// apareciam num id que o `weekly_xp` não usava. `null` numa base
+/// anterior ao F1.9 — aí o app cai no fallback de `JourneyService`.
+ String? get currentWeekId;
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +35,16 @@ $WorkspaceModelCopyWith<WorkspaceModel> get copyWith => _$WorkspaceModelCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.members, members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastOnboardingStep, lastOnboardingStep) || other.lastOnboardingStep == lastOnboardingStep)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.lastLevelUpAt, lastLevelUpAt) || other.lastLevelUpAt == lastLevelUpAt)&&const DeepCollectionEquality().equals(other.unlockedBadges, unlockedBadges)&&(identical(other.onboardingCompleted, onboardingCompleted) || other.onboardingCompleted == onboardingCompleted)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.members, members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastOnboardingStep, lastOnboardingStep) || other.lastOnboardingStep == lastOnboardingStep)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.lastLevelUpAt, lastLevelUpAt) || other.lastLevelUpAt == lastLevelUpAt)&&const DeepCollectionEquality().equals(other.unlockedBadges, unlockedBadges)&&(identical(other.onboardingCompleted, onboardingCompleted) || other.onboardingCompleted == onboardingCompleted)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&(identical(other.currentWeekId, currentWeekId) || other.currentWeekId == currentWeekId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(members),createdAt,lastOnboardingStep,xp,level,lastLevelUpAt,const DeepCollectionEquality().hash(unlockedBadges),onboardingCompleted,weeklyStreaks);
+int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(members),createdAt,lastOnboardingStep,xp,level,lastLevelUpAt,const DeepCollectionEquality().hash(unlockedBadges),onboardingCompleted,weeklyStreaks,currentWeekId);
 
 @override
 String toString() {
-  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt, lastOnboardingStep: $lastOnboardingStep, xp: $xp, level: $level, lastLevelUpAt: $lastLevelUpAt, unlockedBadges: $unlockedBadges, onboardingCompleted: $onboardingCompleted, weeklyStreaks: $weeklyStreaks)';
+  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt, lastOnboardingStep: $lastOnboardingStep, xp: $xp, level: $level, lastLevelUpAt: $lastLevelUpAt, unlockedBadges: $unlockedBadges, onboardingCompleted: $onboardingCompleted, weeklyStreaks: $weeklyStreaks, currentWeekId: $currentWeekId)';
 }
 
 
@@ -48,7 +55,7 @@ abstract mixin class $WorkspaceModelCopyWith<$Res>  {
   factory $WorkspaceModelCopyWith(WorkspaceModel value, $Res Function(WorkspaceModel) _then) = _$WorkspaceModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted, int weeklyStreaks
+ String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted, int weeklyStreaks, String? currentWeekId
 });
 
 
@@ -65,7 +72,7 @@ class _$WorkspaceModelCopyWithImpl<$Res>
 
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,Object? lastOnboardingStep = freezed,Object? xp = null,Object? level = null,Object? lastLevelUpAt = freezed,Object? unlockedBadges = null,Object? onboardingCompleted = null,Object? weeklyStreaks = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,Object? lastOnboardingStep = freezed,Object? xp = null,Object? level = null,Object? lastLevelUpAt = freezed,Object? unlockedBadges = null,Object? onboardingCompleted = null,Object? weeklyStreaks = null,Object? currentWeekId = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -79,7 +86,8 @@ as int,lastLevelUpAt: freezed == lastLevelUpAt ? _self.lastLevelUpAt : lastLevel
 as DateTime?,unlockedBadges: null == unlockedBadges ? _self.unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,onboardingCompleted: null == onboardingCompleted ? _self.onboardingCompleted : onboardingCompleted // ignore: cast_nullable_to_non_nullable
 as bool,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
-as int,
+as int,currentWeekId: freezed == currentWeekId ? _self.currentWeekId : currentWeekId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -161,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks,  String? currentWeekId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkspaceModel() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks);case _:
+return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks,_that.currentWeekId);case _:
   return orElse();
 
 }
@@ -182,10 +190,10 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks,  String? currentWeekId)  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceModel():
-return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks);}
+return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks,_that.currentWeekId);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -199,10 +207,10 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  WorkspaceType type,  List<String> members,  DateTime createdAt,  OnboardingSteps? lastOnboardingStep,  int xp,  int level,  DateTime? lastLevelUpAt,  Map<String, String> unlockedBadges,  bool onboardingCompleted,  int weeklyStreaks,  String? currentWeekId)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkspaceModel() when $default != null:
-return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks);case _:
+return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_that.lastOnboardingStep,_that.xp,_that.level,_that.lastLevelUpAt,_that.unlockedBadges,_that.onboardingCompleted,_that.weeklyStreaks,_that.currentWeekId);case _:
   return null;
 
 }
@@ -214,7 +222,7 @@ return $default(_that.id,_that.name,_that.type,_that.members,_that.createdAt,_th
 @JsonSerializable()
 
 class _WorkspaceModel implements WorkspaceModel {
-  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt, this.lastOnboardingStep, this.xp = 0, this.level = 1, this.lastLevelUpAt, final  Map<String, String> unlockedBadges = const {}, this.onboardingCompleted = false, this.weeklyStreaks = 0}): _members = members,_unlockedBadges = unlockedBadges;
+  const _WorkspaceModel({required this.id, required this.name, required this.type, final  List<String> members = const [], required this.createdAt, this.lastOnboardingStep, this.xp = 0, this.level = 1, this.lastLevelUpAt, final  Map<String, String> unlockedBadges = const {}, this.onboardingCompleted = false, this.weeklyStreaks = 0, this.currentWeekId}): _members = members,_unlockedBadges = unlockedBadges;
   factory _WorkspaceModel.fromJson(Map<String, dynamic> json) => _$WorkspaceModelFromJson(json);
 
 @override final  String id;
@@ -241,6 +249,14 @@ class _WorkspaceModel implements WorkspaceModel {
 
 @override@JsonKey() final  bool onboardingCompleted;
 @override@JsonKey() final  int weeklyStreaks;
+/// Semana corrente (`YYYY-Www`) segundo o SERVIDOR.
+///
+/// A identidade da semana é uma só e mora no backend
+/// (`week_sync.service.ts`): o app lê daqui em vez de calcular, porque as
+/// duas aritméticas divergiam no sábado à noite e as missões da semana
+/// apareciam num id que o `weekly_xp` não usava. `null` numa base
+/// anterior ao F1.9 — aí o app cai no fallback de `JourneyService`.
+@override final  String? currentWeekId;
 
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
@@ -255,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._members, _members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastOnboardingStep, lastOnboardingStep) || other.lastOnboardingStep == lastOnboardingStep)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.lastLevelUpAt, lastLevelUpAt) || other.lastLevelUpAt == lastLevelUpAt)&&const DeepCollectionEquality().equals(other._unlockedBadges, _unlockedBadges)&&(identical(other.onboardingCompleted, onboardingCompleted) || other.onboardingCompleted == onboardingCompleted)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkspaceModel&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._members, _members)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.lastOnboardingStep, lastOnboardingStep) || other.lastOnboardingStep == lastOnboardingStep)&&(identical(other.xp, xp) || other.xp == xp)&&(identical(other.level, level) || other.level == level)&&(identical(other.lastLevelUpAt, lastLevelUpAt) || other.lastLevelUpAt == lastLevelUpAt)&&const DeepCollectionEquality().equals(other._unlockedBadges, _unlockedBadges)&&(identical(other.onboardingCompleted, onboardingCompleted) || other.onboardingCompleted == onboardingCompleted)&&(identical(other.weeklyStreaks, weeklyStreaks) || other.weeklyStreaks == weeklyStreaks)&&(identical(other.currentWeekId, currentWeekId) || other.currentWeekId == currentWeekId));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(_members),createdAt,lastOnboardingStep,xp,level,lastLevelUpAt,const DeepCollectionEquality().hash(_unlockedBadges),onboardingCompleted,weeklyStreaks);
+int get hashCode => Object.hash(runtimeType,id,name,type,const DeepCollectionEquality().hash(_members),createdAt,lastOnboardingStep,xp,level,lastLevelUpAt,const DeepCollectionEquality().hash(_unlockedBadges),onboardingCompleted,weeklyStreaks,currentWeekId);
 
 @override
 String toString() {
-  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt, lastOnboardingStep: $lastOnboardingStep, xp: $xp, level: $level, lastLevelUpAt: $lastLevelUpAt, unlockedBadges: $unlockedBadges, onboardingCompleted: $onboardingCompleted, weeklyStreaks: $weeklyStreaks)';
+  return 'WorkspaceModel(id: $id, name: $name, type: $type, members: $members, createdAt: $createdAt, lastOnboardingStep: $lastOnboardingStep, xp: $xp, level: $level, lastLevelUpAt: $lastLevelUpAt, unlockedBadges: $unlockedBadges, onboardingCompleted: $onboardingCompleted, weeklyStreaks: $weeklyStreaks, currentWeekId: $currentWeekId)';
 }
 
 
@@ -275,7 +291,7 @@ abstract mixin class _$WorkspaceModelCopyWith<$Res> implements $WorkspaceModelCo
   factory _$WorkspaceModelCopyWith(_WorkspaceModel value, $Res Function(_WorkspaceModel) _then) = __$WorkspaceModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted, int weeklyStreaks
+ String id, String name, WorkspaceType type, List<String> members, DateTime createdAt, OnboardingSteps? lastOnboardingStep, int xp, int level, DateTime? lastLevelUpAt, Map<String, String> unlockedBadges, bool onboardingCompleted, int weeklyStreaks, String? currentWeekId
 });
 
 
@@ -292,7 +308,7 @@ class __$WorkspaceModelCopyWithImpl<$Res>
 
 /// Create a copy of WorkspaceModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,Object? lastOnboardingStep = freezed,Object? xp = null,Object? level = null,Object? lastLevelUpAt = freezed,Object? unlockedBadges = null,Object? onboardingCompleted = null,Object? weeklyStreaks = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? members = null,Object? createdAt = null,Object? lastOnboardingStep = freezed,Object? xp = null,Object? level = null,Object? lastLevelUpAt = freezed,Object? unlockedBadges = null,Object? onboardingCompleted = null,Object? weeklyStreaks = null,Object? currentWeekId = freezed,}) {
   return _then(_WorkspaceModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -306,7 +322,8 @@ as int,lastLevelUpAt: freezed == lastLevelUpAt ? _self.lastLevelUpAt : lastLevel
 as DateTime?,unlockedBadges: null == unlockedBadges ? _self._unlockedBadges : unlockedBadges // ignore: cast_nullable_to_non_nullable
 as Map<String, String>,onboardingCompleted: null == onboardingCompleted ? _self.onboardingCompleted : onboardingCompleted // ignore: cast_nullable_to_non_nullable
 as bool,weeklyStreaks: null == weeklyStreaks ? _self.weeklyStreaks : weeklyStreaks // ignore: cast_nullable_to_non_nullable
-as int,
+as int,currentWeekId: freezed == currentWeekId ? _self.currentWeekId : currentWeekId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

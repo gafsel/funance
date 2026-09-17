@@ -29,6 +29,15 @@ sealed class WorkspaceModel with _$WorkspaceModel {
     @Default({}) Map<String, String> unlockedBadges,
     @Default(false) bool onboardingCompleted,
     @Default(0) int weeklyStreaks,
+
+    /// Semana corrente (`YYYY-Www`) segundo o SERVIDOR.
+    ///
+    /// A identidade da semana é uma só e mora no backend
+    /// (`week_sync.service.ts`): o app lê daqui em vez de calcular, porque as
+    /// duas aritméticas divergiam no sábado à noite e as missões da semana
+    /// apareciam num id que o `weekly_xp` não usava. `null` numa base
+    /// anterior ao F1.9 — aí o app cai no fallback de `JourneyService`.
+    String? currentWeekId,
   }) = _WorkspaceModel;
 
   factory WorkspaceModel.empty() {

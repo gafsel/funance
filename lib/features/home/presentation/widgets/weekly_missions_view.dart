@@ -5,14 +5,358 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
+import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/installment_item.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
+/// As missões da semana — as do SERVIDOR — e o checklist do que vence nela.
+///
+/// F2.4: havia dois sistemas de missão. O do servidor (`weekly_missions`,
+/// com nome gerado por IA, alvo, progresso e XP de verdade) nunca aparecia na
+/// tela; o do cliente inventava missões a partir das parcelas e um XP que
+/// ninguém creditava. Agora só o do servidor é "missão"; as parcelas da
+/// semana são o checklist, sem XP fabricado.
 class WeeklyMissionsView extends ConsumerWidget {
   const WeeklyMissionsView({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                l10n.weeklyMissionsTitle,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            _StreakBadge(),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const _WeeklyXpBar(),
+        const SizedBox(height: 24),
+        const _ServerMissions(),
+        const SizedBox(height: 32),
+        const _WeekChecklist(),
+      ],
+    );
+  }
+}
+
+/// Streak de semanas perfeitas, inline no título — visível sem ocupar espaço
+/// extra, e só quando existe streak.
+class _StreakBadge extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final streak = ref.watch(
+      WorkspaceViewProviders.gamification.select((g) => g.weeklyStreaks),
+    );
+    if (streak <= 0) return const SizedBox.shrink();
+
+    return Tooltip(
+      message: context.l10n.journeyStreakWeeks(streak),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.local_fire_department,
+            color: AppColors.coralOrange,
+            size: 18,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            '$streak',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: AppColors.coralOrange,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// XP da semana, direto do `weekly_xp` do servidor.
+///
+/// A barra usa como teto o XP que as missões da semana pagam: é o único
+/// denominador que o servidor publica. Sem missões publicadas, mostra o número
+/// sem barra em vez de uma porcentagem sobre um total inventado.
+class _WeeklyXpBar extends ConsumerWidget {
+  const _WeeklyXpBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+
+    final xpAsync = ref.watch(JourneyViewProviders.weeklyXp);
+    final missions =
+        ref.watch(JourneyViewProviders.weeklyMissions).valueOrNull ??
+        const <WeeklyMissionModel>[];
+
+    final missionXp = missions.fold<int>(0, (sum, m) => sum + m.xp);
+    final xp = xpAsync.valueOrNull;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                xp == null
+                    ? l10n.journeyWeeklyXpEmpty
+                    : l10n.xpValue(xp.round().toString()),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.deepTurquoise,
+                ),
+              ),
+              if (missionXp > 0)
+                Text(
+                  l10n.journeyWeeklyXpGoal(missionXp.toString()),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+            ],
+          ),
+          if (missionXp > 0) ...[
+            const SizedBox(height: 8),
+            LinearProgressIndicator(
+              value: ((xp ?? 0) / missionXp).clamp(0.0, 1.0),
+              minHeight: 12,
+              borderRadius: BorderRadius.circular(6),
+              backgroundColor: AppColors.deepTurquoise.withValues(alpha: 0.1),
+              valueColor: const AlwaysStoppedAnimation(
+                AppColors.deepTurquoise,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// As três missões que o servidor gerou para a semana corrente.
+class _ServerMissions extends ConsumerWidget {
+  const _ServerMissions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final async = ref.watch(JourneyViewProviders.weeklyMissions);
+
+    // Erro de leitura degrada para o mesmo aviso de "ainda não chegou": para
+    // quem usa o app, uma regra do Firestore que ainda não foi publicada e um
+    // cron que ainda não rodou são a mesma coisa — não há nada para fazer.
+    final missions = async.valueOrNull ?? const <WeeklyMissionModel>[];
+
+    if (missions.isEmpty) {
+      if (async.isLoading) {
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+      return _MissionsSoon(l10n: l10n);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final mission in missions) ...[
+          _MissionCard(mission: mission),
+          const SizedBox(height: 12),
+        ],
+      ],
+    );
+  }
+}
+
+class _MissionsSoon extends StatelessWidget {
+  const _MissionsSoon({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+        ),
+      ),
+      child: Column(
+        children: [
+          const Icon(
+            Icons.hourglass_top_rounded,
+            size: 40,
+            color: AppColors.deepTurquoise,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.journeyMissionsSoonTitle,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            l10n.journeyMissionsSoonMessage,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MissionCard extends StatelessWidget {
+  const _MissionCard({required this.mission});
+
+  final WeeklyMissionModel mission;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+
+    final completed = mission.status.isCompleted;
+    final failed = mission.status.isFailed;
+    final accent = completed
+        ? AppColors.success
+        : failed
+        ? AppColors.error
+        : AppColors.deepTurquoise;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.25,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                completed
+                    ? Icons.check_circle_rounded
+                    : failed
+                    ? Icons.cancel_rounded
+                    : _iconOf(mission.type),
+                size: 20,
+                color: accent,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _labelOf(l10n, mission.type),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: accent,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (mission.xp > 0)
+                Text(
+                  l10n.xpValue(mission.xp.toString()),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: AppColors.successGold,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(mission.name, style: theme.textTheme.bodyMedium),
+          if (mission.target > 0) ...[
+            const SizedBox(height: 12),
+            LinearProgressIndicator(
+              value: mission.completion,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(4),
+              backgroundColor: accent.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation(accent),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              completed
+                  ? l10n.journeyMissionDone
+                  : l10n.journeyMissionProgress(
+                      mission.displayProgress,
+                      mission.target,
+                    ),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ] else if (completed) ...[
+            const SizedBox(height: 8),
+            Text(
+              l10n.journeyMissionDone,
+              style: theme.textTheme.labelSmall?.copyWith(color: accent),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static IconData _iconOf(WeeklyMissionType type) => switch (type) {
+    WeeklyMissionType.consistency => Icons.event_repeat_rounded,
+    WeeklyMissionType.discipline => Icons.shield_moon_rounded,
+    WeeklyMissionType.organization => Icons.fact_check_rounded,
+    WeeklyMissionType.unknown => Icons.flag_rounded,
+  };
+
+  static String _labelOf(AppLocalizations l10n, WeeklyMissionType type) =>
+      switch (type) {
+        WeeklyMissionType.consistency => l10n.journeyMissionConsistency,
+        WeeklyMissionType.discipline => l10n.journeyMissionDiscipline,
+        WeeklyMissionType.organization => l10n.journeyMissionOrganization,
+        WeeklyMissionType.unknown => l10n.journeyMissionOther,
+      };
+}
+
+/// O que vence nesta semana: pendentes, atrasadas e já pagas.
+class _WeekChecklist extends ConsumerWidget {
+  const _WeekChecklist();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,12 +371,9 @@ class WeeklyMissionsView extends ConsumerWidget {
           mission.endDate.formated("dd/MM"),
         );
 
-        final hasAnyActivity =
-            mission.pendingInstallments.isNotEmpty ||
-            mission.overdueInstallments.isNotEmpty ||
-            mission.completedInstallments.isNotEmpty;
+        final hasAnyActivity = mission.totalCount > 0;
 
-        // Só celebra quando havia missões e todas foram concluídas; uma semana
+        // Só celebra quando havia itens e todos foram concluídos; uma semana
         // sem nenhuma atividade mostra um convite, não uma parabenização.
         final isCompleted =
             hasAnyActivity &&
@@ -44,12 +385,13 @@ class WeeklyMissionsView extends ConsumerWidget {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l10n.weeklyMissionsTitle,
+                      l10n.journeyChecklistTitle,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -62,12 +404,17 @@ class WeeklyMissionsView extends ConsumerWidget {
                     ),
                   ],
                 ),
-                _buildStreakBadge(context, ref),
+                if (hasAnyActivity)
+                  Text(
+                    l10n.weeklyMissionsProgress(
+                      mission.completedCount.toString(),
+                      mission.totalCount.toString(),
+                    ),
+                    style: theme.textTheme.bodySmall,
+                  ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildOverallProgress(context, mission),
-            const SizedBox(height: 24),
 
             if (!hasAnyActivity)
               _NoMissionsEmptyState()
@@ -105,9 +452,8 @@ class WeeklyMissionsView extends ConsumerWidget {
             ],
 
             // Realizados (Expansível)
-            if (mission.completedInstallments.isNotEmpty) ...[
+            if (mission.completedInstallments.isNotEmpty)
               _buildCompletedSection(context, mission),
-            ],
           ],
         );
       },
@@ -126,93 +472,16 @@ class WeeklyMissionsView extends ConsumerWidget {
     );
   }
 
-  /// Streak de semanas perfeitas, inline no título — visível sem ocupar
-  /// espaço extra, e só quando existe streak.
-  Widget _buildStreakBadge(BuildContext context, WidgetRef ref) {
-    final streak = ref.watch(
-      WorkspaceViewProviders.gamification.select((g) => g.weeklyStreaks),
-    );
-    if (streak <= 0) return const SizedBox.shrink();
-
-    return Tooltip(
-      message: context.l10n.journeyStreakWeeks(streak),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.local_fire_department,
-            color: AppColors.coralOrange,
-            size: 18,
-          ),
-          const SizedBox(width: 2),
-          Text(
-            '$streak',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: AppColors.coralOrange,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverallProgress(BuildContext context, MissionModel mission) {
-    final l10n = context.l10n;
-    final locale = context.locale;
-    final theme = Theme.of(context);
-    final progress = mission.progressPercentage;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                progress.asPercent(locale: locale),
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.deepTurquoise,
-                ),
-              ),
-              Text(
-                l10n.weeklyMissionsProgress(
-                  mission.completedInstallments.length.toString(),
-                  (mission.pendingInstallments.length +
-                          mission.overdueInstallments.length +
-                          mission.completedInstallments.length)
-                      .toString(),
-                ),
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LinearProgressIndicator(
-            value: progress,
-            minHeight: 12,
-            borderRadius: BorderRadius.circular(6),
-            backgroundColor: AppColors.deepTurquoise.withValues(alpha: 0.1),
-            valueColor: const AlwaysStoppedAnimation(AppColors.deepTurquoise),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCompletedSection(BuildContext context, MissionModel mission) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
 
-    final totalCompletedXp = mission.completedInstallments.fold(
-      0.0,
-      (sum, m) => sum + (m.installment.xp ?? m.earnedXp),
+    // Soma o XP que o SERVIDOR gravou em cada parcela. Parcela sem XP no
+    // documento não entra na conta — antes o app somava um valor default e
+    // apresentava o resultado como se fosse o que foi creditado.
+    final totalCompletedXp = mission.completedInstallments.fold<double>(
+      0,
+      (sum, m) => sum + (m.installment.xp ?? 0),
     );
 
     return Theme(
@@ -228,7 +497,7 @@ class WeeklyMissionsView extends ConsumerWidget {
         subtitle: Text(
           l10n.completedMissionsSummary(
             mission.completedInstallments.length,
-            totalCompletedXp.toInt().toString(),
+            totalCompletedXp.round().toString(),
           ),
           style: theme.textTheme.labelSmall?.copyWith(
             color: AppColors.deepTurquoise,

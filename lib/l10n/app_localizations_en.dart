@@ -2226,4 +2226,194 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get invoiceCycleUnavailable =>
       'We are closing this invoice. Purchases show up as soon as the calculation finishes.';
+
+  @override
+  String get journeyWeeklyXpEmpty => 'No XP yet this week';
+
+  @override
+  String journeyWeeklyXpGoal(String total) {
+    return 'of $total XP in missions';
+  }
+
+  @override
+  String get journeyMissionsSoonTitle => 'Your missions are on the way';
+
+  @override
+  String get journeyMissionsSoonMessage =>
+      'Funances sets three new missions at the start of every week.';
+
+  @override
+  String journeyMissionProgress(int progress, int target) {
+    return '$progress of $target';
+  }
+
+  @override
+  String get journeyMissionDone => 'Mission complete';
+
+  @override
+  String get journeyMissionConsistency => 'Consistency';
+
+  @override
+  String get journeyMissionDiscipline => 'Discipline';
+
+  @override
+  String get journeyMissionOrganization => 'Organization';
+
+  @override
+  String get journeyMissionOther => 'Mission';
+
+  @override
+  String get journeyChecklistTitle => 'This week\'s checklist';
+
+  @override
+  String get journeyAvailableTitle => 'Available until the end of the month';
+
+  @override
+  String journeyAvailableSpent(String actual, String planned) {
+    return '$actual spent of $planned planned';
+  }
+
+  @override
+  String journeyAvailablePending(String pending) {
+    return 'Still to pay: $pending';
+  }
+
+  @override
+  String get journeyAvailableNoIncome =>
+      'Without an income expectation we cannot tell what is left.';
+
+  @override
+  String get journeyAvailableNoIncomeAction => 'Set your income expectation';
+
+  @override
+  String get journeyAvailableError =>
+      'We could not work out what is available right now.';
+
+  @override
+  String get compassTitle => 'Freedom Compass';
+
+  @override
+  String get compassCalibratingTitle => 'Your compass is being calibrated';
+
+  @override
+  String get compassCalibratingMessage =>
+      'As soon as a month closes, your score shows up here.';
+
+  @override
+  String compassScoreOf(String score, String tier) {
+    return '$score of 100 • $tier';
+  }
+
+  @override
+  String get compassTierAprendiz => 'Apprentice';
+
+  @override
+  String get compassTierGuardiao => 'Guardian';
+
+  @override
+  String get compassTierEstrategista => 'Strategist';
+
+  @override
+  String get compassTierMestre => 'Master';
+
+  @override
+  String get compassTierLivre => 'Free';
+
+  @override
+  String get compassTierUnknown => 'Being assessed';
+
+  @override
+  String get compassFolego => 'Breath';
+
+  @override
+  String get compassFolegoDesc =>
+      'How long your savings cover your expenses if income stops.';
+
+  @override
+  String compassFolegoDetail(String months) {
+    return '$months months of expenses saved';
+  }
+
+  @override
+  String get compassPoupanca => 'Savings';
+
+  @override
+  String get compassPoupancaDesc =>
+      'How much of your income becomes savings or investment each month.';
+
+  @override
+  String compassPoupancaDetail(String rate) {
+    return '$rate of income saved';
+  }
+
+  @override
+  String get compassDisciplina => 'Discipline';
+
+  @override
+  String get compassDisciplinaDesc =>
+      'How many categories ended the month within the limit you set.';
+
+  @override
+  String compassDisciplinaDetail(int within, int total) {
+    return '$within of $total categories within the limit';
+  }
+
+  @override
+  String get compassAlivio => 'Relief';
+
+  @override
+  String get compassAlivioDesc =>
+      'How much your debts have shrunk since last month.';
+
+  @override
+  String compassAlivioDetail(String delta) {
+    return '$delta in debt this month';
+  }
+
+  @override
+  String get compassHistoryTitle => 'Last 6 months';
+
+  @override
+  String get compassHistoryEmpty =>
+      'There are not enough closed months to compare yet.';
+
+  @override
+  String compassHistoryRange(String first, String last) {
+    return '$first → $last';
+  }
+
+  @override
+  String get unplannedNudgeTitle => 'That spend was not in the plan';
+
+  @override
+  String unplannedNudgeMessage(String category) {
+    return '$category has no limit this month. Want to decide what to do about it now?';
+  }
+
+  @override
+  String get unplannedNudgeRecurring => 'Turn into a recurring entry';
+
+  @override
+  String get unplannedNudgeRecurringDesc =>
+      'If it happens every month, Funances starts logging it for you.';
+
+  @override
+  String unplannedNudgeLimit(String category) {
+    return 'Set a limit for $category';
+  }
+
+  @override
+  String unplannedNudgeLimitDesc(String amount) {
+    return 'Suggested $amount, from your average of recent months.';
+  }
+
+  @override
+  String get unplannedNudgeLimitDescNoHistory =>
+      'Choose how much this category may cost per month.';
+
+  @override
+  String get unplannedNudgeDismiss => 'Just this once';
+
+  @override
+  String get xpSourcesTitle => 'How to earn XP';
 }

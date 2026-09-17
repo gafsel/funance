@@ -4045,6 +4045,312 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar.'**
   String get invoiceCycleUnavailable;
+
+  /// Mostrado no lugar do XP da semana quando o documento weekly_xp do servidor ainda não existe.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem XP ainda nesta semana'**
+  String get journeyWeeklyXpEmpty;
+
+  /// No description provided for @journeyWeeklyXpGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'de {total} XP em missões'**
+  String journeyWeeklyXpGoal(String total);
+
+  /// No description provided for @journeyMissionsSoonTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suas missões estão a caminho'**
+  String get journeyMissionsSoonTitle;
+
+  /// No description provided for @journeyMissionsSoonMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'O Funances monta três missões novas no começo de cada semana.'**
+  String get journeyMissionsSoonMessage;
+
+  /// No description provided for @journeyMissionProgress.
+  ///
+  /// In pt, this message translates to:
+  /// **'{progress} de {target}'**
+  String journeyMissionProgress(int progress, int target);
+
+  /// No description provided for @journeyMissionDone.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missão cumprida'**
+  String get journeyMissionDone;
+
+  /// No description provided for @journeyMissionConsistency.
+  ///
+  /// In pt, this message translates to:
+  /// **'Consistência'**
+  String get journeyMissionConsistency;
+
+  /// No description provided for @journeyMissionDiscipline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disciplina'**
+  String get journeyMissionDiscipline;
+
+  /// No description provided for @journeyMissionOrganization.
+  ///
+  /// In pt, this message translates to:
+  /// **'Organização'**
+  String get journeyMissionOrganization;
+
+  /// No description provided for @journeyMissionOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missão'**
+  String get journeyMissionOther;
+
+  /// No description provided for @journeyChecklistTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Checklist da semana'**
+  String get journeyChecklistTitle;
+
+  /// No description provided for @journeyAvailableTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disponível até o fim do mês'**
+  String get journeyAvailableTitle;
+
+  /// No description provided for @journeyAvailableSpent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Realizado {actual} de {planned} previstos'**
+  String journeyAvailableSpent(String actual, String planned);
+
+  /// No description provided for @journeyAvailablePending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda por pagar: {pending}'**
+  String journeyAvailablePending(String pending);
+
+  /// No description provided for @journeyAvailableNoIncome.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem expectativa de receita não dá para dizer quanto sobra.'**
+  String get journeyAvailableNoIncome;
+
+  /// No description provided for @journeyAvailableNoIncomeAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Defina sua expectativa de receita'**
+  String get journeyAvailableNoIncomeAction;
+
+  /// No description provided for @journeyAvailableError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não consegui calcular o disponível agora.'**
+  String get journeyAvailableError;
+
+  /// No description provided for @compassTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola da Liberdade'**
+  String get compassTitle;
+
+  /// No description provided for @compassCalibratingTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua bússola está sendo calibrada'**
+  String get compassCalibratingTitle;
+
+  /// No description provided for @compassCalibratingMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Assim que houver um mês fechado, seu índice aparece aqui.'**
+  String get compassCalibratingMessage;
+
+  /// No description provided for @compassScoreOf.
+  ///
+  /// In pt, this message translates to:
+  /// **'{score} de 100 • {tier}'**
+  String compassScoreOf(String score, String tier);
+
+  /// No description provided for @compassTierAprendiz.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aprendiz'**
+  String get compassTierAprendiz;
+
+  /// No description provided for @compassTierGuardiao.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guardião'**
+  String get compassTierGuardiao;
+
+  /// No description provided for @compassTierEstrategista.
+  ///
+  /// In pt, this message translates to:
+  /// **'Estrategista'**
+  String get compassTierEstrategista;
+
+  /// No description provided for @compassTierMestre.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mestre'**
+  String get compassTierMestre;
+
+  /// No description provided for @compassTierLivre.
+  ///
+  /// In pt, this message translates to:
+  /// **'Livre'**
+  String get compassTierLivre;
+
+  /// No description provided for @compassTierUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em avaliação'**
+  String get compassTierUnknown;
+
+  /// No description provided for @compassFolego.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fôlego'**
+  String get compassFolego;
+
+  /// No description provided for @compassFolegoDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto tempo suas reservas seguram suas despesas se a renda parar.'**
+  String get compassFolegoDesc;
+
+  /// No description provided for @compassFolegoDetail.
+  ///
+  /// In pt, this message translates to:
+  /// **'{months} meses de despesas guardados'**
+  String compassFolegoDetail(String months);
+
+  /// No description provided for @compassPoupanca.
+  ///
+  /// In pt, this message translates to:
+  /// **'Poupança'**
+  String get compassPoupanca;
+
+  /// No description provided for @compassPoupancaDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto da sua renda vira reserva ou investimento todo mês.'**
+  String get compassPoupancaDesc;
+
+  /// No description provided for @compassPoupancaDetail.
+  ///
+  /// In pt, this message translates to:
+  /// **'{rate} da renda guardada'**
+  String compassPoupancaDetail(String rate);
+
+  /// No description provided for @compassDisciplina.
+  ///
+  /// In pt, this message translates to:
+  /// **'Disciplina'**
+  String get compassDisciplina;
+
+  /// No description provided for @compassDisciplinaDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quantas categorias terminaram o mês dentro do limite que você definiu.'**
+  String get compassDisciplinaDesc;
+
+  /// No description provided for @compassDisciplinaDetail.
+  ///
+  /// In pt, this message translates to:
+  /// **'{within} de {total} categorias dentro do limite'**
+  String compassDisciplinaDetail(int within, int total);
+
+  /// No description provided for @compassAlivio.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alívio'**
+  String get compassAlivio;
+
+  /// No description provided for @compassAlivioDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Quanto suas dívidas diminuíram desde o mês passado.'**
+  String get compassAlivioDesc;
+
+  /// No description provided for @compassAlivioDetail.
+  ///
+  /// In pt, this message translates to:
+  /// **'{delta} em dívidas no mês'**
+  String compassAlivioDetail(String delta);
+
+  /// No description provided for @compassHistoryTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Últimos 6 meses'**
+  String get compassHistoryTitle;
+
+  /// No description provided for @compassHistoryEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ainda não há meses fechados suficientes para comparar.'**
+  String get compassHistoryEmpty;
+
+  /// No description provided for @compassHistoryRange.
+  ///
+  /// In pt, this message translates to:
+  /// **'{first} → {last}'**
+  String compassHistoryRange(String first, String last);
+
+  /// No description provided for @unplannedNudgeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esse gasto não estava no plano'**
+  String get unplannedNudgeTitle;
+
+  /// No description provided for @unplannedNudgeMessage.
+  ///
+  /// In pt, this message translates to:
+  /// **'{category} ainda não tem limite neste mês. Quer decidir agora o que fazer com ela?'**
+  String unplannedNudgeMessage(String category);
+
+  /// No description provided for @unplannedNudgeRecurring.
+  ///
+  /// In pt, this message translates to:
+  /// **'Transformar em recorrência'**
+  String get unplannedNudgeRecurring;
+
+  /// No description provided for @unplannedNudgeRecurringDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Se acontece todo mês, o Funances passa a lançar sozinho.'**
+  String get unplannedNudgeRecurringDesc;
+
+  /// No description provided for @unplannedNudgeLimit.
+  ///
+  /// In pt, this message translates to:
+  /// **'Definir limite para {category}'**
+  String unplannedNudgeLimit(String category);
+
+  /// No description provided for @unplannedNudgeLimitDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sugestão de {amount}, pela sua média dos últimos meses.'**
+  String unplannedNudgeLimitDesc(String amount);
+
+  /// No description provided for @unplannedNudgeLimitDescNoHistory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escolha quanto essa categoria pode custar por mês.'**
+  String get unplannedNudgeLimitDescNoHistory;
+
+  /// No description provided for @unplannedNudgeDismiss.
+  ///
+  /// In pt, this message translates to:
+  /// **'Só desta vez'**
+  String get unplannedNudgeDismiss;
+
+  /// No description provided for @xpSourcesTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como ganhar XP'**
+  String get xpSourcesTitle;
 }
 
 class _AppLocalizationsDelegate
