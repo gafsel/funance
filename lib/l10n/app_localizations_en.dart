@@ -902,6 +902,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reconciliationTitle => 'Bank Reconciliation';
 
   @override
+  String get bankLogoOther => 'Other';
+
+  @override
   String get accountsMine => 'My accounts';
 
   @override

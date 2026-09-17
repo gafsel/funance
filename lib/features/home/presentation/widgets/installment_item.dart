@@ -10,6 +10,7 @@ import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class InstallmentItem extends StatelessWidget {
   final InstallmentMission installmentInfo;
@@ -75,7 +76,10 @@ class InstallmentItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(inst.description, style: theme.textTheme.bodyMedium),
+                  Text(
+            displayOr(inst.description, context.l10n.noDescription),
+            style: theme.textTheme.bodyMedium,
+          ),
                   Text(
                     DateFormat.E(
                       context.locale.toString(),

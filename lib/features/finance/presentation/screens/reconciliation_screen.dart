@@ -29,6 +29,7 @@ import 'package:funances/features/finance/presentation/widgets/statement_upload_
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/money/money.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 /// Escolha da conta antes de conciliar.
 ///
@@ -370,7 +371,11 @@ class ReconciliationScreen extends ConsumerWidget {
                                 context,
                               );
 
-                              await loading(notifier.confirmReconciliation());
+                              await loading(
+                                notifier.confirmReconciliation(
+                                  uncategorizedLabel: l10n.categoryOthers,
+                                ),
+                              );
 
                               scaffoldMessenger.showSnackBar(
                                 SnackBar(
@@ -488,7 +493,12 @@ class _MatchItem extends StatelessWidget {
         children: [
           ListTile(
             leading: Icon(statusIcon, color: statusColor),
-            title: Text(docTx?.description ?? sysInst?.description ?? ""),
+            title: Text(
+              displayOr(
+                docTx?.description ?? sysInst?.description,
+                l10n.noDescription,
+              ),
+            ),
             subtitle: Text(
               (docTx?.date ?? sysInst?.referenceDate ?? DateTime.now())
                   .formated(l10n.formatSimpleDate, locale),
@@ -536,7 +546,7 @@ class _MatchItem extends StatelessWidget {
                           ),
                           if (category != null)
                             Text(
-                              category.name,
+                              category.displayName(l10n),
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontStyle: FontStyle.italic,
@@ -628,7 +638,7 @@ class _MatchItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          dTx.description,
+                          displayOr(dTx.description, l10n.noDescription),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -711,7 +721,7 @@ class _MatchItem extends StatelessWidget {
                           ),
                           if (category != null)
                             Text(
-                              category.name,
+                              category.displayName(l10n),
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontStyle: FontStyle.italic,

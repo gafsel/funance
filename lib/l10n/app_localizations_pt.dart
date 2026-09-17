@@ -910,6 +910,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reconciliationTitle => 'Conciliação Bancária';
 
   @override
+  String get bankLogoOther => 'Outros';
+
+  @override
   String get accountsMine => 'Minhas contas';
 
   @override

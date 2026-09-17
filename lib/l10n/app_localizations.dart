@@ -1712,6 +1712,12 @@ abstract class AppLocalizations {
   /// **'Conciliação Bancária'**
   String get reconciliationTitle;
 
+  /// No description provided for @bankLogoOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros'**
+  String get bankLogoOther;
+
   /// No description provided for @accountsMine.
   ///
   /// In pt, this message translates to:

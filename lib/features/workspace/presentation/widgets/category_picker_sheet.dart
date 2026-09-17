@@ -8,6 +8,7 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class CategoryPickerSheet extends ConsumerWidget {
   final CategoryType? categoryType;
@@ -119,7 +120,7 @@ class CategoryPickerSheet extends ConsumerWidget {
                         color: category.color.asColor(),
                       ),
                     ),
-                    title: Text(category.name),
+                    title: Text(category.displayName(l10n)),
                     onTap: () => Navigator.pop(context, category),
                   );
                 }

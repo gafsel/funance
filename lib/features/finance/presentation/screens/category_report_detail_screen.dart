@@ -51,8 +51,9 @@ class CategoryReportDetailScreen extends ConsumerWidget {
 
     final sortedSummaries = List<OverviewCategorySummary>.from(state.summary)
       ..sort((a, b) {
-        final isAOthers = a.category.name.toLowerCase() == 'outros' || a.category.id == 'others';
-        final isBOthers = b.category.name.toLowerCase() == 'outros' || b.category.id == 'others';
+        // Pelo ID: "outros" é palavra, e palavra muda de idioma.
+        final isAOthers = a.category.id == CategoryModel.othersId;
+        final isBOthers = b.category.id == CategoryModel.othersId;
 
         if (isAOthers && !isBOthers) return 1;
         if (!isAOthers && isBOthers) return -1;

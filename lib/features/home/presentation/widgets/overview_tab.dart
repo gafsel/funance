@@ -18,6 +18,7 @@ import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class OverviewTab extends ConsumerWidget {
   const OverviewTab({super.key});
@@ -210,9 +211,11 @@ class CategorySummaryView extends ConsumerWidget {
           state.generalPlannedAmountOthers > 0 ||
           state.actualAmountOthers > 0)
         OverviewCategorySummary(
+          // Sem nome guardado: a palavra sai do l10n na hora de desenhar
+          // (`displayName`), como no gráfico da fatura.
           category: CategoryModel(
-            id: 'others',
-            name: l10n.categoryOthers,
+            id: CategoryModel.othersId,
+            name: '',
             icon: 'more_horiz',
             color: '#808080',
             type: categoryType,
@@ -451,7 +454,7 @@ class CategorySummaryView extends ConsumerWidget {
                   final summary = chartSummaries[groupIndex];
                   final isPlanned = rodIndex == 0;
                   return BarTooltipItem(
-                    '${summary.category.name}\n',
+                    '${summary.category.displayName(l10n)}\n',
                     const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,

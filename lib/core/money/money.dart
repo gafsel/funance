@@ -25,9 +25,10 @@ class Money implements Comparable<Money> {
   /// e arredondar isso devolveria R$ 1,00 para um valor que o usuário digitou
   /// como 1,005 — o mesmo vale para 2,675. Quinze dígitos é a precisão que um
   /// `double` realmente carrega; o que vem depois é ruído da representação, e
-  /// é justamente o ruído que empurrava o número para o lado errado. O
-  /// servidor (`core/utils/money.ts`) faz o mesmo recorte, para que cliente e
-  /// backend nunca discordem em um centavo.
+  /// é justamente o ruído que empurrava o número para o lado errado. É a mesma
+  /// regra do servidor (pacote de centavos: recorte em 15 dígitos
+  /// significativos seguido de arredondamento half-away-from-zero), para que
+  /// cliente e backend nunca discordem em um centavo.
   ///
   /// O empate vai para LONGE do zero (1,005 → 101; -1,005 → -101), como o
   /// `round` do Dart e o do servidor.

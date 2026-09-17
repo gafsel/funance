@@ -225,6 +225,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   Future<void> _createWorkspace() async {
     final workspace = await onboardingService.createWorkspace(
       type: state.workspace.type,
+      name: state.workspace.name,
     );
 
     state = state.copyWith(workspace: workspace);

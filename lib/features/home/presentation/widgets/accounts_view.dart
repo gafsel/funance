@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/money/money.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/utils/error_messages.dart';
 
 class AccountsView extends ConsumerWidget {
   const AccountsView({super.key});
@@ -64,6 +66,7 @@ class AccountsView extends ConsumerWidget {
     final locale = context.locale;
 
     var total = Money.zero;
+    Object? totalError;
     // Só o total somado de saldos pode estar carregando: os saldos chegam por
     // stream e mostrar R$ 0,00 enquanto isso é um número errado com cara de
     // definitivo.
@@ -95,6 +98,11 @@ class AccountsView extends ConsumerWidget {
       final totalAsync = ref.watch(
         AccountViewProviders.latestBalanceByType(type),
       );
+      // R$ 0,00 no lugar de um saldo que não pôde ser lido é a mentira mais
+      // cara que esta tela sabe contar.
+      if (totalAsync.hasError) {
+        totalError = totalAsync.error;
+      }
       total = (totalAsync.valueOrNull ?? 0).asMoney;
       isTotalLoading = totalAsync.isLoading && !totalAsync.hasValue;
     }
@@ -117,7 +125,19 @@ class AccountsView extends ConsumerWidget {
           l10n.fromAccountType(type),
           style: theme.textTheme.bodyMedium,
         ),
-        trailing: showMonthlyTotal
+        trailing: totalError != null
+            // Sem o saldo, a linha diz que não sabe — e oferece tentar de
+            // novo — em vez de escrever R$ 0,00 com cara de saldo.
+            ? IconButton(
+                icon: Icon(
+                  Icons.cloud_off,
+                  size: 18,
+                  color: theme.colorScheme.error,
+                ),
+                tooltip: errorMessageFor(context, totalError),
+                onPressed: () => Retry.accounts(ref),
+              )
+            : showMonthlyTotal
             ? Text(
                 sortedMonthKeys
                     .map(
@@ -198,7 +218,10 @@ class AccountsView extends ConsumerWidget {
               size: 32,
               showMembers: true,
             ),
-            title: Text(account.name, style: theme.textTheme.bodySmall),
+            title: Text(
+              account.displayName(l10n),
+              style: theme.textTheme.bodySmall,
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -283,7 +306,10 @@ class AccountsView extends ConsumerWidget {
             size: 32,
             showMembers: true,
           ),
-          title: Text(account.name, style: theme.textTheme.bodySmall),
+          title: Text(
+            account.displayName(context.l10n),
+            style: theme.textTheme.bodySmall,
+          ),
           trailing: Text(
             balance.balance.asCurrency(locale: locale),
             style: theme.textTheme.bodySmall,

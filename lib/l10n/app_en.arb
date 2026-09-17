@@ -334,6 +334,7 @@
   },
   "saveButton": "Save",
   "reconciliationTitle": "Bank Reconciliation",
+  "bankLogoOther": "Other",
   "accountsMine": "My accounts",
   "accountsOfMember": "{name}'s accounts",
   "@accountsOfMember": {

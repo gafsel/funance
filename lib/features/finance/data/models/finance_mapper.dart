@@ -282,22 +282,23 @@ class FinanceMapper {
     }
   }
 
+  /// Categoria de uma META sugerida pela IA. Como o resto do arquivo: sem
+  /// nome, devolve vazio — a tela diz "Sem categoria" no idioma de quem lê.
   static CategoryModel _toCategory(dynamic json) {
     if (json == null || json is! Map) {
-      return CategoryModel(
-        id: "",
-        name: "Outros",
-        icon: "category",
-        color: "",
-        type: CategoryType.expense,
+      return const CategoryModel(
+        id: '',
+        name: '',
+        icon: 'category',
+        color: '',
       );
     }
 
     return CategoryModel(
-      id: "",
-      name: json['name'] as String? ?? "Outros",
-      icon: json['icon'] as String? ?? "category",
-      color: json['color'] as String? ?? "",
+      id: '',
+      name: json['name'] as String? ?? '',
+      icon: json['icon'] as String? ?? 'category',
+      color: json['color'] as String? ?? '',
       type: _toCategoryType(json['type']),
     );
   }

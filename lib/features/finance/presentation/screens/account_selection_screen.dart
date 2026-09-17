@@ -130,7 +130,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                               ..sort((a, b) {
                                 if (a == BankLogo.none) return 1;
                                 if (b == BankLogo.none) return -1;
-                                return _getInstitutionName(a).compareTo(_getInstitutionName(b));
+                                return _getInstitutionName(a, l10n)
+                                    .compareTo(_getInstitutionName(b, l10n));
                               });
 
                             final List<Widget> ownerWidgets = [];
@@ -192,7 +193,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                               ..sort((a, b) {
                                 if (a == BankLogo.none) return 1;
                                 if (b == BankLogo.none) return -1;
-                                return _getInstitutionName(a).compareTo(_getInstitutionName(b));
+                                return _getInstitutionName(a, l10n)
+                                    .compareTo(_getInstitutionName(b, l10n));
                               });
 
                             final List<Widget> sharedWidgets = [];
@@ -362,7 +364,7 @@ class AccountSelectionScreen extends ConsumerWidget {
     required bool isSmall,
   }) {
     final theme = Theme.of(context);
-    final bankName = _getInstitutionName(bank);
+    final bankName = _getInstitutionName(bank, l10n);
     final paddingVal = isSmall ? 10.0 : 16.0;
     final logoSize = isSmall ? 32.0 : 40.0;
 
@@ -664,10 +666,10 @@ class AccountSelectionScreen extends ConsumerWidget {
     }
   }
 
-  String _getInstitutionName(BankLogo logo) {
+  String _getInstitutionName(BankLogo logo, AppLocalizations l10n) {
     switch (logo) {
       case BankLogo.none:
-        return "Outros";
+        return l10n.bankLogoOther;
       case BankLogo.nubank:
         return "Nubank";
       case BankLogo.inter:

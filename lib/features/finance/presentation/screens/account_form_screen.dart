@@ -21,6 +21,8 @@ import 'package:funances/l10n/app_localizations.dart';
 import '../../domain/models/account_model.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/utils/num_extensions.dart';
 
 class AccountFormScreen extends ConsumerWidget {
   final AccountModel? account;
@@ -247,7 +249,8 @@ class AccountFormScreen extends ConsumerWidget {
                   context,
                   l10n.accountDetectedTransactionsTitle,
                   state.detectedOrders.map((o) {
-                    return "${o.description} - R\$ ${o.amount.toStringAsFixed(2)}";
+                    final descricao = displayOr(o.description, l10n.noDescription);
+                    return '$descricao - ${o.amount.asCurrency(locale: context.locale)}';
                   }).toList(),
                 ),
                 child: Text(

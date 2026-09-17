@@ -101,11 +101,11 @@ SummaryState _buildSummary(
   // Ordenar por valor (de maior para menor) baseado no viewType
   final sortedSummaries = [...filteredSummaries];
   sortedSummaries.sort((a, b) {
-    // Se um for virtual (pode ser o "Outros" real se implementado como virtual, 
-    // mas aqui estamos lidando com as categorias vindas do banco)
-    // Se o nome for "Outros", deve ficar por último
-    final isAOthers = a.category.name.toLowerCase() == 'outros' || a.category.id == 'others';
-    final isBOthers = b.category.name.toLowerCase() == 'outros' || b.category.id == 'others';
+    // O agrupamento "Outros" vai para o fim. Pelo ID, não pelo nome: comparar
+    // com a palavra "outros" quebrava em inglês — e ainda mandava para o fim
+    // uma categoria de verdade que o usuário tivesse batizado assim.
+    final isAOthers = a.category.id == CategoryModel.othersId;
+    final isBOthers = b.category.id == CategoryModel.othersId;
 
     if (isAOthers && !isBOthers) return 1;
     if (!isAOthers && isBOthers) return -1;

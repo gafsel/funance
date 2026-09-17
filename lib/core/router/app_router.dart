@@ -109,6 +109,14 @@ String? idParam(Uri uri, String name) {
   return (value == null || value.isEmpty) ? null : value;
 }
 
+/// Tipo que a rota `/workspace/accounts` usa para FILTRAR a lista (e para dar
+/// o tipo ao botão "+"). Vazio ou desconhecido quer dizer "todos".
+@visibleForTesting
+AccountType? accountListType(Uri uri) {
+  final typeStr = idParam(uri, 'type');
+  return AccountType.values.where((e) => e.name == typeStr).firstOrNull;
+}
+
 /// O que a rota `/accounts/form` recebe pelo endereço.
 ///
 /// Separado do `builder` para poder ser testado sem montar a tela: é aqui que
@@ -288,7 +296,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/workspace/accounts',
-        builder: (context, state) => const AccountManagementScreen(),
+        builder: (context, state) {
+          // `?type=` filtra a lista (e dá o tipo ao "+"). A lista de contas da
+          // home manda este parâmetro ao tocar num cartão sem fatura; até
+          // agora o router o descartava e a tela abria em tudo.
+          return AccountManagementScreen(
+            initialType: accountListType(state.uri),
+          );
+        },
       ),
       GoRoute(
         path: '/workspace/members',

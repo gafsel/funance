@@ -46,10 +46,18 @@ class OnboardingService {
     return onboardingRepository.analysePlanning(workspaceId: workspaceId);
   }
 
-  Future<WorkspaceModel> createWorkspace({required WorkspaceType type}) async {
+  /// Cria o workspace com o nome que o usuário acabou de digitar.
+  ///
+  /// Antes nascia como "(novo)" — português gravado no Firestore de qualquer
+  /// usuário, e ainda por cima jogado fora um passo depois, quando o nome de
+  /// verdade era salvo. O nome já existe no estado quando este passo roda.
+  Future<WorkspaceModel> createWorkspace({
+    required WorkspaceType type,
+    required String name,
+  }) async {
     final workspace = WorkspaceModel(
       id: const Uuid().v4(),
-      name: "(novo)",
+      name: name,
       type: type,
       createdAt: DateTime.now(),
       lastOnboardingStep: OnboardingSteps.name,

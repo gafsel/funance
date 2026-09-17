@@ -7,6 +7,8 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/domain/models/financial_health_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/utils/error_messages.dart';
 
 /// Nome de cada componente, do vocabulário do produto.
 String compassComponentLabel(AppLocalizations l10n, FreedomComponent c) =>
@@ -490,6 +492,30 @@ class _CompassHistory extends ConsumerWidget {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 16),
         child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Falha de leitura NÃO é "ainda não há histórico": a segunda frase diz ao
+    // usuário que ele não tem meses fechados, o que pode ser falso e não tem
+    // o que fazer a respeito. Com o erro, a linha diz o que houve e oferece
+    // tentar de novo.
+    if (async.hasError) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              errorMessageFor(context, async.error),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Retry.healthHistory(ref),
+            child: Text(l10n.retry),
+          ),
+        ],
       );
     }
 

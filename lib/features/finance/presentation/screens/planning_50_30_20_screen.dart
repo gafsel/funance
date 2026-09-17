@@ -18,6 +18,8 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class Planning503020Screen extends ConsumerWidget {
   const Planning503020Screen({super.key});
@@ -100,6 +102,33 @@ class Planning503020Screen extends ConsumerWidget {
 
           final allocations = CategoryAllocation.values;
           final l10n = context.l10n;
+
+          // Erro e carregamento vêm ANTES das pools: três colunas vazias são
+          // indistinguíveis de "você não planejou nada".
+          final erro = ref.watch(
+            FinanceViewProviders.planning503020.select((s) => s.error),
+          );
+          if (erro != null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ErrorView.forError(
+                  context,
+                  erro,
+                  onRetry: () => ref
+                      .read(FinanceViewProviders.planning503020.notifier)
+                      .retry(),
+                ),
+              ),
+            );
+          }
+
+          final carregando = ref.watch(
+            FinanceViewProviders.planning503020.select((s) => s.isLoading),
+          );
+          if (carregando) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           final header = Container(
             padding: const EdgeInsets.all(16.0),
@@ -887,7 +916,7 @@ class _CategoryCard extends ConsumerWidget {
             borderRadius: BorderRadius.circular(8),
             boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
           ),
-          child: Text(item.category.name),
+          child: Text(item.category.displayName(context.l10n)),
         ),
       ),
       childWhenDragging: Opacity(
@@ -951,7 +980,7 @@ class _CategoryCard extends ConsumerWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    item.category.name,
+                    item.category.displayName(context.l10n),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkNavy,

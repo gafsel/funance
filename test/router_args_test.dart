@@ -53,4 +53,29 @@ void main() {
       expect(args.accountId, 'acc-1');
     });
   });
+
+  group('/workspace/accounts', () {
+    test('sem `?type=`: a lista abre em todos os tipos', () {
+      expect(accountListType(Uri.parse('/workspace/accounts')), isNull);
+      expect(accountListType(Uri.parse('/workspace/accounts?type=')), isNull);
+    });
+
+    test('com `?type=`: a lista abre filtrada naquele tipo', () {
+      expect(
+        accountListType(Uri.parse('/workspace/accounts?type=creditCard')),
+        AccountType.creditCard,
+      );
+      expect(
+        accountListType(Uri.parse('/workspace/accounts?type=debt')),
+        AccountType.debt,
+      );
+    });
+
+    test('tipo desconhecido abre em todos, sem derrubar a rota', () {
+      expect(
+        accountListType(Uri.parse('/workspace/accounts?type=cofrinho')),
+        isNull,
+      );
+    });
+  });
 }

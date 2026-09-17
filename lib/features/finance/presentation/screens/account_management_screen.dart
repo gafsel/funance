@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 import '../../domain/models/account_model.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -21,26 +22,31 @@ class AccountManagementScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final accountsByTypeAsync = ref.watch(AccountViewProviders.byTypeMap);
 
-    // Se o initialType estiver presente e o diálogo ainda não tiver sido mostrado,
-    // podemos disparar a abertura do diálogo após o primeiro frame.
-    if (initialType != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showAccountDialog(context, ref, null, initialType);
-      });
-    }
-
+    // `initialType` FILTRA a lista; não abre formulário nenhum. Quem chega
+    // aqui por `/workspace/accounts?type=creditCard` — a lista de contas da
+    // home, tocando num cartão sem fatura — quer VER os cartões. Abrir a
+    // criação por cima disso era responder outra pergunta.
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.accountManagementTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _showAccountDialog(context, ref),
+            // O "+" herda o tipo que a tela está mostrando: com a lista
+            // filtrada em cartões, a conta nova já nasce cartão.
+            onPressed: () => _showAccountDialog(context, ref, null, initialType),
           ),
         ],
       ),
       body: accountsByTypeAsync.when(
-        data: (accountsByType) {
+        data: (todosOsTipos) {
+          final accountsByType = initialType == null
+              ? todosOsTipos
+              : {
+                  for (final entry in todosOsTipos.entries)
+                    if (entry.key == initialType) entry.key: entry.value,
+                };
+
           if (accountsByType.isEmpty) {
             return Center(child: Text(l10n.accountManagementEmpty));
           }
@@ -169,7 +175,11 @@ class AccountManagementScreen extends ConsumerWidget {
       },
       contentPadding: isGrid ? const EdgeInsets.symmetric(horizontal: 12) : null,
       leading: AccountLogo(account: account, size: 40, showMembers: true),
-      title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(
+        account.displayName(l10n),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Text(
         l10n.fromAccountType(account.type),
         maxLines: 1,
@@ -238,7 +248,7 @@ class AccountManagementScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.accountDeleteTitle),
-        content: Text(l10n.accountDeleteConfirm(account.name)),
+        content: Text(l10n.accountDeleteConfirm(account.displayName(l10n))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

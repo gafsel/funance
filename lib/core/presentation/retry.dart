@@ -43,6 +43,11 @@ class Retry {
     ref.invalidate(MissionViewProviders.mission);
   }
 
+  /// Histórico da Bússola: o stream é a fonte.
+  static void healthHistory(WidgetRef ref) {
+    ref.invalidate(JourneyViewProviders.healthHistory);
+  }
+
   static void members(WidgetRef ref) {
     ref.invalidate(WorkspaceViewProviders.members);
   }

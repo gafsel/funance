@@ -249,9 +249,15 @@ class ReconciliationService {
     return matches;
   }
 
+  /// Confirma a conciliação.
+  ///
+  /// [uncategorizedLabel] é o nome da categoria criada para o lançamento que
+  /// o extrato não classificou. Ele vem da TELA porque é GRAVADO: o serviço
+  /// escrevia "Outros" em português no Firestore de qualquer usuário.
   Future<void> confirmReconciliation({
     required AccountModel selectedAccount,
     required List<ReconciliationMatch> matches,
+    required String uncategorizedLabel,
   }) async {
     final categories = await categoryService.getCategories().first;
 
@@ -350,7 +356,7 @@ class ReconciliationService {
               docTx.category ??
                   CategoryModel(
                     id: const Uuid().v4(),
-                    name: 'Outros',
+                    name: uncategorizedLabel,
                     icon: 'help',
                     color: '#9E9E9E',
                     type: type == OrderType.income

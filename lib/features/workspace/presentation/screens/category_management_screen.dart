@@ -10,6 +10,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import '../providers.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class CategoryManagementScreen extends ConsumerStatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -95,7 +96,7 @@ class _CategoryManagementScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.categoryDeleteTitle),
-        content: Text(l10n.categoryDeleteConfirm(category.name)),
+        content: Text(l10n.categoryDeleteConfirm(category.displayName(l10n))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -169,7 +170,7 @@ class _CategoryList extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    title: Text(category.name),
+                    title: Text(category.displayName(context.l10n)),
                     subtitle: Text(category.type.name.toUpperCase()),
                     trailing: isManaged ? null : Row(
                       mainAxisSize: MainAxisSize.min,

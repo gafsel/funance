@@ -397,6 +397,7 @@
   },
   "saveButton": "Salvar",
   "reconciliationTitle": "Conciliação Bancária",
+  "bankLogoOther": "Outros",
   "accountsMine": "Minhas contas",
   "accountsOfMember": "Contas de {name}",
   "@accountsOfMember": {
