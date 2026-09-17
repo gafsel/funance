@@ -50,7 +50,10 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
 
   /// Rotas internas que um slide pode acionar. A IA pode alucinar um
   /// `actionPath` fora deste conjunto; nesse caso o botão não é exibido.
+  /// Precisa ser a MESMA lista de `coaching_action_path.model.ts` no backend
+  /// (ver functions/README.md, "Rotas do coaching").
   static const _allowedActionPaths = {
+    '/',
     '/planning',
     '/planning-50-30-20',
     '/goals/form',

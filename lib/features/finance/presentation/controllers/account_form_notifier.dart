@@ -139,7 +139,7 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void>
         await analytics.logAccountCreated(account.type.name);
       } catch (_) {}
     } else {
-      await accountService.update(account);
+      recordWrite(await accountService.update(account));
     }
 
     // 1. Garantir que as categorias existam
@@ -169,9 +169,12 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void>
     }
 
     // 5. Salvar Orders e Plannings
-    await Future.wait(
+    final written = await Future.wait(
       processedOrders.map((order) => financeService.addOrder(order)),
     );
+    for (final w in written) {
+      recordWrite(w.outcome);
+    }
   }
 
   Future<CategoryModel> _findOrCreateCategory(
