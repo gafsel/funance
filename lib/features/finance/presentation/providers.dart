@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
@@ -52,6 +51,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/core/money/money.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class AutomaticTransactionDomainProviders {
   static final repository = Provider<IAutomaticTransactionRepository>((ref) {
@@ -561,10 +561,10 @@ class FinanceViewProviders {
   static final invoiceInstallments = StreamProvider.autoDispose
       .family<List<InstallmentModel>, InvoiceKey>((ref, invoice) {
         if (!invoice.hasServerCycle) {
-          developer.log(
+          AppLogger.debug(
             'Fatura ${invoice.invoiceId} sem janela de ciclo do servidor; '
             'aguardando a sincronização em vez de calcular no cliente.',
-            name: 'funances.providers',
+            name: 'providers',
           );
           return const Stream.empty();
         }
@@ -584,13 +584,16 @@ class FinanceViewProviders {
 
         return installments.when(
           data: (data) {
+            // Soma por categoria em CENTAVOS: um `+` de double por parcela
+            // desviava o total da fatia do gráfico da soma das linhas.
             final map = data
                 .where((installment) => installment.type == OrderType.expense)
-                .fold<Map<CategoryModel, double>>({}, (map, installment) {
+                .fold<Map<CategoryModel, Money>>({}, (map, installment) {
+                  final amount = installment.referenceAmount.asMoney;
                   map.update(
                     installment.category!,
-                    (value) => value + installment.referenceAmount,
-                    ifAbsent: () => installment.referenceAmount,
+                    (value) => value + amount,
+                    ifAbsent: () => amount,
                   );
                   return map;
                 });
@@ -601,7 +604,7 @@ class FinanceViewProviders {
                     .map(
                       (entry) => CategoryAmountModel(
                         category: entry.key,
-                        amount: entry.value,
+                        amount: entry.value.toDouble(),
                       ),
                     )
                     .toList()
@@ -611,16 +614,18 @@ class FinanceViewProviders {
               return Stream.value([
                 ...list.sublist(0, 9),
                 CategoryAmountModel(
-                  category: CategoryModel(
-                    id: "",
-                    name: "Outros",
-                    icon: "category",
-                    color: "#333333",
+                  // Categoria sintética: sem nome guardado, porque o nome é
+                  // "Outros" no idioma de quem lê (ver `displayName`).
+                  category: const CategoryModel(
+                    id: CategoryModel.othersId,
+                    name: '',
+                    icon: 'category',
+                    color: '#333333',
                   ),
-                  amount: list
-                      .sublist(9)
-                      .map((cat) => cat.amount)
-                      .reduce((a1, a2) => a1 + a2),
+                  amount: Money.sumOf(
+                    list.sublist(9),
+                    (cat) => cat.amount,
+                  ).toDouble(),
                 ),
               ]);
             }

@@ -1,8 +1,8 @@
-import 'dart:developer' as developer;
 
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/finance/domain/services/unplanned_nudge_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 /// Memória local de "já perguntei sobre esta categoria hoje".
 ///
@@ -30,11 +30,10 @@ class SharedPreferencesUnplannedNudgeStore implements IUnplannedNudgeStore {
     } catch (error, stack) {
       // Sem a preferência o convite aparece: perder a memória do dia é um
       // incômodo, e silenciar o convite por causa dela seria perder a feature.
-      developer.log(
+      AppLogger.error(
         'Falha ao ler a memória do nudge de gasto não planejado',
-        name: 'funances.nudge',
-        error: error,
-        stackTrace: stack,
+        error,
+        stack,
       );
       return false;
     }
@@ -53,11 +52,10 @@ class SharedPreferencesUnplannedNudgeStore implements IUnplannedNudgeStore {
         today.formated('yyyy-MM-dd'),
       );
     } catch (error, stack) {
-      developer.log(
+      AppLogger.error(
         'Falha ao gravar a memória do nudge de gasto não planejado',
-        name: 'funances.nudge',
-        error: error,
-        stackTrace: stack,
+        error,
+        stack,
       );
     }
   }

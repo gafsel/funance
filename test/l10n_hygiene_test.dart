@@ -43,16 +43,28 @@ void main() {
   });
 
   test('nenhuma chave órfã: tudo que está no ARB aparece no código', () {
-    final identifiers = <String>{};
+    // ACESSO DE MEMBRO, não "qualquer identificador": a versão anterior deste
+    // teste aceitava a chave `currentBalance` como usada porque existe um
+    // CAMPO com esse nome num modelo — nada a ver com a tradução. O que prova
+    // uso de uma chave é `l10n.chave` (ou `.chave` num alias), e é só isso que
+    // conta aqui.
+    final acessos = <String>{};
+    final membro = RegExp(r'\.([A-Za-z_][A-Za-z0-9_]*)');
+    final nu = RegExp(r'[A-Za-z_][A-Za-z0-9_]*');
+
     for (final file in _sourceFiles()) {
-      identifiers.addAll(
-        RegExp(r'[A-Za-z_][A-Za-z0-9_]*').allMatches(file.readAsStringSync()).map(
-              (m) => m.group(0)!,
-            ),
-      );
+      final fonte = file.readAsStringSync();
+      acessos.addAll(membro.allMatches(fonte).map((m) => m.group(1)!));
+
+      // Dentro de uma `extension ... on AppLocalizations` a chave é lida sem
+      // ponto (`return transactionStatusPaid;`) — ali o identificador solto É
+      // o acesso.
+      if (fonte.contains('on AppLocalizations')) {
+        acessos.addAll(nu.allMatches(fonte).map((m) => m.group(0)!));
+      }
     }
 
-    final orphans = pt.keys.where((k) => !identifiers.contains(k)).toList();
+    final orphans = pt.keys.where((k) => !acessos.contains(k)).toList();
 
     expect(orphans, isEmpty, reason: 'chaves sem uso: ${orphans.join(', ')}');
   });

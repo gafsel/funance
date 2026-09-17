@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
@@ -12,6 +11,7 @@ import '../../domain/models/order_model.dart';
 import '../../domain/repositories/finance_repository.dart';
 import '../models/installment_mapper.dart';
 import '../models/order_mapper.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 
 /// Troca o ISO que o converter produziu por um `Timestamp`, SEM tocar na hora.
@@ -129,17 +129,15 @@ class FinanceRepositoryImpl implements IFinanceRepository {
             .toList();
       }
 
-      log(
-        "Firestore returned ${snapshot.docs.length} docs, after filter: ${items.length} items. Descending: $descending",
+      AppLogger.debug(
+        'Firestore devolveu ${snapshot.docs.length} documentos; '
+        '${items.length} após o filtro (descendente: $descending)',
+        name: 'finance',
       );
 
       return QueryChunk(items: items, nextChunckRef: snapshot.docs.lastOrNull);
     } catch (e, s) {
-      log(
-        "Failed to query installments: ${e.toString()}",
-        error: e,
-        stackTrace: s,
-      );
+      AppLogger.error('Falha ao consultar parcelas', e, s);
 
       throw BusinessException.from(e, s);
     }
@@ -330,11 +328,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         return CategoryPlanningModel.fromJson(data);
       }).toList();
     } catch (e, s) {
-      log(
-        "Failed to load category plannings ${e.toString()}",
-        error: e,
-        stackTrace: s,
-      );
+      AppLogger.error('Falha ao carregar os planejamentos', e, s);
 
       throw BusinessException.from(e, s);
     }

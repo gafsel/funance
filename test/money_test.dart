@@ -47,6 +47,33 @@ void main() {
       expect(saldo.isNegative, isFalse);
     });
 
+    test('o centavo do meio não escorrega: 1,005 e 2,675', () {
+      // Em ponto flutuante, 1.005 * 100 = 100.49999999999999 e
+      // 2.675 * 100 = 267.49999999999994. Sem o recorte de precisão, os dois
+      // arredondariam PARA BAIXO e o usuário perderia um centavo que digitou.
+      expect(Money.fromDouble(1.005).cents, 101);
+      expect(Money.fromDouble(2.675).cents, 268);
+      expect(Money.fromDouble(1.015).cents, 102);
+    });
+
+    test('o empate vai para longe do zero, dos dois lados', () {
+      expect(Money.fromDouble(-1.005).cents, -101);
+      expect(Money.fromDouble(-2.675).cents, -268);
+      expect(Money.fromDouble(0.005).cents, 1);
+      expect(Money.fromDouble(-0.005).cents, -1);
+    });
+
+    test('o ruído do double não vira centavo', () {
+      expect(Money.fromDouble(0.1 + 0.2).cents, 30);
+      expect(Money.fromDouble(1.0049).cents, 100);
+      expect(Money.fromDouble(1.0051).cents, 101);
+    });
+
+    test('valor não finito não explode: vira zero', () {
+      expect(Money.fromDouble(double.nan), Money.zero);
+      expect(Money.fromDouble(double.infinity), Money.zero);
+    });
+
     test('multiplicação arredonda no centavo', () {
       expect((Money.fromDouble(10.01) * 0.5).toDouble(), 5.01);
       expect((Money.fromDouble(100) * 0.3).toDouble(), 30.0);

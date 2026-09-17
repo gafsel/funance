@@ -902,6 +902,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reconciliationTitle => 'Bank Reconciliation';
 
   @override
+  String get accountsMine => 'My accounts';
+
+  @override
+  String accountsOfMember(String name) {
+    return '$name\'s accounts';
+  }
+
+  @override
+  String get accountsShared => 'Shared accounts';
+
+  @override
+  String planning503020TargetPercent(String percent) {
+    return 'Target: $percent';
+  }
+
+  @override
+  String get noCategory => 'No category';
+
+  @override
+  String get noDescription => 'No description';
+
+  @override
+  String get unnamedAccount => 'Unnamed account';
+
+  @override
+  String get unnamedGoal => 'Unnamed goal';
+
+  @override
   String get automaticTransactionMoveWorkspace => 'Move to another workspace';
 
   @override
@@ -1627,9 +1655,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get accountStatementFuture => 'Future';
-
-  @override
-  String get currentBalance => 'Current Balance';
 
   @override
   String get transactions => 'Transactions';

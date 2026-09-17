@@ -334,6 +334,28 @@
   },
   "saveButton": "Save",
   "reconciliationTitle": "Bank Reconciliation",
+  "accountsMine": "My accounts",
+  "accountsOfMember": "{name}'s accounts",
+  "@accountsOfMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountsShared": "Shared accounts",
+  "planning503020TargetPercent": "Target: {percent}",
+  "@planning503020TargetPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "noCategory": "No category",
+  "noDescription": "No description",
+  "unnamedAccount": "Unnamed account",
+  "unnamedGoal": "Unnamed goal",
   "automaticTransactionMoveWorkspace": "Move to another workspace",
   "accountOwnersLabel": "Account owners",
   "reconciliationPickTransaction": "Pick a transaction",
@@ -616,7 +638,6 @@
   "weeklyMissionsSuccessMessage": "Congratulations! You completed all activities for this week. Keep it up to maintain your financial health!",
   "accountStatementCurrent": "Current",
   "accountStatementFuture": "Future",
-  "currentBalance": "Current Balance",
   "transactions": "Transactions",
   "challengeStatusStable": "Stable",
   "challengeStatusWarning": "Warning",

@@ -1712,6 +1712,54 @@ abstract class AppLocalizations {
   /// **'Conciliação Bancária'**
   String get reconciliationTitle;
 
+  /// No description provided for @accountsMine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas contas'**
+  String get accountsMine;
+
+  /// No description provided for @accountsOfMember.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contas de {name}'**
+  String accountsOfMember(String name);
+
+  /// No description provided for @accountsShared.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contas compartilhadas'**
+  String get accountsShared;
+
+  /// No description provided for @planning503020TargetPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta: {percent}'**
+  String planning503020TargetPercent(String percent);
+
+  /// No description provided for @noCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem categoria'**
+  String get noCategory;
+
+  /// No description provided for @noDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem descrição'**
+  String get noDescription;
+
+  /// No description provided for @unnamedAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta sem nome'**
+  String get unnamedAccount;
+
+  /// No description provided for @unnamedGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta sem nome'**
+  String get unnamedGoal;
+
   /// No description provided for @automaticTransactionMoveWorkspace.
   ///
   /// In pt, this message translates to:
@@ -3055,12 +3103,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Futuros'**
   String get accountStatementFuture;
-
-  /// No description provided for @currentBalance.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saldo Atual'**
-  String get currentBalance;
 
   /// No description provided for @transactions.
   ///

@@ -1,7 +1,7 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 typedef LoadingWrapper = Future<T?> Function<T>(Future<T?> future);
 typedef LoadingCallback = Function(LoadingWrapper wrapper);
@@ -200,12 +200,7 @@ class _LoadingButtonState extends State<LoadingButton> {
       );
       rethrow;
     } catch (ex, stack) {
-      developer.log(
-        'Erro não tratado no LoadingButton',
-        name: 'funances.LoadingButton',
-        error: ex,
-        stackTrace: stack,
-      );
+      AppLogger.error('Erro não tratado no LoadingButton', ex, stack);
       rethrow;
     } finally {
       if (mounted && !keepLoading) {

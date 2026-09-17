@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
 
 /// F4.5 — o erro que chega à tela precisa dizer O QUE aconteceu. Enquanto toda
 /// falha virava `unknown`, a tela mais comum de todas (sem internet) mostrava
@@ -44,12 +45,17 @@ void main() {
   });
 
   group('callable', () {
-    test('internal sem mensagem, na web, é falta de rede', () {
-      final semRede = FirebaseFunctionsException(
-        code: 'internal',
-        message: '',
-      );
-      expect(errorCodeFor(semRede), ErrorCode.offline);
+    test('internal mudo NÃO é offline fora da web', () {
+      // Estes testes rodam na VM (`kIsWeb` falso), que é justamente o caso em
+      // que o SDK tem código próprio para falta de rede (`unavailable`). Ali,
+      // um `internal` sem mensagem é falha do backend — chamá-la de offline
+      // mandaria o usuário conferir a conexão por um problema que não é dele.
+      // A exceção da web continua valendo lá, onde o `fetch` que não sai chega
+      // exatamente assim.
+      final mudo = FirebaseFunctionsException(code: 'internal', message: '');
+
+      expect(errorCodeFor(mudo), ErrorCode.unknown);
+      expect(isOfflineCallable(mudo), isFalse);
     });
 
     test('internal COM mensagem é erro do servidor, não offline', () {
@@ -58,6 +64,22 @@ void main() {
         message: 'o modelo recusou a entrada',
       );
       expect(errorCodeFor(doServidor), ErrorCode.unknown);
+      expect(isOfflineCallable(doServidor), isFalse);
+    });
+
+    test('unavailable e deadline-exceeded são offline em qualquer plataforma', () {
+      expect(
+        isOfflineCallable(
+          FirebaseFunctionsException(code: 'unavailable', message: ''),
+        ),
+        isTrue,
+      );
+      expect(
+        errorCodeFor(
+          FirebaseFunctionsException(code: 'unavailable', message: ''),
+        ),
+        ErrorCode.offline,
+      );
     });
   });
 

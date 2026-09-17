@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/goal/data/repositories/goal_repository_impl.dart';
@@ -50,5 +52,40 @@ void main() {
         expect(data.containsKey('failedAt'), isFalse);
       }
     }
+  });
+
+  /// O payload acima só preserva o progresso porque a gravação é um
+  /// `update()`: ele toca apenas as chaves enviadas. Um `set()` sem merge
+  /// zeraria `currentAmount` justamente por ele ter sido omitido — o bug
+  /// voltaria pela porta dos fundos, sem nenhum teste de payload falhar.
+  ///
+  /// Sem um Firestore de mentira no projeto, a garantia é lida na fonte: é
+  /// grosseiro, mas pega exatamente a troca que quebraria o contrato.
+  group('a gravação da edição é um update', () {
+    final fonte = File(
+      'lib/features/goal/data/repositories/goal_repository_impl.dart',
+    ).readAsStringSync();
+
+    String corpoDe(String assinatura) {
+      final inicio = fonte.indexOf(assinatura);
+      expect(inicio, isNot(-1), reason: 'método $assinatura não encontrado');
+      final fim = fonte.indexOf('\n  }', inicio);
+      return fonte.substring(inicio, fim);
+    }
+
+    test('updateGoal chama update(), nunca set()', () {
+      final corpo = corpoDe('Future<WriteOutcome> updateGoal(');
+
+      expect(corpo, contains('.update(data)'));
+      expect(corpo, isNot(contains('.set(')));
+      expect(corpo, contains('creation: false'));
+    });
+
+    test('addGoal cria o documento com set() e id gerado localmente', () {
+      final corpo = corpoDe('Future<Written<GoalModel>> addGoal(');
+
+      expect(corpo, contains('.set(data)'));
+      expect(corpo, contains('creation: true'));
+    });
   });
 }

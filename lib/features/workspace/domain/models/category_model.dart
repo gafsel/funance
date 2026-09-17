@@ -48,6 +48,11 @@ sealed class CategoryModel with _$CategoryModel {
   factory CategoryModel.fromJson(Map<String, dynamic> json) =>
       _$CategoryModelFromJson(json);
 
+  /// Categoria SINTÉTICA do agrupamento "Outros": não existe no Firestore, é
+  /// montada pela apresentação quando a lista passa de dez linhas. O nome sai
+  /// do l10n (ver `CategoryDisplayName.displayName`), não deste modelo.
+  static const String othersId = 'others';
+
   static const String virtualDebtExpenseId = 'virtual_debt_expense';
   static const String virtualDebtIncomeId = 'virtual_debt_income';
   static const String virtualInvestmentExpenseId = 'virtual_investment_expense';

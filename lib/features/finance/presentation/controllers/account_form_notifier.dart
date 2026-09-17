@@ -1,7 +1,5 @@
-import 'dart:developer';
 
 import 'package:funances/core/analytics/analytics_service.dart';
-import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/core/firestore/offline_write.dart';
 import 'package:funances/core/form/form_notifier.dart';
@@ -14,6 +12,7 @@ import 'package:funances/features/finance/presentation/model/account_view_models
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:uuid/uuid.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class AccountFormNotifier extends FormNotifier<AccountFormState, void>
     with TracksWriteOutcome {
@@ -68,7 +67,16 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void>
   void updateOwnerIds(List<String> ownerIds) =>
       state = state.copyWith(ownerIds: ownerIds);
 
-  Future<void> updateFile(PickedDocument? document) async {
+  /// Analisa o documento e preenche o formulário.
+  ///
+  /// [unnamedAccountLabel] é o nome a usar quando a análise não descobre um:
+  /// o texto vem da TELA, porque ele é gravado no Firestore junto com a conta
+  /// e precisa estar no idioma de quem está criando. O mapper devolve nome
+  /// vazio em vez de inventar um "Nova Conta" em português.
+  Future<void> updateFile(
+    PickedDocument? document, {
+    required String unnamedAccountLabel,
+  }) async {
     state = state.copyWith(
       selectedFile: document,
       processingStatus: document != null
@@ -85,7 +93,9 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void>
         final accountData = analysis.account;
 
         state = state.copyWith(
-          name: accountData.name,
+          name: accountData.name.trim().isEmpty
+              ? unnamedAccountLabel
+              : accountData.name,
           type: accountData.type,
           color: accountData.color,
           icon: accountData.icon,
@@ -103,18 +113,15 @@ class AccountFormNotifier extends FormNotifier<AccountFormState, void>
           detectedOrders: analysis.orders,
           processingStatus: AccountProcessingStatus.completed,
         );
-      } catch (e) {
-        log(e.toString());
+      } catch (e, stack) {
+        AppLogger.error('Falha ao analisar o documento da conta', e, stack);
 
-        final rawMessage = e.toString().contains('BusinessException')
-            ? e.toString().split(':').last.trim()
-            : e.toString();
-
+        // O ERRO fica guardado; quem o transforma em frase é a tela, que tem
+        // o idioma. Antes era `e.toString().split(':').last`, que entregava
+        // "ErrorCode.offline" ao usuário — nome de constante do código.
         state = state.copyWith(
           processingStatus: AccountProcessingStatus.failed,
-          // Limite diário de IA tem mensagem própria do servidor, já pronta
-          // para o usuário.
-          errorMessage: callableErrorMessage(e, rawMessage),
+          analysisError: e,
         );
       }
     }

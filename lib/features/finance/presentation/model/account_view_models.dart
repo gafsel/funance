@@ -52,7 +52,9 @@ sealed class AccountFormState with _$AccountFormState {
     PickedDocument? selectedFile,
     @Default(AccountProcessingStatus.none)
     AccountProcessingStatus processingStatus,
-    String? errorMessage,
+    /// O erro cru da análise do documento. A frase é montada na TELA, com
+    /// `callableErrorMessage`/`errorMessageFor`: aqui não há idioma.
+    Object? analysisError,
     @Default(AccountRegistrationMethod.document)
     AccountRegistrationMethod registrationMethod,
     @Default([]) List<OrderModel> detectedOrders,

@@ -746,7 +746,11 @@ class _PoolWidget extends ConsumerWidget {
                             child: Column(
                               children: [
                                 Text(
-                                  'Meta: ${allocation.idealPercentage.asPercent(locale: context.locale)}',
+                                  context.l10n.planning503020TargetPercent(
+                                    allocation.idealPercentage.asPercent(
+                                      locale: context.locale,
+                                    ),
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.bold,

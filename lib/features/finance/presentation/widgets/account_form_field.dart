@@ -6,6 +6,7 @@ import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
+import 'package:funances/core/utils/error_messages.dart';
 
 class AccountFormField extends ConsumerWidget {
   const AccountFormField({
@@ -146,7 +147,34 @@ class AccountFormField extends ConsumerWidget {
                 width: 20,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              error: (_, _) => const Icon(Icons.error),
+              // Um ícone de erro não diz o que houve nem o que fazer. A
+              // linha cabe numa conta só: texto curto e um toque para tentar
+              // de novo, que é o que resolve o caso comum (sem rede).
+              error: (error, _) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.cloud_off,
+                    size: 18,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      errorMessageFor(context, error),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 18),
+                    tooltip: l10n.retry,
+                    onPressed: () =>
+                        ref.invalidate(AccountViewProviders.byId(accountId!)),
+                  ),
+                ],
+              ),
             ),
           ),
         );

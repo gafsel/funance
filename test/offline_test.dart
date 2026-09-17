@@ -240,9 +240,18 @@ void main() {
       expect(isOfflineCallable(_callableError('deadline-exceeded')), isTrue);
     });
 
-    test('internal sem mensagem é o fetch da web que não saiu', () {
-      expect(isOfflineCallable(_callableError('internal')), isTrue);
-      expect(isOfflineCallable(_callableError('internal', '  ')), isTrue);
+    test('internal sem mensagem só é falta de rede NA WEB', () {
+      // O `internal` mudo é a cara de um `fetch` que não saiu — e isso só
+      // acontece na web. Fora dela (onde este teste roda) o SDK tem código
+      // próprio para falta de rede, e um `internal` sem mensagem é falha do
+      // backend: tratá-lo como offline mandaria o usuário conferir a conexão
+      // por um problema que não é dele. A regra é guardada por `kIsWeb`.
+      expect(isOfflineCallable(_callableError('internal')), isFalse);
+      expect(isOfflineCallable(_callableError('internal', '  ')), isFalse);
+
+      // O que vale em qualquer plataforma continua valendo.
+      expect(isOfflineCallable(_callableError('unavailable')), isTrue);
+      expect(isOfflineCallable(_callableError('deadline-exceeded')), isTrue);
     });
 
     test('internal COM mensagem é erro do backend, não falta de rede', () {

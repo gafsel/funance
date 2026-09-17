@@ -15,6 +15,7 @@ import 'package:funances/features/finance/presentation/widgets/transaction_list_
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
   final InstallmentModel invoice;
@@ -351,7 +352,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              cat.category.name,
+                              cat.category.displayName(context.l10n),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 fontSize: 10,
                                 color: contentColor.withValues(alpha: 0.8),

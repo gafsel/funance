@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -14,6 +13,7 @@ import '../../domain/models/reconciliation_model.dart';
 import '../../domain/models/account_model.dart';
 import '../models/account_mapper.dart';
 import '../models/finance_mapper.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class AccountRepositoryImpl implements IAccountRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -235,11 +235,11 @@ class AccountRepositoryImpl implements IAccountRepository {
           .map((t) => FinanceMapper.toReconciliationTransaction(t))
           .toList();
     } on FirebaseFunctionsException catch (e, s) {
-      log("Failed to analyze reconciliation document", error: e, stackTrace: s);
+      AppLogger.error('Falha ao analisar o documento de conciliação', e, s);
 
       throw _fromCallable(e, s);
     } catch (e, s) {
-      log("Failed to analyze reconciliation document", error: e, stackTrace: s);
+      AppLogger.error('Falha ao analisar o documento de conciliação', e, s);
 
       throw BusinessException.from(e, s);
     }

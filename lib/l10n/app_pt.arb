@@ -397,6 +397,28 @@
   },
   "saveButton": "Salvar",
   "reconciliationTitle": "Conciliação Bancária",
+  "accountsMine": "Minhas contas",
+  "accountsOfMember": "Contas de {name}",
+  "@accountsOfMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountsShared": "Contas compartilhadas",
+  "planning503020TargetPercent": "Meta: {percent}",
+  "@planning503020TargetPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "noCategory": "Sem categoria",
+  "noDescription": "Sem descrição",
+  "unnamedAccount": "Conta sem nome",
+  "unnamedGoal": "Meta sem nome",
   "automaticTransactionMoveWorkspace": "Mover para outro workspace",
   "accountOwnersLabel": "Titulares da conta",
   "reconciliationPickTransaction": "Selecionar lançamento",
@@ -635,7 +657,6 @@
   "weeklyMissionsSuccessMessage": "Parabéns! Você completou todas as atividades desta semana. Continue assim para manter sua saúde financeira em dia!",
   "accountStatementCurrent": "Atual",
   "accountStatementFuture": "Futuros",
-  "currentBalance": "Saldo Atual",
   "transactions": "Lançamentos",
   "challengeStatusStable": "Estável",
   "challengeStatusWarning": "Alerta",

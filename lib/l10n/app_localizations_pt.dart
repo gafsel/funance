@@ -910,6 +910,34 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reconciliationTitle => 'Conciliação Bancária';
 
   @override
+  String get accountsMine => 'Minhas contas';
+
+  @override
+  String accountsOfMember(String name) {
+    return 'Contas de $name';
+  }
+
+  @override
+  String get accountsShared => 'Contas compartilhadas';
+
+  @override
+  String planning503020TargetPercent(String percent) {
+    return 'Meta: $percent';
+  }
+
+  @override
+  String get noCategory => 'Sem categoria';
+
+  @override
+  String get noDescription => 'Sem descrição';
+
+  @override
+  String get unnamedAccount => 'Conta sem nome';
+
+  @override
+  String get unnamedGoal => 'Meta sem nome';
+
+  @override
   String get automaticTransactionMoveWorkspace => 'Mover para outro workspace';
 
   @override
@@ -1641,9 +1669,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get accountStatementFuture => 'Futuros';
-
-  @override
-  String get currentBalance => 'Saldo Atual';
 
   @override
   String get transactions => 'Lançamentos';

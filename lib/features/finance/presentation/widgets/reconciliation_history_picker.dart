@@ -15,6 +15,7 @@ import 'package:funances/features/finance/presentation/widgets/transaction_filte
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class ReconciliationHistoryPicker extends ConsumerWidget {
   final TransactionQuery initialQuery;
@@ -179,14 +180,14 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
           ),
         ),
         title: Text(
-          item.description,
+          displayOr(item.description, context.l10n.noDescription),
           style: const TextStyle(
             color: AppColors.pureWhite,
             fontWeight: FontWeight.w500,
           ),
         ),
         subtitle: Text(
-          item.category?.name ?? 'Sem categoria',
+          item.category?.displayName(context.l10n) ?? context.l10n.noCategory,
           style: TextStyle(
             color: AppColors.pureWhite.withValues(alpha: 0.5),
             fontSize: 12,

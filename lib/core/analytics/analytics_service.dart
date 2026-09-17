@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
 
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 
 /// Eventos do funil principal do produto.
@@ -134,12 +134,7 @@ class FirebaseAnalyticsService implements AnalyticsService {
     try {
       await _analytics.logEvent(name: name, parameters: parameters);
     } catch (error, stack) {
-      developer.log(
-        'Falha ao enviar evento $name',
-        name: 'funances.analytics',
-        error: error,
-        stackTrace: stack,
-      );
+      AppLogger.error('Falha ao enviar o evento $name', error, stack);
     }
   }
 }

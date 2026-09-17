@@ -80,7 +80,6 @@ class AccountSelectionScreen extends ConsumerWidget {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final List<Widget> slivers = [];
-                          final isPt = Localizations.localeOf(context).languageCode == 'pt';
                           final isSmall = constraints.maxWidth < 600;
                           final gridPadding = isSmall ? 12.0 : 16.0;
                           final gridSpacing = isSmall ? 12.0 : 16.0;
@@ -109,8 +108,10 @@ class AccountSelectionScreen extends ConsumerWidget {
                             if (ownerAccounts.isEmpty) continue;
 
                             final ownerHeader = isMe
-                                ? (isPt ? "Minhas Contas" : "My Accounts")
-                                : (isPt ? "Contas de ${member.displayName}" : "${member.displayName}'s Accounts");
+                                ? l10n.accountsMine
+                                : l10n.accountsOfMember(
+                                    member.displayName ?? '',
+                                  );
 
                             // Adicionar SliverHeader para o titular
                             slivers.add(
@@ -175,7 +176,7 @@ class AccountSelectionScreen extends ConsumerWidget {
                               .toList();
 
                           if (sharedAccounts.isNotEmpty) {
-                            final sharedHeader = isPt ? "Contas Compartilhadas" : "Shared Accounts";
+                            final sharedHeader = l10n.accountsShared;
 
                             slivers.add(
                               _buildOwnerHeader(context, sharedHeader, null),

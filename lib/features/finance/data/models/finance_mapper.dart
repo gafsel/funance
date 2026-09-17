@@ -6,13 +6,22 @@ import 'package:funances/features/finance/domain/models/reconciliation_model.dar
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/money/money.dart';
 
+/// Conversão do que a IA e os documentos devolvem.
+///
+/// Nenhum texto de usuário nasce aqui. Nome, descrição e categoria ausentes
+/// viram string VAZIA, e quem escolhe a palavra ("Sem categoria", "Conta sem
+/// nome") é a tela, no idioma de quem está lendo — ver
+/// `core/presentation/display_names.dart`. Enquanto o padrão era escrito em
+/// português neste arquivo, uma sugestão aceita no onboarding gravava
+/// "Nova Conta" no Firestore de qualquer usuário, em qualquer idioma.
 class FinanceMapper {
   static CategoryModel toCategory(dynamic json) {
     if (json == null || json is! Map) {
       return const CategoryModel(
         id: '',
-        name: 'Sem Categoria',
+        name: '',
         icon: 'category',
         color: '#9E9E9E',
       );
@@ -20,7 +29,7 @@ class FinanceMapper {
 
     return CategoryModel(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'Sem Categoria',
+      name: json['name']?.toString() ?? '',
       icon: json['icon']?.toString() ?? 'category',
       color: json['color']?.toString() ?? '#9E9E9E',
       type: _toCategoryType(json['type']),
@@ -40,7 +49,7 @@ class FinanceMapper {
     if (json == null || json is! Map) {
       return AccountModel.checking(
         id: '',
-        name: 'Conta Indeterminada',
+        name: '',
         icon: 'help',
         color: '#9E9E9E',
         initialBalanceDate: DateTime.now(),
@@ -48,7 +57,7 @@ class FinanceMapper {
     }
 
     final id = json['id']?.toString() ?? '';
-    final name = json['name']?.toString() ?? 'Nova Conta';
+    final name = json['name']?.toString() ?? '';
     final icon = json['icon']?.toString() ?? 'account_balance';
     final color = json['color']?.toString() ?? '#4A8C9C';
     final isDeleted = json['isDeleted'] == true;
@@ -111,7 +120,7 @@ class FinanceMapper {
       return OrderModel(
         id: '',
         amount: 0.0,
-        description: 'Sem descrição',
+        description: '',
         dueDay: DateTime.now().day,
         startMonth:
             '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
@@ -129,7 +138,7 @@ class FinanceMapper {
     return OrderModel(
       id: json['id']?.toString() ?? '',
       amount: _toDouble(json['amount']),
-      description: json['description']?.toString() ?? 'Lançamento IA',
+      description: json['description']?.toString() ?? '',
       dueDay: _toInt(json['dueDay'], dueDate.day),
       startMonth:
           json['startMonth']?.toString() ??
@@ -161,15 +170,14 @@ class FinanceMapper {
               .map((order) => order.firstDueDate)
               .reduce((d1, d2) => d1.isBefore(d2) ? d1 : d2)
               .subtract(Duration(days: 1));
-    final deltaAmount = orders.isEmpty
-        ? 0.0
-        : orders
-              .map(
-                (order) => order.type == OrderType.expense
-                    ? -order.amount
-                    : order.amount,
-              )
-              .reduce((a1, a2) => a1 + a2);
+    // O delta vira o `initialBalance` da conta — um número que será GRAVADO.
+    // Somado em double, um extrato com dezenas de lançamentos entregava um
+    // saldo inicial com resto de ponto flutuante, e a conta nascia com um
+    // centavo que não veio de lançamento nenhum.
+    final deltaAmount = Money.sumOf(
+      orders,
+      (order) => order.type == OrderType.expense ? -order.amount : order.amount,
+    ).toDouble();
 
     return AccountDocumentAnalysisResult(
       account: toAccount(json['account'], initialBalanceDate, deltaAmount),
@@ -207,7 +215,7 @@ class FinanceMapper {
     if (json == null || json is! Map) {
       return GoalModel.saveMoney(
         id: '',
-        name: 'Nova Meta',
+        name: '',
         targetAmount: 0.0,
         currentAmount: 0.0,
         deadline: DateTime.now().add(const Duration(days: 365)),
@@ -222,7 +230,7 @@ class FinanceMapper {
       case GoalType.saveMoney:
         return GoalModel.saveMoney(
           id: json['id']?.toString() ?? '',
-          name: json['name']?.toString() ?? 'Nova Meta',
+          name: json['name']?.toString() ?? '',
           targetAmount: _toDouble(json['targetAmount']),
           currentAmount: _toDouble(json['currentAmount']),
           deadline: json['deadline'] != null
@@ -235,7 +243,7 @@ class FinanceMapper {
       case GoalType.payDebt:
         return GoalModel.payDebt(
           id: json['id']?.toString() ?? '',
-          name: json['name']?.toString() ?? 'Nova Meta',
+          name: json['name']?.toString() ?? '',
           targetAmount: _toDouble(json['targetAmount']),
           currentAmount: _toDouble(json['currentAmount']),
           deadline: json['deadline'] != null
@@ -248,7 +256,7 @@ class FinanceMapper {
       case GoalType.reduceCreditCard:
         return GoalModel.reduceCreditCard(
           id: json['id']?.toString() ?? '',
-          name: json['name']?.toString() ?? 'Nova Meta',
+          name: json['name']?.toString() ?? '',
           targetAmount: _toDouble(json['targetAmount']),
           currentAmount: _toDouble(json['currentAmount']),
           deadline: json['deadline'] != null
@@ -261,7 +269,7 @@ class FinanceMapper {
       case GoalType.reduceExpense:
         return GoalModel.reduceExpense(
           id: json['id']?.toString() ?? '',
-          name: json['name']?.toString() ?? 'Nova Meta',
+          name: json['name']?.toString() ?? '',
           targetAmount: _toDouble(json['targetAmount']),
           currentAmount: _toDouble(json['currentAmount']),
           deadline: json['deadline'] != null
@@ -352,7 +360,7 @@ class FinanceMapper {
   static ReconciliationTransaction toReconciliationTransaction(dynamic json) {
     if (json == null || json is! Map) {
       return ReconciliationTransaction(
-        description: 'Sem descrição',
+        description: '',
         amount: 0.0,
         date: DateTime.now(),
         type: OrderType.expense,
@@ -360,7 +368,7 @@ class FinanceMapper {
     }
 
     return ReconciliationTransaction(
-      description: json['description']?.toString() ?? 'Sem descrição',
+      description: json['description']?.toString() ?? '',
       amount: _toDouble(json['amount']),
       date: _toDateTime(json['date']),
       type: _toOrderType(json['type']),

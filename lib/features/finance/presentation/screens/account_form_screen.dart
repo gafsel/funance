@@ -19,6 +19,8 @@ import 'package:funances/features/workspace/presentation/widgets/members_form_fi
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../domain/models/account_model.dart';
+import 'package:funances/core/exceptions/callable_error_message.dart';
+import 'package:funances/core/utils/error_messages.dart';
 
 class AccountFormScreen extends ConsumerWidget {
   final AccountModel? account;
@@ -124,7 +126,13 @@ class AccountFormScreen extends ConsumerWidget {
                                     : state.processingStatus ==
                                           AccountProcessingStatus.failed
                                     ? Text(
-                                        state.errorMessage ?? l10n.errorUnknown,
+                                        callableErrorMessage(
+                                          state.analysisError ?? '',
+                                          errorMessageFor(
+                                            context,
+                                            state.analysisError,
+                                          ),
+                                        ),
                                         style: TextStyle(
                                           color: theme.colorScheme.error,
                                           fontSize: 10,
@@ -136,7 +144,10 @@ class AccountFormScreen extends ConsumerWidget {
                                     Icons.close,
                                     color: Colors.red,
                                   ),
-                                  onPressed: () => notifier.updateFile(null),
+                                  onPressed: () => notifier.updateFile(
+                                    null,
+                                    unnamedAccountLabel: l10n.unnamedAccount,
+                                  ),
                                 ),
                               ),
                             )
@@ -151,7 +162,10 @@ class AccountFormScreen extends ConsumerWidget {
                                 final extension = document.extension;
                                 showLoadingModal(
                                   context,
-                                  notifier.updateFile(document),
+                                  notifier.updateFile(
+                                    document,
+                                    unnamedAccountLabel: l10n.unnamedAccount,
+                                  ),
                                   child: AnalysisLoadingView(
                                     firstPhaseDuration: extension == 'ofx'
                                         ? const Duration(seconds: 20)

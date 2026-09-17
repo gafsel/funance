@@ -1,6 +1,6 @@
-import 'dart:developer' as developer;
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
+import 'package:funances/core/observability/app_logger.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 
@@ -93,8 +93,12 @@ ErrorCode errorCodeFor(Object? error) {
   if (code == null) return ErrorCode.unknown;
 
   // A web devolve `internal` sem mensagem quando o `fetch` do callable nem
-  // sai — ver `isOfflineCallable`.
-  if (error is FirebaseFunctionsException &&
+  // sai — ver `isOfflineCallable`. Só na WEB: fora dela o SDK tem código
+  // próprio para falta de rede (`unavailable`), e um `internal` mudo do
+  // servidor é erro de backend de verdade — chamá-lo de offline mandaria o
+  // usuário conferir a conexão por um problema que não é dele.
+  if (kIsWeb &&
+      error is FirebaseFunctionsException &&
       code == 'internal' &&
       (error.message?.trim().isEmpty ?? true)) {
     return ErrorCode.offline;
@@ -127,11 +131,12 @@ class BusinessException implements Exception {
     this.originalError,
     this.stackTrace,
   }) {
-    developer.log(
+    // Rastro de desenvolvimento, não relatório: uma `BusinessException` é
+    // quase sempre esperada (sem rede, sem permissão) e mandar cada uma ao
+    // Crashlytics afogaria o painel. Quem decide relatar é quem TRATA o erro.
+    AppLogger.debug(
       'BusinessException: $code ${message ?? ''}',
-      name: 'funances.exception',
-      error: originalError,
-      stackTrace: stackTrace,
+      name: 'exception',
     );
   }
 
