@@ -32,7 +32,6 @@ import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
 import 'package:funances/features/user/presentation/screens/user_profile_screen.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
-import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/screens/badges_cabinet_screen.dart';
@@ -43,6 +42,7 @@ import 'package:funances/features/workspace/presentation/screens/workspace_setti
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/router/app_redirect.dart';
 
 /// Notifica o GoRouter quando auth/workspace/convites mudam, sem recriar o
 /// router (recriar o router descarta a pilha de navegação inteira).
@@ -191,61 +191,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
     ),
-    redirect: (context, state) {
-      final authState = ref.read(AuthDomainProviders.user);
-      final workspaceState = ref.read(WorkspaceViewProviders.workspace);
-      final inviteState = ref.read(inviteNotifierProvider);
-
-      final isSplash = state.matchedLocation == '/splash';
-
-      if (authState.isLoading) {
-        return isSplash ? null : '/splash';
-      }
-
-      final user = authState.valueOrNull;
-      final isLoggingIn = state.matchedLocation == '/login';
-
-      if (user == null) {
-        if (isLoggingIn) return null;
-        return '/login';
-      }
-
-      // Aguarda carregamento inicial
-      if (workspaceState.isLoading ||
-          !workspaceState.initialLoadDone ||
-          inviteState.isLoading ||
-          !inviteState.initialLoadDone) {
-        return null;
-      }
-
-      if (isLoggingIn || isSplash) {
-        return '/';
-      }
-
-      // Convites pendentes
-      if (inviteState.pendingInvites.isNotEmpty) {
-        if (state.matchedLocation != '/invites') {
-          return '/invites';
-        }
-
-        return null;
-      }
-
-      // Onboarding
-      final hasNoWorkspaces = workspaceState.availableWorkspaces.isEmpty;
-      final needsOnboarding =
-          (workspaceState.currentWorkspace?.lastOnboardingStep ??
-              OnboardingSteps.done) !=
-          OnboardingSteps.done;
-
-      if ((hasNoWorkspaces || needsOnboarding) &&
-          state.matchedLocation != '/onboarding' &&
-          state.matchedLocation != '/accounts/form') {
-        return '/onboarding';
-      }
-
-      return null;
-    },
+    // A decisão de para onde mandar o usuário no boot é uma função pura, em
+    // `app_redirect.dart`: dentro desta closure ela não tinha como ser
+    // testada sem montar o router inteiro, e não era.
+    redirect: (context, state) => appRedirect(
+      auth: ref.read(AuthDomainProviders.user),
+      workspace: ref.read(WorkspaceViewProviders.workspace),
+      invites: ref.read(inviteNotifierProvider),
+      location: state.matchedLocation,
+    ),
     routes: [
       GoRoute(
         path: '/splash',
