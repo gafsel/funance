@@ -14,6 +14,9 @@ import {
     VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
 } from "../../../workspace/domain/models/category.model";
 import { getWeekRefBefore } from "../../../../core/utils/week.utils";
+import { auditAudienceVocabulary } from "../../../../core/services/ai_validation";
+import { AUDIENCE_FORBIDDEN_TERMS } from "../../../goal/domain/models/mission_catalog";
+import { resolveAudience } from "../../../goal/domain/models/audience.model";
 import { CategoryGroupService } from "./category_group.service";
 import { CategoryGroup } from "../models/category_group.model";
 import {
@@ -272,7 +275,7 @@ export class CoachingService {
         }
 
         // 8. Validação server-side do payload gerado pela IA
-        const validated = this.validateCoachingResponse(coachingResponse);
+        const validated = this.validateCoachingResponse(coachingResponse, workspaceType);
 
         // 9. Persistência server-side (o cliente não deve mais gravar este documento)
         const generatedAt = new Date();
@@ -316,7 +319,20 @@ export class CoachingService {
         return null;
     }
 
-    private validateCoachingResponse(response: unknown): CoachingAnalysisPayload {
+    /**
+     * Valida o payload da IA e AUDITA o vocabulário contra o tipo de workspace.
+     *
+     * A auditoria só REGISTRA. Diferente da missão semanal — cujo texto é
+     * inventado pela IA sobre um objetivo fixo, e por isso pode ser descartado
+     * sem perda —, um slide de coaching fala das categorias REAIS do
+     * workspace: uma empresa pode ter "Alimentação" (vale-refeição) ou "Lazer"
+     * (confraternização) no plano de contas, e apagar o slide por causa da
+     * palavra jogaria fora a análise certa junto com a errada. O que corrige o
+     * tom aqui é o PROMPT (mentor para `personal`, controller para
+     * `business`); este log é como se descobre que ele parou de ser obedecido,
+     * sem depender de outro print do dono.
+     */
+    private validateCoachingResponse(response: unknown, workspaceType: string): CoachingAnalysisPayload {
         const raw = (response ?? {}) as Record<string, unknown>;
         const slidesRaw = Array.isArray(raw.slides) ? raw.slides : [];
         const slides: CoachingSlide[] = [];
@@ -367,12 +383,24 @@ export class CoachingService {
             ? raw.message
             : DEFAULT_COACHING_MESSAGE;
 
-        return {
+        const payload: CoachingAnalysisPayload = {
             message,
             summary: typeof raw.summary === "string" ? raw.summary : message,
             type: isCoachingType(raw.type) ? raw.type : DEFAULT_COACHING_TYPE,
             slides,
         };
+
+        const offending = auditAudienceVocabulary(
+            [payload.message, payload.summary, ...slides.flatMap((s) => [s.title, s.message])],
+            AUDIENCE_FORBIDDEN_TERMS[resolveAudience(workspaceType)]
+        );
+        if (offending.length > 0) {
+            console.warn(
+                `[coaching:audience] workspace ${workspaceType}: termos fora do tom (${offending.join(", ")}).`
+            );
+        }
+
+        return payload;
     }
 
     /**

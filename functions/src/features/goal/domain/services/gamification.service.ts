@@ -9,14 +9,31 @@ import {
     CRON_WORKSPACE_CONCURRENCY,
 } from "../../../../core/config/functions.config";
 import {
+    AutomaticTransactionRow,
     GamificationGoal,
     GamificationInstallment,
     IGamificationRepository,
+    WeeklyMissionDocument,
+    WeeklyMissionType,
+    WeeklyMissionWrite,
+    WeeklySummaryRow,
     readWorkspaceStreaks,
 } from "../repositories/gamification.repository";
 import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
 import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
 import { GoalType, isAccumulationGoal, isGoalActive, isGoalCompleted, resolveGoalType } from "../models/goal.model";
+import { BadgeAudience, resolveAudience } from "../models/audience.model";
+import {
+    AUDIENCE_FORBIDDEN_TERMS,
+    MissionParams,
+    MissionProgressRule,
+    MissionTemplate,
+    WEEKLY_MISSION_TYPES,
+    buildMissionName,
+    findMissionTemplate,
+    selectMissionTemplate,
+} from "../models/mission_catalog";
+import { WeeklyMissionExpectation } from "../../../../core/services/ai_validation";
 import {
     addCalendarDays,
     endOfWeekFromStart,
@@ -67,6 +84,180 @@ export interface WeeklyMissionEventData {
     totalTransactionsProcessed?: number;
 }
 
+/**
+ * De onde veio a oportunidade de avaliar o progresso.
+ *
+ * Os três primeiros são os gatilhos de documento que já existiam.
+ * `weekly_close` é o cron semanal: ele dá uma ÚLTIMA passada na semana que
+ * fechou antes de decidir a streak. Sem ele, as regras que leem o
+ * `period_summaries` semanal (margem e receita recebida) dependeriam de o
+ * último evento da semana ter chegado DEPOIS de o sumário ter sido escrito —
+ * uma corrida que a plataforma não promete ganhar.
+ */
+export type MissionEventType = "transaction" | "reconciliation" | "planning" | "weekly_close";
+
+/**
+ * Quais eventos podem MOVER cada regra.
+ *
+ * É o que impede a avaliação de virar uma bateria de consultas a cada parcela
+ * gravada: um evento de conciliação não tem por que reler planejamentos, e um
+ * evento de planejamento não tem por que contar extratos.
+ */
+const RULE_EVENT_SOURCES: Record<MissionProgressRule, MissionEventType[]> = {
+    planned_categories: ["transaction", "planning", "weekly_close"],
+    days_within_category_limit: ["transaction", "weekly_close"],
+    // Só o EVENTO carrega quantos itens o extrato processou — não há como
+    // recontá-los depois, nem no fechamento da semana.
+    reconciled_statement_items: ["reconciliation"],
+    reconciled_statements: ["reconciliation", "weekly_close"],
+    // A consolidação de um lançamento automático CRIA uma transação, e é essa
+    // escrita que chega aqui como evento.
+    categorized_auto_transactions: ["transaction", "weekly_close"],
+    invoice_paid_on_time: ["transaction", "weekly_close"],
+    weekly_margin_above_plan: ["transaction", "weekly_close"],
+    income_received_vs_planned: ["transaction", "weekly_close"],
+};
+
+/** Razão do XP, por tipo de missão (vai para o log da transação de XP). */
+const MISSION_COMPLETION_REASON: Record<WeeklyMissionType, string> = {
+    consistency: "Missão Semanal de Consistência Concluída",
+    discipline: "Missão Semanal de Disciplina Concluída",
+    organization: "Missão Semanal de Organização Concluída",
+};
+
+/**
+ * Teto de lançamentos automáticos lidos por avaliação.
+ *
+ * A coleção é uma caixa de ENTRADA de notificações, não um histórico: o app
+ * consolida ou descarta, e o que sobra é pequeno. O teto existe para o caso
+ * patológico (um workspace que nunca triou nada) não transformar cada evento
+ * de transação numa varredura — a consequência de bater no teto é a missão
+ * subcontar, nunca a função estourar.
+ */
+const AUTOMATIC_TRANSACTIONS_SCAN_LIMIT = 500;
+
+/** Leituras compartilhadas entre as três missões de UMA avaliação. */
+interface MissionReads {
+    plannings?: Promise<PlanningAggregate>;
+    paidInstallments?: Promise<GamificationInstallment[]>;
+    weeklySummary?: Promise<WeeklySummaryRow[]>;
+    reconciledStatements?: Promise<number>;
+    automaticTransactions?: Promise<AutomaticTransactionRow[]>;
+}
+
+interface MissionEvaluationContext {
+    workspaceId: string;
+    weekId: string;
+    /** `YYYY-MM` usado para filtrar os planejamentos vigentes. */
+    monthKey: string;
+    startOfWeek: Date;
+    endOfWeek: Date;
+    /** Dias da semana JÁ decorridos por completo (0 a 7). */
+    elapsedFullDays: number;
+    eventType: MissionEventType;
+    eventData: WeeklyMissionEventData | null | undefined;
+    reads: MissionReads;
+}
+
+interface MissionEvaluation {
+    progress: number;
+    completed: boolean;
+}
+
+/** Uma missão já escolhida pelo catálogo, antes de virar documento. */
+interface PlannedMission {
+    type: WeeklyMissionType;
+    template: MissionTemplate;
+    params: MissionParams;
+    /** Texto do catálogo com os placeholders resolvidos, em português. */
+    name: string;
+}
+
+/** O que as missões precisam saber sobre os planejamentos do mês. */
+interface PlanningAggregate {
+    /** Categorias com limite > 0 vigente no mês. */
+    plannedCategoriesCount: number;
+    /** Nomes das categorias planejadas (contexto do prompt). */
+    categoryNames: string[];
+    /** A categoria de maior limite, ou `null` se não há nenhuma. */
+    topCategory: string | null;
+    /** O limite MENSAL dessa categoria. */
+    topAmount: number;
+}
+
+/**
+ * Achata os planejamentos do mês no que as missões medem.
+ *
+ * Existia em DUAS cópias — uma na geração, outra no avanço do progresso —, e
+ * elas divergiam: a da geração contava qualquer planejamento com nome de
+ * categoria, a do progresso só os de valor positivo. Uma única função remove a
+ * chance de a missão ser criada com um alvo que o avaliador nunca alcança.
+ */
+function aggregatePlannings(plannings: CategoryPlanningModel[], monthKey: string): PlanningAggregate {
+    const result: PlanningAggregate = {
+        plannedCategoriesCount: 0,
+        categoryNames: [],
+        topCategory: null,
+        topAmount: 0,
+    };
+
+    for (const planning of plannings) {
+        if (!planningCoversMonth(planning, monthKey)) continue;
+        if (!(planning.amount > 0)) continue;
+
+        result.plannedCategoriesCount++;
+
+        const name = planning.category?.name;
+        if (!name) continue;
+        result.categoryNames.push(name);
+        if (planning.amount > result.topAmount) {
+            result.topAmount = planning.amount;
+            result.topCategory = name;
+        }
+    }
+
+    return result;
+}
+
+interface WeeklyTotals {
+    plannedIncome: number;
+    plannedExpense: number;
+    actualIncome: number;
+    actualExpense: number;
+}
+
+/**
+ * Totais de receita e despesa da semana, a partir do `period_summaries`
+ * semanal. Categorias de SISTEMA (saldo inicial, virtuais de transferência)
+ * ficam de fora: elas não são decisão de ninguém e inflariam a margem.
+ */
+function sumWeeklyTotals(rows: WeeklySummaryRow[]): WeeklyTotals {
+    const totals: WeeklyTotals = { plannedIncome: 0, plannedExpense: 0, actualIncome: 0, actualExpense: 0 };
+    for (const row of rows) {
+        if (row.isSystem) continue;
+        if (row.type === CategoryType.income) {
+            totals.plannedIncome += row.generalPlannedAmount || 0;
+            totals.actualIncome += row.actualAmount || 0;
+        }
+        else if (row.type === CategoryType.expense) {
+            totals.plannedExpense += row.generalPlannedAmount || 0;
+            totals.actualExpense += row.actualAmount || 0;
+        }
+    }
+    return totals;
+}
+
+/** A forma de longe mais comum: progresso é uma contagem e o alvo é um piso. */
+function atLeast(progress: number, target: number): MissionEvaluation {
+    return { progress, completed: progress >= target };
+}
+
+/** Chave `YYYY-MM-DD` do dia em que o instante cai, no fuso do produto. */
+function dayKeyInTz(date: Date): string {
+    const parts = getZonedParts(date);
+    return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
 export function calculateLevel(xp: number): number {
     if (xp <= 0) {
         return 1;
@@ -112,6 +303,22 @@ export interface BadgeConfig {
     category: BadgeCategory;
     /** Como se ganha o badge, em português. Servido ao app por `config/badges`. */
     description: string;
+    /**
+     * A quem o badge se aplica. Ausente == `both`, que é o caso da esmagadora
+     * maioria: conciliar, planejar, cadastrar conta e concluir meta valem igual
+     * numa casa e numa empresa.
+     *
+     * O recorte existe para os badges ancorados numa regra de finança PESSOAL
+     * — a 50-30-20 (essencial/conforto/investimento) e o "poupar X% da renda".
+     * Uma empresa não divide faturamento em "conforto", e ver na vitrine uma
+     * conquista que ela nunca pode alcançar é o mesmo defeito da missão
+     * "Reduzir gastos com alimentação" num workspace de empresa.
+     *
+     * Um badge fora da audiência não é avaliado nem concedido (o filtro mora na
+     * transação de `unlockBadge`) e viaja no catálogo com a marcação, para o
+     * app não desenhá-lo.
+     */
+    audience?: BadgeAudience;
 }
 
 export const BADGES: Record<string, BadgeConfig> = {
@@ -162,18 +369,22 @@ export const BADGES: Record<string, BadgeConfig> = {
     under_control: {
         id: "under_control", name: "Tudo Sob Controle", icon: "check_circle", xpReward: 1500, category: "advanced",
         description: "Fechar o mês sem estourar nenhuma categoria planejada na regra 50-30-20.",
+        audience: "personal",
     },
     golden_rule: {
         id: "golden_rule", name: "Regra de Ouro", icon: "pie_chart", xpReward: 1200, category: "advanced",
         description: "Alocar limites em todos os 3 pools (Essencial, Conforto, Investimento) no mesmo mês.",
+        audience: "personal",
     },
     future_focus: {
         id: "future_focus", name: "Visão de Futuro", icon: "trending_up", xpReward: 1000, category: "advanced",
         description: "Poupar e investir efetivamente pelo menos 20% das receitas totais do workspace no mês.",
+        audience: "personal",
     },
     cost_cutter: {
         id: "cost_cutter", name: "Tesoura de Gastos", icon: "content_cut", xpReward: 800, category: "advanced",
         description: "Reduzir os gastos totais do pool de Conforto (supérfluos) em 20% em relação ao mês anterior.",
+        audience: "personal",
     },
     united_front: {
         id: "united_front", name: "Equipe Unida", icon: "groups", xpReward: 600, category: "advanced",
@@ -300,6 +511,7 @@ export const BADGES: Record<string, BadgeConfig> = {
     savings_10pct: {
         id: "savings_10pct", name: "Poupador Iniciante", icon: "percent", xpReward: 100, category: "savings",
         description: "Poupar ao menos 10% da receita total no mês.",
+        audience: "personal",
     },
     savings_start: {
         id: "savings_start", name: "Primeiro Centavo", icon: "monetization_on", xpReward: 75, category: "savings",
@@ -430,6 +642,15 @@ export interface XpSourceConfig {
     name: { pt: string, en: string };
     xp: number;
     description: { pt: string, en: string };
+    /**
+     * A quem a fonte de XP se aplica. Hoje TODAS são `both`, e o campo existe
+     * mesmo assim por dois motivos: ele viaja no `config/badges` junto com o
+     * `audience` dos badges, então o app filtra as duas listas com o mesmo
+     * código; e acrescentar amanhã uma fonte só de empresa (margem acima do
+     * plano, fechamento no prazo) passa a ser uma linha nesta tabela, e não
+     * uma mudança de forma do documento que o app tem de acompanhar.
+     */
+    audience?: BadgeAudience;
 }
 
 /**
@@ -574,7 +795,8 @@ export class GamificationService {
             workspaceId,
             badgeId,
             badge.xpReward,
-            badge.name
+            badge.name,
+            badge.audience ?? "both"
         );
     }
 
@@ -728,152 +950,295 @@ export class GamificationService {
             }
         }
 
-        if (eventType === "transaction" || eventType === "planning") {
-            const categoryPlannings = await this.gamificationRepository.getCategoryPlannings(workspaceId);
+        await this.advanceWeeklyMissions({
+            workspaceId,
+            weekId,
+            monthKey,
+            startOfWeek,
+            endOfWeek,
+            // Dias JÁ decorridos por completo: o dia de hoje ainda pode receber
+            // gastos e não pode contar como "dentro do orçamento".
+            elapsedFullDays: getDayIndexInTz(now),
+            eventType,
+            eventData,
+            reads: {},
+        });
+    }
 
-            // Apenas plannings cujo período cobre o mês corrente contam para a
-            // missão de consistência (antes, qualquer planning histórico contava).
-            const activePlannings = categoryPlannings.filter((p) => {
-                return planningCoversMonth(p, monthKey);
-            });
-
-            let plannedCategoriesCount = 0;
-            let targetCategory = "Alimentação";
-            let maxAmount = 0;
-
-            for (const p of activePlannings) {
-                if (p.amount > 0) {
-                    plannedCategoriesCount++;
-                }
-                if (p.category && p.category.name && p.amount > maxAmount) {
-                    maxAmount = p.amount;
-                    targetCategory = p.category.name;
-                }
+    /**
+     * Percorre as três missões da semana e avança a que a REGRA do seu template
+     * souber medir a partir deste evento.
+     *
+     * Antes deste pacote, o avanço era um `if/else` escrito em cima do EVENTO:
+     * evento de planejamento mexia na missão de consistência, evento de
+     * transação na de disciplina, evento de conciliação na de organização. Com
+     * um catálogo por tipo de workspace isso deixa de funcionar — a missão de
+     * organização de uma empresa pode ser "conciliar 2 extratos" (conta
+     * documentos da semana), "triar 10 lançamentos automáticos" ou "pagar a
+     * fatura no prazo" (que chega como evento de TRANSAÇÃO). Quem decide o que
+     * medir passa a ser o `progressRule` do template, e o evento vira apenas o
+     * gatilho que autoriza a leitura.
+     */
+    private async advanceWeeklyMissions(ctx: MissionEvaluationContext): Promise<void> {
+        for (const type of WEEKLY_MISSION_TYPES) {
+            const mission = await this.gamificationRepository.getWeeklyMission(ctx.workspaceId, ctx.weekId, type);
+            if (!mission || mission.status === "completed") {
+                continue;
             }
 
-            const constData = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
-            if (constData && constData.status !== "completed") {
-                const target = constData.target || 3;
-                if (plannedCategoriesCount >= target) {
-                    // Checagem de "já concluída" + concessão de XP em uma única
-                    // transação Firestore (sem corrida entre escritas paralelas).
-                    await this.gamificationRepository.completeMissionAndAwardXp(
-                        workspaceId,
-                        weekId,
-                        "consistency",
-                        plannedCategoriesCount,
-                        constData.rewardXp || 150,
-                        "Missão Semanal de Consistência Concluída"
-                    );
-                }
-                else {
-                    await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "consistency", {
-                        progress: plannedCategoriesCount,
-                        status: "pending",
-                    });
-                }
+            const template = this.resolveMissionTemplate(mission, type, ctx.weekId);
+            if (!template) {
+                continue;
             }
 
-            if (eventType === "transaction") {
-                // Parcelas efetivamente pagas na semana (por paidDate) — antes a
-                // busca era por dueDate mas o agrupamento por paidDate.
-                const installments = await this.gamificationRepository.getPaidInstallmentsInPeriod(
-                    workspaceId,
-                    startOfWeek,
-                    endOfWeek
+            const rule = template.progressRule;
+            if (!RULE_EVENT_SOURCES[rule].includes(ctx.eventType)) {
+                // Este evento não toca no dado que a regra mede: nada a ler.
+                continue;
+            }
+
+            const target = mission.target ?? template.target;
+            const evaluation = await this.evaluateMissionRule(rule, target, ctx);
+            if (!evaluation) {
+                continue;
+            }
+
+            if (evaluation.completed) {
+                // Checagem de "já concluída" + concessão de XP em uma única
+                // transação Firestore (sem corrida entre escritas paralelas).
+                await this.gamificationRepository.completeMissionAndAwardXp(
+                    ctx.workspaceId,
+                    ctx.weekId,
+                    type,
+                    evaluation.progress,
+                    mission.rewardXp ?? template.rewardXp,
+                    MISSION_COMPLETION_REASON[type]
                 );
-
-                const weeklyLimit = maxAmount || 250.0;
-                const dailyLimit = weeklyLimit / 7;
-                const expensesByDay: Record<number, number> = {};
-
-                for (const inst of installments) {
-                    if (inst.status === "removed") {
-                        continue;
-                    }
-                    // paidDate consistentemente; dueDate apenas como fallback.
-                    const rawDate = inst.paidDate ?? inst.dueDate;
-                    if (!rawDate) {
-                        continue;
-                    }
-                    const date = toDate(rawDate);
-                    if (!date) {
-                        continue;
-                    }
-                    const day = getDayIndexInTz(date);
-
-                    if (inst.type === "expense") {
-                        if (inst.category && inst.category.name && inst.category.name.toLowerCase() === targetCategory.toLowerCase()) {
-                            const amount = inst.paidAmount || inst.amount || 0;
-                            expensesByDay[day] = (expensesByDay[day] || 0) + amount;
-                        }
-                    }
-                }
-
-                // Conta apenas dias JÁ decorridos por completo (exclui o dia de
-                // hoje, que ainda pode receber gastos). Antes, dias futuros
-                // contavam como "dentro do orçamento" e a missão fechava na
-                // primeira transação da semana.
-                const elapsedFullDays = getDayIndexInTz(now);
-                let daysWithinBudgetCount = 0;
-                for (let d = 0; d < elapsedFullDays; d++) {
-                    const spent = expensesByDay[d] || 0;
-                    if (spent <= dailyLimit) {
-                        daysWithinBudgetCount++;
-                    }
-                }
-
-                const discData = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "discipline");
-                if (discData && discData.status !== "completed") {
-                    const target = discData.target || 5;
-                    // Exige que pelo menos `target` dias tenham decorrido antes
-                    // de permitir a conclusão.
-                    if (daysWithinBudgetCount >= target && elapsedFullDays >= target) {
-                        await this.gamificationRepository.completeMissionAndAwardXp(
-                            workspaceId,
-                            weekId,
-                            "discipline",
-                            daysWithinBudgetCount,
-                            discData.rewardXp || 250,
-                            "Missão Semanal de Disciplina Concluída"
-                        );
-                    }
-                    else {
-                        await this.gamificationRepository.updateWeeklyMission(workspaceId, weekId, "discipline", {
-                            progress: daysWithinBudgetCount,
-                            status: "pending",
-                        });
-                    }
-                }
             }
-        }
-        else if (eventType === "reconciliation") {
-            const recDoc = eventData ?? {};
-            const orgData = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "organization");
-            if (orgData && orgData.status !== "completed") {
-                const target = orgData.target || 5;
-                if (recDoc.status === "completed" && (recDoc.totalTransactionsProcessed ?? 0) >= target) {
-                    await this.gamificationRepository.completeMissionAndAwardXp(
-                        workspaceId,
-                        weekId,
-                        "organization",
-                        recDoc.totalTransactionsProcessed ?? 0,
-                        orgData.rewardXp || 200,
-                        "Missão Semanal de Organização Concluída"
-                    );
-                }
+            else if (evaluation.progress !== (mission.progress ?? 0)) {
+                // Escreve só quando o número MUDA: o gatilho de installment
+                // dispara em cada parcela, e reescrever o mesmo progresso
+                // custaria uma escrita por evento sem mover a barra.
+                await this.gamificationRepository.updateWeeklyMission(ctx.workspaceId, ctx.weekId, type, {
+                    progress: evaluation.progress,
+                    status: "pending",
+                });
             }
         }
     }
 
     /**
-     * Gera as três missões semanais (com IA quando disponível) para a semana.
-     * Deve ser invocada sob idempotência (workspaceId + weekId) para não
-     * duplicar chamadas de IA em escritas paralelas.
+     * O template de uma missão GRAVADA.
+     *
+     * `templateKey` é o caminho normal. Uma missão da semana corrente criada
+     * pelo servidor ANTERIOR a este pacote não tem o campo — e não pode ficar
+     * parada até a virada da semana —, então ela cai na seleção determinística
+     * da sua audiência. Sem `workspaceType` no documento a audiência é
+     * `personal`, que é o comportamento que essas missões sempre tiveram (os
+     * fallbacks antigos eram todos pessoais). O script `retag_weekly_missions`
+     * existe para não depender desse fallback por muito tempo.
+     */
+    private resolveMissionTemplate(
+        mission: WeeklyMissionDocument,
+        type: WeeklyMissionType,
+        weekId: string
+    ): MissionTemplate | null {
+        const byKey = findMissionTemplate(mission.templateKey);
+        if (byKey) return byKey;
+        return selectMissionTemplate(resolveAudience(mission.workspaceType), type, weekId);
+    }
+
+    /**
+     * Avalia UMA regra de progresso.
+     *
+     * Devolve `null` quando a regra não tem como ser medida agora (o evento não
+     * traz o dado, ou o workspace não tem plano nenhum): nesse caso o progresso
+     * gravado fica como está, em vez de ser zerado. Zerar seria pior do que não
+     * escrever — a barra andaria para trás na tela sem que nada tivesse
+     * acontecido.
+     */
+    private async evaluateMissionRule(
+        rule: MissionProgressRule,
+        target: number,
+        ctx: MissionEvaluationContext
+    ): Promise<MissionEvaluation | null> {
+        switch (rule) {
+        case "planned_categories": {
+            const plannings = await this.readPlannings(ctx);
+            return atLeast(plannings.plannedCategoriesCount, target);
+        }
+
+        case "days_within_category_limit": {
+            const plannings = await this.readPlannings(ctx);
+            if (!plannings.topCategory || plannings.topAmount <= 0) {
+                // Sem NENHUMA categoria com limite não há o que medir. O
+                // código antigo inventava um teto de R$ 250/semana sobre
+                // uma categoria "Alimentação" que podia nem existir — num
+                // workspace de empresa isso era a própria missão errada, e
+                // em qualquer workspace era XP por um plano que ninguém fez.
+                return null;
+            }
+            const installments = await this.readPaidInstallments(ctx);
+            const dailyLimit = plannings.topAmount / 7;
+            const spentByDay: Record<number, number> = {};
+
+            for (const inst of installments) {
+                if (inst.status === "removed" || inst.type !== "expense") continue;
+                const name = inst.category?.name;
+                if (!name || name.toLowerCase() !== plannings.topCategory.toLowerCase()) continue;
+                // paidDate consistentemente; dueDate apenas como fallback.
+                const date = toDate(inst.paidDate ?? inst.dueDate);
+                if (!date) continue;
+                const day = getDayIndexInTz(date);
+                spentByDay[day] = (spentByDay[day] || 0) + (inst.paidAmount || inst.amount || 0);
+            }
+
+            let withinBudget = 0;
+            for (let day = 0; day < ctx.elapsedFullDays; day++) {
+                if ((spentByDay[day] || 0) <= dailyLimit) {
+                    withinBudget++;
+                }
+            }
+
+            // Exige que pelo menos `target` dias tenham decorrido antes de
+            // permitir a conclusão: sem isso a missão fechava na primeira
+            // transação da semana, contando dias futuros como cumpridos.
+            return {
+                progress: withinBudget,
+                completed: withinBudget >= target && ctx.elapsedFullDays >= target,
+            };
+        }
+
+        case "reconciled_statement_items": {
+            // O único dado que vem do EVENTO: quantos itens o extrato
+            // recém-concluído processou. Não há como recontá-lo depois.
+            const doc = ctx.eventData ?? {};
+            if (doc.status !== "completed") return null;
+            const processed = doc.totalTransactionsProcessed ?? 0;
+            return atLeast(processed, target);
+        }
+
+        case "reconciled_statements": {
+            const count = await this.readReconciledStatements(ctx);
+            return atLeast(count, target);
+        }
+
+        case "categorized_auto_transactions": {
+            const rows = await this.readAutomaticTransactions(ctx);
+            let resolved = 0;
+            for (const row of rows) {
+                const date = toDate(row.date);
+                if (!date || date < ctx.startOfWeek || date > ctx.endOfWeek) continue;
+                // Consolidado (virou lançamento, com categoria escolhida) ou
+                // descartado de propósito. A sugestão da IA NÃO conta: ela
+                // preenche `categoryId` sozinha, e contá-la faria a missão
+                // fechar sem ninguém ter feito nada.
+                if (row.isConsolidated === true || row.isIgnored === true) {
+                    resolved++;
+                }
+            }
+            return atLeast(resolved, target);
+        }
+
+        case "invoice_paid_on_time": {
+            const installments = await this.readPaidInstallments(ctx);
+            let onTime = 0;
+            for (const inst of installments) {
+                if (inst.isInvoice !== true || inst.status === "removed") continue;
+                const paid = toDate(inst.paidDate);
+                const due = toDate(inst.dueDate);
+                if (!paid || !due) continue;
+                // Comparação por DIA de calendário no fuso do produto: o
+                // vencimento da fatura é gravado ao MEIO-DIA (ver
+                // `nextInvoice` no README), então comparar instantes
+                // reprovaria quem pagou às 18h do próprio dia.
+                if (dayKeyInTz(paid) <= dayKeyInTz(due)) {
+                    onTime++;
+                }
+            }
+            return atLeast(onTime, target);
+        }
+
+        case "weekly_margin_above_plan": {
+            const rows = await this.readWeeklySummary(ctx);
+            const totals = sumWeeklyTotals(rows);
+            // Sem plano não há "acima do planejado": a missão de margem
+            // pressupõe uma margem planejada, e premiar a sua ausência
+            // seria premiar não planejar.
+            if (totals.plannedIncome + totals.plannedExpense <= 0) return null;
+            const plannedMargin = totals.plannedIncome - totals.plannedExpense;
+            const actualMargin = totals.actualIncome - totals.actualExpense;
+            const reached = actualMargin >= plannedMargin;
+            return { progress: reached ? target : 0, completed: reached };
+        }
+
+        case "income_received_vs_planned": {
+            const rows = await this.readWeeklySummary(ctx);
+            const totals = sumWeeklyTotals(rows);
+            if (totals.plannedIncome <= 0) return null;
+            // O alvo é um PERCENTUAL (80 = 80% da receita prevista).
+            const percent = Math.min(100, Math.floor((totals.actualIncome / totals.plannedIncome) * 100));
+            return atLeast(percent, target);
+        }
+        }
+    }
+
+    // ── Leituras memoizadas por avaliação ───────────────────────────────────
+    //
+    // As três missões da semana podem depender da MESMA consulta (as duas de
+    // empresa que leem o sumário semanal, por exemplo). O cache vive no
+    // contexto de UMA avaliação — não no serviço —, de modo que ele nunca
+    // serve dado velho para o evento seguinte.
+
+    private readPlannings(ctx: MissionEvaluationContext): Promise<PlanningAggregate> {
+        ctx.reads.plannings ??= this.gamificationRepository
+            .getCategoryPlannings(ctx.workspaceId)
+            .then((plannings) => aggregatePlannings(plannings, ctx.monthKey));
+        return ctx.reads.plannings;
+    }
+
+    private readPaidInstallments(ctx: MissionEvaluationContext): Promise<GamificationInstallment[]> {
+        ctx.reads.paidInstallments ??= this.gamificationRepository.getPaidInstallmentsInPeriod(
+            ctx.workspaceId,
+            ctx.startOfWeek,
+            ctx.endOfWeek
+        );
+        return ctx.reads.paidInstallments;
+    }
+
+    private readWeeklySummary(ctx: MissionEvaluationContext): Promise<WeeklySummaryRow[]> {
+        ctx.reads.weeklySummary ??= this.gamificationRepository.getWeeklySummaryRows(ctx.workspaceId, ctx.weekId);
+        return ctx.reads.weeklySummary;
+    }
+
+    private readReconciledStatements(ctx: MissionEvaluationContext): Promise<number> {
+        ctx.reads.reconciledStatements ??= this.gamificationRepository.getCompletedReconciliationsInPeriod(
+            ctx.workspaceId,
+            ctx.startOfWeek,
+            ctx.endOfWeek
+        );
+        return ctx.reads.reconciledStatements;
+    }
+
+    private readAutomaticTransactions(ctx: MissionEvaluationContext): Promise<AutomaticTransactionRow[]> {
+        ctx.reads.automaticTransactions ??= this.gamificationRepository.getAutomaticTransactions(
+            ctx.workspaceId,
+            AUTOMATIC_TRANSACTIONS_SCAN_LIMIT
+        );
+        return ctx.reads.automaticTransactions;
+    }
+
+    /**
+     * Gera as três missões semanais da semana, PELO CATÁLOGO do tipo do
+     * workspace. Deve ser invocada sob idempotência (workspaceId + weekId) para
+     * não duplicar chamadas de IA em escritas paralelas.
+     *
+     * O objetivo, o alvo, o XP, a rota do CTA e a chave de i18n saem do
+     * template escolhido por hash da semana. A IA é OPCIONAL e entra só depois,
+     * para reescrever o texto — e o que ela devolve é aceito apenas se
+     * referenciar o template escolhido (ver `validateWeeklyMissionNames`).
      */
     private async generateWeeklyMissions(workspaceId: string, weekId: string, monthKey: string): Promise<void> {
-        logger.info(`[GamificationService] Generating AI weekly missions for workspace ${workspaceId}, week ${weekId}`);
-
         let workspaceType = "personal";
         try {
             const workspaceDoc = await this.gamificationRepository.getWorkspaceById(workspaceId);
@@ -884,24 +1249,19 @@ export class GamificationService {
         catch (e) {
             logger.error("[GamificationService] Error fetching workspace type:", e);
         }
+        const audience = resolveAudience(workspaceType);
+
+        logger.info(
+            `[GamificationService] Gerando missões semanais (${audience}) para o workspace ${workspaceId}, semana ${weekId}.`
+        );
 
         const categoriesList: string[] = [];
-        let maxCategory = "Alimentação";
-        let maxAmount = 0;
+        let topCategory: string | null = null;
         try {
-            const categoryPlannings = await this.gamificationRepository.getCategoryPlannings(workspaceId);
-            for (const p of categoryPlannings) {
-                if (!planningCoversMonth(p, monthKey)) {
-                    continue;
-                }
-                if (p.category && p.category.name) {
-                    categoriesList.push(p.category.name);
-                    if (p.amount > maxAmount) {
-                        maxAmount = p.amount;
-                        maxCategory = p.category.name;
-                    }
-                }
-            }
+            const plannings = await this.gamificationRepository.getCategoryPlannings(workspaceId);
+            const aggregate = aggregatePlannings(plannings, monthKey);
+            categoriesList.push(...aggregate.categoryNames);
+            topCategory = aggregate.topCategory;
         }
         catch (e) {
             logger.error("[GamificationService] Error fetching category plannings:", e);
@@ -920,66 +1280,75 @@ export class GamificationService {
             logger.error("[GamificationService] Error fetching goals:", e);
         }
 
-        let aiMissions: any = null;
+        // 1. O CATÁLOGO escolhe — determinístico, sem rede.
+        const planned = WEEKLY_MISSION_TYPES
+            .map((type) => {
+                const template = selectMissionTemplate(audience, type, weekId);
+                if (!template) return null;
+                const params: MissionParams = { target: template.target };
+                if (template.params.includes("category") && topCategory) {
+                    params.category = topCategory;
+                }
+                return { type, template, params, name: buildMissionName(template, "pt", params) };
+            })
+            .filter((entry): entry is PlannedMission => entry !== null);
+
+        // 2. A IA (se houver) apenas TEMPERA o texto; o que não passar na
+        //    validação volta null e o texto do catálogo prevalece.
+        let aiNames: Partial<Record<WeeklyMissionType, string>> = {};
         if (this.aiRepository) {
             try {
-                aiMissions = await this.aiRepository.generateWeeklyMissions(
+                const expectations: WeeklyMissionExpectation[] = planned.map((entry) => ({
+                    type: entry.type,
+                    templateKey: entry.template.key,
+                    baseName: entry.name,
+                    target: entry.template.target,
+                    requiredTerms: entry.template.aiRequiredTerms,
+                    forbiddenTerms: AUDIENCE_FORBIDDEN_TERMS[audience],
+                    // O nome da categoria veio do Firestore: ele não conta como
+                    // vocabulário inventado pelo modelo.
+                    dataValues: topCategory ? [topCategory] : [],
+                }));
+                const validated = await this.aiRepository.generateWeeklyMissions(
                     workspaceId,
-                    workspaceType,
+                    audience,
                     categoriesList,
                     goalsList,
-                    maxCategory
+                    expectations
                 );
+                aiNames = {
+                    consistency: validated.consistency?.name,
+                    discipline: validated.discipline?.name,
+                    organization: validated.organization?.name,
+                };
             }
             catch (e) {
-                logger.error("[GamificationService] Failed to generate weekly missions via Gemini. Using fallbacks.", e);
+                logger.error("[GamificationService] Falha ao temperar as missões via Gemini. Usando o catálogo.", e);
             }
         }
 
-        const consistencyName = aiMissions?.consistency?.name || "Equipe planeja limites para pelo menos 3 categorias para organizar a semana.";
-        const consistencyTarget = aiMissions?.consistency?.target || 3;
-
-        const disciplineName = aiMissions?.discipline?.name || `Equipe mantém a categoria ${maxCategory} dentro do orçamento planejado por 5 dias.`;
-        const disciplineTarget = aiMissions?.discipline?.target || 5;
-
-        const organizationName = aiMissions?.organization?.name || "Fazer a conciliação bancária completa de um extrato contendo pelo menos 5 itens.";
-        const organizationTarget = aiMissions?.organization?.target || 5;
-
-        await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "consistency", {
-            id: "consistency",
-            name: consistencyName,
-            type: "consistency",
-            status: "pending",
-            rewardXp: 150,
-            progress: 0,
-            target: consistencyTarget,
-            weekId,
-            createdAt: new Date().toISOString(),
-        });
-
-        await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "discipline", {
-            id: "discipline",
-            name: disciplineName,
-            type: "discipline",
-            status: "pending",
-            rewardXp: 250,
-            progress: 0,
-            target: disciplineTarget,
-            weekId,
-            createdAt: new Date().toISOString(),
-        });
-
-        await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, "organization", {
-            id: "organization",
-            name: organizationName,
-            type: "organization",
-            status: "pending",
-            rewardXp: 200,
-            progress: 0,
-            target: organizationTarget,
-            weekId,
-            createdAt: new Date().toISOString(),
-        });
+        // 3. Grava.
+        for (const entry of planned) {
+            const write: WeeklyMissionWrite = {
+                id: entry.type,
+                name: aiNames[entry.type] || entry.name,
+                type: entry.type,
+                status: "pending",
+                rewardXp: entry.template.rewardXp,
+                progress: 0,
+                target: entry.template.target,
+                weekId,
+                createdAt: new Date().toISOString(),
+                templateKey: entry.template.key,
+                workspaceType: audience,
+                actionPath: entry.template.actionPath,
+                nameKey: entry.template.nameKey,
+            };
+            if (entry.template.params.length > 0) {
+                write.params = entry.params;
+            }
+            await this.gamificationRepository.createWeeklyMission(workspaceId, weekId, entry.type, write);
+        }
     }
 
     async evaluateWeeklyMissionsCron(workspaceId: string, now: Date = new Date()): Promise<void> {
@@ -988,7 +1357,39 @@ export class GamificationService {
         // iniciada e vazia) zeraria a streak permanentemente.
         const currentWeekStart = startOfWeekInTz(now);
         const startOfWeek = addCalendarDays(currentWeekStart, -7);
+        const endOfWeek = endOfWeekFromStart(startOfWeek);
         const weekId = getWeekId(startOfWeek);
+
+        // ÚLTIMA passada na semana que fechou, ANTES de decidir a streak.
+        //
+        // As regras que leem o `period_summaries` semanal (margem acima do
+        // plano, receita recebida vs prevista) dependeriam, sem isto, de o
+        // último evento da semana ter chegado depois de o sumário ter sido
+        // escrito — e nada promete essa ordem. Aqui a semana está fechada e o
+        // sumário, parado: é o único momento em que o número é definitivo.
+        //
+        // Falhar aqui não pode derrubar a streak nem os badges de missão, que
+        // são o trabalho principal deste cron.
+        try {
+            await this.advanceWeeklyMissions({
+                workspaceId,
+                weekId,
+                // A semana pertence ao mês do seu DOMINGO (ver F1.5 no README):
+                // numa semana que atravessa a virada, o planejamento a olhar é
+                // o do mês em que ela começou.
+                monthKey: getMonthKeyInTz(startOfWeek),
+                startOfWeek,
+                endOfWeek,
+                // A semana está inteira decorrida.
+                elapsedFullDays: 7,
+                eventType: "weekly_close",
+                eventData: null,
+                reads: {},
+            });
+        }
+        catch (e) {
+            logger.error("[GamificationService] Falha na avaliação final das missões da semana:", e);
+        }
 
         const snapshot = await this.gamificationRepository.getWeeklyMissionsByWeek(workspaceId, weekId);
 

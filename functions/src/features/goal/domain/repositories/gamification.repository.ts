@@ -1,5 +1,14 @@
 import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
 import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
+import { MissionParams, WeeklyMissionType } from "../models/mission_catalog";
+import { BadgeAudience, WorkspaceAudience } from "../models/audience.model";
+
+/**
+ * `WeeklyMissionType` mora no CATÁLOGO (`domain/models/mission_catalog.ts`),
+ * junto dos templates que o definem, e é reexportado aqui para não quebrar os
+ * quinze importadores que já o pegavam desta interface.
+ */
+export type { WeeklyMissionType };
 
 /**
  * Linha achatada de um period_summary: uma entrada do mapa `categories` do
@@ -180,10 +189,13 @@ export interface GamificationInstallment {
     paidDate?: RawFirestoreDate | null;
     category?: { id?: string; name?: string } | null;
     accountIds?: string[];
+    /**
+     * Parcela de FATURA de cartão. É o que separa "a empresa pagou a fatura no
+     * prazo" de "a empresa pagou uma compra qualquer" na regra
+     * `invoice_paid_on_time`.
+     */
+    isInvoice?: boolean;
 }
-
-/** As três missões semanais. O id do documento é `{weekId}_{type}`. */
-export type WeeklyMissionType = "consistency" | "discipline" | "organization";
 
 export type WeeklyMissionStatus = "pending" | "completed";
 
@@ -195,7 +207,12 @@ export type WeeklyMissionStatus = "pending" | "completed";
 export interface WeeklyMissionWrite {
     /** Igual ao `type`. Redundante no documento, mas o app o lê. */
     id: WeeklyMissionType;
-    /** Texto da missão (gerado pela IA, com fallback fixo). */
+    /**
+     * Texto da missão em PORTUGUÊS — o template escolhido, opcionalmente
+     * temperado pela IA (ver `validateWeeklyMissionNames`). Continua
+     * obrigatório porque a build instalada só sabe ler o texto pronto; o
+     * caminho novo é `nameKey` + `params`.
+     */
     name: string;
     type: WeeklyMissionType;
     status: WeeklyMissionStatus;
@@ -206,10 +223,28 @@ export interface WeeklyMissionWrite {
     weekId: string;
     /** ISO-8601. */
     createdAt: string;
+    /** Chave do template do catálogo (`mission_catalog.ts`). */
+    templateKey: string;
+    /** `personal` | `business` — a audiência para a qual a missão foi gerada. */
+    workspaceType: WorkspaceAudience;
+    /** Rota interna do CTA da missão. Ver `MISSION_ACTION_PATHS`. */
+    actionPath: string;
+    /** Chave de i18n do nome, para o app traduzir sem depender do `name`. */
+    nameKey: string;
+    /**
+     * Valores dos placeholders do nome. Ausente quando o template não tem
+     * placeholder — `ignoreUndefinedProperties` está DESLIGADO, então a chave
+     * some via `stripUndefined` em vez de derrubar a escrita.
+     */
+    params?: MissionParams;
 }
 
 /** O que uma atualização de progresso pode mexer. */
-export type WeeklyMissionUpdate = Partial<Pick<WeeklyMissionWrite, "progress" | "status" | "name" | "target" | "rewardXp">>;
+export type WeeklyMissionUpdate = Partial<Pick<
+    WeeklyMissionWrite,
+    "progress" | "status" | "name" | "target" | "rewardXp" |
+    "templateKey" | "workspaceType" | "actionPath" | "nameKey" | "params"
+>>;
 
 /**
  * O documento como ele é LIDO. Tudo opcional: a missão pode ter sido gravada
@@ -224,11 +259,19 @@ export interface WeeklyMissionDocument extends Partial<WeeklyMissionWrite> {
 export interface IGamificationRepository {
     getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null>;
     addXp(workspaceId: string, amount: number, reason: string): Promise<void>;
+    /**
+     * `audience` é a audiência do BADGE (`personal` | `business` | `both`). A
+     * checagem contra `workspaces.type` acontece DENTRO da transação que já lê
+     * o documento do workspace — assim o filtro por tipo não custa nenhuma
+     * leitura a mais, e um badge que não se aplica àquele tipo simplesmente
+     * não é concedido (devolve `false`, como um badge já desbloqueado).
+     */
     unlockBadge(
         workspaceId: string,
         badgeId: string,
         xpReward: number,
-        badgeName: string
+        badgeName: string,
+        audience: BadgeAudience
     ): Promise<boolean>;
     getAccountsCount(workspaceId: string): Promise<number>;
     hasPaidTransaction(workspaceId: string): Promise<boolean>;
@@ -293,4 +336,41 @@ export interface IGamificationRepository {
         start: Date,
         end: Date
     ): Promise<boolean>;
+    /**
+     * Quantos EXTRATOS foram conciliados com sucesso no período — documentos
+     * de `reconciliations` com `status: completed` e `createdAt` na janela.
+     *
+     * É a regra `reconciled_statements` das missões de empresa, e é diferente
+     * de `getCompletedReconciliationsCount` (que conta a vida inteira do
+     * workspace, para os badges).
+     */
+    getCompletedReconciliationsInPeriod(workspaceId: string, start: Date, end: Date): Promise<number>;
+    /**
+     * Lançamentos automáticos do workspace (a caixa de entrada das
+     * notificações), **sem filtro de data**.
+     *
+     * O filtro é feito em memória pelo serviço, e não na consulta, porque
+     * `date` é gravado pelo app como string ISO (`toJson` do freezed, sem
+     * conversor) e um `where("date", ">=", <Timestamp>)` devolveria ZERO
+     * documentos em silêncio — o Firestore ordena por tipo antes de ordenar
+     * por valor. A leitura é limitada por `limit` para que um workspace com
+     * anos de notificações não vire uma varredura por evento.
+     */
+    getAutomaticTransactions(workspaceId: string, limit: number): Promise<AutomaticTransactionRow[]>;
+}
+
+/**
+ * Um lançamento automático como a gamificação o lê. Só os campos que decidem
+ * se ele já foi TRATADO pela equipe — a sugestão da IA (`suggestedCategory`,
+ * e o `categoryId` que ela grava sozinha) de propósito não está aqui: se ela
+ * contasse, a missão fecharia sem ninguém fazer nada.
+ */
+export interface AutomaticTransactionRow {
+    id: string;
+    /** Timestamp ou string ISO — o app grava string. Ver `getAutomaticTransactions`. */
+    date?: RawFirestoreDate | null;
+    /** `true` quando virou lançamento de verdade (com categoria escolhida). */
+    isConsolidated?: boolean;
+    /** `true` quando foi descartado conscientemente. */
+    isIgnored?: boolean;
 }

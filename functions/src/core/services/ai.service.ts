@@ -18,7 +18,9 @@ import {
     validateGoalSuggestions,
     validateOfxClassification,
     validateReconciliation,
-    validateWeeklyMissions,
+    validateWeeklyMissionNames,
+    ValidatedWeeklyMissions,
+    WeeklyMissionExpectation,
 } from "./ai_validation";
 
 const geminiApiKey = defineString("GEMINI_API_KEY");
@@ -326,14 +328,21 @@ const AUTOMATIC_TRANSACTION_RESPONSE_SCHEMA: Schema = {
     required: ["category"],
 };
 
-// Schema das três missões semanais
+// Schema das três missões semanais.
+//
+// `templateKey` é obrigatório desde wp/missions-by-type: a IA não escolhe mais
+// o objetivo da missão, ela reescreve o texto de um template que o prompt
+// mandou, e ecoar a chave é como o validador confere a qual objetivo aquele
+// texto se refere. Uma resposta sem a chave (ou com a chave errada) é
+// descartada e o texto do catálogo prevalece.
 const WEEKLY_MISSION_SCHEMA: Schema = {
     type: Type.OBJECT,
     properties: {
+        templateKey: { type: Type.STRING },
         name: { type: Type.STRING },
         target: { type: Type.INTEGER },
     },
-    required: ["name", "target"],
+    required: ["templateKey", "name", "target"],
 };
 
 const WEEKLY_MISSIONS_RESPONSE_SCHEMA: Schema = {
@@ -450,13 +459,22 @@ export interface IAIRepository {
         existingCategories: any[],
         existingAccounts: any[]
     ): Promise<any>;
+    /**
+     * TEMPERA o texto das missões da semana — não as escolhe.
+     *
+     * `expectations` traz os templates que o catálogo já selecionou (chave,
+     * texto base, alvo e os termos obrigatórios). A resposta passa por
+     * `validateWeeklyMissionNames`, e a missão cujo texto não referenciar o
+     * template (ou mexer no alvo, ou usar vocabulário da outra audiência) volta
+     * `null`, para o serviço usar o texto do catálogo.
+     */
     generateWeeklyMissions(
         workspaceId: string,
         workspaceType: string,
         categories: string[],
         goals: string[],
-        maxCategory: string,
-    ): Promise<any>;
+        expectations: WeeklyMissionExpectation[],
+    ): Promise<ValidatedWeeklyMissions>;
     analyzeGoalFeasibility(
         workspaceId: string,
         goalPayload: object,
@@ -1128,15 +1146,28 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
         workspaceType: string,
         categories: string[],
         goals: string[],
-        maxCategory: string,
-    ): Promise<any> {
+        expectations: WeeklyMissionExpectation[],
+    ): Promise<ValidatedWeeklyMissions> {
         const config = await this.getConfig();
+
+        // Só o que a IA precisa para REESCREVER vai no prompt. `forbiddenTerms`
+        // é igual para as três missões (é a audiência), então sai da lista e
+        // vira uma seção própria — repeti-lo três vezes só gastaria token.
+        const missionBriefs = expectations.map((e) => ({
+            type: e.type,
+            templateKey: e.templateKey,
+            baseName: e.baseName,
+            target: e.target,
+            requiredTerms: e.requiredTerms,
+        }));
+        const forbidden = expectations[0]?.forbiddenTerms ?? [];
 
         const prompt = renderTemplate(config.prompts.weeklyMissions, {
             workspaceType,
             categories: categories.join(" | ") || "Nenhuma categoria",
             goals: goals.join(" | ") || "Nenhuma meta",
-            maxCategory,
+            missions: JSON.stringify(missionBriefs),
+            forbidden: forbidden.join(", ") || "nenhum",
         });
 
         const text = await this.generateWithLogging(
@@ -1158,9 +1189,9 @@ export class GeminiAIRepositoryImpl implements IAIRepository {
             throw new Error("Não foi possível gerar as missões semanais via IA.");
         }
 
-        // Missão inválida vira null; o GamificationService cai no texto padrão
-        // daquele tipo, então a semana nunca fica sem missão.
-        return validateWeeklyMissions(parsed);
+        // Missão inválida vira null; o GamificationService cai no texto do
+        // CATÁLOGO daquele template, então a semana nunca fica sem missão.
+        return validateWeeklyMissionNames(parsed, expectations);
     }
 
     async classifyCategoryGroups(

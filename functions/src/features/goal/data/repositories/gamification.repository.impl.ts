@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import {
+    AutomaticTransactionRow,
     GamificationGoal,
     GamificationInstallment,
     GamificationWorkspace,
@@ -19,6 +20,7 @@ import { CategoryPlanningModel, toPeriodSummaryDocument } from "../../../finance
 import { calculateLevel } from "../../domain/services/gamification.service";
 import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
 import { stripUndefined } from "../../../../core/utils/firestore.utils";
+import { BadgeAudience, appliesToAudience, resolveAudience } from "../../domain/models/audience.model";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
     async getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null> {
@@ -68,7 +70,8 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         workspaceId: string,
         badgeId: string,
         xpReward: number,
-        badgeName: string
+        badgeName: string,
+        audience: BadgeAudience
     ): Promise<boolean> {
         const db = admin.firestore();
         const workspaceRef = db.collection("workspaces").doc(workspaceId);
@@ -90,6 +93,15 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             }
 
             const data = doc.data()!;
+
+            // O recorte por tipo de workspace mora AQUI, e não no serviço,
+            // porque esta transação já leu o documento: o filtro sai de graça.
+            // No serviço, cada checagem de badge custaria uma leitura extra do
+            // workspace — e são dezenas por evento.
+            if (!appliesToAudience(audience, resolveAudience(data.type))) {
+                return;
+            }
+
             const unlockedBadges: Record<string, string> = data.unlockedBadges || {};
 
             if (unlockedBadges[badgeId]) {
@@ -568,5 +580,38 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             }
         }
         return false;
+    }
+
+    async getCompletedReconciliationsInPeriod(workspaceId: string, start: Date, end: Date): Promise<number> {
+        // `count()` em vez de `get()`: o documento de conciliação não interessa,
+        // só quantos fecharam na semana. Exige o índice composto
+        // (status ASC, createdAt ASC) declarado em firestore.indexes.json.
+        const snapshot = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/reconciliations`)
+            .where("status", "==", "completed")
+            .where("createdAt", ">=", start)
+            .where("createdAt", "<=", end)
+            .count()
+            .get();
+        return snapshot.data().count;
+    }
+
+    async getAutomaticTransactions(workspaceId: string, limit: number): Promise<AutomaticTransactionRow[]> {
+        // Sem `where` em `date` de propósito — ver a interface: o app grava a
+        // data como string ISO e um filtro por Timestamp devolveria zero
+        // documentos, calado. O recorte da semana é feito em memória.
+        const snapshot = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/automatic_transactions`)
+            .limit(limit)
+            .get();
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                date: data.date ?? null,
+                isConsolidated: data.isConsolidated === true,
+                isIgnored: data.isIgnored === true,
+            };
+        });
     }
 }

@@ -5,6 +5,13 @@
  */
 export type LocalizedText = Record<string, string>;
 
+/**
+ * A quem um badge (ou fonte de XP) publicado se aplica: `personal`, `business`
+ * ou `both`. Reexportado do modelo de domínio para o documento declarar o tipo
+ * sem importar a definição de missão.
+ */
+export type { BadgeAudience } from "../models/audience.model";
+
 /** Documento publicado em `config/badges` e lido pelo app. */
 export interface BadgeCatalogDocument {
     /** Muda quando qualquer badge ou limiar muda. Hash do conteúdo. */
@@ -16,6 +23,13 @@ export interface BadgeCatalogDocument {
         xpReward: number;
         category: string;
         description: LocalizedText;
+        /**
+         * `personal` | `business` | `both`. **Sempre presente** no documento
+         * publicado (o servidor materializa o `both` implícito), para o app
+         * poder filtrar sem repetir a regra do padrão. Ver
+         * [Catálogo de badges] no README.
+         */
+        audience: string;
     }[];
     /**
      * XP mínimo de cada nível, do nível 1 em diante: `levelThresholds[n - 1]`
@@ -35,6 +49,8 @@ export interface BadgeCatalogDocument {
         name: LocalizedText;
         xp: number;
         description: LocalizedText;
+        /** Igual ao dos badges — hoje todas são `both`. */
+        audience: string;
     }[];
 }
 
