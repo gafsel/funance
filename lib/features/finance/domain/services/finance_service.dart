@@ -264,6 +264,10 @@ class FinanceService {
     return repository.watchNextInvoice(workspaceId, accountId);
   }
 
+  Stream<InstallmentModel?> watchInstallment(String installmentId) {
+    return repository.watchInstallment(workspaceId, installmentId);
+  }
+
   Stream<double> watchWeeklyXp(int year, int week) {
     return repository.watchWeeklyXp(workspaceId, year, week);
   }

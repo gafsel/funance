@@ -125,10 +125,14 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
       queryParams['accountIdSource'] = accountId;
     }
 
-    context.push(
-      Uri(path: '/transactions/form', queryParameters: queryParams).toString(),
-      extra: {'category': transaction.suggestedCategory},
-    ).then((result) {
+    context
+        .push(
+          Uri(
+            path: '/transactions/form',
+            queryParameters: queryParams,
+          ).toString(),
+        )
+        .then((result) {
       if (result == true) {
         ref.read(AutomaticTransactionViewProviders.automaticTransactions.notifier)
             .loadTransactions();

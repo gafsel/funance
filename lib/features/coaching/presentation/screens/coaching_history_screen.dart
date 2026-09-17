@@ -122,7 +122,7 @@ class CoachingHistoryScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => context.push('/coaching', extra: coaching),
+          onTap: () => context.push('/coaching?id=${coaching.id}'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -182,7 +182,7 @@ class CoachingHistoryScreen extends ConsumerWidget {
                         vertical: 8,
                       ),
                     ),
-                    onPressed: () => context.push('/coaching', extra: coaching),
+                    onPressed: () => context.push('/coaching?id=${coaching.id}'),
                     icon: const Icon(Icons.visibility_outlined, size: 18),
                     label: Text(l10n.coachingReviewTips),
                   ),

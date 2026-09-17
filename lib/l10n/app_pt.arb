@@ -67,6 +67,7 @@
   "offlineBannerOffline": "Sem conexão. Você continua vendo e editando; sincronizamos quando a rede voltar.",
   "offlineBannerPending": "Salvo neste aparelho. Sincronizando com a nuvem...",
   "errorOfflineCallable": "Esta ação precisa de internet. Reconecte e tente de novo.",
+  "reconciliationChooseAccount": "Qual conta você quer conciliar?",
   "errorOffline": "Sem conexão com a internet. Mostramos o que já estava no aparelho; toque em tentar de novo quando a rede voltar.",
   "errorPermissionDenied": "Você não tem acesso a estes dados. Se acabou de sair de um workspace, entre de novo.",
   "errorQuotaExhausted": "Limite de uso atingido. Tente de novo mais tarde.",

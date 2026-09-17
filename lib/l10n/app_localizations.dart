@@ -458,6 +458,12 @@ abstract class AppLocalizations {
   /// **'Esta ação precisa de internet. Reconecte e tente de novo.'**
   String get errorOfflineCallable;
 
+  /// No description provided for @reconciliationChooseAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Qual conta você quer conciliar?'**
+  String get reconciliationChooseAccount;
+
   /// No description provided for @errorOffline.
   ///
   /// In pt, this message translates to:

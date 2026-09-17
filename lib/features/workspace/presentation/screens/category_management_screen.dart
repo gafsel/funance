@@ -77,7 +77,11 @@ class _CategoryManagementScreenState
   }
 
   void _showCategoryDialog(BuildContext context, [CategoryModel? category]) {
-    context.push('/workspace/categories/form', extra: category);
+    context.push(
+      category == null
+          ? '/workspace/categories/form'
+          : '/workspace/categories/form?id=${category.id}',
+    );
   }
 
   void _confirmDelete(

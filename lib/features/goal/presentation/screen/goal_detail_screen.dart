@@ -208,7 +208,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                           icon: Icons.edit_outlined,
                           label: l10n.editButton,
                           onPressed: () =>
-                              context.push('/goals/form', extra: goal),
+                              context.push('/goals/form?id=${goal.id}'),
                         ),
                         DetailHeaderAction(
                           icon: Icons.delete_outline,

@@ -197,7 +197,7 @@ class CoachingInsightCard extends ConsumerWidget {
                             if (context.mounted) {
                               _logCoachingOpened(ref);
                               unawaited(
-                                context.push('/coaching', extra: coaching),
+                                context.push('/coaching?id=${coaching.id}'),
                               );
                             }
                           } catch (e) {
@@ -323,7 +323,7 @@ class CoachingInsightCard extends ConsumerWidget {
             builder: (context, ref, _) => InkWell(
               onTap: () {
                 _logCoachingOpened(ref);
-                context.push('/coaching', extra: lastCoaching);
+                context.push('/coaching?id=${lastCoaching.id}');
               },
               child: Text(
                 l10n.coachingViewLast,

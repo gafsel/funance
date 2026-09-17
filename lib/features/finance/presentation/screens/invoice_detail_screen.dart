@@ -113,7 +113,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       onPressed: () {
                         final account = accountAsync.valueOrNull;
                         if (account != null) {
-                          context.push('/reconciliation', extra: account);
+                          context.push('/reconciliation?accountId=${account.id}');
                         }
                       },
                       tooltip: l10n.reconciliationTitle,
@@ -123,8 +123,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       label: l10n.editButton,
                       onPressed: () {
                         context.push(
-                          '/transactions/form',
-                          extra: {'installment': invoice},
+                          '/transactions/form?installmentId=${invoice.id}',
                         );
                       },
                       tooltip: l10n.editButton,

@@ -102,7 +102,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                           icon: Icons.edit_outlined,
                           label: context.l10n.editButton,
                           onPressed: () {
-                            context.push('/accounts/form', extra: account);
+                            context.push('/accounts/form?id=${account.id}');
                           },
                           tooltip: context.l10n.editButton,
                         ),
@@ -110,7 +110,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                           icon: Icons.account_balance_wallet_outlined,
                           label: context.l10n.reconciliationTitle,
                           onPressed: () {
-                            context.push('/reconciliation', extra: account);
+                            context.push('/reconciliation?accountId=${account.id}');
                           },
                           tooltip: context.l10n.reconciliationTitle,
                         ),

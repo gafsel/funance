@@ -298,8 +298,8 @@ class _TransactionDetailSheetState
                         final navigator = Navigator.of(context);
 
                         final updated = await context.push(
-                          '/transactions/form',
-                          extra: {'installment': _currentInstallment},
+                          '/transactions/form'
+                          '?installmentId=${_currentInstallment.id}',
                         );
 
                         if (updated == true) {

@@ -420,6 +420,18 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   }
 
   @override
+  Stream<InstallmentModel?> watchInstallment(
+    String workspaceId,
+    String installmentId,
+  ) {
+    return _getWorkspaceDoc(workspaceId)
+        .collection('installments')
+        .doc(installmentId)
+        .snapshots()
+        .map((doc) => doc.exists ? doc.toInstallmentModel() : null);
+  }
+
+  @override
   Stream<double> watchWeeklyXp(String workspaceId, int year, int week) {
     final weeklyXpId = "$year-W${week.toString().padLeft(2, "0")}";
     return _getWorkspaceDoc(

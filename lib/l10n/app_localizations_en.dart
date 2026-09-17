@@ -207,6 +207,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'This action needs an internet connection. Reconnect and try again.';
 
   @override
+  String get reconciliationChooseAccount =>
+      'Which account do you want to reconcile?';
+
+  @override
   String get errorOffline =>
       'No internet connection. We\'re showing what was already on this device; tap retry when you\'re back online.';
 

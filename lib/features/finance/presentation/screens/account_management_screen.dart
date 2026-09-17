@@ -179,7 +179,7 @@ class AccountManagementScreen extends ConsumerWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () => context.push('/accounts/form', extra: account),
+            onPressed: () => context.push('/accounts/form?id=${account.id}'),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

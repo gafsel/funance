@@ -60,6 +60,7 @@
   "offlineBannerOffline": "You're offline. Keep browsing and editing; we'll sync when the network is back.",
   "offlineBannerPending": "Saved on this device. Syncing to the cloud...",
   "errorOfflineCallable": "This action needs an internet connection. Reconnect and try again.",
+  "reconciliationChooseAccount": "Which account do you want to reconcile?",
   "errorOffline": "No internet connection. We're showing what was already on this device; tap retry when you're back online.",
   "errorPermissionDenied": "You don't have access to this data. If you just left a workspace, sign in again.",
   "errorQuotaExhausted": "Usage limit reached. Try again later.",

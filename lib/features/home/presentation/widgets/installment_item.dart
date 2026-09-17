@@ -40,7 +40,7 @@ class InstallmentItem extends StatelessWidget {
       onTap: () {
         final inst = installmentInfo.installment;
         if (inst.isInvoice) {
-          context.push('/invoices/detail', extra: inst);
+          context.push('/invoices/${inst.id}');
         } else {
           TransactionDetailSheet.show(context, inst);
         }

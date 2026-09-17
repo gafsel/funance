@@ -59,7 +59,7 @@ class TransactionListItem extends StatelessWidget {
     return InkWell(
       onTap: () {
         if (installment.isInvoice) {
-          context.push('/invoices/detail', extra: installment);
+          context.push('/invoices/${installment.id}');
         } else {
           TransactionDetailSheet.show(
             context,

@@ -142,7 +142,9 @@ class GoalsSection extends ConsumerWidget {
   }
 
   void _showAddGoalDialog(BuildContext context, [GoalModel? goal]) {
-    context.push('/goals/form', extra: goal);
+    context.push(
+      goal == null ? '/goals/form' : '/goals/form?id=${goal.id}',
+    );
   }
 
   /// Grade responsiva de cards (a mesma quebra para as ativas e as encerradas).

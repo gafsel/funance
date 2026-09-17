@@ -208,6 +208,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta ação precisa de internet. Reconecte e tente de novo.';
 
   @override
+  String get reconciliationChooseAccount => 'Qual conta você quer conciliar?';
+
+  @override
   String get errorOffline =>
       'Sem conexão com a internet. Mostramos o que já estava no aparelho; toque em tentar de novo quando a rede voltar.';
 

@@ -320,21 +320,6 @@ class AccountViewProviders {
         );
       });
 
-  /// A PARCELA da próxima fatura, para navegar até a tela de detalhe (que
-  /// recebe um `InstallmentModel`).
-  ///
-  /// FALLBACK TEMPORÁRIO documentado: enquanto a rota `/invoices/detail`
-  /// receber o modelo inteiro, o app ainda precisa da parcela. A consulta é a
-  /// mesma que o servidor faz para montar `nextInvoice`, então as duas
-  /// concordam; o que saiu do cliente foi o CÁLCULO da fatura, não a leitura.
-  /// Quando a rota passar a receber só o id, este provider sai.
-  static final nextInvoiceInstallmentByAccountId = StreamProvider.autoDispose
-      .family<InstallmentModel?, String>((ref, accountId) {
-        return ref
-            .watch(FinanceDomainProviders.service)
-            .watchNextInvoice(accountId);
-      });
-
   static final balanceAtDate = StreamProvider.autoDispose
       .family<AccountBalanceModel, ({String accountId, DateTime date})>((
         ref,
@@ -347,6 +332,17 @@ class AccountViewProviders {
 }
 
 class FinanceViewProviders {
+  /// Uma parcela pelo id — como as rotas de detalhe carregam o que abrem.
+  ///
+  /// `AsyncValue.data(null)` quer dizer "não existe": a tela mostra que o
+  /// lançamento sumiu em vez de piscar e voltar para a home.
+  static final installmentById = StreamProvider.autoDispose
+      .family<InstallmentModel?, String>((ref, installmentId) {
+        return ref
+            .watch(FinanceDomainProviders.service)
+            .watchInstallment(installmentId);
+      });
+
   static final creationForm = StateNotifierProvider.autoDispose
       .family<
         TransactionFormNotifier,
