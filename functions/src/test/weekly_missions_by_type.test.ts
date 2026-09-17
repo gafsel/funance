@@ -516,39 +516,65 @@ describe("fechamento da semana", () => {
     it("o cron dá uma última passada na semana fechada antes de decidir a streak", async () => {
         // Segunda 2026-08-17 03:00 SP: a semana a avaliar é a 2026-W32.
         jest.useFakeTimers({ now: new Date("2026-08-17T06:00:00Z") });
-        const { repository, completions } = buildRepository({
+        const { repository, completions, missions } = buildRepository({
             workspaceType: "business",
             weeklySummary: [
                 { categoryId: "i1", type: CategoryType.income, isSystem: false, actualAmount: 9000, generalPlannedAmount: 9000 },
                 { categoryId: "e1", type: CategoryType.expense, isSystem: false, actualAmount: 1000, generalPlannedAmount: 3000 },
             ],
             missions: {
-                consistency: { status: "completed" },
+                consistency: { type: "consistency", status: "completed" },
                 discipline: existingMission("business_discipline_margin"),
-                organization: { status: "completed" },
+                organization: { type: "organization", status: "completed" },
             },
         });
-        repository.getWeeklyMissionsByWeek.mockResolvedValue([{ status: "completed" }]);
+        repository.getWeeklyMissionsByWeek.mockImplementation(async () =>
+            ["consistency", "discipline", "organization"].map((type) => missions[type])
+        );
         const service = new GamificationService(repository as any);
 
         await service.evaluateWeeklyMissionsCron("w1");
 
         expect(completions).toEqual([{ type: "discipline", progress: 1, rewardXp: 250 }]);
         expect(repository.getWeeklySummaryRows).toHaveBeenCalledWith("w1", WEEK_ID);
+        // A missão fechou NA passada final, então a streak sobe na mesma
+        // execução em vez de esperar mais uma semana.
+        expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 1 });
     });
 
-    it("falha na passada final não derruba a streak nem os badges", async () => {
+    it("semana já toda concluída não gasta leitura para ser reavaliada", async () => {
         jest.useFakeTimers({ now: new Date("2026-08-17T06:00:00Z") });
-        const { repository } = buildRepository({
-            workspaceType: "business",
-            missions: { consistency: existingMission("business_consistency_cost_centers") },
-        });
-        repository.getCategoryPlannings.mockRejectedValue(new Error("indisponível"));
-        repository.getWeeklyMissionsByWeek.mockResolvedValue([{ status: "completed" }]);
+        const { repository } = buildRepository({ workspaceType: "business" });
+        repository.getWeeklyMissionsByWeek.mockResolvedValue([
+            { type: "consistency", status: "completed" },
+            { type: "discipline", status: "completed" },
+            { type: "organization", status: "completed" },
+        ]);
         const service = new GamificationService(repository as any);
 
         await service.evaluateWeeklyMissionsCron("w1");
 
+        expect(repository.getWeeklyMission).not.toHaveBeenCalled();
+        expect(repository.getWeeklySummaryRows).not.toHaveBeenCalled();
         expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 1 });
+    });
+
+    it("falha na passada final não derruba o resto do cron", async () => {
+        jest.useFakeTimers({ now: new Date("2026-08-17T06:00:00Z") });
+        const open = existingMission("business_consistency_cost_centers");
+        const { repository } = buildRepository({
+            workspaceType: "business",
+            missions: { consistency: open },
+        });
+        repository.getCategoryPlannings.mockRejectedValue(new Error("indisponível"));
+        repository.getWeeklyMissionsByWeek.mockResolvedValue([open]);
+        const service = new GamificationService(repository as any);
+
+        // Não lança: a streak e os badges são o trabalho principal do cron.
+        await service.evaluateWeeklyMissionsCron("w1");
+
+        // A missão continua aberta, então a semana não foi perfeita.
+        expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 0 });
+        expect(repository.getCompletedMissionsCount).toHaveBeenCalled();
     });
 });

@@ -157,6 +157,14 @@ interface MissionEvaluationContext {
     eventType: MissionEventType;
     eventData: WeeklyMissionEventData | null | undefined;
     reads: MissionReads;
+    /**
+     * Missões que o chamador JÁ leu, por tipo. Os dois chamadores leem
+     * `weekly_missions` antes de chamar — um para saber se precisa gerar a
+     * semana, o outro para decidir a streak —, e reler os mesmos três
+     * documentos custaria três leituras por evento em toda a base. Um tipo
+     * ausente aqui é lido sob demanda.
+     */
+    preloaded?: Partial<Record<WeeklyMissionType, WeeklyMissionDocument | null>>;
 }
 
 interface MissionEvaluation {
@@ -931,7 +939,7 @@ export class GamificationService {
         const weekId = getWeekId(startOfWeek);
         const monthKey = getMonthKeyInTz(now);
 
-        const consistencyDoc = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
+        let consistencyDoc = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
         if (!consistencyDoc) {
             const generateMissions = async () => {
                 await this.generateWeeklyMissions(workspaceId, weekId, monthKey);
@@ -948,6 +956,11 @@ export class GamificationService {
             else {
                 await generateMissions();
             }
+            // Recém-criada: `progress` 0 e `status` pending, sem leitura nova.
+            // Numa corrida em que outra escrita gerou a semana primeiro, o
+            // `create` do repositório não sobrescreve nada e o documento que o
+            // laço quer é o que ficou lá — por isso o reread só acontece aqui.
+            consistencyDoc = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
         }
 
         await this.advanceWeeklyMissions({
@@ -962,6 +975,8 @@ export class GamificationService {
             eventType,
             eventData,
             reads: {},
+            // Só a de consistência: as outras duas nunca foram lidas aqui.
+            preloaded: { consistency: consistencyDoc },
         });
     }
 
@@ -981,7 +996,9 @@ export class GamificationService {
      */
     private async advanceWeeklyMissions(ctx: MissionEvaluationContext): Promise<void> {
         for (const type of WEEKLY_MISSION_TYPES) {
-            const mission = await this.gamificationRepository.getWeeklyMission(ctx.workspaceId, ctx.weekId, type);
+            const mission = ctx.preloaded && type in ctx.preloaded
+                ? ctx.preloaded[type] ?? null
+                : await this.gamificationRepository.getWeeklyMission(ctx.workspaceId, ctx.weekId, type);
             if (!mission || mission.status === "completed") {
                 continue;
             }
@@ -1360,38 +1377,58 @@ export class GamificationService {
         const endOfWeek = endOfWeekFromStart(startOfWeek);
         const weekId = getWeekId(startOfWeek);
 
+        let snapshot = await this.gamificationRepository.getWeeklyMissionsByWeek(workspaceId, weekId);
+
         // ÚLTIMA passada na semana que fechou, ANTES de decidir a streak.
         //
         // As regras que leem o `period_summaries` semanal (margem acima do
         // plano, receita recebida vs prevista) dependeriam, sem isto, de o
-        // último evento da semana ter chegado depois de o sumário ter sido
+        // último evento da semana ter chegado DEPOIS de o sumário ter sido
         // escrito — e nada promete essa ordem. Aqui a semana está fechada e o
         // sumário, parado: é o único momento em que o número é definitivo.
         //
+        // Só roda quando há missão EM ABERTO, e reaproveita a consulta acima:
+        // este cron varre a base inteira, e reavaliar uma semana já toda
+        // concluída seriam três leituras jogadas fora em todo workspace que
+        // vai bem.
+        //
         // Falhar aqui não pode derrubar a streak nem os badges de missão, que
         // são o trabalho principal deste cron.
-        try {
-            await this.advanceWeeklyMissions({
-                workspaceId,
-                weekId,
-                // A semana pertence ao mês do seu DOMINGO (ver F1.5 no README):
-                // numa semana que atravessa a virada, o planejamento a olhar é
-                // o do mês em que ela começou.
-                monthKey: getMonthKeyInTz(startOfWeek),
-                startOfWeek,
-                endOfWeek,
-                // A semana está inteira decorrida.
-                elapsedFullDays: 7,
-                eventType: "weekly_close",
-                eventData: null,
-                reads: {},
-            });
-        }
-        catch (e) {
-            logger.error("[GamificationService] Falha na avaliação final das missões da semana:", e);
+        if (snapshot.some((mission) => mission.status !== "completed")) {
+            try {
+                const preloaded: Partial<Record<WeeklyMissionType, WeeklyMissionDocument | null>> = {};
+                for (const type of WEEKLY_MISSION_TYPES) {
+                    preloaded[type] = snapshot.find((mission) => mission.type === type) ?? null;
+                }
+
+                await this.advanceWeeklyMissions({
+                    workspaceId,
+                    weekId,
+                    // A semana pertence ao mês do seu DOMINGO (ver F1.5 no
+                    // README): numa semana que atravessa a virada, o
+                    // planejamento a olhar é o do mês em que ela começou.
+                    monthKey: getMonthKeyInTz(startOfWeek),
+                    startOfWeek,
+                    endOfWeek,
+                    // A semana está inteira decorrida.
+                    elapsedFullDays: 7,
+                    eventType: "weekly_close",
+                    eventData: null,
+                    reads: {},
+                    preloaded,
+                });
+
+                // A passada final pode ter FECHADO missão: reler é o que
+                // permite a streak subir na MESMA execução, em vez de o
+                // usuário perder a sequência por um problema de ordem de
+                // escrita que o servidor acabou de corrigir.
+                snapshot = await this.gamificationRepository.getWeeklyMissionsByWeek(workspaceId, weekId);
+            }
+            catch (e) {
+                logger.error("[GamificationService] Falha na avaliação final das missões da semana:", e);
+            }
         }
 
-        const snapshot = await this.gamificationRepository.getWeeklyMissionsByWeek(workspaceId, weekId);
 
         let allCompleted = true;
         let count = 0;
