@@ -84,10 +84,14 @@ function groupPlanningUpdates(updates: PeriodSummaryUpdateModel[]): Map<string, 
             groups.set(docId, group);
         }
 
-        let bucket = group.categories.get(update.category.id);
+        // `?? ""` para uma categoria ausente cair no MESMO balde do id vazio, e
+        // ser descartada com aviso em `applyPlanningImpacts` — em vez de
+        // estourar aqui e derrubar o lote inteiro.
+        const categoryKey = update.category?.id ?? "";
+        let bucket = group.categories.get(categoryKey);
         if (!bucket) {
             bucket = { category: update.category, delta: 0 };
-            group.categories.set(update.category.id, bucket);
+            group.categories.set(categoryKey, bucket);
         }
         bucket.delta += update.generalPlannedDelta ?? 0;
     }
@@ -668,6 +672,20 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
             for (const bucket of group.categories.values()) {
                 if (Math.abs(bucket.delta) < PLANNING_DELTA_EPSILON) continue;
+
+                // MESMA REGRA DO SUMÁRIO (`hasCategoryId`): id vazio vira um
+                // segmento vazio de FieldPath e o SDK rejeita o documento
+                // inteiro. Aqui o estrago seria maior do que uma linha perdida:
+                // um único `category_planning` com `category.id` vazio derruba o
+                // lote inteiro e, com ele, o gatilho de planejamento e o cron
+                // mensal — todos os outros meses e categorias junto. Pula com
+                // aviso; o planejamento quebrado é que fica de fora.
+                if (!hasCategoryId(bucket.category)) {
+                    const name = (bucket.category as CategoryModel | undefined)?.name ?? "";
+                    console.warn(`[applyPlanningImpacts] planejamento com categoria sem id: workspace=${workspaceId} documento=${docId} categoria="${name}". Fora do generalPlannedAmount; os demais impactos seguem. Corrija o category_planning.`);
+                    continue;
+                }
+
                 categories[bucket.category.id] = {
                     generalPlannedAmount: admin.firestore.FieldValue.increment(bucket.delta),
                 };
