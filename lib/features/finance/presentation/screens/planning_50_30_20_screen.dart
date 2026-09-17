@@ -194,7 +194,13 @@ class Planning503020Screen extends ConsumerWidget {
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
-          content: Text(callableErrorMessage(e, l10n.planningAnalysisError)),
+          content: Text(
+            callableErrorMessage(
+              e,
+              l10n.planningAnalysisError,
+              offlineMessage: l10n.errorOfflineCallable,
+            ),
+          ),
         ),
       );
     }

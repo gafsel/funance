@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:funances/core/firestore/offline_write.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/model/core_models.dart';
@@ -150,7 +151,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = order.toJson();
       data.remove('id');
-      final doc = await _getWorkspaceDoc(workspaceId).collection('orders').add(data);
+      // `doc()` sem argumento gera o id localmente, sem ida ao servidor; o
+      // `add()` que havia aqui só devolvia a referência depois que o servidor
+      // respondia, e offline isso nunca acontecia.
+      final doc = _getWorkspaceDoc(workspaceId).collection('orders').doc();
+      await settleWrite(doc.set(data));
       return order.copyWith(id: doc.id);
     } catch (e, s) {
       throw BusinessException(
@@ -166,9 +171,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = order.toJson();
       data.remove('id');
-      await _getWorkspaceDoc(
-        workspaceId,
-      ).collection('orders').doc(order.id).update(data);
+      await settleWrite(
+        _getWorkspaceDoc(
+          workspaceId,
+        ).collection('orders').doc(order.id).update(data),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -181,9 +188,9 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   @override
   Future<void> deleteOrder(String workspaceId, String orderId) async {
     try {
-      await _getWorkspaceDoc(
-        workspaceId,
-      ).collection('orders').doc(orderId).delete();
+      await settleWrite(
+        _getWorkspaceDoc(workspaceId).collection('orders').doc(orderId).delete(),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -253,9 +260,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
 
       data['referenceAmount'] = entry.referenceAmount;
-      await _getWorkspaceDoc(
-        workspaceId,
-      ).collection('installments').doc(entry.id).update(data);
+      await settleWrite(
+        _getWorkspaceDoc(
+          workspaceId,
+        ).collection('installments').doc(entry.id).update(data),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -284,9 +293,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = planning.toJson();
       data.remove('id');
-      await _getWorkspaceDoc(
-        workspaceId,
-      ).collection('category_planning').add(data);
+      await settleWrite(
+        _getWorkspaceDoc(
+          workspaceId,
+        ).collection('category_planning').doc().set(data),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,
@@ -304,9 +315,11 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     try {
       final data = planning.toJson();
       data.remove('id');
-      await _getWorkspaceDoc(
-        workspaceId,
-      ).collection('category_planning').doc(planning.id).update(data);
+      await settleWrite(
+        _getWorkspaceDoc(
+          workspaceId,
+        ).collection('category_planning').doc(planning.id).update(data),
+      );
     } catch (e, s) {
       throw BusinessException(
         ErrorCode.unknown,

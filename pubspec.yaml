@@ -51,6 +51,10 @@ dependencies:
   go_router: ^14.7.2
   flutter_localizations:
     sdk: flutter
+  # Só para `usePathUrlStrategy()`; entra por importação condicional e não
+  # chega aos builds nativos.
+  flutter_web_plugins:
+    sdk: flutter
   flutter_slidable: ^4.0.3
   fl_chart: ^1.2.0
   file_picker: ^8.0.3

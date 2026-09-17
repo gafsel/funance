@@ -206,7 +206,11 @@ class CoachingInsightCard extends ConsumerWidget {
                             messenger.showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  callableErrorMessage(e, l10n.coachingError),
+                                  callableErrorMessage(
+                                    e,
+                                    l10n.coachingError,
+                                    offlineMessage: l10n.errorOfflineCallable,
+                                  ),
                                 ),
                               ),
                             );

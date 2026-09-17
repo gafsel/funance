@@ -170,7 +170,11 @@ class ReconciliationScreen extends ConsumerWidget {
               messenger.showSnackBar(
                 SnackBar(
                   content: Text(
-                    callableErrorMessage(e, l10n.reconciliationError),
+                    callableErrorMessage(
+                      e,
+                      l10n.reconciliationError,
+                      offlineMessage: l10n.errorOfflineCallable,
+                    ),
                   ),
                 ),
               );
