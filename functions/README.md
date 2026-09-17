@@ -764,7 +764,7 @@ que ninguém atualizava.
 | `saveMoney` | parcelas pagas da conta desde `startDate`: crédito soma, débito subtrai | **delta** do evento de parcela |
 | `reduceCreditCard` | parcelas pagas da conta desde `startDate`: só os débitos | **delta** do evento de parcela |
 | `reduceExpense` | `actualAmount` da categoria nos `period_summaries` **mensais** do período da meta | **recálculo total** quando uma parcela daquela categoria muda |
-| `payDebt` | `saldo atual da conta − saldo no startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
+| `payDebt` | `saldo atual da conta − saldo no fim do dia ANTERIOR ao startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
 
 Nos dois primeiros tipos e em `payDebt`, `currentAmount` é **conquista**: quanto
 já foi juntado ou amortizado, e alcançar o alvo é vencer. Em `reduceExpense` e
@@ -795,9 +795,22 @@ documentos legados sem `dateKey`. Enquanto a migração de `dateKey` não rodar,
 
 **`payDebt` e o sinal do saldo.** O saldo de uma conta de dívida é **negativo**
 (é o que o app assume, ver `goal_form_provider.dart`), e amortizar aproxima o
-saldo de zero. Daí `amortizado = saldoAtual − saldoNoStartDate`, que é a mesma
+saldo de zero. Daí `amortizado = saldoAtual − saldoNoInício`, que é a mesma
 conta que "dívida no início − dívida hoje" em módulo. Dívida que **cresceu** não
 vira progresso negativo: o piso é zero.
+
+**O marco zero é o saldo no FIM DO DIA ANTERIOR ao início.** O documento diário
+guarda o saldo **acumulado ao fim do dia**, então o saldo do próprio
+`startDate` já inclui o que foi pago naquele dia. Ler `dateKey <= startKey`
+fazia o primeiro pagamento da meta nascer dentro do marco zero e sumir do
+progresso; o limite é **exclusivo** (`dateKey < startKey`, nos dois caminhos —
+query indexada e varredura legada). Caso real de produção: meta "Pagar dívida
+Itaú" com `startDate` 2026-06-22 e saldos `2026-06-08 = −19058,90` e
+`2026-06-22 = −15247,16`. O marco correto é **−19058,90** (progresso
+**11435,00**); o limite inclusivo tomava −15247,16 e mostrava 7623,00 — faltava
+exatamente o pagamento feito no dia 22. Uma meta que começa num dia **sem**
+documento de saldo não muda de comportamento: os dois limites caem no mesmo
+documento anterior.
 
 **Ordem dentro do gatilho de parcela.** O bloco `processGoalChange` roda
 **depois** de `processSummaryChange` e de `updateAccountBalance`

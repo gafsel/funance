@@ -346,14 +346,49 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         });
     });
 
-    it("getBalancesForGoal usa o saldo do dia exato quando ele existe", async () => {
+    it("getBalancesForGoal ignora o saldo do próprio dia de início e usa o do dia anterior", async () => {
         const balances = await repository.getBalancesForGoal(
             WORKSPACE_ID,
             DEBT_ACCOUNT_ID,
             new Date("2026-01-05T00:00:00.000Z")
         );
-        expect(balances.startBalance).toBe(-4500);
+        // Existe saldo em 2026-01-05 (-4500), mas ele já inclui o que foi pago
+        // NAQUELE dia: o marco zero é o fim do dia anterior, ou seja o
+        // documento de 2025-12-20 (-5000). Com o limite inclusivo os 500
+        // amortizados no próprio dia de início sumiam do progresso.
+        expect(balances.startBalance).toBe(-5000);
         expect(balances.currentBalance).toBe(-3800);
+    });
+
+    it("payDebt conta o pagamento feito no PRÓPRIO dia de início da meta", async () => {
+        const goalId = "goal-pay-debt-mesmo-dia";
+        await goalRef(goalId).set({
+            name: "Quitar empréstimo (começa num dia com pagamento)",
+            runtimeType: "payDebt",
+            targetAmount: 5000,
+            currentAmount: 0,
+            accountId: DEBT_ACCOUNT_ID,
+            // 2026-01-05 TEM documento de saldo (-4500), fruto de um pagamento
+            // de 500 naquele dia.
+            startDate: admin.firestore.Timestamp.fromDate(new Date("2026-01-05T00:00:00.000Z")),
+            deadline: admin.firestore.Timestamp.fromDate(new Date("2026-12-31T00:00:00.000Z")),
+            isDeleted: false,
+        });
+
+        await service.processInstallmentChange(
+            WORKSPACE_ID,
+            null,
+            installment({
+                accounts: { [DEBT_ACCOUNT_ID]: "credit" },
+                accountIds: [DEBT_ACCOUNT_ID],
+                type: OrderType.income,
+            })
+        );
+
+        const saved = (await goalRef(goalId).get()).data()!;
+        // Marco zero -5000 (fim do dia 04), saldo atual -3800: 1200 amortizados.
+        // Com o limite inclusivo o marco seria -4500 e o progresso, 700.
+        expect(saved.currentAmount).toBe(1200);
     });
 
     it("getBalancesForGoal devolve startBalance nulo antes do primeiro saldo gravado", async () => {
