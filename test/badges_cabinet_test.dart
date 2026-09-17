@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/features/workspace/presentation/screens/badges_cabinet_screen.dart';
+import 'package:funances/features/workspace/presentation/widgets/badges/badge_theme.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 /// F2.7 — a vitrine renderiza a partir do catálogo servido pelo backend
