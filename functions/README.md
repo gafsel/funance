@@ -179,6 +179,33 @@ Regras comuns a todos os validadores:
 - **Enum fora da lista** cai no padrão do campo ou descarta o item, conforme o
   campo ser opcional ou definir a semântica.
 
+### `actionPath` dos slides de coaching
+
+O `actionPath` de um slide vira `context.push` no app, então ele é validado
+contra uma **allowlist de rotas** (`sanitizeActionPath`, em
+`coaching.service.ts` — a mesma lista que o prompt em `ai.config.ts` enumera).
+Rota fora da lista: o slide vai **sem botão**.
+
+A allowlist casa só o **caminho**; a **query string sobrevive filtrada**, um
+parâmetro conhecido por vez, com valor dentro da lista e em ordem
+determinística. Parâmetro ou valor desconhecido é descartado em silêncio — a IA
+alucina query string com a mesma facilidade com que alucina rota.
+
+**`/transactions/form` exige `?status=`.** Desde que o app passou a assumir
+`paid` por padrão, um path sem `status` abre o formulário já como "Registrei" —
+o lançamento dado como feito. As duas formas válidas são:
+
+| Intenção do slide | Path |
+|---|---|
+| agendar, planejar, reservar, criar teto para o futuro | `/transactions/form?status=pending` |
+| registrar algo que já foi pago ou recebido | `/transactions/form?status=paid` |
+
+Opcionalmente com `&type=expense|income|transfer`. O prompt instrui a IA nos
+dois casos; quando ela ainda assim omite o `status` (ou manda um valor fora da
+lista), o validador injeta **`pending`** — um slide de coaching propõe uma ação
+a TOMAR, e é mais seguro o usuário marcar como pago do que dar por registrado o
+que não aconteceu.
+
 ### Entrada do cliente
 
 `analyzeGoalFeasibility` valida o `goalPayload` **antes** de montar o prompt e

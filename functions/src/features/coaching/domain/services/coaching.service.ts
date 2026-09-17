@@ -33,6 +33,98 @@ const ALLOWED_ACTION_PATHS = [
     "/",
 ];
 
+/** Rota do formulário de lançamento — a única com query string obrigatória. */
+const TRANSACTION_FORM_PATH = "/transactions/form";
+
+/**
+ * Query string aceita por rota: `{ rota: { parâmetro: valores permitidos } }`.
+ *
+ * O `actionPath` vira `context.push` no app, e o formulário de lançamento lê
+ * `status` e `type` da query (`app_router.dart`). Qualquer outro parâmetro (ou
+ * valor fora da lista) é DESCARTADO: a IA alucina query string com a mesma
+ * facilidade com que alucina rota, e o que chega aqui vai direto para a
+ * navegação do cliente.
+ */
+const ALLOWED_ACTION_QUERY: Record<string, Record<string, string[]>> = {
+    [TRANSACTION_FORM_PATH]: {
+        status: ["pending", "paid"],
+        type: ["expense", "income", "transfer"],
+    },
+};
+
+/**
+ * `status` do formulário quando a IA não manda um válido.
+ *
+ * Desde que o app passou a assumir `paid` por padrão, `/transactions/form` sem
+ * `status` abre o formulário já como "Registrei" — um lançamento dado como
+ * feito. Um slide de coaching propõe uma ação a TOMAR, então o padrão seguro é
+ * `pending` ("vou agendar"): o usuário marca como pago se já pagou, e nunca o
+ * contrário sem perceber. O prompt instrui a IA a mandar o `status` certo nos
+ * dois casos; este padrão só cobre a saída malformada.
+ */
+const DEFAULT_TRANSACTION_FORM_STATUS = "pending";
+
+/** `decodeURIComponent` que não explode com `%` solto vindo da IA. */
+function safeDecode(value: string): string {
+    try {
+        return decodeURIComponent(value);
+    }
+    catch {
+        return value;
+    }
+}
+
+/**
+ * Normaliza o `actionPath` de um slide: valida a rota contra a allowlist e
+ * preserva APENAS a query string conhecida, em ordem determinística.
+ *
+ * Devolve `null` quando a rota não está na allowlist — aí o slide vai sem
+ * botão, como já ia antes.
+ */
+export function sanitizeActionPath(raw: string): string | null {
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return null;
+
+    // Sem `new URL`: o caminho é RELATIVO e o WHATWG URL exige uma base.
+    const hashIndex = trimmed.indexOf("#");
+    const withoutHash = hashIndex >= 0 ? trimmed.slice(0, hashIndex) : trimmed;
+    const queryIndex = withoutHash.indexOf("?");
+    const path = queryIndex >= 0 ? withoutHash.slice(0, queryIndex) : withoutHash;
+    const rawQuery = queryIndex >= 0 ? withoutHash.slice(queryIndex + 1) : "";
+
+    if (!ALLOWED_ACTION_PATHS.includes(path)) return null;
+
+    const allowedParams = ALLOWED_ACTION_QUERY[path];
+    if (!allowedParams) return path;
+
+    const received = new Map<string, string>();
+    for (const pair of rawQuery.split("&")) {
+        if (pair.length === 0) continue;
+        const eq = pair.indexOf("=");
+        const key = safeDecode(eq >= 0 ? pair.slice(0, eq) : pair);
+        const value = safeDecode(eq >= 0 ? pair.slice(eq + 1) : "");
+        // Primeira ocorrência vence; repetição é ruído.
+        if (!received.has(key)) received.set(key, value);
+    }
+
+    if (path === TRANSACTION_FORM_PATH) {
+        const status = received.get("status");
+        if (!status || !allowedParams.status.includes(status)) {
+            received.set("status", DEFAULT_TRANSACTION_FORM_STATUS);
+        }
+    }
+
+    // A ordem sai da allowlist, não da IA: o mesmo slide gera sempre o mesmo path.
+    const params = Object.keys(allowedParams)
+        .filter((key) => {
+            const value = received.get(key);
+            return value !== undefined && allowedParams[key].includes(value);
+        })
+        .map((key) => `${key}=${received.get(key)}`);
+
+    return params.length > 0 ? `${path}?${params.join("&")}` : path;
+}
+
 const ALLOWED_ANIMATION_TYPES = ["zoom", "slide", "bounce", "fade", "pulse"];
 const ALLOWED_COACHING_TYPES = ["insight", "warning", "tip"];
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
@@ -260,9 +352,13 @@ export class CoachingService {
                 slide.secondaryColor = raw.secondaryColor;
             }
 
-            // actionPath só é mantido se estiver na allowlist de rotas do app
-            if (typeof raw.actionPath === "string" && ALLOWED_ACTION_PATHS.includes(raw.actionPath)) {
-                slide.actionPath = raw.actionPath;
+            // actionPath só é mantido se a ROTA estiver na allowlist; a query
+            // string sobrevive filtrada (ver `sanitizeActionPath`), inclusive o
+            // `status` que decide se o formulário abre como "Registrei" ou
+            // "Vou agendar".
+            const actionPath = typeof raw.actionPath === "string" ? sanitizeActionPath(raw.actionPath) : null;
+            if (actionPath) {
+                slide.actionPath = actionPath;
                 if (typeof raw.actionLabel === "string" && raw.actionLabel.trim().length > 0) {
                     slide.actionLabel = raw.actionLabel;
                 }
