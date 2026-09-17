@@ -218,7 +218,7 @@ async function main(): Promise<void> {
             credential: admin.credential.applicationDefault(),
             projectId: options.projectId,
         });
-        admin.firestore().settings({ ignoreUndefinedProperties: true });
+        admin.firestore().settings({ ignoreUndefinedProperties: false });
     }
 
     const financeRepository = new FinanceRepositoryImpl();

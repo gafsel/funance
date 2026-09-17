@@ -88,7 +88,7 @@ if (require.main === module) {
     }
 
     admin.initializeApp({ projectId });
-    admin.firestore().settings({ ignoreUndefinedProperties: true });
+    admin.firestore().settings({ ignoreUndefinedProperties: false });
 
     publishBadgeCatalogScript(new BadgeCatalogRepositoryImpl(), { dryRun })
         .then(() => process.exit(0))

@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import { WorkspaceModel } from "../../domain/models/workspace.model";
 import { IWorkspaceRepository } from "../../domain/repositories/workspace.repository";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
     private collection = admin.firestore().collection("workspaces");
@@ -31,10 +32,10 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
     }
 
     async createWorkspace(workspace: Omit<WorkspaceModel, "id">): Promise<string> {
-        const docRef = await this.collection.add({
+        const docRef = await this.collection.add(stripUndefined({
             ...workspace,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
+        }));
         return docRef.id;
     }
 

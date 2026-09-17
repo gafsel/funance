@@ -24,6 +24,7 @@ import { BatchOperation, commitInChunks, DEFAULT_CHUNK_SIZE, deleteByQueryInChun
 import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { getZonedParts } from "../../../../core/utils/timezone.utils";
 import { InvoiceService } from "../../domain/services/invoice.service";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 /**
  * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
@@ -116,19 +117,24 @@ function toNumber(value: unknown): number {
  */
 export function buildInstallmentDocument(
     installment: Omit<InstallmentModel, "id" | "referenceDate" | "referenceAmount">
-): Record<string, any> {
+): Record<string, unknown> {
     const referenceDate = installment.paidDate || installment.dueDate;
     const referenceAmount = installment.paidAmount !== undefined && installment.paidAmount !== null
         ? installment.paidAmount
         : installment.amount;
 
-    return {
+    // `stripUndefined`: a parcela tem uma dúzia de campos opcionais
+    // (`installmentNumber`, `category`, `isInvoice`, a janela do ciclo...) e o
+    // chamador monta o objeto com os que valem para o caso dele. Sem o
+    // descarte explícito, uma chave ausente chegaria ao SDK como `undefined` e
+    // — desligado o `ignoreUndefinedProperties` — derrubaria a criação inteira.
+    return stripUndefined({
         ...installment,
         dueDate: admin.firestore.Timestamp.fromDate(installment.dueDate),
         paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
         referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
         referenceAmount: referenceAmount,
-    };
+    });
 }
 
 export class FinanceRepositoryImpl implements IFinanceRepository {
@@ -160,11 +166,15 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async createOrder(workspaceId: string, order: Omit<OrderModel, "id">, id?: string): Promise<string> {
         const collection = this.getOrdersCollection(workspaceId);
+        // `OrderModel` tem campos opcionais (`endMonth`, `installmentCount`,
+        // `category`, a janela do ciclo da fatura): o que o chamador não
+        // preencheu não vai para o documento.
+        const data = stripUndefined(order);
         if (id) {
-            await collection.doc(id).set(order);
+            await collection.doc(id).set(data);
             return id;
         }
-        const docRef = await collection.add(order);
+        const docRef = await collection.add(data);
         return docRef.id;
     }
 
@@ -184,7 +194,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
     async updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void> {
-        await this.getOrdersCollection(workspaceId).doc(orderId).update(order);
+        // `Partial<OrderModel>`: as chaves ausentes vêm como `undefined` e
+        // significam "não mexer neste campo", nunca "apagar".
+        await this.getOrdersCollection(workspaceId).doc(orderId).update(stripUndefined(order));
     }
 
     /**
@@ -235,7 +247,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .doc(orderId)
             .collection("history")
             .add({
-                snapshot: snapshot,
+                snapshot: stripUndefined(snapshot),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             });
     }
@@ -355,7 +367,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 data.accountIds = Object.keys(installment.accounts || {});
             }
 
-            transaction.update(docRef, data);
+            // `Partial<InstallmentModel>`: chave ausente é "não mexer".
+            transaction.update(docRef, stripUndefined(data));
         });
     }
 
@@ -1220,7 +1233,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .doc(workspaceId)
             .collection("financial_coaching")
             .add({
-                ...analysis,
+                ...stripUndefined(analysis),
                 date: analysis.date instanceof Date
                     ? admin.firestore.Timestamp.fromDate(analysis.date)
                     : admin.firestore.FieldValue.serverTimestamp(),
@@ -1270,7 +1283,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
     async savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: any): Promise<void> {
         await this.getPlanningAnalysisDocRef(workspaceId, monthKey).set({
-            ...analysis,
+            ...stripUndefined(analysis),
             createdAt: analysis.createdAt instanceof Date
                 ? admin.firestore.Timestamp.fromDate(analysis.createdAt)
                 : admin.firestore.FieldValue.serverTimestamp(),

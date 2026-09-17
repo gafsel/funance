@@ -7,6 +7,7 @@ import {
     InstallmentLike,
 } from "../../domain/repositories/goal.repository";
 import { GoalModel, GoalOutcome, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 /** Máximo de documentos por `getAll` — evita um lote gigante numa meta longa. */
 const MAX_SUMMARY_DOCS_PER_BATCH = 100;
@@ -60,7 +61,10 @@ export class GoalRepositoryImpl implements IGoalRepository {
     }
 
     async updateGoal(workspaceId: string, goal: GoalModel): Promise<void> {
-        await this.goalsCollection(workspaceId).doc(goal.id).set(goal, { merge: true });
+        // `GoalModel` tem campos opcionais (prazo, ícone, conta, categoria,
+        // desfecho): o que a meta não tem fica FORA do documento. Note que
+        // `outcome: null` é diferente de ausente e continua sendo gravado.
+        await this.goalsCollection(workspaceId).doc(goal.id).set(stripUndefined(goal), { merge: true });
     }
 
     async updateGoalProgress(
@@ -69,7 +73,7 @@ export class GoalRepositoryImpl implements IGoalRepository {
         currentAmount: number,
         outcome?: GoalOutcomeStamp | null
     ): Promise<void> {
-        const payload: Record<string, any> = { currentAmount, ...outcomePayload(outcome) };
+        const payload: Record<string, unknown> = { currentAmount, ...outcomePayload(outcome) };
         await this.goalsCollection(workspaceId).doc(goalId).set(payload, { merge: true });
     }
 
@@ -330,7 +334,7 @@ export class GoalRepositoryImpl implements IGoalRepository {
  * Campos do desfecho: `outcome` mais o carimbo do instante no campo que
  * corresponde a ele (`completedAt` para sucesso, `failedAt` para falha).
  */
-function outcomePayload(stamp?: GoalOutcomeStamp | null): Record<string, any> {
+function outcomePayload(stamp?: GoalOutcomeStamp | null): Record<string, unknown> {
     if (!stamp) {
         return {};
     }

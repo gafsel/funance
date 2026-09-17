@@ -10,6 +10,7 @@ import {
 } from "../../domain/repositories/gamification.repository";
 import { calculateLevel } from "../../domain/services/gamification.service";
 import { isSystemCategory } from "../../../workspace/domain/models/category.model";
+import { stripUndefined } from "../../../../core/utils/firestore.utils";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
     async getWorkspaceById(workspaceId: string): Promise<any | null> {
@@ -198,7 +199,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             await admin.firestore()
                 .collection(`workspaces/${workspaceId}/weekly_missions`)
                 .doc(`${weekId}_${type}`)
-                .create(data);
+                .create(stripUndefined(data));
         }
         catch (e: any) {
             // gRPC 6 = ALREADY_EXISTS
@@ -214,7 +215,7 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         await admin.firestore()
             .collection(`workspaces/${workspaceId}/weekly_missions`)
             .doc(`${weekId}_${type}`)
-            .update(data);
+            .update(stripUndefined(data));
     }
 
     async getWeeklyMissionsByWeek(workspaceId: string, weekId: string): Promise<any[]> {

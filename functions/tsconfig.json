@@ -6,7 +6,19 @@
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
-    "noImplicitAny": false,
+    // F1.11: um parâmetro sem tipo deixa de ser `any` implícito. O compilador
+    // passa a reclamar do acesso a campo inexistente em vez de deixá-lo
+    // atravessar até o Firestore. Custo medido na adoção: ZERO erros, em
+    // produção e em teste — o código já estava anotado.
+    //
+    // `noUncheckedIndexedAccess` ficou FORA: medido no mesmo momento, custava
+    // 47 erros no build de produção e 282 no de teste (`map.get()`,
+    // `array[0]`, `Object.entries` em mapas de sumário). É um ganho real, mas
+    // exigiria centenas de guardas mecânicas misturadas a este refactor de
+    // tipagem — e um refactor que muda o que se lê em cada linha é o pior
+    // lugar para esconder uma mudança de comportamento. Fica registrado como
+    // pacote próprio.
+    "noImplicitAny": true,
     "target": "es2017",
     "lib": ["esnext", "esnext.disposable", "dom"],
     "skipLibCheck": true

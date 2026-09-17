@@ -152,7 +152,7 @@ if (require.main === module) {
     }
 
     admin.initializeApp({ projectId });
-    admin.firestore().settings({ ignoreUndefinedProperties: true });
+    admin.firestore().settings({ ignoreUndefinedProperties: false });
 
     recomputeHealth(admin.firestore(), new HealthRepositoryImpl(), { dryRun, workspaceId })
         .then((summary) => process.exit(summary.failed > 0 ? 1 : 0))

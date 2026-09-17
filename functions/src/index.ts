@@ -24,7 +24,20 @@ setGlobalOptions({
 });
 
 admin.initializeApp();
-admin.firestore().settings({ ignoreUndefinedProperties: true });
+
+// `ignoreUndefinedProperties` fica DESLIGADO (F1.11).
+//
+// Ligada, a opção fazia o SDK descartar em silêncio toda chave com valor
+// `undefined`. Um campo que o servidor deveria escrever e que chegou
+// `undefined` por um erro de tipagem simplesmente não ia para o documento —
+// sem erro, sem log, sem teste vermelho. O defeito só aparecia depois, no app,
+// como um campo que "sumiu".
+//
+// Desligada, gravar `undefined` LANÇA. Onde o descarte é legítimo (um
+// `Partial<Model>`, um campo que só existe em fatura), ele é explícito:
+// `stripUndefined` (`core/utils/firestore.utils.ts`), aplicado na camada de
+// repositório, onde o documento é montado.
+admin.firestore().settings({ ignoreUndefinedProperties: false });
 
 export * from "./features/finance/presentation/functions/order_handler";
 export * from "./features/finance/presentation/functions/recurring_handler";

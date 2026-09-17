@@ -88,7 +88,7 @@ describe("XP que premia planejar (integração com emulador do Firestore)", () =
     beforeAll(async () => {
         if (admin.apps.length === 0) {
             admin.initializeApp({ projectId: process.env.GCLOUD_PROJECT });
-            admin.firestore().settings({ ignoreUndefinedProperties: true });
+            admin.firestore().settings({ ignoreUndefinedProperties: false });
         }
         firestore = admin.firestore();
     });
