@@ -12,8 +12,21 @@ import {
     PeriodSummaryUpdateModel,
     OrderStatus,
     InstallmentType,
-    OrderType, InstallmentStatus,
+    OrderType,
+    InstallmentStatus,
+    PeriodSummaryDocument,
+    toPeriodSummaryDocument,
 } from "../../domain/models/finance.models";
+import {
+    PlanningAnalysisDocument,
+    PlanningAnalysisWrite,
+    toPlanningAnalysisDocument,
+} from "../../domain/models/planning_analysis.model";
+import {
+    CoachingAnalysisDocument,
+    CoachingAnalysisWrite,
+    toCoachingAnalysisDocument,
+} from "../../../coaching/domain/models/coaching_analysis.model";
 import {
     CategoryPlanningPage,
     CategoryPlanningRef,
@@ -242,7 +255,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         });
     }
 
-    async createOrderHistory(workspaceId: string, orderId: string, snapshot: any): Promise<void> {
+    async createOrderHistory(workspaceId: string, orderId: string, snapshot: Record<string, unknown>): Promise<void> {
         await this.getOrdersCollection(workspaceId)
             .doc(orderId)
             .collection("history")
@@ -816,11 +829,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await docRef.set(updateData, { merge: true });
     }
 
-    async getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<any | null> {
+    async getPeriodSummary(workspaceId: string, year: number, month?: number, week?: number): Promise<PeriodSummaryDocument | null> {
         const { docRef } = this.getPeriodSummaryDocRef(workspaceId, year, month, week);
         const doc = await docRef.get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() };
+        return toPeriodSummaryDocument(doc.id, doc.data());
     }
 
     async getAccountById(workspaceId: string, accountId: string): Promise<AccountModel | null> {
@@ -1096,7 +1109,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     }
 
 
-    async updateOrderCategory(workspaceId: string, category: CategoryModel) {
+    async updateOrderCategory(workspaceId: string, category: CategoryModel): Promise<void> {
         const snapshot = await this.getOrdersCollection(workspaceId)
             .where("category.id", "==", category.id)
             .get();
@@ -1111,7 +1124,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await commitInChunks(this.firestore, operations);
     }
 
-    async updateInstallmentCategory(workspaceId: string, category: CategoryModel) {
+    async updateInstallmentCategory(workspaceId: string, category: CategoryModel): Promise<void> {
         const snapshot = await this.getInstallmentsCollection(workspaceId)
             .where("category.id", "==", category.id)
             .get();
@@ -1204,7 +1217,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         return collection.doc(canonicalId);
     }
 
-    async getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<any[]> {
+    async getLastCoachingAnalyses(workspaceId: string, limit: number): Promise<CoachingAnalysisDocument[]> {
         const snapshot = await admin.firestore()
             .collection("workspaces")
             .doc(workspaceId)
@@ -1213,30 +1226,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .limit(limit)
             .get();
 
-        return snapshot.docs.map(doc => {
-            const data = doc.data() as any;
-            let date = data.date;
-            if (date && typeof date.toDate === "function") {
-                date = date.toDate();
-            }
-            return {
-                id: doc.id,
-                ...data,
-                date
-            };
-        });
+        return snapshot.docs.map(doc => toCoachingAnalysisDocument(doc.id, doc.data()));
     }
 
-    async saveCoachingAnalysis(workspaceId: string, analysis: any): Promise<string> {
+    async saveCoachingAnalysis(workspaceId: string, analysis: CoachingAnalysisWrite): Promise<string> {
         const docRef = await admin.firestore()
             .collection("workspaces")
             .doc(workspaceId)
             .collection("financial_coaching")
             .add({
+                // `stripUndefined`: um slide sem botão não tem `actionPath` nem
+                // `actionLabel`, e as chaves ausentes não podem ir ao SDK.
                 ...stripUndefined(analysis),
-                date: analysis.date instanceof Date
-                    ? admin.firestore.Timestamp.fromDate(analysis.date)
-                    : admin.firestore.FieldValue.serverTimestamp(),
+                date: admin.firestore.Timestamp.fromDate(analysis.date),
             });
         return docRef.id;
     }
@@ -1275,18 +1277,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             .doc(monthKey);
     }
 
-    async getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<any | null> {
+    async getPlanningAnalysis(workspaceId: string, monthKey: string): Promise<PlanningAnalysisDocument | null> {
         const doc = await this.getPlanningAnalysisDocRef(workspaceId, monthKey).get();
         if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() };
+        return toPlanningAnalysisDocument(doc.id, doc.data());
     }
 
-    async savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: any): Promise<void> {
+    async savePlanningAnalysis(workspaceId: string, monthKey: string, analysis: PlanningAnalysisWrite): Promise<void> {
         await this.getPlanningAnalysisDocRef(workspaceId, monthKey).set({
+            // `stripUndefined`: `suggestedAllocation` e `savingTip` são `null`
+            // explícitos, mas o payload passa por aqui inteiro e uma chave
+            // opcional futura não pode derrubar a gravação.
             ...stripUndefined(analysis),
-            createdAt: analysis.createdAt instanceof Date
-                ? admin.firestore.Timestamp.fromDate(analysis.createdAt)
-                : admin.firestore.FieldValue.serverTimestamp(),
+            createdAt: admin.firestore.Timestamp.fromDate(analysis.createdAt),
         });
     }
 

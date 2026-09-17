@@ -1,5 +1,17 @@
 import { CategoryGroup } from "../../../coaching/domain/models/category_group.model";
 import {
+    ALLOCATION_TARGETS,
+    PLANNING_ALLOCATIONS,
+    PLANNING_STATUSES,
+    PlanningAllocation,
+    PlanningCategoryStatus,
+    ProjectedIncomeSource,
+    ValidatedAnalysisCategory,
+    ValidatedAnalysisGroup,
+    ValidatedPlanningAnalysis,
+    isValidPlanningAllocation,
+} from "../models/planning_analysis.model";
+import {
     ESSENTIAL_GROUPS,
     LIFESTYLE_BENCHMARKS,
 } from "../../../coaching/domain/services/coaching_context.utils";
@@ -18,21 +30,22 @@ function isFiniteNumber(value: any): value is number {
     return typeof value === "number" && isFinite(value);
 }
 
-// ===== Alvos da regra 50-30-20 (% da renda prevista) =====
-
-export type PlanningAllocation = "essential" | "comfort" | "investment";
-
-export const PLANNING_ALLOCATIONS: PlanningAllocation[] = ["essential", "comfort", "investment"];
-
-export const ALLOCATION_TARGETS: Record<PlanningAllocation, number> = {
-    essential: 50,
-    comfort: 30,
-    investment: 20,
+// Os tipos e as tabelas da regra 50-30-20 moraram aqui até F1.11. Eles são
+// contrato de PERSISTÊNCIA (o documento de `planning_analysis` os grava), e por
+// isso passaram para `domain/models/planning_analysis.model.ts`. A reexportação
+// mantém válidos os imports que já apontavam para este módulo.
+export {
+    ALLOCATION_TARGETS,
+    PLANNING_ALLOCATIONS,
+    PLANNING_STATUSES,
+    PlanningAllocation,
+    PlanningCategoryStatus,
+    ProjectedIncomeSource,
+    ValidatedAnalysisCategory,
+    ValidatedAnalysisGroup,
+    ValidatedPlanningAnalysis,
+    isValidPlanningAllocation,
 };
-
-export function isValidPlanningAllocation(value: any): value is PlanningAllocation {
-    return typeof value === "string" && (PLANNING_ALLOCATIONS as string[]).includes(value);
-}
 
 // ===== Receita prevista do mês =====
 
@@ -40,7 +53,7 @@ export interface ProjectedIncomeResult {
     /** Receita prevista mensal em R$, ou null quando não há nenhuma referência. */
     projectedIncome: number | null;
     /** Origem do valor (para o prompt saber a confiabilidade). */
-    source: "plannedCurrentMonth" | "avgActual3Months" | null;
+    source: ProjectedIncomeSource | null;
 }
 
 /**
@@ -199,35 +212,6 @@ export function resolveBenchmarksBRL(projectedIncome: number): BenchmarkBRLEntry
 }
 
 // ===== Validação server-side do payload da IA =====
-
-export type PlanningCategoryStatus = "ok" | "above" | "below";
-
-const PLANNING_STATUSES: PlanningCategoryStatus[] = ["ok", "above", "below"];
-
-export interface ValidatedAnalysisGroup {
-    allocation: PlanningAllocation;
-    currentPct: number;
-    targetPct: number;
-    deltaBRL: number;
-}
-
-export interface ValidatedAnalysisCategory {
-    categoryId: string;
-    idealMonthlyAmount: number;
-    idealPctOfIncome: number;
-    status: PlanningCategoryStatus;
-    suggestedAllocation: PlanningAllocation | null;
-    shouldReclassify: boolean;
-    reason: string;
-    savingTip: string | null;
-}
-
-export interface ValidatedPlanningAnalysis {
-    summary: string;
-    groups: ValidatedAnalysisGroup[];
-    categories: ValidatedAnalysisCategory[];
-    insights: string[];
-}
 
 /**
  * Valida o payload retornado pela IA:

@@ -7,16 +7,22 @@ import { CategoryModel, CategoryType } from "../../../workspace/domain/models/ca
 import { CategoryGroupService } from "../../../coaching/domain/services/category_group.service";
 import { CategoryGroup } from "../../../coaching/domain/models/category_group.model";
 import {
-    ALLOCATION_TARGETS,
-    PlanningAllocation,
     PlanningCategoryInput,
     buildAllocationTotals,
     buildPlanningCategoryContext,
     computeProjectedIncome,
-    isValidPlanningAllocation,
     resolveBenchmarksBRL,
     validatePlanningAnalysis,
 } from "./planning_analysis.utils";
+import {
+    ALLOCATION_TARGETS,
+    PlanningAllocation,
+    PlanningAnalysisCategory,
+    PlanningAnalysisPayload,
+    PlanningAnalysisResponse,
+    isValidPlanningAllocation,
+} from "../models/planning_analysis.model";
+import { PeriodSummaryDocument } from "../models/finance.models";
 
 // Se a análise do mês tem menos de 3 dias, retornamos o cache sem chamar a
 // IA. O cliente não pode contornar isso (o campo `force` foi removido em
@@ -44,13 +50,13 @@ export class PlanningAnalysisService {
      * @param quota cota diária do chamador. Só é consumida em cache-miss,
      *              imediatamente antes da chamada à IA.
      */
-    async analyze(workspaceId: string, quota?: QuotaGuard): Promise<any> {
+    async analyze(workspaceId: string, quota?: QuotaGuard): Promise<PlanningAnalysisResponse> {
         const now = new Date();
         const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
         // 0. Cache do mês (menos de 3 dias) — retorna sem IA e sem gastar cota.
         const cached = await this.financeRepository.getPlanningAnalysis(workspaceId, monthKey);
-        const cachedAt = this.toDate(cached?.createdAt);
+        const cachedAt = cached?.createdAt ?? null;
         if (cached && cachedAt) {
             const ageDays = (now.getTime() - cachedAt.getTime()) / (24 * 60 * 60 * 1000);
             if (ageDays >= 0 && ageDays < CACHE_MAX_AGE_DAYS) {
@@ -71,7 +77,7 @@ export class PlanningAnalysisService {
             workspaceId, now.getFullYear(), now.getMonth() + 1
         );
 
-        const previousSummaries: (any | null)[] = [];
+        const previousSummaries: (PeriodSummaryDocument | null)[] = [];
         for (let i = 1; i <= 3; i++) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             previousSummaries.push(
@@ -156,7 +162,7 @@ export class PlanningAnalysisService {
         //    Se a falha for de infraestrutura, estorna.
         await quota?.consume();
 
-        let raw: any;
+        let raw: unknown;
         try {
             raw = await this.aiRepository.analyze503020Ideal(workspaceId, context);
         }
@@ -181,7 +187,7 @@ export class PlanningAnalysisService {
 
         // 7. Enriquecimento para a UI/histórico (nome e alocação atual são do servidor)
         const contextById = new Map(categoryContext.map(entry => [entry.categoryId, entry]));
-        const enrichedCategories = validated.categories.map(category => {
+        const enrichedCategories: PlanningAnalysisCategory[] = validated.categories.map(category => {
             const entry = contextById.get(category.categoryId)!;
             return {
                 ...category,
@@ -193,7 +199,7 @@ export class PlanningAnalysisService {
         });
 
         // 8. Persistência server-side (o cliente não escreve nesta coleção)
-        const payload = {
+        const payload: PlanningAnalysisPayload = {
             month: monthKey,
             summary: validated.summary,
             groups: validated.groups,
@@ -213,32 +219,38 @@ export class PlanningAnalysisService {
         return this.formatResponse(monthKey, payload, generatedAt);
     }
 
-    /** Formato de resposta estável para o cliente (createdAt em ISO-8601). */
-    private formatResponse(id: string, data: any, createdAt: Date): any {
+    /**
+     * Formato de resposta estável para o cliente (createdAt em ISO-8601).
+     *
+     * Sem normalização aqui: o payload já chega completo, seja do fluxo novo ou
+     * do leitor do documento em cache (`toPlanningAnalysisDocument`). O
+     * `generatedBy` fica FORA da resposta — é metadado de persistência.
+     */
+    private formatResponse(id: string, data: PlanningAnalysisPayload, createdAt: Date): PlanningAnalysisResponse {
         return {
             id,
-            month: data.month || id,
-            summary: data.summary || "",
-            groups: Array.isArray(data.groups) ? data.groups : [],
-            categories: Array.isArray(data.categories) ? data.categories : [],
-            insights: Array.isArray(data.insights) ? data.insights : [],
-            projectedIncome: data.projectedIncome || 0,
-            incomeSource: data.incomeSource || null,
+            month: data.month,
+            summary: data.summary,
+            groups: data.groups,
+            categories: data.categories,
+            insights: data.insights,
+            projectedIncome: data.projectedIncome,
+            incomeSource: data.incomeSource,
             createdAt: createdAt.toISOString(),
         };
     }
 
     /** Soma um campo do summary apenas para os ids de categoria informados. */
     private sumByCategoryIds(
-        summary: any | null,
+        summary: PeriodSummaryDocument | null,
         categoryIds: Set<string>,
         field: "specificPlannedAmount" | "actualAmount"
     ): number {
-        if (!summary?.categories) return 0;
+        if (!summary) return 0;
         let total = 0;
-        for (const [id, data] of Object.entries<any>(summary.categories)) {
+        for (const [id, totals] of Object.entries(summary.categories)) {
             if (!categoryIds.has(id)) continue;
-            total += data?.[field] || 0;
+            total += totals[field];
         }
         return total;
     }
@@ -246,16 +258,5 @@ export class PlanningAnalysisService {
     /** Alocação atual da categoria; default comfort (mesmo default do app). */
     private resolveAllocation(category: CategoryModel): PlanningAllocation {
         return isValidPlanningAllocation(category.allocation) ? category.allocation : "comfort";
-    }
-
-    private toDate(value: any): Date | null {
-        if (!value) return null;
-        if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
-        if (typeof value.toDate === "function") return value.toDate();
-        if (typeof value === "string") {
-            const parsed = new Date(value);
-            return isNaN(parsed.getTime()) ? null : parsed;
-        }
-        return null;
     }
 }

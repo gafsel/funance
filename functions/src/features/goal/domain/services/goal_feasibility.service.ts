@@ -38,14 +38,14 @@ export class GoalFeasibilityService {
             const summary = await this.financeRepository.getPeriodSummary(workspaceId, year, month);
             if (!summary) continue;
 
-            const categoriesData = summary.categories as Record<string, { actualAmount?: number }> ?? {};
+            const categoriesData = summary.categories;
 
             let totalIncome = 0;
             let totalExpense = 0;
             const categoryBreakdown: { name: string; type: string; allocation: string | undefined, amount: number }[] = [];
 
             for (const [categoryId, data] of Object.entries(categoriesData)) {
-                const amount = data.actualAmount ?? 0;
+                const amount = data.actualAmount;
                 if (amount === 0) continue;
 
                 const category = categoryMap.get(categoryId);

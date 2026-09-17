@@ -5,7 +5,7 @@ import { ICategoryRepository } from "../../../workspace/domain/repositories/cate
 import { IWorkspaceRepository } from "../../../workspace/domain/repositories/workspace.repository";
 import { IAIRepository, isTransientAiError } from "../../../../core/services/ai.service";
 import { QuotaGuard } from "../../../../core/services/quota.service";
-import { InstallmentStatus, InstallmentType, OrderType } from "../../../finance/domain/models/finance.models";
+import { InstallmentStatus, InstallmentType, OrderType, PeriodSummaryDocument } from "../../../finance/domain/models/finance.models";
 import {
     CategoryModel,
     CategoryType,
@@ -15,6 +15,16 @@ import {
 import { getWeekRefBefore } from "../../../../core/utils/week.utils";
 import { CategoryGroupService } from "./category_group.service";
 import { CategoryGroup } from "../models/category_group.model";
+import {
+    CoachingAnalysisPayload,
+    CoachingResponse,
+    CoachingSlide,
+    DEFAULT_COACHING_ANIMATION,
+    DEFAULT_COACHING_MESSAGE,
+    DEFAULT_COACHING_TYPE,
+    isCoachingAnimationType,
+    isCoachingType,
+} from "../models/coaching_analysis.model";
 import {
     CategoryProfileInput,
     buildCategoryProfile,
@@ -125,8 +135,6 @@ export function sanitizeActionPath(raw: string): string | null {
     return params.length > 0 ? `${path}?${params.join("&")}` : path;
 }
 
-const ALLOWED_ANIMATION_TYPES = ["zoom", "slide", "bounce", "fade", "pulse"];
-const ALLOWED_COACHING_TYPES = ["insight", "warning", "tip"];
 const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
 const DEFAULT_SLIDE_COLOR = "#4A8C9C";
@@ -159,7 +167,7 @@ export class CoachingService {
      *              imediatamente antes da chamada à IA. O cron de coaching
      *              proativo chama sem cota (é uso server-side, não do usuário).
      */
-    async generateCoaching(workspaceId: string, quota?: QuotaGuard): Promise<any> {
+    async generateCoaching(workspaceId: string, quota?: QuotaGuard): Promise<CoachingResponse> {
         const now = new Date();
 
         // 0. Contexto anterior (também usado como cache/rate-limit)
@@ -171,7 +179,7 @@ export class CoachingService {
             const ageDays = (now.getTime() - latestDate.getTime()) / (24 * 60 * 60 * 1000);
             if (ageDays >= 0 && ageDays < CACHE_MAX_AGE_DAYS) {
                 console.log(`Coaching: insight recente (${ageDays.toFixed(1)} dias) encontrado para ${workspaceId}. Retornando cache.`);
-                return this.formatResponse(latest.id || "", latest, latestDate);
+                return this.formatResponse(latest.id, latest, latestDate);
             }
         }
 
@@ -307,14 +315,16 @@ export class CoachingService {
      * Formato de resposta retrocompatível com o parse do cliente
      * (lib/features/coaching/data/repositories/coaching_repository_impl.dart).
      */
-    private formatResponse(id: string, data: any, date: Date): any {
+    private formatResponse(id: string, data: CoachingAnalysisPayload, date: Date): CoachingResponse {
+        // Sem normalização aqui: o payload já chega completo, seja do
+        // validador (insight novo) ou do leitor do documento (cache).
         return {
             id,
-            message: data.message || "Insights do seu Coach Financeiro",
-            summary: data.summary || data.message || "",
+            message: data.message,
+            summary: data.summary,
             date: date.toISOString(),
-            type: ALLOWED_COACHING_TYPES.includes(data.type) ? data.type : "insight",
-            slides: Array.isArray(data.slides) ? data.slides : [],
+            type: data.type,
+            slides: data.slides,
         };
     }
 
@@ -329,38 +339,40 @@ export class CoachingService {
         return null;
     }
 
-    private validateCoachingResponse(response: any): { message: string; summary: string; type: string; slides: any[] } {
-        const slidesRaw = Array.isArray(response?.slides) ? response.slides : [];
-        const slides: any[] = [];
+    private validateCoachingResponse(response: unknown): CoachingAnalysisPayload {
+        const raw = (response ?? {}) as Record<string, unknown>;
+        const slidesRaw = Array.isArray(raw.slides) ? raw.slides : [];
+        const slides: CoachingSlide[] = [];
 
-        for (const raw of slidesRaw) {
-            if (!raw || typeof raw !== "object") continue;
+        for (const item of slidesRaw) {
+            if (!item || typeof item !== "object") continue;
+            const rawSlide = item as Record<string, unknown>;
 
             // Slide sem mensagem não tem conteúdo útil — descarta
-            if (typeof raw.message !== "string" || raw.message.trim().length === 0) continue;
+            if (typeof rawSlide.message !== "string" || rawSlide.message.trim().length === 0) continue;
 
-            const slide: any = {
-                title: (typeof raw.title === "string" && raw.title.trim().length > 0) ? raw.title : DEFAULT_SLIDE_TITLE,
-                message: raw.message,
-                icon: (typeof raw.icon === "string" && raw.icon.trim().length > 0) ? raw.icon : DEFAULT_SLIDE_ICON,
-                color: (typeof raw.color === "string" && HEX_COLOR_REGEX.test(raw.color)) ? raw.color : DEFAULT_SLIDE_COLOR,
-                icons: Array.isArray(raw.icons) ? raw.icons.filter((i: any) => typeof i === "string") : [],
-                animationType: ALLOWED_ANIMATION_TYPES.includes(raw.animationType) ? raw.animationType : "fade",
+            const slide: CoachingSlide = {
+                title: (typeof rawSlide.title === "string" && rawSlide.title.trim().length > 0) ? rawSlide.title : DEFAULT_SLIDE_TITLE,
+                message: rawSlide.message,
+                icon: (typeof rawSlide.icon === "string" && rawSlide.icon.trim().length > 0) ? rawSlide.icon : DEFAULT_SLIDE_ICON,
+                color: (typeof rawSlide.color === "string" && HEX_COLOR_REGEX.test(rawSlide.color)) ? rawSlide.color : DEFAULT_SLIDE_COLOR,
+                icons: Array.isArray(rawSlide.icons) ? rawSlide.icons.filter((i: unknown): i is string => typeof i === "string") : [],
+                animationType: isCoachingAnimationType(rawSlide.animationType) ? rawSlide.animationType : DEFAULT_COACHING_ANIMATION,
             };
 
-            if (typeof raw.secondaryColor === "string" && HEX_COLOR_REGEX.test(raw.secondaryColor)) {
-                slide.secondaryColor = raw.secondaryColor;
+            if (typeof rawSlide.secondaryColor === "string" && HEX_COLOR_REGEX.test(rawSlide.secondaryColor)) {
+                slide.secondaryColor = rawSlide.secondaryColor;
             }
 
             // actionPath só é mantido se a ROTA estiver na allowlist; a query
             // string sobrevive filtrada (ver `sanitizeActionPath`), inclusive o
             // `status` que decide se o formulário abre como "Registrei" ou
             // "Vou agendar".
-            const actionPath = typeof raw.actionPath === "string" ? sanitizeActionPath(raw.actionPath) : null;
+            const actionPath = typeof rawSlide.actionPath === "string" ? sanitizeActionPath(rawSlide.actionPath) : null;
             if (actionPath) {
                 slide.actionPath = actionPath;
-                if (typeof raw.actionLabel === "string" && raw.actionLabel.trim().length > 0) {
-                    slide.actionLabel = raw.actionLabel;
+                if (typeof rawSlide.actionLabel === "string" && rawSlide.actionLabel.trim().length > 0) {
+                    slide.actionLabel = rawSlide.actionLabel;
                 }
             }
 
@@ -374,12 +386,14 @@ export class CoachingService {
             );
         }
 
+        const message = typeof raw.message === "string" && raw.message.trim().length > 0
+            ? raw.message
+            : DEFAULT_COACHING_MESSAGE;
+
         return {
-            message: typeof response?.message === "string" && response.message.trim().length > 0
-                ? response.message
-                : "Insights do seu Coach Financeiro",
-            summary: typeof response?.summary === "string" ? response.summary : (response?.message || ""),
-            type: ALLOWED_COACHING_TYPES.includes(response?.type) ? response.type : "insight",
+            message,
+            summary: typeof raw.summary === "string" ? raw.summary : message,
+            type: isCoachingType(raw.type) ? raw.type : DEFAULT_COACHING_TYPE,
             slides,
         };
     }
@@ -405,11 +419,11 @@ export class CoachingService {
             const summary = await this.financeRepository.getPeriodSummary(workspaceId, ref.year, undefined, ref.week);
             if (!summary) continue;
 
-            const categoriesList = Object.entries(summary.categories || {})
+            const categoriesList = Object.entries(summary.categories)
                 .filter(([id]) => categoryById.get(id)?.type === CategoryType.expense)
-                .map(([id, data]: [string, any]) => ({
+                .map(([id, totals]) => ({
                     categoryName: categoryById.get(id)?.name || "Outros",
-                    amount: this.round2(data.actualAmount || 0),
+                    amount: this.round2(totals.actualAmount),
                 }))
                 .filter(c => c.amount !== 0);
 
@@ -427,8 +441,8 @@ export class CoachingService {
      * Summaries mensais dos `count` meses COMPLETOS anteriores ao mês atual,
      * do mais recente para o mais antigo (índice 0 = mês passado).
      */
-    private async getPreviousMonthlySummaries(workspaceId: string, now: Date, count: number): Promise<(any | null)[]> {
-        const summaries: (any | null)[] = [];
+    private async getPreviousMonthlySummaries(workspaceId: string, now: Date, count: number): Promise<(PeriodSummaryDocument | null)[]> {
+        const summaries: (PeriodSummaryDocument | null)[] = [];
         for (let i = 1; i <= count; i++) {
             const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const summary = await this.financeRepository.getPeriodSummary(workspaceId, date.getFullYear(), date.getMonth() + 1);
@@ -447,8 +461,8 @@ export class CoachingService {
         workspaceId: string,
         now: Date,
         categoryById: Map<string, CategoryModel>,
-        currentSummary: any | null,
-        previous3MonthsSummaries: (any | null)[]
+        currentSummary: PeriodSummaryDocument | null,
+        previous3MonthsSummaries: (PeriodSummaryDocument | null)[]
     ): Promise<{
         currentMonthTotals: any;
         categoryMonthlyAnalysis: any[];
@@ -458,7 +472,7 @@ export class CoachingService {
         const currentMonth = now.getMonth() + 1;
         const currentMonthStr = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
 
-        const currentCategories: Record<string, any> = currentSummary?.categories || {};
+        const currentCategories = currentSummary?.categories ?? {};
 
         // Média dos 3 meses anteriores por categoria
         const previousTotals = new Map<string, { total: number; monthsWithData: number }>();
@@ -468,8 +482,8 @@ export class CoachingService {
             if (!summary) continue;
             previousMonthsFound++;
 
-            for (const [id, data] of Object.entries<any>(summary.categories || {})) {
-                const amount = data?.actualAmount || 0;
+            for (const [id, data] of Object.entries(summary.categories)) {
+                const amount = data.actualAmount;
                 if (amount === 0) continue;
                 const entry = previousTotals.get(id) || { total: 0, monthsWithData: 0 };
                 entry.total += amount;
@@ -556,7 +570,7 @@ export class CoachingService {
         categories: CategoryModel[],
         categoryById: Map<string, CategoryModel>,
         workspace: { type?: string; members?: string[] } | null,
-        previous6MonthsSummaries: (any | null)[],
+        previous6MonthsSummaries: (PeriodSummaryDocument | null)[],
         currentMonthIncome: number
     ): Promise<any> {
         const window1 = previous6MonthsSummaries.slice(0, 3); // 3 últimos meses completos
@@ -565,9 +579,9 @@ export class CoachingService {
         // Renda média mensal: receitas (categorias income) dos meses completos da janela
         const incomePerFullMonth = window1.map(summary => {
             let total = 0;
-            for (const [id, data] of Object.entries<any>(summary?.categories || {})) {
+            for (const [id, totals] of Object.entries(summary?.categories ?? {})) {
                 if (categoryById.get(id)?.type === CategoryType.income) {
-                    total += data?.actualAmount || 0;
+                    total += totals.actualAmount;
                 }
             }
             return total;
@@ -669,15 +683,15 @@ export class CoachingService {
     }
 
     /** Soma o realizado (actualAmount) por categoria e conta os meses com summary. */
-    private sumActualByCategory(summaries: (any | null)[]): { sums: Map<string, number>; monthsWithData: number } {
+    private sumActualByCategory(summaries: (PeriodSummaryDocument | null)[]): { sums: Map<string, number>; monthsWithData: number } {
         const sums = new Map<string, number>();
         let monthsWithData = 0;
 
         for (const summary of summaries) {
             if (!summary) continue;
             monthsWithData++;
-            for (const [id, data] of Object.entries<any>(summary.categories || {})) {
-                const amount = data?.actualAmount || 0;
+            for (const [id, totals] of Object.entries(summary.categories)) {
+                const amount = totals.actualAmount;
                 if (amount === 0) continue;
                 sums.set(id, (sums.get(id) || 0) + amount);
             }
