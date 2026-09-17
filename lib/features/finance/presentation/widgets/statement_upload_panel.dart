@@ -82,7 +82,9 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
       PickedDocument(
         name: dropped.name,
         bytes: await dropped.readAsBytes(),
-        path: dropped.path,
+        // Na web o `path` do item arrastado é uma URL de blob, não um
+        // caminho. Guardá-la convidaria alguém a tentar abri-la mais tarde.
+        path: AppPlatform.hasFileSystem ? dropped.path : null,
       ),
     );
   }
