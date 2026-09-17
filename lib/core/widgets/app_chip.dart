@@ -1,0 +1,152 @@
+import 'package:flutter/material.dart';
+
+import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
+import '../theme/app_radius.dart';
+import '../theme/app_spacing.dart';
+
+/// O que a pílula está dizendo.
+enum StatusTone {
+  /// Fato sem julgamento: "conta corrente", "5 lançamentos".
+  neutral,
+
+  /// Está como deveria: "no plano", "conciliado", "pago".
+  ok,
+
+  /// Merece atenção, ainda dá tempo: "fecha amanhã", "perto do limite".
+  warning,
+
+  /// Está errado ou venceu: "acima", "atrasado", "falhou".
+  danger,
+
+  /// É jogo: XP, missão, badge, patente. A única pílula dourada.
+  reward,
+
+  /// Informação secundária com peso: "compartilhada", "automática".
+  info,
+}
+
+/// A pílula de status.
+///
+/// Substitui as quatro pílulas feitas à mão (duas delas com o mesmo nome,
+/// `_buildInfoChip`, uma com raio 20 e outra com raio 8, em paletas
+/// incompatíveis) e padroniza o que os cinco `Chip` do Material faziam por
+/// conta própria. Só existe em forma de estádio, como manda o `chipTheme`.
+class StatusPill extends StatelessWidget {
+  const StatusPill({
+    super.key,
+    required this.label,
+    this.tone = StatusTone.neutral,
+    this.icon,
+    this.dense = false,
+    this.color,
+  });
+
+  final String label;
+  final StatusTone tone;
+  final IconData? icon;
+
+  /// Compacta: para dentro de um tile de lista.
+  final bool dense;
+
+  /// Cor explícita, para quando o assunto da pílula é a própria cor — a de
+  /// uma categoria, a de um pool. Ignora [tone].
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    final Color base =
+        color ??
+        switch (tone) {
+          StatusTone.neutral => palette.ink2,
+          StatusTone.ok => palette.successText,
+          StatusTone.warning => palette.warningText,
+          StatusTone.danger => palette.dangerText,
+          StatusTone.reward => AppColors.goldDeep,
+          StatusTone.info => palette.tealText,
+        };
+
+    final style =
+        (dense ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)
+            ?.copyWith(color: base);
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? AppSpacing.xs : AppSpacing.sm,
+        vertical: dense ? 2 : AppSpacing.xxs,
+      ),
+      decoration: BoxDecoration(
+        color: base.withValues(alpha: 0.12),
+        borderRadius: AppRadius.brPill,
+        border: Border.all(color: base.withValues(alpha: 0.28)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: dense ? 12 : 14, color: base),
+            SizedBox(width: dense ? 4 : AppSpacing.xxs),
+          ],
+          Flexible(
+            child: Text(label, style: style, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip selecionável.
+///
+/// Fino sobre o `chipTheme`: existe para que filtro, escolha de tipo e
+/// seleção de período não precisem repetir `selectedColor`, `labelStyle` e
+/// `shape` em cada tela.
+class AppChip extends StatelessWidget {
+  const AppChip({
+    super.key,
+    required this.label,
+    this.selected = false,
+    this.onSelected,
+    this.icon,
+    this.onDeleted,
+  });
+
+  final String label;
+  final bool selected;
+  final ValueChanged<bool>? onSelected;
+  final IconData? icon;
+  final VoidCallback? onDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    final avatar = icon == null
+        ? null
+        : Icon(icon, size: 16, color: selected ? palette.ink : palette.ink2);
+
+    if (onSelected == null) {
+      return Chip(
+        avatar: avatar,
+        label: Text(label),
+        onDeleted: onDeleted,
+        deleteIcon: const Icon(Icons.close, size: 16),
+        backgroundColor: selected
+            ? AppColors.gold.withValues(alpha: 0.18)
+            : theme.chipTheme.backgroundColor,
+      );
+    }
+
+    return FilterChip(
+      avatar: avatar,
+      label: Text(label),
+      selected: selected,
+      onSelected: onSelected,
+      showCheckmark: false,
+    );
+  }
+}

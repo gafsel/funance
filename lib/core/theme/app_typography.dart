@@ -86,18 +86,18 @@ abstract final class AppTypography {
   ).apply(bodyColor: ink, displayColor: ink);
 
   /// Número grande de destaque — saldo do mês, valor da meta, total da fatura.
-  static TextStyle hero(Color ink) =>
-      _display(32, 38, FontWeight.w700).copyWith(
-        color: ink,
-        fontFeatures: tabular,
-      );
+  static TextStyle hero(Color ink) => _display(
+    32,
+    38,
+    FontWeight.w700,
+  ).copyWith(color: ink, fontFeatures: tabular);
 
   /// Contador de nível, XP e patente: display, compacto, tabular.
-  static TextStyle counter(Color ink) =>
-      _display(20, 26, FontWeight.w700).copyWith(
-        color: ink,
-        fontFeatures: tabular,
-      );
+  static TextStyle counter(Color ink) => _display(
+    20,
+    26,
+    FontWeight.w700,
+  ).copyWith(color: ink, fontFeatures: tabular);
 }
 
 extension TabularText on TextStyle {
@@ -105,6 +105,5 @@ extension TabularText on TextStyle {
   ///
   /// `theme.textTheme.bodyMedium!.tabularFigures` é a forma curta de dizer
   /// "isto é uma coluna de dinheiro".
-  TextStyle get tabularFigures =>
-      copyWith(fontFeatures: AppTypography.tabular);
+  TextStyle get tabularFigures => copyWith(fontFeatures: AppTypography.tabular);
 }

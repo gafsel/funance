@@ -37,11 +37,7 @@ class AppLogger {
   ///
   /// Vai para o mesmo lugar dos erros não tratados — é o que permite descobrir
   /// que uma tela "funcionando" está engolindo exceção desde a semana passada.
-  static void error(
-    String message,
-    Object error, [
-    StackTrace? stackTrace,
-  ]) {
+  static void error(String message, Object error, [StackTrace? stackTrace]) {
     if (kDebugMode) {
       developer.log(
         message,

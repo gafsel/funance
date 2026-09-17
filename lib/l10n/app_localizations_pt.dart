@@ -77,12 +77,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get closeButton => 'Fechar';
 
   @override
-  String get badgeUnlockedToast => 'Nova conquista desbloqueada!';
-
-  @override
-  String get badgeUnlockedView => 'Ver';
-
-  @override
   String get workspacePickerTitle => 'Workspaces';
 
   @override
@@ -1771,27 +1765,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get badgeUnlockedAtLabel => 'Conquistado em';
 
   @override
-  String get viewAchievementsButton => 'Ver Conquistas';
-
-  @override
   String levelIndicatorSemantics(int level, int count) {
     return 'Nível do Workspace: $level, Badges desbloqueados: $count';
   }
-
-  @override
-  String get levelUpTitle => 'LEVEL UP!';
-
-  @override
-  String get levelUpSubtitle => 'Parabéns para a equipe!';
-
-  @override
-  String levelUpContent(int level) {
-    return 'Seu workspace subiu para o Nível $level!';
-  }
-
-  @override
-  String get levelUpMessage =>
-      'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!';
 
   @override
   String get statementDragOverTitle => 'Solte o arquivo do extrato aqui';
@@ -2294,4 +2270,53 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get accountSavePendingSync =>
       'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.';
+
+  @override
+  String get celebrationXpTitle => 'XP ganho';
+
+  @override
+  String get celebrationMissionTitle => 'Missão concluída';
+
+  @override
+  String get celebrationBadgeTitle => 'Conquista desbloqueada';
+
+  @override
+  String get celebrationBadgeFallback => 'Veja na vitrine';
+
+  @override
+  String celebrationLevelTitle(int level) {
+    return 'Nível $level';
+  }
+
+  @override
+  String get celebrationLevelSubtitle => 'O cofre subiu de nível';
+
+  @override
+  String get celebrationTierTitle => 'Nova patente';
+
+  @override
+  String get settingsAppearanceSection => 'Aparência';
+
+  @override
+  String get settingsThemeMode => 'Tema';
+
+  @override
+  String get settingsThemeModeDesc =>
+      'Claro, escuro ou como o sistema estiver.';
+
+  @override
+  String get themeModeSystem => 'Sistema';
+
+  @override
+  String get themeModeLight => 'Claro';
+
+  @override
+  String get themeModeDark => 'Escuro';
+
+  @override
+  String get settingsCelebrationSound => 'Som nas conquistas';
+
+  @override
+  String get settingsCelebrationSoundDesc =>
+      'Desligado por padrão. A vibração continua.';
 }

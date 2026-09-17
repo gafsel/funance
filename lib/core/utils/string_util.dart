@@ -1,4 +1,3 @@
-
 extension StringExtension on String {
   String get formatedAsTelefone {
     String formatado = "";
@@ -52,7 +51,11 @@ extension StringExtension on String {
     String formatado = "";
     final String cc = unformated;
 
-    for (int idxValue = 0, idxFormat = 0; idxValue < cc.length && idxFormat < format.length; idxFormat++) {
+    for (
+      int idxValue = 0, idxFormat = 0;
+      idxValue < cc.length && idxFormat < format.length;
+      idxFormat++
+    ) {
       if (format[idxFormat] == '#') {
         if (RegExp("^\\d\$").hasMatch(cc[idxValue])) {
           formatado += cc[idxValue];

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 extension IconsExtension on String {
-
   IconData asIcon({IconData? orElse}) {
     return availableIcons[this] ?? orElse ?? Icons.circle;
   }
@@ -52,5 +51,4 @@ extension IconsExtension on String {
     'fastfood': Icons.fastfood,
     'celebration': Icons.celebration,
   };
-
 }

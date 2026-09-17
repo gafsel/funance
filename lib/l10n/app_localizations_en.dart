@@ -76,12 +76,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get closeButton => 'Close';
 
   @override
-  String get badgeUnlockedToast => 'New achievement unlocked!';
-
-  @override
-  String get badgeUnlockedView => 'View';
-
-  @override
   String get workspacePickerTitle => 'Workspaces';
 
   @override
@@ -1757,27 +1751,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get badgeUnlockedAtLabel => 'Earned on';
 
   @override
-  String get viewAchievementsButton => 'View Achievements';
-
-  @override
   String levelIndicatorSemantics(int level, int count) {
     return 'Workspace Level: $level, Badges unlocked: $count';
   }
-
-  @override
-  String get levelUpTitle => 'LEVEL UP!';
-
-  @override
-  String get levelUpSubtitle => 'Congratulations to the team!';
-
-  @override
-  String levelUpContent(int level) {
-    return 'Your workspace rose to Level $level!';
-  }
-
-  @override
-  String get levelUpMessage =>
-      'Keep cooperating and planning together to unlock new achievements and levels!';
 
   @override
   String get statementDragOverTitle => 'Drop the statement file here';
@@ -2277,4 +2253,52 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get accountSavePendingSync =>
       'Saved on this device. Opening balance and invoice appear when the connection is back.';
+
+  @override
+  String get celebrationXpTitle => 'XP earned';
+
+  @override
+  String get celebrationMissionTitle => 'Mission complete';
+
+  @override
+  String get celebrationBadgeTitle => 'Achievement unlocked';
+
+  @override
+  String get celebrationBadgeFallback => 'See it in the cabinet';
+
+  @override
+  String celebrationLevelTitle(int level) {
+    return 'Level $level';
+  }
+
+  @override
+  String get celebrationLevelSubtitle => 'The vault levelled up';
+
+  @override
+  String get celebrationTierTitle => 'New rank';
+
+  @override
+  String get settingsAppearanceSection => 'Appearance';
+
+  @override
+  String get settingsThemeMode => 'Theme';
+
+  @override
+  String get settingsThemeModeDesc =>
+      'Light, dark, or whatever the system is using.';
+
+  @override
+  String get themeModeSystem => 'System';
+
+  @override
+  String get themeModeLight => 'Light';
+
+  @override
+  String get themeModeDark => 'Dark';
+
+  @override
+  String get settingsCelebrationSound => 'Sound on achievements';
+
+  @override
+  String get settingsCelebrationSoundDesc => 'Off by default. Haptics stay on.';
 }

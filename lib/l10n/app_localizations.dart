@@ -230,18 +230,6 @@ abstract class AppLocalizations {
   /// **'Fechar'**
   String get closeButton;
 
-  /// No description provided for @badgeUnlockedToast.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nova conquista desbloqueada!'**
-  String get badgeUnlockedToast;
-
-  /// No description provided for @badgeUnlockedView.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver'**
-  String get badgeUnlockedView;
-
   /// No description provided for @workspacePickerTitle.
   ///
   /// In pt, this message translates to:
@@ -3278,41 +3266,11 @@ abstract class AppLocalizations {
   /// **'Conquistado em'**
   String get badgeUnlockedAtLabel;
 
-  /// No description provided for @viewAchievementsButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver Conquistas'**
-  String get viewAchievementsButton;
-
   /// No description provided for @levelIndicatorSemantics.
   ///
   /// In pt, this message translates to:
   /// **'Nível do Workspace: {level}, Badges desbloqueados: {count}'**
   String levelIndicatorSemantics(int level, int count);
-
-  /// No description provided for @levelUpTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'LEVEL UP!'**
-  String get levelUpTitle;
-
-  /// No description provided for @levelUpSubtitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Parabéns para a equipe!'**
-  String get levelUpSubtitle;
-
-  /// No description provided for @levelUpContent.
-  ///
-  /// In pt, this message translates to:
-  /// **'Seu workspace subiu para o Nível {level}!'**
-  String levelUpContent(int level);
-
-  /// No description provided for @levelUpMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!'**
-  String get levelUpMessage;
 
   /// No description provided for @statementDragOverTitle.
   ///
@@ -4141,6 +4099,96 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Salva neste dispositivo. Saldo inicial e fatura aparecem quando a conexão voltar.'**
   String get accountSavePendingSync;
+
+  /// No description provided for @celebrationXpTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'XP ganho'**
+  String get celebrationXpTitle;
+
+  /// No description provided for @celebrationMissionTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missão concluída'**
+  String get celebrationMissionTitle;
+
+  /// No description provided for @celebrationBadgeTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conquista desbloqueada'**
+  String get celebrationBadgeTitle;
+
+  /// No description provided for @celebrationBadgeFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Veja na vitrine'**
+  String get celebrationBadgeFallback;
+
+  /// No description provided for @celebrationLevelTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível {level}'**
+  String celebrationLevelTitle(int level);
+
+  /// No description provided for @celebrationLevelSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'O cofre subiu de nível'**
+  String get celebrationLevelSubtitle;
+
+  /// No description provided for @celebrationTierTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nova patente'**
+  String get celebrationTierTitle;
+
+  /// No description provided for @settingsAppearanceSection.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aparência'**
+  String get settingsAppearanceSection;
+
+  /// No description provided for @settingsThemeMode.
+  ///
+  /// In pt, this message translates to:
+  /// **'Tema'**
+  String get settingsThemeMode;
+
+  /// No description provided for @settingsThemeModeDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Claro, escuro ou como o sistema estiver.'**
+  String get settingsThemeModeDesc;
+
+  /// No description provided for @themeModeSystem.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sistema'**
+  String get themeModeSystem;
+
+  /// No description provided for @themeModeLight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Claro'**
+  String get themeModeLight;
+
+  /// No description provided for @themeModeDark.
+  ///
+  /// In pt, this message translates to:
+  /// **'Escuro'**
+  String get themeModeDark;
+
+  /// No description provided for @settingsCelebrationSound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Som nas conquistas'**
+  String get settingsCelebrationSound;
+
+  /// No description provided for @settingsCelebrationSoundDesc.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desligado por padrão. A vibração continua.'**
+  String get settingsCelebrationSoundDesc;
 }
 
 class _AppLocalizationsDelegate

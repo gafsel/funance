@@ -5,6 +5,7 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/domain/repositories/workspace_repository.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
+import 'package:rxdart/rxdart.dart';
 
 /// Repositório da Jornada em memória, para os testes montarem a tela sem
 /// Firestore.
@@ -26,13 +27,26 @@ class FakeJourneyRepository implements IJourneyRepository {
   final List<(String workspaceId, String weekId)> missionCalls = [];
   final List<(String workspaceId, String weekId)> xpCalls = [];
 
+  /// Os fluxos são `BehaviorSubject` e não `Stream.value` para que um teste
+  /// possa EMITIR DE NOVO: celebrar uma missão que fecha depende de haver uma
+  /// segunda emissão, e o valor sempre chega a quem assina depois — que é
+  /// exatamente o que `Stream.value` também fazia.
+  late final BehaviorSubject<List<WeeklyMissionModel>> _missions =
+      BehaviorSubject<List<WeeklyMissionModel>>.seeded(missions);
+  late final BehaviorSubject<FinancialHealth?> _health =
+      BehaviorSubject<FinancialHealth?>.seeded(health);
+
+  void emitMissions(List<WeeklyMissionModel> next) => _missions.add(next);
+
+  void emitHealth(FinancialHealth? next) => _health.add(next);
+
   @override
   Stream<List<WeeklyMissionModel>> watchWeeklyMissions(
     String workspaceId,
     String weekId,
   ) {
     missionCalls.add((workspaceId, weekId));
-    return Stream.value(missions);
+    return _missions.stream;
   }
 
   @override
@@ -43,7 +57,7 @@ class FakeJourneyRepository implements IJourneyRepository {
 
   @override
   Stream<FinancialHealth?> watchFinancialHealth(String workspaceId) =>
-      Stream.value(health);
+      _health.stream;
 
   @override
   Stream<List<FinancialHealthPoint>> watchHealthHistory(

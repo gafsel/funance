@@ -12,6 +12,7 @@ import 'package:funances/core/router/app_router.dart';
 import 'package:funances/core/router/url_strategy.dart';
 import 'package:funances/core/widgets/app_error_widget.dart';
 import 'package:funances/core/widgets/sync_status_banner.dart';
+import 'package:funances/features/home/presentation/widgets/celebration/celebration_host.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';
@@ -64,10 +65,18 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp.router(
       routerConfig: router,
-      // A tarja de sincronização vale para o app inteiro; pendurá-la aqui
-      // evita que cada tela precise lembrar de incluí-la.
-      builder: (context, child) =>
-          SyncStatusBanner(child: child ?? const SizedBox.shrink()),
+      // A tarja de sincronização e a camada de conquistas valem para o app
+      // inteiro; pendurá-las aqui evita que cada tela precise lembrar de
+      // incluí-las — e é o que faz o XP ganho dentro da Conciliação ou do
+      // formulário de transação aparecer, coisa que antes só acontecia com a
+      // Home montada.
+      //
+      // A ordem importa: a tarja empurra o conteúdo para baixo e a camada de
+      // conquistas sobrepõe o topo do que sobrou, então os toasts nunca
+      // cobrem a tarja nem a barra inferior com o botão de lançar.
+      builder: (context, child) => SyncStatusBanner(
+        child: CelebrationHost(child: child ?? const SizedBox.shrink()),
+      ),
       onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
       localizationsDelegates: [
         AppLocalizations.delegate,

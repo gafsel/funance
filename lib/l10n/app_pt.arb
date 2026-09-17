@@ -22,8 +22,6 @@
   "routeNotFound": "Página não encontrada.",
   "routeNotFoundGoHome": "Voltar para o início",
   "closeButton": "Fechar",
-  "badgeUnlockedToast": "Nova conquista desbloqueada!",
-  "badgeUnlockedView": "Ver",
   "workspacePickerTitle": "Workspaces",
   "transactionMoreOptions": "Mais Opções",
   "transactionMatchTitle": "Existe um agendamento nesta categoria. Quitar este?",
@@ -728,7 +726,6 @@
   "badgeLockedLabel": "Bloqueado",
   "badgeRewardLabel": "Recompensa",
   "badgeUnlockedAtLabel": "Conquistado em",
-  "viewAchievementsButton": "Ver Conquistas",
   "levelIndicatorSemantics": "Nível do Workspace: {level}, Badges desbloqueados: {count}",
   "@levelIndicatorSemantics": {
     "placeholders": {
@@ -740,17 +737,6 @@
       }
     }
   },
-  "levelUpTitle": "LEVEL UP!",
-  "levelUpSubtitle": "Parabéns para a equipe!",
-  "levelUpContent": "Seu workspace subiu para o Nível {level}!",
-  "@levelUpContent": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      }
-    }
-  },
-  "levelUpMessage": "Continuem cooperando e planejando juntos para desbloquear novas conquistas e níveis!",
   "statementDragOverTitle": "Solte o arquivo do extrato aqui",
   "reconciliationBulkConfirmSuggestions": "Confirmar todos os matches sugeridos ({amount})",
   "@reconciliationBulkConfirmSuggestions": {
@@ -1128,5 +1114,27 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celebrationXpTitle": "XP ganho",
+  "celebrationMissionTitle": "Missão concluída",
+  "celebrationBadgeTitle": "Conquista desbloqueada",
+  "celebrationBadgeFallback": "Veja na vitrine",
+  "celebrationLevelTitle": "Nível {level}",
+  "@celebrationLevelTitle": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "celebrationLevelSubtitle": "O cofre subiu de nível",
+  "celebrationTierTitle": "Nova patente",
+  "settingsAppearanceSection": "Aparência",
+  "settingsThemeMode": "Tema",
+  "settingsThemeModeDesc": "Claro, escuro ou como o sistema estiver.",
+  "themeModeSystem": "Sistema",
+  "themeModeLight": "Claro",
+  "themeModeDark": "Escuro",
+  "settingsCelebrationSound": "Som nas conquistas",
+  "settingsCelebrationSoundDesc": "Desligado por padrão. A vibração continua."
 }

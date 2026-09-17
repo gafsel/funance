@@ -389,8 +389,6 @@ class _EmptyParty extends StatelessWidget {
       title: l10n.partyEmptyTitle,
       message: l10n.partyEmptyMessage,
       padding: const EdgeInsets.all(16),
-      borderRadius: 16,
-      borderAlpha: 0.2,
       action: FilledButton.icon(
         onPressed: () => context.push('/planning?type=expense'),
         icon: const Icon(Icons.add, size: 18),

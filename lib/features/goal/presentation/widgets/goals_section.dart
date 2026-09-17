@@ -110,7 +110,6 @@ class GoalsSection extends ConsumerWidget {
   ) {
     return EmptyState.centered(
       icon: Icons.flag_outlined,
-      iconColor: AppColors.vibrantTeal,
       title: l10n.goalEmptyMessage,
       message: l10n.goalEmptyExample,
       padding: const EdgeInsets.symmetric(vertical: 40),

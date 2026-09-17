@@ -8,6 +8,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/core/widgets/section_header.dart';
+import 'package:funances/features/workspace/presentation/widgets/appearance_section.dart';
 
 class WorkspaceSettingsScreen extends ConsumerWidget {
   const WorkspaceSettingsScreen({super.key});
@@ -94,59 +95,71 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                 // Ajusta o aspect ratio para manter uma altura máxima razoável
                 final childAspectRatio = itemWidth / 160;
 
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  padding: const EdgeInsets.all(16),
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: childAspectRatio > 1.5
-                      ? childAspectRatio
-                      : 1.5,
+                return ListView(
+                  padding: const EdgeInsets.only(bottom: 120),
                   children: [
-                    _buildGridItem(
-                      context,
-                      icon: Icons.edit_outlined,
-                      title: l10n.workspaceSettingsEditName,
-                      description: l10n.workspaceSettingsEditNameDesc,
-                      subtitle: displayOr(workspace.name, l10n.unnamedWorkspace),
-                      onTap: () => _editWorkspaceName(context, ref, workspace),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: crossAxisCount,
+                      padding: const EdgeInsets.all(16),
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: childAspectRatio > 1.5
+                          ? childAspectRatio
+                          : 1.5,
+                      children: [
+                        _buildGridItem(
+                          context,
+                          icon: Icons.edit_outlined,
+                          title: l10n.workspaceSettingsEditName,
+                          description: l10n.workspaceSettingsEditNameDesc,
+                          subtitle: displayOr(
+                            workspace.name,
+                            l10n.unnamedWorkspace,
+                          ),
+                          onTap: () =>
+                              _editWorkspaceName(context, ref, workspace),
+                        ),
+                        _buildGridItem(
+                          context,
+                          icon: Icons.category_outlined,
+                          title: l10n.workspaceSettingsCategories,
+                          description: l10n.workspaceSettingsCategoriesDesc,
+                          onTap: () {
+                            context.push('/workspace/categories');
+                          },
+                        ),
+                        _buildGridItem(
+                          context,
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: l10n.workspaceSettingsAccounts,
+                          description: l10n.workspaceSettingsAccountsDesc,
+                          onTap: () {
+                            context.push('/workspace/accounts');
+                          },
+                        ),
+                        _buildGridItem(
+                          context,
+                          icon: Icons.people_outline,
+                          title: l10n.workspaceSettingsMembers,
+                          description: l10n.workspaceSettingsMembersDesc,
+                          onTap: () {
+                            context.push('/workspace/members');
+                          },
+                        ),
+                        _buildGridItem(
+                          context,
+                          icon: Icons.logout,
+                          title: l10n.workspaceSettingsLogout,
+                          description: l10n.workspaceSettingsLogoutDesc,
+                          iconColor: Colors.red,
+                          titleColor: Colors.red,
+                          onTap: () => _signOut(context, ref),
+                        ),
+                      ],
                     ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.category_outlined,
-                      title: l10n.workspaceSettingsCategories,
-                      description: l10n.workspaceSettingsCategoriesDesc,
-                      onTap: () {
-                        context.push('/workspace/categories');
-                      },
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.account_balance_wallet_outlined,
-                      title: l10n.workspaceSettingsAccounts,
-                      description: l10n.workspaceSettingsAccountsDesc,
-                      onTap: () {
-                        context.push('/workspace/accounts');
-                      },
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.people_outline,
-                      title: l10n.workspaceSettingsMembers,
-                      description: l10n.workspaceSettingsMembersDesc,
-                      onTap: () {
-                        context.push('/workspace/members');
-                      },
-                    ),
-                    _buildGridItem(
-                      context,
-                      icon: Icons.logout,
-                      title: l10n.workspaceSettingsLogout,
-                      description: l10n.workspaceSettingsLogoutDesc,
-                      iconColor: Colors.red,
-                      titleColor: Colors.red,
-                      onTap: () => _signOut(context, ref),
-                    ),
+                    const AppearanceSection(),
                   ],
                 );
               }
@@ -200,6 +213,8 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       context.push('/workspace/members');
                     },
                   ),
+                  const Divider(),
+                  const AppearanceSection(),
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.logout, color: Colors.red),

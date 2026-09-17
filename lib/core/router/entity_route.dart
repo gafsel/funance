@@ -46,11 +46,10 @@ class EntityRoute<T> extends ConsumerWidget {
     final async = ref.watch(provider);
 
     return async.when(
-      data: (value) => value == null ? _missing(context) : builder(context, value),
-      loading: () => _shell(
-        context,
-        const Center(child: CircularProgressIndicator()),
-      ),
+      data: (value) =>
+          value == null ? _missing(context) : builder(context, value),
+      loading: () =>
+          _shell(context, const Center(child: CircularProgressIndicator())),
       error: (error, _) => _shell(
         context,
         Center(
@@ -81,7 +80,8 @@ class EntityRoute<T> extends ConsumerWidget {
             Text(context.l10n.errorNotFound, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+              onPressed: () =>
+                  context.canPop() ? context.pop() : context.go('/'),
               child: Text(context.l10n.routeNotFoundGoHome),
             ),
           ],
@@ -90,6 +90,8 @@ class EntityRoute<T> extends ConsumerWidget {
     ),
   );
 
-  Widget _shell(BuildContext context, Widget child) =>
-      Scaffold(appBar: AppBar(title: title == null ? null : Text(title!)), body: child);
+  Widget _shell(BuildContext context, Widget child) => Scaffold(
+    appBar: AppBar(title: title == null ? null : Text(title!)),
+    body: child,
+  );
 }

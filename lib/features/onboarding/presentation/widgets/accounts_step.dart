@@ -96,10 +96,8 @@ class AccountsStep extends ConsumerWidget {
 
     return EmptyState.centered(
       icon: Icons.account_balance_outlined,
-      iconColor: AppColors.pureWhite.withValues(alpha: 0.3),
       title: l10n.onboardingAccountsEmpty,
-      titleStyle: const TextStyle(color: AppColors.pureWhite),
-      mainAxisSize: MainAxisSize.min,
+      compact: true,
       action: OutlinedButton.icon(
         onPressed: () => _showAddAccount(context, notifier),
         icon: const Icon(Icons.add),

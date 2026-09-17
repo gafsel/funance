@@ -96,7 +96,6 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 /// do processo, some no F5 da web e no hot restart, e o que sobrava disso era
 /// um redirect para a home no meio da navegação de quem só apertou "atualizar".
 
-
 /// Id vindo da query. **Vazio é ausente.**
 ///
 /// Uma tela montava `/accounts/form?id=${account?.id ?? ''}` e, sem conta,
@@ -295,8 +294,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           provider: FinanceViewProviders.installmentById(
             state.pathParameters['id']!,
           ),
-          onRetry: (ref) =>
-              Retry.installment(ref, state.pathParameters['id']!),
+          onRetry: (ref) => Retry.installment(ref, state.pathParameters['id']!),
           builder: (context, invoice) => InvoiceDetailScreen(invoice: invoice),
         ),
       ),

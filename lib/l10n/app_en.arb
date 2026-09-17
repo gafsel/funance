@@ -22,8 +22,6 @@
   "routeNotFound": "Page not found.",
   "routeNotFoundGoHome": "Back to home",
   "closeButton": "Close",
-  "badgeUnlockedToast": "New achievement unlocked!",
-  "badgeUnlockedView": "View",
   "workspacePickerTitle": "Workspaces",
   "transactionMoreOptions": "More Options",
   "transactionMatchTitle": "There is a scheduled entry in this category. Settle it?",
@@ -709,7 +707,6 @@
   "badgeLockedLabel": "Locked",
   "badgeRewardLabel": "Reward",
   "badgeUnlockedAtLabel": "Earned on",
-  "viewAchievementsButton": "View Achievements",
   "levelIndicatorSemantics": "Workspace Level: {level}, Badges unlocked: {count}",
   "@levelIndicatorSemantics": {
     "placeholders": {
@@ -721,17 +718,6 @@
       }
     }
   },
-  "levelUpTitle": "LEVEL UP!",
-  "levelUpSubtitle": "Congratulations to the team!",
-  "levelUpContent": "Your workspace rose to Level {level}!",
-  "@levelUpContent": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      }
-    }
-  },
-  "levelUpMessage": "Keep cooperating and planning together to unlock new achievements and levels!",
   "statementDragOverTitle": "Drop the statement file here",
   "reconciliationBulkConfirmSuggestions": "Confirm all suggested matches ({amount})",
   "@reconciliationBulkConfirmSuggestions": {
@@ -1121,5 +1107,27 @@
         "type": "String"
       }
     }
-  }
+  },
+  "celebrationXpTitle": "XP earned",
+  "celebrationMissionTitle": "Mission complete",
+  "celebrationBadgeTitle": "Achievement unlocked",
+  "celebrationBadgeFallback": "See it in the cabinet",
+  "celebrationLevelTitle": "Level {level}",
+  "@celebrationLevelTitle": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "celebrationLevelSubtitle": "The vault levelled up",
+  "celebrationTierTitle": "New rank",
+  "settingsAppearanceSection": "Appearance",
+  "settingsThemeMode": "Theme",
+  "settingsThemeModeDesc": "Light, dark, or whatever the system is using.",
+  "themeModeSystem": "System",
+  "themeModeLight": "Light",
+  "themeModeDark": "Dark",
+  "settingsCelebrationSound": "Sound on achievements",
+  "settingsCelebrationSoundDesc": "Off by default. Haptics stay on."
 }
