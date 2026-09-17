@@ -216,27 +216,80 @@ void main() {
   });
 
   group('splash', () {
-    testWidgets('a logo horizontal não é cortada numa tela estreita', (
+    /// Força a decodificação do PNG de verdade: sem isto o `RenderImage` fica
+    /// sem imagem e reporta largura zero, e o teste mediria a CAIXA em vez da
+    /// área pintada.
+    Future<Size> logoPintada(WidgetTester tester, Size janela) async {
+      await _janela(tester, janela);
+      await tester.pumpWidget(_app(const SplashScreen()));
+
+      await tester.runAsync(() async {
+        final elemento = tester.element(find.byType(Image));
+        await precacheImage(
+          const AssetImage('assets/logo/logo-horizontal.png'),
+          elemento,
+        );
+      });
+      await tester.pumpAndSettle();
+
+      final render = tester.renderObject<RenderBox>(find.byType(Image));
+      expect(
+        render.size.width,
+        greaterThan(0),
+        reason: 'a imagem não decodificou; o teste mediria a caixa vazia',
+      );
+
+      // A CAIXA do `RenderImage` tem a altura fixa de 150; o que o usuário vê
+      // é o retângulo que o `BoxFit.contain` desenha dentro dela. É a mesma
+      // conta que o `paintImage` faz.
+      return applyBoxFit(
+        BoxFit.contain,
+        const Size(2400, 902),
+        render.size,
+      ).destination;
+    }
+
+    testWidgets('numa tela larga a logo mantém o tamanho de sempre', (
       tester,
     ) async {
-      // Só `height: 150` fazia a logo estourar a largura e perder as pontas.
-      await _janela(tester, const Size(320, 640));
-      await tester.pumpWidget(_app(const SplashScreen()));
-      await tester.pump();
+      // A auditoria dizia que `height: 150` cortava a logo em tela estreita.
+      // Está errado: `paintImage` já reduz a escala para caber. O que este
+      // caso protege é o contrário — que a correção do respiro lateral NÃO
+      // encolha a logo onde ela sempre coube.
+      final pintada = await logoPintada(tester, const Size(1200, 900));
 
-      final imagem = tester.getSize(find.byType(Image));
-      expect(imagem.width, lessThanOrEqualTo(320 - 48));
-      expect(tester.takeException(), isNull);
+      expect(pintada.height, SplashScreen.logoHeight);
+      expect(pintada.width, closeTo(SplashScreen.naturalLogoWidth, 0.5));
     });
 
-    testWidgets('numa tela larga continua com os 150 de altura de hoje', (
+    testWidgets('a partir de 448px ainda cabe inteira', (tester) async {
+      // 448 - 48 de respiro = 400, e a logo natural tem ~399: é o limite
+      // exato em que ela ainda não precisa encolher.
+      final pintada = await logoPintada(tester, const Size(448, 900));
+
+      expect(pintada.height, SplashScreen.logoHeight);
+      expect(pintada.width, closeTo(SplashScreen.naturalLogoWidth, 0.5));
+    });
+
+    testWidgets('numa tela estreita encolhe e sobra respiro dos dois lados', (
       tester,
     ) async {
-      await _janela(tester, const Size(1200, 900));
+      final pintada = await logoPintada(tester, const Size(320, 640));
+
+      // 320 - 48 = 272 de largura disponível; `contain` mantém a proporção.
+      expect(pintada.width, closeTo(272, 0.5));
+      expect(pintada.height, closeTo(272 * 902 / 2400, 0.5));
+      expect(pintada.width, lessThanOrEqualTo(320 - 48));
+    });
+
+    testWidgets('tela mais estreita que o respiro não explode', (tester) async {
+      // `largura - 48` fica negativo; sem a guarda, `BoxConstraints` com
+      // `maxWidth` negativo dispara assert em debug.
+      await _janela(tester, const Size(40, 200));
       await tester.pumpWidget(_app(const SplashScreen()));
       await tester.pump();
 
-      expect(tester.getSize(find.byType(Image)).height, 150);
+      expect(tester.takeException(), isNull);
     });
   });
 }
