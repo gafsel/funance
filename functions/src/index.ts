@@ -41,3 +41,4 @@ export * from "./features/workspace/presentation/functions/workspace_handler";
 export * from "./features/coaching/presentation/functions/coaching_handler";
 export * from "./features/coaching/presentation/functions/coaching_scheduler";
 export * from "./features/goal/presentation/functions/gamification_handler";
+export * from "./features/health/presentation/functions/health_handler";

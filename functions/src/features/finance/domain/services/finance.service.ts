@@ -9,7 +9,8 @@ import {
     OrderModel,
     OrderStatus,
     OrderType,
-    ReplicationCascade
+    ReplicationCascade,
+    resolveUnplannedReason
 } from "../models/finance.models";
 import { IFinanceRepository } from "../repositories/finance.repository";
 import { CategoryType, INITIAL_BALANCE_CATEGORY } from "../../../workspace/domain/models/category.model";
@@ -535,9 +536,17 @@ export class FinanceService {
             // de origem (senão a próxima escrita qualquer a reexecuta). Como
             // ambos são campos derivados, o evento resultante desta escrita cai
             // na guarda por conteúdo do handler e sai cedo.
+            //
+            // F2.3 — a punição por gasto não planejado deixa de ser MUDA. O
+            // `xp: 0` de uma parcela que nasce paga sempre existiu, mas o
+            // usuário não tinha como saber o porquê; `unplannedReason` viaja na
+            // MESMA escrita (e é campo derivado, pelo mesmo motivo) para o app
+            // poder explicar e oferecer a conversão em limite/recorrência.
+            const unplannedReason = resolveUnplannedReason(after);
             await this.financeRepository.updateInstallment(workspaceId, after.id, {
                 xp,
                 replicationCascade: ReplicationCascade.none,
+                ...(unplannedReason ? { unplannedReason } : {}),
             });
             await this.updateWeeklyTotalXp(workspaceId, after.paidDate || after.dueDate, xp);
             await container.gamificationService.addXp(workspaceId, xp, "Transação paga");
@@ -601,8 +610,16 @@ export class FinanceService {
      * (`core/utils/week.utils.ts`, fuso do produto). Antes havia aqui uma cópia
      * privada da aritmética, em UTC, que divergia das missões semanais no
      * sábado à noite.
+     *
+     * F2.3: deixou de ser privada. O XP que premia PLANEJAR (semana dentro do
+     * limite, limite criado, recorrência criada) precisa aparecer na mesma
+     * barra semanal do XP de pagamento — senão o app mostraria uma semana
+     * "vazia" justamente na semana em que o usuário mais planejou. A
+     * gamificação chama ESTA função em vez de escrever em `weekly_xp` por
+     * conta própria: duas implementações da mesma escrita foi exatamente o
+     * defeito que F1.9 eliminou.
      */
-    private async updateWeeklyTotalXp(workspaceId: string, date: Date, deltaXp: number): Promise<void> {
+    async updateWeeklyTotalXp(workspaceId: string, date: Date, deltaXp: number): Promise<void> {
         if (deltaXp === 0) return;
 
         const { year, week } = getWeekRef(date);

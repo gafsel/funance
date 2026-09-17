@@ -26,6 +26,12 @@ export const onAccountUpdated = onDocumentUpdated(
             await container.idempotencyService.runIdempotency(event.id, "syncNextInvoice", async () => {
                 await container.invoiceSyncService.syncNextInvoice(workspaceId, accountId);
             });
+            // F2.2 — a conta sai das somas da Bússola: o saldo dela deixa de
+            // contar como reserva (ou como dívida) na hora em que ela é
+            // apagada. Sem este carimbo, o índice seguiria exibindo um Fôlego
+            // sustentado por uma conta que não existe mais até o próximo
+            // pagamento sujar o workspace por outro caminho.
+            await container.financialHealthService.markHealthDirty(workspaceId);
             return;
         }
 

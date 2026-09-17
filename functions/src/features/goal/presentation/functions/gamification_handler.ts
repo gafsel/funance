@@ -15,10 +15,16 @@ import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.
 import { GoalModel, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
 /**
- * Campos do doc do workspace escritos pela própria gamificação
- * (addXp/unlockBadge/updateWorkspaceStreaks). Escritas que alteram APENAS
- * estes campos não devem redisparar as checagens de badge — sem este guard,
- * cada unlock/addXp reativa onWorkspaceUpdated em cascata.
+ * Campos do doc do workspace escritos pelo próprio SERVIDOR
+ * (addXp/unlockBadge/updateWorkspaceStreaks e, desde F2.2/F2.3, a Bússola da
+ * Liberdade e os marcadores de XP único). Escritas que alteram APENAS estes
+ * campos não devem redisparar as checagens de badge — sem este guard, cada
+ * unlock/addXp reativa onWorkspaceUpdated em cascata.
+ *
+ * `healthDirtyAt` é o caso mais crítico da lista: ele é carimbado a CADA
+ * escrita de parcela (ver `installment_handler`). Fora daqui, todo pagamento
+ * do usuário dispararia, de graça, a bateria inteira de checagens de badge do
+ * workspace.
  */
 const GAMIFICATION_ONLY_FIELDS = new Set([
     "xp",
@@ -26,6 +32,13 @@ const GAMIFICATION_ONLY_FIELDS = new Set([
     "unlockedBadges",
     "weeklyStreaks",
     "lastLevelUpAt",
+    // F2.2 — Bússola da Liberdade.
+    "financialHealth",
+    "healthDirtyAt",
+    // F2.3 — marcadores de XP concedido uma única vez por categoria e o mapa
+    // de streaks semanais (escrito junto do `weeklyStreaks` numérico).
+    "xpAwardedFor",
+    "streaks",
 ]);
 
 /**
@@ -42,6 +55,7 @@ export const GAMIFICATION_ACTIONS = {
     accountCreated: "gamification:accountCreated",
     installmentWritten: "gamification:installmentWritten",
     categoryPlanningWritten: "gamification:categoryPlanningWritten",
+    orderWritten: "gamification:orderWritten",
     categoryWritten: "gamification:categoryWritten",
     reconciliationWritten: "gamification:reconciliationWritten",
     goalWritten: "gamification:goalWritten",
@@ -186,6 +200,49 @@ export const onCategoryPlanningWrittenGamification = onDocumentWritten(
 
             const after = event.data?.after.exists ? event.data.after.data() : null;
             await gamificationService.updateWeeklyMissionsProgress(workspaceId, "planning", after);
+
+            // F2.3 — +30 XP na PRIMEIRA vez que esta categoria ganha um limite.
+            //
+            // Entra aqui, e não no handler de finanças, porque XP é
+            // gamificação: `onCategoryPlanningWritten` (finanças) existe para
+            // estornar e reaplicar o planejado nos sumários, e misturar as duas
+            // responsabilidades faria uma falha de XP derrubar o cálculo do
+            // planejamento. A unicidade não depende deste gatilho: ela vive no
+            // marcador `xpAwardedFor.planning.<categoryId>` do workspace, então
+            // uma reentrega do evento (ou o eco da escrita dos marcadores de
+            // F1.5) não concede nada de novo.
+            await gamificationService.awardPlanningCreationXp(workspaceId, after);
+        });
+    }
+);
+
+/**
+ * F2.3 — gatilho de gamificação sobre as ORDERS.
+ *
+ * Não existia: `onOrderWritten` (finanças) só sincroniza parcelas. Este observa
+ * a mesma coleção com um nome de ação próprio (`gamification:orderWritten`),
+ * para que os dois não disputem a mesma chave de idempotência quando a
+ * plataforma entregar o mesmo `event.id` para ambos.
+ *
+ * Só faz uma coisa: premiar a primeira RECORRÊNCIA de cada categoria. Criar
+ * uma recorrência é declarar que um gasto se repete — é planejamento, e o
+ * jogo premia planejar.
+ */
+export const onOrderWrittenGamification = onDocumentWritten(
+    "workspaces/{workspaceId}/orders/{orderId}",
+    async (event) => {
+        const workspaceId = event.params.workspaceId;
+        const after = event.data?.after.exists ? event.data.after.data() : null;
+
+        // Saída antecipada ANTES da idempotência: a esmagadora maioria das
+        // escritas de order não é recorrência, e nenhuma delas precisa custar
+        // um documento em `_idempotency`.
+        if (!after || after.installmentType !== "recurring") return;
+
+        logger.info(`[onOrderWrittenGamification] Triggered for workspaceId=${workspaceId}`);
+
+        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.orderWritten, async () => {
+            await container.gamificationService.awardRecurringCreationXp(workspaceId, after);
         });
     }
 );

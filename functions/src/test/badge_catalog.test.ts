@@ -32,7 +32,9 @@ describe("buildBadgeCatalog", () => {
             expect(badge.name.pt.length).toBeGreaterThan(0);
             expect(badge.icon.length).toBeGreaterThan(0);
             expect(badge.description.pt.length).toBeGreaterThan(0);
-            expect(badge.xpReward).toBeGreaterThan(0);
+            // F2.3: XP ZERO é legítimo — os badges de contagem continuam como
+            // conquista, mas não pagam mais XP. O que não pode é XP negativo.
+            expect(badge.xpReward).toBeGreaterThanOrEqual(0);
             expect(BADGE_CATEGORIES as readonly string[]).toContain(badge.category);
         }
     });

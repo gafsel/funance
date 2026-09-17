@@ -162,6 +162,14 @@ describe("firestore.rules", () => {
                 type: "personal",
                 // MEMBER_UID é members[0], ou seja, o dono.
                 members: [MEMBER_UID, GUEST_UID],
+                // F2.2/F2.3: campos do servidor já presentes, para que apagá-los
+                // seja uma alteração DE VERDADE nos testes abaixo (um
+                // `deleteField()` num campo inexistente é um no-op e passaria).
+                financialHealth: { score: 55, tier: "estrategista", monthKey: "2026-08" },
+                xpAwardedFor: { planning: { mercado: "2026-08-01T00:00:00.000Z" } },
+                // `weeklyStreaks` continua NÚMERO; o mapa vive em `streaks`.
+                weeklyStreaks: 2,
+                streaks: { missions: 2, plan: 3 },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
             await setDoc(
@@ -211,7 +219,7 @@ describe("firestore.rules", () => {
             );
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/health_history/${HEALTH_MONTH_ID}`),
-                { score: 62, tier: "estrategista", monthKey: HEALTH_MONTH_ID }
+                { score: 62, tier: "estrategista", monthKey: HEALTH_MONTH_ID, computedAt: Timestamp.fromDate(new Date(2026, 8, 1, 0)) }
             );
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/weekly_xp/${WEEK_ID}`),
@@ -822,5 +830,132 @@ describe("firestore.rules", () => {
                 invoiceInstallmentDoc()
             )
         );
+    });
+
+    describe("F2.2 — Bússola da Liberdade", () => {
+        it("permite que o membro LEIA o histórico mensal do índice", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                getDoc(doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`))
+            );
+        });
+
+        it("nega a leitura do histórico a quem não é membro", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            await assertFails(
+                getDoc(doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`))
+            );
+        });
+
+        it("nega que o membro ESCREVA no histórico — é placar, não diário", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-09`),
+                    { score: 100, tier: "livre", monthKey: "2026-09" }
+                )
+            );
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`),
+                    { score: 100, tier: "livre" }
+                )
+            );
+            await assertFails(
+                deleteDoc(doc(db, `workspaces/${WORKSPACE_ID}/health_history/2026-08`))
+            );
+        });
+
+        it("nega que o cliente escreva financialHealth ou healthDirtyAt no workspace", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            for (const patch of [
+                { financialHealth: { score: 100, tier: "livre", monthKey: "2026-09" } },
+                { healthDirtyAt: Timestamp.fromDate(new Date()) },
+                { financialHealth: deleteField() },
+            ]) {
+                await assertFails(updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), patch));
+            }
+        });
+
+        it("nega a criação de um workspace já com bússola ou marcadores de XP", async () => {
+            const db = testEnv.authenticatedContext(OUTSIDER_UID).firestore();
+
+            for (const extra of [
+                { financialHealth: { score: 100, tier: "livre", monthKey: "2026-09" } },
+                { healthDirtyAt: Timestamp.fromDate(new Date()) },
+                { xpAwardedFor: { planning: { mercado: "2026-01-01" } } },
+                { streaks: { missions: 40, plan: 40 } },
+            ]) {
+                await assertFails(
+                    setDoc(doc(db, "workspaces/ws-forjado"), {
+                        name: "Forjado", type: "personal", members: [OUTSIDER_UID], ...extra,
+                    })
+                );
+            }
+        });
+
+        it("`weeklyStreaks` continua sendo um NÚMERO na criação", async () => {
+            // O app instalado desserializa este campo como `num?`. Aceitar um
+            // mapa aqui abriria a porta para o tipo que quebra toda build em
+            // campo — e é exatamente por isso que o mapa novo vive em
+            // `streaks`, negado ao cliente.
+            const dbAntigo = testEnv.authenticatedContext("user-antigo").firestore();
+            await assertSucceeds(
+                setDoc(doc(dbAntigo, "workspaces/ws-streak-antigo"), {
+                    name: "Antigo", type: "personal", members: ["user-antigo"], weeklyStreaks: 0,
+                })
+            );
+
+            const dbMapa = testEnv.authenticatedContext("user-mapa").firestore();
+            await assertFails(
+                setDoc(doc(dbMapa, "workspaces/ws-streak-mapa"), {
+                    name: "Mapa", type: "personal", members: ["user-mapa"], weeklyStreaks: {},
+                })
+            );
+
+            // E nunca com uma sequência já pronta.
+            const dbForja = testEnv.authenticatedContext("user-forja").firestore();
+            await assertFails(
+                setDoc(doc(dbForja, "workspaces/ws-streak-forjado"), {
+                    name: "Forjado", type: "personal", members: ["user-forja"], weeklyStreaks: 40,
+                })
+            );
+        });
+
+        it("nega que o cliente escreva o mapa `streaks`", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}`), { streaks: { missions: 99, plan: 99 } })
+            );
+        });
+    });
+
+    describe("F2.3 — unplannedReason", () => {
+        it("nega que o cliente grave ou apague o motivo do XP zero", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                    { unplannedReason: "born_paid" }
+                )
+            );
+        });
+
+        it("tolera o null da build que grava o doc inteiro numa parcela sem o campo", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                    { unplannedReason: null }
+                )
+            );
+        });
     });
 });

@@ -69,9 +69,16 @@ service cloud.firestore {
         && validWorkspaceBase(request.resource.data)
         && (!('xp' in request.resource.data) || request.resource.data.xp == 0)
         && (!('level' in request.resource.data) || request.resource.data.level == 1)
+        // `weeklyStreaks` continua sendo um NÚMERO (ver F2.3): o app instalado
+        // o desserializa como `num?`, e trocar o tipo quebraria toda build em
+        // campo. O mapa novo vive em `streaks`, negado abaixo.
         && (!('weeklyStreaks' in request.resource.data) || request.resource.data.weeklyStreaks == 0)
         && (!('unlockedBadges' in request.resource.data) || request.resource.data.unlockedBadges.size() == 0)
-        && (!('lastLevelUpAt' in request.resource.data) || request.resource.data.lastLevelUpAt == null);
+        && (!('lastLevelUpAt' in request.resource.data) || request.resource.data.lastLevelUpAt == null)
+        // F2.2/F2.3: a Bússola da Liberdade, os marcadores de XP único e o mapa
+        // de streaks são exclusivos do servidor — o cliente não os semeia na
+        // criação (nem uma sequência já pronta).
+        && !request.resource.data.keys().hasAny(['financialHealth', 'healthDirtyAt', 'xpAwardedFor', 'streaks']);
 
       // Update: membros só podem alterar campos de apresentação/onboarding.
       // 'members' é imutável pelo cliente (o aceite de convite adiciona membros
@@ -82,6 +89,12 @@ service cloud.firestore {
       // exclusivos do servidor (WeekSyncService) — o cliente LÊ a semana corrente
       // em vez de calculá-la. Como a lista de affectedKeys abaixo é fechada
       // (hasOnly), qualquer escrita do cliente nesses campos já é negada.
+      // F2.2/F2.3: o mesmo vale para 'financialHealth' (Bússola da Liberdade),
+      // 'healthDirtyAt' (marcador de recálculo), 'xpAwardedFor' (XP único por
+      // categoria) e 'streaks' (as sequências semanais). São placar e
+      // contabilidade de XP: escrevê-los no cliente seria escolher a própria
+      // patente e conceder o próprio XP. Como a lista de affectedKeys abaixo é
+      // fechada (hasOnly), todos já estão negados por construção.
       // 'createdAt' permitido apenas porque o fluxo de onboarding reescreve o doc
       // inteiro com um timestamp gerado no cliente logo após a criação.
       allow update: if request.auth != null
@@ -160,6 +173,14 @@ service cloud.firestore {
           // como mudança de chave, mas não é uma alteração real de valor.
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['xp'])
               || (request.resource.data.xp == null && !('xp' in resource.data)))
+          // F2.3: `unplannedReason` explica por que a parcela rendeu ZERO XP.
+          // É veredito do servidor, gravado junto do xp — se o cliente pudesse
+          // apagá-lo, bastaria um update para a punição sumir da tela. Mesma
+          // exceção do xp: uma build que grave o doc inteiro manda `null` nas
+          // parcelas que não têm o campo, e isso não altera valor nenhum.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['unplannedReason'])
+              || (request.resource.data.unplannedReason == null
+                  && !('unplannedReason' in resource.data)))
           // F1.8: a janela do ciclo da fatura é do SERVIDOR. Ela decide quais
           // compras a tela de detalhe lista — reescrevê-la no cliente traria
           // de volta, por outro caminho, a regra duplicada que o pacote tirou.
@@ -295,10 +316,14 @@ service cloud.firestore {
         allow read: if isMember(workspaceId);
       }
 
-      // Histórico mensal da Bússola da Liberdade. O índice corrente vive no
-      // próprio doc do workspace; aqui ficam os meses fechados.
+      // F2.2 — histórico mensal da Bússola da Liberdade
+      // (workspaces/{w}/health_history/{YYYY-MM}). Um documento por mês,
+      // sobrescrito enquanto o mês corre e congelado quando ele vira. É o
+      // placar do usuário: ele LÊ, e só o servidor escreve — poder escrever
+      // aqui seria reescrever a própria história até a patente ficar bonita.
       match /health_history/{monthId} {
         allow read: if isMember(workspaceId);
+        allow write: if false;
       }
 
       // Accounts: Membros podem ler, criar e atualizar (exclusão é lógica via isDeleted)

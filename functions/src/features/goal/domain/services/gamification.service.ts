@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { CategoryType } from "../../../workspace/domain/models/category.model";
+import { CategoryType, isSystemCategory } from "../../../workspace/domain/models/category.model";
 import { IAIRepository } from "../../../../core/services/ai.service";
 import { IIdempotencyService } from "../../../../core/services/idempotency.service";
 import { forEachWorkspacePaged } from "../../../../core/utils/cron_runner";
@@ -8,7 +8,7 @@ import {
     CRON_SCAN_DEADLINE_MS,
     CRON_WORKSPACE_CONCURRENCY,
 } from "../../../../core/config/functions.config";
-import { IGamificationRepository } from "../repositories/gamification.repository";
+import { IGamificationRepository, readWorkspaceStreaks } from "../repositories/gamification.repository";
 import { GoalType, isAccumulationGoal, isGoalActive, isGoalCompleted, resolveGoalType } from "../models/goal.model";
 import {
     addCalendarDays,
@@ -68,6 +68,20 @@ export interface BadgeConfig {
     id: string;
     name: string;
     icon: string;
+    /**
+     * XP concedido ao desbloquear. **Zero é um valor legítimo**: desde F2.3 os
+     * badges de CONTAGEM (5 contas, 100 transações, 10 categorias, número
+     * redondo, aniversário do workspace, os `first_*` triviais) continuam
+     * existindo como conquista, mas não pagam mais XP.
+     *
+     * O motivo é o propósito do produto: o jogo tem que premiar PLANEJAR, e
+     * esses badges premiavam usar o app. Um usuário que cadastrasse cinco
+     * contas e lançasse cem transações desorganizadas subia de nível mais
+     * rápido do que quem manteve três limites em dia por dois meses — o placar
+     * dizia o contrário do que o produto ensina. O XP que saiu daqui foi para
+     * a tabela `XP_SOURCES`, que paga limite, recorrência e semana dentro do
+     * plano.
+     */
     xpReward: number;
     /** Seção da vitrine. Ver `BADGE_CATEGORIES`. */
     category: BadgeCategory;
@@ -147,7 +161,7 @@ export const BADGES: Record<string, BadgeConfig> = {
 
     // ── Simple Badges — Primeiros Passos (10) ────────────────────────────────────────
     first_category: {
-        id: "first_category", name: "Organizador", icon: "label", xpReward: 25, category: "first_steps",
+        id: "first_category", name: "Organizador", icon: "label", xpReward: 0, category: "first_steps",
         description: "Criar a primeira categoria personalizada no workspace.",
     },
     first_planning: {
@@ -167,15 +181,15 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Definir nome e tipo do workspace.",
     },
     first_income: {
-        id: "first_income", name: "Receita Registrada", icon: "south_east", xpReward: 50, category: "first_steps",
+        id: "first_income", name: "Receita Registrada", icon: "south_east", xpReward: 0, category: "first_steps",
         description: "Registrar a primeira receita paga no workspace.",
     },
     first_expense: {
-        id: "first_expense", name: "Gasto Registrado", icon: "north_west", xpReward: 50, category: "first_steps",
+        id: "first_expense", name: "Gasto Registrado", icon: "north_west", xpReward: 0, category: "first_steps",
         description: "Registrar o primeiro gasto pago no workspace.",
     },
     first_transfer: {
-        id: "first_transfer", name: "Transferidor", icon: "swap_horiz", xpReward: 50, category: "first_steps",
+        id: "first_transfer", name: "Transferidor", icon: "swap_horiz", xpReward: 0, category: "first_steps",
         description: "Registrar a primeira transferência entre contas.",
     },
     workspace_named: {
@@ -183,25 +197,25 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Dar um nome personalizado ao workspace.",
     },
     first_month: {
-        id: "first_month", name: "Primeiro Mês", icon: "calendar_today", xpReward: 75, category: "first_steps",
+        id: "first_month", name: "Primeiro Mês", icon: "calendar_today", xpReward: 0, category: "first_steps",
         description: "Ter pelo menos uma transação registrada em um mês completo.",
     },
 
     // ── Simple Badges — Registro Consistente (10) ────────────────────────────
     five_transactions: {
-        id: "five_transactions", name: "Ativo!", icon: "flash_on", xpReward: 50, category: "consistency",
+        id: "five_transactions", name: "Ativo!", icon: "flash_on", xpReward: 0, category: "consistency",
         description: "Registrar 5 transações pagas no total.",
     },
     twenty_transactions: {
-        id: "twenty_transactions", name: "Comprometido", icon: "trending_up", xpReward: 75, category: "consistency",
+        id: "twenty_transactions", name: "Comprometido", icon: "trending_up", xpReward: 0, category: "consistency",
         description: "Registrar 20 transações pagas no total.",
     },
     fifty_transactions: {
-        id: "fifty_transactions", name: "Vetarano", icon: "workspace_premium", xpReward: 100, category: "consistency",
+        id: "fifty_transactions", name: "Vetarano", icon: "workspace_premium", xpReward: 0, category: "consistency",
         description: "Registrar 50 transações pagas no total.",
     },
     hundred_transactions: {
-        id: "hundred_transactions", name: "Centenário", icon: "emoji_events", xpReward: 150, category: "consistency",
+        id: "hundred_transactions", name: "Centenário", icon: "emoji_events", xpReward: 0, category: "consistency",
         description: "Registrar 100 transações pagas no total.",
     },
     week_complete: {
@@ -209,37 +223,37 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Registrar ao menos uma transação em 7 dias consecutivos.",
     },
     two_accounts: {
-        id: "two_accounts", name: "Multi-Conta", icon: "account_balance_wallet", xpReward: 50, category: "consistency",
+        id: "two_accounts", name: "Multi-Conta", icon: "account_balance_wallet", xpReward: 0, category: "consistency",
         description: "Cadastrar 2 contas no workspace.",
     },
     three_accounts: {
-        id: "three_accounts", name: "Gerenciador", icon: "dashboard", xpReward: 75, category: "consistency",
+        id: "three_accounts", name: "Gerenciador", icon: "dashboard", xpReward: 0, category: "consistency",
         description: "Cadastrar 3 contas no workspace.",
     },
     five_accounts: {
-        id: "five_accounts", name: "Portfólio", icon: "business_center", xpReward: 100, category: "consistency",
+        id: "five_accounts", name: "Portfólio", icon: "business_center", xpReward: 0, category: "consistency",
         description: "Cadastrar 5 contas no workspace.",
     },
     five_categories: {
-        id: "five_categories", name: "Categorizado", icon: "category", xpReward: 50, category: "consistency",
+        id: "five_categories", name: "Categorizado", icon: "category", xpReward: 0, category: "consistency",
         description: "Criar ao menos 5 categorias.",
     },
     ten_categories: {
-        id: "ten_categories", name: "Mestre Categorizador", icon: "workspaces", xpReward: 75, category: "consistency",
+        id: "ten_categories", name: "Mestre Categorizador", icon: "workspaces", xpReward: 0, category: "consistency",
         description: "Criar ao menos 10 categorias.",
     },
 
     // ── Simple Badges — Gastos e Economias (10) ──────────────────────────────
     round_number: {
-        id: "round_number", name: "Número Redondo", icon: "radio_button_checked", xpReward: 25, category: "savings",
+        id: "round_number", name: "Número Redondo", icon: "radio_button_checked", xpReward: 0, category: "savings",
         description: "Registrar uma transação de valor exato sem centavos.",
     },
     big_transaction: {
-        id: "big_transaction", name: "Grande Negócio", icon: "payments", xpReward: 75, category: "savings",
+        id: "big_transaction", name: "Grande Negócio", icon: "payments", xpReward: 0, category: "savings",
         description: "Registrar uma transação individual acima de R$ 1.000.",
     },
     small_transactions_ten: {
-        id: "small_transactions_ten", name: "Detalhe Minucioso", icon: "grain", xpReward: 75, category: "savings",
+        id: "small_transactions_ten", name: "Detalhe Minucioso", icon: "grain", xpReward: 0, category: "savings",
         description: "Registrar 10 transações de valor inferior a R$ 10.",
     },
     income_registered: {
@@ -251,11 +265,11 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Fechar o mês com despesas menores que as receitas.",
     },
     three_categories_month: {
-        id: "three_categories_month", name: "Diversificado", icon: "donut_small", xpReward: 75, category: "savings",
+        id: "three_categories_month", name: "Diversificado", icon: "donut_small", xpReward: 0, category: "savings",
         description: "Ter gastos em 3 categorias diferentes no mesmo mês.",
     },
     five_categories_month: {
-        id: "five_categories_month", name: "Abrangente", icon: "donut_large", xpReward: 100, category: "savings",
+        id: "five_categories_month", name: "Abrangente", icon: "donut_large", xpReward: 0, category: "savings",
         description: "Ter gastos em 5 categorias diferentes no mesmo mês.",
     },
     savings_10pct: {
@@ -285,11 +299,11 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Concluir uma meta antes da data limite estabelecida.",
     },
     two_active_goals: {
-        id: "two_active_goals", name: "Ambicioso", icon: "offline_bolt", xpReward: 50, category: "goals",
+        id: "two_active_goals", name: "Ambicioso", icon: "offline_bolt", xpReward: 0, category: "goals",
         description: "Ter 2 metas ativas ao mesmo tempo.",
     },
     five_active_goals: {
-        id: "five_active_goals", name: "Multitarefas", icon: "dynamic_feed", xpReward: 100, category: "goals",
+        id: "five_active_goals", name: "Multitarefas", icon: "dynamic_feed", xpReward: 0, category: "goals",
         description: "Ter 5 metas ativas ao mesmo tempo.",
     },
     long_term_goal: {
@@ -323,7 +337,7 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Concluir a segunda conciliação bancária.",
     },
     reconcile_five: {
-        id: "reconcile_five", name: "Conciliador Hábil", icon: "sync_alt", xpReward: 100, category: "team",
+        id: "reconcile_five", name: "Conciliador Hábil", icon: "sync_alt", xpReward: 0, category: "team",
         description: "Concluir 5 conciliações bancárias ao total.",
     },
     mission_first: {
@@ -339,11 +353,11 @@ export const BADGES: Record<string, BadgeConfig> = {
         description: "Criar planejamento para ao menos 5 categorias no mês.",
     },
     two_months_active: {
-        id: "two_months_active", name: "Constante", icon: "repeat", xpReward: 100, category: "team",
+        id: "two_months_active", name: "Constante", icon: "repeat", xpReward: 0, category: "team",
         description: "Registrar transações em 2 meses diferentes.",
     },
     workspace_one_year: {
-        id: "workspace_one_year", name: "Aniversário!", icon: "cake", xpReward: 150, category: "team",
+        id: "workspace_one_year", name: "Aniversário!", icon: "cake", xpReward: 0, category: "team",
         description: "O workspace completa 1 ano de existência.",
     },
     invite_accepted: {
@@ -356,15 +370,172 @@ export const BADGES: Record<string, BadgeConfig> = {
     },
 };
 
+/**
+ * F2.3 — TABELA DE XP QUE PREMIA PLANEJAR.
+ *
+ * O jogo já dizia "gasto não planejado vale zero". O que faltava era o outro
+ * lado: **planejar de propósito precisa valer alguma coisa**. Antes desta
+ * tabela, quase todo o XP do produto vinha de badges de CONTAGEM — cadastrar
+ * cinco contas, registrar cem transações, completar um ano de workspace —, que
+ * premiam usar o app, não organizar a vida financeira.
+ *
+ * Os valores estão aqui, e não espalhados pelo código, porque eles também são
+ * PUBLICADOS: `config/badges.xpSources` é a tabela que o app mostra na tela
+ * "como ganhar XP". Mudar um número aqui muda o hash do catálogo e o cron
+ * `publishBadgeCatalog` republica sozinho.
+ */
+export const XP_VALUES = {
+    /** Por categoria com limite que fechou a semana DENTRO do limite. */
+    weeklyCategoryWithinLimit: 20,
+    /** Bônus quando TODAS as categorias com limite fecharam dentro. */
+    weeklyAllWithinLimit: 50,
+    /** Multiplicador do bônus de streak de semanas dentro do plano. */
+    weeklyPlanStreakStep: 10,
+    /** Teto do bônus de streak — a partir de 10 semanas ele para de crescer. */
+    weeklyPlanStreakCap: 100,
+    /** Ao criar o PRIMEIRO limite de uma categoria (uma vez por categoria). */
+    planningCreated: 30,
+    /** Ao criar a PRIMEIRA recorrência de uma categoria (uma vez por categoria). */
+    recurringCreated: 30,
+} as const;
+
+/** Uma linha da tabela publicada em `config/badges.xpSources`. */
+export interface XpSourceConfig {
+    id: string;
+    name: { pt: string, en: string };
+    xp: number;
+    description: { pt: string, en: string };
+}
+
+/**
+ * As fontes de XP, como o app as exibe. `xp` é o valor unitário; a descrição
+ * explica a regra por extenso, inclusive os tetos que o número sozinho não
+ * revela.
+ */
+export const XP_SOURCES: XpSourceConfig[] = [
+    {
+        id: "category_within_limit",
+        name: { pt: "Categoria dentro do limite", en: "Category within its limit" },
+        xp: XP_VALUES.weeklyCategoryWithinLimit,
+        description: {
+            pt: "Cada categoria com limite que fecha a semana sem estourar o planejado.",
+            en: "Each category with a limit that closes the week without exceeding the plan.",
+        },
+    },
+    {
+        id: "all_categories_within_limit",
+        name: { pt: "Semana redonda", en: "Perfect week" },
+        xp: XP_VALUES.weeklyAllWithinLimit,
+        description: {
+            pt: "Bônus quando TODAS as categorias com limite fecham a semana dentro do planejado.",
+            en: "Bonus when EVERY category with a limit closes the week within plan.",
+        },
+    },
+    {
+        id: "plan_streak",
+        name: { pt: "Sequência no plano", en: "Plan streak" },
+        xp: XP_VALUES.weeklyPlanStreakStep,
+        description: {
+            pt: `Multiplicado pelo número de semanas seguidas dentro do plano, até ${XP_VALUES.weeklyPlanStreakCap} XP. Estourar um limite zera a sequência.`,
+            en: `Multiplied by the number of consecutive weeks within plan, up to ${XP_VALUES.weeklyPlanStreakCap} XP. Going over a limit resets the streak.`,
+        },
+    },
+    {
+        id: "planning_created",
+        name: { pt: "Limite criado", en: "Limit created" },
+        xp: XP_VALUES.planningCreated,
+        description: {
+            pt: "Ao definir o primeiro limite de uma categoria. Uma vez por categoria.",
+            en: "When you set the first limit for a category. Once per category.",
+        },
+    },
+    {
+        id: "recurring_created",
+        name: { pt: "Recorrência criada", en: "Recurring created" },
+        xp: XP_VALUES.recurringCreated,
+        description: {
+            pt: "Ao criar o primeiro lançamento recorrente de uma categoria. Uma vez por categoria.",
+            en: "When you create the first recurring entry for a category. Once per category.",
+        },
+    },
+    {
+        id: "installment_paid",
+        name: { pt: "Lançamento planejado pago", en: "Planned entry paid" },
+        xp: 15,
+        description: {
+            pt: "Pagar um lançamento que estava planejado. Gasto NÃO planejado (que nasce pago) vale zero.",
+            en: "Paying an entry that was planned. An UNPLANNED expense (born paid) is worth zero.",
+        },
+    },
+    {
+        id: "weekly_mission",
+        name: { pt: "Missão semanal", en: "Weekly mission" },
+        xp: 150,
+        description: {
+            pt: "Cada missão semanal concluída (150 a 250 XP, conforme a missão).",
+            en: "Each weekly mission completed (150 to 250 XP, depending on the mission).",
+        },
+    },
+];
+
+/**
+ * Escrita do XP na barra semanal (`weekly_xp/{YYYY-Www}`).
+ *
+ * É INJETADA, e não importada: a implementação vive em
+ * `FinanceService.updateWeeklyTotalXp` (a única do projeto desde F1.9), mas
+ * alcançá-la por `import { container }` aqui arrastaria o container inteiro —
+ * e, com ele, o SDK do Gemini e o `ofx-js` — para dentro de qualquer arquivo
+ * que apenas leia o catálogo de badges. O container faz a ligação.
+ */
+export type WeeklyXpWriter = (workspaceId: string, date: Date, deltaXp: number) => Promise<void>;
+
 export class GamificationService {
     constructor(
         private gamificationRepository: IGamificationRepository,
         private aiRepository?: IAIRepository,
-        private idempotencyService?: IIdempotencyService
+        private idempotencyService?: IIdempotencyService,
+        private weeklyXpWriter?: WeeklyXpWriter
     ) { }
 
     async addXp(workspaceId: string, amount: number, reason: string): Promise<void> {
         await this.gamificationRepository.addXp(workspaceId, amount, reason);
+    }
+
+    /**
+     * F2.3 — XP que também entra na BARRA DA SEMANA (`weekly_xp/{YYYY-Www}`).
+     *
+     * O XP total do workspace e o XP semanal são dois contadores distintos: o
+     * primeiro move o nível, o segundo desenha a barra de progresso da semana.
+     * Só o pagamento de parcela alimentava o segundo — então a semana em que o
+     * usuário criou cinco limites e fechou todos dentro do plano aparecia
+     * VAZIA na barra, que é o oposto da mensagem do produto.
+     *
+     * `weekDate` é qualquer instante DENTRO da semana que deve receber o XP.
+     * Para o cron semanal isso é a semana AVALIADA (a que acabou), não a
+     * corrente: o XP é mérito daquela semana e é nela que a barra histórica
+     * precisa mostrá-lo.
+     *
+     * A escrita em `weekly_xp` é best-effort e vem DEPOIS do XP do workspace:
+     * o total é a fonte da verdade (é ele que move o nível), a barra é
+     * apresentação. Uma falha aqui não pode desfazer o XP já concedido nem
+     * derrubar o cron para os demais workspaces.
+     */
+    private async addXpWithWeekly(
+        workspaceId: string,
+        amount: number,
+        reason: string,
+        weekDate: Date
+    ): Promise<void> {
+        await this.addXp(workspaceId, amount, reason);
+
+        if (!this.weeklyXpWriter) return;
+
+        try {
+            await this.weeklyXpWriter(workspaceId, weekDate, amount);
+        }
+        catch (e) {
+            logger.error(`[GamificationService] XP ${amount} concedido a ${workspaceId}, mas a barra semanal não atualizou:`, e);
+        }
     }
 
     async unlockBadge(workspaceId: string, badgeId: string): Promise<boolean> {
@@ -783,8 +954,7 @@ export class GamificationService {
         });
     }
 
-    async evaluateWeeklyMissionsCron(workspaceId: string): Promise<void> {
-        const now = new Date();
+    async evaluateWeeklyMissionsCron(workspaceId: string, now: Date = new Date()): Promise<void> {
         // O cron roda na virada da semana (segunda de madrugada): a semana a
         // avaliar é a ANTERIOR, já completa. Avaliar a semana corrente (recém
         // iniciada e vazia) zeraria a streak permanentemente.
@@ -812,18 +982,21 @@ export class GamificationService {
             return;
         }
 
-        let currentStreaks = workspaceData.weeklyStreaks || 0;
+        // F2.3: os streaks vivem em `streaks` (mapa). O leitor cai no
+        // `weeklyStreaks` numérico quando o mapa ainda não existe, então
+        // nenhuma sequência se perde na virada.
+        const currentStreaks = readWorkspaceStreaks(workspaceData);
 
         if (allCompleted) {
-            currentStreaks++;
-            await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, currentStreaks);
+            const missions = currentStreaks.missions + 1;
+            await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, { missions });
 
-            if (currentStreaks >= 4) {
+            if (missions >= 4) {
                 await this.unlockBadge(workspaceId, "iron_consistency");
             }
         }
         else {
-            await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, 0);
+            await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, { missions: 0 });
         }
 
         // Badges de missões (mission_first, mission_three, all_missions_week):
@@ -835,6 +1008,192 @@ export class GamificationService {
         catch (e) {
             logger.error("[GamificationService] Error checking mission badges:", e);
         }
+    }
+
+    /**
+     * F2.3 — XP DA SEMANA QUE FECHOU DENTRO DO PLANO.
+     *
+     * Roda no cron semanal (segunda de madrugada) e avalia a semana ANTERIOR,
+     * já completa, a partir do `period_summaries/{YYYY-Www}` — o mesmo
+     * documento que o app mostra. Para cada categoria de DESPESA com limite
+     * vigente naquela semana (`generalPlannedAmount > 0`, a proporção semanal
+     * do limite mensal — ver F1.5):
+     *
+     *   +20  por categoria que fechou dentro do limite
+     *   +50  se TODAS fecharam dentro
+     *   +10 × streak  de semanas consecutivas dentro do plano (teto 100)
+     *
+     * Duas decisões que valem explicar:
+     *
+     * - **Sem nenhuma categoria com limite, a streak ZERA.** "Semanas dentro do
+     *   plano" pressupõe um plano; apagar todos os limites não pode ser uma
+     *   forma de preservar a sequência indefinidamente.
+     * - **Dentro do limite é `<=`, não `<`.** Gastar exatamente o planejado é
+     *   o alvo, não uma falha por um centavo.
+     *
+     * Idempotente pela chave `workspaceId_weekId`: uma reexecução do cron (ou
+     * duas instâncias no mesmo minuto) não concede o XP duas vezes.
+     */
+    async evaluateWeeklyPlanXp(workspaceId: string, now: Date = new Date()): Promise<void> {
+        // Mesma janela do `evaluateWeeklyMissionsCron`: a semana anterior.
+        const previousWeekStart = addCalendarDays(startOfWeekInTz(now), -7);
+        const weekId = getWeekId(previousWeekStart);
+
+        const award = async () => {
+            const rows = await this.gamificationRepository.getWeeklySummaryRows(workspaceId, weekId);
+
+            const limited = rows.filter((row) => {
+                // Categorias de sistema (saldo inicial, virtuais de
+                // transferência) não são escolha de consumo — ver o mesmo
+                // filtro em `evaluateMonthlyMissionsCron`.
+                if (row.isSystem) return false;
+                if (row.type !== CategoryType.expense) return false;
+                return (row.generalPlannedAmount || 0) > 0;
+            });
+
+            const within = limited.filter((row) => {
+                return (row.actualAmount || 0) <= row.generalPlannedAmount;
+            });
+
+            const allWithin = limited.length > 0 && within.length === limited.length;
+
+            const workspaceData = await this.gamificationRepository.getWorkspaceById(workspaceId);
+            if (!workspaceData) return;
+
+            const streaks = readWorkspaceStreaks(workspaceData);
+            const planStreak = allWithin ? streaks.plan + 1 : 0;
+
+            if (planStreak !== streaks.plan) {
+                await this.gamificationRepository.updateWorkspaceStreaks(workspaceId, { plan: planStreak });
+            }
+
+            let xp = within.length * XP_VALUES.weeklyCategoryWithinLimit;
+            const parts = [`${within.length}/${limited.length} categorias dentro do limite`];
+
+            if (allWithin) {
+                xp += XP_VALUES.weeklyAllWithinLimit;
+                parts.push("todas dentro");
+
+                const bonus = Math.min(
+                    XP_VALUES.weeklyPlanStreakStep * planStreak,
+                    XP_VALUES.weeklyPlanStreakCap
+                );
+                xp += bonus;
+                parts.push(`streak ${planStreak} (+${bonus})`);
+            }
+
+            if (xp <= 0) return;
+
+            // O XP vai para o total do workspace E para a barra da semana
+            // AVALIADA — `previousWeekStart` é um instante dentro dela.
+            await this.addXpWithWeekly(
+                workspaceId,
+                xp,
+                `Plano da semana ${weekId}: ${parts.join(", ")}`,
+                previousWeekStart
+            );
+        };
+
+        if (this.idempotencyService) {
+            await this.idempotencyService.runIdempotency(`${workspaceId}_${weekId}`, "weeklyPlanXp", award);
+        }
+        else {
+            await award();
+        }
+    }
+
+    /**
+     * F2.3 — +30 XP na PRIMEIRA vez que uma categoria ganha um limite.
+     *
+     * Uma vez por categoria por workspace, garantido pelo marcador
+     * `xpAwardedFor.planning.<categoryId>` no documento do workspace (gravado
+     * na mesma transação do XP). Sem essa marca, apagar e recriar o mesmo
+     * limite seria uma máquina de XP, e o jogo passaria a premiar mexer no
+     * formulário em vez de planejar.
+     */
+    async awardPlanningCreationXp(workspaceId: string, planningDoc: any, now: Date = new Date()): Promise<boolean> {
+        if (!planningDoc) return false;
+        // Limite zerado não é limite: é o usuário desligando o planejamento.
+        if (!((planningDoc.amount || 0) > 0)) return false;
+
+        const categoryId = planningDoc.category?.id;
+        if (typeof categoryId !== "string" || categoryId.length === 0) return false;
+        if (isSystemCategory(categoryId, planningDoc.category)) return false;
+
+        return this.awardOnceAndCredit(
+            workspaceId,
+            "planning",
+            categoryId,
+            XP_VALUES.planningCreated,
+            "Limite criado para uma categoria nova",
+            now
+        );
+    }
+
+    /**
+     * Concede o XP único e, quando ele de fato saiu, credita a barra da semana.
+     *
+     * A ordem importa: quem decide se há XP é a TRANSAÇÃO do repositório (o
+     * marcador e o XP são gravados juntos). Só depois de ela dizer "sim" é que
+     * a barra semanal é tocada — creditar antes faria a segunda criação do
+     * mesmo limite inflar a semana sem inflar o total.
+     */
+    private async awardOnceAndCredit(
+        workspaceId: string,
+        group: "planning" | "recurring",
+        categoryId: string,
+        xp: number,
+        reason: string,
+        now: Date
+    ): Promise<boolean> {
+        const awarded = await this.gamificationRepository.awardXpOnce(
+            workspaceId,
+            group,
+            categoryId,
+            xp,
+            reason
+        );
+
+        if (!awarded) return false;
+        if (!this.weeklyXpWriter) return true;
+
+        try {
+            await this.weeklyXpWriter(workspaceId, now, xp);
+        }
+        catch (e) {
+            logger.error(`[GamificationService] XP único ${group}/${categoryId} concedido a ${workspaceId}, mas a barra semanal não atualizou:`, e);
+        }
+        return true;
+    }
+
+    /**
+     * F2.3 — +30 XP na PRIMEIRA order RECORRENTE de uma categoria.
+     *
+     * Recorrência é planejamento declarado: o usuário está dizendo "isto se
+     * repete todo mês". Mesma idempotência do limite, em
+     * `xpAwardedFor.recurring.<categoryId>`.
+     *
+     * Fatura e saldo inicial ficam de fora: são orders que o SERVIDOR cria, e
+     * premiar o usuário por elas seria conceder XP por ter um cartão.
+     */
+    async awardRecurringCreationXp(workspaceId: string, orderDoc: any, now: Date = new Date()): Promise<boolean> {
+        if (!orderDoc) return false;
+        if (orderDoc.installmentType !== "recurring") return false;
+        if (orderDoc.isInvoice === true) return false;
+        if (orderDoc.status === "cancelled") return false;
+
+        const categoryId = orderDoc.category?.id;
+        if (typeof categoryId !== "string" || categoryId.length === 0) return false;
+        if (isSystemCategory(categoryId, orderDoc.category)) return false;
+
+        return this.awardOnceAndCredit(
+            workspaceId,
+            "recurring",
+            categoryId,
+            XP_VALUES.recurringCreated,
+            "Recorrência criada para uma categoria nova",
+            now
+        );
     }
 
     async evaluateMonthlyMissionsCron(workspaceId: string): Promise<void> {
@@ -975,6 +1334,10 @@ export class GamificationService {
             },
             async (workspaceId) => {
                 await this.evaluateWeeklyMissionsCron(workspaceId);
+                // F2.3: o XP que premia PLANEJAR. Vem depois das missões de
+                // propósito — as duas leem a mesma semana já encerrada, e o
+                // streak de plano é independente do de missões.
+                await this.evaluateWeeklyPlanXp(workspaceId);
                 await this.checkFinancialHealthBadges(workspaceId);
             }
         );

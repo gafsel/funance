@@ -97,6 +97,21 @@ export async function handleInstallmentWritten(
         await container.financeService.updateXpOnInstallmentChange(workspaceId, before, after);
     });
 
+    // F2.2 — Bússola da Liberdade: MARCA, não calcula.
+    //
+    // Este evento acabou de mexer no `period_summaries` do mês e no `balance`
+    // da conta, que são justamente as duas fontes do índice. Recalcular aqui
+    // custaria dezenas de leituras por parcela (saldos de todas as contas,
+    // três meses de sumário, os planejamentos vigentes) e uma conciliação de
+    // 80 lançamentos viraria 80 recálculos do mesmo número.
+    //
+    // Então só carimbamos `healthDirtyAt` — UMA escrita, zero leituras — e o
+    // cron `refreshFinancialHealth` (15 em 15 minutos, com debounce de 10)
+    // recalcula os sujos. Fora da idempotência de propósito: reexecutar um
+    // carimbo é inofensivo, e o índice não pode ficar desatualizado porque o
+    // marcador daquele evento já estava gravado.
+    await container.financialHealthService.markHealthDirty(workspaceId);
+
     // Processar cascata se necessário
     if (before && after) {
         await idempotencyService.runIdempotency(eventId, "processInstallmentCascade", async () => {

@@ -975,6 +975,7 @@ config/badges
   version: string            # hash do conteúdo (16 hex)
   badges: [{ id, name: {pt, en}, icon, xpReward, category, description: {pt, en} }]
   levelThresholds: number[]  # XP mínimo de cada nível, 20 níveis
+  xpSources: [{ id, name: {pt, en}, xp, description: {pt, en} }]   # F2.3
   updatedAt: timestamp
 ```
 
@@ -988,9 +989,16 @@ config/badges
 - `icon` é o nome do ícone Material (o app mapeia nome → `IconData`).
 - `levelThresholds[n-1]` é o XP que abre o nível `n` — a tabela é a inversa
   fiel de `calculateLevel` (`300 * (2^(n-1) - 1)`), coberta por teste.
-- `version` é o **hash do conteúdo**: ninguém precisa lembrar de incrementar
-  nada. Mudou um nome, um XP ou um limiar, muda o hash e a próxima execução
-  publica.
+- `xpSources` (F2.3) é a tabela "como ganhar XP" que o app exibe — ver
+  [XP que premia planejar](#xp-que-premia-planejar-f23). Ela mora aqui, e não
+  num documento por workspace, porque é configuração do PRODUTO: os valores são
+  iguais para todo mundo e mudam por deploy. **`workspaces/{w}.xpSources` não
+  existe.**
+- `xpReward: 0` é um valor **legítimo**: desde F2.3 os badges de contagem
+  continuam na vitrine como conquista, mas não pagam mais XP.
+- `version` é o **hash do conteúdo** (badges + limiares + `xpSources`): ninguém
+  precisa lembrar de incrementar nada. Mudou um nome, um XP, um limiar ou uma
+  fonte de XP, muda o hash e a próxima execução publica.
 
 **Quem publica:** o cron diário `publishBadgeCatalog` (`maxInstances: 1`), que
 lê a versão publicada e só escreve se ela mudou. É o caminho mais simples que
@@ -1212,6 +1220,452 @@ Nenhum índice novo: a consulta da próxima fatura
 (`accountIds` CONTAINS + `isInvoice` + `status` + `dueDate` ASC) já existia em
 `firebase/firestore.indexes.json`, porque era a mesma que o app fazia.
 
+## Bússola da Liberdade (F2.2)
+
+O jogo já premiava planejar — XP, badges, missões. O que não existia era um
+**placar**: nada no produto media a distância entre o usuário e a liberdade
+financeira. XP responde "você jogou bem esta semana"; a Bússola responde "você
+está a quantos passos de não depender mais do salário".
+
+É um número de **0 a 100**, recalculado pelo servidor, **sem IA** — ele precisa
+ser determinístico, senão a barra do app oscila sozinha e o placar perde o
+sentido.
+
+### Os quatro componentes
+
+| Componente | Pergunta que responde | Como é medido | Peso |
+|---|---|---|---|
+| **Fôlego** | quantos meses eu aguento sem receita? | saldo líquido (`checking` + `investment`) ÷ (despesa realizada dos **últimos 90 dias** ÷ 3); 0 a 6+ meses → 0 a 100 | 30 |
+| **Poupança** | quanto do que entra eu guardo? | `(receita − despesa) / receita` do mês; −∞ a 30%+ → 0 a 100 | 25 |
+| **Disciplina** | eu respeito os limites que eu mesmo pus? | % das categorias com limite que fecharam o **mês anterior** dentro do limite | 25 |
+| **Alívio** | minha dívida está encolhendo? | variação do saldo somado de `debt` + `creditCard` nos **últimos 30 dias**: encolheu → 100, estável → 50, cresceu → 0 | 20 |
+
+Os pesos somam 100 (há um teste para isso: um peso esquecido faria o índice
+nunca chegar a 100 e ninguém perceberia olhando o app). A regra de pontuação
+inteira é **função pura** em `features/health/domain/models/financial_health.model.ts`.
+
+### Patentes
+
+| Faixa | Patente |
+|---|---|
+| 0–19 | **Aprendiz** |
+| 20–39 | **Guardião** |
+| 40–59 | **Estrategista** |
+| 60–79 | **Mestre** |
+| 80–100 | **Livre** |
+
+### As janelas de tempo: por que são MÓVEIS
+
+> ⚠️ **A virada do mês não pode mexer no placar.** A primeira versão media
+> Fôlego em meses de calendário e Alívio "contra o fim do mês anterior". As
+> duas janelas **saltavam no dia 1**: o usuário ia dormir Mestre em 30/09 e
+> acordava Estrategista em 01/10 sem ter feito nada. Um placar que se mexe
+> sozinho ensina o usuário a ignorá-lo. Três dos quatro componentes passaram a
+> usar janelas móveis por causa disso.
+
+- **Fôlego: 90 dias que terminam HOJE, divididos por 3.** A janela anda um dia
+  por dia e nunca troca trinta dias de despesa de uma vez. O divisor continua
+  **fixo em 3**, não "meses com movimento": quem tem pouco histórico não tem
+  despesa média baixa, tem pouco histórico — e a média cheia é a leitura
+  conservadora. A despesa vem das **parcelas pagas** (`paidDate`), não dos
+  `period_summaries`: estes são mensais e não se encaixam numa janela móvel.
+  Ficam de fora fatura, categorias de sistema e parcelas não pagas.
+- **Alívio: 30 dias que terminam HOJE.** Comparar com "o fim do mês anterior"
+  fazia a janela ENCOLHER a cada dia e **zerar na virada** — quem passou
+  setembro amortizando via 100 em 30/09 e 50 em 01/10, porque a comparação
+  recomeçava contra um saldo de ontem. Saldo de dívida é **negativo**, então
+  amortizar aproxima de zero e o delta é positivo. Há uma faixa morta de
+  R$ 1,00: sem ela, um centavo de juros viraria "a dívida aumentou" e
+  derrubaria o componente de 50 para 0.
+- **Poupança: o mês corrente, mas só quando já é comparável.** Ele precisa ter
+  ao menos **50% da receita do último mês completo**; abaixo disso vale o mês
+  completo. Sem esse piso, a primeira receita do mês — um reembolso de R$ 100
+  no dia 2 — virava o denominador inteiro da taxa e derrubava o componente de
+  67 para 0. O gatilho de "já dá para julgar este mês" não é "existe alguma
+  receita", é "a receita deste mês já se parece com a de um mês normal". No
+  primeiro mês do workspace não há a quem recuar, e o corrente vale.
+- **Disciplina: o mês ANTERIOR — e esta troca na virada de propósito.** Um
+  limite só pode ser julgado depois de o mês fechar; reprovar quem ainda tem 20
+  dias para se ajustar seria mentira. É o único componente que muda de janela
+  no dia 1, e muda porque o mês fechado de fato mudou. O limite comparado é o
+  `category_planning.amount` vigente, e "dentro" é `<=`: gastar exatamente o
+  planejado é o alvo, não uma falha por um centavo.
+
+### Casos de borda que o índice trata de propósito
+
+| Situação | O que acontece | Por quê |
+|---|---|---|
+| workspace **sem conta nenhuma** | retorno imediato do retrato zerado (score 0, Aprendiz) | sem conta não há saldo, dívida nem despesa; é o estado inicial, não um erro — o app desenha a bússola vazia em vez de uma tela de falha |
+| sem despesa nos últimos 90 dias | Fôlego = 0 | dividir por zero daria `Infinity`, e "reserva infinita" para quem acabou de chegar é uma mentira confortável |
+| receita zero nos dois meses | Poupança = 0 | tratar "não ganhei nada" como 100% de poupança premiaria o mês vazio |
+| nenhuma categoria com limite | Disciplina = 0 | quem não planejou não tem disciplina a medir — e é esse zero que o app usa para convidar o usuário a criar o primeiro limite |
+| nenhuma conta de dívida | Alívio = 100 | quem não tem dívida não pode ser punido por não estar amortizando |
+| conta `isDeleted` | fora de tudo | o saldo dela é resíduo de um histórico que ninguém mantém (ver o aviso do rebuild) |
+| categoria de sistema/virtual | fora de receita, despesa e disciplina | não é escolha de consumo: com ela, um aporte para a poupança contaria como gasto |
+
+### Onde o retrato é gravado
+
+```
+workspaces/{w}.financialHealth          # o retrato corrente
+workspaces/{w}/health_history/{YYYY-MM} # um documento por mês
+```
+
+Os dois têm **a mesma forma**:
+
+| Campo | Tipo | Semântica |
+|---|---|---|
+| `score` | number | 0 a 100 |
+| `tier` | string | `aprendiz` \| `guardiao` \| `estrategista` \| `mestre` \| `livre` |
+| `components.folego` | map | `{value, score, months}` |
+| `components.poupanca` | map | `{value, score, rate}` |
+| `components.disciplina` | map | `{value, score, within, total}` |
+| `components.alivio` | map | `{value, score, delta}` |
+| `computedAt` | Timestamp | quando o retrato foi calculado |
+| `monthKey` | string | `YYYY-MM` do mês a que o retrato se refere |
+
+`value` é o valor **bruto** da métrica, na unidade do componente (meses, taxa,
+razão, variação em reais); o campo nomeado ao lado (`months`, `rate`, `delta`)
+é o mesmo número com o nome do contrato, para o app não precisar saber qual
+componente está lendo.
+
+O documento do histórico é **sobrescrito enquanto o mês corre** e congela
+quando o mês vira — a última escrita do mês já é o retrato de fechamento.
+
+**Ele só é reescrito quando o retrato MUDA.** O histórico é um ponto de
+tendência: regravá-lo a cada 15 minutos com o mesmo score é uma escrita por
+workspace por ciclo que não conta nada a ninguém. A comparação olha o score, a
+patente e as **notas** dos componentes (mais as contagens da Disciplina), não os
+valores brutos — `months`, `rate` e `delta` se mexem na terceira casa decimal a
+cada centavo lançado, e compará-los tornaria a guarda inútil. O retrato
+**corrente** (`financialHealth`), esse, é reescrito sempre: é dele que sai o
+`computedAt` que ancora o debounce, e é ele que carrega os valores exatos.
+
+`saveCurrent` usa `update`, e não `set(..., {merge: true})`: o retrato **nunca
+pode criar** um documento de workspace. Um workspace apagado entre a leitura e
+a escrita voltaria à vida com um único campo, e a lista de workspaces do
+usuário passaria a mostrar um fantasma.
+
+### Recálculo: marcar é barato, calcular é caro
+
+O índice lê os saldos de **todas** as contas, três meses de sumário e os
+planejamentos vigentes. Fazer isso a cada parcela paga transformaria um
+pagamento em dezenas de leituras — e uma conciliação de extrato com 80
+lançamentos, em 80 recálculos do mesmo número.
+
+Por isso o caminho é em dois tempos:
+
+1. **`markHealthDirty(workspaceId)`** — chamado de três gatilhos, todos os que
+   mexem numa fonte do índice:
+
+   | Gatilho | Por quê |
+   |---|---|
+   | `onInstallmentWritten` | acabou de mexer no `period_summaries` do mês e no `balance` da conta |
+   | `onAccountUpdated` (conta apagada) | o saldo dela deixa de contar como reserva (ou como dívida) |
+   | `onCategoryPlanningWritten` | o limite é o denominador da Disciplina; num mês em que o usuário só planejou, nada mais sujaria o workspace |
+
+   É **uma escrita, zero leituras** (`healthDirtyAt` = timestamp do
+   servidor). Fica **fora** do `runIdempotency` de propósito: reexecutar um
+   carimbo é inofensivo, e o índice não pode ficar desatualizado porque o
+   marcador daquele evento já estava gravado. Ele **nunca lança** para quem
+   chama — sujar a Bússola não pode derrubar um pagamento;
+2. **o cron `refreshFinancialHealth`** (a cada 15 minutos) recalcula os sujos,
+   respeitando um **intervalo mínimo de 10 minutos por workspace**. Um
+   workspace adiado pelo debounce **continua sujo** e entra no ciclo seguinte:
+   o marcador só é apagado quando o retrato é de fato recalculado, e é isso que
+   garante que nenhuma mudança se perde.
+
+A varredura consulta `where("healthDirtyAt", ">", epoch)`. O Firestore não
+consulta "campo que existe", mas `> epoch` só casa documentos que **têm** o
+campo — então o custo é o número de workspaces **sujos**, não o tamanho da
+base. É uma consulta de campo único, coberta pelo índice automático: **não há
+índice novo a criar**.
+
+O cursor da paginação é o próprio `healthDirtyAt` (a consulta ordena por ele),
+e não um checkpoint persistido: a fila se esvazia sozinha porque recalcular
+apaga o marcador, e o cursor por valor evita que um workspace adiado pelo
+debounce seja relido para sempre dentro da mesma execução.
+
+> **Empate de timestamp.** Dois workspaces marcados no mesmo microssegundo
+> podem fazer o `startAfter` pular um deles. Ele continua sujo e é pego no
+> ciclo seguinte, 15 minutos depois — o pior caso é atraso, nunca perda.
+
+### O cron mensal fecha o mês
+
+`closeFinancialHealthMonth` roda **todo dia 1 às 04:30** e faz duas passadas
+por workspace:
+
+1. `computeHealth` com `now` no **último instante do mês que acabou**,
+   gravando só o `health_history/{mês anterior}` — o retrato corrente não pode
+   ficar apontando para o passado;
+2. `computeHealth` com o `now` real, que reabre `financialHealth` e cria o
+   documento do mês novo.
+
+**IDEMPOTENTE: um mês já fechado não é reescrito.** O carimbo de fechamento é o
+próprio `computedAt` — durante o mês ele é sempre anterior ao fim do mês, e o
+fechamento grava exatamente o último instante. Sem essa guarda, uma segunda
+execução do cron (reentrega, execução manual) recalcularia o mês fechado com os
+dados de HOJE: a Disciplina passaria a julgar outro mês e o retrato congelado
+mudaria depois de congelado. É por isso — e só por isso — que a escrita do
+fechamento ignora a guarda de "só grava se mudou": o que ela precisa gravar é o
+carimbo.
+
+Existe porque a Bússola de um mês só está completa quando o mês acaba, e
+nenhum evento acontece no dia 1 para provocar essa última passada num workspace
+parado. Sem ele, o `health_history` de quem não abriu o app na virada ficaria
+congelado no retrato do dia 20, e o gráfico de evolução mostraria um degrau que
+nunca existiu.
+
+### Security rules
+
+- `workspaces/{w}.financialHealth` e `healthDirtyAt` caem na lista fechada
+  (`affectedKeys().hasOnly`) do `allow update` do workspace — o cliente não os
+  escreve nem os apaga. A criação também os nega explicitamente;
+- `workspaces/{w}/health_history/{YYYY-MM}`: **leitura por membro, escrita
+  negada**. É o placar do usuário; poder escrever ali seria reescrever a
+  própria história até a patente ficar bonita.
+
+### Testes
+
+- `src/test/financial_health.test.ts` — a regra de pontuação e os **quatro
+  cenários de perfil** (endividado, equilibrado, poupador, sem dados), mais as
+  janelas de tempo e o debounce;
+- `src/test/integration/financial_health.integration.test.ts` — emulador:
+  score determinístico a partir de saldos e sumários reais (inclusive um
+  documento de saldo **legado**, sem `dateKey`), segunda execução sem efeito,
+  virada de mês congelando o histórico, a varredura dos sujos e a garantia de
+  que um workspace inexistente não é criado pelo retrato.
+
+## XP que premia planejar (F2.3)
+
+O propósito do produto é ensinar planejamento. O XP dizia outra coisa: quase
+todo ele vinha de badges de **contagem** — cadastrar cinco contas, registrar
+cem transações, completar um ano de workspace. Um usuário que lançasse cem
+transações desorganizadas subia de nível mais rápido do que quem manteve três
+limites em dia por dois meses.
+
+F2.3 move o XP para onde o produto quer que ele esteja.
+
+### A tabela de fontes de XP
+
+| Fonte | XP | Quando |
+|---|---|---|
+| **Lançamento planejado pago** | 15 | pagar um lançamento que estava planejado (regra antiga, inalterada) |
+| **Categoria dentro do limite** | 20 | por categoria com limite que fecha a semana sem estourar |
+| **Semana redonda** | 50 | bônus quando **todas** as categorias com limite fecham dentro |
+| **Sequência no plano** | 10 × streak | semanas consecutivas dentro do plano, **teto de 100** |
+| **Limite criado** | 30 | ao definir o primeiro limite de uma categoria — **uma vez por categoria** |
+| **Recorrência criada** | 30 | ao criar o primeiro lançamento recorrente de uma categoria — **uma vez por categoria** |
+| **Missão semanal** | 150–250 | por missão concluída (regra antiga, inalterada) |
+| **Gasto não planejado** | **0** | a parcela que nasce paga (ver `unplannedReason`) |
+
+Os valores vivem em `XP_VALUES`/`XP_SOURCES` (`gamification.service.ts`) e são
+**publicados** em `config/badges.xpSources` — é a tabela que o app mostra na
+tela "como ganhar XP". Mudar um número muda o hash do catálogo e o cron
+`publishBadgeCatalog` republica sozinho.
+
+> **`workspaces/{w}.xpSources` NÃO existe.** A tabela é configuração do
+> produto, igual para todo mundo, e muda por deploy, não por usuário.
+
+### Badges de contagem: XP zero, conquista mantida
+
+Vinte e quatro badges passaram a `xpReward: 0` — eles **continuam existindo** na
+vitrine, continuam sendo desbloqueados e continuam contando como conquista;
+só não pagam mais XP:
+
+`two_accounts`, `three_accounts`, `five_accounts`, `five_transactions`,
+`twenty_transactions`, `fifty_transactions`, `hundred_transactions`,
+`five_categories`, `ten_categories`, `three_categories_month`,
+`five_categories_month`, `round_number`, `workspace_one_year`,
+`first_category`, `first_income`, `first_expense`, `first_transfer`,
+`first_month`, `reconcile_five`, `five_active_goals`, `two_active_goals`,
+`two_months_active`, `small_transactions_ten`, `big_transaction`.
+
+O corte foi na **contagem**, não no mérito: `under_control`, `golden_rule`,
+`planner`, `iron_consistency` e os badges de meta continuam pagando.
+
+### O XP semanal, a partir dos sumários
+
+`evaluateWeeklyPlanXp` roda dentro do `weeklyGamificationCron` (segunda,
+03:00) e avalia a **semana anterior**, já encerrada, lendo
+`period_summaries/{YYYY-Www}` — o mesmo documento que o app mostra.
+`generalPlannedAmount` é a proporção semanal do limite mensal (ver F1.5) e
+`actualAmount` é o realizado da semana.
+
+Categorias de **sistema** e de **receita** ficam de fora; só entram as de
+despesa com `generalPlannedAmount > 0`.
+
+- **Sem nenhuma categoria com limite, a streak ZERA.** "Semanas dentro do
+  plano" pressupõe um plano: apagar todos os limites não pode ser uma forma de
+  congelar a sequência indefinidamente;
+- **Estourar um limite zera a streak**, mas o XP das categorias que ficaram em
+  dia continua sendo pago — a semana não foi redonda, e ainda assim a categoria
+  em dia foi mérito;
+- é **idempotente** pela chave `workspaceId_weekId` (ação `weeklyPlanXp`): uma
+  reexecução do cron não paga de novo.
+
+### O XP de planejar também entra na BARRA DA SEMANA
+
+O XP total do workspace e o XP semanal (`weekly_xp/{YYYY-Www}`) são contadores
+distintos: o primeiro move o nível, o segundo desenha a barra de progresso da
+semana no app. Só o **pagamento de parcela** alimentava o segundo — então a
+semana em que o usuário criou cinco limites e fechou todos dentro do plano
+aparecia **vazia** na barra, que é o oposto da mensagem do produto.
+
+Agora as três fontes novas creditam os dois:
+
+| Fonte | Semana creditada |
+|---|---|
+| semana dentro do limite (+20/+50/streak) | a semana **avaliada** (a que acabou) |
+| limite criado (+30) | a semana **corrente** |
+| recorrência criada (+30) | a semana **corrente** |
+
+O XP da semana avaliada vai para o bucket **daquela** semana, não da corrente: o
+mérito é dela e é nela que a barra histórica precisa mostrá-lo.
+
+Quem escreve é `FinanceService.updateWeeklyTotalXp` — a **única** implementação
+dessa escrita desde F1.9, que deixou de ser privada. A gamificação a recebe
+**injetada** pelo container (`WeeklyXpWriter`) em vez de importá-la: alcançá-la
+por `import { container }` arrastaria o container inteiro — e, com ele, o SDK do
+Gemini e o `ofx-js` — para dentro de qualquer arquivo que apenas leia o catálogo
+de badges.
+
+Duas garantias, nessa ordem:
+
+- **o total é a fonte da verdade.** A barra é creditada DEPOIS, e uma falha
+  nela é logada sem desfazer o XP já concedido nem derrubar o cron;
+- **a barra só é creditada quando o XP saiu de fato.** Quem decide é a
+  transação do marcador: creditar antes faria a segunda criação do mesmo limite
+  inflar a semana sem inflar o total.
+
+### Os streaks: um campo NOVO, e o antigo intacto
+
+```
+weeklyStreaks: number                        # LEGADO, vivo: = streaks.missions
+streaks: { missions: number, plan: number }  # F2.3
+```
+
+`weeklyStreaks` era um número só (a sequência de semanas com todas as missões
+concluídas). Com o streak de **plano** passaram a ser dois.
+
+> ⚠️ **Transformar `weeklyStreaks` num mapa quebraria todo app instalado.** O
+> cliente o desserializa como `num?` (`workspace_model.g.dart`), então um mapa
+> ali vira `TypeError` ao abrir o workspace. E o cron semanal escreve nesse
+> campo em **todos** os workspaces: a quebra chegaria a todo mundo na
+> segunda-feira seguinte ao deploy, sem nenhuma ação do usuário. Foi o que a
+> primeira versão deste pacote fazia.
+
+O mapa vive num campo **novo**, que o app antigo ignora:
+
+- os dois são escritos na **mesma transação**, e
+  `weeklyStreaks === streaks.missions` é **invariante**;
+- a leitura tolera as duas gerações: sem o mapa, `missions` vem do número
+  legado e o plano começa em zero — nenhuma sequência é perdida;
+- a escrita é read-modify-write do campo INTEIRO, nunca
+  `update({"streaks.plan": n})`: é também o que impede que o cron de missões e
+  o de plano, que rodam na mesma execução, sobrescrevam um ao outro;
+- as rules mantêm `weeklyStreaks` como **número** na criação (um mapa ali é
+  negado) e negam `streaks` ao cliente por completo.
+
+### XP único por categoria
+
+| Gatilho | Marcador | XP |
+|---|---|---|
+| `onCategoryPlanningWrittenGamification` | `xpAwardedFor.planning.<categoryId>` | 30 |
+| `onOrderWrittenGamification` (**novo**) | `xpAwardedFor.recurring.<categoryId>` | 30 |
+
+O marcador e o XP vão na **mesma transação** (igual ao `unlockBadge`): é o
+Firestore que serializa a disputa, então duas escritas paralelas do mesmo
+planejamento pagam uma vez só. Sem o marcador, apagar e recriar o mesmo limite
+renderia 30 XP a cada vez, e o jogo passaria a premiar mexer no formulário em
+vez de planejar.
+
+O mapa `xpAwardedFor` é reescrito **inteiro**, nunca por caminho pontilhado: um
+id de categoria com ponto viraria dois níveis de aninhamento e o marcador nunca
+mais casaria.
+
+Não pagam nada: limite **zerado** (é desligar o planejamento, não criar um),
+categoria **sem id** ou **de sistema**, order **avulsa/parcelada**, **fatura**
+(criada pelo servidor — premiar seria dar XP por ter cartão) e order
+**cancelada**. Limite e recorrência são contadores **independentes**: a mesma
+categoria pode render pelos dois, porque são dois atos de planejamento
+diferentes.
+
+`onOrderWrittenGamification` é novo e observa a mesma coleção que o
+`onOrderWritten` de finanças, com um nome de ação próprio
+(`gamification:orderWritten`) para que os dois não disputem a chave de
+idempotência quando a plataforma entregar o mesmo `event.id` para ambos. Ele
+sai antes da idempotência quando a order não é recorrente: a maioria das
+escritas não é, e nenhuma delas precisa custar um documento em `_idempotency`.
+
+### `installments.unplannedReason`: a punição deixa de ser muda
+
+`calculateXp` devolve **0** quando o planejado (`amount`) é zero — o caso da
+parcela que **nasce paga** (saldo inicial, compra já liquidada no cartão), em
+que `syncInstallments` zera o planejado de propósito para a cobrança contar
+como não planejada. A regra não mudou; o que mudou é que ela **passou a se
+explicar**.
+
+```
+installment.unplannedReason: "born_paid" | ausente
+```
+
+- É gravado na **mesma escrita** do `xp` e do `replicationCascade: none` (uma
+  escrita só, no caso 2 de `updateXpOnInstallmentChange`);
+- entrou em `INSTALLMENT_DERIVED_FIELDS`. Fora dali, toda parcela que nasce
+  paga dispararia o gatilho inteiro de novo — sumário, meta, saldo, fatura,
+  XP — só para registrar o motivo do zero;
+- a **fatura fica de fora**, mesmo com planejado zero: o valor dela é a soma
+  das compras do ciclo, mantida pelo servidor, e não um planejamento que o
+  usuário deixou de fazer. Marcá-la convidaria o app a pedir um limite para
+  algo que já é consequência de outros lançamentos;
+- as rules negam ao cliente gravar ou apagar o campo, com a mesma exceção do
+  `xp`: uma build que grave o documento inteiro manda `null` nas parcelas que
+  não têm o campo, e isso não é alteração de valor.
+
+O app (outro pacote) usa esse motivo para mostrar o nudge que converte o gasto
+em limite ou recorrência — e **essa conversão rende XP**, pelas duas fontes de
+30 acima. É o ciclo que fecha a punição: o gasto não planejado vale zero, e a
+saída do zero é planejar.
+
+### Testes
+
+- `src/test/plan_xp.test.ts` — XP semanal (dentro/fora do limite, bônus de
+  semana redonda, streak crescendo, zerando e batendo no teto), XP único por
+  categoria, `unplannedReason` e o catálogo publicado;
+- `src/test/integration/plan_xp.integration.test.ts` — emulador: fixtures reais
+  de sumário semanal, migração do `weeklyStreaks` legado, concessão única
+  **concorrente** (três chamadas paralelas pagam uma vez) e `unplannedReason`
+  de fato gravado na parcela.
+
+### Contrato com o cliente Flutter (F2.2 + F2.3)
+
+Os nomes abaixo são **contrato**: o pacote da Jornada depende deles.
+
+| Caminho | Forma | Quem escreve |
+|---|---|---|
+| `workspaces/{w}.financialHealth` | `{score, tier, components:{folego:{score,months}, poupanca:{score,rate}, disciplina:{score,within,total}, alivio:{score,delta}}, computedAt, monthKey}` | só o servidor |
+| `workspaces/{w}/health_history/{YYYY-MM}` | a mesma forma | só o servidor |
+| `workspaces/{w}.streaks` | `{missions: number, plan: number}` | só o servidor |
+| `workspaces/{w}.weeklyStreaks` | `number` (**inalterado**, = `streaks.missions`) | só o servidor |
+| `installments.unplannedReason` | `"born_paid"` \| ausente | só o servidor |
+| `config/badges.xpSources` | `[{id, name:{pt,en}, xp, description:{pt,en}}]` | só o servidor |
+
+Cada componente carrega também um `value` — o valor bruto da métrica, na
+unidade do componente — além do campo nomeado do contrato.
+
+> **`weeklyStreaks` NÃO mudou de tipo — de propósito.** A primeira versão deste
+> pacote transformava o campo num mapa, e isso quebraria **todo app instalado**:
+> `workspace_model.g.dart` o desserializa como `num?`, e o cron semanal escreve
+> nele em TODOS os workspaces — a quebra chegaria a todo mundo na segunda-feira
+> seguinte ao deploy, sem nenhuma ação do usuário. O mapa vive no campo NOVO
+> `streaks`, que o app antigo simplesmente ignora. Os dois são escritos na mesma
+> transação e `weeklyStreaks === streaks.missions` é invariante.
+
+> **`financialHealth` ausente** significa "ainda não calculei", não "score 0".
+> Isso acontece num workspace que nunca foi marcado como sujo e ainda não
+> passou pelo `recompute_health`. O app deve mostrar a bússola em carregamento,
+> e não a patente Aprendiz — que é um veredito, não um estado de espera.
+
 ## Crons de manutenção
 
 | Function                            | Agendamento               | Fuso              |
@@ -1223,6 +1677,8 @@ Nenhum índice novo: a consulta da próxima fatura
 | `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
 | `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `publishBadgeCatalog`               | `0 4 * * *` (diário)      | `America/Sao_Paulo` |
+| `refreshFinancialHealth`            | `*/15 * * * *` (15 min)   | `America/Sao_Paulo` |
+| `closeFinancialHealthMonth`         | `30 4 1 * *` (dia 1)      | `America/Sao_Paulo` |
 
 `generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
 uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha
@@ -1298,6 +1754,7 @@ projeto real**.
 5. backfill          node lib/scripts/backfill_next_invoice.js                                  (dry-run → --apply)
 6. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
 7. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
+8. bússola           node lib/scripts/recompute_health.js                                           (dry-run → --apply)
 ```
 
 **1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
@@ -1375,6 +1832,14 @@ valor errado**. A primeira execução depois do deploy é inevitável; rodar o
 > ⚠️ **O rebuild não é transacional.** Escolha uma janela sem uso e refaça o
 > dry-run imediatamente antes de cada `--apply`.
 
+**8. Bússola da Liberdade, por ÚLTIMO.** `recompute_health` lê saldos e
+`period_summaries`; rodá-lo antes do rebuild gravaria um placar calculado sobre
+os números que o rebuild ainda vai corrigir — e o usuário veria a patente mudar
+sozinha no dia seguinte. Ele é a primeira passada da base existente: sem ela, um
+workspace só ganha bússola quando alguém mexe nele, e quem tem três anos de
+histórico mas não abriu o app veria o estado vazio. Depois dele, o carimbo no
+gatilho + o cron de 15 minutos mantêm tudo em dia sozinhos.
+
 > ⚠️ **Contas apagadas logicamente.** `onAccountUpdated` apaga as
 > orders/parcelas da conta marcada como `isDeleted`, mas **não** a subcoleção
 > `balance`. Sem parcelas não há como reconstruir aquele histórico, então o
@@ -1399,6 +1864,7 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 | `migrate_balance_date_key.ts` | `dateKey`/`delta` nos saldos diários | [Saldo diário (F1.4)](#saldo-diário-datekey-e-delta-f14) |
 | `migrate_planning_summaries.ts` | marcadores do planejamento | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
 | `fix_empty_category.ts` | corrige `category.id` vazio em parcelas/orders | aqui |
+| `recompute_health.ts` | base inicial da Bússola da Liberdade | aqui |
 
 | `backfill_next_invoice.ts` | `nextInvoice` nas contas de cartão e a janela do ciclo nas faturas | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
 | `rebuild_workspace.ts` | reconstrói saldos, sumários e XP | aqui |
@@ -1644,6 +2110,59 @@ Saída de código: `0` se não houve falhas, `1` caso contrário.
 Coberto por testes com mocks em `src/test/fix_empty_category.test.ts` (flags,
 comparação de nome, dry-run, correção, recusa por nome divergente e
 idempotência).
+
+### `recompute_health.ts`
+
+Primeira passada da **Bússola da Liberdade** (F2.2) sobre a base existente:
+calcula e grava `workspaces/{w}.financialHealth` e o
+`health_history/{YYYY-MM}` do mês corrente de todos os workspaces.
+
+Existe porque o índice nasce de um cron que só recalcula workspaces **sujos**,
+e um workspace só fica sujo quando alguém mexe nele. Sem esta passada, quem não
+abrir o app não ganha bússola nenhuma — e o produto mostraria o estado vazio
+para um usuário com três anos de histórico. Depois dele, o caminho normal
+(carimbo no gatilho + cron de 15 minutos) mantém tudo em dia sozinho.
+
+- **Dry-run por padrão**: só escreve com `--apply`. O dry-run **calcula** o
+  índice (é leitura) e imprime o que gravaria, junto com o retrato atual quando
+  já existe — é assim que se revisa o efeito antes de aplicar.
+- **Idempotente**: o índice é determinístico dado `now`; recalcular não muda
+  nada se o estado do workspace não mudou.
+- **Isola falha**: um workspace que lança é contado e não derruba os demais.
+- **Não toca em XP, badge nem saldo**: ele só escreve o placar.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_health.js --project=<projectId>
+
+# 2) Um workspace só, para conferir o efeito
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_health.js --project=<projectId> --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/recompute_health.js --project=<projectId> --apply
+```
+
+| Flag              | Efeito                                                        |
+|-------------------|---------------------------------------------------------------|
+| _(nenhuma)_       | dry-run: apenas relata o que seria gravado                     |
+| `--apply`         | executa as escritas                                            |
+| `--project=<id>`  | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`| limita a execução a um único workspace                          |
+
+Resumo final: `workspaces`, `gravados`, `iguais` e `falhas`. Saída de código:
+`0` se não houve falhas, `1` caso contrário.
+
+> ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
+>
+> ⚠️ **Rode-o DEPOIS do rebuild.** Ele lê saldos e `period_summaries`; rodá-lo
+> antes gravaria um placar calculado sobre números que o rebuild ainda vai
+> corrigir, e o usuário veria a patente mudar sozinha no dia seguinte.
 
 ### `rebuild_workspace.ts`
 

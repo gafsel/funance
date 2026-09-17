@@ -75,10 +75,56 @@ export interface InstallmentModel {
     referenceDate: Date;
     referenceAmount: number;
     isInvoice?: boolean;
+    /**
+     * F2.3 — por que esta parcela rendeu ZERO XP.
+     *
+     * `calculateXp` devolve 0 quando o planejado (`amount`) é zero, que é o
+     * caso da parcela que NASCE paga (saldo inicial, compra já liquidada no
+     * cartão): o gasto não estava previsto em lugar nenhum. A punição existe
+     * desde sempre, mas era MUDA — o usuário via um lançamento sem XP e não
+     * tinha como saber o motivo.
+     *
+     * Este campo dá o motivo ao app, que converte o gasto em limite ou em
+     * recorrência (e essa conversão, sim, rende XP). Ausente == a parcela não
+     * nasceu paga.
+     */
+    unplannedReason?: UnplannedReason;
     /** Só em parcela de FATURA — ver `INVOICE_CYCLE_FIELDS`. */
     cycleStart?: Date;
     cycleEnd?: Date;
     closingDate?: Date;
+}
+
+/**
+ * Motivos de XP zero numa parcela. Hoje só existe um; o tipo é um enum de
+ * propósito, porque o app faz `switch` nele para escolher o texto do nudge e
+ * um motivo novo não pode chegar como string solta.
+ */
+export enum UnplannedReason {
+    /**
+     * A parcela nasceu paga/liquidada, então `syncInstallments` zerou o
+     * planejado de propósito para a cobrança contar como NÃO planejada.
+     */
+    bornPaid = "born_paid",
+}
+
+/**
+ * Motivo do XP zero de uma parcela paga — ou `null` quando ela foi planejada.
+ *
+ * A REGRA É A MESMA de `FinanceService.calculateXp`: planejado (`amount`) zero
+ * vale zero XP. Ela vive aqui, ao lado do enum, para que o teste possa
+ * exercitá-la sem montar o serviço inteiro.
+ *
+ * A FATURA fica de fora. O valor dela é a soma das compras do ciclo, mantida
+ * pelo servidor, e não um planejamento que o usuário deixou de fazer: marcar
+ * uma fatura como "gasto não planejado" convidaria o app a pedir um limite
+ * para algo que já é a consequência de outros lançamentos.
+ */
+export function resolveUnplannedReason(
+    installment: Pick<InstallmentModel, "amount" | "isInvoice">
+): UnplannedReason | null {
+    if (installment.isInvoice === true) return null;
+    return installment.amount === 0 ? UnplannedReason.bornPaid : null;
 }
 
 /**
@@ -113,6 +159,10 @@ export const INSTALLMENT_DERIVED_FIELDS = new Set([
     "replicationCascade",
     "lastUpdate",
     "updatedAt",
+    // F2.3: gravado na MESMA escrita do xp, pelo mesmo caminho. Fora daqui,
+    // toda parcela que nasce paga dispararia o gatilho inteiro de novo —
+    // sumário, meta, saldo, fatura, XP — só para registrar o motivo do zero.
+    "unplannedReason",
     // F1.8: a janela do ciclo é do servidor. Sem ela aqui, o backfill que
     // preenche as faturas antigas dispararia o gatilho inteiro — sumário,
     // meta, saldo, XP — para cada fatura da base, tudo com delta zero.
