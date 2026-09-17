@@ -466,10 +466,19 @@ service cloud.firestore {
       // automaticamente (create/update/delete usados pelo app, incl. mover entre workspaces)
       match /automatic_transactions/{transactionId} {
 
+        // `date` é STRING, e só.
+        //
+        // O app grava o campo com o `toJson` do freezed, sem conversor: sai um
+        // carimbo de relógio local sem fuso ("2026-09-04T10:50:47.466"). A
+        // missão corporativa de triagem consulta a coleção por FAIXA desse
+        // campo, comparando strings — e o Firestore ordena por TIPO antes de
+        // ordenar por valor, de modo que um documento gravado como `timestamp`
+        // ficaria INVISÍVEL para a consulta, sem erro nenhum. Aceitar os dois
+        // tipos era aceitar que metade da caixa de entrada sumisse do jogo.
         function validAutomaticTransaction(data) {
           return isStr(data.description, 1000)
             && isNum(data.amount)
-            && (data.date is timestamp || isStr(data.date, 40))
+            && isStr(data.date, 40)
             && data.type in ['expense', 'income', 'transfer']
             && data.isConsolidated is bool
             && data.isIgnored is bool

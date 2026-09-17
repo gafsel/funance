@@ -43,6 +43,17 @@ export const MAX_DEADLINE_MONTHS = 600;
 export const MAX_INSTALLMENT_COUNT = 480;
 /** Alvo máximo de uma missão semanal. */
 export const MAX_MISSION_TARGET = 100;
+/**
+ * Tamanho máximo do NOME de uma missão semanal — e, diferente do resto deste
+ * arquivo, o excedente é REJEITADO, não truncado.
+ *
+ * O nome cabe num card e o prompt pede uma frase de até 180 caracteres. Truncar
+ * 500 caracteres em 500 (o limite de texto livre) entregava ao usuário uma
+ * missão cortada no meio — "Manter o centro de custo Marketing dentro do pla" —
+ * como se fosse o objetivo dele. Rejeitar devolve o texto do catálogo, que está
+ * sempre inteiro e sempre certo.
+ */
+export const MAX_MISSION_NAME_LENGTH = 180;
 
 const DEFAULT_ICON = "category";
 const DEFAULT_COLOR = "#4A8C9C";
@@ -598,6 +609,37 @@ export function validateAutomaticTransaction(
 
 // --- 6. missões semanais -----------------------------------------------------
 
+/**
+ * O que o servidor JÁ DECIDIU sobre a missão antes de falar com a IA.
+ *
+ * Desde wp/missions-by-type a IA não escolhe mais o objetivo: o catálogo
+ * (`features/goal/domain/models/mission_catalog.ts`) escolhe o template por
+ * tipo de workspace e por hash da semana, e a IA só pode REESCREVER o texto
+ * daquele template. Este é o contrato que a validação usa para checar se ela
+ * fez isso — ou inventou outra missão.
+ */
+export interface WeeklyMissionExpectation {
+    /** `consistency` | `discipline` | `organization`. */
+    type: string;
+    /** Chave do template que a IA tem de ecoar. */
+    templateKey: string;
+    /** O texto do catálogo, já com os placeholders resolvidos. */
+    baseName: string;
+    /** Alvo do template. A IA NÃO pode mudá-lo. */
+    target: number;
+    /** Termos que o nome reescrito tem de conter (sem acento, sem caixa). */
+    requiredTerms: string[];
+    /** Termos que o nome reescrito NÃO pode conter (vocabulário da outra audiência). */
+    forbiddenTerms: string[];
+    /**
+     * Valores de dado injetados no nome (nome da categoria, alvo). São
+     * REMOVIDOS do texto antes da checagem de termos proibidos: uma empresa
+     * pode ter um centro de custo chamado "Alimentação", e nesse caso a
+     * palavra veio do Firestore, não da imaginação do modelo.
+     */
+    dataValues?: string[];
+}
+
 export interface ValidatedMission {
     name: string;
     target: number;
@@ -609,34 +651,143 @@ export interface ValidatedWeeklyMissions {
     organization: ValidatedMission | null;
 }
 
+/** Minúsculas e sem acento — a forma em que os termos são comparados. */
+function foldTerm(value: string): string {
+    // eslint-disable-next-line no-misleading-character-class
+    return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 /**
- * Missão inválida vira `null` de propósito: o GamificationService já tem um
- * texto padrão para cada tipo (`aiMissions?.consistency?.name || fallback`),
- * então a semana nunca fica sem missão.
+ * Valida o nome que a IA reescreveu PARA UM TEMPLATE JÁ ESCOLHIDO.
+ *
+ * Uma missão é aceita só quando as quatro condições valem:
+ *
+ *  1. a resposta ecoa o `templateKey` que o prompt mandou — sem isso não há
+ *     como saber a qual objetivo aquele texto se refere;
+ *  2. o `target` é EXATAMENTE o do template — o alvo é o que o avaliador de
+ *     progresso mede, e deixar a IA mexer nele é deixá-la mudar a regra;
+ *  3. o nome contém todos os `requiredTerms` do template — é o que amarra o
+ *     texto ao objetivo ("concilia" + "extrato", "centro de custo" + "dia");
+ *  4. o nome não contém nenhum `forbiddenTerms` da audiência — é o que impede
+ *     "Reduzir gastos com alimentação" de nascer num workspace de empresa.
+ *
+ * Qualquer falha devolve `null` PARA AQUELA MISSÃO, e o chamador usa o texto
+ * do catálogo. A semana nunca fica sem missão, e o pior caso da IA passou a
+ * ser "o texto não ficou mais bonito" em vez de "a missão virou outra coisa".
  */
-export function validateWeeklyMissions(raw: any): ValidatedWeeklyMissions {
+export function validateWeeklyMissionNames(
+    raw: any,
+    expectations: WeeklyMissionExpectation[]
+): ValidatedWeeklyMissions {
     const discards = new Discards("weeklyMissions");
 
-    const one = (key: "consistency" | "discipline" | "organization"): ValidatedMission | null => {
-        const item = raw?.[key];
-        if (!item || typeof item !== "object") return discards.drop(`missão ${key} ausente`);
+    const one = (expected: WeeklyMissionExpectation): ValidatedMission | null => {
+        const item = raw?.[expected.type];
+        if (!item || typeof item !== "object") return discards.drop(`missão ${expected.type} ausente`);
 
-        const name = cleanString(item.name, MAX_TEXT_LENGTH);
-        if (!name) return discards.drop(`missão ${key} sem nome`);
+        const templateKey = cleanString(item.templateKey, MAX_NAME_LENGTH);
+        if (templateKey !== expected.templateKey) {
+            return discards.drop(
+                `missão ${expected.type} com templateKey "${templateKey}" (esperado "${expected.templateKey}")`
+            );
+        }
 
         const target = boundedInteger(item.target, 1, MAX_MISSION_TARGET);
-        if (target === null) return discards.drop(`missão ${key} com target inválido`);
+        if (target === null) return discards.drop(`missão ${expected.type} com target inválido`);
+        if (target !== expected.target) {
+            return discards.drop(`missão ${expected.type} mudou o alvo (${target} != ${expected.target})`);
+        }
+
+        // Trunca no limite de texto livre só para NORMALIZAR (controles,
+        // espaços) — o comprimento é julgado logo abaixo, e reprovado.
+        const name = cleanString(item.name, MAX_TEXT_LENGTH);
+        if (!name) return discards.drop(`missão ${expected.type} sem nome`);
+        if (name.length > MAX_MISSION_NAME_LENGTH) {
+            return discards.drop(
+                `missão ${expected.type} com nome de ${name.length} caracteres (máximo ${MAX_MISSION_NAME_LENGTH})`
+            );
+        }
+
+        const folded = foldTerm(name);
+
+        // O nome vai para o Firestore e de lá para a tela, e o prompt carrega
+        // dados do usuário (nomes de categoria e de meta) que ele não controla
+        // — é a superfície clássica de injeção. Um texto de missão não tem
+        // motivo nenhum para falar em "ignorar instruções": ou o modelo repetiu
+        // o que leu num nome de categoria, ou repetiu o que alguém plantou
+        // nele. Nos dois casos o catálogo é a resposta certa.
+        if (folded.includes("ignore") || folded.includes("ignorar")) {
+            if (folded.includes("instru")) {
+                return discards.drop(`missão ${expected.type} com texto de injeção de prompt`);
+            }
+        }
+
+        const missing = expected.requiredTerms.filter((term) => !folded.includes(foldTerm(term)));
+        if (missing.length > 0) {
+            return discards.drop(
+                `missão ${expected.type} não referencia o template (faltou: ${missing.join(", ")})`
+            );
+        }
+
+        // Os valores vindos de DADO saem do texto antes da checagem: uma
+        // empresa pode ter um centro de custo chamado "Alimentação", e a
+        // palavra estar ali é o Firestore falando, não o modelo.
+        let scanned = folded;
+        for (const value of expected.dataValues ?? []) {
+            const foldedValue = foldTerm(value);
+            if (foldedValue.length > 0) {
+                scanned = scanned.split(foldedValue).join(" ");
+            }
+        }
+
+        const forbidden = expected.forbiddenTerms.filter((term) => scanned.includes(foldTerm(term)));
+        if (forbidden.length > 0) {
+            return discards.drop(
+                `missão ${expected.type} usa vocabulário fora da audiência (${forbidden.join(", ")})`
+            );
+        }
 
         return { name, target };
     };
 
-    const result = {
-        consistency: one("consistency"),
-        discipline: one("discipline"),
-        organization: one("organization"),
-    };
+    const result: ValidatedWeeklyMissions = { consistency: null, discipline: null, organization: null };
+    for (const expected of expectations) {
+        const validated = one(expected);
+        if (expected.type === "consistency") result.consistency = validated;
+        else if (expected.type === "discipline") result.discipline = validated;
+        else if (expected.type === "organization") result.organization = validated;
+        else discards.drop(`tipo de missão desconhecido: ${expected.type}`);
+    }
+
     discards.flush();
     return result;
+}
+
+/**
+ * AUDITORIA de vocabulário fora da audiência — usada pelo COACHING.
+ *
+ * Diferente das missões, aqui o resultado é apenas REGISTRADO: um slide de
+ * coaching fala sobre as categorias REAIS do workspace, e uma empresa pode
+ * legitimamente ter "Alimentação" (vale-refeição) ou "Lazer" (confraternização)
+ * no plano de contas. Descartar o slide por causa da palavra apagaria a análise
+ * correta junto com a errada — e um slide a menos, aqui, é uma tela vazia para
+ * o usuário.
+ *
+ * O que o pacote CORRIGE no coaching é o prompt (tom de controller, sem
+ * conselho de vida, para `business`); este contador é como se descobre que o
+ * prompt parou de ser obedecido, sem esperar outro print do dono.
+ *
+ * Devolve os termos encontrados, em ordem estável, para o chamador logar.
+ */
+export function auditAudienceVocabulary(
+    texts: (string | null | undefined)[],
+    forbiddenTerms: string[]
+): string[] {
+    const folded = texts
+        .filter((t): t is string => typeof t === "string" && t.length > 0)
+        .map(foldTerm)
+        .join(" \n ");
+    return forbiddenTerms.filter((term) => folded.includes(foldTerm(term)));
 }
 
 // --- Entrada: goalPayload de analyzeGoalFeasibility --------------------------

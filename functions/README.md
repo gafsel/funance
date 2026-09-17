@@ -53,7 +53,7 @@ apenas reage ao que o cliente gravou.
 | `category_planning/{p}` — `summarizedUntil`, `appliedAmount`, `appliedFrom`, `appliedUntil` e o legado `lastSummaryMonth` | servidor (rules negam os cinco campos ao cliente, no create e no update) | app (só lê) | F1.5 | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
 | `workspaces/{w}.currentWeekId` — `YYYY-Www` | servidor | app | F1.9 | [Semana (F1.9)](#semana-uma-definição-só-f19) |
 | `weekly_xp/{YYYY-Www}` — `{year, week, xp}` | servidor | app | F1.9 (id), F2.3 (XP de planejar entra aqui) | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
-| `weekly_missions/{weekId}_{type}` — `{id, name, type, status, rewardXp, progress, target, weekId, createdAt, completedAt}` | servidor | app | F1.9 (id da semana), F1.11 (tipada no backend) | [Semana (F1.9)](#semana-uma-definição-só-f19) |
+| `weekly_missions/{weekId}_{type}` — `{id, name, type, status, rewardXp, progress, target, weekId, createdAt, completedAt}` **+ `templateKey`, `workspaceType`, `actionPath`, `nameKey`, `params`** | servidor | app | F1.9 (id da semana), F1.11 (tipada no backend), wp/missions-by-type (os cinco campos novos) | [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace) |
 | `accounts/{a}.nextInvoice` — `{dueDate, closingDate, cycleStart, cycleEnd, amount, orderId, installmentId, status, updatedAt}` | servidor | app | F1.8 | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
 | `orders`/`installments` — `cycleStart`, `cycleEnd`, `closingDate` (**só em fatura**) | servidor | app | F1.8 | [Contratos de `orders` e `installments`](#contratos-de-orders-e-installments) |
 | `installments.unplannedReason` — `"born_paid"` \| ausente | servidor | app | F2.3 | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
@@ -64,7 +64,8 @@ apenas reage ao que o cliente gravou.
 | `goals/{g}` — `outcome` (`success`\|`failed`\|`null`), `completedAt`, `failedAt` | servidor | app | wp/gamification-2 | [Meta ativa e desfecho](#contrato-meta-ativa-e-desfecho) |
 | `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
-| `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3 | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}`, com **`audience`** em cada badge e cada `xpSource` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3; `audience` em wp/missions-by-type | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `workspaces/{w}/automatic_transactions/{id}` — `date` é **string** de relógio local (`YYYY-MM-DDTHH:mm:ss.SSS`), nunca `Timestamp` | app | servidor | wp/missions-by-type (as rules passaram a exigir o tipo) | [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace) |
 | `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor (rules negam a escrita ao cliente) | app — o membro **lê** para exibir o consumo | F5.1 | [Quotas de IA](#quotas-de-ia) |
 | `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
 | `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
@@ -94,6 +95,21 @@ Três pontos em que o app ainda não está alinhado com o servidor:
    enviá-los — as rules rejeitam. Na etapa C ele passa a preferi-los na
    leitura e a escrever os dois. Ver
    [Dinheiro em centavos](#dinheiro-em-centavos-f110).
+5. **O CTA da missão semanal** (wp/missions-by-type). O documento passou a
+   levar `actionPath`, e o app precisa de três coisas que ainda não tem:
+   desenhar o botão no card da missão; aceitar `/reconciliation` na allowlist
+   desse botão (o roteador já conhece a rota, com `?accountId=` opcional e um
+   seletor de conta quando ele falta — quem não a conhece é a allowlist de
+   COACHING, que continua sem ela de propósito); e preferir `nameKey` +
+   `params` ao `name` quando souber a chave. O `name` continua vindo pronto em
+   português para a build instalada. Ver
+   [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace).
+6. **`audience` nos badges e nas fontes de XP** (wp/missions-by-type). O
+   catálogo publicado marca cada badge e cada `xpSource` como `personal`,
+   `business` ou `both`, e o campo vem **sempre preenchido**. O app deve
+   esconder da vitrine o que não se aplica ao tipo do workspace aberto — o
+   servidor já não os concede. Ver
+   [Catálogo de badges](#catálogo-de-badges-configbadges).
 
 ### `undefined` não é gravado
 
@@ -627,9 +643,9 @@ repositório, não — um documento do Firestore tem forma, e escrevê-la é o q
 faz o compilador pegar o acesso a campo inexistente. Sem o override, o pacote
 regrediria na primeira assinatura nova, e regrediria em silêncio.
 
-Os **13** arquivos de teste de integração (`src/test/integration/*.integration.test.ts`;
+Os **17** arquivos de teste de integração (`src/test/integration/*.integration.test.ts`;
 `setup.ts` não conta) rodam com `ignoreUndefinedProperties: false`, igual à
-produção. A execução do emulador reporta 14 suítes porque a de security rules
+produção. A execução do emulador reporta 18 suítes porque a de security rules
 entra no mesmo `jest.integration.config.js`.
 
 ### Flags do compilador
@@ -781,6 +797,13 @@ Regras comuns a todos os validadores:
   o item.
 - **Enum fora da lista** cai no padrão do campo ou descarta o item, conforme o
   campo ser opcional ou definir a semântica.
+- **A missão semanal é validada contra o TEMPLATE que o servidor escolheu**, e
+  não só contra a forma: `validateWeeklyMissionNames` exige que a resposta ecoe
+  o `templateKey`, mantenha o alvo, contenha os radicais do objetivo e não use
+  o vocabulário da outra audiência. É o único validador que compara a resposta
+  com uma decisão que o servidor já tinha tomado — porque é o único caso em que
+  a IA não decide o CONTEÚDO, só a redação. Ver
+  [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace).
 
 ### `actionPath` dos slides de coaching
 
@@ -816,6 +839,17 @@ desenhado. Nenhum dos dois casos gera erro, log ou teste vermelho.
 > **O cliente Flutter precisa aceitar exatamente esta lista**, inclusive `/`,
 > que hoje ele recusa (`coaching_slides_screen.dart`). É a única ponta que
 > falta — o pacote do app cuida dela.
+
+**A allowlist do CTA da MISSÃO é outra lista** (`MISSION_ACTION_PATHS`, em
+`features/goal/domain/models/mission_catalog.ts`): é esta aqui mais
+`/reconciliation`. As duas ficam separadas de propósito. `/reconciliation`
+existe no roteador do app desde sempre (com `?accountId=` opcional e um seletor
+de conta quando ele falta), mas **não** está na allowlist de coaching da build
+instalada: oferecê-la ao prompt de coaching produziria um slide com botão que
+ninguém desenha — a mesma falha muda que o F1.11 acabou de corrigir. O CTA da
+missão é superfície NOVA, sem build antiga para quebrar, então lá a rota pode
+entrar já. Um teste (`mission_catalog.test.ts`) trava a diferença entre as duas
+listas em exatamente esse item, para a próxima adição ser deliberada.
 
 A allowlist casa só o **caminho**; a **query string sobrevive filtrada**, um
 parâmetro conhecido por vez, com valor dentro da lista e em ordem
@@ -1641,6 +1675,30 @@ config/badges
   existe.**
 - `xpReward: 0` é um valor **legítimo**: desde F2.3 os badges de contagem
   continuam na vitrine como conquista, mas não pagam mais XP.
+- **`audience`** (wp/missions-by-type) ∈ `personal | business | both`, e vem
+  **sempre preenchido** no documento publicado: o `both` implícito do servidor
+  é materializado aqui para o app filtrar com uma comparação, sem ter de
+  conhecer o padrão. Cinco badges são `personal` — `under_control`,
+  `golden_rule`, `cost_cutter`, `future_focus` e `savings_10pct` —, todos
+  ancorados numa regra de finança PESSOAL: a 50-30-20
+  (essencial/conforto/investimento) e o "poupar X% da renda". Uma empresa não
+  divide faturamento em "conforto", e deixar na vitrine dela uma conquista
+  inalcançável é o mesmo defeito da missão "Reduzir gastos com alimentação"
+  num workspace de empresa. Todos os demais continuam `both`: conciliar,
+  planejar, cadastrar conta e concluir meta valem igual nos dois.
+  As `xpSources` carregam o mesmo campo, hoje todas `both`.
+
+  **O filtro NÃO custa leitura.** Ele mora dentro da transação de
+  `unlockBadge`, que já lê o documento do workspace para somar o XP. No
+  serviço, cada checagem de badge pagaria uma leitura extra — e são dezenas
+  por evento. Um badge fora da audiência devolve `false`, exatamente como um
+  já desbloqueado.
+
+  **Pendência consciente:** nenhum badge é `business` ainda. O recorte deste
+  pacote foi *tirar* da empresa o que não se aplica; dar a ela conquistas
+  próprias (margem, fechamento no prazo, conciliação de todas as contas) é
+  pacote seguinte, e o campo já está no contrato para isso não exigir outra
+  mudança de forma.
 - `version` é o **hash do conteúdo** (badges + limiares + `xpSources`): ninguém
   precisa lembrar de incrementar nada. Mudou um nome, um XP, um limiar ou uma
   fonte de XP, muda o hash e a próxima execução publica.
@@ -2311,6 +2369,403 @@ unidade do componente — além do campo nomeado do contrato.
 > passou pelo `recompute_health`. O app deve mostrar a bússola em carregamento,
 > e não a patente Aprendiz — que é um veredito, não um estado de espera.
 
+## Missões semanais por tipo de workspace
+
+O produto atende **dois** tipos de usuário — `workspaces.type` = `personal` |
+`business` — e isso vale para funcionalidade e para texto. Até este pacote não
+valia: um workspace de EMPRESA recebeu a missão semanal *"Reduzir gastos com
+alimentação"*.
+
+A causa não era o prompt. O **objetivo** da missão era escolhido pela IA, que
+recebia `workspaceType` como contexto e não como regra, e os fallbacks de
+quando ela falhava eram três frases fixas em linguagem doméstica ("Equipe
+planeja limites…"). Nada no caminho podia recusar uma missão fora do tipo,
+porque nada no caminho sabia o que era estar dentro dele.
+
+O objetivo passou a ser **dado**.
+
+### O catálogo
+
+`features/goal/domain/models/mission_catalog.ts` guarda, por audiência e por
+tipo de missão, um template com: `key` estável, `name` em `pt`/`en` com
+placeholders (`{category}`, `{target}`), `target`, `rewardXp`, `progressRule`,
+`actionPath` (o CTA) e `nameKey` (a chave de i18n para o app).
+
+| Audiência | Tipo | `key` | O que a missão pede | `progressRule` | Alvo | XP | CTA |
+|---|---|---|---|---|---|---|---|
+| personal | consistency | `personal_consistency_plan_limits` | planejar limite para N categorias | `planned_categories` | 3 | 150 | `/planning` |
+| personal | discipline | `personal_discipline_top_category` | manter a maior categoria no orçamento por N dias | `days_within_category_limit` | 5 | 250 | `/planning` |
+| personal | organization | `personal_organization_reconcile_items` | conciliar um extrato com ao menos N itens | `reconciled_statement_items` | 5 | 200 | `/reconciliation` |
+| business | consistency | `business_consistency_cost_centers` | planejar o limite de N centros de custo do mês | `planned_categories` | 5 | 150 | `/planning` |
+| business | consistency | `business_consistency_income_forecast` | receber N% da receita prevista da semana | `income_received_vs_planned` | 80 | 150 | `/planning` |
+| business | discipline | `business_discipline_top_cost_center` | manter o maior centro de custo no plano por N dias | `days_within_category_limit` | 5 | 250 | `/planning` |
+| business | discipline | `business_discipline_margin` | fechar a semana com margem acima da planejada | `weekly_margin_above_plan` | 1 | 250 | `/planning` |
+| business | organization | `business_organization_reconcile_statements` | conciliar N extratos das contas da empresa | `reconciled_statements` | 1 | 200 | `/reconciliation` |
+| business | organization | `business_organization_categorize_auto` | categorizar ou descartar N lançamentos automáticos | `categorized_auto_transactions` | 3 | 200 | `/workspace/categories` |
+| business | organization | `business_organization_invoice_on_time` | pagar a fatura corporativa até o vencimento | `invoice_paid_on_time` | 1 | 200 | `/workspace/accounts` |
+
+**Pessoal mantém os três objetivos que já existiam** — são os que estão em
+produção e os que o jogo já sabe medir. O que mudou neles foi o TEXTO: os
+fallbacks diziam "Equipe planeja limites…" dentro de um workspace doméstico de
+uma pessoa só.
+
+**Os alvos corporativos são calibrados contra a base real**, não contra o que
+soa ambicioso. A única empresa da base fez **duas conciliações na vida inteira**
+e recebeu **dois lançamentos automáticos** na semana medida; os alvos originais
+(2 extratos e 10 lançamentos POR SEMANA) eram inalcançáveis, e missão
+inalcançável não ensina nada — ela só impede a semana perfeita e zera a streak
+de quem está fazendo tudo certo.
+
+### Elegibilidade: a peneira antes do sorteio
+
+Duas missões de empresa dependem de um dado que pode simplesmente não existir
+naquela semana. A de receita prevista precisa de receita prevista; a de margem
+precisa dos DOIS lados do plano. Sortear uma delas numa semana sem esse dado
+produz uma missão que o avaliador **não tem como medir**: 0% por sete dias,
+semana perfeita impossível e streak zerada, sem que o usuário tenha feito nada
+de errado.
+
+Por isso o template pode declarar `isEligible(context)`, e o contexto são os
+totais PLANEJADOS da semana, lidos uma vez na geração:
+
+| Template | Elegível quando |
+|---|---|
+| `business_consistency_income_forecast` | `plannedIncomeCents > 0` |
+| `business_discipline_margin` | `plannedIncomeCents > 0` **e** `plannedExpenseCents > 0` |
+
+A peneira roda **antes** do hash: numa semana sem receita prevista, a
+consistência da empresa cai sempre em "planejar centros de custo", que é o que
+se quer. Se a peneira não deixasse ninguém de pé, o sorteio voltaria a correr
+entre todos os candidatos — uma semana sem missão seria pior que uma missão
+difícil de medir, porque o card some da tela e a streak quebra sem explicação.
+Hoje isso não acontece: cada par audiência×tipo tem ao menos um template sem
+`isEligible`, e há teste para continuar assim.
+
+O contexto só é lido em workspace `business` — num pessoal nenhum template tem
+`isEligible`, e a leitura seria paga para nada.
+
+> **Quem consulta o catálogo precisa passar o MESMO contexto.** A peneira roda
+> antes do hash, então o contexto passou a fazer parte da escolha: sortear sem
+> ele é sortear entre um conjunto maior de candidatos e chegar a outro
+> template. O `retag_weekly_missions` sorteava sem contexto e divergia do
+> gerador em **52 das 53 semanas** do ano (nos dois tipos que têm peneira) —
+> ele carimbaria `top_cost_center` numa semana em que o gerador escolheu
+> `margin`, e o documento passaria a descrever uma missão que não é a que está
+> na tela. Hoje o script lê o sumário do MESMO lugar (`period_summaries/{weekId}`
+> + `categories`) e soma com a MESMA função (`sumWeeklyTotals`), e há um teste
+> que roda os dois caminhos de código sobre os mesmos dados, nos quatro
+> contextos, numa semana em que a peneira de fato troca o template.
+
+**`isEligible` NÃO cobre as missões de `organization`** — é uma lacuna
+consciente, não um esquecimento. As três corporativas de organização
+(conciliar extrato, triar lançamentos automáticos, pagar a fatura no prazo) são
+**prospectivas**: elas pedem algo que o usuário ainda vai fazer durante a
+semana. Uma peneira pelo que já aconteceu NAQUELA JANELA as tornaria
+permanentemente inelegíveis, porque no instante da geração a semana está vazia
+por definição — seria trocar "missão difícil de medir" por "missão que nunca é
+sorteada".
+
+A peneira correta para elas é de **capacidade**, não de janela: só ofereça
+"pagar a fatura" a quem tem cartão, "conciliar extrato" a quem tem conta, e
+"triar lançamentos automáticos" a quem usa a captura por notificação. São fatos
+ESTÁVEIS do workspace, e por isso convergem entre gerador e retag. O que
+impediu de implementar agora foi o critério de custo: são três leituras que o
+gerador **ainda não faz** (contagem de contas, contas de cartão, e um
+`limit(1)` em `automatic_transactions`), enquanto a peneira de receita/margem
+reaproveita o sumário que ele já lê. Fica como pacote próprio, com o efeito
+conhecido: hoje uma empresa sem cartão de crédito recebe "fechar a fatura
+corporativa no prazo" a cada três semanas, e não tem como cumpri-la.
+
+> **Uma empresa pode não fechar a semana perfeita numa semana sem receita
+> prevista.** A missão de receita some do sorteio (bom), mas a de margem
+> também, e sobra o par "centros de custo + maior centro de custo", que exige
+> plano. Um workspace de empresa que não planeja nada continua sem streak — e
+> isso é o produto funcionando, não um defeito: o jogo premia planejar.
+
+**A escolha da semana é um hash**, não um sorteio nem uma chamada de rede:
+`hashString(weekId|audience|type) % candidatos`. A variação entre semanas era o
+argumento para usar IA na geração, e ela sai daqui de graça e igual em qualquer
+processo — o gatilho, o cron e o script de retag chegam ao mesmo template
+**desde que recebam o mesmo contexto** (ver acima), sem precisar reler o que já
+foi gravado. Para o avaliador de progresso a questão nem se coloca: ele usa o
+`templateKey` GRAVADO no documento, nunca um sorteio novo. Um teste percorre as 53 semanas
+do ano e exige que o hash alcance TODOS os candidatos de cada par; um hash que
+agrupasse tudo numa posição tornaria o catálogo inútil sem quebrar nada.
+
+**Sem categoria planejada, o `{category}` cai num fallback do próprio
+template** ("a categoria **de maior gasto**", "o centro de custo **de maior
+peso**"). O código antigo defaultava a categoria para `"Alimentação"` mesmo num
+workspace sem plano nenhum — que é, literalmente, metade do defeito relatado.
+
+### O que a IA ainda faz
+
+Ela **tempera o texto**. Nada mais.
+
+O prompt recebe o tipo do workspace, os templates JÁ escolhidos (chave, texto
+base, alvo e os radicais obrigatórios) e a lista explícita do que **não cabe**
+naquela audiência. A resposta precisa ecoar o `templateKey`, e é aceita só se
+passar nas quatro condições de `validateWeeklyMissionNames`:
+
+1. **ecoa o `templateKey`** que o prompt mandou — sem isso não há como saber a
+   qual objetivo aquele texto se refere;
+2. **mantém o `target`** exatamente — o alvo é o que o avaliador de progresso
+   mede, e deixar a IA mexer nele é deixá-la mudar a regra;
+3. **contém todos os `aiRequiredTerms`** do template (comparação por
+   substring, sem acento e sem caixa) — é o que amarra o texto ao objetivo.
+   Os termos são **radicais**, não palavras inteiras: `centro` (e não "centro
+   de custo") para casar com "centros de custo", `concilia` para casar com
+   "conciliar" e "conciliação". Exigir a flexão exata reprovaria o texto certo
+   só por estar no plural;
+4. **não usa o vocabulário da outra audiência** (`AUDIENCE_FORBIDDEN_TERMS`):
+   empresa não fala de alimentação, lazer, família, delivery, mercado, férias,
+   mesada nem reserva de emergência; pessoa não fala de margem, centro de
+   custo, fechamento contábil, DRE, CNPJ, folha de pagamento nem capital de
+   giro.
+
+Mais duas recusas, que não são sobre audiência:
+
+5. **nome acima de 180 caracteres é REJEITADO, não truncado.** O texto cabe num
+   card e o prompt pede uma frase. Truncar no limite de texto livre (500)
+   entregava ao usuário uma missão cortada no meio — "Manter o centro de custo
+   Marketing dentro do pla" — como se fosse o objetivo dele;
+6. **texto com cara de injeção de prompt é rejeitado** ("ignore"/"ignorar"
+   junto de "instru…"). O prompt carrega dados que o usuário controla (nomes de
+   categoria e de meta), e o nome da missão vai para o Firestore e de lá para a
+   tela. Uma missão não tem motivo nenhum para falar em ignorar instruções: ou
+   o modelo repetiu o que leu num nome de categoria, ou repetiu o que alguém
+   plantou nele.
+
+Falhou qualquer uma: aquela missão volta `null` e vale o texto do catálogo.
+**O pior caso da IA passou a ser "o texto não ficou mais bonito", em vez de "a
+missão virou outra coisa".** A semana nunca fica sem missão, e uma falha de
+rede no Gemini não muda nada além disso.
+
+> **O termo proibido que veio do DADO não reprova o texto.** Uma empresa pode
+> ter um centro de custo chamado "Alimentação" (vale-refeição). Os valores
+> injetados no nome (`dataValues`) são removidos do texto antes da varredura de
+> vocabulário: a palavra estar ali é o Firestore falando, não o modelo
+> inventando.
+>
+> A licença é **por missão**, não por workspace: só a missão cujo template
+> declara `{category}` recebe o nome da categoria em `dataValues`. Passá-lo às
+> três daria à missão de conciliação permissão para dizer "alimentação" apenas
+> porque existe um centro de custo com esse nome — que é exatamente o texto que
+> o pacote existe para barrar.
+
+> **Os termos obrigatórios são em português, e o campo se chama
+> `aiRequiredTermsPt` para não mentir sobre isso.** O prompt pede o nome em
+> português e o documento grava `name` em português para a build instalada; o
+> inglês do catálogo é resolvido no app a partir de `nameKey` + `params`, sem
+> passar pela IA. No dia em que o prompt pedir outro idioma, o campo vira um
+> mapa por locale.
+
+### As regras de progresso
+
+Quem decide o que medir é o `progressRule` do template. O evento virou apenas o
+gatilho que AUTORIZA a leitura (`RULE_EVENT_SOURCES`) — antes, o avanço era um
+`if/else` escrito em cima do evento (planejamento mexia em consistência,
+transação em disciplina, conciliação em organização), e isso deixa de funcionar
+quando a missão de organização de uma empresa pode chegar como evento de
+TRANSAÇÃO (a fatura paga).
+
+| Regra | O que conta | Fonte | Eventos que a movem |
+|---|---|---|---|
+| `planned_categories` | categorias com limite > 0 vigente no mês | `category_planning` | transação, planejamento, fechamento |
+| `days_within_category_limit` | dias JÁ decorridos em que a maior categoria ficou no limite diário | parcelas pagas na semana | transação, fechamento |
+| `reconciled_statement_items` | itens do extrato recém-conciliado | **o evento** | conciliação |
+| `reconciled_statements` | extratos concluídos na semana | `reconciliations` (`status` + `createdAt`) | conciliação, fechamento |
+| `categorized_auto_transactions` | lançamentos automáticos da semana já RESOLVIDOS | `automatic_transactions` (faixa de `date`) | transação, **triagem**, fechamento |
+| `invoice_paid_on_time` | faturas pagas até o DIA do vencimento | parcelas pagas com `isInvoice` | transação, fechamento |
+| `weekly_margin_above_plan` | margem realizada ≥ margem planejada | `period_summaries/{YYYY-Www}` | transação, fechamento |
+| `income_received_vs_planned` | % da receita **prevista** que entrou | `period_summaries/{YYYY-Www}` (`specificPlannedAmount`) | transação, fechamento |
+
+#### Os dois "planejados" do sumário não são a mesma coisa
+
+Esta foi a correção mais cara do pacote, e vale escrita por extenso.
+
+| Campo | O que é | Onde aparece |
+|---|---|---|
+| `generalPlannedAmount` | o LIMITE de `category_planning` rateado no período (F1.5) | teto de DESPESA; numa categoria de receita costuma ser **zero** |
+| `specificPlannedAmount` | a soma das PARCELAS PROJETADAS que caem no período | é aqui que mora a **receita prevista** (a nota a receber agendada por `dueDate`) e a despesa já agendada |
+
+A primeira versão das missões corporativas leu o `general` para saber a receita
+prevista da semana. Em produção (workspace a70134c1, 2026-W37) a categoria
+"Serviços" tinha `generalPlanned = 0`, `specificPlanned = 15.850` e
+`actual = 3.850`. Duas consequências, as duas silenciosas:
+
+- **a missão de receita nunca avaliava.** `plannedIncome` dava zero, a regra
+  devolvia `null` e a barra ficava em 0% a semana inteira — em metade das
+  semanas do ano, que é a fatia em que o hash escolhe essa missão;
+- **a missão de margem concluía de graça.** Com receita planejada zero, a
+  "margem planejada" virava `−despesa` (um número NEGATIVO) e qualquer margem
+  realizada passava. A guarda que deveria pegar isso era
+  `receita + despesa <= 0`, e ela nunca disparava, porque bastava haver
+  despesa planejada. Resultado real: 250 XP numa semana em que a empresa
+  recebeu 24% do que previa.
+
+Hoje `sumWeeklyTotals` usa o **`specific` para a receita** e a **soma dos dois
+para a despesa** (a empresa pode ter teto de categoria E compromissos já
+agendados, e os dois são dinheiro que ela planejou gastar). A conta é feita em
+**centavos inteiros**, como manda [F1.10](#dinheiro-em-centavos-f110). E a
+margem só é avaliada com os DOIS lados do plano presentes — "margem acima da
+planejada" pressupõe uma margem planejada.
+
+#### `automatic_transactions.date` é relógio local, sem fuso
+
+O app serializa `AutomaticTransactionModel.date` com o `toJson` do freezed, sem
+conversor: o campo chega como `"2026-09-04T10:50:47.466"` — horário local do
+aparelho, **sem sufixo**. Isso quebra de duas formas, e as duas apareceram:
+
+1. **`new Date(...)` no runtime das functions (UTC) desloca três horas.** Um
+   lançamento de domingo 01:00 em São Paulo virava sábado 22:00 e caía na
+   semana anterior; um de sábado 23:00 pulava para a semana seguinte.
+   `automaticTransactionInstant` interpreta o texto no fuso do produto, e trata
+   também as outras duas formas possíveis (string com `Z`/offset, e `Timestamp`,
+   que as rules aceitam).
+2. **`where("date", ">=", <Timestamp>)` devolveria ZERO documentos, calado** —
+   o Firestore ordena por TIPO antes de ordenar por valor. Por isso a consulta
+   compara **strings de relógio local**: num formato de largura fixa a ordem
+   lexicográfica é a ordem cronológica.
+
+   E é por isso que as **rules passaram a aceitar `date` SÓ como string**
+   (antes: `data.date is timestamp || isStr(...)`). O tipo errado não daria
+   erro em lugar nenhum — o documento simplesmente ficaria invisível para a
+   consulta, e a missão contaria menos do que o usuário fez. Recusar na porta o
+   que a consulta não enxerga é a única forma de isso não virar outro defeito
+   silencioso. O app já grava string; a mudança não fecha nenhum caminho que
+   ele use.
+
+A primeira versão desistiu da consulta e leu a coleção inteira com `limit(500)`
+e nenhum `orderBy`. Numa caixa de entrada com **532 documentos**, o Firestore
+devolvia 500 ordenados por id (UUID), os 12 da semana não entravam na página, a
+missão marcava zero para sempre — e cada evento de transação custava **500
+leituras**. Hoje a consulta é `where(date >= início) + where(date < fim) +
+orderBy(date) + limit(200)`, resolvida pelo índice de campo único que já existe
+(faixa e ordenação no mesmo campo não pedem índice composto). Os limites levam
+**um dia de folga em cada borda** para o documento legado gravado em UTC vir na
+página; a janela exata é conferida em memória.
+
+Cinco decisões que valem explicar:
+
+- **"Resolvido" é `isConsolidated` ou `isIgnored`, nunca `categoryId`.** O
+  `categoryId` de um lançamento automático é preenchido **pela própria IA** no
+  gatilho de enriquecimento. Contá-lo faria a missão fechar sozinha, sem
+  ninguém ter feito nada — XP por o servidor ter trabalhado.
+- **Descartar conta, e precisa de gatilho próprio.** Consolidar um lançamento
+  automático cria uma transação, e é essa escrita que move a barra. Descartar
+  não cria nada — vira `isIgnored: true` no próprio documento. Por isso existe
+  `onAutomaticTransactionTriaged` (`onDocumentUpdated` em
+  `automatic_transactions`), com guarda por CONTEÚDO: só a **transição para
+  triado** dispara. O app reescreve o documento inteiro a cada edição
+  (`update(toJson())`), então sem a guarda uma troca de categoria — ou a
+  sugestão que o próprio servidor grava — pagaria uma avaliação. Destriar não
+  desconta: missão semanal não anda para trás, pela mesma razão que a missão
+  concluída nunca é estornada.
+- **A fatura é comparada por DIA de calendário**, não por instante. O
+  vencimento é gravado ao meio-dia no fuso do produto (ver
+  [`nextInvoice`](#accountsaccountidnextinvoice)); comparar instantes
+  reprovaria quem pagou às 18h do próprio dia.
+- **A margem não premia a AUSÊNCIA de plano.** Sem nenhum valor planejado na
+  semana, a regra não avalia: "acima do planejado" pressupõe um planejado, e
+  premiar o vazio seria premiar não planejar — o oposto do que o jogo ensina
+  (ver [XP que premia planejar](#xp-que-premia-planejar-f23)).
+- **Regra que não sabe medir devolve `null`, e o progresso fica como está.**
+  Zerar seria pior que não escrever: a barra andaria para trás na tela sem que
+  nada tivesse acontecido.
+
+**O cron semanal ganhou uma última passada** (`eventType: "weekly_close"`)
+antes de decidir a streak. As duas regras que leem o `period_summaries` semanal
+dependeriam, sem ela, de o último evento da semana ter chegado DEPOIS da
+escrita do sumário — uma corrida que a plataforma não promete ganhar. No
+fechamento a semana está completa e o sumário, parado: é o único momento em que
+o número é definitivo. Uma falha ali é registrada e engolida — ela não pode
+derrubar a streak nem os badges, que são o trabalho principal do cron.
+
+#### Mudança de comportamento: sem limite, a disciplina não anda
+
+`days_within_category_limit` deixou de inventar um teto. O código antigo, num
+workspace **sem nenhum planejamento**, assumia `R$ 250/semana` sobre uma
+categoria chamada "Alimentação" — que podia não existir — e a missão avançava
+sozinha. Hoje, sem categoria com limite, a regra não mede nada e o progresso
+não anda. É deliberado: o jogo premia planejar, e não havia plano.
+
+#### Custo de leitura por evento
+
+O avanço por regra lê mais que o `if/else` que ele substituiu, e a primeira
+versão exagerou: um evento de transação num workspace de empresa chegou a
+**~87 leituras** (500 delas só na varredura dos lançamentos automáticos, no
+pior caso). Três cortes trouxeram isso para dentro do aceitável:
+
+1. **Gate por tipo de missão ANTES de ler o documento.** `RULE_EVENT_SOURCES`
+   precisa do template, e o template vem do documento — então um evento de
+   conciliação lia as três missões da semana para descartar duas.
+   `TYPES_MOVABLE_BY_EVENT`, derivado do catálogo, responde "vale a pena ler?"
+   sem ler: a regra de um tipo de missão só pode sair dos templates daquele
+   tipo.
+2. **A consulta dos lançamentos automáticos virou faixa** (acima): de 500 para
+   os documentos da semana.
+3. **O join do sumário semanal só toca nas categorias do sumário.**
+   `getWeeklySummaryRows` varria a coleção INTEIRA de categorias para
+   classificar as poucas que se moveram na semana — barato no cron (uma vez por
+   workspace), caro quando margem e receita passaram a ser avaliadas a cada
+   transação. Hoje é um `getAll` nos ids presentes no sumário.
+
+Leituras por evento, num workspace de empresa (ordem de grandeza; `C` =
+planejamentos, `P` = parcelas pagas na semana, `k` = categorias com movimento
+na semana, `A` = lançamentos automáticos da semana):
+
+| Evento | Missões lidas | Dados | Total típico |
+|---|---|---|---|
+| planejamento | 1 (consistência) | `C` ≈ 10 | **~11** |
+| conciliação | 2 (existência + organização) | 1 (`count()`) | **~3** |
+| triagem (`auto_transaction`) | 2 (existência + organização) | `A` ≈ 12 | **~14** |
+| transação, semana "plano" | 3 | `C` + `P` + `A` ≈ 10+5+12 | **~30** |
+| transação, semana "sumário" | 3 | (1 + `k`) + `P` ≈ 7+5 | **~15** |
+
+As leituras são memoizadas por avaliação: as duas missões de empresa que leem o
+sumário semanal na mesma semana pagam **uma** leitura, não duas.
+
+#### O que ficou de fora, e o dado que falta
+
+- **"Conciliar 100% dos extratos DAS CONTAS".** O documento de
+  `reconciliations` **não carrega `accountId`** (o app grava apenas `id`,
+  `status`, as três contagens e `createdAt` — ver
+  `reconciliation_repository_impl.dart`). Sem ele não há como saber quais
+  contas foram conciliadas, e "100%" não tem denominador. Implementado no
+  lugar: **contar extratos concluídos na semana**, que é mensurável hoje. Para
+  o 100%, o app precisa passar a gravar `accountId` no resumo da conciliação.
+- **"Categorizar 100% dos lançamentos automáticos".** O gatilho de update já
+  existe (`onAutomaticTransactionTriaged`), mas o denominador continua móvel: a
+  caixa de entrada cresce durante a semana, e "100% do que chegou até agora" é
+  um alvo que anda para trás toda vez que chega uma notificação nova.
+  Implementado no lugar: **contar N resolvidos na semana** (N = 3). Para o
+  100%, falta congelar o denominador — um contador no documento da missão,
+  incrementado pelo gatilho de criação.
+- **`reconciled_statements` exige índice composto** em `reconciliations`
+  (`status` ASC, `createdAt` ASC), acrescentado a `firestore.indexes.json`.
+  Ele precisa estar READY **antes** do deploy das functions — ver a ordem de
+  rollout. A consulta dos lançamentos automáticos, ao contrário, **não** pede
+  índice novo: faixa e ordenação caem no mesmo campo, que o índice de campo
+  único já cobre.
+
+### Coaching: tom por tipo
+
+O prompt passou a definir um PAPEL, não só um contexto: **mentor** em
+`personal` (fala com a pessoa, economia doméstica, hábitos, reserva de
+emergência; sem jargão contábil) e **controller** em `business` (fala com a
+área financeira, centros de custo, margem, fluxo de caixa, OpEx; **proibido**
+conselho de vida pessoal). O schema não mudou.
+
+A validação **audita** o vocabulário e apenas REGISTRA
+(`[coaching:audience] …`). Descartar o slide seria errado aqui, e a diferença
+em relação à missão é o ponto: o texto da missão é inventado pela IA sobre um
+objetivo fixo, então jogá-lo fora não custa nada; um slide de coaching fala das
+categorias **reais** do workspace, e uma empresa pode legitimamente ter
+"Alimentação" (vale-refeição) ou "Lazer" (confraternização) no plano de contas.
+Apagar o slide pela palavra jogaria fora a análise certa junto com a errada — e
+um slide a menos é uma tela vazia. O log é como se descobre que o prompt parou
+de ser obedecido, sem depender de outro print do dono.
+
 ## Crons de manutenção
 
 | Function                            | Agendamento               | Fuso              |
@@ -2414,6 +2869,41 @@ planejamentos duplicados no workspace a532d837).
 12. metas             node lib/scripts/recompute_goals.js                                        (dry-run → --apply)
 13. bússola           node lib/scripts/recompute_health.js                                       (dry-run → --apply)
 ```
+
+### Rollout de wp/missions-by-type (missões por tipo de workspace)
+
+Independente do bloco acima, e muito menor. Três passos, nesta ordem:
+
+```
+1. índices     firebase deploy --only firestore:indexes
+               ⏳ ESPERAR o índice de `reconciliations` (status, createdAt) ficar READY
+2. functions   firebase deploy --only functions
+3. retag       node lib/scripts/retag_weekly_missions.js   (dry-run → --apply)
+               ⏳ na MESMA semana do deploy — ver o script
+```
+
+**1. O índice primeiro.** A regra `reconciled_statements` consulta
+`reconciliations` por `status` + faixa de `createdAt`. Sem o índice pronto, a
+consulta falha e a missão corporativa de conciliação não avança — calada, do
+ponto de vista do usuário, porque a falha vira log e a barra simplesmente não
+anda. O índice é aditivo: subi-lo antes não afeta o servidor antigo.
+
+**2. As functions.** Elas convivem com missões no formato antigo — uma missão
+sem `templateKey` cai na seleção determinística da audiência `personal`, que é
+o comportamento que ela sempre teve. Não há janela quebrada.
+
+**3. O retag, na mesma semana.** É o passo que corrige o que o usuário está
+vendo AGORA. Rodá-lo antes do passo 2 não adianta (o gatilho antigo
+sobrescreveria), e rodá-lo na semana seguinte não tem efeito (as missões novas
+já nascem do catálogo). Depois dele, `config/badges` é republicado sozinho pelo
+cron diário com o campo `audience` — ou na hora, com
+`node lib/scripts/publish_badge_catalog.js`, se o app já estiver lendo o campo.
+
+> **O app não bloqueia nenhum destes passos.** Os cinco campos novos de
+> `weekly_missions` são aditivos e a build instalada os ignora; o `name` em
+> português continua sendo gravado exatamente como antes. O que o app ganha
+> quando acompanhar está em
+> [O que o app precisa acompanhar](#o-que-o-app-precisa-acompanhar).
 
 **0. O app primeiro — e este passo BLOQUEIA o resto.**
 
@@ -2791,6 +3281,69 @@ idempotência, desfecho, escopo por workspace e contabilização de falhas).
 > `currentAmount >= targetAmount`, o que numa base com metas de redução
 > significa marcar em massa como concluídas justamente as que estouraram o teto
 > — e conceder os badges correspondentes, que não se desfazem.
+
+### `retag_weekly_missions.ts`
+
+Migração leve de wp/missions-by-type: carimba `workspaceType`/`templateKey` nas
+missões da **semana corrente** e troca as missões ABERTAS de workspaces
+`business` pelas do catálogo corporativo.
+
+O servidor novo já gera pelo catálogo, mas as missões da semana em curso foram
+criadas pelo servidor antigo: sem este script, um workspace de empresa continua
+vendo "Reduzir gastos com alimentação" até o domingo seguinte ao deploy.
+
+| Situação da missão | O que o script faz |
+|---|---|
+| **concluída** (qualquer tipo de workspace) | só CARIMBA: `templateKey`, `workspaceType`, `actionPath`, `nameKey`, `params`. `name`, `target`, `progress`, `status`, `rewardXp` e `completedAt` ficam intocados |
+| **aberta**, workspace `business` | SUBSTITUÍDA pelo template corporativo da semana: nome, alvo, XP, rota e chaves do catálogo, `progress` de volta a 0 |
+| **aberta**, workspace `personal` | só CARIMBA. O objetivo já era o certo |
+
+**A missão concluída NÃO é estornada.** O XP dela já entrou no workspace, já
+subiu nível e já pode ter desbloqueado badge; desfazer isso exigiria reverter
+uma cadeia inteira de efeitos por causa de um texto — e puniria o usuário por
+um defeito do servidor. A missão concluída fica como troféu; o que muda daqui
+para a frente é o que se gera.
+
+**A missão concluída é carimbada como `personal` mesmo numa empresa.** O
+carimbo descreve o que aquela missão FOI, e os fallbacks e o prompt antigos
+eram todos de linguagem pessoal, qualquer que fosse o tipo do workspace.
+Marcar `workspaceType: business` num texto pessoal seria gravar uma mentira no
+documento.
+
+**A missão aberta de workspace pessoal não tem o texto reescrito.** Ela já mede
+o que deve medir; trocar a frase só produziria churn na tela de quem não tem
+problema nenhum.
+
+É IDEMPOTENTE (pula quem já tem `templateKey`, a não ser com `--force`),
+DRY-RUN por padrão e paginado por cursor.
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b
+
+# 2) Um workspace só, para conferir o efeito
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --apply
+```
+
+Flags: `--apply`, `--project=<id>`, `--workspace=<id>`, `--week=<YYYY-Www>`,
+`--page-size=<n>`, `--force`.
+
+> ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
+>
+> ⚠️ **Rode DEPOIS do deploy das functions**, na mesma semana. Antes do deploy,
+> o gatilho antigo não conhece `templateKey` e a próxima escrita de missão
+> ignoraria o carimbo; e numa semana diferente da corrente o script não tem o
+> que corrigir (as missões da semana nova já nascem do catálogo). É a mesma
+> lição de 2026-09-17, aplicada a uma migração muito menor.
 
 ### `publish_badge_catalog.ts`
 

@@ -73,7 +73,8 @@ describe("GamificationService", () => {
                 "w1",
                 "first_step",
                 100,
-                "Primeiro Passo"
+                "Primeiro Passo",
+                "both"
             );
         });
     });

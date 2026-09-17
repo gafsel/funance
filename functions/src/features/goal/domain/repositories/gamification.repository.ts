@@ -1,5 +1,14 @@
 import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
 import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
+import { MissionParams, WeeklyMissionType } from "../models/mission_catalog";
+import { BadgeAudience, WorkspaceAudience } from "../models/audience.model";
+
+/**
+ * `WeeklyMissionType` mora no CATÁLOGO (`domain/models/mission_catalog.ts`),
+ * junto dos templates que o definem, e é reexportado aqui para não quebrar os
+ * quinze importadores que já o pegavam desta interface.
+ */
+export type { WeeklyMissionType };
 
 /**
  * Linha achatada de um period_summary: uma entrada do mapa `categories` do
@@ -23,9 +32,24 @@ export interface PeriodSummaryRow {
 
 /**
  * Uma linha do `period_summaries` SEMANAL (`{YYYY-Www}`), já com o join em
- * `categories`. É a fonte do XP semanal de F2.3: `generalPlannedAmount` é a
- * proporção semanal do limite da categoria (ver F1.5) e `actualAmount` é o que
- * de fato foi gasto naquela semana.
+ * `categories`. É a fonte do XP semanal de F2.3 e das missões corporativas de
+ * margem e receita.
+ *
+ * **Os dois "planejados" são coisas diferentes, e confundi-los custou caro.**
+ *
+ * - `generalPlannedAmount` é o LIMITE da categoria (`category_planning`)
+ *   rateado no período (F1.5). É um teto de DESPESA: uma categoria de receita
+ *   normalmente tem zero aqui, porque ninguém põe "limite" numa receita.
+ * - `specificPlannedAmount` é a soma das PARCELAS PROJETADAS que caem no
+ *   período — é onde mora a receita PREVISTA (a nota a receber agendada por
+ *   `dueDate`) e também a despesa já agendada.
+ *
+ * A primeira versão das missões corporativas leu só o `general` para saber a
+ * receita prevista da semana, e em produção (workspace a70134c1, 2026-W37) a
+ * categoria "Serviços" tinha `generalPlanned = 0`, `specificPlanned = 15850` e
+ * `actual = 3850`: a receita prevista existia e o servidor via zero. A missão
+ * de receita nunca avaliava e a de margem concluía de graça. Por isso os três
+ * totais viajam aqui — e em CENTAVOS, que é a fonte da verdade (F1.10).
  */
 export interface WeeklySummaryRow {
     categoryId: string;
@@ -33,6 +57,12 @@ export interface WeeklySummaryRow {
     isSystem: boolean;
     actualAmount: number;
     generalPlannedAmount: number;
+    /** Parcelas projetadas do período. É aqui que mora a receita PREVISTA. */
+    specificPlannedAmount: number;
+    /** F1.10 — os mesmos totais em centavos inteiros. São eles que mandam. */
+    actualAmountCents: number;
+    generalPlannedAmountCents: number;
+    specificPlannedAmountCents: number;
 }
 
 /**
@@ -180,10 +210,13 @@ export interface GamificationInstallment {
     paidDate?: RawFirestoreDate | null;
     category?: { id?: string; name?: string } | null;
     accountIds?: string[];
+    /**
+     * Parcela de FATURA de cartão. É o que separa "a empresa pagou a fatura no
+     * prazo" de "a empresa pagou uma compra qualquer" na regra
+     * `invoice_paid_on_time`.
+     */
+    isInvoice?: boolean;
 }
-
-/** As três missões semanais. O id do documento é `{weekId}_{type}`. */
-export type WeeklyMissionType = "consistency" | "discipline" | "organization";
 
 export type WeeklyMissionStatus = "pending" | "completed";
 
@@ -195,7 +228,12 @@ export type WeeklyMissionStatus = "pending" | "completed";
 export interface WeeklyMissionWrite {
     /** Igual ao `type`. Redundante no documento, mas o app o lê. */
     id: WeeklyMissionType;
-    /** Texto da missão (gerado pela IA, com fallback fixo). */
+    /**
+     * Texto da missão em PORTUGUÊS — o template escolhido, opcionalmente
+     * temperado pela IA (ver `validateWeeklyMissionNames`). Continua
+     * obrigatório porque a build instalada só sabe ler o texto pronto; o
+     * caminho novo é `nameKey` + `params`.
+     */
     name: string;
     type: WeeklyMissionType;
     status: WeeklyMissionStatus;
@@ -206,10 +244,28 @@ export interface WeeklyMissionWrite {
     weekId: string;
     /** ISO-8601. */
     createdAt: string;
+    /** Chave do template do catálogo (`mission_catalog.ts`). */
+    templateKey: string;
+    /** `personal` | `business` — a audiência para a qual a missão foi gerada. */
+    workspaceType: WorkspaceAudience;
+    /** Rota interna do CTA da missão. Ver `MISSION_ACTION_PATHS`. */
+    actionPath: string;
+    /** Chave de i18n do nome, para o app traduzir sem depender do `name`. */
+    nameKey: string;
+    /**
+     * Valores dos placeholders do nome. Ausente quando o template não tem
+     * placeholder — `ignoreUndefinedProperties` está DESLIGADO, então a chave
+     * some via `stripUndefined` em vez de derrubar a escrita.
+     */
+    params?: MissionParams;
 }
 
 /** O que uma atualização de progresso pode mexer. */
-export type WeeklyMissionUpdate = Partial<Pick<WeeklyMissionWrite, "progress" | "status" | "name" | "target" | "rewardXp">>;
+export type WeeklyMissionUpdate = Partial<Pick<
+    WeeklyMissionWrite,
+    "progress" | "status" | "name" | "target" | "rewardXp" |
+    "templateKey" | "workspaceType" | "actionPath" | "nameKey" | "params"
+>>;
 
 /**
  * O documento como ele é LIDO. Tudo opcional: a missão pode ter sido gravada
@@ -224,11 +280,19 @@ export interface WeeklyMissionDocument extends Partial<WeeklyMissionWrite> {
 export interface IGamificationRepository {
     getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null>;
     addXp(workspaceId: string, amount: number, reason: string): Promise<void>;
+    /**
+     * `audience` é a audiência do BADGE (`personal` | `business` | `both`). A
+     * checagem contra `workspaces.type` acontece DENTRO da transação que já lê
+     * o documento do workspace — assim o filtro por tipo não custa nenhuma
+     * leitura a mais, e um badge que não se aplica àquele tipo simplesmente
+     * não é concedido (devolve `false`, como um badge já desbloqueado).
+     */
     unlockBadge(
         workspaceId: string,
         badgeId: string,
         xpReward: number,
-        badgeName: string
+        badgeName: string,
+        audience: BadgeAudience
     ): Promise<boolean>;
     getAccountsCount(workspaceId: string): Promise<number>;
     hasPaidTransaction(workspaceId: string): Promise<boolean>;
@@ -293,4 +357,57 @@ export interface IGamificationRepository {
         start: Date,
         end: Date
     ): Promise<boolean>;
+    /**
+     * Quantos EXTRATOS foram conciliados com sucesso no período — documentos
+     * de `reconciliations` com `status: completed` e `createdAt` na janela.
+     *
+     * É a regra `reconciled_statements` das missões de empresa, e é diferente
+     * de `getCompletedReconciliationsCount` (que conta a vida inteira do
+     * workspace, para os badges).
+     */
+    getCompletedReconciliationsInPeriod(workspaceId: string, start: Date, end: Date): Promise<number>;
+    /**
+     * Lançamentos automáticos numa JANELA de data.
+     *
+     * `startIso`/`endIso` são carimbos de RELÓGIO LOCAL
+     * (`YYYY-MM-DDTHH:mm:ss.SSS`, sem fuso), comparados como STRING, porque é
+     * exatamente assim que o app grava o campo: `AutomaticTransactionModel.date`
+     * é um `DateTime` serializado pelo `toJson` do freezed, sem conversor, e
+     * sai no horário local sem sufixo. Num formato de largura fixa a ordem
+     * lexicográfica é a ordem cronológica, então o Firestore consegue filtrar.
+     *
+     * **Um `where` por `Timestamp` devolveria ZERO documentos, em silêncio** —
+     * o Firestore ordena por TIPO antes de ordenar por valor, e Timestamp e
+     * String são tipos diferentes. Foi o que motivou a primeira versão a ler a
+     * coleção inteira com `limit(500)` e filtrar em memória; numa caixa de
+     * entrada com 532 documentos (ordenados por UUID, porque não havia
+     * `orderBy`), os 12 da semana simplesmente não entravam na página, a
+     * missão ficava em zero para sempre e cada evento custava 500 leituras.
+     *
+     * O chamador ainda confere a janela em memória: a folga que ele pede nas
+     * bordas cobre o documento legado gravado em UTC (com sufixo `Z`), que a
+     * comparação de string sozinha classificaria com três horas de erro.
+     */
+    getAutomaticTransactions(
+        workspaceId: string,
+        startIso: string,
+        endIso: string,
+        limit: number
+    ): Promise<AutomaticTransactionRow[]>;
+}
+
+/**
+ * Um lançamento automático como a gamificação o lê. Só os campos que decidem
+ * se ele já foi TRATADO pela equipe — a sugestão da IA (`suggestedCategory`,
+ * e o `categoryId` que ela grava sozinha) de propósito não está aqui: se ela
+ * contasse, a missão fecharia sem ninguém fazer nada.
+ */
+export interface AutomaticTransactionRow {
+    id: string;
+    /** Timestamp ou string ISO — o app grava string. Ver `getAutomaticTransactions`. */
+    date?: RawFirestoreDate | null;
+    /** `true` quando virou lançamento de verdade (com categoria escolhida). */
+    isConsolidated?: boolean;
+    /** `true` quando foi descartado conscientemente. */
+    isIgnored?: boolean;
 }

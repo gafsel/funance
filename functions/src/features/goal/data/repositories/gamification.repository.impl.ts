@@ -1,6 +1,7 @@
 import * as admin from "firebase-admin";
 import * as logger from "firebase-functions/logger";
 import {
+    AutomaticTransactionRow,
     GamificationGoal,
     GamificationInstallment,
     GamificationWorkspace,
@@ -19,6 +20,7 @@ import { CategoryPlanningModel, toPeriodSummaryDocument } from "../../../finance
 import { calculateLevel } from "../../domain/services/gamification.service";
 import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
 import { stripUndefined } from "../../../../core/utils/firestore.utils";
+import { BadgeAudience, appliesToAudience, resolveAudience } from "../../domain/models/audience.model";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
     async getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null> {
@@ -68,7 +70,8 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         workspaceId: string,
         badgeId: string,
         xpReward: number,
-        badgeName: string
+        badgeName: string,
+        audience: BadgeAudience
     ): Promise<boolean> {
         const db = admin.firestore();
         const workspaceRef = db.collection("workspaces").doc(workspaceId);
@@ -90,6 +93,15 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             }
 
             const data = doc.data()!;
+
+            // O recorte por tipo de workspace mora AQUI, e não no serviço,
+            // porque esta transação já leu o documento: o filtro sai de graça.
+            // No serviço, cada checagem de badge custaria uma leitura extra do
+            // workspace — e são dezenas por evento.
+            if (!appliesToAudience(audience, resolveAudience(data.type))) {
+                return;
+            }
+
             const unlockedBadges: Record<string, string> = data.unlockedBadges || {};
 
             if (unlockedBadges[badgeId]) {
@@ -270,17 +282,33 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         // O documento semanal é lido pelo ID (`{YYYY-Www}`), não por
         // `where(year, week)`: o id É a chave e uma leitura direta não precisa
         // de índice nenhum.
-        const [summary, categoriesSnapshot] = await Promise.all([
-            firestore.doc(`workspaces/${workspaceId}/period_summaries/${weekId}`).get(),
-            firestore.collection(`workspaces/${workspaceId}/categories`).get(),
-        ]);
-
+        const summary = await firestore.doc(`workspaces/${workspaceId}/period_summaries/${weekId}`).get();
         if (!summary.exists) {
             return [];
         }
 
+        const { categories } = toPeriodSummaryDocument(summary.id, summary.data());
+        const categoryIds = Object.keys(categories);
+        if (categoryIds.length === 0) {
+            return [];
+        }
+
+        // Join APENAS nas categorias que aparecem no sumário da semana, via
+        // `getAll`. Antes esta leitura varria a coleção INTEIRA de categorias
+        // do workspace — o que era barato no cron semanal (uma vez por
+        // workspace) e caro depois que as missões corporativas passaram a
+        // avaliar margem e receita a cada evento de transação: um workspace
+        // com 40 categorias pagava 40 leituras para classificar as 6 que se
+        // moveram na semana.
+        const categoryDocs = await firestore.getAll(
+            ...categoryIds.map((id) => firestore.doc(`workspaces/${workspaceId}/categories/${id}`))
+        );
+
         const categoriesById = new Map<string, CategoryModel>();
-        for (const doc of categoriesSnapshot.docs) {
+        for (const doc of categoryDocs) {
+            if (!doc.exists) {
+                continue;
+            }
             const data = doc.data() as CategoryModel;
             if (data.isDeleted === true) {
                 continue;
@@ -289,7 +317,6 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         }
 
         const rows: WeeklySummaryRow[] = [];
-        const { categories } = toPeriodSummaryDocument(summary.id, summary.data());
         for (const [categoryId, raw] of Object.entries(categories)) {
             const category = categoriesById.get(categoryId);
             if (!category) {
@@ -302,6 +329,12 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
                 isSystem: isSystemCategory(categoryId, category),
                 actualAmount: raw.actualAmount,
                 generalPlannedAmount: raw.generalPlannedAmount,
+                specificPlannedAmount: raw.specificPlannedAmount,
+                // `toPeriodSummaryDocument` já resolveu o inteiro a partir do
+                // `double` num documento ainda não migrado.
+                actualAmountCents: raw.actualAmountCents ?? 0,
+                generalPlannedAmountCents: raw.generalPlannedAmountCents ?? 0,
+                specificPlannedAmountCents: raw.specificPlannedAmountCents ?? 0,
             });
         }
 
@@ -568,5 +601,49 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             }
         }
         return false;
+    }
+
+    async getCompletedReconciliationsInPeriod(workspaceId: string, start: Date, end: Date): Promise<number> {
+        // `count()` em vez de `get()`: o documento de conciliação não interessa,
+        // só quantos fecharam na semana. Exige o índice composto
+        // (status ASC, createdAt ASC) declarado em firestore.indexes.json.
+        const snapshot = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/reconciliations`)
+            .where("status", "==", "completed")
+            .where("createdAt", ">=", start)
+            .where("createdAt", "<=", end)
+            .count()
+            .get();
+        return snapshot.data().count;
+    }
+
+    async getAutomaticTransactions(
+        workspaceId: string,
+        startIso: string,
+        endIso: string,
+        limit: number
+    ): Promise<AutomaticTransactionRow[]> {
+        // Faixa + `orderBy` no MESMO campo: o Firestore resolve com o índice
+        // de campo único que já existe, sem índice composto novo.
+        //
+        // Os limites são strings de relógio local, não Timestamps — ver a
+        // interface. Sem o `orderBy`, a página vinha ordenada por id (UUID) e
+        // o recorte da semana caía fora dela.
+        const snapshot = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/automatic_transactions`)
+            .where("date", ">=", startIso)
+            .where("date", "<", endIso)
+            .orderBy("date")
+            .limit(limit)
+            .get();
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                date: data.date ?? null,
+                isConsolidated: data.isConsolidated === true,
+                isIgnored: data.isIgnored === true,
+            };
+        });
     }
 }

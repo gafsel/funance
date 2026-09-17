@@ -43,6 +43,10 @@ export function buildBadgeCatalog(): BadgeCatalogDocument {
         xpReward: badge.xpReward,
         category: badge.category as string,
         description: localized(badge.description, BADGE_STRINGS_EN[badge.id]?.description),
+        // O `both` implícito é MATERIALIZADO aqui: o documento publicado nunca
+        // tem badge sem `audience`, então o app filtra com uma comparação e
+        // não precisa conhecer o padrão do servidor.
+        audience: badge.audience ?? "both",
     }));
 
     const levelThresholds = buildLevelThresholds();
@@ -55,6 +59,7 @@ export function buildBadgeCatalog(): BadgeCatalogDocument {
         name: { ...source.name },
         xp: source.xp,
         description: { ...source.description },
+        audience: source.audience ?? "both",
     }));
 
     return {
