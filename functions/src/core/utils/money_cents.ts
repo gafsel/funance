@@ -79,6 +79,59 @@ export function buildCentsPatch(
 }
 
 /**
+ * O MESMO documento, com todos os `*Cents` recalculados a partir do `double`.
+ *
+ * **O defeito que esta função conserta.** O payload de um evento do Firestore é
+ * o documento como ele estava NAQUELE instante. Quando o app edita um valor
+ * (`amount: 500 → 1000`) sem tocar no espelho, o `afterData` chega com
+ * `amount: 1000` e `amountCents: 50000` — o inteiro ANTIGO. O passo derivado
+ * conserta o BANCO (`applyCentsPatch`), mas o objeto em memória continua
+ * mentindo, e toda a regra de negócio abaixo dele usa `resolveCents`, que
+ * **prefere o inteiro**. O resultado é o gatilho processar o valor velho: o
+ * planejamento aplicava 500 nos sumários e gravava `appliedAmount: 500` para
+ * uma edição de 1000, e o segundo evento (só o espelho) saía pela guarda por
+ * conteúdo sem corrigir nada.
+ *
+ * A normalização é EM MEMÓRIA e vale para os dois lados do evento: o `before`
+ * também pode carregar um espelho defasado, se o evento anterior àquele ainda
+ * não tinha sido patchado. Quem estorna precisa do valor que de fato valia.
+ *
+ * Por que não relaxar o `resolveCents` para só preferir o inteiro quando ele
+ * bate com o `double`: isso apagaria o sinal. A divergência entre os dois é
+ * exatamente o que o `--verify` da migração existe para denunciar, e um
+ * `resolveCents` tolerante faria toda divergência virar "o double ganha", em
+ * silêncio, em todo lugar. Aqui o escopo é outro e é explícito: o payload de um
+ * evento, onde a divergência tem uma causa conhecida e inofensiva.
+ *
+ * Devolve uma CÓPIA — o payload do evento não é alterado — ou `null`/`undefined`
+ * quando a entrada é `null`/`undefined`, para o chamador não precisar
+ * distinguir "documento apagado" de "documento sem dinheiro".
+ */
+export function withFreshCents<T extends Record<string, any> | null | undefined>(
+    data: T,
+    fields: CentsFieldMap
+): T {
+    if (!data) return data;
+
+    const fresh: Record<string, unknown> = { ...data };
+
+    for (const [valueField, centsField] of Object.entries(fields)) {
+        const raw = fresh[valueField];
+
+        if (typeof raw !== "number" || !Number.isFinite(raw)) {
+            // Ausente continua ausente: um inteiro pendurado sem o `double`
+            // correspondente é resíduo e não pode responder por ninguém.
+            delete fresh[centsField];
+            continue;
+        }
+
+        fresh[centsField] = toCents(raw);
+    }
+
+    return fresh as T;
+}
+
+/**
  * Aplica o patch derivado no documento, quando há o que aplicar.
  *
  * `update` (e não `set(..., {merge: true})`): o passo derivado NUNCA cria um

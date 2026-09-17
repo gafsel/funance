@@ -33,7 +33,7 @@ import {
     inspectSummaryDoc,
     parseArgs,
 } from "../scripts/migrate_money_cents";
-import { buildCentsPatch } from "../core/utils/money_cents";
+import { buildCentsPatch, withFreshCents } from "../core/utils/money_cents";
 import {
     BALANCE_CENTS_FIELDS,
     MONEY_CENTS_FIELDS,
@@ -248,5 +248,64 @@ describe("parseArgs", () => {
     it("página inválida cai no padrão", () => {
         expect(parseArgs(["--page-size=0"]).pageSize).toBeUndefined();
         expect(parseArgs(["--page-size=abc"]).pageSize).toBeUndefined();
+    });
+});
+
+describe("withFreshCents — o espelho defasado do payload do evento", () => {
+    it("recalcula o inteiro a partir do double, sem tocar no double", () => {
+        // O par que o app produz ao editar um valor: `double` novo, espelho
+        // velho. `resolveCents` prefere o inteiro, então sem esta normalização
+        // o gatilho processaria R$ 500 para uma edição de R$ 1.000.
+        const fresh = withFreshCents(
+            { amount: 1000, amountCents: 50000, appliedAmount: 500, appliedAmountCents: 50000 },
+            MONEY_CENTS_FIELDS.category_planning
+        );
+
+        expect(fresh).toEqual({
+            amount: 1000,
+            amountCents: 100000,
+            appliedAmount: 500,
+            appliedAmountCents: 50000,
+        });
+    });
+
+    it("devolve uma CÓPIA — o payload do evento não é alterado", () => {
+        const payload = { amount: 1000, amountCents: 50000 };
+        const fresh = withFreshCents(payload, MONEY_CENTS_FIELDS.orders);
+
+        expect(fresh).not.toBe(payload);
+        expect(payload.amountCents).toBe(50000);
+        expect(fresh.amountCents).toBe(100000);
+    });
+
+    it("APAGA o inteiro órfão: ausente continua ausente", () => {
+        // Uma parcela que deixou de ser paga: sem isto, o `paidAmountCents`
+        // pendurado responderia por um `paidAmount` que já não existe.
+        const fresh = withFreshCents(
+            { amount: 50, paidAmountCents: 9999 },
+            MONEY_CENTS_FIELDS.installments
+        );
+
+        expect(fresh).toEqual({ amount: 50, amountCents: 5000, referenceAmountCents: undefined });
+        expect("paidAmountCents" in fresh).toBe(false);
+    });
+
+    it("um par já coerente passa intacto", () => {
+        const data = { targetAmount: 10, targetAmountCents: 1000, currentAmount: 0, currentAmountCents: 0 };
+        expect(withFreshCents(data, MONEY_CENTS_FIELDS.goals)).toEqual(data);
+    });
+
+    it("null e undefined atravessam", () => {
+        expect(withFreshCents(null, MONEY_CENTS_FIELDS.goals)).toBeNull();
+        expect(withFreshCents(undefined, MONEY_CENTS_FIELDS.goals)).toBeUndefined();
+    });
+
+    it("concorda com buildCentsPatch para o mesmo documento", () => {
+        const data = { amount: 1000, amountCents: 50000 };
+        const patch = buildCentsPatch(data, MONEY_CENTS_FIELDS.orders)!;
+        const fresh = withFreshCents(data, MONEY_CENTS_FIELDS.orders);
+
+        // O que vai para o banco e o que vale em memória são o MESMO número.
+        expect(fresh.amountCents).toBe(patch.amountCents);
     });
 });

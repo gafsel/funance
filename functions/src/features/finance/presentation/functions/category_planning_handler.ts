@@ -8,7 +8,7 @@ import {
     CategoryPlanningModel,
     MONEY_CENTS_FIELDS,
 } from "../../domain/models/finance.models";
-import { applyCentsPatch } from "../../../../core/utils/money_cents";
+import { applyCentsPatch, withFreshCents } from "../../../../core/utils/money_cents";
 
 export { CATEGORY_PLANNING_DERIVED_FIELDS };
 
@@ -60,8 +60,19 @@ export async function handleCategoryPlanningWritten(
         }
     }
 
-    const before = beforeData ? { id: planningId, ...beforeData } as CategoryPlanningModel : null;
-    const after = afterData ? { id: planningId, ...afterData } as CategoryPlanningModel : null;
+    // HOTFIX — o payload do evento carrega o `*Cents` de ANTES do passo
+    // derivado: uma edição de `amount` feita pelo app chega com o `double` novo
+    // e o inteiro velho, e `resolveCents` prefere o inteiro. Sem normalizar
+    // aqui, o estorno e a reaplicação usariam o valor ANTIGO — o planejamento
+    // aplicava 500 nos sumários para uma edição de 1000, e o segundo evento
+    // (só o espelho) saía pela guarda sem corrigir nada. Vale para os DOIS
+    // lados: o `before` também pode ter o espelho defasado.
+    const before = beforeData
+        ? { id: planningId, ...withFreshCents(beforeData, MONEY_CENTS_FIELDS.category_planning) } as CategoryPlanningModel
+        : null;
+    const after = afterData
+        ? { id: planningId, ...withFreshCents(afterData, MONEY_CENTS_FIELDS.category_planning) } as CategoryPlanningModel
+        : null;
 
     // Atualizar sumários por categoria (planejado geral).
     await container.idempotencyService.runIdempotency(eventId, "processCategoryPlanningChange", async () => {

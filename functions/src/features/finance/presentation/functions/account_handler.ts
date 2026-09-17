@@ -2,7 +2,7 @@ import * as admin from "firebase-admin";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
 import { AccountType, MONEY_CENTS_FIELDS } from "../../domain/models/finance.models";
-import { applyCentsPatch } from "../../../../core/utils/money_cents";
+import { applyCentsPatch, withFreshCents } from "../../../../core/utils/money_cents";
 
 /**
  * F1.10 — passo derivado da conta: completa `initialBalanceCents`/`limitCents`
@@ -42,18 +42,26 @@ export interface AccountEventContext {
  * triggers.
  */
 export async function handleAccountUpdated(
-    before: Record<string, any> | null,
-    after: Record<string, any> | null,
+    beforeData: Record<string, any> | null,
+    afterData: Record<string, any> | null,
     ctx: AccountEventContext
 ): Promise<void> {
     const { workspaceId, accountId, eventId } = ctx;
     const financeService = container.financeService;
 
-    if (!before || !after) {
+    if (!beforeData || !afterData) {
         return;
     }
 
-    await syncAccountCents(workspaceId, accountId, after);
+    // HOTFIX — o payload do evento carrega o `*Cents` de ANTES do passo
+    // derivado. `syncInitialBalance` monta a order sintética a partir do
+    // `initialBalance`, e o repositório resolve o valor por `resolveCents`:
+    // sem normalizar, uma edição do saldo inicial ressincronizaria a order com
+    // o valor ANTIGO.
+    const before = withFreshCents(beforeData, MONEY_CENTS_FIELDS.accounts);
+    const after = withFreshCents(afterData, MONEY_CENTS_FIELDS.accounts);
+
+    await syncAccountCents(workspaceId, accountId, afterData);
 
     // Verifica se a conta foi marcada como excluída (soft delete)
     if (!before.isDeleted && after.isDeleted) {
@@ -141,9 +149,13 @@ export const onAccountCreated = onDocumentCreated(
         const { workspaceId, accountId } = event.params;
         const financeService = container.financeService;
 
-        const account = event.data?.data() as any;
+        const raw = event.data?.data() as any;
+        // HOTFIX — idem na criação: o `initialBalance` do documento novo é a
+        // verdade, e um `initialBalanceCents` que o cliente tivesse conseguido
+        // gravar não pode responder por ele.
+        const account = withFreshCents(raw, MONEY_CENTS_FIELDS.accounts);
 
-        await syncAccountCents(workspaceId, accountId, account);
+        await syncAccountCents(workspaceId, accountId, raw);
 
         await container.idempotencyService.runIdempotency(event.id, "syncInitialBalance", async () => {
             await financeService.syncInitialBalance(workspaceId, accountId, account);
