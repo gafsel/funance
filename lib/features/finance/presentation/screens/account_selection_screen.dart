@@ -52,7 +52,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                 .where(
                   (acc) =>
                       acc.id != excludeAccountId &&
-                      (allowedTypes == null || allowedTypes!.contains(acc.type)),
+                      (allowedTypes == null ||
+                          allowedTypes!.contains(acc.type)),
                 )
                 .toList();
 
@@ -84,28 +85,47 @@ class AccountSelectionScreen extends ConsumerWidget {
                           final isSmall = constraints.maxWidth < 600;
                           final gridPadding = isSmall ? 12.0 : 16.0;
                           final gridSpacing = isSmall ? 12.0 : 16.0;
-                          final itemWidth = (constraints.maxWidth - (gridPadding * 2) - gridSpacing) / 2;
+                          // O `/2` era fixo: num painel de 1400px a grade
+                          // virava DOIS cartões de ~680px. O número de colunas
+                          // agora sai da largura disponível, com a mesma régua
+                          // de 350px do `ResponsiveForm`. O mínimo continua 2
+                          // para que celular e tablet fiquem exatamente como
+                          // estão hoje.
+                          final available =
+                              constraints.maxWidth - (gridPadding * 2);
+                          final columns = (available / 350).floor().clamp(2, 4);
+                          final itemWidth =
+                              (available - gridSpacing * (columns - 1)) /
+                              columns;
 
                           // 1. Identificar todos os titulares possíveis no workspace
                           // Queremos colocar o usuário logado primeiro.
-                          final List<UserModel> sortedMembers = List.from(members);
+                          final List<UserModel> sortedMembers = List.from(
+                            members,
+                          );
                           if (userId != null) {
                             sortedMembers.sort((a, b) {
                               if (a.id == userId) return -1;
                               if (b.id == userId) return 1;
-                              return (a.displayName ?? "").toLowerCase().compareTo((b.displayName ?? "").toLowerCase());
+                              return (a.displayName ?? "")
+                                  .toLowerCase()
+                                  .compareTo(
+                                    (b.displayName ?? "").toLowerCase(),
+                                  );
                             });
                           }
 
                           // Para cada titular
                           for (final member in sortedMembers) {
                             final isMe = member.id == userId;
-                            
+
                             // Filtrar contas que pertencem a este titular
                             final ownerAccounts = filteredAccounts
-                                .where((acc) => acc.ownerIds.contains(member.id))
+                                .where(
+                                  (acc) => acc.ownerIds.contains(member.id),
+                                )
                                 .toList();
-                            
+
                             if (ownerAccounts.isEmpty) continue;
 
                             final ownerHeader = isMe
@@ -120,9 +140,12 @@ class AccountSelectionScreen extends ConsumerWidget {
                             );
 
                             // Agrupar contas deste titular por Institution (BankLogo)
-                            final Map<BankLogo, List<AccountModel>> accountsByBank = {};
+                            final Map<BankLogo, List<AccountModel>>
+                            accountsByBank = {};
                             for (final acc in ownerAccounts) {
-                              accountsByBank.putIfAbsent(acc.bankLogo, () => []).add(acc);
+                              accountsByBank
+                                  .putIfAbsent(acc.bankLogo, () => [])
+                                  .add(acc);
                             }
 
                             // Ordenar as instituições por nome
@@ -130,32 +153,51 @@ class AccountSelectionScreen extends ConsumerWidget {
                               ..sort((a, b) {
                                 if (a == BankLogo.none) return 1;
                                 if (b == BankLogo.none) return -1;
-                                return _getInstitutionName(a, l10n)
-                                    .compareTo(_getInstitutionName(b, l10n));
+                                return _getInstitutionName(
+                                  a,
+                                  l10n,
+                                ).compareTo(_getInstitutionName(b, l10n));
                               });
 
                             final List<Widget> ownerWidgets = [];
 
                             for (final bank in sortedBanks) {
                               final bankAccounts = accountsByBank[bank]!;
-                              bankAccounts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                              bankAccounts.sort(
+                                (a, b) => a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                ),
+                              );
 
                               if (bank == BankLogo.none) {
                                 for (final acc in bankAccounts) {
                                   ownerWidgets.add(
-                                    _buildOutrosAccountCard(context, acc, l10n, isSmall: isSmall),
+                                    _buildOutrosAccountCard(
+                                      context,
+                                      acc,
+                                      l10n,
+                                      isSmall: isSmall,
+                                    ),
                                   );
                                 }
                               } else {
                                 ownerWidgets.add(
-                                  _buildInstitutionContainer(context, bank, bankAccounts, l10n, isSmall: isSmall),
+                                  _buildInstitutionContainer(
+                                    context,
+                                    bank,
+                                    bankAccounts,
+                                    l10n,
+                                    isSmall: isSmall,
+                                  ),
                                 );
                               }
                             }
 
                             slivers.add(
                               SliverPadding(
-                                padding: EdgeInsets.symmetric(horizontal: gridPadding),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: gridPadding,
+                                ),
                                 sliver: SliverToBoxAdapter(
                                   child: Wrap(
                                     spacing: gridSpacing,
@@ -184,41 +226,63 @@ class AccountSelectionScreen extends ConsumerWidget {
                               _buildOwnerHeader(context, sharedHeader, null),
                             );
 
-                            final Map<BankLogo, List<AccountModel>> accountsByBank = {};
+                            final Map<BankLogo, List<AccountModel>>
+                            accountsByBank = {};
                             for (final acc in sharedAccounts) {
-                              accountsByBank.putIfAbsent(acc.bankLogo, () => []).add(acc);
+                              accountsByBank
+                                  .putIfAbsent(acc.bankLogo, () => [])
+                                  .add(acc);
                             }
 
                             final sortedBanks = accountsByBank.keys.toList()
                               ..sort((a, b) {
                                 if (a == BankLogo.none) return 1;
                                 if (b == BankLogo.none) return -1;
-                                return _getInstitutionName(a, l10n)
-                                    .compareTo(_getInstitutionName(b, l10n));
+                                return _getInstitutionName(
+                                  a,
+                                  l10n,
+                                ).compareTo(_getInstitutionName(b, l10n));
                               });
 
                             final List<Widget> sharedWidgets = [];
 
                             for (final bank in sortedBanks) {
                               final bankAccounts = accountsByBank[bank]!;
-                              bankAccounts.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+                              bankAccounts.sort(
+                                (a, b) => a.name.toLowerCase().compareTo(
+                                  b.name.toLowerCase(),
+                                ),
+                              );
 
                               if (bank == BankLogo.none) {
                                 for (final acc in bankAccounts) {
                                   sharedWidgets.add(
-                                    _buildOutrosAccountCard(context, acc, l10n, isSmall: isSmall),
+                                    _buildOutrosAccountCard(
+                                      context,
+                                      acc,
+                                      l10n,
+                                      isSmall: isSmall,
+                                    ),
                                   );
                                 }
                               } else {
                                 sharedWidgets.add(
-                                  _buildInstitutionContainer(context, bank, bankAccounts, l10n, isSmall: isSmall),
+                                  _buildInstitutionContainer(
+                                    context,
+                                    bank,
+                                    bankAccounts,
+                                    l10n,
+                                    isSmall: isSmall,
+                                  ),
                                 );
                               }
                             }
 
                             slivers.add(
                               SliverPadding(
-                                padding: EdgeInsets.symmetric(horizontal: gridPadding),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: gridPadding,
+                                ),
                                 sliver: SliverToBoxAdapter(
                                   child: Wrap(
                                     spacing: gridSpacing,
@@ -260,7 +324,11 @@ class AccountSelectionScreen extends ConsumerWidget {
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 16,
                                         ),
-                                        child: _buildClearOption(context, l10n, isSmall: isSmall),
+                                        child: _buildClearOption(
+                                          context,
+                                          l10n,
+                                          isSmall: isSmall,
+                                        ),
                                       ),
                                     ],
                                   ],
@@ -318,7 +386,11 @@ class AccountSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOwnerHeader(BuildContext context, String title, UserModel? member) {
+  Widget _buildOwnerHeader(
+    BuildContext context,
+    String title,
+    UserModel? member,
+  ) {
     final theme = Theme.of(context);
     return SliverToBoxAdapter(
       child: Padding(
@@ -373,9 +445,7 @@ class AccountSelectionScreen extends ConsumerWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: Padding(
         padding: EdgeInsets.all(paddingVal),
@@ -409,10 +479,14 @@ class AccountSelectionScreen extends ConsumerWidget {
                 ),
                 Text(
                   bankName,
-                  style: (isSmall ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                  ),
+                  style:
+                      (isSmall
+                              ? theme.textTheme.titleSmall
+                              : theme.textTheme.titleMedium)
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
                 ),
               ],
             ),
@@ -445,7 +519,9 @@ class AccountSelectionScreen extends ConsumerWidget {
                               width: typeIconSize,
                               height: typeIconSize,
                               decoration: BoxDecoration(
-                                color: acc.color.asColor().withValues(alpha: 0.1),
+                                color: acc.color.asColor().withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -461,22 +537,29 @@ class AccountSelectionScreen extends ConsumerWidget {
                                 children: [
                                   Text(
                                     _getAccountTypeName(acc.type, l10n),
-                                    style: (isSmall
-                                            ? theme.textTheme.bodyMedium?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                              )
-                                            : theme.textTheme.titleSmall?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                              ))
-                                        ?.copyWith(
-                                      color: theme.colorScheme.onSurface,
-                                    ),
+                                    style:
+                                        (isSmall
+                                                ? theme.textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      )
+                                                : theme.textTheme.titleSmall
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ))
+                                            ?.copyWith(
+                                              color:
+                                                  theme.colorScheme.onSurface,
+                                            ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     acc.name,
                                     style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                      color: theme.colorScheme.onSurfaceVariant
+                                          .withValues(alpha: 0.7),
                                     ),
                                   ),
                                 ],
@@ -484,7 +567,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                             ),
                             Icon(
                               Icons.chevron_right,
-                              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withValues(alpha: 0.5),
                               size: isSmall ? 16 : 20,
                             ),
                           ],
@@ -510,15 +594,13 @@ class AccountSelectionScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final paddingVal = isSmall ? 10.0 : 16.0;
     final logoSize = isSmall ? 32.0 : 40.0;
-    
+
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: InkWell(
         onTap: () => onAccountSelected(account),
@@ -547,22 +629,23 @@ class AccountSelectionScreen extends ConsumerWidget {
                   children: [
                     Text(
                       account.name,
-                      style: (isSmall
-                              ? theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                )
-                              : theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ))
-                          ?.copyWith(
-                        color: theme.colorScheme.onSurface,
-                      ),
+                      style:
+                          (isSmall
+                                  ? theme.textTheme.bodyMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    )
+                                  : theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ))
+                              ?.copyWith(color: theme.colorScheme.onSurface),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       _getAccountTypeName(account.type, l10n),
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        color: theme.colorScheme.onSurfaceVariant.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -570,7 +653,9 @@ class AccountSelectionScreen extends ConsumerWidget {
               ),
               Icon(
                 Icons.chevron_right,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                color: theme.colorScheme.onSurfaceVariant.withValues(
+                  alpha: 0.5,
+                ),
                 size: isSmall ? 16 : 20,
               ),
             ],
@@ -580,7 +665,11 @@ class AccountSelectionScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildClearOption(BuildContext context, AppLocalizations l10n, {required bool isSmall}) {
+  Widget _buildClearOption(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required bool isSmall,
+  }) {
     final theme = Theme.of(context);
     final paddingVal = isSmall ? 10.0 : 16.0;
 
@@ -589,27 +678,35 @@ class AccountSelectionScreen extends ConsumerWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: paddingVal),
         leading: CircleAvatar(
           backgroundColor: Colors.transparent,
           radius: isSmall ? 16 : 20,
-          child: Icon(Icons.clear_all, color: Colors.grey, size: isSmall ? 20 : 24),
+          child: Icon(
+            Icons.clear_all,
+            color: Colors.grey,
+            size: isSmall ? 20 : 24,
+          ),
         ),
         title: Text(
           l10n.clear,
-          style: isSmall ? theme.textTheme.bodyMedium : theme.textTheme.titleSmall,
+          style: isSmall
+              ? theme.textTheme.bodyMedium
+              : theme.textTheme.titleSmall,
         ),
         onTap: () => onAccountSelected(null),
       ),
     );
   }
 
-  Widget _buildAddAccountOption(BuildContext context, AppLocalizations l10n, {required bool isSmall}) {
+  Widget _buildAddAccountOption(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required bool isSmall,
+  }) {
     final theme = Theme.of(context);
     final paddingVal = isSmall ? 10.0 : 16.0;
 
@@ -618,9 +715,7 @@ class AccountSelectionScreen extends ConsumerWidget {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: theme.colorScheme.outlineVariant,
-        ),
+        side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       child: ListTile(
         contentPadding: EdgeInsets.symmetric(horizontal: paddingVal),
@@ -631,7 +726,9 @@ class AccountSelectionScreen extends ConsumerWidget {
         ),
         title: Text(
           l10n.accountCreateTitle,
-          style: isSmall ? theme.textTheme.bodyMedium : theme.textTheme.titleSmall,
+          style: isSmall
+              ? theme.textTheme.bodyMedium
+              : theme.textTheme.titleSmall,
         ),
         onTap: () {
           context.push('/accounts/form');

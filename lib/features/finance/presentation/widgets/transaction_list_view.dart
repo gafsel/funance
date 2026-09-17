@@ -46,70 +46,81 @@ class TransactionListView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // A escolha entre TABELA e cartões é sobre o espaço que esta lista tem,
+    // não sobre o tamanho da janela. Com o `NavigationRail` estendido (200px),
+    // uma janela de 1000px dizia "desktop" enquanto o painel real tinha ~800:
+    // a tabela renderizava num espaço que não a comporta. Todo o resto do app
+    // já decide por `LayoutBuilder`; esta tela era a exceção.
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth > 900
+          ? _table(context, ref)
+          : _cards(context, ref),
+    );
+  }
+
+  Widget _table(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final mq = MediaQuery.of(context);
-    final isDesktop = mq.size.width > 900;
     final historyNotifier = ref.read(provider.notifier);
 
-    if (isDesktop) {
-      return Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
-            child: _buildTableHeader(context, l10n),
-          ),
-          Expanded(
-            child: InfiniteListView.separator(
-              provider,
-              padding:
-                  const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    bottom: 16,
-                    top: 0,
-                  ) +
-                  EdgeInsets.only(bottom: mq.padding.bottom),
-              footerBuilder: footerBuilder,
-              separatorBuilder: (context, before, after) {
-                final bool isSameGroup =
-                    before != null &&
-                    after != null &&
-                    before.referenceDate.year == after.referenceDate.year &&
-                    before.referenceDate.month == after.referenceDate.month;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          child: _buildTableHeader(context, l10n),
+        ),
+        Expanded(
+          child: InfiniteListView.separator(
+            provider,
+            padding:
+                const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 0) +
+                EdgeInsets.only(bottom: mq.padding.bottom),
+            footerBuilder: footerBuilder,
+            separatorBuilder: (context, before, after) {
+              final bool isSameGroup =
+                  before != null &&
+                  after != null &&
+                  before.referenceDate.year == after.referenceDate.year &&
+                  before.referenceDate.month == after.referenceDate.month;
 
-                final showHeader =
-                    after != null && (before == null || !isSameGroup);
+              final showHeader =
+                  after != null && (before == null || !isSameGroup);
 
-                if (showHeader) {
-                  return _buildDesktopDateHeader(
-                    context,
-                    ref,
-                    after.referenceDate,
-                    l10n,
-                  );
-                }
-
-                return const SizedBox.shrink();
-              },
-              itemBuilder: (context, item) {
-                return _buildTransactionTableItem(
+              if (showHeader) {
+                return _buildDesktopDateHeader(
                   context,
-                  notifier: historyNotifier,
-                  installment: item,
-                  category: item.category,
+                  ref,
+                  after.referenceDate,
+                  l10n,
                 );
-              },
-              emptyStateBuilder: (context) => EmptyState.message(
-                l10n.noTransactionsInPeriod,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              }
+
+              return const SizedBox.shrink();
+            },
+            itemBuilder: (context, item) {
+              return _buildTransactionTableItem(
+                context,
+                notifier: historyNotifier,
+                installment: item,
+                category: item.category,
+              );
+            },
+            emptyStateBuilder: (context) => EmptyState.message(
+              l10n.noTransactionsInPeriod,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
+  }
+
+  Widget _cards(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final mq = MediaQuery.of(context);
+    final historyNotifier = ref.read(provider.notifier);
 
     return InfiniteListView.separator(
       provider,
@@ -147,9 +158,7 @@ class TransactionListView extends ConsumerWidget {
       emptyStateBuilder: (context) => EmptyState.message(
         l10n.noTransactionsInPeriod,
         padding: const EdgeInsets.all(32.0),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
