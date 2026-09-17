@@ -18,6 +18,13 @@ class AccountSelectionScreen extends ConsumerWidget {
   final bool showClearOption;
   final bool showAddOption;
 
+  /// Tipos de conta que a tela oferece. `null` = todas.
+  ///
+  /// Existe porque há vínculo que só faz sentido com um tipo: uma meta de
+  /// quitar dívida presa a uma conta corrente nunca sairia do lugar — o
+  /// servidor calcula a amortização pelos saldos da conta de dívida.
+  final Set<AccountType>? allowedTypes;
+
   const AccountSelectionScreen({
     super.key,
     required this.title,
@@ -25,6 +32,7 @@ class AccountSelectionScreen extends ConsumerWidget {
     required this.onAccountSelected,
     this.showClearOption = false,
     this.showAddOption = true,
+    this.allowedTypes,
   });
 
   @override
@@ -39,7 +47,11 @@ class AccountSelectionScreen extends ConsumerWidget {
         return membersAsync.when(
           data: (members) {
             final filteredAccounts = accounts
-                .where((acc) => acc.id != excludeAccountId)
+                .where(
+                  (acc) =>
+                      acc.id != excludeAccountId &&
+                      (allowedTypes == null || allowedTypes!.contains(acc.type)),
+                )
                 .toList();
 
             return SafeArea(
@@ -53,7 +65,11 @@ class AccountSelectionScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  if (filteredAccounts.isEmpty && !showClearOption)
+                  // Com filtro de tipo, lista vazia precisa dizer isso: sem a
+                  // mensagem o usuário via um painel em branco e não sabia que
+                  // faltava criar a conta certa.
+                  if (filteredAccounts.isEmpty &&
+                      (!showClearOption || allowedTypes != null))
                     Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Center(child: Text(l10n.noAccountsFound)),

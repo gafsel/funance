@@ -14,7 +14,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$GoalFormState {
 
- String? get id; String get name; double get targetAmount; double get currentAmount; DateTime get startDate; DateTime get deadline; GoalType get type; CategoryModel? get category; String? get accountId;
+ String? get id; String get name; double get targetAmount;/// SÓ LEITURA: o progresso que o servidor calculou, carregado para a
+/// análise de viabilidade poder falar em "quanto falta". Nenhum campo do
+/// formulário o altera e o repositório não o envia numa edição.
+ double get currentAmount; DateTime get startDate; DateTime get deadline; GoalType get type; CategoryModel? get category; String? get accountId;
 /// Create a copy of GoalFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -226,6 +229,9 @@ class _GoalFormState extends GoalFormState {
 @override final  String? id;
 @override final  String name;
 @override final  double targetAmount;
+/// SÓ LEITURA: o progresso que o servidor calculou, carregado para a
+/// análise de viabilidade poder falar em "quanto falta". Nenhum campo do
+/// formulário o altera e o repositório não o envia numa edição.
 @override final  double currentAmount;
 @override final  DateTime startDate;
 @override final  DateTime deadline;

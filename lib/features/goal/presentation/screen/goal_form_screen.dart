@@ -8,6 +8,7 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/widgets/account_form_field.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:funances/features/finance/presentation/widgets/category_form_field.dart';
@@ -121,6 +122,11 @@ class GoalFormScreen extends ConsumerWidget {
                   categoryType: CategoryType.expense,
                 )
               else
+                // O vínculo é decidido pelo TIPO, e o tipo decide também quais
+                // contas fazem sentido: o servidor lê a amortização da conta
+                // de dívida/cartão em `payDebt` e o gasto do cartão em
+                // `reduceCreditCard`. Oferecer uma conta corrente ali seria
+                // oferecer uma meta que nunca sai de zero.
                 AccountFormField(
                   initialValue: state.accountId,
                   decoration: InputDecoration(
@@ -130,6 +136,16 @@ class GoalFormScreen extends ConsumerWidget {
                   ),
                   onChanged: notifier.updateAccountId,
                   validator: v.notEmpty(),
+                  allowedTypes: switch (state.type) {
+                    GoalType.payDebt => const {
+                      AccountType.debt,
+                      AccountType.creditCard,
+                    },
+                    GoalType.reduceCreditCard => const {
+                      AccountType.creditCard,
+                    },
+                    _ => null,
+                  },
                 ),
               DateFormField(
                 initialValue: state.deadline,

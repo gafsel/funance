@@ -18,6 +18,7 @@ class AccountFormField extends ConsumerWidget {
     this.showAddOption = true,
     this.style,
     this.excludeAccountId,
+    this.allowedTypes,
   });
 
   final String? initialValue;
@@ -28,6 +29,10 @@ class AccountFormField extends ConsumerWidget {
   final bool showAddOption;
   final TextStyle? style;
   final String? excludeAccountId;
+
+  /// Restringe a seleção a certos tipos de conta (ver
+  /// [AccountSelectionScreen.allowedTypes]). `null` = todas.
+  final Set<AccountType>? allowedTypes;
 
   bool get enabled => onChanged != null;
 
@@ -52,6 +57,7 @@ class AccountFormField extends ConsumerWidget {
                   title: decoration?.labelText ?? l10n.transactionAccountLabel,
                   showClearOption: true,
                   excludeAccountId: excludeAccountId,
+                  allowedTypes: allowedTypes,
                   onAccountSelected: (acc) => Navigator.pop(context, acc),
                 ),
               );
@@ -83,6 +89,7 @@ class AccountFormField extends ConsumerWidget {
                       showClearOption: true,
                       showAddOption: showAddOption,
                       excludeAccountId: excludeAccountId,
+                      allowedTypes: allowedTypes,
                       onAccountSelected: (acc) => Navigator.pop(context, acc),
                     ),
                   );
