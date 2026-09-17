@@ -12,7 +12,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Funances';
 
   @override
-  String get loginTitle => 'FUNANCE';
+  String get loginTitle => 'Funances';
 
   @override
   String get loginSubtitle => 'Your journey to financial freedom starts here.';
@@ -2377,4 +2377,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get missionCtaTransactionForm => 'Add an entry';
+
+  @override
+  String get workspaceTypePersonalBadge => 'Personal';
+
+  @override
+  String get workspaceTypeBusinessBadge => 'Business';
+
+  @override
+  String levelBadgeShort(int level) {
+    return 'Lv $level';
+  }
+
+  @override
+  String levelBadgeSemantics(int level, int percent) {
+    return 'Vault level $level, $percent% to the next one';
+  }
+
+  @override
+  String get compassStripTitle => 'Compass';
+
+  @override
+  String get compassStripOpen => 'See the full Compass';
+
+  @override
+  String compassStripDelta(String points) {
+    return '$points since last month';
+  }
 }

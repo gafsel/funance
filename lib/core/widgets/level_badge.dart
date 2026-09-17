@@ -100,9 +100,14 @@ class LevelBadge extends StatelessWidget {
       ),
     );
 
+    // Um nó só: "Nível 7 do cofre, 40% para o próximo" é uma frase. Sem
+    // `container`, o rótulo se mistura ao do que estiver em volta.
     return Semantics(
+      container: true,
+      excludeSemantics: semanticLabel != null,
       label: semanticLabel,
       button: onTap != null,
+      onTap: onTap,
       child: onTap == null
           ? content
           : Material(

@@ -12,6 +12,7 @@ import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/core/widgets/empty_state.dart';
+import 'package:funances/features/finance/presentation/widgets/launch_fab.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -28,6 +29,12 @@ class AccountManagementScreen extends ConsumerWidget {
     // home, tocando num cartão sem fatura — quer VER os cartões. Abrir a
     // criação por cima disso era responder outra pergunta.
     return Scaffold(
+      // Contas era uma das telas principais sem o botão de lançar: a criação
+      // de CONTA morava num `IconButton` do `AppBar` e não havia por onde
+      // registrar um gasto. O "+" do topo continua sendo o de conta nova; o
+      // botão central é o de lançamento, como no resto do app.
+      floatingActionButton: const LaunchFab(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       appBar: AppBar(
         title: Text(l10n.accountManagementTitle),
         actions: [

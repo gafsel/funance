@@ -12,7 +12,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get appTitle => 'Funances';
 
   @override
-  String get loginTitle => 'FUNANCE';
+  String get loginTitle => 'Funances';
 
   @override
   String get loginSubtitle =>
@@ -2395,4 +2395,31 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get missionCtaTransactionForm => 'Lançar agora';
+
+  @override
+  String get workspaceTypePersonalBadge => 'Pessoal';
+
+  @override
+  String get workspaceTypeBusinessBadge => 'Empresa';
+
+  @override
+  String levelBadgeShort(int level) {
+    return 'Nv $level';
+  }
+
+  @override
+  String levelBadgeSemantics(int level, int percent) {
+    return 'Nível $level do cofre, $percent% para o próximo';
+  }
+
+  @override
+  String get compassStripTitle => 'Bússola';
+
+  @override
+  String get compassStripOpen => 'Ver a Bússola completa';
+
+  @override
+  String compassStripDelta(String points) {
+    return '$points desde o mês passado';
+  }
 }

@@ -1,7 +1,7 @@
 {
   "@@locale": "pt",
   "appTitle": "Funances",
-  "loginTitle": "FUNANCE",
+  "loginTitle": "Funances",
   "loginSubtitle": "Sua jornada para a liberdade financeira começa aqui.",
   "emailLabel": "E-mail",
   "passwordLabel": "Senha",
@@ -1223,5 +1223,36 @@
   "missionCtaCategories": "Ver a Party",
   "missionCtaAccounts": "Ver contas",
   "missionCtaCategoryDetails": "Ver categoria",
-  "missionCtaTransactionForm": "Lançar agora"
+  "missionCtaTransactionForm": "Lançar agora",
+  "workspaceTypePersonalBadge": "Pessoal",
+  "workspaceTypeBusinessBadge": "Empresa",
+  "levelBadgeShort": "Nv {level}",
+  "@levelBadgeShort": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      }
+    }
+  },
+  "levelBadgeSemantics": "Nível {level} do cofre, {percent}% para o próximo",
+  "@levelBadgeSemantics": {
+    "placeholders": {
+      "level": {
+        "type": "int"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "compassStripTitle": "Bússola",
+  "compassStripOpen": "Ver a Bússola completa",
+  "compassStripDelta": "{points} desde o mês passado",
+  "@compassStripDelta": {
+    "placeholders": {
+      "points": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -7,7 +7,7 @@ import 'package:funances/features/home/presentation/widgets/home/home_bottom_bar
 import 'package:funances/features/home/presentation/widgets/home/workspace_selector.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
-import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
+import 'package:funances/features/finance/presentation/widgets/launch_fab.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
@@ -124,19 +124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ],
           ),
           bottomNavigationBar: isLargeScreen ? null : _buildBottomBar(context),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => const TransactionActionSheet(),
-              );
-            },
-            backgroundColor: AppColors.successGold,
-            shape: const CircleBorder(),
-            child: const Icon(Icons.add, color: AppColors.darkNavy),
-          ),
+          floatingActionButton: const LaunchFab(),
           floatingActionButtonLocation: isLargeScreen
               ? FloatingActionButtonLocation.endFloat
               : FloatingActionButtonLocation.centerDocked,

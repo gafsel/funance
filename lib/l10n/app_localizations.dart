@@ -107,7 +107,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginTitle.
   ///
   /// In pt, this message translates to:
-  /// **'FUNANCE'**
+  /// **'Funances'**
   String get loginTitle;
 
   /// No description provided for @loginSubtitle.
@@ -4297,6 +4297,48 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Lançar agora'**
   String get missionCtaTransactionForm;
+
+  /// No description provided for @workspaceTypePersonalBadge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pessoal'**
+  String get workspaceTypePersonalBadge;
+
+  /// No description provided for @workspaceTypeBusinessBadge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Empresa'**
+  String get workspaceTypeBusinessBadge;
+
+  /// No description provided for @levelBadgeShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nv {level}'**
+  String levelBadgeShort(int level);
+
+  /// No description provided for @levelBadgeSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nível {level} do cofre, {percent}% para o próximo'**
+  String levelBadgeSemantics(int level, int percent);
+
+  /// No description provided for @compassStripTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola'**
+  String get compassStripTitle;
+
+  /// No description provided for @compassStripOpen.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver a Bússola completa'**
+  String get compassStripOpen;
+
+  /// No description provided for @compassStripDelta.
+  ///
+  /// In pt, this message translates to:
+  /// **'{points} desde o mês passado'**
+  String compassStripDelta(String points);
 }
 
 class _AppLocalizationsDelegate
