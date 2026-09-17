@@ -13,6 +13,8 @@ import 'package:funances/core/widgets/money_form_field.dart';
 import 'package:funances/features/finance/presentation/controllers/account_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form/bank_logo_option.dart';
+import 'package:funances/features/finance/presentation/widgets/account_form/detected_summary.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:funances/features/finance/presentation/widgets/statement_upload_panel.dart';
 import 'package:funances/features/workspace/presentation/widgets/members_form_field.dart';
@@ -21,8 +23,6 @@ import 'package:funances/l10n/app_localizations.dart';
 import '../../domain/models/account_model.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:funances/core/utils/error_messages.dart';
-import 'package:funances/core/presentation/display_names.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 
 class AccountFormScreen extends ConsumerWidget {
   final AccountModel? account;
@@ -182,7 +182,7 @@ class AccountFormScreen extends ConsumerWidget {
                     ),
                     if (state.processingStatus ==
                         AccountProcessingStatus.completed) ...[
-                      _buildDetectedSummary(context, state, l10n),
+                      buildDetectedSummary(context, state, l10n),
                       ..._buildManualFields(
                         context,
                         ref,
@@ -216,119 +216,6 @@ class AccountFormScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildDetectedSummary(
-    BuildContext context,
-    AccountFormState state,
-    AppLocalizations l10n,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.accountDetectedDataTitle,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.darkNavy,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildInfoChip(
-              Icons.receipt_long,
-              l10n.accountDetectedTransactions(state.detectedOrders.length),
-            ),
-            if (state.detectedOrders.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: () => _showDetectedList(
-                  context,
-                  l10n.accountDetectedTransactionsTitle,
-                  state.detectedOrders.map((o) {
-                    final descricao = displayOr(o.description, l10n.noDescription);
-                    return '$descricao - ${o.amount.asCurrency(locale: context.locale)}';
-                  }).toList(),
-                ),
-                child: Text(
-                  l10n.accountViewTransactions,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.deepTurquoise,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          l10n.accountDetectedConfirmation,
-          style: TextStyle(
-            fontSize: 12,
-            fontStyle: FontStyle.italic,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _showDetectedList(
-    BuildContext context,
-    String title,
-    List<String> items,
-  ) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title, style: TextStyle(color: AppColors.darkNavy)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.separated(
-            shrinkWrap: true,
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const Divider(),
-            itemBuilder: (context, index) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                items[index],
-                style: TextStyle(color: AppColors.darkNavy),
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Colors.blue[800]),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 13, color: AppColors.darkNavy),
-          ),
-        ],
       ),
     );
   }
@@ -380,7 +267,7 @@ class AccountFormScreen extends ConsumerWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _BankLogoOption(
+              BankLogoOption(
                 logo: BankLogo.none,
                 isSelected: state.bankLogo == BankLogo.none,
                 onSelected: () => notifier.updateBankLogo(BankLogo.none),
@@ -389,7 +276,7 @@ class AccountFormScreen extends ConsumerWidget {
               ...BankLogo.values
                   .where((l) => l != BankLogo.none)
                   .map(
-                    (logo) => _BankLogoOption(
+                    (logo) => BankLogoOption(
                       logo: logo,
                       isSelected: state.bankLogo == logo,
                       onSelected: () => notifier.updateBankLogo(logo),
@@ -525,62 +412,5 @@ class AccountFormScreen extends ConsumerWidget {
       default:
         return l10n.initialBalanceDateLabel;
     }
-  }
-}
-
-class _BankLogoOption extends StatelessWidget {
-  final BankLogo logo;
-  final bool isSelected;
-  final VoidCallback onSelected;
-  final String? label;
-
-  const _BankLogoOption({
-    required this.logo,
-    required this.isSelected,
-    required this.onSelected,
-    this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onSelected,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).primaryColor
-                : Colors.grey.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-          color: isSelected
-              ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-              : null,
-        ),
-        child: logo == BankLogo.none
-            ? Center(
-                child: Text(
-                  label ?? '?',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: isSelected ? FontWeight.bold : null,
-                  ),
-                ),
-              )
-            : ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/logos/${logo.name}.png',
-                  fit: BoxFit.fitWidth,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.help_outline),
-                ),
-              ),
-      ),
-    );
   }
 }

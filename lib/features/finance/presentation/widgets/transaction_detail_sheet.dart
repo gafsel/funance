@@ -1,8 +1,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/form/loading_button.dart';
-import 'package:funances/core/form/loading_popup_menu_item.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
@@ -12,13 +10,12 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
-import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:funances/features/finance/presentation/widgets/replication_cascade_dialog.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_detail/detail_item.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_detail/transaction_detail_accounts.dart';
+import 'package:funances/features/finance/presentation/widgets/transaction_detail/transaction_detail_header.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
-import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_picker_sheet.dart';
-import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 class TransactionDetailSheet extends ConsumerStatefulWidget {
   final InstallmentModel installment;
@@ -210,161 +207,12 @@ class _TransactionDetailSheetState
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              spacing: 8,
-              children: [
-                CategoryIcon.forInstallment(_currentInstallment),
-                Expanded(
-                  child: Column(
-                    spacing: 4,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _currentInstallment.description,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),Text(
-                        DateFormat.yMMMMd(
-                          locale,
-                        ).format(_currentInstallment.referenceDate),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Row(
-                        spacing: 8,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: amountColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: amountColor.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Text(
-                              l10n.fromOrderType(_currentInstallment.type),
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: amountColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          if (_currentInstallment.installmentType ==
-                              InstallmentType.installment &&
-                              _currentInstallment.installmentNumber != null &&
-                              _currentInstallment.installmentCount != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainerHighest,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: theme.colorScheme.outlineVariant,
-                                ),
-                              ),
-                              child: Text(
-                                l10n.installmentCountDescription(
-                                  _currentInstallment.installmentCount!,
-                                  _currentInstallment.installmentNumber!,
-                                ),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                PopupMenuButton(
-                  icon: const Icon(Icons.more_vert),
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      onTap: () async {
-                        final navigator = Navigator.of(context);
-
-                        final updated = await context.push(
-                          '/transactions/form'
-                          '?installmentId=${_currentInstallment.id}',
-                        );
-
-                        if (updated == true) {
-                          widget.onUpdated?.call();
-                          navigator.pop();
-                        }
-                      },
-                      child: Row(
-                        spacing: 12,
-                        children: [
-                          const Icon(Icons.edit_outlined, size: 20),
-                          Text(l10n.editButton),
-                        ],
-                      ),
-                    ),
-                    LoadingPopupMenuItem(
-                      onTap: (loading) async {
-                        await loading(_deleteTransaction());
-                      },
-                      child: Row(
-                        spacing: 12,
-                        children: [
-                          const Icon(
-                            Icons.delete_outline,
-                            size: 20,
-                            color: AppColors.error,
-                          ),
-                          Text(
-                            l10n.deleteButton,
-                            style: const TextStyle(color: AppColors.error),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_currentInstallment.status !=
-                            InstallmentStatus.settled &&
-                        _currentInstallment.amount > 0 &&
-                        (_currentInstallment.status == InstallmentStatus.paid ||
-                            _currentInstallment.status ==
-                                InstallmentStatus.settled))
-                      LoadingPopupMenuItem(
-                        onTap: (loading) async {
-                          await loading(_backToPending());
-                        },
-                        child: Row(
-                          spacing: 12,
-                          children: [
-                            const Icon(
-                              Icons.undo,
-                              size: 20,
-                              color: AppColors.deepTurquoise,
-                            ),
-                            Text(
-                              l10n.returnToPending,
-                              style: const TextStyle(
-                                color: AppColors.deepTurquoise,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+          TransactionDetailHeader(
+            installment: _currentInstallment,
+            amountColor: amountColor,
+            onUpdated: widget.onUpdated,
+            onDelete: _deleteTransaction,
+            onBackToPending: _backToPending,
           ),
           Divider(),
           Padding(
@@ -386,7 +234,7 @@ class _TransactionDetailSheetState
                   ),
                 ),
                 if (_currentInstallment.type != OrderType.transfer)
-                  _DetailItem(
+                  DetailItem(
                     label: l10n.category,
                     value:
                         _currentInstallment.category?.name ??
@@ -399,140 +247,10 @@ class _TransactionDetailSheetState
                       await loading(_changeCategory());
                     },
                   ),
-                Consumer(
-                  builder: (context, ref, _) {
-                    final sourceId = _currentInstallment.accountIdSource;
-                    final targetId = _currentInstallment.accountIdTarget;
-
-                    if (isTransfer && sourceId != null && targetId != null) {
-                      final sourceAccount = ref.watch(
-                        AccountViewProviders.byId(sourceId),
-                      );
-                      final targetAccount = ref.watch(
-                        AccountViewProviders.byId(targetId),
-                      );
-
-                      return sourceAccount.when(
-                        data: (source) => targetAccount.when(
-                          data: (target) => _DetailItem(
-                            label: l10n.transactionAccountLabel,
-                            value: '',
-                            customValue: Row(
-                              spacing: 8,
-                              children: [
-                                Row(
-                                  children: [
-                                    if (source != null) ...[
-                                      AccountLogo(
-                                        account: source,
-                                        size: 30,
-                                        showMembers: true,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        source.name,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ] else
-                                      Text(
-                                        '-',
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                Icon(
-                                  Icons.arrow_forward,
-                                  size: 16,
-                                  color: AppColors.antiqueGold,
-                                ),
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      if (target != null) ...[
-                                        AccountLogo(
-                                          account: target,
-                                          size: 30,
-                                          showMembers: true,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            target.name,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: theme.textTheme.bodyMedium?.copyWith(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ),
-                                      ] else
-                                        Text(
-                                          '-',
-                                          style: theme.textTheme.bodyMedium?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                )
-                              ],
-                            ),
-                            icon: Icons.swap_horiz,
-                            iconColor: AppColors.antiqueGold,
-                          ),
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, _) => const SizedBox.shrink(),
-                        ),
-                        loading: () => const SizedBox.shrink(),
-                        error: (_, _) => const SizedBox.shrink(),
-                      );
-                    }
-
-                    return Column(
-                      children: [
-                        if (sourceId != null)
-                          ref
-                              .watch(AccountViewProviders.byId(sourceId))
-                              .when(
-                                data: (account) => _DetailItem(
-                                  label: l10n.transactionAccountLabel,
-                                  value: account?.name ?? '-',
-                                  customValue: account != null
-                                      ? Row(
-                                          children: [
-                                            AccountLogo(
-                                              account: account,
-                                              size: 30,
-                                              showMembers: true,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              account.name,
-                                              style: theme.textTheme.bodyMedium
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                            ),
-                                          ],
-                                        )
-                                      : null,
-                                  icon: Icons.account_balance_wallet_outlined,
-                                  iconColor: AppColors.antiqueGold,
-                                ),
-                                loading: () => const SizedBox.shrink(),
-                                error: (_, _) => const SizedBox.shrink(),
-                              ),
-                      ],
-                    );
-                  },
+                TransactionDetailAccounts(
+                  installment: _currentInstallment,
                 ),
-                _DetailItem(
+                DetailItem(
                   label: l10n.transactionStatusLabel,
                   value: l10n.forInstallmentStatus(_currentInstallment.status),
                   icon: _getStatusIcon(_currentInstallment.status),
@@ -579,78 +297,5 @@ class _TransactionDetailSheetState
       InstallmentStatus.settled => AppColors.deepPurple,
       InstallmentStatus.removed => AppColors.error,
     };
-  }
-}
-
-class _DetailItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final Widget? customValue;
-  final IconData icon;
-  final Color? iconColor;
-  final LoadingCallback? onTap;
-
-  const _DetailItem({
-    required this.label,
-    required this.value,
-    this.customValue,
-    required this.icon,
-    this.iconColor,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return LoadingButton.text(
-      onPressed: onTap,
-      child: Row(
-        spacing: 8,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: (iconColor ?? theme.colorScheme.primary).withValues(
-                alpha: 0.1,
-              ),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: iconColor ?? theme.colorScheme.primary,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                if (customValue != null)
-                  customValue!
-                else
-                  Text(
-                    value,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          if (onTap != null)
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-        ],
-      ),
-    );
   }
 }

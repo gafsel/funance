@@ -15,6 +15,7 @@ import 'package:funances/features/home/domain/services/mission_service.dart';
 import 'package:funances/features/home/presentation/controller/overview_notifier.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/widgets/history_period_filter.dart';
+import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
 sealed class MissionDomainProviders {
@@ -185,25 +186,34 @@ class HomeViewProviders {
     (ref) => HistoryPeriodType.month,
   );
 
-  static final summaryExpenses =
-      NotifierProvider<ExpenseSummaryNotifier, AsyncValue<SummaryState>>(
-        ExpenseSummaryNotifier.new,
-      );
+  /// O resumo do mês, parametrizado. Os quatro nomes públicos abaixo
+  /// continuam valendo — nenhuma tela precisou mudar.
+  static final categorySummary =
+      NotifierProvider.family<
+        CategorySummaryNotifier,
+        AsyncValue<SummaryState>,
+        SummaryScope
+      >(CategorySummaryNotifier.new);
 
-  static final summaryExpensesFull =
-      NotifierProvider<ExpenseSummaryFullNotifier, AsyncValue<SummaryState>>(
-        ExpenseSummaryFullNotifier.new,
-      );
+  static final summaryExpenses = categorySummary((
+    type: CategoryType.expense,
+    limited: true,
+  ));
 
-  static final summaryIncomes =
-      NotifierProvider<IncomeSummaryNotifier, AsyncValue<SummaryState>>(
-        IncomeSummaryNotifier.new,
-      );
+  static final summaryExpensesFull = categorySummary((
+    type: CategoryType.expense,
+    limited: false,
+  ));
 
-  static final summaryIncomesFull =
-      NotifierProvider<IncomeSummaryFullNotifier, AsyncValue<SummaryState>>(
-        IncomeSummaryFullNotifier.new,
-      );
+  static final summaryIncomes = categorySummary((
+    type: CategoryType.income,
+    limited: true,
+  ));
+
+  static final summaryIncomesFull = categorySummary((
+    type: CategoryType.income,
+    limited: false,
+  ));
 
   static final summaryBalance =
       NotifierProvider<BalanceSummaryNotifier, AsyncValue<BalanceState>>(

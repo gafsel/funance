@@ -10,6 +10,7 @@ import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 class TeamStatusView extends ConsumerWidget {
   const TeamStatusView({super.key});
@@ -36,77 +37,10 @@ class TeamStatusView extends ConsumerWidget {
           else ...[
             _buildPartyStatusBar(context, mission),
             const SizedBox(height: 24),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final groups = ChallengeStatus.values.reversed.map(
-                  (status) => (
-                    status: status,
-                    color: switch (status) {
-                      ChallengeStatus.stable => AppColors.success,
-                      ChallengeStatus.warning => Colors.orange,
-                      ChallengeStatus.critical => AppColors.error,
-                    },
-                    label: switch (status) {
-                      ChallengeStatus.stable => l10n.challengeStatusStable,
-                      ChallengeStatus.warning => l10n.challengeStatusWarning,
-                      ChallengeStatus.critical => l10n.challengeStatusCritical,
-                    },
-                    emoji: switch (status) {
-                      ChallengeStatus.stable => '😊',
-                      ChallengeStatus.warning => '😰',
-                      ChallengeStatus.critical => '💀',
-                    },
-                    items: mission.planningMissions
-                        .where((item) => item.status == status)
-                        .toList(),
-                  ),
-                );
-
-                return Column(
-                  spacing: 16,
-                  children: [
-                    for (final group in groups) ...[
-                      if (group.items.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: group.color.withValues(alpha: 0.05),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: group.color.withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            spacing: 16,
-                            children: [
-                              Text(
-                                "${group.emoji} ${group.label.toUpperCase()}",
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: group.color,
-                                ),
-                              ),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  for (final item in group.items)
-                                    _buildChallengeCard(context, item),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ],
-                );
-              },
-            ),
+            // Era um `LayoutBuilder` que abria o builder e nunca lia
+            // `constraints`: reconstruía os grupos a cada mudança de tamanho
+            // sem usar a informação para nada.
+            _buildChallengeGroups(context, mission),
           ],
         ],
       ),
@@ -278,6 +212,80 @@ class TeamStatusView extends ConsumerWidget {
     );
   }
 
+  /// Os desafios do time, agrupados por status (crítico primeiro).
+  Widget _buildChallengeGroups(BuildContext context, MissionModel mission) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+
+    final groups = ChallengeStatus.values.reversed.map(
+      (status) => (
+        status: status,
+        color: switch (status) {
+          ChallengeStatus.stable => AppColors.success,
+          ChallengeStatus.warning => Colors.orange,
+          ChallengeStatus.critical => AppColors.error,
+        },
+        label: switch (status) {
+          ChallengeStatus.stable => l10n.challengeStatusStable,
+          ChallengeStatus.warning => l10n.challengeStatusWarning,
+          ChallengeStatus.critical => l10n.challengeStatusCritical,
+        },
+        emoji: switch (status) {
+          ChallengeStatus.stable => '😊',
+          ChallengeStatus.warning => '😰',
+          ChallengeStatus.critical => '💀',
+        },
+        items: mission.planningMissions
+            .where((item) => item.status == status)
+            .toList(),
+      ),
+    );
+
+    return Column(
+      spacing: 16,
+      children: [
+        for (final group in groups) ...[
+          if (group.items.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: group.color.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: group.color.withValues(alpha: 0.2),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                spacing: 16,
+                children: [
+                  Text(
+                    "${group.emoji} ${group.label.toUpperCase()}",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: group.color,
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final item in group.items)
+                        _buildChallengeCard(context, item),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   Widget _buildChallengeCard(BuildContext context, PlanningMission mission) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
@@ -374,49 +382,19 @@ class _EmptyParty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
-    return Container(
-      width: double.infinity,
+    return EmptyState.card(
+      icon: Icons.shield_outlined,
+      title: l10n.partyEmptyTitle,
+      message: l10n.partyEmptyMessage,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.deepTurquoise.withValues(alpha: 0.2),
-        ),
-      ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.shield_outlined,
-            size: 40,
-            color: AppColors.deepTurquoise,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            l10n.partyEmptyTitle,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.partyEmptyMessage,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => context.push('/planning?type=expense'),
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(l10n.partyEmptyButton),
-          ),
-        ],
+      borderRadius: 16,
+      borderAlpha: 0.2,
+      action: FilledButton.icon(
+        onPressed: () => context.push('/planning?type=expense'),
+        icon: const Icon(Icons.add, size: 18),
+        label: Text(l10n.partyEmptyButton),
       ),
     );
   }

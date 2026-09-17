@@ -31,7 +31,17 @@ abstract class IFinanceRepository {
   /// servidor. Enquanto a escrita estiver pendente, elas não existem em
   /// lugar nenhum — nem no cache local — e as telas que as leem aparecem
   /// vazias. Quem chama precisa poder contar isso ao usuário.
-  Future<Written<OrderModel>> addOrder(String workspaceId, OrderModel order);
+  /// Cria o lançamento.
+  ///
+  /// [documentId] força o id do documento. Só a conciliação usa: o id dela é
+  /// derivado da linha do extrato, para que reconfirmar o mesmo extrato
+  /// sobrescreva em vez de duplicar. Sem ele, vale o id gerado localmente
+  /// pelo Firestore, como sempre.
+  Future<Written<OrderModel>> addOrder(
+    String workspaceId,
+    OrderModel order, {
+    String? documentId,
+  });
 
   Future<WriteOutcome> updateOrder(String workspaceId, OrderModel order);
 

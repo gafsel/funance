@@ -16,6 +16,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 class ReconciliationHistoryPicker extends ConsumerWidget {
   final TransactionQuery initialQuery;
@@ -107,11 +108,9 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
               itemBuilder: (context, item) {
                 return _buildTransactionItem(context, item);
               },
-              emptyStateBuilder: (context) => Center(
-                child: Text(
-                  l10n.noTransactionsInPeriod,
-                  style: const TextStyle(color: AppColors.pureWhite),
-                ),
+              emptyStateBuilder: (context) => EmptyState.message(
+                l10n.noTransactionsInPeriod,
+                style: const TextStyle(color: AppColors.pureWhite),
               ),
             ),
           ),

@@ -1694,6 +1694,24 @@ abstract class AppLocalizations {
   /// **'Deseja realmente excluir a categoria \"{name}\"?'**
   String categoryDeleteConfirm(String name);
 
+  /// No description provided for @categoryVirtualDebt.
+  ///
+  /// In pt, this message translates to:
+  /// **'Empréstimo/Dívidas'**
+  String get categoryVirtualDebt;
+
+  /// No description provided for @categoryVirtualInvestment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Investimentos'**
+  String get categoryVirtualInvestment;
+
+  /// No description provided for @categoryInitialBalance.
+  ///
+  /// In pt, this message translates to:
+  /// **'Saldo Inicial'**
+  String get categoryInitialBalance;
+
   /// No description provided for @categoryOthers.
   ///
   /// In pt, this message translates to:
@@ -1801,6 +1819,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Novo lançamento'**
   String get transactionNewTitle;
+
+  /// No description provided for @planning503020IdealLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ideal'**
+  String get planning503020IdealLabel;
+
+  /// No description provided for @planning503020MonthlyLimitLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite Mensal'**
+  String get planning503020MonthlyLimitLabel;
 
   /// No description provided for @planning503020AlreadyPlanned.
   ///

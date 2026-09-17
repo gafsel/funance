@@ -13,9 +13,24 @@ import 'package:funances/core/money/money.dart';
 /// "nenhum lançamento no período" — com o saldo em R$ 0,00. `AsyncValue`
 /// carrega o erro até a tela, que agora mostra o ErrorView com "tentar de
 /// novo" no lugar do estado vazio.
-class ExpenseSummaryNotifier extends Notifier<AsyncValue<SummaryState>> {
+/// Qual recorte do mês este resumo responde.
+///
+/// `limited` é o que a Visão Geral usa para mostrar só as maiores categorias;
+/// a tela cheia pede a lista inteira.
+typedef SummaryScope = ({CategoryType type, bool limited});
+
+/// Um resumo do mês, por tipo de categoria.
+///
+/// Eram QUATRO classes de 19 linhas cada — `ExpenseSummaryNotifier`,
+/// `IncomeSummaryNotifier`, `ExpenseSummaryFullNotifier`,
+/// `IncomeSummaryFullNotifier` — com o corpo 100% idêntico, diferindo em DOIS
+/// tokens: o tipo da categoria e o `limit`. Eram 76 linhas de notifier mais 24
+/// de registro para expressar dois bits de configuração, e cada correção
+/// (como a do erro engolido, acima) precisava ser feita quatro vezes.
+class CategorySummaryNotifier
+    extends FamilyNotifier<AsyncValue<SummaryState>, SummaryScope> {
   @override
-  AsyncValue<SummaryState> build() {
+  AsyncValue<SummaryState> build(SummaryScope scope) {
     // Escutar mudanças no período e tipo de visualização
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
@@ -24,70 +39,9 @@ class ExpenseSummaryNotifier extends Notifier<AsyncValue<SummaryState>> {
         .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
         .whenData(
           (summaries) => _buildSummary(
-            summaries
-                .where((s) => s.category.type == CategoryType.expense)
-                .toList(),
+            summaries.where((s) => s.category.type == scope.type).toList(),
             viewType,
-          ),
-        );
-  }
-}
-
-class IncomeSummaryNotifier extends Notifier<AsyncValue<SummaryState>> {
-  @override
-  AsyncValue<SummaryState> build() {
-    // Escutar mudanças no período e tipo de visualização
-    final period = ref.watch(HomeViewProviders.period);
-    final viewType = ref.watch(HomeViewProviders.viewType);
-
-    return ref
-        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
-        .whenData(
-          (summaries) => _buildSummary(
-            summaries
-                .where((s) => s.category.type == CategoryType.income)
-                .toList(),
-            viewType,
-          ),
-        );
-  }
-}
-
-class ExpenseSummaryFullNotifier extends Notifier<AsyncValue<SummaryState>> {
-  @override
-  AsyncValue<SummaryState> build() {
-    final period = ref.watch(HomeViewProviders.period);
-    final viewType = ref.watch(HomeViewProviders.viewType);
-
-    return ref
-        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
-        .whenData(
-          (summaries) => _buildSummary(
-            summaries
-                .where((s) => s.category.type == CategoryType.expense)
-                .toList(),
-            viewType,
-            limit: false,
-          ),
-        );
-  }
-}
-
-class IncomeSummaryFullNotifier extends Notifier<AsyncValue<SummaryState>> {
-  @override
-  AsyncValue<SummaryState> build() {
-    final period = ref.watch(HomeViewProviders.period);
-    final viewType = ref.watch(HomeViewProviders.viewType);
-
-    return ref
-        .watch(PeriodSummaryViewProviders.monthSummary(period.monthKey))
-        .whenData(
-          (summaries) => _buildSummary(
-            summaries
-                .where((s) => s.category.type == CategoryType.income)
-                .toList(),
-            viewType,
-            limit: false,
+            limit: scope.limited,
           ),
         );
   }

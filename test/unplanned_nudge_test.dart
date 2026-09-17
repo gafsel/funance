@@ -13,7 +13,7 @@ import 'package:funances/features/finance/domain/services/category_planning_serv
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
 import 'package:funances/features/finance/domain/services/unplanned_nudge_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
-import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
+import 'package:funances/features/finance/presentation/controllers/transaction_form_submit_flow.dart';
 import 'package:funances/features/finance/presentation/widgets/unplanned_nudge_sheet.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';

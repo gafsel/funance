@@ -11,6 +11,7 @@ import '../../domain/models/account_model.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -50,12 +51,10 @@ class AccountManagementScreen extends ConsumerWidget {
           if (accountsByType.isEmpty) {
             // Filtrada por tipo, "você ainda não tem contas" seria falso: o
             // usuário pode ter cinco contas correntes e nenhum cartão.
-            return Center(
-              child: Text(
-                initialType == null
-                    ? l10n.accountManagementEmpty
-                    : l10n.accountManagementEmptyOfType,
-              ),
+            return EmptyState.message(
+              initialType == null
+                  ? l10n.accountManagementEmpty
+                  : l10n.accountManagementEmptyOfType,
             );
           }
 

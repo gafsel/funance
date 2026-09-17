@@ -5,6 +5,9 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
+import 'package:funances/features/finance/presentation/widgets/planning_analysis/allocation_bar.dart';
+import 'package:funances/features/finance/presentation/widgets/planning_analysis/category_tile.dart';
+import 'package:funances/features/finance/presentation/widgets/planning_analysis/reclassification_tile.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -238,7 +241,7 @@ class _Planning503020AnalysisSheetState
             ),
           const SizedBox(height: 16),
           for (final group in analysis.groups) ...[
-            _AllocationBar(
+            AllocationBar(
               label: _allocationLabel(l10n, group.allocation),
               group: group,
             ),
@@ -254,7 +257,7 @@ class _Planning503020AnalysisSheetState
             ),
             const SizedBox(height: 8),
             for (final category in analysis.categories)
-              _CategoryTile(
+              CategoryTile(
                 category: category,
                 statusColor: _statusColor(category.status),
                 statusLabel: _statusLabel(l10n, category.status),
@@ -270,7 +273,7 @@ class _Planning503020AnalysisSheetState
             ),
             const SizedBox(height: 8),
             for (final item in reclassifications)
-              _ReclassificationTile(
+              ReclassificationTile(
                 item: item,
                 currentLabel: _allocationLabel(l10n, item.currentAllocation),
                 suggestedLabel: _allocationLabel(
@@ -312,265 +315,6 @@ class _Planning503020AnalysisSheetState
             const SizedBox(height: 8),
             _buildCacheInfo(context, l10n, theme),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _AllocationBar extends StatelessWidget {
-  final String label;
-  final Planning503020AnalysisGroup group;
-
-  const _AllocationBar({required this.label, required this.group});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final locale = context.locale;
-    final isOver = group.currentPct > group.targetPct;
-    final barColor = isOver ? AppColors.coralOrange : AppColors.limeGreen;
-
-    final deltaText = group.deltaBRL > 0
-        ? l10n.planningAnalysisAboveBy(
-            group.deltaBRL.asCurrency(locale: locale),
-          )
-        : group.deltaBRL < 0
-        ? l10n.planningAnalysisBelowBy(
-            (-group.deltaBRL).asCurrency(locale: locale),
-          )
-        : null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Text(
-              '${l10n.planningAnalysisCurrentPct((group.currentPct / 100).asPercent(locale: locale))} · '
-              '${l10n.planningAnalysisTargetPct((group.targetPct / 100).asPercent(locale: locale))}',
-              style: theme.textTheme.labelSmall,
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final maxWidth = constraints.maxWidth;
-            return Stack(
-              children: [
-                Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                Container(
-                  height: 12,
-                  width: maxWidth * (group.currentPct / 100).clamp(0.0, 1.0),
-                  decoration: BoxDecoration(
-                    color: barColor,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                Positioned(
-                  left: (maxWidth * (group.targetPct / 100)).clamp(
-                    0.0,
-                    maxWidth - 2,
-                  ),
-                  top: 0,
-                  bottom: 0,
-                  child: Container(width: 2, color: AppColors.darkNavy),
-                ),
-              ],
-            );
-          },
-        ),
-        if (deltaText != null) ...[
-          const SizedBox(height: 2),
-          Text(
-            deltaText,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: isOver ? AppColors.coralOrange : AppColors.vibrantTeal,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _CategoryTile extends StatelessWidget {
-  final Planning503020AnalysisCategory category;
-  final Color statusColor;
-  final String statusLabel;
-
-  const _CategoryTile({
-    required this.category,
-    required this.statusColor,
-    required this.statusLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-    final locale = context.locale;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  category.categoryName,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  statusLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            l10n.planningAnalysisIdealValue(
-              category.idealMonthlyAmount.asCurrency(locale: locale),
-              (category.idealPctOfIncome / 100).asPercent(locale: locale),
-            ),
-            style: theme.textTheme.bodySmall,
-          ),
-          if (category.savingTip != null) ...[
-            const SizedBox(height: 6),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(
-                  Icons.savings_outlined,
-                  size: 14,
-                  color: AppColors.antiqueGold,
-                ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    category.savingTip!,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ReclassificationTile extends StatelessWidget {
-  final Planning503020AnalysisCategory item;
-  final String currentLabel;
-  final String suggestedLabel;
-  final VoidCallback onApply;
-
-  const _ReclassificationTile({
-    required this.item,
-    required this.currentLabel,
-    required this.suggestedLabel,
-    required this.onApply,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.successGold.withValues(alpha: 0.08),
-        border: Border.all(color: AppColors.antiqueGold.withValues(alpha: 0.4)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            item.categoryName,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Text(currentLabel, style: theme.textTheme.labelSmall),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(Icons.arrow_forward, size: 14),
-              ),
-              Text(
-                suggestedLabel,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.deepTurquoise,
-                ),
-              ),
-            ],
-          ),
-          if (item.reason.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              item.reason,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: FilledButton.tonal(
-              onPressed: onApply,
-              style: FilledButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-              ),
-              child: Text(l10n.planningAnalysisApply),
-            ),
-          ),
         ],
       ),
     );

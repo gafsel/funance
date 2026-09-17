@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 
 part 'category_model.freezed.dart';
 
@@ -53,16 +54,13 @@ sealed class CategoryModel with _$CategoryModel {
   /// do l10n (ver `CategoryDisplayName.displayName`), não deste modelo.
   static const String othersId = 'others';
 
-  static const String virtualDebtExpenseId = 'virtual_debt_expense';
-  static const String virtualDebtIncomeId = 'virtual_debt_income';
-  static const String virtualInvestmentExpenseId = 'virtual_investment_expense';
-  static const String virtualInvestmentIncomeId = 'virtual_investment_income';
-
-  bool get isVirtual =>
-      id == virtualDebtExpenseId ||
-      id == virtualDebtIncomeId ||
-      id == virtualInvestmentExpenseId ||
-      id == virtualInvestmentIncomeId;
+  /// Categoria criada pelo servidor como contrapartida de uma transferência
+  /// (ver [VirtualCategory]).
+  ///
+  /// A regra é a MESMA do backend — prefixo `virtual_`, não uma lista de
+  /// quatro ids. Com a lista, uma categoria virtual nova publicada pelo
+  /// servidor apareceria nos seletores do app como se fosse do usuário.
+  bool get isVirtual => VirtualCategory.isVirtualId(id);
 
   /// Categoria que o usuário pode escolher ou editar num seletor da UI.
   /// Categorias de sistema e excluídas logicamente ficam de fora.

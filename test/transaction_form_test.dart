@@ -137,8 +137,9 @@ class _FakeFinanceRepository implements IFinanceRepository {
   @override
   Future<Written<OrderModel>> addOrder(
     String workspaceId,
-    OrderModel order,
-  ) async {
+    OrderModel order, {
+    String? documentId,
+  }) async {
     savedOrders.add(order);
     return (value: order, outcome: addOrderOutcome);
   }

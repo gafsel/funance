@@ -20,10 +20,16 @@ class _FakeClock {
 }
 
 /// Procura, no fuso local, um dia que não tenha 24h (entrada ou saída do
-/// horário de verão). Devolve null onde o fuso não pratica DST — o ambiente
-/// padrão deste projeto (America/Sao_Paulo) é um desses.
+/// horário de verão).
+///
+/// A janela começa em 2015 de propósito: varrendo só 2025–2028 este caso NUNCA
+/// executava em America/Sao_Paulo — o Brasil abandonou o horário de verão em
+/// 2019 — e a regressão de DST em `durationUntilNextMidnight` ficava sem
+/// asserção justamente no fuso do produto. De 2015 a 2018 há quatro viradas,
+/// e a função é a mesma em qualquer ano. Só um fuso que nunca praticou DST
+/// (UTC, por exemplo, num CI) continua pulando.
 DateTime? _findIrregularLocalDay() {
-  for (var day = DateTime(2025, 1, 1); day.year < 2028; day = day.addCalendarDays(1)) {
+  for (var day = DateTime(2015, 1, 1); day.year < 2028; day = day.addCalendarDays(1)) {
     final next = day.nextMidnight;
     if (next.difference(day) != const Duration(hours: 24)) {
       return day;
@@ -81,8 +87,9 @@ void main() {
       final irregularDay = _findIrregularLocalDay();
       if (irregularDay == null) {
         markTestSkipped(
-          'O fuso local não pratica horário de verão; a aritmética de '
-          'calendário está coberta pelos demais casos.',
+          'O fuso local nunca praticou horário de verão entre 2015 e 2028 '
+          '(um CI em UTC, por exemplo); a aritmética de calendário está '
+          'coberta pelos demais casos.',
         );
         return;
       }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 typedef ItemBuilder<T> = Widget Function(BuildContext context, T item);
 typedef SeparatorBuilder<T> =
@@ -148,7 +149,7 @@ class InfiniteListView<Q, T> extends ConsumerWidget {
 
         if (state.items.isEmpty && !showLoader) {
           return emptyStateBuilder?.call(context) ??
-              Center(child: Text(l10n.noRecordsFound));
+              EmptyState.message(l10n.noRecordsFound);
         }
 
         return const SizedBox.shrink();

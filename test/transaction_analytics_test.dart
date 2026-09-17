@@ -47,7 +47,10 @@ class FakeFinanceService extends FinanceService {
   final List<OrderModel> savedOrders = [];
 
   @override
-  Future<Written<OrderModel>> addOrder(OrderModel order) async {
+  Future<Written<OrderModel>> addOrder(
+    OrderModel order, {
+    String? documentId,
+  }) async {
     final saved = order.copyWith(id: 'order-salva');
     savedOrders.add(saved);
     return (value: saved, outcome: WriteOutcome.confirmed);

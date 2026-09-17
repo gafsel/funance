@@ -7,6 +7,7 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/finance/domain/repositories/finance_repository.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 
 class FinanceService {
@@ -22,9 +23,18 @@ class FinanceService {
     required this.categoryRepository,
   });
 
-  Future<Written<OrderModel>> addOrder(OrderModel order) async {
+  /// [documentId] força o id do documento; ver
+  /// `IFinanceRepository.addOrder`.
+  Future<Written<OrderModel>> addOrder(
+    OrderModel order, {
+    String? documentId,
+  }) async {
     final processedOrder = await _processVirtualCategory(order);
-    return await repository.addOrder(workspaceId, processedOrder);
+    return await repository.addOrder(
+      workspaceId,
+      processedOrder,
+      documentId: documentId,
+    );
   }
 
   Future<WriteOutcome> updateOrder(OrderModel order) async {
@@ -55,120 +65,64 @@ class FinanceService {
     return await accountRepository.getAccounts(workspaceId).first;
   }
 
+  /// Troca a categoria de uma transferência pela contrapartida virtual.
+  ///
+  /// Eram 118 linhas em três métodos: `_processVirtualCategory` (order),
+  /// `_processVirtualCategoryInstallment` (**cópia literal de 44 linhas**, só
+  /// trocando o tipo) e `_getVirtualCategoryForAccountType`, com a árvore de
+  /// decisão repetida nas duas primeiras. A regra agora mora em
+  /// [VirtualCategory.resolve], do lado do modelo, e este método só faz as
+  /// duas leituras e aplica.
+  Future<CategoryModel?> _virtualCategoryFor({
+    required OrderType type,
+    required String? accountIdSource,
+    required String? accountIdTarget,
+  }) async {
+    if (type != OrderType.transfer) return null;
+    if (accountIdSource == null && accountIdTarget == null) return null;
+
+    Future<AccountType?> typeOf(String? accountId) async {
+      if (accountId == null) return null;
+      return (await accountRepository.getAccount(workspaceId, accountId)).type;
+    }
+
+    final virtual = VirtualCategory.resolve(
+      source: await typeOf(accountIdSource),
+      target: await typeOf(accountIdTarget),
+    );
+
+    if (virtual == null) return null;
+
+    // A categoria virtual é um documento real em
+    // `workspaces/{wid}/categories`, semeado pelo servidor: o lançamento
+    // guarda uma cópia dela, e não um id solto.
+    return categoryRepository.getCategory(workspaceId, virtual.id);
+  }
+
   Future<OrderModel> _processVirtualCategory(OrderModel order) async {
-    if (order.type != OrderType.transfer) return order;
+    final virtualCategory = await _virtualCategoryFor(
+      type: order.type,
+      accountIdSource: order.accountIdSource,
+      accountIdTarget: order.accountIdTarget,
+    );
 
-    final sourceId = order.accountIdSource;
-    final targetId = order.accountIdTarget;
-
-    if (sourceId == null && targetId == null) return order;
-
-    AccountModel? sourceAccount;
-    AccountModel? targetAccount;
-
-    if (sourceId != null) {
-      sourceAccount = await accountRepository.getAccount(workspaceId, sourceId);
-    }
-
-    if (targetId != null) {
-      targetAccount = await accountRepository.getAccount(workspaceId, targetId);
-    }
-
-    CategoryModel? virtualCategory;
-
-    if (targetAccount != null &&
-        (targetAccount.type == AccountType.debt ||
-            targetAccount.type == AccountType.investment)) {
-      virtualCategory = await _getVirtualCategoryForAccountType(
-        targetAccount.type,
-        CategoryType.expense,
-      );
-    } else if (sourceAccount != null &&
-        (sourceAccount.type == AccountType.debt ||
-            sourceAccount.type == AccountType.investment)) {
-      virtualCategory = await _getVirtualCategoryForAccountType(
-        sourceAccount.type,
-        CategoryType.income,
-      );
-    }
-
-    if (virtualCategory != null) {
-      return order.copyWith(category: virtualCategory);
-    }
-
-    return order;
+    return virtualCategory == null
+        ? order
+        : order.copyWith(category: virtualCategory);
   }
 
   Future<InstallmentModel> _processVirtualCategoryInstallment(
     InstallmentModel installment,
   ) async {
-    if (installment.type != OrderType.transfer) return installment;
+    final virtualCategory = await _virtualCategoryFor(
+      type: installment.type,
+      accountIdSource: installment.accountIdSource,
+      accountIdTarget: installment.accountIdTarget,
+    );
 
-    final sourceId = installment.accountIdSource;
-    final targetId = installment.accountIdTarget;
-
-    if (sourceId == null && targetId == null) return installment;
-
-    AccountModel? sourceAccount;
-    AccountModel? targetAccount;
-
-    if (sourceId != null) {
-      sourceAccount = await accountRepository.getAccount(workspaceId, sourceId);
-    }
-
-    if (targetId != null) {
-      targetAccount = await accountRepository.getAccount(workspaceId, targetId);
-    }
-
-    CategoryModel? virtualCategory;
-
-    if (targetAccount != null &&
-        (targetAccount.type == AccountType.debt ||
-            targetAccount.type == AccountType.investment)) {
-      virtualCategory = await _getVirtualCategoryForAccountType(
-        targetAccount.type,
-        CategoryType.expense,
-      );
-    } else if (sourceAccount != null &&
-        (sourceAccount.type == AccountType.debt ||
-            sourceAccount.type == AccountType.investment)) {
-      virtualCategory = await _getVirtualCategoryForAccountType(
-        sourceAccount.type,
-        CategoryType.income,
-      );
-    }
-
-    if (virtualCategory != null) {
-      return installment.copyWith(category: virtualCategory);
-    }
-
-    return installment;
-  }
-
-  Future<CategoryModel> _getVirtualCategoryForAccountType(
-    AccountType type,
-    CategoryType categoryType,
-  ) async {
-    if (type == AccountType.debt) {
-      return categoryType == CategoryType.expense
-          ? await categoryRepository.getCategory(
-              workspaceId,
-              CategoryModel.virtualDebtExpenseId,
-            )
-          : await categoryRepository.getCategory(
-              workspaceId,
-              CategoryModel.virtualDebtIncomeId,
-            );
-    }
-    return categoryType == CategoryType.expense
-        ? await categoryRepository.getCategory(
-            workspaceId,
-            CategoryModel.virtualInvestmentExpenseId,
-          )
-        : await categoryRepository.getCategory(
-            workspaceId,
-            CategoryModel.virtualInvestmentIncomeId,
-          );
+    return virtualCategory == null
+        ? installment
+        : installment.copyWith(category: virtualCategory);
   }
 
   Future<void> cancelInstallment(

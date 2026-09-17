@@ -893,6 +893,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get categoryVirtualDebt => 'Loans & debt';
+
+  @override
+  String get categoryVirtualInvestment => 'Investments';
+
+  @override
+  String get categoryInitialBalance => 'Initial balance';
+
+  @override
   String get categoryOthers => 'Others';
 
   @override
@@ -950,6 +959,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactionNewTitle => 'New transaction';
+
+  @override
+  String get planning503020IdealLabel => 'Ideal';
+
+  @override
+  String get planning503020MonthlyLimitLabel => 'Monthly Limit';
 
   @override
   String get planning503020AlreadyPlanned => 'Already planned:';

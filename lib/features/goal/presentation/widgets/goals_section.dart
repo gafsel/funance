@@ -11,6 +11,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 
 /// Seção de metas da Jornada.
 ///
@@ -107,37 +108,16 @@ class GoalsSection extends ConsumerWidget {
     AppLocalizations l10n,
     ThemeData theme,
   ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          children: [
-            const Icon(
-              Icons.flag_outlined,
-              size: 64,
-              color: AppColors.vibrantTeal,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              l10n.goalEmptyMessage,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              l10n.goalEmptyExample,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _showAddGoalDialog(context),
-              icon: const Icon(Icons.add),
-              label: Text(l10n.addGoalButton),
-            ),
-          ],
-        ),
+    return EmptyState.centered(
+      icon: Icons.flag_outlined,
+      iconColor: AppColors.vibrantTeal,
+      title: l10n.goalEmptyMessage,
+      message: l10n.goalEmptyExample,
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      action: ElevatedButton.icon(
+        onPressed: () => _showAddGoalDialog(context),
+        icon: const Icon(Icons.add),
+        label: Text(l10n.addGoalButton),
       ),
     );
   }

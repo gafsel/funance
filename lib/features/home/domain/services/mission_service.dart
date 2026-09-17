@@ -6,6 +6,7 @@ import 'package:funances/features/home/domain/models/mission_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/core/time/clock.dart';
+import 'package:funances/core/time/product_week.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/money/money.dart';
@@ -33,6 +34,26 @@ class MissionService {
     Clock? now,
   }) : now = now ?? DateTime.now;
 
+  /// O realizado respeitou o planejado da categoria?
+  ///
+  /// Era o ÚLTIMO ponto do checklist a comparar dinheiro em `double`, com uma
+  /// tolerância de um centavo — contra todo o resto do app já migrado para
+  /// centavos inteiros. A tolerância nunca descreveu regra nenhuma: era o
+  /// medo do resto do ponto flutuante, e em [Money] a comparação é exata.
+  ///
+  /// Numa categoria de DESPESA, aderir é não passar do planejado; numa de
+  /// RECEITA, é alcançá-lo.
+  static bool isAdherentTo({
+    required CategoryType type,
+    required double actualAmount,
+    required double plannedAmount,
+  }) {
+    final actual = actualAmount.asMoney;
+    final planned = plannedAmount.asMoney;
+
+    return type == CategoryType.expense ? actual <= planned : actual >= planned;
+  }
+
   /// Semana corrente (domingo a sábado) que contém [reference].
   ///
   /// Os limites andam por calendário: somar `Duration(days: n)` são 24h
@@ -40,11 +61,7 @@ class MissionService {
   /// ou sai, deixando de fora (ou incluindo a mais) os lançamentos da última
   /// hora do sábado.
   static ({DateTime start, DateTime end}) weekWindow(DateTime reference) {
-    final start = DateTime(
-      reference.year,
-      reference.month,
-      reference.day,
-    ).addCalendarDays(-(reference.weekday % 7));
+    final start = ProductWeek.startOf(reference);
 
     return (
       start: start,
@@ -58,8 +75,8 @@ class MissionService {
     final (start: startOfWeek, end: endOfWeek) = weekWindow(now);
 
     // Determinar semana e ano para o summary semanal
-    final weekNumber = _getWeekNumber(startOfWeek);
-    final weekYear = _getWeekYear(startOfWeek);
+    final weekNumber = ProductWeek.numberOf(startOfWeek);
+    final weekYear = ProductWeek.yearOf(startOfWeek);
 
     final weeklySummariesStream = summaryService.watchWeek(
       weekYear,
@@ -110,15 +127,11 @@ class MissionService {
             .firstOrNull;
 
         if (category != null) {
-          if (category.type == CategoryType.expense) {
-            if (summary.actualAmount > (summary.generalPlannedAmount + 0.01)) {
-              isAdherent = false;
-            }
-          } else {
-            if (summary.actualAmount < (summary.generalPlannedAmount - 0.01)) {
-              isAdherent = false;
-            }
-          }
+          isAdherent = isAdherentTo(
+            type: category.type,
+            actualAmount: summary.actualAmount,
+            plannedAmount: summary.generalPlannedAmount,
+          );
 
           // Lógica de HP e Status do Desafio
           double hp = 1.0;
@@ -285,27 +298,5 @@ class MissionService {
 
   Future<MissionModel> getFullMissionModel() async {
     return watchMissions().first;
-  }
-
-  // Métodos auxiliares de data (iguais aos do TS) para garantir consistência.
-  //
-  // De propósito ainda em aritmética de 24h e duplicados com o backend: o
-  // servidor está unificando a identidade da semana e o cliente vai passar a
-  // ler `currentWeekId` do workspace, em outro pacote. Mexer aqui agora só
-  // criaria uma terceira definição para depois jogar fora.
-  int _getWeekNumber(DateTime d) {
-    final date = DateTime(d.year, d.month, d.day);
-    // Ajusta para o domingo mais próximo (início da semana)
-    final sunday = date.subtract(Duration(days: date.weekday % 7));
-    final firstDayOfYear = DateTime(sunday.year, 1, 1);
-    final days = sunday.difference(firstDayOfYear).inDays;
-    return (days / 7).floor() + 1;
-  }
-
-  int _getWeekYear(DateTime d) {
-    final date = DateTime(d.year, d.month, d.day);
-    // Ajusta para o domingo mais próximo
-    final sunday = date.subtract(Duration(days: date.weekday % 7));
-    return sunday.year;
   }
 }

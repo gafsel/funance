@@ -177,12 +177,18 @@ sealed class GoalModel with _$GoalModel {
   factory GoalModel.fromJson(Map<String, dynamic> json) =>
       _$GoalModelFromJson(json);
 
-  GoalProgress calculateProgress() {
+  /// Onde a meta está: quanto do alvo já foi feito, quanto do prazo já
+  /// passou, e se isso é bom.
+  ///
+  /// [now] existe para o teste: sem ele não havia como exercitar a escada
+  /// `onTrack`/`atRisk`/`behind`/`lost`, que depende inteiramente de quanto
+  /// do prazo já correu. Em produção ninguém passa nada.
+  GoalProgress calculateProgress({DateTime? now}) {
     final double percent;
     final GoalStatus status;
     final bool isLost;
 
-    final now = DateTime.now();
+    now ??= DateTime.now();
     final totalDuration = deadline.difference(startDate).inDays;
     final elapsedDuration = now.difference(startDate).inDays;
     final timePercent = totalDuration > 0
@@ -190,7 +196,13 @@ sealed class GoalModel with _$GoalModel {
         : 1.0;
 
     if (type == GoalType.saveMoney || type == GoalType.payDebt) {
-      percent = (currentAmount / targetAmount).clamp(0.0, 1.0);
+      // Alvo zero não é uma meta: `0 / 0` é NaN, e o NaN ATRAVESSA o `clamp`
+      // (que só limita números), chega na barra de progresso e a faz explodir
+      // — ou desaparecer, dependendo da plataforma. Sem alvo, não há o que
+      // alcançar: a meta está cumprida.
+      percent = targetAmount > 0
+          ? (currentAmount / targetAmount).clamp(0.0, 1.0)
+          : 1.0;
 
       isLost =
           percent < timePercent * 0.5 &&
@@ -211,7 +223,12 @@ sealed class GoalModel with _$GoalModel {
       // Redução de gastos
       final currentSpending = currentAmount;
 
-      percent = (currentSpending / targetAmount).clamp(0.0, 1.0);
+      // Teto zero quer dizer "não gastar nada": qualquer gasto já é o teto
+      // inteiro, e gasto nenhum é zero por cento. A divisão continuaria
+      // devolvendo NaN ou infinito.
+      percent = targetAmount > 0
+          ? (currentSpending / targetAmount).clamp(0.0, 1.0)
+          : (currentSpending > 0 ? 1.0 : 0.0);
 
       if (currentSpending > targetAmount) {
         status = GoalStatus.lost;

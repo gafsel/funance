@@ -324,6 +324,9 @@
   "categoryTypeExpense": "Expense",
   "categoryDeleteTitle": "Delete Category",
   "categoryDeleteConfirm": "Are you sure you want to delete the category \"{name}\"?",
+  "categoryVirtualDebt": "Loans & debt",
+  "categoryVirtualInvestment": "Investments",
+  "categoryInitialBalance": "Initial balance",
   "categoryOthers": "Others",
   "@categoryDeleteConfirm": {
     "placeholders": {
@@ -363,6 +366,8 @@
   "accountOwnersLabel": "Account owners",
   "reconciliationPickTransaction": "Pick a transaction",
   "transactionNewTitle": "New transaction",
+  "planning503020IdealLabel": "Ideal",
+  "planning503020MonthlyLimitLabel": "Monthly Limit",
   "planning503020AlreadyPlanned": "Already planned:",
   "loginTermsNotice": "By signing in, you agree to our Terms of Service and Privacy Policy.",
   "inviteEmailHint": "name@example.com",
