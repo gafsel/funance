@@ -174,6 +174,40 @@ class AppLocalizationsPt extends AppLocalizations {
       'Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.';
 
   @override
+  String get errorSignInPopupBlocked =>
+      'Seu navegador bloqueou a janela do Google. Liberamos o login nesta mesma aba — se nada acontecer, permita pop-ups para este site e tente de novo.';
+
+  @override
+  String get errorSignInCancelled => 'Login cancelado.';
+
+  @override
+  String get errorSignInRedirecting => 'Redirecionando para o Google...';
+
+  @override
+  String get errorSignInUnauthorizedDomain =>
+      'Este endereço não está autorizado a fazer login. Adicione o domínio em Authentication > Settings > Authorized domains no Firebase Console.';
+
+  @override
+  String get errorAccountExistsWithDifferentCredential =>
+      'Já existe uma conta com este e-mail criada por outro método. Entre com e-mail e senha.';
+
+  @override
+  String get errorSignInProviderDisabled =>
+      'Este método de login está desativado no projeto. Habilite-o em Authentication > Sign-in method.';
+
+  @override
+  String get offlineBannerOffline =>
+      'Sem conexão. Você continua vendo e editando; sincronizamos quando a rede voltar.';
+
+  @override
+  String get offlineBannerPending =>
+      'Salvo neste aparelho. Sincronizando com a nuvem...';
+
+  @override
+  String get errorOfflineCallable =>
+      'Esta ação precisa de internet. Reconecte e tente de novo.';
+
+  @override
   String get onboardingWelcomeTitle => 'Boas-vindas ao Funances!';
 
   @override

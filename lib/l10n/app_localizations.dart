@@ -404,6 +404,60 @@ abstract class AppLocalizations {
   /// **'Erro de configuração no login com Google. Verifique se a chave SHA-1 foi adicionada ao Firebase Console.'**
   String get errorGoogleSignInConfig;
 
+  /// No description provided for @errorSignInPopupBlocked.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu navegador bloqueou a janela do Google. Liberamos o login nesta mesma aba — se nada acontecer, permita pop-ups para este site e tente de novo.'**
+  String get errorSignInPopupBlocked;
+
+  /// No description provided for @errorSignInCancelled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Login cancelado.'**
+  String get errorSignInCancelled;
+
+  /// No description provided for @errorSignInRedirecting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Redirecionando para o Google...'**
+  String get errorSignInRedirecting;
+
+  /// No description provided for @errorSignInUnauthorizedDomain.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este endereço não está autorizado a fazer login. Adicione o domínio em Authentication > Settings > Authorized domains no Firebase Console.'**
+  String get errorSignInUnauthorizedDomain;
+
+  /// No description provided for @errorAccountExistsWithDifferentCredential.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já existe uma conta com este e-mail criada por outro método. Entre com e-mail e senha.'**
+  String get errorAccountExistsWithDifferentCredential;
+
+  /// No description provided for @errorSignInProviderDisabled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este método de login está desativado no projeto. Habilite-o em Authentication > Sign-in method.'**
+  String get errorSignInProviderDisabled;
+
+  /// No description provided for @offlineBannerOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão. Você continua vendo e editando; sincronizamos quando a rede voltar.'**
+  String get offlineBannerOffline;
+
+  /// No description provided for @offlineBannerPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Salvo neste aparelho. Sincronizando com a nuvem...'**
+  String get offlineBannerPending;
+
+  /// No description provided for @errorOfflineCallable.
+  ///
+  /// In pt, this message translates to:
+  /// **'Esta ação precisa de internet. Reconecte e tente de novo.'**
+  String get errorOfflineCallable;
+
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In pt, this message translates to:
