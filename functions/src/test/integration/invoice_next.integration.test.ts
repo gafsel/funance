@@ -36,6 +36,8 @@ import { InvoiceService } from "../../features/finance/domain/services/invoice.s
 const WORKSPACE_ID = `ws-invoice-${Date.now()}`;
 const CARD_ID = "acc-cartao";
 const CHECKING_ID = "acc-corrente";
+/** Cartão à parte, para os testes de id de order (legado vs canônico). */
+const LEGACY_CARD_ID = "acc-cartao-legado";
 
 /** Fechamento dia 5, vencimento dia 10. */
 const CLOSING_DAY = 5;
@@ -128,6 +130,8 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
 
         await firestore.doc(`workspaces/${WORKSPACE_ID}/accounts/${CARD_ID}`).set(card);
         await firestore.doc(`workspaces/${WORKSPACE_ID}/accounts/${CHECKING_ID}`).set(checking);
+        await firestore.doc(`workspaces/${WORKSPACE_ID}/accounts/${LEGACY_CARD_ID}`)
+            .set({ ...card, name: "Cartão Legado" });
         await firestore.doc(`workspaces/${WORKSPACE_ID}/categories/${CATEGORY.id}`).set(CATEGORY);
     });
 
@@ -280,7 +284,83 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
         expect(next!.installmentId).toBeNull();
         expect(next!.amount).toBe(0);
         expect(next!.status).toBe(InstallmentStatus.pending);
-        expect(next!.dueDate.getTime()).toBeGreaterThan(new Date(Date.UTC(2025, 2, 10, 15, 0, 0)).getTime());
+
+        // O caminho real (`processInvoiceUpdate`) usa o relógio de produção, e
+        // sobre ele só dá para afirmar "avançou". A DATA exata é conferida
+        // repetindo a sincronização com o relógio injetado: 11/03, um dia
+        // depois do vencimento pago, tem de apontar para 10/04.
+        await invoiceSync.syncNextInvoice(
+            WORKSPACE_ID,
+            CARD_ID,
+            null,
+            new Date(Date.UTC(2025, 2, 11, 15, 0, 0))
+        );
+
+        const exact = await readNextInvoice();
+        expect(toDateKey(exact!.dueDate)).toBe("2025-04-10");
+        expect(toDateKey(exact!.closingDate)).toBe("2025-04-05");
+        expect(toDateKey(exact!.cycleStart)).toBe("2025-03-05");
+        expect(toDateKey(exact!.cycleEnd)).toBe("2025-04-04");
+        expect(exact!.orderId).toBe(`invoice-${CARD_ID}-2025-04-10`);
+        expect(exact!.installmentId).toBeNull();
+        expect(exact!.amount).toBe(0);
+    });
+
+    it("soma na order de fatura LEGADA quando os ids divergem", async () => {
+        // O id canônico usa o dia no fuso do produto; o legado usava o dia em
+        // UTC. Um vencimento às 23h de São Paulo já é o dia seguinte em UTC:
+        // 10/03 canônico, 11/03 legado.
+        const dueDate = new Date(Date.UTC(2025, 2, 11, 2, 0, 0));
+        const legacyId = `invoice-${LEGACY_CARD_ID}-2025-03-11`;
+        const canonicalId = `invoice-${LEGACY_CARD_ID}-2025-03-10`;
+
+        expect(InvoiceService.invoiceOrderId(LEGACY_CARD_ID, dueDate)).toBe(canonicalId);
+        expect(InvoiceService.legacyInvoiceOrderId(LEGACY_CARD_ID, dueDate)).toBe(legacyId);
+
+        // Só a order LEGADA existe, como numa base gravada antes de F1.8.
+        await firestore.doc(`workspaces/${WORKSPACE_ID}/orders/${legacyId}`).set({
+            amount: 200,
+            dueDay: 11,
+            description: "Fatura Cartão Legado",
+            startMonth: "2025-03",
+            endMonth: "2025-03",
+            installmentType: InstallmentType.single,
+            status: "active",
+            type: OrderType.transfer,
+            accountIds: [LEGACY_CARD_ID],
+            accounts: { [LEGACY_CARD_ID]: "credit" },
+            isInvoice: true,
+        });
+
+        const legacyCard = await repository.getAccountById(WORKSPACE_ID, LEGACY_CARD_ID);
+        await repository.updateInvoiceWithDelta(WORKSPACE_ID, legacyCard!, dueDate, 50);
+
+        // O delta foi para a order que já existia...
+        const legacy = await firestore.doc(`workspaces/${WORKSPACE_ID}/orders/${legacyId}`).get();
+        expect(legacy.data()?.amount).toBeCloseTo(250, 2);
+        // ...e a canônica NÃO foi criada ao lado: seriam duas faturas do mesmo mês.
+        const canonical = await firestore.doc(`workspaces/${WORKSPACE_ID}/orders/${canonicalId}`).get();
+        expect(canonical.exists).toBe(false);
+
+        // A janela do ciclo é gravada na order legada do mesmo jeito.
+        expect(legacy.data()?.cycleStart).toBeDefined();
+        expect(legacy.data()?.cycleEnd).toBeDefined();
+    });
+
+    it("usa o id canônico quando a order de fatura ainda não existe", async () => {
+        const dueDate = new Date(Date.UTC(2025, 5, 11, 2, 0, 0));
+        const canonicalId = `invoice-${LEGACY_CARD_ID}-2025-06-10`;
+
+        const legacyCard = await repository.getAccountById(WORKSPACE_ID, LEGACY_CARD_ID);
+        await repository.updateInvoiceWithDelta(WORKSPACE_ID, legacyCard!, dueDate, 75);
+
+        const canonical = await firestore.doc(`workspaces/${WORKSPACE_ID}/orders/${canonicalId}`).get();
+        expect(canonical.data()?.amount).toBeCloseTo(75, 2);
+
+        const legacy = await firestore
+            .doc(`workspaces/${WORKSPACE_ID}/orders/invoice-${LEGACY_CARD_ID}-2025-06-11`)
+            .get();
+        expect(legacy.exists).toBe(false);
     });
 
     it("o cron avança o vencimento vencido e deixa o cartão em dia quieto", async () => {
@@ -300,16 +380,20 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
         const now = new Date(Date.UTC(2025, 3, 15, 15, 0, 0)); // 15/04/2025
         const result = await invoiceSync.syncWorkspace(WORKSPACE_ID, now);
 
-        expect(result.scanned).toBe(1);
-        expect(result.updated).toBe(1);
+        // Dois cartões no workspace: o do fluxo e o dos testes de id de order.
+        // Os dois entram desatualizados — um com o vencimento vencido, o outro
+        // sem resumo nenhum (nenhum gatilho roda no emulador).
+        expect(result.scanned).toBe(2);
+        expect(result.updated).toBe(2);
 
         const next = await readNextInvoice();
         expect(toDateKey(next!.dueDate)).toBe("2025-05-10");
         expect(toDateKey(next!.cycleStart)).toBe("2025-04-05");
         expect(toDateKey(next!.cycleEnd)).toBe("2025-05-04");
 
-        // Segunda passagem no mesmo instante: nada a fazer.
-        expect(await invoiceSync.syncWorkspace(WORKSPACE_ID, now)).toEqual({ scanned: 1, updated: 0 });
+        // Segunda passagem no mesmo instante: os dois estão em dia e o cron não
+        // escreve nada — é essa quietude que impede o gatilho de se realimentar.
+        expect(await invoiceSync.syncWorkspace(WORKSPACE_ID, now)).toEqual({ scanned: 2, updated: 0 });
     });
 
     it("cartão apagado logicamente perde o resumo", async () => {
