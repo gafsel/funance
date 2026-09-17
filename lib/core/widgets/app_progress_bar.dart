@@ -160,6 +160,13 @@ class PoolSegment {
   /// Quanto do total este pool ocupa, de 0 a 1.
   final double fraction;
   final Color color;
+
+  /// O que escrever DENTRO do segmento — na prática, a porcentagem real.
+  ///
+  /// Só aparece quando o segmento é largo o bastante para caber
+  /// ([AppPoolBar.labelThreshold]); abaixo disso vira um "3%" cortado ao
+  /// meio, que é pior do que não ter rótulo. Independente disso, o rótulo
+  /// entra sempre na descrição para leitor de tela.
   final String? label;
 }
 
@@ -201,6 +208,21 @@ class AppPoolBar extends StatelessWidget {
   final double gap;
   final String? semanticLabel;
 
+  /// A partir de quanto do trilho um segmento carrega o próprio rótulo.
+  ///
+  /// A barra antiga do 50/30/20 escrevia a porcentagem real dentro de cada
+  /// faixa, e era a única forma de ler "gastei 62% no essencial" sem abrir a
+  /// tela de detalhe — a legenda embaixo mostra o alvo (50/30/20), não o que
+  /// aconteceu. A migração para este componente perdeu esse rótulo, e com ele
+  /// o sentido do cartão.
+  ///
+  /// Ele volta com um piso: a 15% do trilho, numa barra de 16px de altura, um
+  /// rótulo de 11px cabe com folga em qualquer largura de celular. Abaixo
+  /// disso ele seria elidido ou vazaria para o segmento vizinho, e um número
+  /// pela metade mente mais do que a ausência dele. O dado nunca se perde:
+  /// quem usa leitor de tela ouve todas as faixas, largas ou não.
+  static const double labelThreshold = 0.15;
+
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
@@ -212,8 +234,13 @@ class AppPoolBar extends StatelessWidget {
         .where((s) => s.fraction.isFinite && s.fraction > 0)
         .toList(growable: false);
 
+    final spoken = <String>[
+      ?semanticLabel,
+      for (final s in visible) ?s.label,
+    ].join(', ');
+
     return Semantics(
-      label: semanticLabel,
+      label: spoken.isEmpty ? null : spoken,
       child: ClipRRect(
         borderRadius: AppRadius.brXs,
         child: SizedBox(
@@ -227,7 +254,10 @@ class AppPoolBar extends StatelessWidget {
                     for (var i = 0; i < visible.length; i++) ...[
                       Expanded(
                         flex: (visible[i].fraction * 1000).round(),
-                        child: ColoredBox(color: visible[i].color),
+                        child: ColoredBox(
+                          color: visible[i].color,
+                          child: _label(context, visible[i]),
+                        ),
                       ),
                       if (i < visible.length - 1) SizedBox(width: gap),
                     ],
@@ -241,6 +271,30 @@ class AppPoolBar extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  /// O rótulo dentro do segmento, quando ele couber.
+  ///
+  /// A tinta sai da luminância da própria faixa: `pool30` é um âmbar claro e
+  /// `pool50` um teal escuro, e uma cor fixa deixaria uma das duas ilegível.
+  Widget _label(BuildContext context, PoolSegment segment) {
+    final label = segment.label;
+    if (label == null || segment.fraction < labelThreshold) {
+      return const SizedBox.shrink();
+    }
+
+    return Center(
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.clip,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: segment.color.computeLuminance() < 0.5
+              ? AppColors.inkInverse
+              : AppColors.inkLight,
         ),
       ),
     );

@@ -1674,6 +1674,15 @@ class AppLocalizationsPt extends AppLocalizations {
   String get coachingReviewTips => 'Rever Dicas';
 
   @override
+  String get coachingTypeWarning => 'Alerta';
+
+  @override
+  String get coachingTypeTip => 'Dica';
+
+  @override
+  String get coachingTypeInsight => 'Insight';
+
+  @override
   String get weeklyMissionsTitle => 'Missões Semanais';
 
   @override

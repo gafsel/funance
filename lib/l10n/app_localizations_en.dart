@@ -1660,6 +1660,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachingReviewTips => 'Review Tips';
 
   @override
+  String get coachingTypeWarning => 'Alert';
+
+  @override
+  String get coachingTypeTip => 'Tip';
+
+  @override
+  String get coachingTypeInsight => 'Insight';
+
+  @override
   String get weeklyMissionsTitle => 'Weekly Missions';
 
   @override

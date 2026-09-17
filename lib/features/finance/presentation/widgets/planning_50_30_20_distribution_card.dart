@@ -139,6 +139,15 @@ class _DistributionBar extends StatelessWidget {
     // é a mesma cor esmaecida, para que o real leia como o que já aconteceu.
     final alpha = isPlanned ? 0.4 : 1.0;
 
+    // A porcentagem REAL vai dentro da faixa — é o que responde "estou
+    // gastando quanto no essencial?", e a legenda embaixo só mostra o alvo.
+    // Só a barra do real a carrega: a do planejado está a 40% de opacidade
+    // sobre o papel, e nenhum texto passa no contraste ali.
+    final percent = isPlanned || total <= 0
+        ? null
+        : NumberFormat.percentPattern(context.locale);
+    String? labelFor(double value) => percent?.format(value / total);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -170,14 +179,17 @@ class _DistributionBar extends StatelessWidget {
                   PoolSegment(
                     fraction: essential / total,
                     color: AppColors.pool50.withValues(alpha: alpha),
+                    label: labelFor(essential),
                   ),
                   PoolSegment(
                     fraction: comfort / total,
                     color: AppColors.pool30.withValues(alpha: alpha),
+                    label: labelFor(comfort),
                   ),
                   PoolSegment(
                     fraction: investment / total,
                     color: AppColors.pool20.withValues(alpha: alpha),
+                    label: labelFor(investment),
                   ),
                 ],
         ),

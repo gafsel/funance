@@ -3110,6 +3110,24 @@ abstract class AppLocalizations {
   /// **'Rever Dicas'**
   String get coachingReviewTips;
 
+  /// No description provided for @coachingTypeWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'Alerta'**
+  String get coachingTypeWarning;
+
+  /// No description provided for @coachingTypeTip.
+  ///
+  /// In pt, this message translates to:
+  /// **'Dica'**
+  String get coachingTypeTip;
+
+  /// No description provided for @coachingTypeInsight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Insight'**
+  String get coachingTypeInsight;
+
   /// No description provided for @weeklyMissionsTitle.
   ///
   /// In pt, this message translates to:
