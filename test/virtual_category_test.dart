@@ -61,8 +61,9 @@ class _LancamentosFake with _NaoUsado implements IFinanceRepository {
   @override
   Future<Written<OrderModel>> addOrder(
     String workspaceId,
-    OrderModel order,
-  ) async {
+    OrderModel order, {
+    String? documentId,
+  }) async {
     ordemGravada = order;
     return (value: order, outcome: WriteOutcome.confirmed);
   }

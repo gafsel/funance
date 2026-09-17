@@ -23,9 +23,18 @@ class FinanceService {
     required this.categoryRepository,
   });
 
-  Future<Written<OrderModel>> addOrder(OrderModel order) async {
+  /// [documentId] força o id do documento; ver
+  /// `IFinanceRepository.addOrder`.
+  Future<Written<OrderModel>> addOrder(
+    OrderModel order, {
+    String? documentId,
+  }) async {
     final processedOrder = await _processVirtualCategory(order);
-    return await repository.addOrder(workspaceId, processedOrder);
+    return await repository.addOrder(
+      workspaceId,
+      processedOrder,
+      documentId: documentId,
+    );
   }
 
   Future<WriteOutcome> updateOrder(OrderModel order) async {

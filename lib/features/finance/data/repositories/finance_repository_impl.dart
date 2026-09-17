@@ -159,15 +159,20 @@ class FinanceRepositoryImpl implements IFinanceRepository {
   @override
   Future<Written<OrderModel>> addOrder(
     String workspaceId,
-    OrderModel order,
-  ) async {
+    OrderModel order, {
+    String? documentId,
+  }) async {
     try {
       final data = order.toJson();
       data.remove('id');
       // `doc()` sem argumento gera o id localmente, sem ida ao servidor; o
       // `add()` que havia aqui só devolvia a referência depois que o servidor
       // respondia, e offline isso nunca acontecia.
-      final doc = _getWorkspaceDoc(workspaceId).collection('orders').doc();
+      //
+      // Com `documentId`, o id vem de quem chamou — é a conciliação, que o
+      // deriva da linha do extrato para ser idempotente no retry.
+      final orders = _getWorkspaceDoc(workspaceId).collection('orders');
+      final doc = documentId == null ? orders.doc() : orders.doc(documentId);
       final WriteOutcome outcome = await settleWrite(
         doc.set(data),
         entity: WriteEntity.transaction,

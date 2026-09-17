@@ -9,6 +9,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:uuid/uuid.dart';
 import 'finance_service.dart';
+import 'reconciliation_ids.dart';
 import 'package:funances/core/money/money.dart';
 
 class ReconciliationService {
@@ -404,7 +405,13 @@ class ReconciliationService {
           accounts: accounts,
         );
 
-        await financeService.addOrder(order);
+        // Id derivado da LINHA do extrato: um retry (duplo toque, escrita
+        // offline reenviada) sobrescreve o mesmo documento em vez de criar
+        // um lançamento duplicado.
+        await financeService.addOrder(
+          order,
+          documentId: ReconciliationIds.orderIdFor(selectedAccount.id, docTx),
+        );
       }
     }
 
@@ -431,7 +438,11 @@ class ReconciliationService {
       }
     }
 
-    final recId = const Uuid().v4();
+    // O resumo alimenta o gatilho de XP no servidor. Com `Uuid().v4()` a
+    // cada chamada, confirmar duas vezes o mesmo extrato criava DOIS
+    // documentos e pagava XP duas vezes; com o id derivado do conteúdo, a
+    // segunda confirmação é uma sobrescrita.
+    final recId = ReconciliationIds.summaryIdFor(selectedAccount.id, matches);
     await repository.saveReconciliationSummary(
       workspaceId,
       recId,
