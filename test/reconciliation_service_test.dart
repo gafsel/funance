@@ -235,6 +235,12 @@ _montar({
   );
 }
 
+/// O id de uma linha SOZINHA num extrato — a primeira (e única) ocorrência.
+String _idDe(ReconciliationTransaction linha, {String conta = 'acc-1'}) =>
+    ReconciliationIds.orderIdsFor(conta, [
+      ReconciliationMatch(documentTransaction: linha),
+    ]).single!;
+
 Future<List<ReconciliationMatch>> _ler(
   ReconciliationService servico,
 ) => servico.loadMatchesForDocument(
@@ -382,10 +388,7 @@ void main() {
       expect(ambiente.lancamentos.chamadasDeAddOrder, 2);
       // Duas chamadas, UM documento: a segunda sobrescreveu a primeira.
       expect(ambiente.lancamentos.ordersPorId, hasLength(1));
-      expect(
-        ambiente.lancamentos.ordersPorId.keys.single,
-        ReconciliationIds.orderIdFor('acc-1', linha),
-      );
+      expect(ambiente.lancamentos.ordersPorId.keys.single, _idDe(linha));
     });
 
     test('confirmar DUAS vezes não grava dois resumos (XP em dobro)', () async {
@@ -423,13 +426,109 @@ void main() {
       expect(ambiente.lancamentos.ordersPorId, hasLength(3));
     });
 
+    test('DUAS LINHAS IDÊNTICAS no mesmo extrato são dois lançamentos', () async {
+      // Dois cafés de R$ 5 no mesmo dia, mesma descrição, mesmo tipo: o
+      // extrato traz duas linhas com a MESMA chave de conteúdo. Com o id
+      // derivado só do conteúdo, o segundo `set` sobrescrevia o primeiro — o
+      // usuário confirmava dois gastos e via um só, enquanto o resumo dizia
+      // que tinha criado dois.
+      final cafe = _linha(descricao: 'CAFETERIA', valor: 5, dia: 7);
+      final ambiente = _montar();
+
+      await ambiente.servico.confirmReconciliation(
+        selectedAccount: _conta,
+        matches: [semPar(cafe), semPar(cafe)],
+        uncategorizedLabel: 'Outros',
+      );
+
+      expect(ambiente.lancamentos.chamadasDeAddOrder, 2);
+      expect(ambiente.lancamentos.ordersPorId, hasLength(2));
+      // E o contador do resumo concorda com o que foi gravado.
+      expect(ambiente.resumos.porId.values.single.criados, 2);
+    });
+
+    test('reconfirmar o extrato com linhas idênticas continua com dois',
+        () async {
+      final cafe = _linha(descricao: 'CAFETERIA', valor: 5, dia: 7);
+      final ambiente = _montar();
+
+      for (var tentativa = 0; tentativa < 2; tentativa++) {
+        await ambiente.servico.confirmReconciliation(
+          selectedAccount: _conta,
+          matches: [semPar(cafe), semPar(cafe)],
+          uncategorizedLabel: 'Outros',
+        );
+      }
+
+      expect(ambiente.lancamentos.chamadasDeAddOrder, 4);
+      // Quatro chamadas, DOIS documentos: a idempotência continua de pé.
+      expect(ambiente.lancamentos.ordersPorId, hasLength(2));
+    });
+
+    test('os ids das linhas idênticas são estáveis entre execuções', () {
+      final cafe = _linha(descricao: 'CAFETERIA', valor: 5, dia: 7);
+      final extrato = [semPar(cafe), semPar(cafe), semPar(cafe)];
+
+      final primeira = ReconciliationIds.orderIdsFor('acc-1', extrato);
+      final segunda = ReconciliationIds.orderIdsFor('acc-1', extrato);
+
+      expect(primeira, segunda);
+      // Três linhas iguais, três ids distintos, na ordem.
+      expect(primeira.toSet(), hasLength(3));
+    });
+
+    test('marcar uma das linhas idênticas como ignorada não renumera as outras',
+        () {
+      // A contagem de ocorrência passa por TODAS as linhas de extrato, e não
+      // só pelas que viram lançamento: se ela dependesse do status, ignorar a
+      // primeira mudaria o id da segunda e o retry duplicaria.
+      final cafe = _linha(descricao: 'CAFETERIA', valor: 5, dia: 7);
+
+      final todas = ReconciliationIds.orderIdsFor('acc-1', [
+        semPar(cafe),
+        semPar(cafe),
+      ]);
+      final comUmaIgnorada = ReconciliationIds.orderIdsFor('acc-1', [
+        ReconciliationMatch(
+          documentTransaction: cafe,
+          status: ReconciliationMatchStatus.ignored,
+        ),
+        semPar(cafe),
+      ]);
+
+      expect(comUmaIgnorada, todas);
+    });
+
+    test('uma linha só do SISTEMA não consome número de ocorrência', () {
+      final cafe = _linha(descricao: 'CAFETERIA', valor: 5, dia: 7);
+
+      final ids = ReconciliationIds.orderIdsFor('acc-1', [
+        ReconciliationMatch(
+          systemInstallment: _parcela(id: 'i1', valor: 99, dia: 2),
+        ),
+        semPar(cafe),
+      ]);
+
+      expect(ids.first, isNull);
+      expect(ids.last, _idDe(cafe));
+    });
+
+    test('extratos com uma e com duas linhas iguais têm resumos diferentes',
+        () {
+      final cafe = _linha(descricao: 'CAFETERIA', valor: 5, dia: 7);
+
+      expect(
+        ReconciliationIds.summaryIdFor('acc-1', [semPar(cafe)]),
+        isNot(
+          ReconciliationIds.summaryIdFor('acc-1', [semPar(cafe), semPar(cafe)]),
+        ),
+      );
+    });
+
     test('a mesma linha em CONTAS diferentes são lançamentos diferentes', () {
       final linha = _linha(descricao: 'PADARIA', valor: 48.9, dia: 5);
 
-      expect(
-        ReconciliationIds.orderIdFor('acc-1', linha),
-        isNot(ReconciliationIds.orderIdFor('acc-2', linha)),
-      );
+      expect(_idDe(linha), isNot(_idDe(linha, conta: 'acc-2')));
     });
 
     test('a hora inventada pelo parser não muda o id', () {
@@ -443,10 +542,7 @@ void main() {
       );
       final outraHora = base.copyWith(date: DateTime(2026, 3, 5, 23, 59));
 
-      expect(
-        ReconciliationIds.orderIdFor('acc-1', base),
-        ReconciliationIds.orderIdFor('acc-1', outraHora),
-      );
+      expect(_idDe(base), _idDe(outraHora));
     });
 
     test('o resumo não depende da ORDEM em que o parser devolveu as linhas',

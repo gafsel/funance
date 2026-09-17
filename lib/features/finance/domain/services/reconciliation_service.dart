@@ -262,7 +262,15 @@ class ReconciliationService {
   }) async {
     final categories = await categoryService.getCategories().first;
 
-    for (final match in matches) {
+    // Os ids dos lançamentos a criar saem de UMA passada sobre a lista
+    // inteira, antes do laço: o número de ocorrência de uma linha depende das
+    // outras linhas iguais a ela no mesmo extrato.
+    final orderIds = ReconciliationIds.orderIdsFor(
+      selectedAccount.id,
+      matches,
+    );
+
+    for (final (index, match) in matches.indexed) {
       // Tratar remoção de itens órfãos descartados/ignorados
       if (match.status == ReconciliationMatchStatus.ignored) {
         if (match.documentTransaction == null &&
@@ -405,13 +413,11 @@ class ReconciliationService {
           accounts: accounts,
         );
 
-        // Id derivado da LINHA do extrato: um retry (duplo toque, escrita
-        // offline reenviada) sobrescreve o mesmo documento em vez de criar
-        // um lançamento duplicado.
-        await financeService.addOrder(
-          order,
-          documentId: ReconciliationIds.orderIdFor(selectedAccount.id, docTx),
-        );
+        // Id derivado da LINHA do extrato (conteúdo + número de ocorrência):
+        // um retry — duplo toque, escrita offline reenviada — sobrescreve o
+        // mesmo documento em vez de criar um lançamento duplicado, e duas
+        // linhas idênticas continuam sendo dois lançamentos.
+        await financeService.addOrder(order, documentId: orderIds[index]);
       }
     }
 

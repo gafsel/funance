@@ -54,11 +54,41 @@ abstract final class ReconciliationIds {
         '${transaction.type.name}';
   }
 
-  /// Id do lançamento criado a partir de uma linha do extrato.
-  static String orderIdFor(
+  /// Id do lançamento criado a partir de cada linha do extrato, na MESMA
+  /// ordem da lista de casamentos. `null` onde o casamento não tem linha de
+  /// extrato (item que só existe no sistema).
+  ///
+  /// A chave-base sozinha não basta: um extrato com dois cafés de R$ 5 no
+  /// mesmo dia, mesma descrição e mesmo tipo produz DUAS linhas com a mesma
+  /// chave — e, com o mesmo id, o segundo `set` sobrescrevia o primeiro. O
+  /// usuário confirmava dois gastos e via um só, enquanto o resumo dizia que
+  /// tinha criado dois.
+  ///
+  /// Então cada linha ganha o seu número de OCORRÊNCIA dentro do conjunto de
+  /// linhas idênticas: a primeira `#0`, a segunda `#1`. A contagem é feita
+  /// sobre TODAS as linhas de extrato do casamento, independentemente do
+  /// status — assim marcar uma delas como ignorada não renumera as outras, e
+  /// reconfirmar o mesmo extrato produz exatamente os mesmos ids.
+  static List<String?> orderIdsFor(
     String accountId,
-    ReconciliationTransaction transaction,
-  ) => 'rec-${stableHash(statementItemKey(accountId, transaction))}';
+    List<ReconciliationMatch> matches,
+  ) {
+    final ocorrencias = <String, int>{};
+
+    return matches.map((match) {
+      final transaction = match.documentTransaction;
+      if (transaction == null) return null;
+
+      final base = statementItemKey(accountId, transaction);
+      final ocorrencia = ocorrencias.update(
+        base,
+        (vistas) => vistas + 1,
+        ifAbsent: () => 0,
+      );
+
+      return 'rec-${stableHash('$base|#$ocorrencia')}';
+    }).toList();
+  }
 
   /// Id do documento de resumo da conciliação.
   ///
@@ -69,6 +99,8 @@ abstract final class ReconciliationIds {
     String accountId,
     List<ReconciliationMatch> matches,
   ) {
+    // Ordenar preserva a MULTIPLICIDADE: duas linhas idênticas entram duas
+    // vezes, e um extrato com dois cafés não tem o mesmo resumo de um com um.
     final chaves =
         matches
             .map((m) => m.documentTransaction)
