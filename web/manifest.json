@@ -1,11 +1,11 @@
 {
-    "name": "funances",
-    "short_name": "funances",
+    "name": "Funances",
+    "short_name": "Funances",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#FFFFFF",
-    "description": "A new Flutter project.",
+    "description": "Gestão financeira gamificada: planejamento por categoria, faturas, metas e insights.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

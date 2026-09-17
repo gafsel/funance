@@ -38,7 +38,11 @@ class DefaultFirebaseOptions {
     projectId: 'funance-cef1b',
     authDomain: 'funance-cef1b.firebaseapp.com',
     storageBucket: 'funance-cef1b.firebasestorage.app',
-    measurementId: 'G-XXXXXXXXXX',
+    // O ID real do projeto. O 'G-XXXXXXXXXX' que estava aqui é o
+    // placeholder do template: com ele o SDK reclamava no console de toda
+    // sessão web e os eventos ficavam à mercê do ID que ele buscava sozinho
+    // no servidor.
+    measurementId: 'G-5T500N9W12',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
