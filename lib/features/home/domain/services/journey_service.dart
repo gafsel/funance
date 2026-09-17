@@ -1,4 +1,4 @@
-import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/time/product_week.dart';
 
 import '../models/financial_health_model.dart';
 import '../models/weekly_mission_model.dart';
@@ -29,25 +29,6 @@ class JourneyService {
   /// não existe no documento, para uma base anterior ao F1.9 não ficar sem
   /// missões na tela.
   ///
-  /// A fórmula é a do servidor (`core/utils/week.utils.ts`): semana começa no
-  /// DOMINGO, o ano é o do domingo que a inicia e o número é
-  /// `floor(dia_do_ano_do_domingo / 7) + 1`. A subtração dos dias é feita em
-  /// UTC de propósito: `difference().inDays` em horário local perde (ou ganha)
-  /// uma hora na semana da virada do horário de verão e pode mudar o número da
-  /// semana.
-  static String weekIdFor(DateTime reference) {
-    final start = DateTime(
-      reference.year,
-      reference.month,
-      reference.day,
-    ).addCalendarDays(-(reference.weekday % 7));
-
-    final dayOfYear = DateTime.utc(start.year, start.month, start.day)
-        .difference(DateTime.utc(start.year, 1, 1))
-        .inDays;
-
-    final week = (dayOfYear / 7).floor() + 1;
-
-    return '${start.year}-W${week.toString().padLeft(2, '0')}';
-  }
+  /// A fórmula mora em [ProductWeek], que é a definição única do cliente.
+  static String weekIdFor(DateTime reference) => ProductWeek.idOf(reference);
 }
