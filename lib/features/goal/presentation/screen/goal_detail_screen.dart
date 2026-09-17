@@ -1,5 +1,4 @@
 import 'package:confetti/confetti.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
@@ -16,6 +15,8 @@ import 'package:funances/features/finance/presentation/widgets/transaction_list_
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/model/goal_progress_ui.dart';
+import 'package:funances/features/goal/presentation/widgets/goal_detail/goal_progress_chart.dart';
+import 'package:funances/features/goal/presentation/widgets/goal_detail/milestone_badges.dart';
 import 'package:funances/features/home/presentation/widgets/category_icon.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -215,7 +216,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                       children: [
                         // --- Milestone badges ---
                         if (celebratesMilestones) ...[
-                          _MilestoneBadges(
+                          MilestoneBadges(
                             currentPercent: progress.percent,
                             statusColor: progress.getStatusColor(context),
                           ),
@@ -293,7 +294,7 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                         ),
                         const SizedBox(height: 20),
                         // --- Gráfico ideal vs. real ---
-                        _GoalProgressChart(
+                        GoalProgressChart(
                           goal: goal,
                           progress: progress,
                           statusColor: progress.getStatusColor(context),
@@ -363,268 +364,6 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Milestone Badges
-// ---------------------------------------------------------------------------
-class _MilestoneBadges extends StatelessWidget {
-  final double currentPercent;
-  final Color statusColor;
-
-  const _MilestoneBadges({
-    required this.currentPercent,
-    required this.statusColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final milestones = [25, 50, 75, 100];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: milestones.map((m) {
-        final reached = (currentPercent * 100) >= m;
-        return _Badge(label: '$m%', reached: reached, statusColor: statusColor);
-      }).toList(),
-    );
-  }
-}
-
-class _Badge extends StatelessWidget {
-  final String label;
-  final bool reached;
-  final Color statusColor;
-
-  const _Badge({
-    required this.label,
-    required this.reached,
-    required this.statusColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 400),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: reached
-            ? LinearGradient(
-                colors: [AppColors.limeGreen, statusColor],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        color: reached ? null : AppColors.pureWhite.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: reached
-              ? Colors.transparent
-              : AppColors.pureWhite.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (reached) const Icon(Icons.star, size: 12, color: Colors.white),
-          if (reached) const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: reached
-                  ? Colors.white
-                  : AppColors.pureWhite.withValues(alpha: 0.5),
-              fontSize: 11,
-              fontWeight: reached ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Gráfico de Progresso (Ideal vs. Real)
-// ---------------------------------------------------------------------------
-class _GoalProgressChart extends StatelessWidget {
-  final GoalModel goal;
-  final dynamic progress; // GoalProgressViewModel
-  final Color statusColor;
-
-  const _GoalProgressChart({
-    required this.goal,
-    required this.progress,
-    required this.statusColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final theme = Theme.of(context);
-
-    final start = goal.startDate;
-    final end = goal.deadline;
-    final totalDays = end.difference(start).inDays.toDouble();
-    if (totalDays <= 0) return const SizedBox.shrink();
-
-    final target = goal.targetAmount;
-    final current = goal.currentAmount;
-    final today = DateTime.now();
-    final elapsedDays = today.isAfter(end)
-        ? totalDays
-        : today.isBefore(start)
-        ? 0.0
-        : today.difference(start).inDays.toDouble();
-
-    // Linha ideal: de 0 → target linearmente
-    final idealSpots = [FlSpot(0, 0), FlSpot(totalDays, target)];
-
-    // Linha real: de 0 no start → currentAmount no dia atual
-    final realSpots = [
-      FlSpot(0, 0),
-      FlSpot(elapsedDays.clamp(0, totalDays), current.clamp(0, target)),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              l10n.goalProgressChartTitle,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: AppColors.pureWhite.withValues(alpha: 0.9),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Spacer(),
-            _LegendDot(
-              color: AppColors.pureWhite.withValues(alpha: 0.5),
-              label: l10n.goalChartIdealLine,
-            ),
-            const SizedBox(width: 12),
-            _LegendDot(
-              color: AppColors.limeGreen,
-              label: l10n.goalChartRealLine,
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        SizedBox(
-          height: 110,
-          child: LineChart(
-            LineChartData(
-              gridData: FlGridData(show: false),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                topTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                rightTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    getTitlesWidget: (value, meta) {
-                      if (value == 0) {
-                        return Text(
-                          l10n.goalChartStartLabel,
-                          style: TextStyle(
-                            color: AppColors.pureWhite.withValues(alpha: 0.5),
-                            fontSize: 10,
-                          ),
-                        );
-                      }
-                      if (value == totalDays) {
-                        return Text(
-                          l10n.goalChartEndLabel,
-                          style: TextStyle(
-                            color: AppColors.pureWhite.withValues(alpha: 0.5),
-                            fontSize: 10,
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-              ),
-              minX: 0,
-              maxX: totalDays,
-              minY: 0,
-              maxY: target * 1.05,
-              lineBarsData: [
-                // Linha ideal (tracejada)
-                LineChartBarData(
-                  spots: idealSpots,
-                  isCurved: false,
-                  color: AppColors.pureWhite.withValues(alpha: 0.4),
-                  barWidth: 1.5,
-                  dotData: FlDotData(show: false),
-                  dashArray: [6, 4],
-                ),
-                // Linha real (sólida, colorida)
-                LineChartBarData(
-                  spots: realSpots,
-                  isCurved: true,
-                  color: AppColors.limeGreen,
-                  barWidth: 2.5,
-                  dotData: FlDotData(show: true),
-                  belowBarData: BarAreaData(
-                    show: true,
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.limeGreen.withValues(alpha: 0.3),
-                        AppColors.limeGreen.withValues(alpha: 0.0),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 3,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: AppColors.pureWhite.withValues(alpha: 0.7),
-            fontSize: 11,
-          ),
-        ),
-      ],
     );
   }
 }
