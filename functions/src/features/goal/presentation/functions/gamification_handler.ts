@@ -266,87 +266,97 @@ export const onCategoryWrittenGamification = onDocumentWritten(
     }
 );
 
+/** O que o gatilho de conciliação precisa saber sobre o evento. */
+export interface ReconciliationEventContext {
+    workspaceId: string;
+    recId: string;
+    eventId: string;
+}
+
+/**
+ * Corpo do gatilho de conciliação, como função pura (sem `CloudEvent`): o
+ * `onDocumentWritten` abaixo só desembrulha o evento e delega.
+ *
+ * Isolada assim ela pode ser chamada direto nos testes de integração — o
+ * emulador do Firestore não dispara triggers, então a única forma de provar que
+ * uma SOBRESCRITA do mesmo resumo não soma nada duas vezes é invocar o handler
+ * com os dois pares (before, after) que o Eventarc entregaria.
+ */
+export async function handleReconciliationWritten(
+    beforeData: Record<string, any> | null,
+    afterData: Record<string, any> | null,
+    ctx: ReconciliationEventContext
+): Promise<void> {
+    const { workspaceId, recId, eventId } = ctx;
+
+    if (!afterData) return;
+
+    // CREATE-ONLY: só a PRIMEIRA gravação do resumo vale para a gamificação.
+    //
+    // Desde que o app passou a derivar o id do resumo da linha do extrato
+    // (idempotência no cliente), reconfirmar o MESMO extrato sobrescreve o
+    // mesmo documento. O gatilho é `onDocumentWritten`, então a sobrescrita
+    // dispara de novo — com um `event.id` NOVO, que a idempotência por eventId
+    // não tem como reconhecer: ela protege contra a reentrega do mesmo evento,
+    // não contra um evento novo sobre o mesmo fato.
+    //
+    // Hoje nenhum efeito dessa segunda passagem é aditivo (badge e XP de missão
+    // vão em transação e só concedem uma vez; o progresso da missão é
+    // RECALCULADO, não somado), mas essa segurança é INCIDENTAL — ela vem de
+    // como cada consumidor foi escrito, não de uma decisão sobre este evento. O
+    // primeiro efeito aditivo que alguém acrescentar aqui vazaria em silêncio.
+    // Fechar na porta é o que torna a garantia estrutural.
+    if (beforeData) {
+        logger.info(
+            `[onReconciliationWritten] Saída antecipada: o resumo ${recId} já existia ` +
+            `(workspaceId=${workspaceId}). A gamificação da conciliação é create-only.`
+        );
+        return;
+    }
+
+    logger.info(`[onReconciliationWritten] Triggered for workspaceId=${workspaceId}`);
+
+    if (afterData.status !== "completed") return;
+
+    await container.idempotencyService.runIdempotency(eventId, GAMIFICATION_ACTIONS.reconciliationWritten, async () => {
+        const gamificationService = container.gamificationService;
+
+        const confirmedMatches = afterData.confirmedMatchesCount || 0;
+        const totalProcessed = afterData.totalTransactionsProcessed || 0;
+        const createdCount = afterData.createdTransactionsCount || 0;
+
+        // 1. Advanced reconciliation badges
+        await gamificationService.checkReconciliationBadges(
+            workspaceId,
+            confirmedMatches,
+            totalProcessed,
+            createdCount
+        );
+
+        // 2. Simple reconciliation frequency badges
+        await gamificationService.checkSimpleReconciliationBadges(workspaceId);
+
+        // 3. Update weekly mission progress
+        await gamificationService.updateWeeklyMissionsProgress(workspaceId, "reconciliation", afterData);
+    });
+}
+
 export const onReconciliationWritten = onDocumentWritten(
     "workspaces/{workspaceId}/reconciliations/{recId}",
     async (event) => {
-        const workspaceId = event.params.workspaceId;
-        const after = event.data?.after.exists ? event.data.after.data() : null;
-
-        if (!after) return;
-
-        logger.info(`[onReconciliationWritten] Triggered for workspaceId=${workspaceId}`);
-
-        if (after.status !== "completed") return;
-
-        await container.idempotencyService.runIdempotency(event.id, GAMIFICATION_ACTIONS.reconciliationWritten, async () => {
-            const gamificationService = container.gamificationService;
-
-            const confirmedMatches = after.confirmedMatchesCount || 0;
-            const totalProcessed = after.totalTransactionsProcessed || 0;
-            const createdCount = after.createdTransactionsCount || 0;
-
-            // 1. Advanced reconciliation badges
-            await gamificationService.checkReconciliationBadges(
-                workspaceId,
-                confirmedMatches,
-                totalProcessed,
-                createdCount
-            );
-
-            // 2. Simple reconciliation frequency badges
-            await gamificationService.checkSimpleReconciliationBadges(workspaceId);
-
-            // 3. Update weekly mission progress
-            await gamificationService.updateWeeklyMissionsProgress(workspaceId, "reconciliation", after);
-        });
-    }
-);
-
-/**
- * A missão corporativa de triagem diz "categorizar OU DESCARTAR", e só metade
- * disso chegava aqui.
- *
- * Consolidar um lançamento automático cria uma transação de verdade, e é a
- * escrita dessa transação que move a missão. Descartar não cria nada: vira um
- * `isIgnored: true` no próprio documento, e nenhum gatilho de gamificação
- * observava esta coleção (o único que existe é o de ENRIQUECIMENTO, e ele é
- * `onDocumentCreated`). O usuário limpava a caixa de entrada e a barra não
- * andava.
- *
- * A guarda é por CONTEÚDO, e é o que torna o gatilho barato: o app reescreve o
- * documento inteiro a cada edição (`update(transaction.toJson())`), e sem ela
- * uma troca de categoria ou a chegada da sugestão da IA — que o próprio
- * servidor grava — dispararia a avaliação. Só a mudança de ESTADO de triagem
- * passa.
- */
-export const onAutomaticTransactionTriaged = onDocumentUpdated(
-    "workspaces/{workspaceId}/automatic_transactions/{transactionId}",
-    async (event) => {
-        const workspaceId = event.params.workspaceId;
-        const before = event.data?.before.data();
-        const after = event.data?.after.data();
-
-        if (!before || !after) return;
-
-        const wasTriaged = before.isConsolidated === true || before.isIgnored === true;
-        const isTriaged = after.isConsolidated === true || after.isIgnored === true;
-
-        // Só a TRANSIÇÃO para triado interessa. Voltar atrás (destriar) não
-        // desconta progresso: missão semanal não anda para trás — a mesma
-        // regra que já vale para a missão concluída, que nunca é estornada.
-        if (wasTriaged || !isTriaged) return;
-
-        logger.info(`[onAutomaticTransactionTriaged] Triggered for workspaceId=${workspaceId}`);
-
-        await container.idempotencyService.runIdempotency(
-            event.id,
-            GAMIFICATION_ACTIONS.automaticTransactionTriaged,
-            async () => {
-                await container.gamificationService.updateWeeklyMissionsProgress(
-                    workspaceId,
-                    "auto_transaction",
-                    null
-                );
+        // `onDocumentWritten`, e não `onDocumentCreated`, mesmo o efeito sendo
+        // create-only: a sobrescrita passa a ter um LOG dizendo por que nada
+        // aconteceu. Com `onDocumentCreated` a função nem seria invocada, e o
+        // "reconfirmei e não somou" do usuário não teria rastro nenhum para o
+        // suporte seguir. O custo é uma invocação que sai em poucas linhas —
+        // reconciliar é uma ação manual, não um evento de volume.
+        await handleReconciliationWritten(
+            event.data?.before.exists ? event.data.before.data()! : null,
+            event.data?.after.exists ? event.data.after.data()! : null,
+            {
+                workspaceId: event.params.workspaceId,
+                recId: event.params.recId,
+                eventId: event.id,
             }
         );
     }

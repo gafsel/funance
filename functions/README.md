@@ -65,6 +65,7 @@ apenas reage ao que o cliente gravou.
 | `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}`, com **`audience`** em cada badge e cada `xpSource` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3; `audience` em wp/missions-by-type | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `workspaces/{w}/reconciliations/{id}` — `{id, status, confirmedMatchesCount, totalTransactionsProcessed, createdTransactionsCount, createdAt}`; para a gamificação vale **só o create** | app | servidor | wp/reconciliation-created | [O que a idempotência por `eventId` NÃO cobre](#o-que-a-idempotência-por-eventid-não-cobre) |
 | `workspaces/{w}/automatic_transactions/{id}` — `date` é **string** de relógio local (`YYYY-MM-DDTHH:mm:ss.SSS`), nunca `Timestamp` | app | servidor | wp/missions-by-type (as rules passaram a exigir o tipo) | [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace) |
 | `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor (rules negam a escrita ao cliente) | app — o membro **lê** para exibir o consumo | F5.1 | [Quotas de IA](#quotas-de-ia) |
 | `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
@@ -1038,6 +1039,49 @@ Um marcador `running` parado há mais de 10 minutos é considerado abandonado
 `expiresAt` = criação + **30 dias**, recolhido pela política de TTL descrita
 acima (a política de `_idempotency` ainda **não foi ativada** — o comando
 `gcloud` está na seção anterior).
+
+### O que a idempotência por `eventId` NÃO cobre
+
+Ela protege contra a **reentrega do mesmo evento**. Não protege contra um
+**evento novo sobre o mesmo fato** — e a diferença deixou de ser teórica quando
+o app passou a usar ids determinísticos.
+
+**Conciliação: a gamificação é create-only.** O app deriva o id de
+`reconciliations/{id}` da linha do extrato, para ser idempotente do lado do
+cliente. Reconfirmar o MESMO extrato passa então a SOBRESCREVER o mesmo
+documento, e `onReconciliationWritten` — um `onDocumentWritten` — dispara de
+novo, com um `event.id` **novo**. O marcador `_idempotency` do primeiro evento
+não casa com o segundo, então a segunda passagem roda inteira.
+
+Hoje nenhum efeito dela é aditivo, e vale registrar por quê, porque é isso que
+o pacote transformou em garantia:
+
+| Consumidor | Por que não somava duas vezes |
+|---|---|
+| `checkReconciliationBadges`, `checkSimpleReconciliationBadges` | tudo passa por `unlockBadge`, que concede badge e XP na MESMA transação e devolve `false` se o badge já estava lá |
+| missão `reconciled_statement_items` | o progresso é **recalculado** a partir do evento (`progress = totalTransactionsProcessed`), nunca incrementado; e `completeMissionAndAwardXp` é transacional e só paga uma vez |
+| missão `reconciled_statements` | conta DOCUMENTOS de `reconciliations` na semana — e uma sobrescrita não cria documento nenhum |
+
+Essa segurança era **incidental**: vinha de como cada consumidor foi escrito, e
+não de uma decisão sobre este evento. O primeiro efeito aditivo que alguém
+acrescentasse ali vazaria em silêncio. O handler agora sai cedo quando
+`before` existe, e a garantia passa a ser estrutural.
+
+> **O gatilho continua sendo `onDocumentWritten`, e não virou
+> `onDocumentCreated`.** Com `onDocumentCreated` a função nem seria invocada na
+> sobrescrita — mais barato — mas o "reconfirmei e não somou" do usuário não
+> deixaria rastro nenhum para o suporte seguir. Aqui a sobrescrita sai em
+> poucas linhas com um log que diz por quê. Conciliar é uma ação MANUAL: o
+> volume não justifica trocar observabilidade por uma invocação.
+
+> ⚠️ **Consequência aceita: reconciliar mais linhas do MESMO extrato não conta.**
+> Se o usuário concilia 3 itens, volta ao mesmo extrato e casa mais 9, a segunda
+> gravação é uma sobrescrita — o badge de 10 itens (`cash_detective`) não é
+> concedido e o progresso da missão fica nos 3 primeiros. É o preço de o efeito
+> ser inequivocamente uma vez só. Se isso incomodar na prática, o caminho não é
+> reabrir o `update`: é o app passar a gravar um documento NOVO por sessão de
+> conciliação (id derivado do extrato **+ da sessão**), e aí cada sessão conta
+> uma vez, que é o que o contrato já sabe medir.
 
 ## Categorias de sistema (`isSystem`)
 
