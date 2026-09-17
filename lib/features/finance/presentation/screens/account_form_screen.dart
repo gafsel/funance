@@ -5,7 +5,9 @@ import 'package:funances/core/form/color_form_field.dart';
 import 'package:funances/core/form/date_form_field.dart';
 import 'package:funances/core/form/icon_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
@@ -36,8 +38,11 @@ class AccountFormScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final labelStyle = TextStyle(color: AppColors.darkNavy);
-    final descriptionStyle = TextStyle(color: Colors.black54, fontSize: 13);
+    final palette = context.palette;
+    final labelStyle = theme.textTheme.bodyMedium?.copyWith(color: palette.ink);
+    final descriptionStyle = theme.textTheme.bodySmall?.copyWith(
+      color: palette.ink2,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -93,23 +98,21 @@ class AccountFormScreen extends ConsumerWidget {
                     FullWidthItem(
                       state.selectedFile != null
                           ? Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: AppSpacing.allMd,
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: AppColors.deepTurquoise.withValues(
+                                  color: palette.tealText.withValues(
                                     alpha: 0.3,
                                   ),
                                 ),
-                                borderRadius: BorderRadius.circular(12),
-                                color: AppColors.deepTurquoise.withValues(
-                                  alpha: 0.05,
-                                ),
+                                borderRadius: AppRadius.brMd,
+                                color: palette.tealText.withValues(alpha: 0.05),
                               ),
                               child: ListTile(
                                 contentPadding: EdgeInsets.zero,
-                                leading: const Icon(
+                                leading: Icon(
                                   Icons.description,
-                                  color: AppColors.deepTurquoise,
+                                  color: palette.tealText,
                                 ),
                                 title: Text(
                                   state.selectedFile!.name,
@@ -120,10 +123,8 @@ class AccountFormScreen extends ConsumerWidget {
                                         AccountProcessingStatus.pending
                                     ? Text(
                                         l10n.accountAnalyzing,
-                                        style: const TextStyle(
-                                          color: AppColors.deepTurquoise,
-                                          fontSize: 10,
-                                        ),
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(color: palette.tealText),
                                       )
                                     : state.processingStatus ==
                                           AccountProcessingStatus.failed
@@ -135,16 +136,16 @@ class AccountFormScreen extends ConsumerWidget {
                                             state.analysisError,
                                           ),
                                         ),
-                                        style: TextStyle(
-                                          color: theme.colorScheme.error,
-                                          fontSize: 10,
-                                        ),
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: palette.dangerText,
+                                            ),
                                       )
                                     : null,
                                 trailing: IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.close,
-                                    color: Colors.red,
+                                    color: palette.dangerText,
                                   ),
                                   onPressed: () => notifier.updateFile(
                                     null,
@@ -226,7 +227,7 @@ class AccountFormScreen extends ConsumerWidget {
     AccountFormState state,
     AccountFormNotifier notifier,
     AppLocalizations l10n,
-    TextStyle labelStyle,
+    TextStyle? labelStyle,
     ThemeData theme,
   ) {
     final v = context.validations;
@@ -264,8 +265,8 @@ class AccountFormScreen extends ConsumerWidget {
             border: const OutlineInputBorder(),
           ),
           child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
             children: [
               BankLogoOption(
                 logo: BankLogo.none,
@@ -357,7 +358,7 @@ class AccountFormScreen extends ConsumerWidget {
                 onChanged: (v) => notifier.updateDueDay(int.tryParse(v) ?? 1),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: TextFormField(
                 initialValue: state.closingDay?.toString() ?? '',

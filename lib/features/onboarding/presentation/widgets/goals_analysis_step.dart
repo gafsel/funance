@@ -11,6 +11,11 @@ import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/empty_state.dart';
+import '../../../../core/widgets/money_text.dart';
 import 'package:funances/core/presentation/display_names.dart';
 
 class GoalsAnalysisStep extends ConsumerWidget {
@@ -27,30 +32,31 @@ class GoalsAnalysisStep extends ConsumerWidget {
 
     final notifier = ref.read(OnboardingViewProviders.onboarding.notifier);
 
+    final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.all(32.0),
+      padding: AppSpacing.allXl,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           IconButton(
             alignment: Alignment.centerLeft,
-            icon: const Icon(Icons.arrow_back, color: AppColors.pureWhite),
+            icon: Icon(Icons.arrow_back, color: context.palette.ink),
             onPressed: () => notifier.previousStep(),
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapLg,
           Text(
             l10n.onboardingGoalsAnalysisTitle,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.paleGold,
-                  fontWeight: FontWeight.bold,
-                ),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: AppColors.gold,
+            ),
           ),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Text(
             l10n.onboardingGoalsAnalysisDesc,
-            style: const TextStyle(color: AppColors.pureWhite),
+            style: theme.textTheme.bodyMedium,
           ),
-          const SizedBox(height: 32),
+          AppSpacing.gapXl,
           Expanded(
             child: SingleChildScrollView(
               child: Column(
@@ -59,44 +65,34 @@ class GoalsAnalysisStep extends ConsumerWidget {
                   if (goals.isNotEmpty) ...[
                     Text(
                       l10n.onboardingSuggestedGoalsTitle,
-                      style: const TextStyle(
-                        color: AppColors.paleGold,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.gold,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    AppSpacing.gapSm,
                     _buildSuggestedGoals(goals, notifier, context),
-                    const SizedBox(height: 24),
+                    AppSpacing.gapLg,
                   ],
                   if (plannings.isNotEmpty) ...[
                     Text(
                       l10n.onboardingSuggestedPlanningsTitle,
-                      style: const TextStyle(
-                        color: AppColors.paleGold,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.gold,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    AppSpacing.gapSm,
                     _buildSuggestedPlannings(plannings, notifier, context),
                   ],
                   if (goals.isEmpty && plannings.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 24),
-                      child: Text(
-                        l10n.onboardingNoSuggestions,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.pureWhite.withValues(alpha: 0.8),
-                        ),
-                      ),
+                    EmptyState.message(
+                      l10n.onboardingNoSuggestions,
+                      padding: const EdgeInsets.only(top: AppSpacing.lg),
                     ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          AppSpacing.gapLg,
           // Sempre habilitado: sem sugestões da IA o usuário precisa poder
           // seguir em frente (metas podem ser criadas depois, na Jornada).
           ElevatedButton(
@@ -119,41 +115,22 @@ class GoalsAnalysisStep extends ConsumerWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: goals.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => AppSpacing.gapSm,
       itemBuilder: (context, index) {
         final goal = goals[index];
-        return Card(
-          margin: EdgeInsets.zero,
-          color: AppColors.deepTurquoise.withValues(alpha: 0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: AppColors.paleGold.withValues(alpha: 0.2),
-              width: 1,
-            ),
-          ),
+        return AppCard(
+          padding: EdgeInsets.zero,
+          borderColor: AppColors.gold.withValues(alpha: 0.2),
           child: ListTile(
-            leading: const Icon(Icons.auto_awesome, color: AppColors.paleGold),
-            title: Text(
-              displayOr(goal.name, l10n.unnamedGoal),
-              style: const TextStyle(
-                color: AppColors.pureWhite,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            leading: const Icon(Icons.auto_awesome, color: AppColors.gold),
+            title: Text(displayOr(goal.name, l10n.unnamedGoal)),
             subtitle: Text(
               l10n.goalTargetTarget(
                 goal.targetAmount.asCurrency(locale: locale),
               ),
-              style: TextStyle(
-                color: AppColors.pureWhite.withValues(alpha: 0.7),
-              ),
             ),
             trailing: IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                color: AppColors.coralOrange,
-              ),
+              icon: const Icon(Icons.delete_outline, color: AppColors.warning),
               onPressed: () => notifier.removeGoal(goal),
             ),
           ),
@@ -167,47 +144,26 @@ class GoalsAnalysisStep extends ConsumerWidget {
     OnboardingNotifier notifier,
     BuildContext context,
   ) {
-    final locale = context.locale;
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: plannings.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => AppSpacing.gapSm,
       itemBuilder: (context, index) {
         final planning = plannings[index];
-        return Card(
-          margin: EdgeInsets.zero,
-          color: AppColors.deepTurquoise.withValues(alpha: 0.3),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: AppColors.paleGold.withValues(alpha: 0.2),
-              width: 1,
-            ),
-          ),
+        return AppCard(
+          padding: EdgeInsets.zero,
+          borderColor: AppColors.gold.withValues(alpha: 0.2),
           child: ListTile(
             leading: Icon(
               planning.category.icon.asIcon(),
+              // A cor da categoria é DADO: é a que o usuário escolheu.
               color: planning.category.color.asColor(),
             ),
-            title: Text(
-              planning.category.displayName(context.l10n),
-              style: const TextStyle(
-                color: AppColors.pureWhite,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(
-              planning.amount.asCurrency(locale: locale),
-              style: TextStyle(
-                color: AppColors.pureWhite.withValues(alpha: 0.7),
-              ),
-            ),
+            title: Text(planning.category.displayName(context.l10n)),
+            subtitle: MoneyText(planning.amount),
             trailing: IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                color: AppColors.coralOrange,
-              ),
+              icon: const Icon(Icons.delete_outline, color: AppColors.warning),
               onPressed: () => notifier.removePlanning(planning),
             ),
           ),

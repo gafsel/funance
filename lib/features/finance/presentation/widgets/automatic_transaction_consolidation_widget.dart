@@ -3,10 +3,13 @@ import 'package:funances/core/platform/app_platform.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/utils/date_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -20,14 +23,22 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(AutomaticTransactionViewProviders.automaticTransactions);
-    final notifier = ref.read(AutomaticTransactionViewProviders.automaticTransactions.notifier);
-    final notificationService = ref.watch(AutomaticTransactionDomainProviders.notificationService);
+    final state = ref.watch(
+      AutomaticTransactionViewProviders.automaticTransactions,
+    );
+    final notifier = ref.read(
+      AutomaticTransactionViewProviders.automaticTransactions.notifier,
+    );
+    final notificationService = ref.watch(
+      AutomaticTransactionDomainProviders.notificationService,
+    );
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     if (state.pendingTransactions.isEmpty) {
       if (!AppPlatform.isAndroid) return const SizedBox.shrink();
-      
+
       return FutureBuilder<bool>(
         future: notificationService.isPermissionGranted(),
         builder: (context, snapshot) {
@@ -42,31 +53,27 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
     }
 
     return Card(
-      margin: const EdgeInsets.all(16),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: AppSpacing.allMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: AppSpacing.allMd,
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, color: AppColors.deepTurquoise),
-                const SizedBox(width: 8),
+                Icon(Icons.auto_awesome, color: palette.tealText),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         l10n.automaticTransactionTitle,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: theme.textTheme.titleMedium,
                       ),
                       Text(
                         l10n.automaticTransactionSubtitle,
-                        style: Theme.of(context).textTheme.bodySmall,
+                        style: theme.textTheme.bodySmall,
                       ),
                     ],
                   ),
@@ -93,9 +100,11 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
               final transaction = state.pendingTransactions[index];
               return _TransactionItem(
                 transaction: transaction,
-                onConsolidate: () => _handleConsolidate(context, ref, transaction),
+                onConsolidate: () =>
+                    _handleConsolidate(context, ref, transaction),
                 onIgnore: () => notifier.ignore(transaction),
-                onMove: (workspaceId) => notifier.moveToWorkspace(transaction, workspaceId),
+                onMove: (workspaceId) =>
+                    notifier.moveToWorkspace(transaction, workspaceId),
               );
             },
           ),
@@ -124,7 +133,7 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
     if (transaction.suggestedCategory != null) {
       queryParams['categoryId'] = transaction.suggestedCategory!.id;
     }
-    
+
     final accountId = transaction.accountId ?? transaction.suggestedAccount?.id;
     if (accountId != null) {
       queryParams['accountIdSource'] = accountId;
@@ -138,11 +147,16 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
           ).toString(),
         )
         .then((result) {
-      if (result == true) {
-        ref.read(AutomaticTransactionViewProviders.automaticTransactions.notifier)
-            .loadTransactions();
-      }
-    });
+          if (result == true) {
+            ref
+                .read(
+                  AutomaticTransactionViewProviders
+                      .automaticTransactions
+                      .notifier,
+                )
+                .loadTransactions();
+          }
+        });
   }
 }
 
@@ -154,50 +168,44 @@ class _PermissionRequestCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     return Card(
-      margin: const EdgeInsets.all(16),
-      color: AppColors.deepTurquoise.withValues(alpha: 0.1),
+      margin: AppSpacing.allMd,
+      color: palette.tealText.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.deepTurquoise, width: 1),
+        borderRadius: AppRadius.brLg,
+        side: BorderSide(color: palette.tealText),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.allMd,
         child: Column(
           children: [
             Row(
               children: [
-                const Icon(Icons.notifications_active, color: AppColors.deepTurquoise),
-                const SizedBox(width: 8),
+                Icon(Icons.notifications_active, color: palette.tealText),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     l10n.automaticTransactionRequestPermission,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.deepTurquoise,
-                        ),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: palette.tealText,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             Text(
               l10n.automaticTransactionPermissionRequired,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: theme.textTheme.bodySmall,
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSm,
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: onGrant,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.deepTurquoise,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
                 child: Text(l10n.automaticTransactionGrantPermission),
               ),
             ),
@@ -224,15 +232,22 @@ class _TransactionItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final locale = context.locale;
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final currentWorkspace = workspaceState.currentWorkspace;
     final otherWorkspaces = workspaceState.availableWorkspaces
         .where((w) => w.id != currentWorkspace?.id)
         .toList();
 
+    // A cor vem do TIPO do lançamento, não do sinal do valor: o modelo
+    // guarda o montante sempre positivo.
+    final accent = transaction.type == OrderType.expense
+        ? palette.dangerText
+        : palette.successText;
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: AppSpacing.allMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -250,65 +265,56 @@ class _TransactionItem extends ConsumerWidget {
                               ? Icons.arrow_circle_down
                               : Icons.arrow_circle_up,
                           size: 16,
-                          color: transaction.type == OrderType.expense
-                              ? Colors.redAccent
-                              : Colors.green,
+                          color: accent,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppSpacing.xxs),
                         Expanded(
                           child: Text(
                             transaction.description,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style: theme.textTheme.titleSmall,
                           ),
                         ),
                       ],
                     ),
                     Text(
-                      transaction.date.formated("dd/MM/yyyy HH:mm", locale),
-                      style: Theme.of(context).textTheme.bodySmall,
+                      transaction.date.formated(
+                        "dd/MM/yyyy HH:mm",
+                        context.locale,
+                      ),
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
               ),
-              Text(
-                transaction.amount.asCurrency(locale: locale),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: transaction.type == OrderType.expense
-                      ? Colors.redAccent
-                      : Colors.green,
-                ),
+              MoneyText(
+                transaction.amount,
+                style: theme.textTheme.titleSmall?.copyWith(color: accent),
               ),
             ],
           ),
-          if (transaction.suggestedCategory != null || transaction.suggestedAccount != null)
+          if (transaction.suggestedCategory != null ||
+              transaction.suggestedAccount != null)
             Padding(
-              padding: const EdgeInsets.only(top: 8.0),
+              padding: const EdgeInsets.only(top: AppSpacing.xs),
               child: Wrap(
-                spacing: 8,
+                spacing: AppSpacing.xs,
                 children: [
                   if (transaction.suggestedCategory != null)
-                    Chip(
-                      avatar: Icon(Icons.category, size: 12),
-                      label: Text(
-                        transaction.suggestedCategory!.name,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                      visualDensity: VisualDensity.compact,
+                    StatusPill(
+                      label: transaction.suggestedCategory!.name,
+                      icon: Icons.category,
+                      dense: true,
                     ),
                   if (transaction.suggestedAccount != null)
-                    Chip(
-                      avatar: Icon(Icons.account_balance_wallet, size: 12),
-                      label: Text(
-                        transaction.suggestedAccount!.name,
-                        style: const TextStyle(fontSize: 10),
-                      ),
-                      visualDensity: VisualDensity.compact,
+                    StatusPill(
+                      label: transaction.suggestedAccount!.name,
+                      icon: Icons.account_balance_wallet,
+                      dense: true,
                     ),
                 ],
               ),
             ),
-          const SizedBox(height: 12),
+          AppSpacing.gapSm,
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -318,10 +324,9 @@ class _TransactionItem extends ConsumerWidget {
                   tooltip: l10n.automaticTransactionMoveWorkspace,
                   onSelected: onMove,
                   itemBuilder: (context) => otherWorkspaces
-                      .map((w) => PopupMenuItem(
-                            value: w.id,
-                            child: Text(w.name),
-                          ))
+                      .map(
+                        (w) => PopupMenuItem(value: w.id, child: Text(w.name)),
+                      )
                       .toList(),
                 )
               else
@@ -332,13 +337,9 @@ class _TransactionItem extends ConsumerWidget {
                     onPressed: onIgnore,
                     child: Text(l10n.automaticTransactionIgnore),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.xs),
                   ElevatedButton(
                     onPressed: onConsolidate,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTurquoise,
-                      foregroundColor: Colors.white,
-                    ),
                     child: Text(l10n.automaticTransactionConsolidate),
                   ),
                 ],

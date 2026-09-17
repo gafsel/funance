@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/form/chip_form_field.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
@@ -26,24 +29,22 @@ class TransactionAdvancedOptions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
     final v = context.validations;
 
     return Theme(
-      data: theme.copyWith(dividerColor: Colors.transparent),
+      data: theme.copyWith(dividerColor: AppColors.transparent),
       child: ExpansionTile(
         title: Text(
           l10n.transactionMoreOptions,
-          style: theme.textTheme.titleSmall?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.bold,
-          ),
+          style: theme.textTheme.titleSmall?.copyWith(color: palette.tealText),
         ),
-        childrenPadding: const EdgeInsets.all(8),
+        childrenPadding: AppSpacing.allXs,
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            spacing: 16,
+            spacing: AppSpacing.md,
             children: [
               if (state.creation)
                 ChipFormField<OrderType>(

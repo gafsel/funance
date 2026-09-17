@@ -4,6 +4,9 @@ import 'package:funances/core/form/chip_form_field.dart';
 import 'package:funances/core/form/responsive_form.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -46,66 +49,51 @@ class TransactionFilterBottomSheet extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
-        gradient: AppGradients.backgroundGradient,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        gradient: AppGradients.background,
+        borderRadius: AppRadius.brSheet,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 12),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.pureWhite.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          // O respiro que sobrou do puxador desenhado à mão: quem o desenha
+          // agora é o `bottomSheetTheme`.
+          const SizedBox(height: AppSpacing.md),
           Padding(
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.allLg,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   l10n.historyFilterTitle,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.pureWhite,
+                    color: AppColors.inkInverse,
                   ),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(
                     Icons.close,
-                    color: AppColors.pureWhite,
+                    color: AppColors.inkInverse,
                     size: 20,
                   ),
                   style: IconButton.styleFrom(
-                    backgroundColor: AppColors.pureWhite.withValues(alpha: 0.1),
+                    backgroundColor: AppColors.inkInverse.withValues(
+                      alpha: 0.1,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          Divider(),
+          const Divider(),
           Expanded(
+            // O formulário inteiro mora sobre o gradiente escuro. Em vez de
+            // repintar campo a campo (era o que a cópia manual do
+            // `inputDecorationTheme` fazia), o bloco recebe o tema de jogo e
+            // rótulo, dica, preenchimento e divisor passam a ler o brilho
+            // certo sozinhos.
             child: Theme(
-              data: theme.copyWith(
-                inputDecorationTheme: theme.inputDecorationTheme.copyWith(
-                  fillColor: Colors.black12,
-                  prefixIconColor: Colors.white70,
-                  suffixIconColor: Colors.white70,
-                  prefixStyle: TextStyle(color: Colors.white70),
-                  labelStyle: theme.inputDecorationTheme.labelStyle?.copyWith(
-                    color: Colors.white70,
-                  ),
-                  floatingLabelStyle: theme
-                      .inputDecorationTheme
-                      .floatingLabelStyle
-                      ?.copyWith(color: Colors.white),
-                ),
-                hintColor: Colors.white60,
-              ),
+              data: AppTheme.onGame(context),
               child:
                   ResponsiveForm<
                     TransactionFilterState,
@@ -114,7 +102,7 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                   >(
                     provider,
                     submitLabel: l10n.historyFilterApply,
-                    submitButtonColor: AppColors.successGold,
+                    submitButtonColor: AppColors.gold,
                     onSuccess: (query) {
                       if (query != null) {
                         onApply(query);
@@ -127,14 +115,13 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                           return OutlinedButton(
                             onPressed: () =>
                                 ref.read(provider.notifier).clear(),
+                            // O contorno claro é do bloco escuro, não do
+                            // tema: o resto (raio, altura, tipografia) vem do
+                            // `outlinedButtonTheme`.
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.pureWhite,
+                              foregroundColor: AppColors.inkInverse,
                               side: const BorderSide(
-                                color: AppColors.pureWhite,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 16,
-                                horizontal: 24,
+                                color: AppColors.inkInverse,
                               ),
                             ),
                             child: Text(l10n.historyFilterClear),
@@ -158,9 +145,6 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                               decoration: InputDecoration(
                                 labelText: l10n.historyFilterDescriptionLabel,
                               ),
-                              style: const TextStyle(
-                                color: AppColors.pureWhite,
-                              ),
                             ),
                           ),
                         if (!isHidden(TransactionFilterField.account))
@@ -172,9 +156,6 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                                 labelText: l10n.historyFilterAccountLabel,
                               ),
                               showAddOption: false,
-                              style: const TextStyle(
-                                color: AppColors.pureWhite,
-                              ),
                             ),
                           ),
                         if (!isHidden(TransactionFilterField.type))
@@ -200,9 +181,6 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                                 decoration: InputDecoration(
                                   labelText: l10n.historyFilterCategoryLabel,
                                 ),
-                                style: const TextStyle(
-                                  color: AppColors.pureWhite,
-                                ),
                               ),
                             ),
                           ] else ...[
@@ -215,9 +193,6 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                                 onChanged: notifier.updateCategory,
                                 decoration: InputDecoration(
                                   labelText: l10n.historyFilterCategoryLabel,
-                                ),
-                                style: const TextStyle(
-                                  color: AppColors.pureWhite,
                                 ),
                               ),
                             ),
@@ -247,7 +222,7 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                         if (!isHidden(TransactionFilterField.amountRange)) ...[
                           FullWidthItem(
                             Row(
-                              spacing: 16,
+                              spacing: AppSpacing.md,
                               children: [
                                 Expanded(
                                   child: MoneyFormField(
@@ -256,9 +231,6 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                                     decoration: InputDecoration(
                                       labelText:
                                           l10n.historyFilterMinAmountLabel,
-                                    ),
-                                    style: const TextStyle(
-                                      color: AppColors.pureWhite,
                                     ),
                                   ),
                                 ),
@@ -269,9 +241,6 @@ class TransactionFilterBottomSheet extends StatelessWidget {
                                     decoration: InputDecoration(
                                       labelText:
                                           l10n.historyFilterMaxAmountLabel,
-                                    ),
-                                    style: const TextStyle(
-                                      color: AppColors.pureWhite,
                                     ),
                                   ),
                                 ),

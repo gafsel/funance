@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -30,7 +34,7 @@ class Planning503020Screen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Row(
-          spacing: 8,
+          spacing: AppSpacing.xs,
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
@@ -71,7 +75,10 @@ class Planning503020Screen extends ConsumerWidget {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final isMobile = constraints.maxWidth < 800;
+          final theme = Theme.of(context);
+          // Três colunas só existem em tela de desktop: o corte é o do design
+          // system, medido no PAINEL e não na janela.
+          final isMobile = !constraints.layout.isWide;
 
           final allocations = CategoryAllocation.values;
 
@@ -83,7 +90,7 @@ class Planning503020Screen extends ConsumerWidget {
           if (erro != null) {
             return Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: AppSpacing.allLg,
                 child: ErrorView.forError(
                   context,
                   erro,
@@ -103,8 +110,8 @@ class Planning503020Screen extends ConsumerWidget {
           }
 
           final header = Container(
-            padding: const EdgeInsets.all(16.0),
-            color: Theme.of(context).cardColor,
+            padding: AppSpacing.allMd,
+            color: context.palette.paper,
             child: PlanningSummaryHeader(isMobile: isMobile),
           );
 
@@ -116,14 +123,14 @@ class Planning503020Screen extends ConsumerWidget {
                   children: [
                     header,
                     TabBar(
-                      indicator: BoxDecoration(
-                        color: AppColors.deepTurquoise,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(8),
+                      indicator: const BoxDecoration(
+                        color: AppColors.surfaceDeep,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(AppRadius.sm),
                         ),
                       ),
-                      labelStyle: const TextStyle(fontSize: 12),
-                      unselectedLabelStyle: const TextStyle(fontSize: 12),
+                      labelStyle: theme.textTheme.bodySmall,
+                      unselectedLabelStyle: theme.textTheme.bodySmall,
                       tabs: [
                         for (final allocation in allocations)
                           Tab(
@@ -184,7 +191,7 @@ class _MonthLabel extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isSmallScreen = constraints.maxWidth < 600;
+        final isSmallScreen = constraints.layout.isCompact;
 
         return Text(
           isSmallScreen

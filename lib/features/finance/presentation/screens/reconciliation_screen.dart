@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
@@ -78,29 +80,33 @@ class _SelectedAccountHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      // A cor é DADO: é a que o usuário escolheu para a conta.
       color: account.color.asColor().withValues(alpha: 0.1),
       child: Row(
         children: [
           CircleAvatar(
             radius: 16,
             backgroundColor: account.color.asColor(),
-            child: Icon(account.icon.asIcon(), color: Colors.white, size: 18),
+            child: Icon(
+              account.icon.asIcon(),
+              color: AppColors.inkInverse,
+              size: 18,
+            ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  account.name,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  account.type.name,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(account.name, style: theme.textTheme.titleSmall),
+                Text(account.type.name, style: theme.textTheme.bodySmall),
               ],
             ),
           ),

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/retry.dart';
-import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -25,7 +26,7 @@ class BalanceSummaryView extends ConsumerWidget {
     final asyncState = ref.watch(HomeViewProviders.summaryBalance);
     final period = ref.watch(HomeViewProviders.period);
     final viewType = ref.watch(HomeViewProviders.viewType);
-    final locale = context.locale;
+    final palette = context.palette;
 
     // R$ 0,00 é um número, e um número afirma. Enquanto o mês não chega — ou
     // quando a leitura falha — o saldo não pode afirmar nada.
@@ -40,7 +41,7 @@ class BalanceSummaryView extends ConsumerWidget {
     final state = asyncState.valueOrNull;
     if (state == null) {
       return const Padding(
-        padding: EdgeInsets.all(16),
+        padding: AppSpacing.allMd,
         child: Center(
           child: SizedBox(
             height: 20,
@@ -55,30 +56,18 @@ class BalanceSummaryView extends ConsumerWidget {
         ? state.totalPlanned
         : state.totalActual;
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.deepTurquoise.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.deepTurquoise.withValues(alpha: 0.1),
-        ),
-      ),
+    return AppCard(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             l10n.balance,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: AppColors.deepTurquoise,
-            ),
+            style: theme.textTheme.titleMedium?.copyWith(color: palette.ink),
           ),
-          Text(
-            amount.asCurrency(locale: locale),
+          MoneyText(
+            amount,
             style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: amount >= 0 ? AppColors.limeGreen : AppColors.error,
+              color: amount >= 0 ? palette.successText : palette.dangerText,
             ),
           ),
         ],

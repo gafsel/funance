@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/firestore/offline_write.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -84,27 +88,31 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
         .watch(WorkspaceViewProviders.workspace)
         .currentWorkspace;
     final isTab = Navigator.of(context).canPop() == false;
+    final theme = Theme.of(context);
 
     final body = workspace == null
         ? const Center(child: CircularProgressIndicator())
         : LayoutBuilder(
             builder: (context, constraints) {
-              if (constraints.maxWidth > 600) {
-                final crossAxisCount = constraints.maxWidth > 900 ? 3 : 2;
+              final layout = constraints.layout;
+              if (!layout.isCompact) {
+                final crossAxisCount = layout.columns;
                 final itemWidth = constraints.maxWidth / crossAxisCount;
                 // Ajusta o aspect ratio para manter uma altura máxima razoável
                 final childAspectRatio = itemWidth / 160;
 
                 return ListView(
-                  padding: const EdgeInsets.only(bottom: 120),
+                  padding: const EdgeInsets.only(
+                    bottom: AppSpacing.bottomBarSafeArea,
+                  ),
                   children: [
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisCount: crossAxisCount,
-                      padding: const EdgeInsets.all(16),
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
+                      padding: AppSpacing.allMd,
+                      mainAxisSpacing: AppSpacing.md,
+                      crossAxisSpacing: AppSpacing.md,
                       childAspectRatio: childAspectRatio > 1.5
                           ? childAspectRatio
                           : 1.5,
@@ -153,8 +161,8 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                           icon: Icons.logout,
                           title: l10n.workspaceSettingsLogout,
                           description: l10n.workspaceSettingsLogoutDesc,
-                          iconColor: Colors.red,
-                          titleColor: Colors.red,
+                          iconColor: AppColors.danger,
+                          titleColor: AppColors.danger,
                           onTap: () => _signOut(context, ref),
                         ),
                       ],
@@ -165,7 +173,9 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
               }
 
               return ListView(
-                padding: EdgeInsets.only(bottom: isTab ? 120 : 0),
+                padding: EdgeInsets.only(
+                  bottom: isTab ? AppSpacing.bottomBarSafeArea : 0,
+                ),
                 children: [
                   SectionHeader.label(l10n.profileTitle),
                   ListTile(
@@ -217,10 +227,12 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                   const AppearanceSection(),
                   const Divider(),
                   ListTile(
-                    leading: const Icon(Icons.logout, color: Colors.red),
+                    leading: const Icon(Icons.logout, color: AppColors.danger),
                     title: Text(
                       l10n.workspaceSettingsLogout,
-                      style: const TextStyle(color: Colors.red),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: AppColors.danger,
+                      ),
                     ),
                     onTap: () => _signOut(context, ref),
                   ),
@@ -250,55 +262,42 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
     Color? titleColor,
   }) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.1)),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(icon, color: iconColor ?? theme.colorScheme.primary),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: titleColor,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                description,
-                style: theme.textTheme.bodySmall,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (subtitle != null) ...[
-                const Spacer(),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: theme.colorScheme.secondary,
+              Icon(icon, color: iconColor ?? theme.colorScheme.primary),
+              AppSpacing.gapSm,
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: titleColor,
                   ),
                 ),
-              ],
+              ),
             ],
           ),
-        ),
+          AppSpacing.gapSm,
+          Text(
+            description,
+            style: theme.textTheme.bodySmall,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (subtitle != null) ...[
+            const Spacer(),
+            Text(
+              subtitle,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

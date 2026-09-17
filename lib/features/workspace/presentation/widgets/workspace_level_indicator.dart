@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
 
 class WorkspaceLevelIndicator extends ConsumerWidget {
   const WorkspaceLevelIndicator({super.key});
@@ -28,11 +30,12 @@ class WorkspaceLevelIndicator extends ConsumerWidget {
     final progressFraction = catalog?.levelProgress(level, xp) ?? 0.0;
 
     final unlockedCount = workspace.unlockedBadges.length;
+    final theme = Theme.of(context);
 
     return Semantics(
       label: l10n.levelIndicatorSemantics(level, unlockedCount),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12),
+        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -47,19 +50,22 @@ class WorkspaceLevelIndicator extends ConsumerWidget {
                     child: CircularProgressIndicator(
                       value: progressFraction,
                       strokeWidth: 3.5,
-                      backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-                      valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                      backgroundColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.15,
+                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        theme.colorScheme.primary,
+                      ),
                     ),
                   ),
                   CircleAvatar(
                     radius: 18,
-                    backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    backgroundColor:
+                        theme.colorScheme.surfaceContainerHighest,
                     child: Text(
                       '$level',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -72,12 +78,12 @@ class WorkspaceLevelIndicator extends ConsumerWidget {
               child: GestureDetector(
                 onTap: () => context.push('/workspace/badges'),
                 child: Container(
-                  padding: const EdgeInsets.all(3),
+                  padding: AppSpacing.allXxs,
                   decoration: BoxDecoration(
-                    color: Colors.amber.shade700,
+                    color: AppColors.goldDeep,
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: Theme.of(context).scaffoldBackgroundColor,
+                      color: theme.scaffoldBackgroundColor,
                       width: 1.5,
                     ),
                   ),
@@ -87,16 +93,16 @@ class WorkspaceLevelIndicator extends ConsumerWidget {
                       const Icon(
                         Icons.military_tech,
                         size: 11,
-                        color: Colors.white,
+                        color: AppColors.inkInverse,
                       ),
                       if (unlockedCount > 0) ...[
+                        // Fio óptico abaixo da escala de 4pt: separa o ícone
+                        // do número dentro de um selo de 11px.
                         const SizedBox(width: 1),
                         Text(
                           '$unlockedCount',
-                          style: const TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: AppColors.inkInverse,
                           ),
                         ),
                       ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 
 /// O botão de lançar.
@@ -19,15 +20,15 @@ class LaunchFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Cor, forma e elevação vêm do `floatingActionButtonTheme`.
     return FloatingActionButton(
       tooltip: tooltip,
       onPressed: () => showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.transparent,
         builder: (context) => const TransactionActionSheet(),
       ),
-      shape: const CircleBorder(),
       child: const Icon(Icons.add),
     );
   }

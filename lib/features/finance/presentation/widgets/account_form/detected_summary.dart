@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/presentation/display_names.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/presentation/model/account_view_models.dart';
@@ -18,17 +19,14 @@ Widget buildDetectedSummary(
   AccountFormState state,
   AppLocalizations l10n,
 ) {
+  final theme = Theme.of(context);
+  final palette = context.palette;
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        l10n.accountDetectedDataTitle,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: AppColors.darkNavy,
-        ),
-      ),
-      const SizedBox(height: 12),
+      Text(l10n.accountDetectedDataTitle, style: theme.textTheme.titleSmall),
+      AppSpacing.gapSm,
       Row(
         children: [
           buildAccountFormInfoChip(
@@ -36,49 +34,41 @@ Widget buildDetectedSummary(
             l10n.accountDetectedTransactions(state.detectedOrders.length),
           ),
           if (state.detectedOrders.isNotEmpty) ...[
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.xs),
             TextButton(
               onPressed: () => _showDetectedList(
                 context,
                 l10n.accountDetectedTransactionsTitle,
                 state.detectedOrders.map((o) {
-                  final descricao = displayOr(o.description, l10n.noDescription);
+                  final descricao = displayOr(
+                    o.description,
+                    l10n.noDescription,
+                  );
                   return '$descricao - ${o.amount.asCurrency(locale: context.locale)}';
                 }).toList(),
               ),
-              child: Text(
-                l10n.accountViewTransactions,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.deepTurquoise,
-                ),
-              ),
+              child: Text(l10n.accountViewTransactions),
             ),
           ],
         ],
       ),
-      const SizedBox(height: 12),
+      AppSpacing.gapSm,
       Text(
         l10n.accountDetectedConfirmation,
-        style: TextStyle(
-          fontSize: 12,
+        style: theme.textTheme.bodySmall?.copyWith(
           fontStyle: FontStyle.italic,
-          color: Colors.grey[600],
+          color: palette.ink3,
         ),
       ),
     ],
   );
 }
 
-void _showDetectedList(
-  BuildContext context,
-  String title,
-  List<String> items,
-) {
+void _showDetectedList(BuildContext context, String title, List<String> items) {
   showDialog(
     context: context,
     builder: (context) => AlertDialog(
-      title: Text(title, style: TextStyle(color: AppColors.darkNavy)),
+      title: Text(title),
       content: SizedBox(
         width: double.maxFinite,
         child: ListView.separated(
@@ -86,10 +76,10 @@ void _showDetectedList(
           itemCount: items.length,
           separatorBuilder: (_, _) => const Divider(),
           itemBuilder: (context, index) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: AppSpacing.vXs,
             child: Text(
               items[index],
-              style: TextStyle(color: AppColors.darkNavy),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
         ),

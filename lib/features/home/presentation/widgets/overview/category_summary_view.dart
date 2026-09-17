@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/retry.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
@@ -44,7 +46,7 @@ class CategorySummaryView extends ConsumerWidget {
     // sobre o mês do usuário. O erro tem precedência sobre o estado vazio.
     if (asyncState.hasError) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         child: ErrorView.forError(
           context,
           asyncState.error,
@@ -56,7 +58,7 @@ class CategorySummaryView extends ConsumerWidget {
     final state = asyncState.valueOrNull;
     if (state == null) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
         child: Center(child: CircularProgressIndicator()),
       );
     }
@@ -90,33 +92,19 @@ class CategorySummaryView extends ConsumerWidget {
     // o notifier já a colocou no final de state.summary.
 
     if (summaries.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 40),
-          child: Column(
-            children: [
-              Icon(
-                Icons.pie_chart_outline,
-                size: 64,
-                color: AppColors.deepTurquoise.withValues(alpha: 0.2),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                l10n.noTransactionsInPeriod,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.deepTurquoise.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          ),
-        ),
+      return EmptyState.centered(
+        icon: Icons.pie_chart_outline,
+        title: l10n.noTransactionsInPeriod,
+        compact: true,
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
       );
     }
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 900;
-        final isSmallScreen = constraints.maxWidth < 600;
+        final layout = constraints.layout;
+        final isLargeScreen = layout.isWide;
+        final isSmallScreen = layout.isCompact;
 
         Widget chartWidget;
 
@@ -162,8 +150,11 @@ class CategorySummaryView extends ConsumerWidget {
               viewType == SummaryViewType.planning
                   ? summary.category.color.asColor().withValues(alpha: 0.4)
                   : summary.category.color.asColor(),
-              progress: viewType == SummaryViewType.comparison ? null : progress,
-              secondaryProgress: viewType == SummaryViewType.planning &&
+              progress: viewType == SummaryViewType.comparison
+                  ? null
+                  : progress,
+              secondaryProgress:
+                  viewType == SummaryViewType.planning &&
                       summary.plannedAmount > 0
                   ? (summary.specificPlannedAmount / summary.plannedAmount)
                         .clamp(0, 1)
@@ -176,24 +167,23 @@ class CategorySummaryView extends ConsumerWidget {
           children: [
             if (isSmallScreen) ...[
               chartWidget,
-              const SizedBox(height: 32),
+              AppSpacing.gapXl,
               legendList,
             ] else
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: chartWidget),
-                  const SizedBox(width: 32),
+                  AppSpacing.gapXl,
                   Expanded(child: legendList),
                 ],
               ),
-            const SizedBox(height: 16),
+            AppSpacing.gapMd,
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                onPressed: () => context.push(
-                  '/category-details?type=${categoryType.name}',
-                ),
+                onPressed: () =>
+                    context.push('/category-details?type=${categoryType.name}'),
                 icon: const Icon(Icons.list_alt),
                 label: Text(l10n.homeOverviewShowDetails),
               ),

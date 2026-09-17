@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_radius.dart';
 
 /// Um destino da barra inferior.
 ///
@@ -25,14 +26,12 @@ class HomeBottomBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isSelected
-        ? AppColors.successGold
-        : AppColors.pureWhite.withValues(alpha: 0.8);
+    final color = isSelected ? AppColors.gold : AppColors.inkInverse2;
     return Expanded(
       child: Tooltip(
         message: label,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: AppRadius.brMd,
           onTap: onTap,
           child: Semantics(
             label: label,
@@ -47,11 +46,9 @@ class HomeBottomBarItem extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: isSelected ? FontWeight.bold : null,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: color),
                 ),
               ],
             ),

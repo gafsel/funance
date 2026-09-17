@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_badge_palette.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_shape.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_theme.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/metallic_icon_3d.dart';
@@ -44,7 +45,7 @@ class BadgeShapePainter extends CustomPainter {
     canvas.save();
     canvas.translate(0, tier == BadgeTier.advanced ? 4.0 : 2.5);
     final shadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: isUnlocked ? 0.35 : 0.25)
+      ..color = AppBadgePalette.shadow.withValues(alpha: isUnlocked ? 0.35 : 0.25)
       ..style = PaintingStyle.fill
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, tier == BadgeTier.advanced ? 6 : 4);
     canvas.drawPath(shadowPath, shadowPaint);
@@ -57,11 +58,11 @@ class BadgeShapePainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 10);
 
       if (tier == BadgeTier.advanced) {
-        glowPaint.color = const Color(0xFFFFA000).withValues(alpha: 0.5);
+        glowPaint.color = AppBadgePalette.auraGold.withValues(alpha: 0.5);
       } else if (xpRewardValue >= 75) {
-        glowPaint.color = const Color(0xFFB0BEC5).withValues(alpha: 0.3);
+        glowPaint.color = AppBadgePalette.auraSilver.withValues(alpha: 0.3);
       } else {
-        glowPaint.color = const Color(0xFFD84315).withValues(alpha: 0.3);
+        glowPaint.color = AppBadgePalette.auraBronze.withValues(alpha: 0.3);
       }
       canvas.drawPath(path, glowPaint);
     }
@@ -75,12 +76,7 @@ class BadgeShapePainter extends CustomPainter {
       activeGradient = const RadialGradient(
         center: Alignment(-0.25, -0.25),
         radius: 0.9,
-        colors: [
-          Color(0xFFFFFDE7), // Specular light highlight
-          Color(0xFFFFD54F), // Gold body
-          Color(0xFFFF8F00), // Deep Amber
-          Color(0xFFD97706), // Golden shade shadow
-        ],
+        colors: AppBadgePalette.frameGold,
         stops: [0.0, 0.45, 0.85, 1.0],
       );
     } else if (xpRewardValue >= 75) {
@@ -88,12 +84,7 @@ class BadgeShapePainter extends CustomPainter {
       activeGradient = const RadialGradient(
         center: Alignment(-0.25, -0.25),
         radius: 0.85,
-        colors: [
-          Color(0xFFFFFFFF), // specular white
-          Color(0xFFECEFF1), // light silver
-          Color(0xFF90A4AE), // medium steel silver
-          Color(0xFF475569), // dark shadow grey
-        ],
+        colors: AppBadgePalette.frameSilver,
         stops: [0.0, 0.35, 0.8, 1.0],
       );
     } else {
@@ -101,12 +92,7 @@ class BadgeShapePainter extends CustomPainter {
       activeGradient = const RadialGradient(
         center: Alignment(-0.25, -0.25),
         radius: 0.85,
-        colors: [
-          Color(0xFFFFEDD5), // copper flare highlight
-          Color(0xFFEA580C), // rich copper body
-          Color(0xFF9A3412), // medium bronze
-          Color(0xFF451A03), // shadow bronze/brown
-        ],
+        colors: AppBadgePalette.frameBronze,
         stops: [0.0, 0.3, 0.8, 1.0],
       );
     }
@@ -127,8 +113,8 @@ class BadgeShapePainter extends CustomPainter {
     final raysPaint = Paint()
       ..shader = RadialGradient(
         colors: [
-          Colors.white.withValues(alpha: isUnlocked ? 0.22 : 0.06),
-          Colors.white.withValues(alpha: 0.0),
+          AppBadgePalette.specular.withValues(alpha: isUnlocked ? 0.22 : 0.06),
+          AppBadgePalette.specular.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, w, h))
       ..strokeWidth = tier == BadgeTier.advanced ? 2.0 : 1.2
@@ -155,8 +141,8 @@ class BadgeShapePainter extends CustomPainter {
       ..strokeWidth = 1.0;
 
     final Color activeRingColor = tier == BadgeTier.advanced
-        ? const Color(0xFFFFE082)
-        : Colors.white;
+        ? AppBadgePalette.innerRingGold
+        : AppBadgePalette.specular;
     final double ringAlpha = tier == BadgeTier.advanced ? 0.35 : 0.18;
 
     ringPaint.color = isUnlocked
@@ -181,36 +167,21 @@ class BadgeShapePainter extends CustomPainter {
       activeBorderGradient = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFFFF9C4), // White gold glow reflection
-          Color(0xFFFFD54F), // Golden frame
-          Color(0xFFFF8F00), // Amber border
-          Color(0xFFE65100), // Dark gold shadow
-        ],
+        colors: AppBadgePalette.bevelGold,
       );
     } else if (xpRewardValue >= 75) {
       // Silver
       activeBorderGradient = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFFFFFFF), // pure reflection
-          Color(0xFFCFD8DC), // grey steel
-          Color(0xFF78909C), // silver edge
-          Color(0xFF37474F), // shadow grey
-        ],
+        colors: AppBadgePalette.bevelSilver,
       );
     } else {
       // Bronze
       activeBorderGradient = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [
-          Color(0xFFFFE0B2), // bronze flare
-          Color(0xFFD84315), // copper border
-          Color(0xFF5D4037), // brown edge
-          Color(0xFF2D1510), // shadow bronze
-        ],
+        colors: AppBadgePalette.bevelBronze,
       );
     }
 
@@ -231,8 +202,8 @@ class BadgeShapePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.white.withValues(alpha: isUnlocked ? 0.35 : 0.18),
-          Colors.white.withValues(alpha: 0.0),
+          AppBadgePalette.specular.withValues(alpha: isUnlocked ? 0.35 : 0.18),
+          AppBadgePalette.specular.withValues(alpha: 0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, w, h * 0.45));
 

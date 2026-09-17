@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -25,19 +30,11 @@ class HistoryTab extends ConsumerWidget {
     TransactionQuery query,
   ) {
     final l10n = context.l10n;
-    final theme = Theme.of(context);
 
     return TextFormField(
       decoration: InputDecoration(
         hintText: l10n.historyFilterDescriptionLabel,
         prefixIcon: const Icon(Icons.search),
-        fillColor: theme.colorScheme.surfaceContainerHighest,
-        filled: true,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 0),
       ),
       onChanged: (value) {
         historyNotifier.reset(
@@ -53,13 +50,13 @@ class HistoryTab extends ConsumerWidget {
     TransactionListNotifier historyNotifier,
   ) {
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: InkWell(
         onTap: () {
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
-            backgroundColor: Colors.transparent,
+            backgroundColor: AppColors.transparent,
             builder: (context) => TransactionFilterBottomSheet(
               initialQuery: query,
               onApply: (newQuery) {
@@ -68,12 +65,12 @@ class HistoryTab extends ConsumerWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.brMd,
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: AppSpacing.allSm,
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: AppRadius.brMd,
             border: Border.all(
               color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
             ),
@@ -101,13 +98,15 @@ class HistoryTab extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth <= 800;
+        // O corte é o mesmo do rail: abaixo de `wide` a linha de filtros não
+        // cabe lado a lado.
+        final isMobile = !constraints.layout.isWide;
 
         return Column(
           children: [
             // Topo: Filtros
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: AppSpacing.allMd,
               child: isMobile
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -118,12 +117,12 @@ class HistoryTab extends ConsumerWidget {
                           endDate: query.endDate,
                           onSelected: (type, start, end) {
                             ref
-                                .read(
-                              HomeViewProviders
-                                  .historyPeriodType
-                                  .notifier,
-                            )
-                                .state =
+                                    .read(
+                                      HomeViewProviders
+                                          .historyPeriodType
+                                          .notifier,
+                                    )
+                                    .state =
                                 type;
                             historyNotifier.reset(
                               query: query.copyWith(
@@ -133,7 +132,7 @@ class HistoryTab extends ConsumerWidget {
                             );
                           },
                         ),
-                        const SizedBox(height: 12),
+                        AppSpacing.gapSm,
                         Row(
                           children: [
                             Expanded(
@@ -143,7 +142,7 @@ class HistoryTab extends ConsumerWidget {
                                 query,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            AppSpacing.gapSm,
                             _buildFilterButton(context, query, historyNotifier),
                           ],
                         ),
@@ -176,7 +175,7 @@ class HistoryTab extends ConsumerWidget {
                             },
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        AppSpacing.gapSm,
                         // Filtro por Texto
                         Expanded(
                           child: _buildSearchField(
@@ -185,7 +184,7 @@ class HistoryTab extends ConsumerWidget {
                             query,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        AppSpacing.gapSm,
                         // Botão de Filtro Avançado
                         _buildFilterButton(context, query, historyNotifier),
                       ],
@@ -194,7 +193,7 @@ class HistoryTab extends ConsumerWidget {
             // Badges para filtros da modal
             if (_hasAdvancedFilters(query))
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                padding: AppSpacing.hMd,
                 child: SizedBox(
                   height: 40,
                   child: ListView(
@@ -310,6 +309,12 @@ class HistoryTab extends ConsumerWidget {
   }
 }
 
+/// A pílula de um filtro ativo, com a ação de limpar.
+///
+/// Era desenhada à mão (raio 20, 11px w600, duas opacidades do
+/// `primaryContainer`). Agora é o [AppChip] do design system: a variante com
+/// `onDeleted` é a única pílula do app que carrega uma ação — [StatusPill] não
+/// tem onde encostar para limpar o filtro.
 class _FilterBadge extends StatelessWidget {
   final String label;
   final VoidCallback onClear;
@@ -318,45 +323,9 @@ class _FilterBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: 4),
-              InkWell(
-                onTap: onClear,
-                borderRadius: BorderRadius.circular(10),
-                child: Icon(
-                  Icons.close,
-                  size: 14,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      child: AppChip(label: label, onDeleted: onClear),
     );
   }
 }

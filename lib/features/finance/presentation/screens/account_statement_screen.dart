@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
@@ -50,12 +53,13 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
     final accountAsync = ref.watch(AccountViewProviders.byId(widget.accountId));
 
     return accountAsync.when(
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.allLg,
             child: ErrorView.forError(
               context,
               error,
@@ -73,11 +77,15 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
           );
         }
 
-        final latestBalanceAsync = ref.watch(AccountViewProviders.latestBalanceById(account.id));
+        final latestBalanceAsync = ref.watch(
+          AccountViewProviders.latestBalanceById(account.id),
+        );
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth >= 900;
+            // Mede o PAINEL, não a janela: com o rail aberto, 1000px de
+            // janela deixavam 800 de conteúdo se dizendo desktop.
+            final isDesktop = constraints.layout.isWide;
 
             return Scaffold(
               body: NestedScrollView(
@@ -86,12 +94,17 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                     SliverDetailHeader(
                       title: account.name,
                       subtitle: latestBalanceAsync.when(
-                        data: (balance) => balance.balance.asCurrency(locale: context.locale),
+                        data: (balance) =>
+                            balance.balance.asCurrency(locale: context.locale),
                         loading: () => "...",
                         error: (_, _) => "---",
                       ),
                       backgroundColor: account.color.asColor(),
-                      logo: AccountLogo(account: account, size: 40, showMembers: true,),
+                      logo: AccountLogo(
+                        account: account,
+                        size: 40,
+                        showMembers: true,
+                      ),
                       expandedHeight: 300,
                       chips: [
                         DetailHeaderChip(
@@ -112,7 +125,9 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                           icon: Icons.account_balance_wallet_outlined,
                           label: context.l10n.reconciliationTitle,
                           onPressed: () {
-                            context.push('/reconciliation?accountId=${account.id}');
+                            context.push(
+                              '/reconciliation?accountId=${account.id}',
+                            );
                           },
                           tooltip: context.l10n.reconciliationTitle,
                         ),
@@ -123,9 +138,9 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                       delegate: _SliverAppBarDelegate(
                         TabBar(
                           controller: _tabController,
-                          labelColor: AppColors.pureWhite,
-                          unselectedLabelColor: AppColors.pureWhite.withValues(alpha: 0.6),
-                          indicatorColor: AppColors.brightCyan,
+                          labelColor: AppColors.inkInverse,
+                          unselectedLabelColor: AppColors.inkInverse2,
+                          indicatorColor: AppColors.teal,
                           tabs: [
                             Tab(text: context.l10n.accountStatementCurrent),
                             Tab(text: context.l10n.accountStatementFuture),
@@ -138,8 +153,16 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                 body: TabBarView(
                   controller: _tabController,
                   children: [
-                    _StatementList(accountId: widget.accountId, isFuture: false, isDesktop: isDesktop),
-                    _StatementList(accountId: widget.accountId, isFuture: true, isDesktop: isDesktop),
+                    _StatementList(
+                      accountId: widget.accountId,
+                      isFuture: false,
+                      isDesktop: isDesktop,
+                    ),
+                    _StatementList(
+                      accountId: widget.accountId,
+                      isFuture: true,
+                      isDesktop: isDesktop,
+                    ),
                   ],
                 ),
               ),
@@ -149,42 +172,56 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                     context: context,
                     builder: (context) {
                       final theme = Theme.of(context);
+                      final palette = context.palette;
                       final l10n = context.l10n;
                       return SafeArea(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Padding(
-                              padding: const EdgeInsets.all(16.0),
+                              padding: AppSpacing.allMd,
                               child: Text(
                                 l10n.transactionNewTitle,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: theme.textTheme.titleMedium,
                               ),
                             ),
                             ListTile(
-                              leading: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              leading: Icon(
+                                Icons.remove_circle_outline,
+                                color: palette.dangerText,
+                              ),
                               title: Text(l10n.transactionTypeExpense),
                               onTap: () {
                                 Navigator.pop(context);
-                                context.push('/transactions/form?type=expense&accountIdSource=${account.id}');
+                                context.push(
+                                  '/transactions/form?type=expense&accountIdSource=${account.id}',
+                                );
                               },
                             ),
                             ListTile(
-                              leading: const Icon(Icons.add_circle_outline, color: Colors.green),
+                              leading: Icon(
+                                Icons.add_circle_outline,
+                                color: palette.successText,
+                              ),
                               title: Text(l10n.transactionTypeIncome),
                               onTap: () {
                                 Navigator.pop(context);
-                                context.push('/transactions/form?type=income&accountIdSource=${account.id}');
+                                context.push(
+                                  '/transactions/form?type=income&accountIdSource=${account.id}',
+                                );
                               },
                             ),
                             ListTile(
-                              leading: const Icon(Icons.swap_horiz, color: Colors.blue),
+                              leading: Icon(
+                                Icons.swap_horiz,
+                                color: palette.tealText,
+                              ),
                               title: Text(l10n.transactionTypeTransfer),
                               onTap: () {
                                 Navigator.pop(context);
-                                context.push('/transactions/form?type=transfer&accountIdSource=${account.id}');
+                                context.push(
+                                  '/transactions/form?type=transfer&accountIdSource=${account.id}',
+                                );
                               },
                             ),
                           ],
@@ -193,9 +230,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                     },
                   );
                 },
-                backgroundColor: AppColors.successGold,
-                shape: const CircleBorder(),
-                child: const Icon(Icons.add, color: AppColors.darkNavy),
+                child: const Icon(Icons.add),
               ),
             );
           },
@@ -218,16 +253,16 @@ class _StatementList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final provider = FinanceViewProviders.statement((accountId: accountId, isFuture: isFuture));
+    final provider = FinanceViewProviders.statement((
+      accountId: accountId,
+      isFuture: isFuture,
+    ));
 
     return Column(
       children: [
         _buildFilterBar(context, ref, provider),
         Expanded(
-          child: TransactionListView(
-            provider: provider,
-            accountId: accountId,
-          ),
+          child: TransactionListView(provider: provider, accountId: accountId),
         ),
       ],
     );
@@ -243,7 +278,8 @@ class _StatementList extends ConsumerWidget {
     provider,
   ) {
     final state = ref.watch(provider);
-    final hasFilter = state.query.categoryId != null ||
+    final hasFilter =
+        state.query.categoryId != null ||
         state.query.type != null ||
         state.query.description != null ||
         state.query.minAmount != null ||
@@ -252,17 +288,15 @@ class _StatementList extends ConsumerWidget {
 
     return Padding(
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 24 : 16,
-        vertical: 8,
+        horizontal: isDesktop ? AppSpacing.lg : AppSpacing.md,
+        vertical: AppSpacing.xs,
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               context.l10n.transactions,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
           IconButton(
@@ -270,7 +304,7 @@ class _StatementList extends ConsumerWidget {
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
-                backgroundColor: Colors.transparent,
+                backgroundColor: AppColors.transparent,
                 builder: (context) => TransactionFilterBottomSheet(
                   initialQuery: state.query,
                   hiddenFields: const {TransactionFilterField.account},
@@ -282,7 +316,7 @@ class _StatementList extends ConsumerWidget {
             },
             icon: Icon(
               hasFilter ? Icons.filter_alt : Icons.filter_alt_outlined,
-              color: hasFilter ? AppColors.antiqueGold : null,
+              color: hasFilter ? AppColors.goldDeep : null,
             ),
           ),
         ],
@@ -302,11 +336,12 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppColors.deepTurquoise,
-      child: _tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(color: AppColors.surfaceDeep, child: _tabBar);
   }
 
   @override

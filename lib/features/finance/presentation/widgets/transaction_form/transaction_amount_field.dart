@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_typography.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/money_form_field.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -47,34 +49,33 @@ class TransactionAmountField extends StatelessWidget {
   /// A cor do valor é a do tipo do lançamento: vermelho sai, verde entra,
   /// primária só se move de lugar.
   static Color colorFor(BuildContext context, OrderType type) => switch (type) {
-    OrderType.expense => AppColors.error,
-    OrderType.income => AppColors.limeGreen,
+    OrderType.expense => context.palette.dangerText,
+    OrderType.income => context.palette.successText,
     OrderType.transfer => Theme.of(context).colorScheme.primary,
   };
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
     final v = context.validations;
     final amountLabel = labelFor(l10n, state);
     final amountColor = colorFor(context, state.type);
+    final amountStyle = theme.textTheme.headlineSmall
+        ?.copyWith(color: amountColor)
+        .tabularFigures;
 
     if (isEditable) {
       return MoneyFormField(
         initialValue: state.amount,
-        style: theme.textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.bold,
-          color: amountColor,
-        ),
+        style: amountStyle,
+        // Fill, borda e rótulo vêm do `inputDecorationTheme`; só o respiro
+        // maior é daqui, porque o valor é o campo herói da tela.
         decoration: InputDecoration(
           labelText: amountLabel,
           alignLabelWithHint: true,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 16,
-          ),
+          contentPadding: AppSpacing.allMd,
         ),
         onChanged: (v) => notifier.updateAmount(v ?? 0.0),
         validator: v.all([v.notNull()]),
@@ -84,25 +85,15 @@ class TransactionAmountField extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: AppSpacing.vXs,
         child: Column(
           children: [
             Text(
               amountLabel,
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
-              ),
+              style: theme.textTheme.labelMedium?.copyWith(color: palette.ink3),
             ),
-            const SizedBox(height: 4),
-            Text(
-              state.amount.asCurrency(locale: context.locale),
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: amountColor,
-              ),
-            ),
+            AppSpacing.gapXxs,
+            MoneyText(state.amount, style: amountStyle),
           ],
         ),
       ),

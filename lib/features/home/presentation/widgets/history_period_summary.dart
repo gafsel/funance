@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
-import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -16,13 +17,16 @@ class HistoryPeriodSummary extends ConsumerWidget {
     final totals = notifier.totals;
 
     return Container(
-      margin: const EdgeInsets.only(top: 24, bottom: 16),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(
+        top: AppSpacing.lg,
+        bottom: AppSpacing.md,
+      ),
+      padding: AppSpacing.allMd,
       decoration: BoxDecoration(
         color: Theme.of(
           context,
         ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.brLg,
         border: Border.all(
           color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
         ),
@@ -32,13 +36,11 @@ class HistoryPeriodSummary extends ConsumerWidget {
         children: [
           Text(
             l10n.periodSummary,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleMedium,
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
+            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
             child: Row(
               children: [
                 const Spacer(),
@@ -124,12 +126,12 @@ class HistoryPeriodSummary extends ConsumerWidget {
     bool isBold = false,
     bool isError = false,
   }) {
-    final locale = context.locale;
+    final palette = context.palette;
 
     Color getColor(double value) {
-      if (value == 0) return Colors.grey;
-      if (isError) return AppColors.error;
-      return value > 0 ? AppColors.limeGreen : AppColors.error;
+      if (value == 0) return palette.ink2;
+      if (isError) return palette.dangerText;
+      return palette.moneyInk(value);
     }
 
     return Row(
@@ -138,30 +140,50 @@ class HistoryPeriodSummary extends ConsumerWidget {
           child: Text(label, style: Theme.of(context).textTheme.bodyMedium),
         ),
         Expanded(
-          child: Text(
-            plannedValue == 0
-                ? '-'
-                : plannedValue.asSignedCurrency(locale: locale),
-            textAlign: TextAlign.right,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: getColor(plannedValue).withValues(alpha: .75),
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
+          child: plannedValue == 0
+              ? Text(
+                  '-',
+                  textAlign: TextAlign.right,
+                  style: _valueStyle(
+                    context,
+                    isBold,
+                  )?.copyWith(color: getColor(0).withValues(alpha: .75)),
+                )
+              : MoneyText(
+                  plannedValue,
+                  showSign: true,
+                  textAlign: TextAlign.right,
+                  style: _valueStyle(context, isBold)?.copyWith(
+                    color: getColor(plannedValue).withValues(alpha: .75),
+                  ),
+                ),
         ),
         Expanded(
-          child: Text(
-            realizedValue == 0
-                ? '-'
-                : realizedValue.asSignedCurrency(locale: locale),
-            textAlign: TextAlign.right,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: getColor(realizedValue),
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
+          child: realizedValue == 0
+              ? Text(
+                  '-',
+                  textAlign: TextAlign.right,
+                  style: _valueStyle(
+                    context,
+                    isBold,
+                  )?.copyWith(color: getColor(0)),
+                )
+              : MoneyText(
+                  realizedValue,
+                  showSign: true,
+                  textAlign: TextAlign.right,
+                  style: _valueStyle(
+                    context,
+                    isBold,
+                  )?.copyWith(color: getColor(realizedValue)),
+                ),
         ),
       ],
     );
   }
+
+  /// 14 regular ou 14 semibold: a linha de total é a única em negrito.
+  TextStyle? _valueStyle(BuildContext context, bool isBold) => isBold
+      ? Theme.of(context).textTheme.titleSmall
+      : Theme.of(context).textTheme.bodyMedium;
 }

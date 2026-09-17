@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -31,12 +32,8 @@ class TransactionDetailAccounts extends StatelessWidget {
         final targetId = installment.accountIdTarget;
 
         if (isTransfer && sourceId != null && targetId != null) {
-          final sourceAccount = ref.watch(
-            AccountViewProviders.byId(sourceId),
-          );
-          final targetAccount = ref.watch(
-            AccountViewProviders.byId(targetId),
-          );
+          final sourceAccount = ref.watch(AccountViewProviders.byId(sourceId));
+          final targetAccount = ref.watch(AccountViewProviders.byId(targetId));
 
           return sourceAccount.when(
             data: (source) => targetAccount.when(
@@ -44,7 +41,7 @@ class TransactionDetailAccounts extends StatelessWidget {
                 label: l10n.transactionAccountLabel,
                 value: '',
                 customValue: Row(
-                  spacing: 8,
+                  spacing: AppSpacing.xs,
                   children: [
                     Row(
                       children: [
@@ -54,28 +51,21 @@ class TransactionDetailAccounts extends StatelessWidget {
                             size: 30,
                             showMembers: true,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.xs),
                           Text(
                             source.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: theme.textTheme.titleSmall,
                           ),
                         ] else
-                          Text(
-                            '-',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          Text('-', style: theme.textTheme.titleSmall),
                       ],
                     ),
                     Icon(
                       Icons.arrow_forward,
                       size: 16,
-                      color: AppColors.antiqueGold,
+                      color: AppColors.goldDeep,
                     ),
                     Expanded(
                       child: Row(
@@ -86,31 +76,24 @@ class TransactionDetailAccounts extends StatelessWidget {
                               size: 30,
                               showMembers: true,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.xs),
                             Expanded(
                               child: Text(
                                 target.name,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: theme.textTheme.titleSmall,
                               ),
                             ),
                           ] else
-                            Text(
-                              '-',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                            Text('-', style: theme.textTheme.titleSmall),
                         ],
                       ),
-                    )
+                    ),
                   ],
                 ),
                 icon: Icons.swap_horiz,
-                iconColor: AppColors.antiqueGold,
+                iconColor: AppColors.goldDeep,
               ),
               loading: () => const SizedBox.shrink(),
               error: (_, _) => const SizedBox.shrink(),
@@ -137,19 +120,16 @@ class TransactionDetailAccounts extends StatelessWidget {
                                   size: 30,
                                   showMembers: true,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppSpacing.xs),
                                 Text(
                                   account.name,
-                                  style: theme.textTheme.bodyMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                  style: theme.textTheme.titleSmall,
                                 ),
                               ],
                             )
                           : null,
                       icon: Icons.account_balance_wallet_outlined,
-                      iconColor: AppColors.antiqueGold,
+                      iconColor: AppColors.goldDeep,
                     ),
                     loading: () => const SizedBox.shrink(),
                     error: (_, _) => const SizedBox.shrink(),

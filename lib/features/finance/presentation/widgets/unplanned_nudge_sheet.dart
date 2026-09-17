@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -125,11 +128,17 @@ class UnplannedNudgeSheet extends StatelessWidget {
     final l10n = context.l10n;
     final locale = context.locale;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final suggestion = nudge.suggestedLimit;
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          0,
+          AppSpacing.md,
+          AppSpacing.md,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -138,27 +147,23 @@ class UnplannedNudgeSheet extends StatelessWidget {
               children: [
                 const Icon(
                   Icons.lightbulb_outline_rounded,
-                  color: AppColors.successGold,
+                  color: AppColors.gold,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     l10n.unplannedNudgeTitle,
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleLarge,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             Text(
               l10n.unplannedNudgeMessage(nudge.category.name),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink2),
             ),
-            const SizedBox(height: 20),
+            AppSpacing.gapMd,
             _Option(
               key: const ValueKey('nudge-recurring'),
               icon: Icons.event_repeat_rounded,
@@ -166,7 +171,7 @@ class UnplannedNudgeSheet extends StatelessWidget {
               subtitle: l10n.unplannedNudgeRecurringDesc,
               onTap: () => _choose(context, UnplannedNudgeAction.recurring),
             ),
-            const SizedBox(height: 12),
+            AppSpacing.gapSm,
             _Option(
               key: const ValueKey('nudge-limit'),
               icon: Icons.tune_rounded,
@@ -178,7 +183,7 @@ class UnplannedNudgeSheet extends StatelessWidget {
                     ),
               onTap: () => _choose(context, UnplannedNudgeAction.limit),
             ),
-            const SizedBox(height: 8),
+            AppSpacing.gapXs,
             Align(
               alignment: Alignment.center,
               child: TextButton(
@@ -217,34 +222,33 @@ class _Option extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
 
     return Material(
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-      borderRadius: BorderRadius.circular(16),
+      color: palette.paper2,
+      borderRadius: AppRadius.brMd,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.brMd,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.allMd,
           child: Row(
             children: [
-              Icon(icon, color: AppColors.deepTurquoise),
-              const SizedBox(width: 12),
+              // Era o turquesa profundo bruto: acento sobre papel claro que
+              // sumiria no tema escuro. O papel certo é a tinta teal da
+              // superfície corrente.
+              Icon(icon, color: palette.tealText),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
+                    Text(title, style: theme.textTheme.titleSmall),
+                    AppSpacing.gapXxs,
                     Text(
                       subtitle,
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: palette.ink2,
                       ),
                     ),
                   ],

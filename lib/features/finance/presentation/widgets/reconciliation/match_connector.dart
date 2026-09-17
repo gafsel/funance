@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 
 /// Ligação visual entre a transação do extrato e a do sistema.
@@ -17,11 +18,13 @@ class MatchConnectorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = context.palette;
+
     if (!isLinked) {
-      return const SizedBox(
+      return SizedBox(
         width: 60,
         child: Center(
-          child: Icon(Icons.link_off, color: Colors.grey, size: 20),
+          child: Icon(Icons.link_off, color: palette.ink3, size: 20),
         ),
       );
     }
@@ -32,22 +35,22 @@ class MatchConnectorWidget extends StatelessWidget {
 
     switch (status) {
       case ReconciliationMatchStatus.matched:
-        color = Colors.green;
+        color = palette.successText;
         isDashed = false;
         icon = Icons.link;
         break;
       case ReconciliationMatchStatus.suggested:
-        color = Colors.orange;
+        color = palette.warningText;
         isDashed = true;
         icon = Icons.link;
         break;
       case ReconciliationMatchStatus.ignored:
-        color = Colors.red;
+        color = palette.dangerText;
         isDashed = false;
         icon = Icons.link_off;
         break;
       case ReconciliationMatchStatus.unmatched:
-        color = Colors.grey;
+        color = palette.ink3;
         isDashed = false;
         icon = Icons.link_off;
         break;
@@ -70,7 +73,7 @@ class MatchConnectorWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              color: palette.paper,
               shape: BoxShape.circle,
               border: Border.all(color: color.withValues(alpha: 0.5)),
             ),

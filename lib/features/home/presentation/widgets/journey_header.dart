@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_card.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/home/domain/models/monthly_available_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -66,19 +69,10 @@ class _HeaderShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Material(
-        color: AppColors.deepTurquoise,
-        borderRadius: BorderRadius.circular(24),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            child: child,
-          ),
-        ),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: AppCard.game(
+        onTap: onTap,
+        child: SizedBox(width: double.infinity, child: child),
       ),
     );
   }
@@ -94,21 +88,18 @@ class _HeaderLoading extends StatelessWidget {
       children: [
         Text(
           context.l10n.journeyAvailableTitle,
-          style: const TextStyle(
-            color: AppColors.pureWhite,
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
-        const SizedBox(height: 16),
+        AppSpacing.gapMd,
         const SizedBox(
           height: 28,
           width: 28,
           child: CircularProgressIndicator(
             strokeWidth: 3,
-            valueColor: AlwaysStoppedAnimation(AppColors.successGold),
+            valueColor: AlwaysStoppedAnimation(AppColors.gold),
           ),
         ),
-        const SizedBox(height: 8),
+        AppSpacing.gapXs,
       ],
     );
   }
@@ -125,20 +116,13 @@ class _HeaderError extends StatelessWidget {
 
     return Row(
       children: [
-        const Icon(Icons.cloud_off_outlined, color: AppColors.pureWhite),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            l10n.journeyAvailableError,
-            style: const TextStyle(color: AppColors.pureWhite),
-          ),
-        ),
+        const Icon(Icons.cloud_off_outlined, color: AppColors.inkInverse),
+        AppSpacing.gapSm,
+        Expanded(child: Text(l10n.journeyAvailableError)),
         TextButton(
           onPressed: onRetry,
-          child: Text(
-            l10n.retry,
-            style: const TextStyle(color: AppColors.successGold),
-          ),
+          style: TextButton.styleFrom(foregroundColor: AppColors.gold),
+          child: Text(l10n.retry),
         ),
       ],
     );
@@ -159,19 +143,16 @@ class _HeaderNoIncome extends StatelessWidget {
       children: [
         Text(
           l10n.journeyAvailableTitle,
-          style: const TextStyle(
-            color: AppColors.pureWhite,
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
-        const SizedBox(height: 8),
+        AppSpacing.gapXs,
         Text(
           l10n.journeyAvailableNoIncome,
-          style: TextStyle(
-            color: AppColors.pureWhite.withValues(alpha: 0.85),
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: AppColors.inkInverse2),
         ),
-        const SizedBox(height: 12),
+        AppSpacing.gapSm,
         FilledButton.tonalIcon(
           key: const ValueKey('journey-set-income'),
           onPressed: () => context.push('/planning?type=income'),
@@ -203,51 +184,45 @@ class _HeaderAmount extends StatelessWidget {
             Expanded(
               child: Text(
                 l10n.journeyAvailableTitle,
-                style: const TextStyle(
-                  color: AppColors.pureWhite,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.titleMedium,
               ),
             ),
             const Icon(
               Icons.chevron_right,
-              color: AppColors.pureWhite,
+              color: AppColors.inkInverse,
               size: 20,
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXxs,
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          child: Text(
-            value.asCurrency(locale: locale),
+          child: MoneyText(
+            value,
             style: theme.textTheme.displaySmall?.copyWith(
-              color: value < 0 ? AppColors.coralOrange : AppColors.successGold,
-              fontWeight: FontWeight.bold,
+              color: value < 0 ? AppColors.warning : AppColors.gold,
             ),
           ),
         ),
-        const SizedBox(height: 6),
+        AppSpacing.gapXxs,
         Text(
           l10n.journeyAvailableSpent(
             available.realizedExpenses.asCurrency(locale: locale),
             available.plannedExpenses.asCurrency(locale: locale),
           ),
-          style: TextStyle(
-            color: AppColors.pureWhite.withValues(alpha: 0.85),
-            fontSize: 13,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.inkInverse2,
           ),
         ),
         if (available.pendingExpenses > 0) ...[
-          const SizedBox(height: 2),
+          AppSpacing.gapXxs,
           Text(
             l10n.journeyAvailablePending(
               available.pendingExpenses.asCurrency(locale: locale),
             ),
-            style: TextStyle(
-              color: AppColors.pureWhite.withValues(alpha: 0.7),
-              fontSize: 13,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: AppColors.inkInverse.withValues(alpha: 0.7),
             ),
           ),
         ],

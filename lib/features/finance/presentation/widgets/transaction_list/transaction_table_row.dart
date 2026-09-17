@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_elevation.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -34,6 +37,7 @@ Widget buildTransactionTableRow(
   final l10n = context.l10n;
   final locale = context.locale;
   final theme = Theme.of(context);
+  final palette = context.palette;
   final isExpense = installment.type == OrderType.expense;
   final isTransfer = installment.type == OrderType.transfer;
 
@@ -43,19 +47,32 @@ Widget buildTransactionTableRow(
   if (isTransfer) {
     if (accountId != null) {
       final isOutgoing = installment.accountIdSource == accountId;
-      amountColor = isOutgoing ? AppColors.error : AppColors.limeGreen;
+      amountColor = isOutgoing ? palette.dangerText : palette.successText;
       amountPrefix = isOutgoing ? '-' : '+';
     } else {
-      amountColor = Theme.of(context).colorScheme.primary;
+      amountColor = theme.colorScheme.primary;
       amountPrefix = '';
     }
   } else if (isExpense) {
-    amountColor = AppColors.error;
+    amountColor = palette.dangerText;
     amountPrefix = '-';
   } else {
-    amountColor = AppColors.limeGreen;
+    amountColor = palette.successText;
     amountPrefix = '+';
   }
+
+  // O selo é um preenchimento com ícone claro por cima; o rótulo ao lado é
+  // texto sobre papel. Daí duas cores para o mesmo estado.
+  final statusFill = switch (installment.status) {
+    InstallmentStatus.settled => AppColors.violet,
+    InstallmentStatus.paid => AppColors.success,
+    _ => AppColors.goldDeep,
+  };
+  final statusInk = switch (installment.status) {
+    InstallmentStatus.settled => AppColors.violet,
+    InstallmentStatus.paid => palette.successText,
+    _ => AppColors.goldDeep,
+  };
 
   return InkWell(
     onTap: () {
@@ -70,13 +87,12 @@ Widget buildTransactionTableRow(
       }
     },
     child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md,
+      ),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.1),
-          ),
-        ),
+        border: Border(bottom: AppElevation.hairline(palette.line)),
       ),
       child: Row(
         children: [
@@ -84,22 +100,14 @@ Widget buildTransactionTableRow(
           SizedBox(
             width: 90,
             child: Text(
-              installment.referenceDate.formated(
-                l10n.formatSimpleDate,
-                locale,
-              ),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              installment.referenceDate.formated(l10n.formatSimpleDate, locale),
+              style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink2),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           // Ícone e Status
-          SizedBox(
-            width: 44,
-            child: CategoryIcon.forInstallment(installment),
-          ),
-          const SizedBox(width: 12),
+          SizedBox(width: 44, child: CategoryIcon.forInstallment(installment)),
+          const SizedBox(width: AppSpacing.sm),
           // Descrição
           Expanded(
             flex: 3,
@@ -108,9 +116,7 @@ Widget buildTransactionTableRow(
               children: [
                 Text(
                   installment.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleSmall,
                 ),
                 Text(
                   '${isTransfer ? l10n.transactionActionTransfer : (category?.name ?? installment.category)}',
@@ -159,7 +165,7 @@ Widget buildTransactionTableRow(
                       : null;
 
                   return Row(
-                    spacing: 8,
+                    spacing: AppSpacing.xs,
                     children: [
                       if (source != null) ...[
                         AccountLogo(
@@ -193,14 +199,10 @@ Widget buildTransactionTableRow(
                 }
 
                 return Row(
-                  spacing: 8,
+                  spacing: AppSpacing.xs,
                   children: [
                     if (source != null)
-                      AccountLogo(
-                        account: source,
-                        size: 30,
-                        showMembers: true,
-                      ),
+                      AccountLogo(account: source, size: 30, showMembers: true),
                     Expanded(
                       child: Text(
                         source?.name ?? "-",
@@ -219,39 +221,30 @@ Widget buildTransactionTableRow(
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(4),
+                  padding: AppSpacing.allXxs,
                   decoration: BoxDecoration(
-                    color: installment.status == InstallmentStatus.settled
-                        ? AppColors.deepPurple
-                        : installment.status == InstallmentStatus.paid
-                        ? AppColors.limeGreen
-                        : AppColors.antiqueGold,
+                    color: statusFill,
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    installment.status == InstallmentStatus.settled
-                        ? Icons.done_all
-                        : installment.status == InstallmentStatus.paid
-                        ? Icons.check
-                        : Icons.schedule,
+                    switch (installment.status) {
+                      InstallmentStatus.settled => Icons.done_all,
+                      InstallmentStatus.paid => Icons.check,
+                      _ => Icons.schedule,
+                    },
                     size: 12,
-                    color: Colors.white,
+                    color: AppColors.inkInverse,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
                 Text(
-                  installment.status == InstallmentStatus.settled
-                      ? l10n.statusSettled
-                      : installment.status == InstallmentStatus.paid
-                      ? l10n.statusPaid
-                      : l10n.statusPending,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: installment.status == InstallmentStatus.settled
-                        ? AppColors.deepPurple
-                        : installment.status == InstallmentStatus.paid
-                        ? AppColors.limeGreen
-                        : AppColors.antiqueGold,
-                    fontWeight: FontWeight.bold,
+                  switch (installment.status) {
+                    InstallmentStatus.settled => l10n.statusSettled,
+                    InstallmentStatus.paid => l10n.statusPaid,
+                    _ => l10n.statusPending,
+                  },
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: statusInk,
                   ),
                 ),
               ],
@@ -260,13 +253,13 @@ Widget buildTransactionTableRow(
           // Valor
           SizedBox(
             width: 120,
-            child: Text(
-              '${amountPrefix.isNotEmpty ? '$amountPrefix ' : ''}${installment.referenceAmount.asCurrency(locale: locale)}',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: amountColor,
-              ),
+            child: MoneyText(
+              amountPrefix == '-'
+                  ? -installment.referenceAmount
+                  : installment.referenceAmount,
+              showSign: amountPrefix.isNotEmpty,
               textAlign: TextAlign.end,
+              style: theme.textTheme.titleSmall?.copyWith(color: amountColor),
             ),
           ),
         ],

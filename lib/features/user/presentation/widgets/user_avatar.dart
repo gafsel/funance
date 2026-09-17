@@ -1,6 +1,7 @@
 import 'package:funances/core/files/picked_document.dart';
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 class UserAvatar extends StatelessWidget {
   final String? displayName;
@@ -45,9 +46,11 @@ class UserAvatar extends StatelessWidget {
         backgroundColor: backgroundColor,
         child: Text(
           initials,
-          style: TextStyle(
-            color: AppColors.pureWhite,
-            fontWeight: FontWeight.bold,
+          // O tamanho das iniciais é proporcional ao raio do avatar (que vai
+          // de 12 num chip a 50 no perfil), então aqui o `fontSize` é dado de
+          // layout e não um degrau da escala.
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            color: AppColors.inkInverse,
             fontSize: radius * 0.8,
           ),
         ),
@@ -65,14 +68,14 @@ class UserAvatar extends StatelessWidget {
           child: GestureDetector(
             onTap: onEdit,
             child: Container(
-              padding: const EdgeInsets.all(4),
+              padding: AppSpacing.allXxs,
               decoration: const BoxDecoration(
-                color: AppColors.deepTurquoise,
+                color: AppColors.surfaceDeep,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.camera_alt,
-                color: Colors.white,
+                color: AppColors.inkInverse,
                 size: 20,
               ),
             ),
@@ -92,7 +95,7 @@ class UserAvatar extends StatelessWidget {
   }
 
   Color _getColorFromName(String? name) {
-    if (name == null || name.isEmpty) return AppColors.vibrantTeal;
+    if (name == null || name.isEmpty) return AppColors.tealInk;
     final int hash = name.hashCode;
     final int index = hash.abs() % AppColors.selectionColors.length;
     return AppColors.selectionColors[index];

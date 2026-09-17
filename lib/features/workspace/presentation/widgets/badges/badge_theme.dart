@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_badge_palette.dart';
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -98,46 +99,16 @@ IconData badgeIconFor(String iconName) =>
     _badgeIcons[iconName] ?? Icons.emoji_events;
 
 /// Paleta por seção. A cor de cada badge é escolhida de forma determinística
-/// pelo id, para dar variedade sem manter uma lista de 67 cores à mão.
+/// pelo id, para dar variedade sem manter uma lista de 67 cores à mão. As
+/// rampas em si moram em [AppBadgePalette] — são arte, não decisão de tela.
 const Map<BadgeCategory, List<Color>> _categoryPalettes = {
-  BadgeCategory.advanced: [
-    Color(0xFF7E57C2),
-    Color(0xFF1E88E5),
-    Color(0xFF00897B),
-    Color(0xFFF9A825),
-    Color(0xFFD81B60),
-  ],
-  BadgeCategory.firstSteps: [
-    Color(0xFF7C4DFF),
-    Color(0xFF00BCD4),
-    Color(0xFF4CAF50),
-    Color(0xFF2196F3),
-  ],
-  BadgeCategory.consistency: [
-    Color(0xFFFDD835),
-    Color(0xFF66BB6A),
-    Color(0xFFAB47BC),
-    Color(0xFF0288D1),
-  ],
-  BadgeCategory.savings: [
-    Color(0xFFF57C00),
-    Color(0xFF26C6DA),
-    Color(0xFFE91E63),
-    Color(0xFF43A047),
-  ],
-  BadgeCategory.goals: [
-    Color(0xFF5C6BC0),
-    Color(0xFF8E24AA),
-    Color(0xFFE64A19),
-    Color(0xFF0097A7),
-  ],
-  BadgeCategory.team: [
-    Color(0xFF039BE5),
-    Color(0xFF00796B),
-    Color(0xFF558B2F),
-    Color(0xFF7B1FA2),
-  ],
-  BadgeCategory.unknown: [Color(0xFF78909C)],
+  BadgeCategory.advanced: AppBadgePalette.categoryAdvanced,
+  BadgeCategory.firstSteps: AppBadgePalette.categoryFirstSteps,
+  BadgeCategory.consistency: AppBadgePalette.categoryConsistency,
+  BadgeCategory.savings: AppBadgePalette.categorySavings,
+  BadgeCategory.goals: AppBadgePalette.categoryGoals,
+  BadgeCategory.team: AppBadgePalette.categoryTeam,
+  BadgeCategory.unknown: AppBadgePalette.categoryUnknown,
 };
 
 Color badgeColorFor(BadgeCatalogItem badge) {

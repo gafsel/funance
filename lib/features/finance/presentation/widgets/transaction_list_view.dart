@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/core/list/infinite_list_view.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list/transaction_date_headers.dart';
@@ -43,7 +45,7 @@ class TransactionListView extends ConsumerWidget {
     // a tabela renderizava num espaço que não a comporta. Todo o resto do app
     // já decide por `LayoutBuilder`; esta tela era a exceção.
     return LayoutBuilder(
-      builder: (context, constraints) => constraints.maxWidth > 900
+      builder: (context, constraints) => constraints.layout.isWide
           ? _table(context, ref)
           : _cards(context, ref),
     );
@@ -57,14 +59,22 @@ class TransactionListView extends ConsumerWidget {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+          padding: const EdgeInsets.only(
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            top: AppSpacing.md,
+          ),
           child: buildTransactionTableHeader(context, l10n),
         ),
         Expanded(
           child: InfiniteListView.separator(
             provider,
             padding:
-                const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 0) +
+                const EdgeInsets.only(
+                  left: AppSpacing.md,
+                  right: AppSpacing.md,
+                  bottom: AppSpacing.md,
+                ) +
                 EdgeInsets.only(bottom: mq.padding.bottom),
             footerBuilder: footerBuilder,
             separatorBuilder: (context, before, after) {
@@ -98,12 +108,8 @@ class TransactionListView extends ConsumerWidget {
                 accountId: accountId,
               );
             },
-            emptyStateBuilder: (context) => EmptyState.message(
-              l10n.noTransactionsInPeriod,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
+            emptyStateBuilder: (context) =>
+                EmptyState.message(l10n.noTransactionsInPeriod),
           ),
         ),
       ],
@@ -143,7 +149,7 @@ class TransactionListView extends ConsumerWidget {
           );
         }
 
-        return SizedBox.shrink();
+        return const SizedBox.shrink();
       },
       itemBuilder: (context, item) {
         return TransactionListItem(
@@ -156,8 +162,7 @@ class TransactionListView extends ConsumerWidget {
       // divergência que existia entre os dois vazios desta tela.
       emptyStateBuilder: (context) => EmptyState.message(
         l10n.noTransactionsInPeriod,
-        padding: const EdgeInsets.all(32.0),
-        style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        padding: AppSpacing.allXl,
       ),
     );
   }

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_typography.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
@@ -15,7 +20,9 @@ import 'package:funances/features/home/presentation/model/overview_view_model.da
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/core/presentation/retry.dart';
 
 /// Lançamento em duas telas: escolher a categoria e preencher o formulário.
@@ -79,6 +86,7 @@ class _CategorySelectionStep extends ConsumerWidget {
     final l10n = context.l10n;
     final locale = context.locale;
     final theme = Theme.of(context);
+    final palette = context.palette;
 
     // Watch both categories and summaries to show progress
     final categoriesAsync = ref.watch(CategoryViewProviders.allStream);
@@ -100,18 +108,20 @@ class _CategorySelectionStep extends ConsumerWidget {
             data: (summaries) {
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final crossAxisCount = constraints.maxWidth > 900
-                      ? 4
-                      : constraints.maxWidth > 600
-                          ? 3
-                          : 2;
+                  // O painel se mede pelas próprias constraints: com o rail
+                  // aberto, a largura da janela mentia sobre o espaço real.
+                  final crossAxisCount = switch (constraints.layout) {
+                    AppLayout.compact => 2,
+                    AppLayout.medium => 3,
+                    AppLayout.wide => 4,
+                  };
 
                   return GridView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: AppSpacing.allMd,
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
+                      crossAxisSpacing: AppSpacing.md,
+                      mainAxisSpacing: AppSpacing.md,
                       mainAxisExtent: 100, // Fixed height for each item
                     ),
                     itemCount: filtered.length,
@@ -132,6 +142,7 @@ class _CategorySelectionStep extends ConsumerWidget {
                           : null;
 
                       final bool isOverBudget;
+
                       if (type == OrderType.income) {
                         isOverBudget = progress != null && progress >= 1.0;
                       } else {
@@ -141,23 +152,33 @@ class _CategorySelectionStep extends ConsumerWidget {
                       final progressColor = progress == null
                           ? category.color.asColor()
                           : type == OrderType.income
-                              ? (progress >= 1.0 ? Colors.green : AppColors.successGold)
-                              : (progress > 1.0 ? Colors.red : category.color.asColor());
+                          ? (progress >= 1.0
+                                ? AppColors.success
+                                : AppColors.gold)
+                          : (progress > 1.0
+                                ? AppColors.danger
+                                : category.color.asColor());
+
+                      final amountStyle = theme.textTheme.labelSmall!.copyWith(
+                        color: isOverBudget ? progressColor : palette.ink2,
+                      );
 
                       return InkWell(
                         onTap: () => onCategorySelected(category),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.brMd,
                         child: Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: AppSpacing.allSm,
                           decoration: BoxDecoration(
                             border: Border.all(
                               color: isOverBudget
                                   ? progressColor.withValues(alpha: 0.5)
-                                  : theme.dividerColor.withValues(alpha: 0.1),
+                                  : palette.line,
                               width: isOverBudget ? 2 : 1,
                             ),
-                            borderRadius: BorderRadius.circular(12),
-                            color: isOverBudget ? progressColor.withValues(alpha: 0.05) : null,
+                            borderRadius: AppRadius.brMd,
+                            color: isOverBudget
+                                ? progressColor.withValues(alpha: 0.05)
+                                : null,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,44 +188,43 @@ class _CategorySelectionStep extends ConsumerWidget {
                                 children: [
                                   CircleAvatar(
                                     radius: 16,
-                                    backgroundColor: isOverBudget ? progressColor : category.color.asColor(),
+                                    backgroundColor: isOverBudget
+                                        ? progressColor
+                                        : category.color.asColor(),
                                     child: Icon(
                                       category.icon.asIcon(),
-                                      color: Colors.white,
+                                      color: AppColors.inkInverse,
                                       size: 16,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: AppSpacing.xs),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           category.name,
-                                          style: theme.textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: isOverBudget ? progressColor : null,
-                                          ),
+                                          style: theme.textTheme.titleSmall
+                                              ?.copyWith(
+                                                color: isOverBudget
+                                                    ? progressColor
+                                                    : null,
+                                              ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         if (summary.plannedAmount > 0)
                                           Text(
                                             '${summary.actualAmount.asCurrency(locale: locale)} / ${summary.plannedAmount.asCurrency(locale: locale)}',
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              fontSize: 10,
-                                              color: isOverBudget ? progressColor : null,
-                                            ),
+                                            style: amountStyle.tabularFigures,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           )
                                         else
-                                          Text(
-                                            summary.actualAmount.asCurrency(locale: locale),
-                                            style: theme.textTheme.bodySmall?.copyWith(
-                                              fontSize: 10,
-                                              color: isOverBudget ? progressColor : null,
-                                            ),
+                                          MoneyText(
+                                            summary.actualAmount,
+                                            style: amountStyle,
                                           ),
                                       ],
                                     ),
@@ -212,17 +232,15 @@ class _CategorySelectionStep extends ConsumerWidget {
                                 ],
                               ),
                               if (progress != null) ...[
-                                const SizedBox(height: 8),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: progress.clamp(0.0, 1.0),
-                                    backgroundColor: progressColor.withValues(alpha: 0.1),
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      progressColor,
-                                    ),
-                                    minHeight: 4,
+                                AppSpacing.gapXs,
+                                AppProgressBar(
+                                  value: progress,
+                                  size: AppProgressSize.thin,
+                                  color: progressColor,
+                                  trackColor: progressColor.withValues(
+                                    alpha: 0.1,
                                   ),
+                                  semanticLabel: category.name,
                                 ),
                               ],
                             ],
@@ -237,7 +255,7 @@ class _CategorySelectionStep extends ConsumerWidget {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (err, _) => Center(
               child: Padding(
-                padding: const EdgeInsets.all(24),
+                padding: AppSpacing.allLg,
                 child: ErrorView.forError(
                   context,
                   err,
@@ -250,7 +268,7 @@ class _CategorySelectionStep extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.allLg,
             child: ErrorView.forError(
               context,
               err,

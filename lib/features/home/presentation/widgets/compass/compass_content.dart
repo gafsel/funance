@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/home/domain/models/financial_health_model.dart';
 import 'package:funances/features/home/presentation/widgets/compass/compass_labels.dart';
 
@@ -44,14 +46,13 @@ class CompassContent extends StatelessWidget {
                   Text(
                     health.score.round().toString(),
                     style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
                       color: color,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 16),
+            AppSpacing.gapMd,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,9 +65,7 @@ class CompassContent extends StatelessWidget {
                   ),
                   Text(
                     compassTierLabel(l10n, health.tier),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: theme.textTheme.titleMedium,
                   ),
                 ],
               ),
@@ -74,7 +73,7 @@ class CompassContent extends StatelessWidget {
             const Icon(Icons.chevron_right, size: 20),
           ],
         ),
-        const SizedBox(height: 16),
+        AppSpacing.gapMd,
         for (final component in FreedomComponent.values)
           _ComponentBar(score: health.componentOf(component), kind: component),
       ],
@@ -98,11 +97,11 @@ class _ComponentBar extends StatelessWidget {
         : compassScoreColor(value.score);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Row(
         children: [
           Icon(compassComponentIcon(kind), size: 16, color: color),
-          const SizedBox(width: 8),
+          AppSpacing.gapXs,
           SizedBox(
             width: 82,
             child: Text(
@@ -111,23 +110,20 @@ class _ComponentBar extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: LinearProgressIndicator(
+            child: AppProgressBar(
               value: value?.fraction ?? 0,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(4),
-              backgroundColor: color.withValues(alpha: 0.12),
-              valueColor: AlwaysStoppedAnimation(color),
+              color: color,
+              trackColor: color.withValues(alpha: 0.12),
+              semanticLabel: compassComponentLabel(l10n, kind),
             ),
           ),
-          const SizedBox(width: 8),
+          AppSpacing.gapXs,
           SizedBox(
             width: 28,
             child: Text(
               value == null ? '—' : value.score.round().toString(),
               textAlign: TextAlign.end,
-              style: theme.textTheme.labelSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.labelSmall,
             ),
           ),
         ],

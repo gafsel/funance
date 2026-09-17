@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/features/workspace/presentation/screens/badges_cabinet_screen.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_theme.dart';
@@ -105,10 +106,10 @@ void main() {
       // de 600. Nada disso é calculado no app.
       expect(find.text('150 / 600 XP'), findsOneWidget);
 
-      final indicator = tester.widget<LinearProgressIndicator>(
-        find.byType(LinearProgressIndicator),
-      );
-      expect(indicator.value, closeTo(0.25, 0.0001));
+      // A barra de XP é a `AppProgressBar.reward` do design system; o que o
+      // teste garante continua sendo a FRAÇÃO, que vem do catálogo.
+      final bar = tester.widget<AppProgressBar>(find.byType(AppProgressBar));
+      expect(bar.value, closeTo(0.25, 0.0001));
     });
 
     testWidgets('sem catálogo publicado, mostra o estado indisponível', (

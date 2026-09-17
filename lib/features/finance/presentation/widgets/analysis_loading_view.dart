@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_gradients.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/finance/domain/models/reconciliation_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -79,7 +82,8 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
     }
 
     const interval = Duration(milliseconds: 100);
-    final totalSteps = remainingDuration.inMilliseconds / interval.inMilliseconds;
+    final totalSteps =
+        remainingDuration.inMilliseconds / interval.inMilliseconds;
     int currentStep = 0;
 
     _secondPhaseTimer = Timer.periodic(interval, (timer) {
@@ -128,19 +132,10 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.deepTurquoise,
-            AppColors.vibrantTeal,
-          ],
-        ),
-      ),
+      decoration: const BoxDecoration(gradient: AppGradients.background),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -151,54 +146,51 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
                   return Transform.rotate(
                     angle: _rotationController.value * 2 * 3.14159,
                     child: Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: AppSpacing.allLg,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.successGold.withValues(alpha: 0.5),
+                          color: AppColors.gold.withValues(alpha: 0.5),
                           width: 2,
                         ),
                       ),
                       child: const Icon(
                         Icons.psychology,
                         size: 64,
-                        color: AppColors.successGold,
+                        color: AppColors.gold,
                       ),
                     ),
                   );
                 },
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: AppSpacing.xxxl),
               // Título
               Text(
                 widget.title ?? l10n.accountAnalyzing,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.headlineSmall?.copyWith(
-                  color: AppColors.pureWhite,
-                  fontWeight: FontWeight.bold,
+                  color: AppColors.inkInverse,
                 ),
               ),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               // Descrição
               Text(
                 widget.description ?? l10n.accountAnalysisDescription,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge?.copyWith(
-                  color: AppColors.pureWhite.withValues(alpha: 0.9),
+                  color: AppColors.inkInverse2,
                 ),
               ),
-              const SizedBox(height: 48),
-              // Indicador de progresso Linear
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  minHeight: 8,
-                  value: _currentProgress,
-                  backgroundColor: AppColors.deepTurquoise,
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.successGold),
-                ),
+              const SizedBox(height: AppSpacing.xxxl),
+              // Indicador de progresso Linear. A animação já vem do
+              // controlador desta tela, então a barra não anima de novo.
+              AppProgressBar(
+                value: _currentProgress,
+                color: AppColors.gold,
+                trackColor: AppColors.surfaceDeep,
+                animate: false,
               ),
-              const SizedBox(height: 16),
+              AppSpacing.gapMd,
               Text(
                 // A frase vem do STATUS, traduzida aqui. O campo `message` do
                 // documento de upload é escrito em português tanto pelo app
@@ -208,8 +200,7 @@ class _AnalysisLoadingViewState extends State<AnalysisLoadingView>
                     l10n.accountAnalysisProcessing,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: AppColors.pureWhite.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.inkInverse2,
                 ),
               ),
             ],

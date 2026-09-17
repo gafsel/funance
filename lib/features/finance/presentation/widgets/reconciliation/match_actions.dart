@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -33,6 +35,7 @@ class MatchActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final palette = context.palette;
     final isSystemOnly = match.isSystemOnly;
 
     final actions = [
@@ -51,7 +54,7 @@ class MatchActions extends StatelessWidget {
             final result = await showModalBottomSheet<ReconciliationMatch?>(
               context: context,
               isScrollControlled: true,
-              backgroundColor: Colors.transparent,
+              backgroundColor: AppColors.transparent,
               builder: (context) =>
                   ReconciliationTransactionForm(match: match, account: account),
             );
@@ -72,8 +75,8 @@ class MatchActions extends StatelessWidget {
           label: Text(l10n.reconciliationActionKeep),
           style: match.status == ReconciliationMatchStatus.matched
               ? TextButton.styleFrom(
-                  foregroundColor: Colors.green,
-                  backgroundColor: Colors.green.withValues(alpha: 0.1),
+                  foregroundColor: palette.successText,
+                  backgroundColor: AppColors.success.withValues(alpha: 0.1),
                 )
               : null,
         ),
@@ -85,7 +88,7 @@ class MatchActions extends StatelessWidget {
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
-              backgroundColor: Colors.transparent,
+              backgroundColor: AppColors.transparent,
               builder: (context) => ReconciliationHistoryPicker(
                 initialQuery: TransactionQuery(
                   accountId: account.id,
@@ -129,8 +132,8 @@ class MatchActions extends StatelessWidget {
           icon: const Icon(Icons.restore),
           label: Text(l10n.reconciliationActionRestore),
           style: TextButton.styleFrom(
-            foregroundColor: Colors.red,
-            backgroundColor: Colors.red.withValues(alpha: 0.1),
+            foregroundColor: palette.dangerText,
+            backgroundColor: AppColors.danger.withValues(alpha: 0.1),
           ),
         ),
     ];

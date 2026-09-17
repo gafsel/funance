@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/finance/domain/models/planning_503020_analysis.dart';
 
 /// Barra de um dos três grupos do 50-30-20: atual contra a meta.
@@ -14,19 +17,16 @@ class AllocationBar extends StatelessWidget {
   final String label;
   final Planning503020AnalysisGroup group;
 
-  const AllocationBar({
-    super.key,
-    required this.label,
-    required this.group,
-  });
+  const AllocationBar({super.key, required this.label, required this.group});
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
+    final palette = context.palette;
     final locale = context.locale;
     final isOver = group.currentPct > group.targetPct;
-    final barColor = isOver ? AppColors.coralOrange : AppColors.limeGreen;
+    final barColor = isOver ? AppColors.warning : AppColors.progressStart;
 
     final deltaText = group.deltaBRL > 0
         ? l10n.planningAnalysisAboveBy(
@@ -43,14 +43,7 @@ class AllocationBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            Expanded(child: Text(label, style: theme.textTheme.titleSmall)),
             Text(
               '${l10n.planningAnalysisCurrentPct((group.currentPct / 100).asPercent(locale: locale))} · '
               '${l10n.planningAnalysisTargetPct((group.targetPct / 100).asPercent(locale: locale))}',
@@ -58,26 +51,17 @@ class AllocationBar extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        AppSpacing.gapXxs,
         LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = constraints.maxWidth;
             return Stack(
               children: [
-                Container(
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: theme.dividerColor.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                Container(
-                  height: 12,
-                  width: maxWidth * (group.currentPct / 100).clamp(0.0, 1.0),
-                  decoration: BoxDecoration(
-                    color: barColor,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
+                AppProgressBar(
+                  value: group.currentPct / 100,
+                  size: AppProgressSize.thick,
+                  color: barColor,
+                  semanticLabel: label,
                 ),
                 Positioned(
                   left: (maxWidth * (group.targetPct / 100)).clamp(
@@ -86,18 +70,21 @@ class AllocationBar extends StatelessWidget {
                   ),
                   top: 0,
                   bottom: 0,
-                  child: Container(width: 2, color: AppColors.darkNavy),
+                  child: ColoredBox(
+                    color: palette.ink,
+                    child: const SizedBox(width: 2),
+                  ),
                 ),
               ],
             );
           },
         ),
         if (deltaText != null) ...[
-          const SizedBox(height: 2),
+          AppSpacing.gapXxs,
           Text(
             deltaText,
             style: theme.textTheme.labelSmall?.copyWith(
-              color: isOver ? AppColors.coralOrange : AppColors.vibrantTeal,
+              color: isOver ? palette.warningText : palette.tealText,
             ),
           ),
         ],

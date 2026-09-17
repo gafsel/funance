@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/widgets/section_header.dart';
+import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 /// "Como ganhar XP", lida de `config/badges.xpSources`.
@@ -18,7 +20,7 @@ class XpSourcesSection extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).toString();
-    final color = Colors.amber.shade700;
+    const color = AppColors.goldDeep;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,12 +31,12 @@ class XpSourcesSection extends StatelessWidget {
           color: color,
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: AppSpacing.hMd + AppSpacing.vXs,
           child: Column(
             children: [
               for (final source in sources)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xs),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -44,9 +46,7 @@ class XpSourcesSection extends StatelessWidget {
                           children: [
                             Text(
                               source.nameIn(locale),
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: theme.textTheme.titleSmall,
                             ),
                             if (source.descriptionIn(locale).isNotEmpty)
                               Text(
@@ -58,12 +58,11 @@ class XpSourcesSection extends StatelessWidget {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      AppSpacing.gapSm,
                       Text(
                         l10n.xpValue(source.xp.toString()),
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: color,
-                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],

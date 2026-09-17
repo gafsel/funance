@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_detail_sheet.dart';
 import 'package:funances/features/workspace/presentation/widgets/badges/badge_shape.dart';
@@ -27,12 +29,17 @@ class BadgeGrid extends StatelessWidget {
         badges.isNotEmpty && badges.first.category == BadgeCategory.advanced;
 
     return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.md,
+      ),
       sliver: SliverGrid(
         gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
           maxCrossAxisExtent: isAdvanced ? 130 : 68,
-          mainAxisSpacing: isAdvanced ? 16 : 12,
-          crossAxisSpacing: isAdvanced ? 16 : 12,
+          mainAxisSpacing: isAdvanced ? AppSpacing.md : AppSpacing.sm,
+          crossAxisSpacing: isAdvanced ? AppSpacing.md : AppSpacing.sm,
           childAspectRatio: isAdvanced ? 0.85 : 1,
         ),
         delegate: SliverChildBuilderDelegate((context, index) {
@@ -73,6 +80,9 @@ class _AdvancedBadgeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
     return GestureDetector(
       onTap: onTap,
       child: Column(
@@ -92,19 +102,15 @@ class _AdvancedBadgeCard extends StatelessWidget {
               themeColor: badgeColorFor(badge),
             ),
           ),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Expanded(
             child: Text(
               badge.nameIn(AppLocalizations.of(context)!.localeName),
               maxLines: 2,
               textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-                color: isUnlocked
-                    ? Theme.of(context).textTheme.bodyLarge?.color
-                    : Colors.grey.shade600,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: isUnlocked ? palette.ink : palette.ink3,
               ),
             ),
           ),

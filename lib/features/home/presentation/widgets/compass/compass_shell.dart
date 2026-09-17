@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
 
 /// A moldura do card da Bússola e os dois estados em que ele ainda não tem um
 /// índice para mostrar.
@@ -16,24 +18,11 @@ class CompassShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.3,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            child: child,
-          ),
-        ),
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: AppCard(
+        onTap: onTap,
+        child: SizedBox(width: double.infinity, child: child),
       ),
     );
   }
@@ -48,9 +37,7 @@ class CompassLoading extends StatelessWidget {
       children: [
         Text(
           context.l10n.compassTitle,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          style: Theme.of(context).textTheme.titleMedium,
         ),
         const Spacer(),
         const SizedBox(
@@ -73,23 +60,21 @@ class CompassCalibrating extends StatelessWidget {
 
     return Row(
       children: [
-        const Icon(
+        Icon(
           Icons.explore_outlined,
-          color: AppColors.vibrantTeal,
+          color: context.palette.tealText,
           size: 32,
         ),
-        const SizedBox(width: 12),
+        AppSpacing.gapSm,
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 l10n.compassCalibratingTitle,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.titleSmall,
               ),
-              const SizedBox(height: 4),
+              AppSpacing.gapXxs,
               Text(
                 l10n.compassCalibratingMessage,
                 style: theme.textTheme.bodySmall?.copyWith(

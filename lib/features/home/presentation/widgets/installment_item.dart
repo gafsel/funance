@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/home/domain/models/mission_model.dart';
@@ -15,14 +18,12 @@ import 'package:funances/core/presentation/display_names.dart';
 class InstallmentItem extends StatelessWidget {
   final InstallmentMission installmentInfo;
 
-  const InstallmentItem({
-    super.key,
-    required this.installmentInfo,
-  });
+  const InstallmentItem({super.key, required this.installmentInfo});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
     final l10n = context.l10n;
     final inst = installmentInfo.installment;
 
@@ -47,19 +48,19 @@ class InstallmentItem extends StatelessWidget {
         }
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: AppSpacing.allXs,
               decoration: BoxDecoration(
                 color: inst.isInvoice
-                    ? AppColors.error
+                    ? AppColors.danger
                     : inst.type == OrderType.transfer
-                    ? AppColors.brightCyan
+                    ? AppColors.teal
                     : inst.category?.color.asColor().withValues(alpha: 0.1) ??
-                          Colors.grey.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                          palette.line.withValues(alpha: 0.1),
+                borderRadius: AppRadius.brSm,
               ),
               child: Icon(
                 inst.isInvoice
@@ -68,18 +69,18 @@ class InstallmentItem extends StatelessWidget {
                     ? Icons.swap_horiz
                     : inst.category?.icon.asIcon() ?? Icons.category,
                 size: 20,
-                color: inst.category?.color.asColor() ?? Colors.white,
+                color: inst.category?.color.asColor() ?? AppColors.inkInverse,
               ),
             ),
-            const SizedBox(width: 12),
+            AppSpacing.gapSm,
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-            displayOr(inst.description, context.l10n.noDescription),
-            style: theme.textTheme.bodyMedium,
-          ),
+                    displayOr(inst.description, context.l10n.noDescription),
+                    style: theme.textTheme.bodyMedium,
+                  ),
                   Text(
                     DateFormat.E(
                       context.locale.toString(),
@@ -92,11 +93,9 @@ class InstallmentItem extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  inst.referenceAmount.asCurrency(locale: context.locale),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                MoneyText(
+                  inst.referenceAmount,
+                  style: theme.textTheme.titleSmall,
                 ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
@@ -107,13 +106,12 @@ class InstallmentItem extends StatelessWidget {
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: isCompleted
                               ? isSuccess
-                                    ? AppColors.success
-                                    : AppColors.error
-                              : theme.colorScheme.outline,
-                          fontWeight: isCompleted ? FontWeight.bold : null,
+                                    ? palette.successText
+                                    : palette.dangerText
+                              : palette.ink3,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      AppSpacing.gapXs,
                     ],
                     if (isCompleted)
                       Icon(
@@ -121,13 +119,15 @@ class InstallmentItem extends StatelessWidget {
                             ? Icons.check_circle_rounded
                             : Icons.cancel_rounded,
                         size: 20,
-                        color: isSuccess ? AppColors.success : AppColors.error,
+                        color: isSuccess
+                            ? palette.successText
+                            : palette.dangerText,
                       )
                     else
                       Icon(
                         Icons.radio_button_unchecked_rounded,
                         size: 20,
-                        color: theme.colorScheme.outline,
+                        color: palette.ink3,
                       ),
                   ],
                 ),

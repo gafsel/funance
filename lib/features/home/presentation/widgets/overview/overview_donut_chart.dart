@@ -1,8 +1,8 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/utils/color_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -62,11 +62,10 @@ Widget buildOverviewDonutChart(
                   : l10n.homeTotalSpent,
               style: theme.textTheme.bodySmall,
             ),
-            Text(
-              totalAmount.asCurrency(locale: locale),
+            MoneyText(
+              totalAmount,
               style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.deepTurquoise,
+                color: context.palette.ink,
               ),
             ),
           ],

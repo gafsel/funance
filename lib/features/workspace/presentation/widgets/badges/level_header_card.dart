@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/widgets/app_card.dart';
+import 'package:funances/core/widgets/app_chip.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 /// Cartão de nível do workspace: nome, nível, contador de emblemas, barra de
@@ -32,132 +38,88 @@ class LevelHeaderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    return AppCard.game(
+      padding: AppSpacing.allLg,
+      // `Builder` porque o tema escuro do bloco de jogo só existe abaixo do
+      // `AppCard`: sem ele, o conteúdo leria a tinta da tela clara.
+      child: Builder(builder: _content),
+    );
+  }
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-          ),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _content(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final palette = context.palette;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.workspaceLabel(workspaceName),
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        l10n.levelLabel(level),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.military_tech, color: Colors.white),
-                      const SizedBox(width: 4),
-                      Text(
-                        l10n.badgeCatalogTotal(unlockedCount, totalCount),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$xpInLevel / $xpForNextLevel XP',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  l10n.totalXpLabel(xp.toString()),
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: progressFraction,
-                backgroundColor: Colors.white24,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                minHeight: 12,
-              ),
-            ),
-            if (weeklyStreaks > 0) ...[
-              const SizedBox(height: 16),
-              Row(
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.local_fire_department,
-                    color: Colors.orangeAccent,
-                  ),
-                  const SizedBox(width: 8),
                   Text(
-                    weeklyStreaks == 1
-                        ? l10n.weeklyStreaksLabelSingular
-                        : l10n.weeklyStreaksLabelPlural(weeklyStreaks),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
+                    l10n.workspaceLabel(workspaceName),
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: palette.ink2,
                     ),
+                  ),
+                  AppSpacing.gapXxs,
+                  Text(
+                    l10n.levelLabel(level),
+                    style: theme.textTheme.headlineSmall,
                   ),
                 ],
               ),
-            ],
+            ),
+            StatusPill(
+              icon: Icons.military_tech,
+              tone: StatusTone.reward,
+              label: l10n.badgeCatalogTotal(unlockedCount, totalCount),
+            ),
           ],
         ),
-      ),
+        AppSpacing.gapLg,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('$xpInLevel / $xpForNextLevel XP',
+                style: theme.textTheme.titleMedium),
+            Text(
+              l10n.totalXpLabel(xp.toString()),
+              style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink2),
+            ),
+          ],
+        ),
+        AppSpacing.gapXs,
+        AppProgressBar.reward(
+          value: progressFraction,
+          size: AppProgressSize.thick,
+          semanticLabel: l10n.levelLabel(level),
+        ),
+        if (weeklyStreaks > 0) ...[
+          AppSpacing.gapMd,
+          Row(
+            children: [
+              const Icon(
+                Icons.local_fire_department,
+                color: AppColors.warning,
+              ),
+              AppSpacing.gapXs,
+              Text(
+                weeklyStreaks == 1
+                    ? l10n.weeklyStreaksLabelSingular
+                    : l10n.weeklyStreaksLabelPlural(weeklyStreaks),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

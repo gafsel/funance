@@ -67,7 +67,11 @@ class LevelBadge extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        // `center` e não `stretch`: o selo é montado dentro de `Row`s sem
+        // `Expanded` (o cabeçalho da Jornada, a barra de topo), e ali
+        // `stretch` pede largura infinita e derruba o layout. A largura do
+        // selo é a do seu conteúdo — que é o que "selo compacto" quer dizer.
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
             mainAxisSize: MainAxisSize.min,

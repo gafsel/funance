@@ -2,12 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../providers.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/presentation/display_names.dart';
@@ -109,7 +112,9 @@ class _CategoryManagementScreenState
             },
             child: Text(
               l10n.deleteButton,
-              style: const TextStyle(color: Colors.red),
+              style: Theme.of(
+                context,
+              ).textTheme.labelLarge?.copyWith(color: AppColors.danger),
             ),
           ),
         ],
@@ -147,7 +152,7 @@ class _CategoryList extends ConsumerWidget {
               );
 
         return categories.isEmpty
-            ? Center(child: Text(l10n.categoryManagementEmpty))
+            ? EmptyState.message(l10n.categoryManagementEmpty)
             : ListView.separated(
                 itemCount: categories.length,
                 separatorBuilder: (context, index) => Divider(),
@@ -166,7 +171,7 @@ class _CategoryList extends ConsumerWidget {
                       ),
                       child: Icon(
                         category.icon.asIcon(),
-                        color: Colors.white,
+                        color: AppColors.inkInverse,
                         size: 20,
                       ),
                     ),
@@ -182,7 +187,7 @@ class _CategoryList extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(
                             Icons.delete_outline,
-                            color: Colors.red,
+                            color: AppColors.danger,
                           ),
                           onPressed: () => onDelete(category),
                         ),
@@ -195,7 +200,7 @@ class _CategoryList extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, _) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: AppSpacing.allLg,
           child: ErrorView.forError(
             context,
             err,

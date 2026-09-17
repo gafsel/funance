@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/home/presentation/widgets/home/home_bottom_bar_item.dart';
 import 'package:funances/features/home/presentation/widgets/home/workspace_selector.dart';
@@ -80,7 +82,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 800;
+        // Um corte só. O rail abria em 800 e o conteúdo das abas em 900: na
+        // faixa de 801 a 900px a Home já pagava a largura do rail e nenhuma
+        // aba reorganizava. Agora rail e conteúdo leem o MESMO `AppLayout`.
+        final isLargeScreen = constraints.layout.usesRail;
 
         return Scaffold(
           extendBody: true,
@@ -88,7 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ? null
               : AppBar(
                   leading: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
+                    padding: const EdgeInsets.only(left: AppSpacing.xs),
                     child: InkWell(
                       onTap: () => context.push('/profile'),
                       child: Center(
@@ -137,25 +142,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     return NavigationRail(
       extended: _isNavigationRailExtended,
-      minExtendedWidth: 200,
-      backgroundColor: AppColors.deepTurquoise,
-      unselectedIconTheme: const IconThemeData(
-        color: AppColors.pureWhite,
-        opacity: 0.7,
-      ),
-      selectedIconTheme: const IconThemeData(color: AppColors.pureWhite),
-      unselectedLabelTextStyle: const TextStyle(color: AppColors.pureWhite),
-      selectedLabelTextStyle: const TextStyle(
-        color: AppColors.pureWhite,
-        fontWeight: FontWeight.bold,
-      ),
       leading: Column(
         children: [
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           IconButton(
             icon: Icon(
               _isNavigationRailExtended ? Icons.menu_open : Icons.menu,
-              color: AppColors.pureWhite,
+              color: AppColors.inkInverse,
             ),
             onPressed: () {
               setState(() {
@@ -163,11 +156,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               });
             },
           ),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
           if (_isNavigationRailExtended)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: const WorkspaceSelector(isNavigationRail: true),
+            const Padding(
+              padding: AppSpacing.hMd,
+              child: WorkspaceSelector(isNavigationRail: true),
             )
           else
             InkWell(
@@ -178,12 +171,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
               child: const Icon(
                 Icons.account_balance_wallet,
-                color: AppColors.pureWhite,
+                color: AppColors.inkInverse,
               ),
             ),
-          const SizedBox(height: 24),
+          AppSpacing.gapLg,
           const WorkspaceLevelIndicator(),
-          const SizedBox(height: 16),
+          AppSpacing.gapMd,
         ],
       ),
       trailing: Expanded(
@@ -199,16 +192,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
             if (_isNavigationRailExtended) ...[
-              const SizedBox(height: 8),
+              AppSpacing.gapXs,
               Text(
                 authUser?.displayName ?? '',
-                style: const TextStyle(
-                  color: AppColors.pureWhite,
-                  fontSize: 12,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.inkInverse),
               ),
             ],
-            const SizedBox(height: 16),
+            AppSpacing.gapMd,
           ],
         ),
       ),
@@ -243,8 +235,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final l10n = AppLocalizations.of(context)!;
     return BottomAppBar(
       shape: const CircularNotchedRectangle(),
-      notchMargin: 8.0,
-      color: AppColors.deepTurquoise,
+      notchMargin: AppSpacing.xs,
       child: SizedBox(
         height: 60,
         child: Row(
@@ -264,7 +255,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               isSelected: _tabController.index == 1,
               onTap: () => _tabController.animateTo(1),
             ),
-            const SizedBox(width: 48), // Espaço para o FAB
+            const SizedBox(width: AppSpacing.xxxl), // Espaço para o FAB
             HomeBottomBarItem(
               icon: Icons.history_outlined,
               selectedIcon: Icons.history,

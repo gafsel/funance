@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/provider.dart';
@@ -27,28 +31,16 @@ class Planning503020DistributionCard extends ConsumerWidget {
       // O card é a leitura do mês inteiro: sumir sem explicação fazia o
       // usuário achar que o 50-30-20 tinha deixado de existir.
       error: (e, _) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: AppSpacing.vXs,
         child: ErrorView.forError(
           context,
           e,
-          onRetry: () => Retry.planning503020(
-            ref,
-            overviewDate,
-            overviewDate.monthKey,
-          ),
+          onRetry: () =>
+              Retry.planning503020(ref, overviewDate, overviewDate.monthKey),
         ),
       ),
-      loading: () => Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Center(child: CircularProgressIndicator()),
-        ),
-      ),
+      loading: () =>
+          const AppCard(child: Center(child: CircularProgressIndicator())),
     );
   }
 }
@@ -62,109 +54,90 @@ class _DistributionCardContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final currencyFormat = NumberFormat.simpleCurrency(locale: context.locale);
-    final percentageFormat = NumberFormat.percentPattern(context.locale);
     final theme = Theme.of(context);
+    final palette = context.palette;
 
-    return InkWell(
+    return AppCard(
       onTap: () => context.push('/planning-50-30-20'),
-      borderRadius: BorderRadius.circular(16),
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: AppColors.deepTurquoise.withValues(alpha: 0.2),
-            width: 1,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.planning503020DistributionTitle,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.deepTurquoise,
-                          ),
-                        ),
-                        Text(
-                          l10n.planning503020Subtitle,
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.textTheme.labelSmall?.color
-                                ?.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.planning503020DistributionTitle,
+                      style: theme.textTheme.titleMedium,
                     ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right,
-                    color: AppColors.deepTurquoise,
-                  ),
-                ],
+                    Text(
+                      l10n.planning503020Subtitle,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: palette.ink2,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 24),
-              _buildDistributionBar(
-                context,
-                title: l10n.planning503020Planned,
-                essential: distribution.essential.plannedAmount,
-                comfort: distribution.comfort.plannedAmount,
-                investment: distribution.investment.plannedAmount,
-                totalIncome: distribution.totalIncome,
-                currencyFormat: currencyFormat,
-                percentageFormat: percentageFormat,
-                isPlanned: true,
-              ),
-              const SizedBox(height: 20),
-              _buildDistributionBar(
-                context,
-                title: l10n.planning503020Actual,
-                essential: distribution.essential.actualAmount,
-                comfort: distribution.comfort.actualAmount,
-                investment: distribution.investment.actualAmount,
-                totalIncome: distribution.totalActualIncome > 0
-                    ? distribution.totalActualIncome
-                    : distribution.totalIncome,
-                currencyFormat: currencyFormat,
-                percentageFormat: percentageFormat,
-                isPlanned: false,
-              ),
-              const SizedBox(height: 24),
-              _buildLegend(context),
+              Icon(Icons.chevron_right, color: palette.ink),
             ],
           ),
-        ),
+          AppSpacing.gapLg,
+          _DistributionBar(
+            title: l10n.planning503020Planned,
+            essential: distribution.essential.plannedAmount,
+            comfort: distribution.comfort.plannedAmount,
+            investment: distribution.investment.plannedAmount,
+            currencyFormat: currencyFormat,
+            isPlanned: true,
+          ),
+          AppSpacing.gapMd,
+          _DistributionBar(
+            title: l10n.planning503020Actual,
+            essential: distribution.essential.actualAmount,
+            comfort: distribution.comfort.actualAmount,
+            investment: distribution.investment.actualAmount,
+            currencyFormat: currencyFormat,
+            isPlanned: false,
+          ),
+          AppSpacing.gapLg,
+          const _Legend(),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildDistributionBar(
-    BuildContext context, {
-    required String title,
-    required double essential,
-    required double comfort,
-    required double investment,
-    required double totalIncome,
-    required NumberFormat currencyFormat,
-    required NumberFormat percentageFormat,
-    required bool isPlanned,
-  }) {
-    final total = essential + comfort + investment;
+/// Uma das duas leituras da distribuição: o planejado (esmaecido) e o real.
+class _DistributionBar extends StatelessWidget {
+  const _DistributionBar({
+    required this.title,
+    required this.essential,
+    required this.comfort,
+    required this.investment,
+    required this.currencyFormat,
+    required this.isPlanned,
+  });
+
+  final String title;
+  final double essential;
+  final double comfort;
+  final double investment;
+  final NumberFormat currencyFormat;
+  final bool isPlanned;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
+    final total = essential + comfort + investment;
 
-    // Cores mais vibrantes e profissionais
-    final essentialColor = Colors.blue.shade600;
-    final comfortColor = Colors.orange.shade600;
-    final investmentColor = Colors.green.shade600;
+    // As três cores são DADO semântico: são as pools do 50/30/20. O planejado
+    // é a mesma cor esmaecida, para que o real leia como o que já aconteceu.
+    final alpha = isPlanned ? 0.4 : 1.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,104 +148,66 @@ class _DistributionCardContent extends StatelessWidget {
             Text(
               title,
               style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: isPlanned ? FontWeight.normal : FontWeight.bold,
-                color: isPlanned
-                    ? theme.textTheme.labelMedium?.color?.withValues(alpha: 0.7)
-                    : null,
+                fontWeight: isPlanned ? FontWeight.normal : null,
+                color: isPlanned ? palette.ink2 : null,
               ),
             ),
             Text(
               currencyFormat.format(total),
               style: theme.textTheme.labelMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isPlanned
-                    ? theme.textTheme.labelMedium?.color?.withValues(alpha: 0.7)
-                    : null,
+                color: isPlanned ? palette.ink2 : null,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        Container(
+        AppSpacing.gapXs,
+        AppPoolBar(
           height: 16,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: total <= 0
-              ? null
-              : ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Row(
-                    children: [
-                      if (essential > 0)
-                        Expanded(
-                          flex: (essential * 1000).toInt(),
-                          child: Container(
-                            color: essentialColor.withValues(
-                              alpha: isPlanned ? 0.4 : 1.0,
-                            ),
-                            alignment: Alignment.center,
-                            child: _BarPercentage(
-                              value: essential / total,
-                              percentageFormat: percentageFormat,
-                            ),
-                          ),
-                        ),
-                      if (comfort > 0)
-                        Expanded(
-                          flex: (comfort * 1000).toInt(),
-                          child: Container(
-                            color: comfortColor.withValues(
-                              alpha: isPlanned ? 0.4 : 1.0,
-                            ),
-                            alignment: Alignment.center,
-                            child: _BarPercentage(
-                              value: comfort / total,
-                              percentageFormat: percentageFormat,
-                            ),
-                          ),
-                        ),
-                      if (investment > 0)
-                        Expanded(
-                          flex: (investment * 1000).toInt(),
-                          child: Container(
-                            color: investmentColor.withValues(
-                              alpha: isPlanned ? 0.4 : 1.0,
-                            ),
-                            alignment: Alignment.center,
-                            child: _BarPercentage(
-                              value: investment / total,
-                              percentageFormat: percentageFormat,
-                            ),
-                          ),
-                        ),
-                    ],
+          semanticLabel: title,
+          segments: total <= 0
+              ? const []
+              : [
+                  PoolSegment(
+                    fraction: essential / total,
+                    color: AppColors.pool50.withValues(alpha: alpha),
                   ),
-                ),
+                  PoolSegment(
+                    fraction: comfort / total,
+                    color: AppColors.pool30.withValues(alpha: alpha),
+                  ),
+                  PoolSegment(
+                    fraction: investment / total,
+                    color: AppColors.pool20.withValues(alpha: alpha),
+                  ),
+                ],
         ),
       ],
     );
   }
+}
 
-  Widget _buildLegend(BuildContext context) {
+class _Legend extends StatelessWidget {
+  const _Legend();
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = context.l10n;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         _LegendItem(
-          color: Colors.blue,
+          color: AppColors.pool50,
           label: l10n.planning503020Essential,
           percentage: '50%',
         ),
         _LegendItem(
-          color: Colors.orange,
+          color: AppColors.pool30,
           label: l10n.planning503020Comfort,
           percentage: '30%',
         ),
         _LegendItem(
-          color: Colors.green,
+          color: AppColors.pool20,
           label: l10n.planning503020Investment,
           percentage: '20%',
         ),
@@ -301,32 +236,12 @@ class _LegendItem extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppSpacing.xxs),
         Text(
           '$label ($percentage)',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
+          style: Theme.of(context).textTheme.labelSmall,
         ),
       ],
-    );
-  }
-}
-
-class _BarPercentage extends StatelessWidget {
-  final double value;
-  final NumberFormat percentageFormat;
-
-  const _BarPercentage({required this.value, required this.percentageFormat});
-
-  @override
-  Widget build(BuildContext context) {
-    if (value < 0.1) return const SizedBox.shrink();
-    return Text(
-      percentageFormat.format(value),
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 8,
-        fontWeight: FontWeight.bold,
-      ),
     );
   }
 }

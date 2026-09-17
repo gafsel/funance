@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/callable_error_message.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
@@ -28,49 +32,41 @@ class CoachingInsightCard extends ConsumerWidget {
         return Column(
           children: [
             _buildCoachingCall(context, lastInsight),
-            const SizedBox(height: 24),
+            AppSpacing.gapLg,
           ],
         );
       },
-      loading: () => Container(
-        width: double.infinity,
-        height: 120,
-        margin: const EdgeInsets.only(bottom: 24),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(
-            alpha: 0.3,
+      loading: () => const Padding(
+        padding: EdgeInsets.only(bottom: AppSpacing.lg),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          child: SizedBox(
+            width: double.infinity,
+            height: 120,
+            child: Center(child: CircularProgressIndicator()),
           ),
-          borderRadius: BorderRadius.circular(20),
         ),
-        child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (error, _) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 24),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          border: Border.all(color: theme.dividerColor),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.psychology_outlined, color: theme.colorScheme.error),
-            const SizedBox(width: 8),
-            // Sem rede, "não foi possível gerar sua análise" manda o
-            // usuário tentar de novo sem dizer o que falta.
-            Expanded(
-              child: Text(
-                callableErrorMessage(
-                  error,
-                  errorMessageFor(context, error),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+        child: AppCard(
+          child: Row(
+            children: [
+              Icon(Icons.psychology_outlined, color: theme.colorScheme.error),
+              AppSpacing.gapXs,
+              // Sem rede, "não foi possível gerar sua análise" manda o
+              // usuário tentar de novo sem dizer o que falta.
+              Expanded(
+                child: Text(
+                  callableErrorMessage(error, errorMessageFor(context, error)),
                 ),
               ),
-            ),
-            TextButton(
-              onPressed: () => Retry.lastInsight(ref),
-              child: Text(l10n.retry),
-            ),
-          ],
+              TextButton(
+                onPressed: () => Retry.lastInsight(ref),
+                child: Text(l10n.retry),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -88,23 +84,8 @@ class CoachingInsightCard extends ConsumerWidget {
     final l10n = context.l10n;
     final theme = Theme.of(context);
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.deepTurquoise, AppColors.vibrantTeal],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkNavy.withValues(alpha: 0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return AppCard.game(
+      padding: EdgeInsets.zero,
       child: Stack(
         children: [
           Positioned(
@@ -113,57 +94,58 @@ class CoachingInsightCard extends ConsumerWidget {
             child: Icon(
               Icons.auto_awesome,
               size: 120,
-              color: AppColors.successGold.withValues(alpha: 0.1),
+              color: AppColors.gold.withValues(alpha: 0.1),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: AppSpacing.allMd,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: AppSpacing.allXs,
                       decoration: BoxDecoration(
-                        color: AppColors.successGold.withValues(alpha: 0.2),
+                        color: AppColors.gold.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.psychology,
-                        color: AppColors.successGold,
+                        color: AppColors.gold,
                         size: 24,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    AppSpacing.gapSm,
                     Expanded(
                       child: Text(
                         l10n.coachingTitle,
                         style: theme.textTheme.titleLarge?.copyWith(
-                          color: AppColors.pureWhite,
-                          fontWeight: FontWeight.bold,
+                          color: AppColors.inkInverse,
                         ),
                       ),
                     ),
                     InkWell(
                       onTap: () => context.push('/coaching/history'),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.brSm,
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                          vertical: AppSpacing.xxs,
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               l10n.coachingViewHistory,
                               style: theme.textTheme.labelMedium?.copyWith(
-                                color: AppColors.pureWhite.withValues(alpha: 0.9),
-                                fontWeight: FontWeight.bold,
+                                color: AppColors.inkInverse2,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Icon(
+                            AppSpacing.gapXxs,
+                            const Icon(
                               Icons.history,
-                              color: AppColors.pureWhite.withValues(alpha: 0.9),
+                              color: AppColors.inkInverse2,
                               size: 16,
                             ),
                           ],
@@ -172,14 +154,14 @@ class CoachingInsightCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                AppSpacing.gapSm,
                 Text(
                   l10n.coachingConsultingDesc,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.pureWhite.withValues(alpha: 0.9),
+                    color: AppColors.inkInverse2,
                   ),
                 ),
-                const SizedBox(height: 20),
+                AppSpacing.gapMd,
                 SizedBox(
                   width: double.infinity,
                   child: Consumer(
@@ -226,22 +208,7 @@ class CoachingInsightCard extends ConsumerWidget {
                             );
                           }
                         },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.successGold,
-                          foregroundColor: AppColors.darkNavy,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                        ),
-                        child: Text(
-                          l10n.coachingConsultAction.toUpperCase(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
+                        child: Text(l10n.coachingConsultAction.toUpperCase()),
                       );
                     },
                   ),
@@ -261,30 +228,19 @@ class CoachingInsightCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final l10n = context.l10n;
     final locale = context.locale;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(16),
-      ),
+    final palette = context.palette;
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.psychology_outlined,
-                color: AppColors.deepTurquoise,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
+              Icon(Icons.psychology_outlined, color: palette.ink, size: 20),
+              AppSpacing.gapXs,
               Expanded(
                 child: Text(
                   l10n.coachingTitle,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: theme.textTheme.titleSmall,
                 ),
               ),
               Text(
@@ -293,42 +249,37 @@ class CoachingInsightCard extends ConsumerWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(width: 8),
+              AppSpacing.gapXs,
               InkWell(
                 onTap: () => context.push('/coaching/history'),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: AppRadius.brXs,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: AppSpacing.allXxs,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         l10n.coachingViewHistory,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.deepTurquoise,
-                          fontWeight: FontWeight.bold,
+                          color: palette.tealText,
                         ),
                       ),
                       const SizedBox(width: 2),
-                      const Icon(
-                        Icons.history,
-                        color: AppColors.deepTurquoise,
-                        size: 14,
-                      ),
+                      Icon(Icons.history, color: palette.tealText, size: 14),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          AppSpacing.gapXs,
           Text(
             lastCoaching.message,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: theme.textTheme.bodySmall,
           ),
-          const SizedBox(height: 12),
+          AppSpacing.gapSm,
           Consumer(
             builder: (context, ref, _) => InkWell(
               onTap: () {
@@ -338,8 +289,7 @@ class CoachingInsightCard extends ConsumerWidget {
               child: Text(
                 l10n.coachingViewLast,
                 style: theme.textTheme.labelLarge?.copyWith(
-                  color: AppColors.deepTurquoise,
-                  fontWeight: FontWeight.bold,
+                  color: palette.tealText,
                 ),
               ),
             ),

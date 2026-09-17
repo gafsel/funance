@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/enum_messages.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -22,6 +26,7 @@ class AccountManagementScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
     final accountsByTypeAsync = ref.watch(AccountViewProviders.byTypeMap);
 
     // `initialType` FILTRA a lista; não abre formulário nenhum. Quem chega
@@ -42,7 +47,8 @@ class AccountManagementScreen extends ConsumerWidget {
             icon: const Icon(Icons.add),
             // O "+" herda o tipo que a tela está mostrando: com a lista
             // filtrada em cartões, a conta nova já nasce cartão.
-            onPressed: () => _showAccountDialog(context, ref, null, initialType),
+            onPressed: () =>
+                _showAccountDialog(context, ref, null, initialType),
           ),
         ],
       ),
@@ -67,32 +73,35 @@ class AccountManagementScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final crossAxisCount = constraints.maxWidth > 900
-                  ? 3
-                  : constraints.maxWidth > 600
-                  ? 2
-                  : 1;
+              // O painel, não a janela: com o rail aberto, medir o
+              // `MediaQuery` daria três colunas num espaço de duas.
+              final crossAxisCount = constraints.layout.columns;
 
               final List<Widget> slivers = [];
 
               for (final entry in accountsByType.entries) {
-                final typeAccounts = [...entry.value]..sort(
-                  (a, b) =>
-                      a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-                );
+                final typeAccounts = [...entry.value]
+                  ..sort(
+                    (a, b) =>
+                        a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+                  );
 
                 if (typeAccounts.isEmpty) continue;
 
                 // Header do tipo
                 slivers.add(
                   SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: Text(
                         l10n.fromAccountType(entry.key),
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: theme.colorScheme.primary,
                         ),
                       ),
                     ),
@@ -102,30 +111,27 @@ class AccountManagementScreen extends ConsumerWidget {
                 if (crossAxisCount == 1) {
                   slivers.add(
                     SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final account = typeAccounts[index];
-                          return Column(
-                            children: [
-                              _buildAccountTile(context, ref, account),
-                              if (index < typeAccounts.length - 1)
-                                const Divider(height: 1),
-                            ],
-                          );
-                        },
-                        childCount: typeAccounts.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final account = typeAccounts[index];
+                        return Column(
+                          children: [
+                            _buildAccountTile(context, ref, account),
+                            if (index < typeAccounts.length - 1)
+                              const Divider(height: 1),
+                          ],
+                        );
+                      }, childCount: typeAccounts.length),
                     ),
                   );
                 } else {
                   slivers.add(
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: AppSpacing.hMd,
                       sliver: SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                          crossAxisSpacing: AppSpacing.md,
+                          mainAxisSpacing: AppSpacing.md,
                           mainAxisExtent: 80,
                         ),
                         delegate: SliverChildBuilderDelegate(
@@ -147,7 +153,8 @@ class AccountManagementScreen extends ConsumerWidget {
               slivers.add(
                 SliverToBoxAdapter(
                   child: SizedBox(
-                    height: MediaQuery.of(context).padding.bottom + 16,
+                    height:
+                        MediaQuery.of(context).padding.bottom + AppSpacing.md,
                   ),
                 ),
               );
@@ -159,7 +166,7 @@ class AccountManagementScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: AppSpacing.allLg,
             child: ErrorView.forError(
               context,
               err,
@@ -178,6 +185,7 @@ class AccountManagementScreen extends ConsumerWidget {
     bool isGrid = false,
   }) {
     final l10n = context.l10n;
+    final palette = context.palette;
 
     final tile = ListTile(
       onTap: () {
@@ -187,7 +195,9 @@ class AccountManagementScreen extends ConsumerWidget {
           _showAccountDialog(context, ref, account);
         }
       },
-      contentPadding: isGrid ? const EdgeInsets.symmetric(horizontal: 12) : null,
+      contentPadding: isGrid
+          ? const EdgeInsets.symmetric(horizontal: AppSpacing.sm)
+          : null,
       leading: AccountLogo(account: account, size: 40, showMembers: true),
       title: Text(
         account.displayName(l10n),
@@ -208,9 +218,13 @@ class AccountManagementScreen extends ConsumerWidget {
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+            icon: Icon(
+              Icons.delete_outline,
+              color: palette.dangerText,
+              size: 20,
+            ),
             onPressed: () => _confirmDelete(context, ref, account),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
@@ -220,10 +234,7 @@ class AccountManagementScreen extends ConsumerWidget {
     );
 
     if (isGrid) {
-      return Card(
-        margin: EdgeInsets.zero,
-        child: Center(child: tile),
-      );
+      return Card(child: Center(child: tile));
     }
     return tile;
   }
@@ -245,9 +256,7 @@ class AccountManagementScreen extends ConsumerWidget {
     context.push(
       Uri(
         path: '/accounts/form',
-        queryParameters: {
-          if (initialType != null) 'type': initialType.name,
-        },
+        queryParameters: {if (initialType != null) 'type': initialType.name},
       ).toString(),
     );
   }
@@ -273,12 +282,14 @@ class AccountManagementScreen extends ConsumerWidget {
               ref.read(AccountDomainProviders.service).delete(account.id);
               Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.danger,
+              foregroundColor: AppColors.inkInverse,
+            ),
             child: Text(l10n.deleteButton),
           ),
         ],
       ),
     );
   }
-
 }

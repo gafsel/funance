@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/finance/presentation/widgets/automatic_transaction_consolidation_widget.dart';
 import 'package:funances/features/goal/presentation/widgets/goals_section.dart';
 import 'package:funances/features/home/presentation/widgets/coaching_insight_card.dart';
@@ -14,13 +16,12 @@ class JourneyTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 900;
+        final isLargeScreen = constraints.layout.isWide;
 
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: AppSpacing.allMd,
           child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,7 +40,7 @@ class JourneyTab extends ConsumerWidget {
                 // continua existindo e abre daqui: o índice muda uma vez por
                 // mês e não precisa pagar aluguel diário.
                 const CompassStripView(),
-                const SizedBox(height: 24),
+                AppSpacing.gapLg,
                 if (isLargeScreen)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,26 +48,26 @@ class JourneyTab extends ConsumerWidget {
                       Expanded(
                         flex: 3,
                         child: Column(
-                          spacing: 32,
+                          spacing: AppSpacing.xl,
                           children: [
                             CoachingInsightCard(),
                             WeeklyMissionsView(),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 32),
+                      AppSpacing.gapXl,
                       Expanded(flex: 2, child: TeamStatusView()),
                     ],
                   )
                 else ...[
                   CoachingInsightCard(),
                   Column(
-                    spacing: 32,
+                    spacing: AppSpacing.xl,
                     children: [WeeklyMissionsView(), TeamStatusView()],
                   ),
                 ],
                 const GoalsSection(),
-                const SizedBox(height: 32),
+                AppSpacing.gapXl,
               ],
             ),
           ),

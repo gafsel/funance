@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/date_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +21,7 @@ Widget buildTransactionDateHeader(
   AppLocalizations l10n, {
   required String? accountId,
 }) {
+  final theme = Theme.of(context);
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final yesterday = today.addCalendarDays(-1);
@@ -38,44 +40,19 @@ Widget buildTransactionDateHeader(
 
   return Container(
     padding:
-        const EdgeInsets.symmetric(horizontal: 16) +
-        EdgeInsets.only(top: 16, bottom: 8),
+        AppSpacing.hMd +
+        const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xs),
     width: double.infinity,
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           dateText,
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.primary,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: theme.colorScheme.primary,
           ),
         ),
-        if (accountId != null)
-          Consumer(
-            builder: (context, ref, _) {
-              final balanceAsync = ref.watch(
-                AccountViewProviders.balanceAtDate((
-                  accountId: accountId,
-                  date: date,
-                )),
-              );
-              return balanceAsync.when(
-                data: (balance) => Text(
-                  balance.balance.asCurrency(locale: context.locale),
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                loading: () => const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                error: (_, _) => const SizedBox.shrink(),
-              );
-            },
-          ),
+        if (accountId != null) _Balance(accountId: accountId, date: date),
       ],
     ),
   );
@@ -88,6 +65,9 @@ Widget buildTransactionDesktopDateHeader(
   AppLocalizations l10n, {
   required String? accountId,
 }) {
+  final theme = Theme.of(context);
+  final palette = context.palette;
+
   String dateText = DateFormat.yMMMM(
     Localizations.localeOf(context).toString(),
   ).format(date);
@@ -97,50 +77,51 @@ Widget buildTransactionDesktopDateHeader(
   }
 
   return Container(
-    padding: const EdgeInsets.symmetric(vertical: 16.0),
-    color: Theme.of(
-      context,
-    ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+    padding: AppSpacing.vMd,
+    color: palette.paper2,
     width: double.infinity,
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: AppSpacing.hMd,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             dateText,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.primary,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.primary,
             ),
           ),
-          if (accountId != null)
-            Consumer(
-              builder: (context, ref, _) {
-                final balanceAsync = ref.watch(
-                  AccountViewProviders.balanceAtDate((
-                    accountId: accountId,
-                    date: date,
-                  )),
-                );
-                return balanceAsync.when(
-                  data: (balance) => Text(
-                    balance.balance.asCurrency(locale: context.locale),
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  loading: () => const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  error: (_, _) => const SizedBox.shrink(),
-                );
-              },
-            ),
+          if (accountId != null) _Balance(accountId: accountId, date: date),
         ],
       ),
     ),
   );
+}
+
+/// O saldo da conta naquele ponto da lista. Era o mesmo bloco duas vezes,
+/// palavra por palavra, nos dois separadores.
+class _Balance extends ConsumerWidget {
+  const _Balance({required this.accountId, required this.date});
+
+  final String accountId;
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final balanceAsync = ref.watch(
+      AccountViewProviders.balanceAtDate((accountId: accountId, date: date)),
+    );
+
+    return balanceAsync.when(
+      data: (balance) =>
+          MoneyText(balance.balance, style: theme.textTheme.titleSmall),
+      loading: () => const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      error: (_, _) => const SizedBox.shrink(),
+    );
+  }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/finance/presentation/widgets/planning_50_30_20_distribution_card.dart';
 import 'package:funances/features/home/presentation/widgets/accounts_view.dart';
@@ -34,14 +36,14 @@ class OverviewTab extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isLargeScreen = constraints.maxWidth > 900;
+        final isLargeScreen = constraints.layout.isWide;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.only(
-            left: 16.0,
-            right: 16.0,
-            top: 16.0,
-            bottom: 120.0,
+            left: AppSpacing.md,
+            right: AppSpacing.md,
+            top: AppSpacing.md,
+            bottom: AppSpacing.bottomBarSafeArea,
           ),
           child: SafeArea(
             child: Column(
@@ -57,26 +59,26 @@ class OverviewTab extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildAccountsHeader(context, l10n, theme),
-                            const SizedBox(height: 16),
+                            AppSpacing.gapMd,
                             const AccountsView(),
-                            const SizedBox(height: 32),
+                            AppSpacing.gapXl,
                             const Planning503020DistributionCard(),
                             const SizedBox(height: 1),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 32),
+                      AppSpacing.gapXl,
                       Expanded(
                         flex: 3,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildWhereIsMoneyHeader(l10n, theme),
-                            const SizedBox(height: 16),
+                            AppSpacing.gapMd,
                             const SummaryTypeSelection(),
-                            const SizedBox(height: 24),
+                            AppSpacing.gapLg,
                             _buildCategorySummaries(context, l10n, theme),
-                            const SizedBox(height: 32),
+                            AppSpacing.gapXl,
                             const BalanceSummaryView(),
                           ],
                         ),
@@ -86,20 +88,20 @@ class OverviewTab extends ConsumerWidget {
                 else ...[
                   // Saldos e Faturas
                   _buildAccountsHeader(context, l10n, theme),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMd,
                   const AccountsView(),
-                  const SizedBox(height: 32),
+                  AppSpacing.gapXl,
                   // Distribuição 50-30-20
                   const Planning503020DistributionCard(),
-                  const SizedBox(height: 32),
+                  AppSpacing.gapXl,
                   // Onde está o dinheiro?
                   _buildWhereIsMoneyHeader(l10n, theme),
-                  const SizedBox(height: 16),
+                  AppSpacing.gapMd,
                   // View Type Selector
                   const SummaryTypeSelection(),
-                  const SizedBox(height: 24),
+                  AppSpacing.gapLg,
                   _buildCategorySummaries(context, l10n, theme),
-                  const SizedBox(height: 32),
+                  AppSpacing.gapXl,
                   const BalanceSummaryView(),
                 ],
               ],
@@ -110,14 +112,15 @@ class OverviewTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildAccountsHeader(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _buildAccountsHeader(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          l10n.homeAccountsAndCards,
-          style: theme.textTheme.titleLarge,
-        ),
+        Text(l10n.homeAccountsAndCards, style: theme.textTheme.titleLarge),
         IconButton(
           icon: const Icon(Icons.add_circle_outline),
           onPressed: () {
@@ -132,38 +135,37 @@ class OverviewTab extends ConsumerWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            l10n.homeWhereIsMoney,
-            style: theme.textTheme.titleLarge,
-          ),
+          child: Text(l10n.homeWhereIsMoney, style: theme.textTheme.titleLarge),
         ),
         PeriodSelection(),
       ],
     );
   }
 
-  Widget _buildCategorySummaries(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _buildCategorySummaries(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           l10n.expenses,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.deepTurquoise,
+            color: context.palette.ink,
           ),
         ),
-        const SizedBox(height: 16),
+        AppSpacing.gapMd,
         const CategorySummaryView(categoryType: CategoryType.expense),
-        const SizedBox(height: 32),
+        AppSpacing.gapXl,
         Text(
           l10n.incomes,
           style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.deepTurquoise,
+            color: context.palette.ink,
           ),
         ),
-        const SizedBox(height: 16),
+        AppSpacing.gapMd,
         const CategorySummaryView(categoryType: CategoryType.income),
       ],
     );

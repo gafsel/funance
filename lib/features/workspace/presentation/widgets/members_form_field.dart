@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
@@ -22,18 +24,16 @@ class MembersFormField extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final membersAsync = ref.watch(WorkspaceViewProviders.members);
+    final theme = Theme.of(context);
+    final palette = context.palette;
 
     return membersAsync.when(
       data: (members) {
         return InputDecorator(
-          decoration: InputDecoration(
-            labelText: label,
-            errorText: errorText,
-            border: const OutlineInputBorder(),
-          ),
+          decoration: InputDecoration(labelText: label, errorText: errorText),
           child: Wrap(
-            spacing: 8.0,
-            runSpacing: 8.0,
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
             children: members.map((member) {
               final isSelected = initialValue.contains(member.id);
               return FilterChip(
@@ -46,8 +46,16 @@ class MembersFormField extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(member.displayName ?? member.email, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    Text(member.email, style: const TextStyle(fontSize: 10, color: Colors.black54)),
+                    Text(
+                      member.displayName ?? member.email,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                    Text(
+                      member.email,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: palette.ink2,
+                      ),
+                    ),
                   ],
                 ),
                 selected: isSelected,

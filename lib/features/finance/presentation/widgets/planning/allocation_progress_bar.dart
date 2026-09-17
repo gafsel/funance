@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/animated_double.dart';
@@ -21,6 +22,8 @@ class AllocationProgressBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final progressOf = FinanceViewProviders.planning503020AllocationProgress(
       allocation,
     );
@@ -31,7 +34,7 @@ class AllocationProgressBar extends ConsumerWidget {
     final actualPercentage = ref.watch(
       progressOf.select((state) => state.actualPercentage),
     );
-    final statusColor = isOver ? Colors.red : Colors.green;
+    final statusColor = isOver ? palette.dangerText : palette.successText;
 
     return LayoutBuilder(
       builder: (context, box) {
@@ -49,10 +52,10 @@ class AllocationProgressBar extends ConsumerWidget {
               children: [
                 Container(
                   height: 24,
-                  margin: EdgeInsets.symmetric(vertical: 14),
+                  margin: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    color: palette.line,
+                    borderRadius: AppRadius.brXs,
                   ),
                 ),
                 // Barra de Planejado
@@ -63,18 +66,17 @@ class AllocationProgressBar extends ConsumerWidget {
                       curve: Curves.bounceOut,
                       duration: Duration(milliseconds: 300),
                       height: 24,
-                      margin: EdgeInsets.only(top: 14),
+                      margin: const EdgeInsets.only(top: 14),
                       width: progressWidth,
                       decoration: BoxDecoration(
                         color: statusColor.withValues(alpha: 0.3),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: AppRadius.brXs,
                       ),
                     ),
                     AnimatedDouble.percent(
                       currentPercentage,
                       duration: Duration(milliseconds: 300),
-                      style: TextStyle(
-                        fontSize: 10,
+                      style: theme.textTheme.labelSmall?.copyWith(
                         color: statusColor.withValues(alpha: 0.7),
                       ),
                     ),
@@ -88,19 +90,17 @@ class AllocationProgressBar extends ConsumerWidget {
                       curve: Curves.bounceOut,
                       duration: Duration(milliseconds: 300),
                       height: 24,
-                      margin: EdgeInsets.only(top: 14),
+                      margin: const EdgeInsets.only(top: 14),
                       width: actualWidth,
                       decoration: BoxDecoration(
                         color: statusColor,
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: AppRadius.brXs,
                       ),
                     ),
                     AnimatedDouble.percent(
                       actualPercentage,
                       duration: Duration(milliseconds: 300),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                      style: theme.textTheme.labelSmall?.copyWith(
                         color: statusColor,
                       ),
                     ),
@@ -121,17 +121,13 @@ class AllocationProgressBar extends ConsumerWidget {
                               locale: context.locale,
                             ),
                           ),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: theme.textTheme.labelSmall,
                         ),
                         Expanded(
-                          child: Container(
-                            width: 2,
-                            color: AppColors.darkNavy,
-                          ),
+                          child: Container(width: 2, color: palette.ink),
                         ),
+                        // O mesmo 14 das margens acima: é o que alinha a linha
+                        // da meta com o trilho, não um espaçamento de layout.
                         SizedBox(height: 14),
                       ],
                     ),

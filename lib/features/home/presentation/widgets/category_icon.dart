@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -40,18 +42,18 @@ class CategoryIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: AppSpacing.allXs,
       decoration: BoxDecoration(
         color: invoice
-            ? AppColors.error
+            ? AppColors.danger
             : transfer
             ? Theme.of(
                 context,
               ).colorScheme.primaryContainer.withValues(alpha: 0.3)
-            : (category?.color.asColor() ?? AppColors.deepTurquoise).withValues(
+            : (category?.color.asColor() ?? AppColors.surfaceDeep).withValues(
                 alpha: 0.1,
               ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.brMd,
       ),
       child: Icon(
         invoice
@@ -60,10 +62,10 @@ class CategoryIcon extends StatelessWidget {
             ? Icons.swap_horiz
             : category?.icon.asIcon() ?? Icons.category,
         color: invoice
-            ? Colors.white
+            ? AppColors.inkInverse
             : transfer
             ? Theme.of(context).colorScheme.primary
-            : category?.color.asColor() ?? AppColors.deepTurquoise,
+            : category?.color.asColor() ?? AppColors.surfaceDeep,
         size: 20,
       ),
     );

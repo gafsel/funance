@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/planning/planning_category_card.dart';
 import 'package:funances/features/finance/presentation/widgets/planning/pool_header.dart';
@@ -30,15 +34,21 @@ class PlanningPoolColumn extends ConsumerWidget {
       children: [
         if (!isMobile)
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: AppSpacing.allMd,
             child: PoolHeader(allocation: allocation),
           ),
         if (isMobile)
           Padding(
-            padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0),
+            padding: const EdgeInsets.only(
+              left: AppSpacing.md,
+              right: AppSpacing.md,
+              top: AppSpacing.md,
+            ),
             child: _MobilePoolHeader(allocation: allocation),
           ),
-        Expanded(child: _PoolCategories(allocation: allocation, isMobile: isMobile)),
+        Expanded(
+          child: _PoolCategories(allocation: allocation, isMobile: isMobile),
+        ),
       ],
     );
 
@@ -53,14 +63,16 @@ class PlanningPoolColumn extends ConsumerWidget {
             .moveCategory(details.data, allocation);
       },
       builder: (context, candidateData, rejectedData) {
+        final theme = Theme.of(context);
+
         return Container(
-          margin: const EdgeInsets.all(8),
+          margin: AppSpacing.allXs,
           decoration: BoxDecoration(
             color: candidateData.isNotEmpty
-                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                ? theme.primaryColor.withValues(alpha: 0.1)
+                : AppColors.transparent,
+            borderRadius: AppRadius.brMd,
+            border: Border.all(color: context.palette.line),
           ),
           child: content,
         );
@@ -110,20 +122,13 @@ class _MobileHeaderItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontSize: 10),
-        ),
-        Text(
-          value.asCurrency(locale: context.locale),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
-          ),
-        ),
+        Text(label, style: theme.textTheme.labelSmall),
+        MoneyText(value, style: theme.textTheme.labelMedium),
       ],
     );
   }
@@ -138,6 +143,7 @@ class _PoolCategories extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final palette = context.palette;
     final state = ref.watch(FinanceViewProviders.planning503020);
 
     final items = state.items
@@ -151,17 +157,19 @@ class _PoolCategories extends ConsumerWidget {
       );
     }
 
+    // Papel secundário de propósito: é a caixa que agrupa os cartões, e os
+    // cartões é que são o papel principal.
     return Container(
-      margin: EdgeInsets.all(8),
+      margin: AppSpacing.allXs,
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.black12),
+        color: palette.paper2,
+        borderRadius: AppRadius.brMd,
+        border: Border.all(color: palette.line),
       ),
       child: ListView.separated(
-        padding: const EdgeInsets.all(8),
+        padding: AppSpacing.allXs,
         itemCount: items.length,
-        separatorBuilder: (context, index) => SizedBox(height: 8),
+        separatorBuilder: (context, index) => AppSpacing.gapXs,
         itemBuilder: (context, index) {
           final item = items[index];
           return PlanningCategoryCard(

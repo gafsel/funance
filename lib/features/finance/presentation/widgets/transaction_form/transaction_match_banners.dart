@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
@@ -40,7 +43,7 @@ MaterialBanner searchingMatchesBanner(
     content: SizedBox(
       height: reservedMatchesHeight,
       child: Row(
-        spacing: 12,
+        spacing: AppSpacing.sm,
         children: [
           SizedBox(
             width: 16,
@@ -77,6 +80,7 @@ MaterialBanner pendingMatchesBanner(
 ) {
   final l10n = context.l10n;
   final theme = Theme.of(context);
+  final palette = context.palette;
   final locale = context.locale;
   final likelyId = state.likelyMatchId;
 
@@ -85,20 +89,15 @@ MaterialBanner pendingMatchesBanner(
     content: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          l10n.transactionMatchTitle,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
+        Text(l10n.transactionMatchTitle, style: theme.textTheme.titleSmall),
+        AppSpacing.gapXs,
         ...state.pendingMatches.map((match) {
           final likely = match.id == likelyId;
 
           return InkWell(
             key: ValueKey('pending-match-${match.id}'),
             onTap: () => notifier.selectMatch(match),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppRadius.brMd,
             child: Container(
               // O destaque é do valor que bate com o digitado. A cor
               // sozinha não serve a quem não a distingue, então o rótulo
@@ -106,12 +105,12 @@ MaterialBanner pendingMatchesBanner(
               decoration: likely
                   ? BoxDecoration(
                       color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.brMd,
                     )
                   : null,
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+              padding: AppSpacing.allXs,
               child: Row(
-                spacing: 8,
+                spacing: AppSpacing.xs,
                 children: [
                   const Icon(Icons.event_available_outlined, size: 20),
                   Expanded(
@@ -120,9 +119,7 @@ MaterialBanner pendingMatchesBanner(
                       children: [
                         Text(
                           match.description,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: theme.textTheme.titleSmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -130,11 +127,9 @@ MaterialBanner pendingMatchesBanner(
                           '${match.amount.asCurrency(locale: locale)} · '
                           '${match.dueDate.formated(l10n.formatSimpleDate)}'
                           '${likely ? ' · ${l10n.transactionMatchSameAmount}' : ''}',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            fontWeight: likely
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
+                          style: likely
+                              ? theme.textTheme.labelMedium
+                              : theme.textTheme.bodySmall,
                         ),
                       ],
                     ),
@@ -142,8 +137,7 @@ MaterialBanner pendingMatchesBanner(
                   Text(
                     l10n.transactionMatchSettle,
                     style: theme.textTheme.labelLarge?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
+                      color: palette.tealText,
                     ),
                   ),
                 ],

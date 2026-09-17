@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -11,15 +12,16 @@ import 'package:funances/l10n/app_localizations.dart';
 /// um provider por edição da meta.
 extension GoalProgressUi on GoalProgress {
   Color getStatusColor(BuildContext context) {
+    final palette = context.palette;
     switch (status) {
       case GoalStatus.onTrack:
-        return AppColors.success;
+        return palette.successText;
       case GoalStatus.atRisk:
-        return AppColors.antiqueGold;
+        return AppColors.goldDeep;
       case GoalStatus.behind:
-        return AppColors.error;
+        return palette.dangerText;
       case GoalStatus.lost:
-        return AppColors.error;
+        return palette.dangerText;
     }
   }
 
@@ -62,8 +64,8 @@ extension GoalLabelsUi on GoalModel {
   String amountLabel(AppLocalizations l10n) => switch (type) {
     GoalType.saveMoney => l10n.goalAmountSavedLabel,
     GoalType.payDebt => l10n.goalAmountPaidLabel,
-    GoalType.reduceExpense || GoalType.reduceCreditCard =>
-      l10n.goalAmountSpentLabel,
+    GoalType.reduceExpense ||
+    GoalType.reduceCreditCard => l10n.goalAmountSpentLabel,
   };
 
   /// Resumo curto do progresso, para o card da Jornada.
@@ -77,10 +79,7 @@ extension GoalLabelsUi on GoalModel {
       final remaining = targetAmount - currentAmount;
       return remaining > 0
           ? l10n.goalRemainingValue(format(remaining))
-          : l10n.goalSpentOfLimit(
-              format(currentAmount),
-              format(targetAmount),
-            );
+          : l10n.goalSpentOfLimit(format(currentAmount), format(targetAmount));
     }
 
     final slack = targetAmount - currentAmount;
@@ -142,7 +141,7 @@ extension GoalLabelsUi on GoalModel {
   /// e erro, e o tom de espera para a apuração pendente (não é erro: a meta
   /// pode muito bem ter terminado bem).
   Color get outcomeColor {
-    if (outcome == null) return AppColors.antiqueGold;
-    return isCompleted ? AppColors.success : AppColors.error;
+    if (outcome == null) return AppColors.goldDeep;
+    return isCompleted ? AppColors.success : AppColors.danger;
   }
 }

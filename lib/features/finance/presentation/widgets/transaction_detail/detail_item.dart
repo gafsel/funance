@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:funances/core/form/loading_button.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 
 /// Linha "rótulo + valor" do detalhe de transação.
 ///
@@ -28,14 +30,15 @@ class DetailItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final palette = context.palette;
 
     return LoadingButton.text(
       onPressed: onTap,
       child: Row(
-        spacing: 8,
+        spacing: AppSpacing.xs,
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: AppSpacing.allXs,
             decoration: BoxDecoration(
               color: (iconColor ?? theme.colorScheme.primary).withValues(
                 alpha: 0.1,
@@ -55,26 +58,17 @@ class DetailItem extends StatelessWidget {
                 Text(
                   label,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: palette.ink2,
                   ),
                 ),
                 if (customValue != null)
                   customValue!
                 else
-                  Text(
-                    value,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  Text(value, style: theme.textTheme.titleSmall),
               ],
             ),
           ),
-          if (onTap != null)
-            Icon(
-              Icons.chevron_right,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          if (onTap != null) Icon(Icons.chevron_right, color: palette.ink2),
         ],
       ),
     );

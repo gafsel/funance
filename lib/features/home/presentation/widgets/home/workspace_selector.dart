@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
@@ -26,7 +28,7 @@ class WorkspaceSelector extends ConsumerWidget {
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final currentWorkspace = workspaceState.currentWorkspace;
     final l10n = AppLocalizations.of(context)!;
-    final color = isNavigationRail ? AppColors.pureWhite : null;
+    final color = isNavigationRail ? AppColors.inkInverse : null;
 
     return InkWell(
       onTap: () => showWorkspacePicker(context, ref, workspaceState),
@@ -40,17 +42,15 @@ class WorkspaceSelector extends ConsumerWidget {
             size: 20,
             color: color,
           ),
-          const SizedBox(width: 8),
+          AppSpacing.gapXs,
           Flexible(
             child: Text(
               currentWorkspace == null
                   ? l10n.homeNoWorkspaceSelected
                   : displayOr(currentWorkspace.name, l10n.unnamedWorkspace),
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(color: color),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -79,7 +79,7 @@ void showWorkspacePicker(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: AppSpacing.allMd,
               child: Text(
                 l10n.workspacePickerTitle,
                 style: Theme.of(context).textTheme.titleLarge,
@@ -97,14 +97,15 @@ void showWorkspacePicker(
                         workspace.type == WorkspaceType.business
                             ? Icons.business
                             : Icons.home_outlined,
-                        color: isSelected ? AppColors.vibrantTeal : null,
+                        color: isSelected ? context.palette.tealText : null,
                       ),
                       title: Text(
                         displayOr(workspace.name, l10n.unnamedWorkspace),
-                        style: TextStyle(
-                          fontWeight: isSelected ? FontWeight.bold : null,
-                          color: isSelected ? AppColors.vibrantTeal : null,
-                        ),
+                        style: isSelected
+                            ? Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: context.palette.tealText,
+                              )
+                            : null,
                       ),
                       selected: isSelected,
                       onTap: () {
@@ -117,15 +118,14 @@ void showWorkspacePicker(
                   }),
                   const Divider(),
                   ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.add_circle_outline,
-                      color: AppColors.vibrantTeal,
+                      color: context.palette.tealText,
                     ),
                     title: Text(
                       l10n.addWorkspaceButton,
-                      style: const TextStyle(
-                        color: AppColors.vibrantTeal,
-                        fontWeight: FontWeight.bold,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: context.palette.tealText,
                       ),
                     ),
                     onTap: () {

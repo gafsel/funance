@@ -2,10 +2,13 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/loading_modal.dart';
+import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -116,9 +119,9 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
     );
 
     final accountColor = accountAsync.when(
-      data: (account) => account?.color.asColor() ?? AppColors.deepTurquoise,
-      loading: () => AppColors.deepTurquoise,
-      error: (_, _) => AppColors.deepTurquoise,
+      data: (account) => account?.color.asColor() ?? AppColors.surfaceDeep,
+      loading: () => AppColors.surfaceDeep,
+      error: (_, _) => AppColors.surfaceDeep,
     );
 
     // Milestones só fazem sentido para metas de acúmulo (guardar/quitar):
@@ -190,10 +193,10 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                             ) ??
                             '',
                         backgroundColor: goal.outcome == null
-                            ? AppColors.antiqueGold
+                            ? AppColors.goldDeep
                             : (goal.isCompleted
-                                  ? AppColors.limeGreen
-                                  : AppColors.error),
+                                  ? AppColors.success
+                                  : AppColors.danger),
                       ),
                   ],
                   actions: [
@@ -210,7 +213,12 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                     ),
                   ],
                   bottomContent: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                      AppSpacing.md,
+                      AppSpacing.md,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -220,79 +228,67 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
                             currentPercent: progress.percent,
                             statusColor: progress.getStatusColor(context),
                           ),
-                          const SizedBox(height: 16),
+                          AppSpacing.gapMd,
                         ],
                         // --- Barra de progresso ---
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              '${goal.amountLabel(l10n)}: '
-                              '${goal.currentAmount.asCurrency(locale: context.locale)}',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: AppColors.pureWhite.withValues(
-                                  alpha: 0.9,
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${goal.amountLabel(l10n)}: ',
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppColors.inkInverse2,
+                                  ),
                                 ),
-                              ),
+                                MoneyText(
+                                  goal.currentAmount,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    color: AppColors.inkInverse2,
+                                  ),
+                                ),
+                              ],
                             ),
                             Text(
                               progress.percent.asPercent(
                                 locale: context.locale,
                               ),
                               style: theme.textTheme.labelMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.brightCyan,
+                                color: AppColors.teal,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        AppSpacing.gapXs,
+                        // Duas camadas do MESMO componente: atrás a projeção,
+                        // na frente o realizado — a da frente sem trilho para
+                        // não apagar a de trás.
                         Stack(
                           children: [
-                            Container(
-                              height: 12,
-                              decoration: BoxDecoration(
-                                color: AppColors.pureWhite.withValues(
-                                  alpha: 0.1,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
+                            AppProgressBar(
+                              value: progress.predictionPercent,
+                              size: AppProgressSize.thick,
+                              color: progress
+                                  .getStatusColor(context)
+                                  .withValues(alpha: .5),
+                              trackColor: AppColors.inkInverse.withValues(
+                                alpha: 0.1,
                               ),
                             ),
-                            FractionallySizedBox(
-                              widthFactor: progress.predictionPercent,
-                              child: Container(
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.limeGreen,
-                                      progress
-                                          .getStatusColor(context)
-                                          .withValues(alpha: .5),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                              ),
-                            ),
-                            FractionallySizedBox(
-                              widthFactor: progress.percent,
-                              child: Container(
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.limeGreen,
-                                      progress.getStatusColor(context),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
+                            Positioned.fill(
+                              child: AppProgressBar(
+                                value: progress.percent,
+                                size: AppProgressSize.thick,
+                                color: progress.getStatusColor(context),
+                                trackColor: AppColors.transparent,
+                                semanticLabel: goal.name,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        AppSpacing.gapMd,
                         // --- Gráfico ideal vs. real ---
                         GoalProgressChart(
                           goal: goal,
@@ -324,10 +320,10 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               numberOfParticles: 40,
               gravity: 0.2,
               colors: const [
-                AppColors.limeGreen,
-                AppColors.brightCyan,
-                AppColors.successGold,
-                AppColors.vibrantTeal,
+                AppColors.progressStart,
+                AppColors.teal,
+                AppColors.gold,
+                AppColors.tealInk,
               ],
             ),
           ),
@@ -357,10 +353,10 @@ class _GoalDetailScreenState extends ConsumerState<GoalDetailScreen> {
               );
               if (context.mounted) context.pop();
             },
-            child: Text(
-              l10n.deleteButton,
-              style: const TextStyle(color: AppColors.error),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
             ),
+            child: Text(l10n.deleteButton),
           ),
         ],
       ),

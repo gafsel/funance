@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_typography.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/animated_double.dart';
@@ -22,7 +24,7 @@ class PlanningSummaryHeader extends StatelessWidget {
     final l10n = context.l10n;
 
     return Row(
-      spacing: 16,
+      spacing: AppSpacing.md,
       children: [
         _SummaryMetric(
           label: l10n.planning503020SummaryIncome,
@@ -66,7 +68,7 @@ class _SummaryMetric extends StatelessWidget {
           if (percent == null)
             value
           else
-            Row(spacing: 4, children: [value, percent!]),
+            Row(spacing: AppSpacing.xxs, children: [value, percent!]),
         ],
       ),
     );
@@ -80,6 +82,7 @@ class _PlannedIncomeValue extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final totalIncomes = ref.watch(
       FinanceViewProviders.planning503020.select((state) => state.totalIncomes),
     );
@@ -87,10 +90,8 @@ class _PlannedIncomeValue extends ConsumerWidget {
     return AnimatedDouble.currency(
       totalIncomes,
       duration: _valueDuration,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: Colors.green,
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
+      style: theme.textTheme.titleMedium?.tabularFigures.copyWith(
+        color: context.palette.successText,
       ),
     );
   }
@@ -101,6 +102,7 @@ class _IncomePercentValue extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final actualPercentage = ref.watch(
       FinanceViewProviders.planning503020GlobalProgress.select(
         (state) => state.actualPercentage,
@@ -112,10 +114,8 @@ class _IncomePercentValue extends ConsumerWidget {
       formatter: (context, value) =>
           "(${value.asPercent(locale: context.locale)})",
       duration: _valueDuration,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: Colors.green,
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
+      style: theme.textTheme.titleSmall?.tabularFigures.copyWith(
+        color: context.palette.successText,
       ),
     );
   }
@@ -126,6 +126,7 @@ class _PlannedExpenseValue extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final totalIncomes = ref.watch(
       FinanceViewProviders.planning503020.select((state) => state.totalIncomes),
     );
@@ -138,12 +139,10 @@ class _PlannedExpenseValue extends ConsumerWidget {
     return AnimatedDouble.currency(
       totalPlanned,
       duration: _valueDuration,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+      style: theme.textTheme.titleMedium?.tabularFigures.copyWith(
         // Planejar mais do que se recebe é o erro que a tela existe para
         // mostrar: o número vira vermelho antes de o mês começar.
-        color: totalPlanned > totalIncomes ? Colors.red : null,
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
+        color: totalPlanned > totalIncomes ? context.palette.dangerText : null,
       ),
     );
   }
@@ -154,6 +153,8 @@ class _ActualExpenseValue extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final totalIncomes = ref.watch(
       FinanceViewProviders.planning503020.select((state) => state.totalIncomes),
     );
@@ -166,10 +167,8 @@ class _ActualExpenseValue extends ConsumerWidget {
     return AnimatedDouble.currency(
       totalActual,
       duration: _valueDuration,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: totalActual > totalIncomes ? Colors.red : AppColors.darkNavy,
-        fontWeight: FontWeight.bold,
-        fontSize: 16,
+      style: theme.textTheme.titleMedium?.tabularFigures.copyWith(
+        color: totalActual > totalIncomes ? palette.dangerText : palette.ink,
       ),
     );
   }
@@ -180,6 +179,8 @@ class _ActualExpensePercentValue extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
     final totalIncomes = ref.watch(
       FinanceViewProviders.planning503020.select((state) => state.totalIncomes),
     );
@@ -199,10 +200,8 @@ class _ActualExpensePercentValue extends ConsumerWidget {
       formatter: (context, value) =>
           '(${value.asPercent(locale: context.locale)})',
       duration: _valueDuration,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        color: totalActual > totalIncomes ? Colors.red : AppColors.darkNavy,
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
+      style: theme.textTheme.titleSmall?.tabularFigures.copyWith(
+        color: totalActual > totalIncomes ? palette.dangerText : palette.ink,
       ),
     );
   }
