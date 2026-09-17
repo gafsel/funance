@@ -124,11 +124,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         stackTrace: s,
       );
 
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -141,11 +137,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       if (!doc.exists) return null;
       return doc.toOrderModel();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -168,11 +160,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
 
       return (value: order.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -188,11 +176,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.transaction,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -206,11 +190,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.transaction,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -227,11 +207,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       final snapshot = await query.get();
       return snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -281,11 +257,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.installment,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -315,11 +287,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.planning,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -338,11 +306,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.planning,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -375,11 +339,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         stackTrace: s,
       );
 
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 

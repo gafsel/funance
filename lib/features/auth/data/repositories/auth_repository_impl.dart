@@ -140,11 +140,7 @@ class AuthRepositoryImpl implements IAuthRepository {
           stackTrace: s,
         );
       }
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -247,11 +243,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     } on BusinessException {
       rethrow;
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -282,11 +274,7 @@ class AuthRepositoryImpl implements IAuthRepository {
     } on BusinessException {
       rethrow;
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 

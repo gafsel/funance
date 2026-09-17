@@ -24,17 +24,13 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
       // Código e mensagem do servidor precisam sobreviver: é deles que a tela
       // tira o texto de cota esgotada ou payload recusado.
       throw BusinessException(
-        ErrorCode.unknown,
+        errorCodeFor(e),
         message: e.message,
         originalError: e,
         stackTrace: s,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 }

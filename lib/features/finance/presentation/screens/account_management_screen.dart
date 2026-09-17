@@ -8,6 +8,7 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/models/account_model.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -135,7 +136,16 @@ class AccountManagementScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text(err.toString())),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ErrorView.forError(
+              context,
+              err,
+              onRetry: () => ref.invalidate(AccountViewProviders.byTypeMap),
+            ),
+          ),
+        ),
       ),
     );
   }

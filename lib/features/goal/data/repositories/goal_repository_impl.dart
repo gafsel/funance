@@ -55,11 +55,7 @@ class GoalRepositoryImpl implements IGoalRepository {
       ).where('isDeleted', isEqualTo: false).get();
       return snapshot.docs.map((doc) => doc.toGoalModel()).toList();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -91,11 +87,7 @@ class GoalRepositoryImpl implements IGoalRepository {
 
       return (value: goal.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -108,11 +100,7 @@ class GoalRepositoryImpl implements IGoalRepository {
         entity: WriteEntity.goal,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -124,11 +112,7 @@ class GoalRepositoryImpl implements IGoalRepository {
         entity: WriteEntity.goal,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 }

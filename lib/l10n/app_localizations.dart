@@ -458,6 +458,42 @@ abstract class AppLocalizations {
   /// **'Esta ação precisa de internet. Reconecte e tente de novo.'**
   String get errorOfflineCallable;
 
+  /// No description provided for @errorOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com a internet. Mostramos o que já estava no aparelho; toque em tentar de novo quando a rede voltar.'**
+  String get errorOffline;
+
+  /// No description provided for @errorPermissionDenied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você não tem acesso a estes dados. Se acabou de sair de um workspace, entre de novo.'**
+  String get errorPermissionDenied;
+
+  /// No description provided for @errorQuotaExhausted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite de uso atingido. Tente de novo mais tarde.'**
+  String get errorQuotaExhausted;
+
+  /// No description provided for @errorNotAuthenticated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua sessão expirou. Entre de novo para continuar.'**
+  String get errorNotAuthenticated;
+
+  /// No description provided for @errorNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este item não existe mais.'**
+  String get errorNotFound;
+
+  /// No description provided for @errorTimeout.
+  ///
+  /// In pt, this message translates to:
+  /// **'O servidor demorou demais para responder. Tente de novo.'**
+  String get errorTimeout;
+
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In pt, this message translates to:

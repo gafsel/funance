@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class LoadingPopupMenuItem<T> extends PopupMenuEntry<T> {
   final Widget child;
@@ -87,7 +88,7 @@ class _LoadingPopupMenuItemState<T> extends State<LoadingPopupMenuItem<T>> {
       }
       rethrow;
     } catch (ex, stack) {
-      debugPrint("[LoadingPopupMenuItem] ERRO NÃO TRATADO: $ex\n$stack");
+      AppLogger.error('LoadingPopupMenuItem: erro não tratado', ex, stack);
       rethrow;
     } finally {
       if (mounted) {

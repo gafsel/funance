@@ -14,6 +14,7 @@ import 'package:funances/features/finance/presentation/widgets/transaction_filte
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
   final InstallmentModel invoice;
@@ -314,7 +315,17 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (_, _) => const SizedBox.shrink(),
+                    // O gráfico É o conteúdo deste bloco: sumir em silêncio
+                    // fazia a fatura parecer sem categorias.
+                    error: (err, _) => ErrorView.forError(
+                      context,
+                      err,
+                      onRetry: () => ref.invalidate(
+                        FinanceViewProviders.invoicePieChart(
+                          invoice.invoiceKey,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),

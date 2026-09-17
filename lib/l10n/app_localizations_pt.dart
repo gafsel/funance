@@ -208,6 +208,29 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta ação precisa de internet. Reconecte e tente de novo.';
 
   @override
+  String get errorOffline =>
+      'Sem conexão com a internet. Mostramos o que já estava no aparelho; toque em tentar de novo quando a rede voltar.';
+
+  @override
+  String get errorPermissionDenied =>
+      'Você não tem acesso a estes dados. Se acabou de sair de um workspace, entre de novo.';
+
+  @override
+  String get errorQuotaExhausted =>
+      'Limite de uso atingido. Tente de novo mais tarde.';
+
+  @override
+  String get errorNotAuthenticated =>
+      'Sua sessão expirou. Entre de novo para continuar.';
+
+  @override
+  String get errorNotFound => 'Este item não existe mais.';
+
+  @override
+  String get errorTimeout =>
+      'O servidor demorou demais para responder. Tente de novo.';
+
+  @override
   String get onboardingWelcomeTitle => 'Boas-vindas ao Funances!';
 
   @override

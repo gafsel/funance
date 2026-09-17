@@ -7,6 +7,7 @@ import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class CoachingHistoryScreen extends ConsumerWidget {
   const CoachingHistoryScreen({super.key});
@@ -66,17 +67,15 @@ class CoachingHistoryScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(),
           ),
-          error: (err, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(l10n.errorLoadingData),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(CoachingViewProviders.insightsHistory),
-                  child: Text(l10n.retry),
-                ),
-              ],
+          error: (err, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: ErrorView.forError(
+                context,
+                err,
+                onRetry: () =>
+                    ref.invalidate(CoachingViewProviders.insightsHistory),
+              ),
             ),
           ),
         ),

@@ -44,7 +44,6 @@ dependencies:
   # Utilitários
   uuid: ^4.5.1
   intl: ^0.20.2
-  logger: ^2.5.0
   json_annotation: ^4.9.0
   flutter_riverpod: ^2.6.1
   # Fica na linha 6.x: a 7.x reescreve a API de entrada (`initialize()` +

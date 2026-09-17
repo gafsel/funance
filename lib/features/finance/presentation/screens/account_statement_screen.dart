@@ -16,6 +16,7 @@ import 'package:funances/features/finance/presentation/widgets/detail_header.dar
 import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class AccountStatementScreen extends ConsumerStatefulWidget {
   final String accountId;
@@ -49,7 +50,20 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
 
     return accountAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, stack) => Scaffold(body: Center(child: Text(error.toString()))),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ErrorView.forError(
+              context,
+              error,
+              onRetry: () =>
+                  ref.invalidate(AccountViewProviders.byId(widget.accountId)),
+            ),
+          ),
+        ),
+      ),
       data: (account) {
         if (account == null) {
           return Scaffold(

@@ -51,11 +51,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
 
       return (value: category.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -72,11 +68,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
         entity: WriteEntity.category,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -88,11 +80,7 @@ class CategoryRepositoryImpl implements ICategoryRepository {
         entity: WriteEntity.category,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 }

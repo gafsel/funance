@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class MembersFormField extends ConsumerWidget {
   final List<String> initialValue;
@@ -64,7 +65,11 @@ class MembersFormField extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Text('Error loading members: $err'),
+      error: (err, _) => ErrorView.forError(
+        context,
+        err,
+        onRetry: () => ref.invalidate(WorkspaceViewProviders.members),
+      ),
     );
   }
 }

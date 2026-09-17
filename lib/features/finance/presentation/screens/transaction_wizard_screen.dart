@@ -15,6 +15,7 @@ import 'package:funances/features/home/presentation/model/overview_view_model.da
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 /// Lançamento em duas telas: escolher a categoria e preencher o formulário.
 ///
@@ -233,11 +234,29 @@ class _CategorySelectionStep extends ConsumerWidget {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text(err.toString())),
+            error: (err, _) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ErrorView.forError(
+                  context,
+                  err,
+                  onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+                ),
+              ),
+            ),
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text(err.toString())),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ErrorView.forError(
+              context,
+              err,
+              onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+            ),
+          ),
+        ),
       ),
     );
   }

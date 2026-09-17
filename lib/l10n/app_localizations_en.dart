@@ -207,6 +207,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'This action needs an internet connection. Reconnect and try again.';
 
   @override
+  String get errorOffline =>
+      'No internet connection. We\'re showing what was already on this device; tap retry when you\'re back online.';
+
+  @override
+  String get errorPermissionDenied =>
+      'You don\'t have access to this data. If you just left a workspace, sign in again.';
+
+  @override
+  String get errorQuotaExhausted => 'Usage limit reached. Try again later.';
+
+  @override
+  String get errorNotAuthenticated =>
+      'Your session expired. Sign in again to continue.';
+
+  @override
+  String get errorNotFound => 'This item no longer exists.';
+
+  @override
+  String get errorTimeout => 'The server took too long to respond. Try again.';
+
+  @override
   String get onboardingWelcomeTitle => 'Welcome to Funances!';
 
   @override

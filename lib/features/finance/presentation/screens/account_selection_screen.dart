@@ -10,6 +10,7 @@ import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class AccountSelectionScreen extends ConsumerWidget {
   final String title;
@@ -289,8 +290,12 @@ class AccountSelectionScreen extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (err, _) => Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Center(child: Text(err.toString())),
+            padding: const EdgeInsets.all(32.0),
+            child: ErrorView.forError(
+              context,
+              err,
+              onRetry: () => ref.invalidate(WorkspaceViewProviders.members),
+            ),
           ),
         );
       },
@@ -299,8 +304,12 @@ class AccountSelectionScreen extends ConsumerWidget {
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (err, _) => Padding(
-        padding: EdgeInsets.all(32.0),
-        child: Center(child: Text(err.toString())),
+        padding: const EdgeInsets.all(32.0),
+        child: ErrorView.forError(
+          context,
+          err,
+          onRetry: () => ref.invalidate(AccountViewProviders.all),
+        ),
       ),
     );
   }

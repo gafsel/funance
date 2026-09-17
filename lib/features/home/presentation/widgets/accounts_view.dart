@@ -10,6 +10,7 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class AccountsView extends ConsumerWidget {
   const AccountsView({super.key});
@@ -39,7 +40,14 @@ class AccountsView extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text(e.toString())),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: ErrorView.forError(
+          context,
+          e,
+          onRetry: () => ref.invalidate(AccountViewProviders.byTypeMap),
+        ),
+      ),
     );
   }
 

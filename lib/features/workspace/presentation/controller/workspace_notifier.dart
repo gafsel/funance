@@ -2,21 +2,23 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
-import 'package:logger/logger.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 import '../../domain/models/workspace_model.dart';
 import '../../domain/repositories/workspace_repository.dart';
 
 class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
   final IWorkspaceRepository _repository;
-  final Logger _logger = Logger();
   StreamSubscription<WorkspaceModel?>? _workspaceSubscription;
 
   WorkspaceNotifier(this._repository) : super(WorkspaceState());
 
   void setCurrentWorkspace(WorkspaceModel workspace) {
     state = state.copyWith(currentWorkspace: workspace);
-    _logger.i("Contexto alterado para: ${workspace.name} (${workspace.id})");
+    AppLogger.info(
+      'Contexto alterado para: ${workspace.name} (${workspace.id})',
+      name: 'workspace',
+    );
     _watchCurrentWorkspace(workspace.id);
   }
 
@@ -39,8 +41,8 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
               ],
             );
           },
-          onError: (Object e) {
-            _logger.e("Erro ao observar workspace $workspaceId: $e");
+          onError: (Object e, StackTrace s) {
+            AppLogger.error('Erro ao observar workspace $workspaceId', e, s);
           },
         );
   }
@@ -59,7 +61,10 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
     state = state.copyWith(isLoading: !background);
 
     try {
-      _logger.d("Carregando workspaces para o usuário: $userUid");
+      AppLogger.debug(
+        'Carregando workspaces para o usuário: $userUid',
+        name: 'workspace',
+      );
       final workspaces = await _repository.getUserWorkspaces(userUid);
 
       final current =
@@ -82,8 +87,8 @@ class WorkspaceNotifier extends StateNotifier<WorkspaceState> {
       if (current != null) {
         _watchCurrentWorkspace(current.id);
       }
-    } catch (e) {
-      _logger.e("Erro ao carregar workspaces: $e");
+    } catch (e, s) {
+      AppLogger.error('Erro ao carregar workspaces', e, s);
       state = state.copyWith(isLoading: false, initialLoadDone: true);
     }
   }

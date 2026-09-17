@@ -8,6 +8,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../providers.dart';
+import 'package:funances/core/widgets/error_view.dart';
 
 class CategoryManagementScreen extends ConsumerStatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -186,7 +187,16 @@ class _CategoryList extends ConsumerWidget {
               );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text(err.toString())),
+      error: (err, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ErrorView.forError(
+            context,
+            err,
+            onRetry: () => ref.invalidate(CategoryViewProviders.allStream),
+          ),
+        ),
+      ),
     );
   }
 }
