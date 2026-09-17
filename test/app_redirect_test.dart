@@ -162,6 +162,41 @@ void main() {
     });
   });
 
+  group('rotas de detalhe com parâmetro', () {
+    // `matchedLocation` traz o padrão já casado, com o id no lugar e a query
+    // de fora — o `redirect` compara essa string com literais, então uma rota
+    // parametrizada não pode cair em nenhuma das comparações por engano.
+    const detalhes = ['/goals/abc', '/invoices/xyz?x=1'];
+
+    test('logado e com tudo pronto, a rota de detalhe abre', () {
+      for (final rota in detalhes) {
+        expect(_destino(location: rota), isNull, reason: 'em $rota');
+      }
+    });
+
+    test('deslogado, a rota de detalhe vai para o login', () {
+      // É o caso do link compartilhado: quem abre `/goals/abc` sem sessão
+      // precisa entrar antes, e não ver a tela de meta vazia.
+      for (final rota in detalhes) {
+        expect(
+          _destino(auth: const AsyncValue.data(null), location: rota),
+          '/login',
+          reason: 'em $rota',
+        );
+      }
+    });
+
+    test('sem workspace, o detalhe ainda cede ao onboarding', () {
+      for (final rota in detalhes) {
+        expect(
+          _destino(workspace: _workspace(disponiveis: []), location: rota),
+          '/onboarding',
+          reason: 'em $rota',
+        );
+      }
+    });
+  });
+
   group('convites pendentes', () {
     test('vêm antes de tudo — inclusive do onboarding', () {
       // Sem responder o convite, o usuário acabaria criando um workspace novo
