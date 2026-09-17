@@ -26,11 +26,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         return UserModel.fromJson(Map<String, dynamic>.from(data as Map));
       }).toList();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -46,19 +42,16 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
       });
     } on FirebaseFunctionsException catch (e, s) {
       // A callable responde com mensagem pronta para o usuário (não é dono,
-      // não pode remover a si mesmo); embrulhar em `unknown` a perderia.
+      // não pode remover a si mesmo); embrulhar em `unknown` a perderia. O
+      // CÓDIGO ainda é classificado: sem rede, o texto que vale é o de offline.
       throw BusinessException(
-        ErrorCode.unknown,
+        errorCodeFor(e),
         message: e.message,
         originalError: e,
         stackTrace: s,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -72,11 +65,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
 
       return snapshot.docs.map((doc) => doc.toWorkspaceModel()).toList();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -106,11 +95,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
 
       return (value: workspace.copyWith(id: docRef.id), outcome: outcome);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -121,11 +106,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
       if (!doc.exists) return null;
       return doc.toWorkspaceModel();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -147,11 +128,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         entity: WriteEntity.workspace,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -172,11 +149,7 @@ class WorkspaceRepositoryImpl implements IWorkspaceRepository {
         entity: WriteEntity.workspace,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 }

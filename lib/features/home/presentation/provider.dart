@@ -186,27 +186,27 @@ class HomeViewProviders {
   );
 
   static final summaryExpenses =
-      NotifierProvider<ExpenseSummaryNotifier, SummaryState>(
+      NotifierProvider<ExpenseSummaryNotifier, AsyncValue<SummaryState>>(
         ExpenseSummaryNotifier.new,
       );
 
   static final summaryExpensesFull =
-      NotifierProvider<ExpenseSummaryFullNotifier, SummaryState>(
+      NotifierProvider<ExpenseSummaryFullNotifier, AsyncValue<SummaryState>>(
         ExpenseSummaryFullNotifier.new,
       );
 
   static final summaryIncomes =
-      NotifierProvider<IncomeSummaryNotifier, SummaryState>(
+      NotifierProvider<IncomeSummaryNotifier, AsyncValue<SummaryState>>(
         IncomeSummaryNotifier.new,
       );
 
   static final summaryIncomesFull =
-      NotifierProvider<IncomeSummaryFullNotifier, SummaryState>(
+      NotifierProvider<IncomeSummaryFullNotifier, AsyncValue<SummaryState>>(
         IncomeSummaryFullNotifier.new,
       );
 
   static final summaryBalance =
-      NotifierProvider<BalanceSummaryNotifier, BalanceState>(
+      NotifierProvider<BalanceSummaryNotifier, AsyncValue<BalanceState>>(
         BalanceSummaryNotifier.new,
       );
 }

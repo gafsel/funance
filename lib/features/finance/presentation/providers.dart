@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:funances/core/analytics/analytics_providers.dart';
@@ -51,6 +50,8 @@ import 'package:funances/features/home/presentation/model/overview_view_model.da
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/model/category_view_models.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/money/money.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class AutomaticTransactionDomainProviders {
   static final repository = Provider<IAutomaticTransactionRepository>((ref) {
@@ -294,10 +295,8 @@ class AccountViewProviders {
         return Rx.combineLatestList(
           accounts.map((account) => service.getLatestAccountBalance(account.id)),
         ).map(
-          (balances) => balances.fold<double>(
-            0,
-            (total, balance) => total + balance.balance,
-          ),
+          (balances) =>
+              Money.sumOf(balances, (balance) => balance.balance).toDouble(),
         );
       });
 
@@ -320,21 +319,6 @@ class AccountViewProviders {
         );
       });
 
-  /// A PARCELA da próxima fatura, para navegar até a tela de detalhe (que
-  /// recebe um `InstallmentModel`).
-  ///
-  /// FALLBACK TEMPORÁRIO documentado: enquanto a rota `/invoices/detail`
-  /// receber o modelo inteiro, o app ainda precisa da parcela. A consulta é a
-  /// mesma que o servidor faz para montar `nextInvoice`, então as duas
-  /// concordam; o que saiu do cliente foi o CÁLCULO da fatura, não a leitura.
-  /// Quando a rota passar a receber só o id, este provider sai.
-  static final nextInvoiceInstallmentByAccountId = StreamProvider.autoDispose
-      .family<InstallmentModel?, String>((ref, accountId) {
-        return ref
-            .watch(FinanceDomainProviders.service)
-            .watchNextInvoice(accountId);
-      });
-
   static final balanceAtDate = StreamProvider.autoDispose
       .family<AccountBalanceModel, ({String accountId, DateTime date})>((
         ref,
@@ -347,6 +331,17 @@ class AccountViewProviders {
 }
 
 class FinanceViewProviders {
+  /// Uma parcela pelo id — como as rotas de detalhe carregam o que abrem.
+  ///
+  /// `AsyncValue.data(null)` quer dizer "não existe": a tela mostra que o
+  /// lançamento sumiu em vez de piscar e voltar para a home.
+  static final installmentById = StreamProvider.autoDispose
+      .family<InstallmentModel?, String>((ref, installmentId) {
+        return ref
+            .watch(FinanceDomainProviders.service)
+            .watchInstallment(installmentId);
+      });
+
   static final creationForm = StateNotifierProvider.autoDispose
       .family<
         TransactionFormNotifier,
@@ -566,10 +561,10 @@ class FinanceViewProviders {
   static final invoiceInstallments = StreamProvider.autoDispose
       .family<List<InstallmentModel>, InvoiceKey>((ref, invoice) {
         if (!invoice.hasServerCycle) {
-          developer.log(
+          AppLogger.debug(
             'Fatura ${invoice.invoiceId} sem janela de ciclo do servidor; '
             'aguardando a sincronização em vez de calcular no cliente.',
-            name: 'funances.providers',
+            name: 'providers',
           );
           return const Stream.empty();
         }
@@ -589,13 +584,16 @@ class FinanceViewProviders {
 
         return installments.when(
           data: (data) {
+            // Soma por categoria em CENTAVOS: um `+` de double por parcela
+            // desviava o total da fatia do gráfico da soma das linhas.
             final map = data
                 .where((installment) => installment.type == OrderType.expense)
-                .fold<Map<CategoryModel, double>>({}, (map, installment) {
+                .fold<Map<CategoryModel, Money>>({}, (map, installment) {
+                  final amount = installment.referenceAmount.asMoney;
                   map.update(
                     installment.category!,
-                    (value) => value + installment.referenceAmount,
-                    ifAbsent: () => installment.referenceAmount,
+                    (value) => value + amount,
+                    ifAbsent: () => amount,
                   );
                   return map;
                 });
@@ -606,7 +604,7 @@ class FinanceViewProviders {
                     .map(
                       (entry) => CategoryAmountModel(
                         category: entry.key,
-                        amount: entry.value,
+                        amount: entry.value.toDouble(),
                       ),
                     )
                     .toList()
@@ -616,16 +614,18 @@ class FinanceViewProviders {
               return Stream.value([
                 ...list.sublist(0, 9),
                 CategoryAmountModel(
-                  category: CategoryModel(
-                    id: "",
-                    name: "Outros",
-                    icon: "category",
-                    color: "#333333",
+                  // Categoria sintética: sem nome guardado, porque o nome é
+                  // "Outros" no idioma de quem lê (ver `displayName`).
+                  category: const CategoryModel(
+                    id: CategoryModel.othersId,
+                    name: '',
+                    icon: 'category',
+                    color: '#333333',
                   ),
-                  amount: list
-                      .sublist(9)
-                      .map((cat) => cat.amount)
-                      .reduce((a1, a2) => a1 + a2),
+                  amount: Money.sumOf(
+                    list.sublist(9),
+                    (cat) => cat.amount,
+                  ).toDouble(),
                 ),
               ]);
             }
@@ -667,14 +667,14 @@ class FinanceViewProviders {
         // Calculando renda total prevista (simplificado: soma de todos os planejamentos se tivéssemos acesso fácil,
         // mas aqui vamos focar na soma das despesas planejadas para referência ou usar um valor fixo se o sistema permitir.
         // Para o 50-30-20, o ideal é baseado no TOTAL planejado para o mês.
-        final totalPlanned = state.items.fold<double>(
-          0,
-          (sum, item) => sum + item.effectiveAmount,
-        );
-        final totalActual = state.items.fold<double>(
-          0,
-          (sum, item) => sum + item.actualAmount,
-        );
+        final totalPlanned = Money.sumOf(
+          state.items,
+          (item) => item.effectiveAmount,
+        ).toDouble();
+        final totalActual = Money.sumOf(
+          state.items,
+          (item) => item.actualAmount,
+        ).toDouble();
         final totalIncome = state.totalIncomes;
 
         final actualPercentage = totalIncome > 0
@@ -712,14 +712,14 @@ class FinanceViewProviders {
           planning503020GlobalProgress.select((state) => state.totalIncome),
         );
 
-        final currentTotal = items.fold<double>(
-          0,
-          (sum, item) => sum + item.effectiveAmount,
-        );
-        final currentActual = items.fold<double>(
-          0,
-          (sum, item) => sum + item.actualAmount,
-        );
+        final currentTotal = Money.sumOf(
+          items,
+          (item) => item.effectiveAmount,
+        ).toDouble();
+        final currentActual = Money.sumOf(
+          items,
+          (item) => item.actualAmount,
+        ).toDouble();
         final idealValue = totalIncome * allocation.idealPercentage;
         final currentPercentage = totalPlanned > 0
             ? (currentTotal / totalPlanned)
@@ -788,13 +788,19 @@ class PeriodSummaryViewProviders {
   static final monthSummary = StreamProvider.autoDispose
       .family<List<OverviewCategorySummary>, String>((ref, monthKey) {
         final service = ref.watch(PeriodSummaryDomainProviders.service);
-        final List<CategoryModel> categories = ref
-            .watch(CategoryViewProviders.allStream)
-            .when(
-              data: (data) => data,
-              error: (_, _) => [],
-              loading: () => [],
-            );
+        final categoriesAsync = ref.watch(CategoryViewProviders.allStream);
+
+        // Falha ao ler categorias PROPAGA. Virar lista vazia fazia o resumo do
+        // mês dizer "nenhuma categoria" — uma afirmação, e errada — em vez de
+        // deixar a tela mostrar o erro e oferecer tentar de novo.
+        if (categoriesAsync.hasError) {
+          return Stream<List<OverviewCategorySummary>>.error(
+            categoriesAsync.error!,
+            categoriesAsync.stackTrace ?? StackTrace.current,
+          );
+        }
+
+        final List<CategoryModel> categories = categoriesAsync.valueOrNull ?? [];
 
         final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
 

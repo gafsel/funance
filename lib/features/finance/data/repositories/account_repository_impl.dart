@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -14,6 +13,7 @@ import '../../domain/models/reconciliation_model.dart';
 import '../../domain/models/account_model.dart';
 import '../models/account_mapper.dart';
 import '../models/finance_mapper.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class AccountRepositoryImpl implements IAccountRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -65,11 +65,7 @@ class AccountRepositoryImpl implements IAccountRepository {
 
       return (value: account.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -86,11 +82,7 @@ class AccountRepositoryImpl implements IAccountRepository {
         entity: WriteEntity.account,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -100,17 +92,13 @@ class AccountRepositoryImpl implements IAccountRepository {
       final doc = await _getCollection(workspaceId).doc(accountId).get();
       if (!doc.exists) {
         throw BusinessException(
-          ErrorCode.unknown,
+          ErrorCode.notFound,
           message: 'Account not found',
         );
       }
       return doc.toAccountModel();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -122,11 +110,7 @@ class AccountRepositoryImpl implements IAccountRepository {
         workspaceId,
       ).doc(accountId).update({'isDeleted': true});
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -178,11 +162,7 @@ class AccountRepositoryImpl implements IAccountRepository {
       // Em produção, isso integraria com o Firebase Storage
       return document.name;
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -217,11 +197,7 @@ class AccountRepositoryImpl implements IAccountRepository {
     } on FirebaseFunctionsException catch (e, s) {
       throw _fromCallable(e, s);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -259,17 +235,13 @@ class AccountRepositoryImpl implements IAccountRepository {
           .map((t) => FinanceMapper.toReconciliationTransaction(t))
           .toList();
     } on FirebaseFunctionsException catch (e, s) {
-      log("Failed to analyze reconciliation document", error: e, stackTrace: s);
+      AppLogger.error('Falha ao analisar o documento de conciliação', e, s);
 
       throw _fromCallable(e, s);
     } catch (e, s) {
-      log("Failed to analyze reconciliation document", error: e, stackTrace: s);
+      AppLogger.error('Falha ao analisar o documento de conciliação', e, s);
 
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -284,7 +256,7 @@ class AccountRepositoryImpl implements IAccountRepository {
     FirebaseFunctionsException error,
     StackTrace stackTrace,
   ) => BusinessException(
-    ErrorCode.unknown,
+    errorCodeFor(error),
     message: error.message,
     originalError: error,
     stackTrace: stackTrace,

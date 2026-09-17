@@ -24,6 +24,12 @@ class CoachingRepositoryImpl implements ICoachingRepository {
   }
 
   @override
+  Future<CoachingModel?> getInsight(String workspaceId, String insightId) async {
+    final doc = await _getInsightsCollection(workspaceId).doc(insightId).get();
+    return doc.exists ? doc.toCoachingModel() : null;
+  }
+
+  @override
   Future<CoachingModel> generateCoaching(String workspaceId) async {
     final callable = _functions.httpsCallable(
       'generateCoaching',

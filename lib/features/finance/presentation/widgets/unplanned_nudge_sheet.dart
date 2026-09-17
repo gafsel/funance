@@ -70,12 +70,7 @@ class UnplannedNudgeSheet extends StatelessWidget {
     // espera por isso.
     switch (chosen) {
       case UnplannedNudgeAction.recurring:
-        unawaited(
-          context.push(
-            _recurringRoute(nudge),
-            extra: {'category': nudge.category},
-          ),
-        );
+        unawaited(context.push(_recurringRoute(nudge)));
       case UnplannedNudgeAction.limit:
         unawaited(context.push(_limitRoute(nudge)));
     }
@@ -93,6 +88,9 @@ class UnplannedNudgeSheet extends StatelessWidget {
         'status': InstallmentStatus.pending.name,
         'installmentType': InstallmentType.recurring.name,
         'amount': nudge.amount.toString(),
+        // A categoria vai pelo id: o formulário a carrega pelo provider, e o
+        // endereço continua reabrindo a mesma tela depois de um refresh.
+        'categoryId': nudge.category.id,
         // O dia da recorrência sai do vencimento do gasto que a inspirou.
         'date': nudge.dueDate.toIso8601String(),
         if (nudge.accountId != null) 'accountIdSource': nudge.accountId!,

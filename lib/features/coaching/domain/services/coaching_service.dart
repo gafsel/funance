@@ -11,6 +11,10 @@ class CoachingService {
     return repository.getLastInsight(workspaceId);
   }
 
+  Future<CoachingModel?> getInsight(String insightId) {
+    return repository.getInsight(workspaceId, insightId);
+  }
+
   Future<CoachingModel> generateCoaching() {
     return repository.generateCoaching(workspaceId);
   }

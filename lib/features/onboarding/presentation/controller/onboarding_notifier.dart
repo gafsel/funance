@@ -38,6 +38,8 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       state = state.copyWith(
         workspace: workspace,
         currentStep: workspace.lastOnboardingStep ?? OnboardingSteps.accounts,
+        // Retomar um onboarding é continuar de um documento que já existe.
+        workspaceCreated: true,
       );
     }
   }
@@ -67,8 +69,13 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         case OnboardingSteps.invites:
           await _savePlanning();
           break;
-        case OnboardingSteps.name:
-          await _createWorkspace();
+        case OnboardingSteps.accounts:
+          // O workspace nasce ao SAIR do passo do nome, não ao entrar nele:
+          // criado na entrada, ele ia para o Firestore com o nome VAZIO (o
+          // usuário ainda não tinha digitado) e só era corrigido um passo
+          // depois. Quem abandonasse ali deixava um workspace sem nome para
+          // trás.
+          if (!state.workspaceCreated) await _createWorkspace();
           break;
         case OnboardingSteps.success:
           await _sendInvites();
@@ -79,7 +86,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
           break;
       }
 
-      if (state.workspace.id.isNotEmpty) {
+      if (state.workspaceCreated) {
         await onboardingService.updateWorkspace(
           state.workspace.copyWith(lastOnboardingStep: nextStep),
         );
@@ -225,9 +232,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   Future<void> _createWorkspace() async {
     final workspace = await onboardingService.createWorkspace(
       type: state.workspace.type,
+      name: state.workspace.name,
     );
 
-    state = state.copyWith(workspace: workspace);
+    state = state.copyWith(workspace: workspace, workspaceCreated: true);
 
     await workspaceNotifier.loadWorkspaces(
       onboardingService.user.id,

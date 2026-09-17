@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/foundation.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 
 /// Mensagem a exibir para um erro vindo de um callable das Functions.
@@ -57,7 +58,9 @@ bool isOfflineCallable(Object error) {
 
   return switch (functionsError.code) {
     'unavailable' || 'deadline-exceeded' => true,
-    'internal' => message == null || message.isEmpty,
+    // `internal` mudo só conta como offline NA WEB, onde ele é a cara de um
+    // `fetch` que não saiu. Fora dela, é erro do backend.
+    'internal' => kIsWeb && (message == null || message.isEmpty),
     _ => false,
   };
 }

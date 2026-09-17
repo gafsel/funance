@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:developer';
 import 'package:funances/core/list/infinite_list_notifier.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 class AccountStatementNotifier
     extends InfiniteListNotifier<TransactionQuery, InstallmentModel> {
@@ -23,8 +23,11 @@ class AccountStatementNotifier
            descending: !isFuture,
          ),
          executor: (query, {chunkRef}) async {
-           log(
-             "AccountStatementNotifier: Executing query for ${isFuture ? 'future' : 'current'} statement. Account: ${query.accountId}, Start: ${query.startDate}, End: ${query.endDate}, Descending: ${query.descending}",
+           AppLogger.debug(
+             'Extrato ${isFuture ? 'futuro' : 'corrente'} da conta '
+             '${query.accountId}: ${query.startDate} → ${query.endDate} '
+             '(descendente: ${query.descending})',
+             name: 'statement',
            );
            return await financeiroService.queryInstallments(
              limit: 20,

@@ -4,6 +4,7 @@ import 'package:funances/features/finance/domain/services/period_summary_service
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
+import 'package:funances/core/money/money.dart';
 
 class Planning503020Service {
   final CategoryPlanningService planningService;
@@ -46,46 +47,50 @@ class Planning503020Service {
         (c) => c.type == CategoryType.income && c.isSelectable,
       );
       
-      final totalIncomes = incomes.fold<double>(0, (sum, category) {
-        final summaryCategory = summary?.categories[category.id];
-        return sum + (summaryCategory?.specificPlannedAmount ?? 0.0);
-      });
+      // A renda é o denominador de todas as fatias do 50-30-20: um centavo de
+      // resto aqui vira meio ponto percentual na tela.
+      final totalIncomes = Money.sumOf(
+        incomes,
+        (category) =>
+            summary?.categories[category.id]?.specificPlannedAmount ?? 0.0,
+      );
 
-      final totalActualIncomes = incomes.fold<double>(0, (sum, category) {
-        final summaryCategory = summary?.categories[category.id];
-        return sum + (summaryCategory?.actualAmount ?? 0.0);
-      });
+      final totalActualIncomes = Money.sumOf(
+        incomes,
+        (category) => summary?.categories[category.id]?.actualAmount ?? 0.0,
+      );
 
-      return (items: items, totalIncomes: totalIncomes, totalActualIncomes: totalActualIncomes);
+      return (
+        items: items,
+        totalIncomes: totalIncomes.toDouble(),
+        totalActualIncomes: totalActualIncomes.toDouble(),
+      );
     });
   }
 
   Stream<Planning503020Distribution> watchDistribution(DateTime date) {
     return watchPlanningItems(date).map((data) {
-      double plannedEssential = 0;
-      double actualEssential = 0;
-      double plannedComfort = 0;
-      double actualComfort = 0;
-      double plannedInvestment = 0;
-      double actualInvestment = 0;
+      var plannedEssential = Money.zero;
+      var actualEssential = Money.zero;
+      var plannedComfort = Money.zero;
+      var actualComfort = Money.zero;
+      var plannedInvestment = Money.zero;
+      var actualInvestment = Money.zero;
 
       for (final item in data.items) {
-        final planned = item.effectiveAmount;
-        final actual = item.actualAmount;
+        final planned = item.effectiveAmount.asMoney;
+        final actual = item.actualAmount.asMoney;
 
         switch (item.category.allocation) {
           case CategoryAllocation.essential:
             plannedEssential += planned;
             actualEssential += actual;
-            break;
           case CategoryAllocation.comfort:
             plannedComfort += planned;
             actualComfort += actual;
-            break;
           case CategoryAllocation.investment:
             plannedInvestment += planned;
             actualInvestment += actual;
-            break;
         }
       }
 
@@ -93,18 +98,18 @@ class Planning503020Service {
         totalIncome: data.totalIncomes,
         totalActualIncome: data.totalActualIncomes,
         essential: Planning503020DistributionGroup(
-          plannedAmount: plannedEssential,
-          actualAmount: actualEssential,
+          plannedAmount: plannedEssential.toDouble(),
+          actualAmount: actualEssential.toDouble(),
           idealPercentage: 0.5,
         ),
         comfort: Planning503020DistributionGroup(
-          plannedAmount: plannedComfort,
-          actualAmount: actualComfort,
+          plannedAmount: plannedComfort.toDouble(),
+          actualAmount: actualComfort.toDouble(),
           idealPercentage: 0.3,
         ),
         investment: Planning503020DistributionGroup(
-          plannedAmount: plannedInvestment,
-          actualAmount: actualInvestment,
+          plannedAmount: plannedInvestment.toDouble(),
+          actualAmount: actualInvestment.toDouble(),
           idealPercentage: 0.2,
         ),
       );

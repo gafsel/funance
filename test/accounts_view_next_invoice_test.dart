@@ -59,8 +59,10 @@ class _FakeAccountRepository with _Unimplemented
   );
 }
 
-/// A tela de detalhe ainda recebe o `InstallmentModel` inteiro, então a lista
-/// de contas precisa da parcela da fatura para navegar.
+/// Desde F3.9 a lista de contas NÃO busca a parcela da fatura: o id dela vem
+/// do resumo que o servidor grava na conta (`nextInvoice.installmentId`) e a
+/// rota `/invoices/:id` carrega o resto. O fake continua aqui para provar que
+/// a segunda consulta não acontece mais.
 class _FakeFinanceRepository with _Unimplemented implements IFinanceRepository {
   _FakeFinanceRepository(this.invoice);
 
@@ -195,10 +197,10 @@ void main() {
     expect(find.text('10/03/2025'), findsOneWidget);
     expect(find.text('calculando…'), findsNothing);
 
-    // A parcela da fatura é OBSERVADA no build. As famílias são autoDispose:
-    // lê-la só dentro do `onTap` criaria e descartaria o provider na hora, e o
-    // toque cairia na lista de contas em vez da tela de fatura.
-    expect(financeRepository.watchCalls, greaterThan(0));
+    // Nenhuma consulta extra: o id da parcela já estava no resumo da conta, e
+    // é ele que a rota `/invoices/:id` recebe.
+    expect(financeRepository.watchCalls, 0);
+    expect(_next.installmentId, 'inst-fatura');
   });
 
   testWidgets('mostra "calculando" enquanto o servidor não publicou', (

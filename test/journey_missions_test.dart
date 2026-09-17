@@ -315,5 +315,57 @@ void main() {
       // E a soma das concluídas é a dos XP que o servidor gravou.
       expect(find.text(l10n.completedMissionsSummary(1, '12')), findsOneWidget);
     });
+
+    /// F3.6 — a conciliação morava dentro da tela de UMA conta. A missão de
+    /// organização é onde o usuário está quando quer pôr a casa em ordem, e é
+    /// dali que o caminho precisa sair.
+    testWidgets('missão de organização aberta oferece conciliar o extrato', (
+      tester,
+    ) async {
+      const aberta = WeeklyMissionModel(
+        id: 'organization',
+        name: 'Conciliar um extrato com 5 itens',
+        type: WeeklyMissionType.organization,
+        status: WeeklyMissionStatus.pending,
+        weekId: '2026-W37',
+        target: 5,
+        progress: 1,
+        xp: 200,
+      );
+
+      await tester.pumpWidget(
+        _app(
+          _overrides(repository: FakeJourneyRepository(missions: [aberta])),
+        ),
+      );
+      await tester.pump();
+
+      final l10n = await AppLocalizations.delegate.load(
+        const Locale('pt', 'BR'),
+      );
+
+      expect(find.text(l10n.reconciliationMissionCta), findsOneWidget);
+    });
+
+    testWidgets('missão concluída não insiste, e as outras não oferecem', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app(
+          _overrides(
+            repository: FakeJourneyRepository(
+              missions: [_doneMission, _mission],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final l10n = await AppLocalizations.delegate.load(
+        const Locale('pt', 'BR'),
+      );
+
+      expect(find.text(l10n.reconciliationMissionCta), findsNothing);
+    });
   });
 }

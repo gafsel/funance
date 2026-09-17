@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:funances/core/observability/app_logger.dart';
 import 'package:funances/core/form/form_notifier.dart';
 import 'package:funances/features/finance/domain/services/planning_50_30_20_service.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -16,18 +18,33 @@ class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, v
     _init();
   }
 
+  /// Reassina a leitura do mês. É o que o "tentar de novo" da tela chama.
+  void retry() => _init();
+
   void _init() {
-    state = state.copyWith(isLoading: true);
-    
+    state = state.copyWith(isLoading: true, error: null);
+
     _subscription?.cancel();
-    _subscription = planning503020Service.watchPlanningItems(state.date).listen((data) {
-      state = state.copyWith(
-        items: data.items,
-        totalIncomes: data.totalIncomes,
-        totalActualIncomes: data.totalActualIncomes,
-        isLoading: false,
-      );
-    });
+    _subscription = planning503020Service
+        .watchPlanningItems(state.date)
+        .listen(
+          (data) {
+            state = state.copyWith(
+              items: data.items,
+              totalIncomes: data.totalIncomes,
+              totalActualIncomes: data.totalActualIncomes,
+              isLoading: false,
+              error: null,
+            );
+          },
+          // Sem `onError`, a falha do stream sumia: a tela ficava com as três
+          // pools vazias e o usuário lia "nenhuma categoria nesta pool" — uma
+          // afirmação sobre o planejamento dele que nunca foi verdade.
+          onError: (Object error, StackTrace stack) {
+            AppLogger.error('Falha ao ler o planejamento 50-30-20', error, stack);
+            state = state.copyWith(isLoading: false, error: error);
+          },
+        );
   }
 
   void previousMonth() {

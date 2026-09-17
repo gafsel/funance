@@ -11,6 +11,7 @@ import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class GoalsAnalysisStep extends ConsumerWidget {
   const GoalsAnalysisStep({super.key});
@@ -134,7 +135,7 @@ class GoalsAnalysisStep extends ConsumerWidget {
           child: ListTile(
             leading: const Icon(Icons.auto_awesome, color: AppColors.paleGold),
             title: Text(
-              goal.name,
+              displayOr(goal.name, l10n.unnamedGoal),
               style: const TextStyle(
                 color: AppColors.pureWhite,
                 fontWeight: FontWeight.bold,
@@ -190,7 +191,7 @@ class GoalsAnalysisStep extends ConsumerWidget {
               color: planning.category.color.asColor(),
             ),
             title: Text(
-              planning.category.name,
+              planning.category.displayName(context.l10n),
               style: const TextStyle(
                 color: AppColors.pureWhite,
                 fontWeight: FontWeight.bold,

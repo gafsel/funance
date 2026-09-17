@@ -145,10 +145,15 @@ class ReconciliationNotifier extends StateNotifier<ReconciliationState> {
     state = state.copyWith(matches: matches);
   }
 
-  Future<void> confirmReconciliation() async {
+  /// [uncategorizedLabel] vem da tela: é o nome da categoria que o servidor
+  /// vai guardar para o que o extrato não classificou.
+  Future<void> confirmReconciliation({
+    required String uncategorizedLabel,
+  }) async {
     await reconciliationService.confirmReconciliation(
       selectedAccount: state.selectedAccount,
       matches: state.matches,
+      uncategorizedLabel: uncategorizedLabel,
     );
 
     // Analytics não pode derrubar a conciliação já confirmada no servidor.

@@ -7,6 +7,8 @@ import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CoachingHistoryScreen extends ConsumerWidget {
   const CoachingHistoryScreen({super.key});
@@ -66,17 +68,14 @@ class CoachingHistoryScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(),
           ),
-          error: (err, stack) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(l10n.errorLoadingData),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () => ref.invalidate(CoachingViewProviders.insightsHistory),
-                  child: Text(l10n.retry),
-                ),
-              ],
+          error: (err, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: ErrorView.forError(
+                context,
+                err,
+                onRetry: () => Retry.coaching(ref),
+              ),
             ),
           ),
         ),
@@ -123,7 +122,7 @@ class CoachingHistoryScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: () => context.push('/coaching', extra: coaching),
+          onTap: () => context.push('/coaching?id=${coaching.id}'),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -183,7 +182,7 @@ class CoachingHistoryScreen extends ConsumerWidget {
                         vertical: 8,
                       ),
                     ),
-                    onPressed: () => context.push('/coaching', extra: coaching),
+                    onPressed: () => context.push('/coaching?id=${coaching.id}'),
                     icon: const Icon(Icons.visibility_outlined, size: 18),
                     label: Text(l10n.coachingReviewTips),
                   ),

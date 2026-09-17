@@ -1,5 +1,6 @@
 import 'package:funances/core/platform/app_platform.dart';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
@@ -70,11 +71,15 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
                     ],
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.bug_report, size: 16),
-                  onPressed: () => notifier.simulateNotification(),
-                  tooltip: l10n.automaticTransactionSimulate,
-                ),
+                // Botão de desenvolvimento: simular uma notificação de banco
+                // não é coisa que um usuário faça, e num card de dinheiro ele
+                // era um convite a criar lançamento falso. Fica só em debug.
+                if (kDebugMode)
+                  IconButton(
+                    icon: const Icon(Icons.bug_report, size: 16),
+                    onPressed: () => notifier.simulateNotification(),
+                    tooltip: l10n.automaticTransactionSimulate,
+                  ),
               ],
             ),
           ),
@@ -125,10 +130,14 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
       queryParams['accountIdSource'] = accountId;
     }
 
-    context.push(
-      Uri(path: '/transactions/form', queryParameters: queryParams).toString(),
-      extra: {'category': transaction.suggestedCategory},
-    ).then((result) {
+    context
+        .push(
+          Uri(
+            path: '/transactions/form',
+            queryParameters: queryParams,
+          ).toString(),
+        )
+        .then((result) {
       if (result == true) {
         ref.read(AutomaticTransactionViewProviders.automaticTransactions.notifier)
             .loadTransactions();
@@ -306,7 +315,7 @@ class _TransactionItem extends ConsumerWidget {
               if (otherWorkspaces.isNotEmpty)
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.swap_horiz, size: 20),
-                  tooltip: "Mover para outro Workspace",
+                  tooltip: l10n.automaticTransactionMoveWorkspace,
                   onSelected: onMove,
                   itemBuilder: (context) => otherWorkspaces
                       .map((w) => PopupMenuItem(

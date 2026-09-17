@@ -10,6 +10,8 @@ import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountSelectionScreen extends ConsumerWidget {
   final String title;
@@ -18,6 +20,13 @@ class AccountSelectionScreen extends ConsumerWidget {
   final bool showClearOption;
   final bool showAddOption;
 
+  /// Tipos de conta que a tela oferece. `null` = todas.
+  ///
+  /// Existe porque há vínculo que só faz sentido com um tipo: uma meta de
+  /// quitar dívida presa a uma conta corrente nunca sairia do lugar — o
+  /// servidor calcula a amortização pelos saldos da conta de dívida.
+  final Set<AccountType>? allowedTypes;
+
   const AccountSelectionScreen({
     super.key,
     required this.title,
@@ -25,6 +34,7 @@ class AccountSelectionScreen extends ConsumerWidget {
     required this.onAccountSelected,
     this.showClearOption = false,
     this.showAddOption = true,
+    this.allowedTypes,
   });
 
   @override
@@ -39,7 +49,11 @@ class AccountSelectionScreen extends ConsumerWidget {
         return membersAsync.when(
           data: (members) {
             final filteredAccounts = accounts
-                .where((acc) => acc.id != excludeAccountId)
+                .where(
+                  (acc) =>
+                      acc.id != excludeAccountId &&
+                      (allowedTypes == null || allowedTypes!.contains(acc.type)),
+                )
                 .toList();
 
             return SafeArea(
@@ -53,7 +67,11 @@ class AccountSelectionScreen extends ConsumerWidget {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  if (filteredAccounts.isEmpty && !showClearOption)
+                  // Com filtro de tipo, lista vazia precisa dizer isso: sem a
+                  // mensagem o usuário via um painel em branco e não sabia que
+                  // faltava criar a conta certa.
+                  if (filteredAccounts.isEmpty &&
+                      (!showClearOption || allowedTypes != null))
                     Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Center(child: Text(l10n.noAccountsFound)),
@@ -63,7 +81,6 @@ class AccountSelectionScreen extends ConsumerWidget {
                       child: LayoutBuilder(
                         builder: (context, constraints) {
                           final List<Widget> slivers = [];
-                          final isPt = Localizations.localeOf(context).languageCode == 'pt';
                           final isSmall = constraints.maxWidth < 600;
                           final gridPadding = isSmall ? 12.0 : 16.0;
                           final gridSpacing = isSmall ? 12.0 : 16.0;
@@ -92,8 +109,10 @@ class AccountSelectionScreen extends ConsumerWidget {
                             if (ownerAccounts.isEmpty) continue;
 
                             final ownerHeader = isMe
-                                ? (isPt ? "Minhas Contas" : "My Accounts")
-                                : (isPt ? "Contas de ${member.displayName}" : "${member.displayName}'s Accounts");
+                                ? l10n.accountsMine
+                                : l10n.accountsOfMember(
+                                    member.displayName ?? '',
+                                  );
 
                             // Adicionar SliverHeader para o titular
                             slivers.add(
@@ -111,7 +130,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                               ..sort((a, b) {
                                 if (a == BankLogo.none) return 1;
                                 if (b == BankLogo.none) return -1;
-                                return _getInstitutionName(a).compareTo(_getInstitutionName(b));
+                                return _getInstitutionName(a, l10n)
+                                    .compareTo(_getInstitutionName(b, l10n));
                               });
 
                             final List<Widget> ownerWidgets = [];
@@ -158,7 +178,7 @@ class AccountSelectionScreen extends ConsumerWidget {
                               .toList();
 
                           if (sharedAccounts.isNotEmpty) {
-                            final sharedHeader = isPt ? "Contas Compartilhadas" : "Shared Accounts";
+                            final sharedHeader = l10n.accountsShared;
 
                             slivers.add(
                               _buildOwnerHeader(context, sharedHeader, null),
@@ -173,7 +193,8 @@ class AccountSelectionScreen extends ConsumerWidget {
                               ..sort((a, b) {
                                 if (a == BankLogo.none) return 1;
                                 if (b == BankLogo.none) return -1;
-                                return _getInstitutionName(a).compareTo(_getInstitutionName(b));
+                                return _getInstitutionName(a, l10n)
+                                    .compareTo(_getInstitutionName(b, l10n));
                               });
 
                             final List<Widget> sharedWidgets = [];
@@ -273,8 +294,12 @@ class AccountSelectionScreen extends ConsumerWidget {
             child: Center(child: CircularProgressIndicator()),
           ),
           error: (err, _) => Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Center(child: Text(err.toString())),
+            padding: const EdgeInsets.all(32.0),
+            child: ErrorView.forError(
+              context,
+              err,
+              onRetry: () => Retry.members(ref),
+            ),
           ),
         );
       },
@@ -283,8 +308,12 @@ class AccountSelectionScreen extends ConsumerWidget {
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (err, _) => Padding(
-        padding: EdgeInsets.all(32.0),
-        child: Center(child: Text(err.toString())),
+        padding: const EdgeInsets.all(32.0),
+        child: ErrorView.forError(
+          context,
+          err,
+          onRetry: () => Retry.accounts(ref),
+        ),
       ),
     );
   }
@@ -335,7 +364,7 @@ class AccountSelectionScreen extends ConsumerWidget {
     required bool isSmall,
   }) {
     final theme = Theme.of(context);
-    final bankName = _getInstitutionName(bank);
+    final bankName = _getInstitutionName(bank, l10n);
     final paddingVal = isSmall ? 10.0 : 16.0;
     final logoSize = isSmall ? 32.0 : 40.0;
 
@@ -637,10 +666,10 @@ class AccountSelectionScreen extends ConsumerWidget {
     }
   }
 
-  String _getInstitutionName(BankLogo logo) {
+  String _getInstitutionName(BankLogo logo, AppLocalizations l10n) {
     switch (logo) {
       case BankLogo.none:
-        return "Outros";
+        return l10n.bankLogoOther;
       case BankLogo.nubank:
         return "Nubank";
       case BankLogo.inter:

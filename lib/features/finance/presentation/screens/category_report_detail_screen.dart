@@ -7,6 +7,8 @@ import 'package:funances/features/finance/presentation/widgets/category_detail_t
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CategoryReportDetailScreen extends ConsumerWidget {
   final CategoryType type;
@@ -22,14 +24,36 @@ class CategoryReportDetailScreen extends ConsumerWidget {
         ? HomeViewProviders.summaryExpensesFull
         : HomeViewProviders.summaryIncomesFull;
     
-    final state = ref.watch(provider);
+    final asyncState = ref.watch(provider);
     final period = ref.watch(HomeViewProviders.period);
     final locale = context.locale;
 
+    if (!asyncState.hasValue) {
+      // Mesma regra da Visão Geral: nem tabela vazia, nem tela em branco.
+      return Scaffold(
+        appBar: AppBar(title: Text(l10n.categoryReportDetails)),
+        body: Center(
+          child: asyncState.hasError
+              ? Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: ErrorView.forError(
+                    context,
+                    asyncState.error,
+                    onRetry: () => Retry.monthSummary(ref, period.monthKey),
+                  ),
+                )
+              : const CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final state = asyncState.requireValue;
+
     final sortedSummaries = List<OverviewCategorySummary>.from(state.summary)
       ..sort((a, b) {
-        final isAOthers = a.category.name.toLowerCase() == 'outros' || a.category.id == 'others';
-        final isBOthers = b.category.name.toLowerCase() == 'outros' || b.category.id == 'others';
+        // Pelo ID: "outros" é palavra, e palavra muda de idioma.
+        final isAOthers = a.category.id == CategoryModel.othersId;
+        final isBOthers = b.category.id == CategoryModel.othersId;
 
         if (isAOthers && !isBOthers) return 1;
         if (!isAOthers && isBOthers) return -1;

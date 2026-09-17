@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/screens/splash_screen.dart';
+import 'package:funances/core/router/entity_route.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/auth/presentation/screens/login_screen.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
+import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/features/coaching/presentation/screens/coaching_slides_screen.dart';
 import 'package:funances/features/coaching/presentation/screens/coaching_history_screen.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -22,6 +24,7 @@ import 'package:funances/features/finance/presentation/screens/reconciliation_sc
 import 'package:funances/features/finance/presentation/screens/transaction_form_screen.dart';
 import 'package:funances/features/finance/presentation/screens/transaction_wizard_screen.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
+import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
 import 'package:funances/features/goal/presentation/screen/goal_detail_screen.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
@@ -38,14 +41,15 @@ import 'package:funances/features/workspace/presentation/screens/invite_list_scr
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// Notifica o GoRouter quando auth/workspace/convites mudam, sem recriar o
 /// router (recriar o router descarta a pilha de navegação inteira).
 ///
 /// Notifica APENAS quando muda algo que o `redirect` realmente usa. Notificar
 /// em toda mudança de estado (ex.: o XP do workspace atualizando em tempo
-/// real) força o go_router a reprocessar a rota atual, o que desidrata o
-/// `extra` tipado para um Map e quebra telas abertas.
+/// real) força o go_router a reprocessar a rota atual — trabalho por nada, e
+/// pisca a tela de quem está no meio de um formulário.
 class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
     ref.listen(AuthDomainProviders.user, (previous, next) {
@@ -86,19 +90,80 @@ class _RouterRefreshNotifier extends ChangeNotifier {
   }
 }
 
-/// Recupera um `extra` tipado. Quando o go_router reprocessa a rota, o objeto
-/// pode chegar desidratado como Map (via `jsonEncode`/`toJson`) — nesse caso,
-/// re-hidrata com [fromJson]. Retorna null se não for possível.
-T? _extraAs<T>(Object? extra, T Function(Map<String, dynamic>) fromJson) {
-  if (extra is T) return extra;
-  if (extra is Map) {
-    try {
-      return fromJson(Map<String, dynamic>.from(extra));
-    } catch (_) {
-      return null;
-    }
-  }
-  return null;
+/// Toda rota de detalhe recebe o id pelo endereço e carrega o documento pelo
+/// provider (ver [EntityRoute]). Nada de objeto no `extra`: `extra` é memória
+/// do processo, some no F5 da web e no hot restart, e o que sobrava disso era
+/// um redirect para a home no meio da navegação de quem só apertou "atualizar".
+
+
+/// Id vindo da query. **Vazio é ausente.**
+///
+/// Uma tela montava `/accounts/form?id=${account?.id ?? ''}` e, sem conta,
+/// mandava `?id=` — que chegava aqui como o id `''`. A rota ia então procurar
+/// um documento de id vazio e mostrava "este item não existe mais" no lugar do
+/// formulário de criação. Tratar vazio como ausente é a diferença entre "não
+/// me disseram qual" e "me disseram um que não existe".
+@visibleForTesting
+String? idParam(Uri uri, String name) {
+  final value = uri.queryParameters[name]?.trim();
+  return (value == null || value.isEmpty) ? null : value;
+}
+
+/// Tipo que a rota `/workspace/accounts` usa para FILTRAR a lista (e para dar
+/// o tipo ao botão "+"). Vazio ou desconhecido quer dizer "todos".
+@visibleForTesting
+AccountType? accountListType(Uri uri) {
+  final typeStr = idParam(uri, 'type');
+  return AccountType.values.where((e) => e.name == typeStr).firstOrNull;
+}
+
+/// O que a rota `/accounts/form` recebe pelo endereço.
+///
+/// Separado do `builder` para poder ser testado sem montar a tela: é aqui que
+/// se decide entre editar (id) e criar (com ou sem tipo sugerido).
+@visibleForTesting
+({String? accountId, AccountType? initialType}) accountFormArgs(Uri uri) {
+  final typeStr = uri.queryParameters['type'];
+
+  return (
+    accountId: idParam(uri, 'id'),
+    initialType: AccountType.values.where((e) => e.name == typeStr).firstOrNull,
+  );
+}
+
+/// O formulário de criação montado a partir do ENDEREÇO.
+///
+/// Todos os parâmetros vêm da query — é o que faz um refresh no meio do
+/// preenchimento reabrir o mesmo formulário, com o mesmo valor e a mesma data,
+/// em vez de voltar ao início.
+Widget _transactionCreation(
+  GoRouterState state,
+  OrderType type,
+  InstallmentStatus? status,
+  CategoryModel? category,
+) {
+  final amountStr = state.uri.queryParameters['amount'];
+  final dateStr = state.uri.queryParameters['date'];
+
+  // Só o nudge de gasto não planejado manda este parâmetro, para abrir o
+  // formulário já em "toda vez" — foi o que o usuário acabou de escolher, e
+  // obrigá-lo a repetir a escolha na tela seguinte seria perguntar duas vezes
+  // a mesma coisa.
+  final installmentTypeStr = state.uri.queryParameters['installmentType'];
+
+  return TransactionFormScreen.creation(
+    type: type,
+    status: status,
+    installmentType: InstallmentType.values
+        .where((e) => e.name == installmentTypeStr)
+        .firstOrNull,
+    category: category,
+    accountIdSource: state.uri.queryParameters['accountIdSource'],
+    accountIdTarget: state.uri.queryParameters['accountIdTarget'],
+    description: state.uri.queryParameters['description'],
+    amount: amountStr != null ? double.tryParse(amountStr) : null,
+    dueDate: dateStr != null ? DateTime.tryParse(dateStr) : null,
+  );
 }
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -218,13 +283,27 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/workspace/categories/form',
         builder: (context, state) {
-          final category = _extraAs(state.extra, CategoryModel.fromJson);
-          return CategoryFormScreen(category: category);
+          final id = idParam(state.uri, 'id');
+          if (id == null) return const CategoryFormScreen();
+
+          return EntityRoute<CategoryModel>(
+            provider: CategoryViewProviders.byId(id),
+            onRetry: Retry.categories,
+            builder: (context, category) =>
+                CategoryFormScreen(category: category),
+          );
         },
       ),
       GoRoute(
         path: '/workspace/accounts',
-        builder: (context, state) => const AccountManagementScreen(),
+        builder: (context, state) {
+          // `?type=` filtra a lista (e dá o tipo ao "+"). A lista de contas da
+          // home manda este parâmetro ao tocar num cartão sem fatura; até
+          // agora o router o descartava e a tela abria em tudo.
+          return AccountManagementScreen(
+            initialType: accountListType(state.uri),
+          );
+        },
       ),
       GoRoute(
         path: '/workspace/members',
@@ -233,37 +312,19 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accounts/form',
         builder: (context, state) {
-          final account = _extraAs(state.extra, AccountModel.fromJson);
-          final typeStr = state.uri.queryParameters['type'];
-          final initialType = AccountType.values
-              .where((e) => e.name == typeStr)
-              .firstOrNull;
+          final args = accountFormArgs(state.uri);
+          final accountId = args.accountId;
 
-          if (account != null) {
-            return AccountFormScreen(account: account);
-          }
-
-          final accountId = state.uri.queryParameters['id'];
           if (accountId != null) {
-            return Consumer(
-              builder: (context, ref, child) {
-                final accountAsync = ref.watch(
-                  AccountViewProviders.byId(accountId),
-                );
-                return accountAsync.when(
-                  data: (acc) => AccountFormScreen(account: acc),
-                  loading: () => const Scaffold(
-                    body: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (err, stack) => Scaffold(
-                    body: Center(child: Text(context.l10n.errorUnknown)),
-                  ),
-                );
-              },
+            return EntityRoute<AccountModel>(
+              provider: AccountViewProviders.byId(accountId),
+              onRetry: Retry.accounts,
+              builder: (context, account) =>
+                  AccountFormScreen(account: account),
             );
           }
 
-          return AccountFormScreen(initialType: initialType);
+          return AccountFormScreen(initialType: args.initialType);
         },
       ),
       GoRoute(
@@ -274,35 +335,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/invoices/detail',
-        redirect: (context, state) =>
-            _extraAs(state.extra, InstallmentModel.fromJson) != null
-            ? null
-            : '/',
-        builder: (context, state) {
-          final installment = _extraAs(state.extra, InstallmentModel.fromJson)!;
-          return InvoiceDetailScreen(invoice: installment);
-        },
+        path: '/invoices/:id',
+        builder: (context, state) => EntityRoute<InstallmentModel>(
+          provider: FinanceViewProviders.installmentById(
+            state.pathParameters['id']!,
+          ),
+          onRetry: (ref) =>
+              Retry.installment(ref, state.pathParameters['id']!),
+          builder: (context, invoice) => InvoiceDetailScreen(invoice: invoice),
+        ),
       ),
       GoRoute(
         path: '/transactions/form',
         builder: (context, state) {
-          final extra = state.extra is Map
-              ? Map<String, dynamic>.from(state.extra as Map)
-              : null;
           final statusStr = state.uri.queryParameters['status'];
           final status = InstallmentStatus.values
               .where((e) => e.name == statusStr)
               .firstOrNull;
 
-          final extraInstallment = _extraAs(
-            extra?['installment'],
-            InstallmentModel.fromJson,
-          );
-          if (extraInstallment != null) {
-            return TransactionFormScreen.updateInstallment(
-              installment: extraInstallment,
-              status: status,
+          final installmentId = idParam(state.uri, 'installmentId');
+          if (installmentId != null) {
+            return EntityRoute<InstallmentModel>(
+              provider: FinanceViewProviders.installmentById(installmentId),
+              onRetry: (ref) => Retry.installment(ref, installmentId),
+              builder: (context, installment) =>
+                  TransactionFormScreen.updateInstallment(
+                    installment: installment,
+                    status: status,
+                  ),
             );
           }
 
@@ -312,44 +372,21 @@ final routerProvider = Provider<GoRouter>((ref) {
             orElse: () => OrderType.expense,
           );
 
-          final extraCategory = _extraAs(
-            extra?['category'],
-            CategoryModel.fromJson,
-          );
-          final hasCategory = extraCategory != null;
+          final categoryId = idParam(state.uri, 'categoryId');
           final hasDescription =
               state.uri.queryParameters['description'] != null;
 
-          if (hasCategory || hasDescription) {
-            final amountStr = state.uri.queryParameters['amount'];
-            final amount = amountStr != null
-                ? double.tryParse(amountStr)
-                : null;
-
-            final dateStr = state.uri.queryParameters['date'];
-            final date = dateStr != null ? DateTime.tryParse(dateStr) : null;
-
-            // Só o nudge de gasto não planejado manda este parâmetro, para
-            // abrir o formulário já em "toda vez" — foi o que o usuário
-            // acabou de escolher, e obrigá-lo a repetir a escolha na tela
-            // seguinte seria perguntar duas vezes a mesma coisa.
-            final installmentTypeStr =
-                state.uri.queryParameters['installmentType'];
-            final installmentType = InstallmentType.values
-                .where((e) => e.name == installmentTypeStr)
-                .firstOrNull;
-
-            return TransactionFormScreen.creation(
-              type: type,
-              status: status,
-              installmentType: installmentType,
-              category: extraCategory,
-              accountIdSource: state.uri.queryParameters['accountIdSource'],
-              accountIdTarget: state.uri.queryParameters['accountIdTarget'],
-              description: state.uri.queryParameters['description'],
-              amount: amount,
-              dueDate: date,
+          if (categoryId != null) {
+            return EntityRoute<CategoryModel>(
+              provider: CategoryViewProviders.byId(categoryId),
+              onRetry: Retry.categories,
+              builder: (context, category) =>
+                  _transactionCreation(state, type, status, category),
             );
+          }
+
+          if (hasDescription) {
+            return _transactionCreation(state, type, status, null);
           }
 
           return TransactionWizardScreen(
@@ -396,24 +433,40 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/goals/form',
         builder: (context, state) {
-          final goal = _extraAs(state.extra, GoalModel.fromJson);
-          return GoalFormScreen(goal: goal);
+          final id = idParam(state.uri, 'id');
+          if (id == null) return const GoalFormScreen();
+
+          return EntityRoute<GoalModel>(
+            provider: GoalViewProvider.goalById(id),
+            onRetry: Retry.goals,
+            builder: (context, goal) => GoalFormScreen(goal: goal),
+          );
         },
       ),
       GoRoute(
         path: '/goals/:id',
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return GoalDetailScreen(goalId: id);
-        },
+        builder: (context, state) => EntityRoute<GoalModel>(
+          provider: GoalViewProvider.goalById(state.pathParameters['id']!),
+          title: context.l10n.goalDetailsTitle,
+          onRetry: Retry.goals,
+          builder: (context, goal) => GoalDetailScreen(goal: goal),
+        ),
       ),
       GoRoute(
         path: '/reconciliation',
-        redirect: (context, state) =>
-            _extraAs(state.extra, AccountModel.fromJson) != null ? null : '/',
         builder: (context, state) {
-          final account = _extraAs(state.extra, AccountModel.fromJson)!;
-          return ReconciliationScreen(account: account);
+          final accountId = idParam(state.uri, 'accountId');
+          if (accountId == null) {
+            return const ReconciliationAccountPickerScreen();
+          }
+
+          return EntityRoute<AccountModel>(
+            provider: AccountViewProviders.byId(accountId),
+            title: context.l10n.reconciliationTitle,
+            onRetry: Retry.accounts,
+            builder: (context, account) =>
+                ReconciliationScreen(account: account),
+          );
         },
       ),
       GoRoute(
@@ -423,13 +476,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/coaching',
         redirect: (context, state) =>
-            _extraAs(state.extra, CoachingModel.fromJson) != null
-            ? null
-            : '/coaching/history',
-        builder: (context, state) {
-          final coaching = _extraAs(state.extra, CoachingModel.fromJson)!;
-          return CoachingSlidesScreen(coaching: coaching);
-        },
+            idParam(state.uri, 'id') == null ? '/coaching/history' : null,
+        builder: (context, state) => EntityRoute<CoachingModel>(
+          provider: CoachingViewProviders.insightById(
+            idParam(state.uri, 'id')!,
+          ),
+          onRetry: (ref) =>
+              Retry.coachingInsight(ref, idParam(state.uri, 'id')!),
+          builder: (context, coaching) =>
+              CoachingSlidesScreen(coaching: coaching),
+        ),
       ),
       GoRoute(
         path: '/coaching/history',

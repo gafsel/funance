@@ -86,5 +86,15 @@ abstract class IFinanceRepository {
     String accountId,
   );
 
+  /// Uma parcela pelo id, viva.
+  ///
+  /// É como as telas de detalhe abrem desde F3.9: a rota carrega o id e a tela
+  /// busca o documento. `null` = não existe (ou foi apagado enquanto a tela
+  /// estava aberta), e a tela diz isso em vez de voltar para a home.
+  Stream<InstallmentModel?> watchInstallment(
+    String workspaceId,
+    String installmentId,
+  );
+
   Stream<double> watchWeeklyXp(String workspaceId, int year, int week);
 }

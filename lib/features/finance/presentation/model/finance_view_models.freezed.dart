@@ -1108,7 +1108,10 @@ $CategoryModelCopyWith<$Res> get category {
 /// @nodoc
 mixin _$CategoryPlanning503020State {
 
- DateTime get date; List<CategoryPlanning503020Item> get items; double get totalIncomes; double get totalActualIncomes; bool get isLoading; bool get isSubmitting;
+ DateTime get date; List<CategoryPlanning503020Item> get items; double get totalIncomes; double get totalActualIncomes; bool get isLoading; bool get isSubmitting;/// Falha da leitura do mês. O `listen` do notifier não tinha `onError`: a
+/// exceção do stream sumia e a tela ficava com as pools vazias, dizendo
+/// que não havia categoria em nenhuma delas.
+ Object? get error;
 /// Create a copy of CategoryPlanning503020State
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1119,16 +1122,16 @@ $CategoryPlanning503020StateCopyWith<CategoryPlanning503020State> get copyWith =
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanning503020State&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.totalIncomes, totalIncomes) || other.totalIncomes == totalIncomes)&&(identical(other.totalActualIncomes, totalActualIncomes) || other.totalActualIncomes == totalActualIncomes)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CategoryPlanning503020State&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other.items, items)&&(identical(other.totalIncomes, totalIncomes) || other.totalIncomes == totalIncomes)&&(identical(other.totalActualIncomes, totalActualIncomes) || other.totalActualIncomes == totalActualIncomes)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting)&&const DeepCollectionEquality().equals(other.error, error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,date,const DeepCollectionEquality().hash(items),totalIncomes,totalActualIncomes,isLoading,isSubmitting);
+int get hashCode => Object.hash(runtimeType,date,const DeepCollectionEquality().hash(items),totalIncomes,totalActualIncomes,isLoading,isSubmitting,const DeepCollectionEquality().hash(error));
 
 @override
 String toString() {
-  return 'CategoryPlanning503020State(date: $date, items: $items, totalIncomes: $totalIncomes, totalActualIncomes: $totalActualIncomes, isLoading: $isLoading, isSubmitting: $isSubmitting)';
+  return 'CategoryPlanning503020State(date: $date, items: $items, totalIncomes: $totalIncomes, totalActualIncomes: $totalActualIncomes, isLoading: $isLoading, isSubmitting: $isSubmitting, error: $error)';
 }
 
 
@@ -1139,7 +1142,7 @@ abstract mixin class $CategoryPlanning503020StateCopyWith<$Res>  {
   factory $CategoryPlanning503020StateCopyWith(CategoryPlanning503020State value, $Res Function(CategoryPlanning503020State) _then) = _$CategoryPlanning503020StateCopyWithImpl;
 @useResult
 $Res call({
- DateTime date, List<CategoryPlanning503020Item> items, double totalIncomes, double totalActualIncomes, bool isLoading, bool isSubmitting
+ DateTime date, List<CategoryPlanning503020Item> items, double totalIncomes, double totalActualIncomes, bool isLoading, bool isSubmitting, Object? error
 });
 
 
@@ -1156,7 +1159,7 @@ class _$CategoryPlanning503020StateCopyWithImpl<$Res>
 
 /// Create a copy of CategoryPlanning503020State
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? items = null,Object? totalIncomes = null,Object? totalActualIncomes = null,Object? isLoading = null,Object? isSubmitting = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? date = null,Object? items = null,Object? totalIncomes = null,Object? totalActualIncomes = null,Object? isLoading = null,Object? isSubmitting = null,Object? error = freezed,}) {
   return _then(_self.copyWith(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,items: null == items ? _self.items : items // ignore: cast_nullable_to_non_nullable
@@ -1164,7 +1167,7 @@ as List<CategoryPlanning503020Item>,totalIncomes: null == totalIncomes ? _self.t
 as double,totalActualIncomes: null == totalActualIncomes ? _self.totalActualIncomes : totalActualIncomes // ignore: cast_nullable_to_non_nullable
 as double,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,isSubmitting: null == isSubmitting ? _self.isSubmitting : isSubmitting // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,error: freezed == error ? _self.error : error ,
   ));
 }
 
@@ -1246,10 +1249,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime date,  List<CategoryPlanning503020Item> items,  double totalIncomes,  double totalActualIncomes,  bool isLoading,  bool isSubmitting)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( DateTime date,  List<CategoryPlanning503020Item> items,  double totalIncomes,  double totalActualIncomes,  bool isLoading,  bool isSubmitting,  Object? error)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CategoryPlanning503020State() when $default != null:
-return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncomes,_that.isLoading,_that.isSubmitting);case _:
+return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncomes,_that.isLoading,_that.isSubmitting,_that.error);case _:
   return orElse();
 
 }
@@ -1267,10 +1270,10 @@ return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncom
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime date,  List<CategoryPlanning503020Item> items,  double totalIncomes,  double totalActualIncomes,  bool isLoading,  bool isSubmitting)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( DateTime date,  List<CategoryPlanning503020Item> items,  double totalIncomes,  double totalActualIncomes,  bool isLoading,  bool isSubmitting,  Object? error)  $default,) {final _that = this;
 switch (_that) {
 case _CategoryPlanning503020State():
-return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncomes,_that.isLoading,_that.isSubmitting);}
+return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncomes,_that.isLoading,_that.isSubmitting,_that.error);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -1284,10 +1287,10 @@ return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncom
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime date,  List<CategoryPlanning503020Item> items,  double totalIncomes,  double totalActualIncomes,  bool isLoading,  bool isSubmitting)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( DateTime date,  List<CategoryPlanning503020Item> items,  double totalIncomes,  double totalActualIncomes,  bool isLoading,  bool isSubmitting,  Object? error)?  $default,) {final _that = this;
 switch (_that) {
 case _CategoryPlanning503020State() when $default != null:
-return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncomes,_that.isLoading,_that.isSubmitting);case _:
+return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncomes,_that.isLoading,_that.isSubmitting,_that.error);case _:
   return null;
 
 }
@@ -1299,7 +1302,7 @@ return $default(_that.date,_that.items,_that.totalIncomes,_that.totalActualIncom
 
 
 class _CategoryPlanning503020State implements CategoryPlanning503020State {
-   _CategoryPlanning503020State({required this.date, final  List<CategoryPlanning503020Item> items = const [], this.totalIncomes = 0.0, this.totalActualIncomes = 0.0, this.isLoading = true, this.isSubmitting = false}): _items = items;
+   _CategoryPlanning503020State({required this.date, final  List<CategoryPlanning503020Item> items = const [], this.totalIncomes = 0.0, this.totalActualIncomes = 0.0, this.isLoading = true, this.isSubmitting = false, this.error}): _items = items;
   
 
 @override final  DateTime date;
@@ -1314,6 +1317,10 @@ class _CategoryPlanning503020State implements CategoryPlanning503020State {
 @override@JsonKey() final  double totalActualIncomes;
 @override@JsonKey() final  bool isLoading;
 @override@JsonKey() final  bool isSubmitting;
+/// Falha da leitura do mês. O `listen` do notifier não tinha `onError`: a
+/// exceção do stream sumia e a tela ficava com as pools vazias, dizendo
+/// que não havia categoria em nenhuma delas.
+@override final  Object? error;
 
 /// Create a copy of CategoryPlanning503020State
 /// with the given fields replaced by the non-null parameter values.
@@ -1325,16 +1332,16 @@ _$CategoryPlanning503020StateCopyWith<_CategoryPlanning503020State> get copyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanning503020State&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.totalIncomes, totalIncomes) || other.totalIncomes == totalIncomes)&&(identical(other.totalActualIncomes, totalActualIncomes) || other.totalActualIncomes == totalActualIncomes)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CategoryPlanning503020State&&(identical(other.date, date) || other.date == date)&&const DeepCollectionEquality().equals(other._items, _items)&&(identical(other.totalIncomes, totalIncomes) || other.totalIncomes == totalIncomes)&&(identical(other.totalActualIncomes, totalActualIncomes) || other.totalActualIncomes == totalActualIncomes)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.isSubmitting, isSubmitting) || other.isSubmitting == isSubmitting)&&const DeepCollectionEquality().equals(other.error, error));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,date,const DeepCollectionEquality().hash(_items),totalIncomes,totalActualIncomes,isLoading,isSubmitting);
+int get hashCode => Object.hash(runtimeType,date,const DeepCollectionEquality().hash(_items),totalIncomes,totalActualIncomes,isLoading,isSubmitting,const DeepCollectionEquality().hash(error));
 
 @override
 String toString() {
-  return 'CategoryPlanning503020State(date: $date, items: $items, totalIncomes: $totalIncomes, totalActualIncomes: $totalActualIncomes, isLoading: $isLoading, isSubmitting: $isSubmitting)';
+  return 'CategoryPlanning503020State(date: $date, items: $items, totalIncomes: $totalIncomes, totalActualIncomes: $totalActualIncomes, isLoading: $isLoading, isSubmitting: $isSubmitting, error: $error)';
 }
 
 
@@ -1345,7 +1352,7 @@ abstract mixin class _$CategoryPlanning503020StateCopyWith<$Res> implements $Cat
   factory _$CategoryPlanning503020StateCopyWith(_CategoryPlanning503020State value, $Res Function(_CategoryPlanning503020State) _then) = __$CategoryPlanning503020StateCopyWithImpl;
 @override @useResult
 $Res call({
- DateTime date, List<CategoryPlanning503020Item> items, double totalIncomes, double totalActualIncomes, bool isLoading, bool isSubmitting
+ DateTime date, List<CategoryPlanning503020Item> items, double totalIncomes, double totalActualIncomes, bool isLoading, bool isSubmitting, Object? error
 });
 
 
@@ -1362,7 +1369,7 @@ class __$CategoryPlanning503020StateCopyWithImpl<$Res>
 
 /// Create a copy of CategoryPlanning503020State
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? items = null,Object? totalIncomes = null,Object? totalActualIncomes = null,Object? isLoading = null,Object? isSubmitting = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? date = null,Object? items = null,Object? totalIncomes = null,Object? totalActualIncomes = null,Object? isLoading = null,Object? isSubmitting = null,Object? error = freezed,}) {
   return _then(_CategoryPlanning503020State(
 date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
 as DateTime,items: null == items ? _self._items : items // ignore: cast_nullable_to_non_nullable
@@ -1370,7 +1377,7 @@ as List<CategoryPlanning503020Item>,totalIncomes: null == totalIncomes ? _self.t
 as double,totalActualIncomes: null == totalActualIncomes ? _self.totalActualIncomes : totalActualIncomes // ignore: cast_nullable_to_non_nullable
 as double,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
 as bool,isSubmitting: null == isSubmitting ? _self.isSubmitting : isSubmitting // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool,error: freezed == error ? _self.error : error ,
   ));
 }
 

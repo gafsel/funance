@@ -1,4 +1,3 @@
-import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
@@ -12,6 +11,24 @@ import '../../domain/models/order_model.dart';
 import '../../domain/repositories/finance_repository.dart';
 import '../models/installment_mapper.dart';
 import '../models/order_mapper.dart';
+import 'package:funances/core/observability/app_logger.dart';
+
+
+/// Troca o ISO que o converter produziu por um `Timestamp`, SEM tocar na hora.
+///
+/// A regra do meio-dia mora num lugar só: `DateTimeTwelvePmConverter`. Este
+/// arquivo a repetia campo a campo, recalculando `DateTime(ano, mês, dia, 12)`
+/// em cima de um valor que já vinha normalizado — duas cópias da mesma regra,
+/// das quais só uma seria lembrada no dia em que a regra mudasse.
+///
+/// Campo ausente ou nulo passa intacto: num `update`, `paidDate: null` é a
+/// forma de limpar a data de pagamento.
+void _isoToTimestamp(Map<String, dynamic> data, String field) {
+  final value = data[field];
+  if (value is String) {
+    data[field] = Timestamp.fromDate(DateTime.parse(value));
+  }
+}
 
 class FinanceRepositoryImpl implements IFinanceRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -112,23 +129,17 @@ class FinanceRepositoryImpl implements IFinanceRepository {
             .toList();
       }
 
-      log(
-        "Firestore returned ${snapshot.docs.length} docs, after filter: ${items.length} items. Descending: $descending",
+      AppLogger.debug(
+        'Firestore devolveu ${snapshot.docs.length} documentos; '
+        '${items.length} após o filtro (descendente: $descending)',
+        name: 'finance',
       );
 
       return QueryChunk(items: items, nextChunckRef: snapshot.docs.lastOrNull);
     } catch (e, s) {
-      log(
-        "Failed to query installments: ${e.toString()}",
-        error: e,
-        stackTrace: s,
-      );
+      AppLogger.error('Falha ao consultar parcelas', e, s);
 
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -141,11 +152,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       if (!doc.exists) return null;
       return doc.toOrderModel();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -168,11 +175,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
 
       return (value: order.copyWith(id: doc.id), outcome: outcome);
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -188,11 +191,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.transaction,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -206,11 +205,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.transaction,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -227,11 +222,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       final snapshot = await query.get();
       return snapshot.docs.map((doc) => doc.toInstallmentModel()).toList();
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -247,33 +238,13 @@ class FinanceRepositoryImpl implements IFinanceRepository {
       // não tem o campo conta como alteração e é negado pelas rules.
       data.remove('xp');
 
-      final normalizedDueDate = DateTime(
-        entry.dueDate.year,
-        entry.dueDate.month,
-        entry.dueDate.day,
-        12,
-      );
-      data['dueDate'] = Timestamp.fromDate(normalizedDueDate);
+      // As três datas já saíram do `toJson` normalizadas para o meio-dia —
+      // quem faz isso é o converter freezed. Aqui só falta o TIPO: o Firestore
+      // guarda `Timestamp` e a consulta por `referenceDate` depende disso.
+      _isoToTimestamp(data, 'dueDate');
+      _isoToTimestamp(data, 'paidDate');
+      _isoToTimestamp(data, 'referenceDate');
 
-      if (entry.paidDate != null) {
-        final normalizedPaidDate = DateTime(
-          entry.paidDate!.year,
-          entry.paidDate!.month,
-          entry.paidDate!.day,
-          12,
-        );
-        data['paidDate'] = Timestamp.fromDate(normalizedPaidDate);
-      }
-
-      final normalizedReferenceDate = DateTime(
-        entry.referenceDate.year,
-        entry.referenceDate.month,
-        entry.referenceDate.day,
-        12,
-      );
-      data['referenceDate'] = Timestamp.fromDate(normalizedReferenceDate);
-
-      data['referenceAmount'] = entry.referenceAmount;
       return await settleWrite(
         _getWorkspaceDoc(
           workspaceId,
@@ -281,11 +252,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.installment,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -315,11 +282,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.planning,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -338,11 +301,7 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         entity: WriteEntity.planning,
       );
     } catch (e, s) {
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -369,17 +328,9 @@ class FinanceRepositoryImpl implements IFinanceRepository {
         return CategoryPlanningModel.fromJson(data);
       }).toList();
     } catch (e, s) {
-      log(
-        "Failed to load category plannings ${e.toString()}",
-        error: e,
-        stackTrace: s,
-      );
+      AppLogger.error('Falha ao carregar os planejamentos', e, s);
 
-      throw BusinessException(
-        ErrorCode.unknown,
-        originalError: e,
-        stackTrace: s,
-      );
+      throw BusinessException.from(e, s);
     }
   }
 
@@ -457,6 +408,18 @@ class FinanceRepositoryImpl implements IFinanceRepository {
     return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) => doc.toInstallmentModel()).firstOrNull;
     });
+  }
+
+  @override
+  Stream<InstallmentModel?> watchInstallment(
+    String workspaceId,
+    String installmentId,
+  ) {
+    return _getWorkspaceDoc(workspaceId)
+        .collection('installments')
+        .doc(installmentId)
+        .snapshots()
+        .map((doc) => doc.exists ? doc.toInstallmentModel() : null);
   }
 
   @override

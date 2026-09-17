@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 /// Erro de carregamento de um pedaço da tela, com ação de tentar de novo.
@@ -11,6 +12,22 @@ import 'package:funances/l10n/app_localizations.dart';
 /// para o Crashlytics.
 class ErrorView extends StatelessWidget {
   const ErrorView({super.key, required this.message, this.onRetry});
+
+  /// A partir do erro cru do provider, com a mensagem já classificada.
+  ///
+  /// É a forma que os `error:` dos `AsyncValue.when` usam: sem rede o texto
+  /// fala em conexão, sem permissão fala em acesso, e só o que sobrar cai no
+  /// "erro inesperado".
+  factory ErrorView.forError(
+    BuildContext context,
+    Object? error, {
+    Key? key,
+    VoidCallback? onRetry,
+  }) => ErrorView(
+    key: key,
+    message: errorMessageFor(context, error),
+    onRetry: onRetry,
+  );
 
   final String message;
   final VoidCallback? onRetry;

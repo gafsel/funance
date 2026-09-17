@@ -6,6 +6,7 @@ import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/home/presentation/model/overview_view_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class CategoryDetailTable extends StatelessWidget {
   final List<OverviewCategorySummary> summaries;
@@ -113,7 +114,7 @@ class CategoryDetailTable extends StatelessWidget {
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    Text(summary.category.name),
+                    Text(summary.category.displayName(context.l10n)),
                   ],
                 ),
               ),

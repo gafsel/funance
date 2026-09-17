@@ -7,6 +7,9 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/utils/date_extension.dart';
 
 class Planning503020DistributionCard extends ConsumerWidget {
   const Planning503020DistributionCard({super.key});
@@ -21,7 +24,20 @@ class Planning503020DistributionCard extends ConsumerWidget {
     return distributionAsync.when(
       data: (distribution) =>
           _DistributionCardContent(distribution: distribution),
-      error: (e, s) => const SizedBox.shrink(),
+      // O card é a leitura do mês inteiro: sumir sem explicação fazia o
+      // usuário achar que o 50-30-20 tinha deixado de existir.
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: ErrorView.forError(
+          context,
+          e,
+          onRetry: () => Retry.planning503020(
+            ref,
+            overviewDate,
+            overviewDate.monthKey,
+          ),
+        ),
+      ),
       loading: () => Card(
         elevation: 0,
         shape: RoundedRectangleBorder(

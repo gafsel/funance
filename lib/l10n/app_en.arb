@@ -16,7 +16,6 @@
   "orDivider": "OR",
   "fieldRequired": "This field is required",
   "invalidEmail": "Invalid email",
-  "shortPassword": "Password must be at least 6 characters",
   "appErrorWidgetTitle": "Something went wrong",
   "appErrorWidgetMessage": "We have been notified and are working on it. Try going back and opening the screen again.",
   "errorUnknown": "An unexpected error occurred.",
@@ -60,11 +59,16 @@
   "offlineBannerOffline": "You're offline. Keep browsing and editing; we'll sync when the network is back.",
   "offlineBannerPending": "Saved on this device. Syncing to the cloud...",
   "errorOfflineCallable": "This action needs an internet connection. Reconnect and try again.",
+  "reconciliationChooseAccount": "Which account do you want to reconcile?",
+  "errorOffline": "No internet connection. We're showing what was already on this device; tap retry when you're back online.",
+  "errorPermissionDenied": "You don't have access to this data. If you just left a workspace, sign in again.",
+  "errorQuotaExhausted": "Usage limit reached. Try again later.",
+  "errorNotAuthenticated": "Your session expired. Sign in again to continue.",
+  "errorNotFound": "This item no longer exists.",
+  "errorTimeout": "The server took too long to respond. Try again.",
   "onboardingWelcomeTitle": "Welcome to Funances!",
   "onboardingWelcomeDesc": "The app that transforms your financial management into a journey of achievements.",
   "onboardingNext": "Next",
-  "onboardingBack": "Back",
-  "onboardingStart": "Start Journey",
   "onboardingPersonalTitle": "Personal Workspace",
   "onboardingPersonalDesc": "Ideal for your individual accounts, daily expenses, and personal goals.",
   "onboardingBusinessTitle": "Business Workspace",
@@ -73,9 +77,7 @@
   "onboardingWorkspaceNamePersonalHint": "Ex: My Finances, Silva Family...",
   "onboardingWorkspaceNameBusinessHint": "Ex: My Company, Freelance...",
   "onboardingWorkspaceNameLabel": "Workspace Name",
-  "onboardingWorkspaceCreateError": "Error creating workspace.",
   "onboardingGoalsTitle": "Set your first goals",
-  "onboardingGoalsDesc": "Save for a trip? Buy a car? Let's set that up soon.",
   "onboardingGoalsButton": "GOT IT, NEXT STEP",
   "onboardingMembersTitle": "Invite members",
   "onboardingMembersDesc": "You can share your workspace with partners or family members to manage finances together.",
@@ -85,15 +87,6 @@
   "onboardingAccountsEmpty": "No accounts added",
   "onboardingAccountsAdd": "ADD ACCOUNT",
   "onboardingAccountsAddAnother": "ADD ANOTHER ACCOUNT",
-  "onboardingAccountsManual": "Manual registration",
-  "onboardingAccountsAttachment": "Attachment: {fileName}",
-  "@onboardingAccountsAttachment": {
-    "placeholders": {
-      "fileName": {
-        "type": "String"
-      }
-    }
-  },
   "onboardingGoalsAnalysisTitle": "AI SUGGESTIONS",
   "onboardingGoalsAnalysisDesc": "Based on your profile and accounts, our AI suggests some goals and plannings for you.",
   "onboardingSuggestedGoalsTitle": "Suggested Goals",
@@ -103,7 +96,6 @@
   "onboardingSuccessTitle": "All set!",
   "onboardingSuccessDesc": "Your workspace has been successfully configured. Now you can start organizing your financial life.",
   "onboardingSuccessCTA": "GO TO MAIN SCREEN",
-  "onboardingStepConceptsTitle": "Understand the Concepts",
   "onboardingStepConceptsDesc": "To get the most out of Funances, let's understand how we organize information.",
   "onboardingConceptLimitsTitle": "Limits and Expectations",
   "onboardingConceptLimitsDesc": "Define how much you expect to earn and the maximum you want to spend per category. This is your financial ceiling.",
@@ -113,14 +105,6 @@
   "onboardingConceptFeaturesDesc": "Explore the Dashboard for an overview, Statements for reconciliation, and Goals to track your dreams.",
   "onboardingConceptTransactionsTitle": "Transactions",
   "onboardingConceptTransactionsDesc": "The day-to-day! Record your actual income and expenses to track your progress against the plan.",
-  "goalRemainingMonthly": "{amount}/mo",
-  "@goalRemainingMonthly": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
   "goalTargetTarget": "Target: {amount}",
   "@goalTargetTarget": {
     "placeholders": {
@@ -129,19 +113,6 @@
       }
     }
   },
-  "goalRemainingMonthlyDesc": "Monthly value",
-  "goalRemainingMonthlyTarget": "{amount}/mo until {date}",
-  "@goalRemainingMonthlyTarget": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      },
-      "date": {
-        "type": "String"
-      }
-    }
-  },
-  "goalMonthlyRequirementLabel": "Monthly value",
   "goalMonthlyRequirementValue": "{amount}/mo",
   "automaticTransactionTitle": "Identified Transactions",
   "automaticTransactionSubtitle": "We identified new movements in your notifications. Do you want to register them?",
@@ -156,14 +127,6 @@
   "planning503020EssentialDesc": "Spending limits for basic needs. Ideal: 50% of your income.",
   "planning503020ComfortDesc": "Spending on lifestyle and leisure. Ideal: 30% of your income.",
   "planning503020InvestmentDesc": "Future and security (investments and debts). Ideal: 20% of your income.",
-  "planning503020Ideal": "Goal: {amount}",
-  "@planning503020Ideal": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
   "planning503020ActualAmount": "Actual: {amount}",
   "@planning503020ActualAmount": {
     "placeholders": {
@@ -176,7 +139,6 @@
   "planning503020DistributionTitle": "50-30-20 Distribution",
   "planning503020Planned": "Planned",
   "planning503020Actual": "Actual",
-  "planning503020Goal": "Goal",
   "planning503020SummaryActual": "Actual Spent",
   "planning503020ActualLabel": "Already spent:",
   "planning503020Total": "Total: {amount}",
@@ -188,16 +150,11 @@
     }
   },
   "planning503020AlertSpecificGreater": "Planned spending higher than estimated!",
-  "planning503020Save": "SAVE",
   "planning503020EmptyPool": "Drag categories here",
-  "automaticTransactionFindExisting": "Find Existing",
-  "automaticTransactionEmpty": "No new transactions identified.",
   "automaticTransactionSimulate": "Simulate Notification",
   "automaticTransactionRequestPermission": "Listen to Notifications",
   "automaticTransactionPermissionRequired": "To detect transactions automatically, the app needs permission to read notifications.",
   "automaticTransactionGrantPermission": "Grant Permission",
-  "automaticTransactionSuggestedCategory": "Suggested category: {category}",
-  "automaticTransactionSuggestedAccount": "Suggested account: {account}",
   "@goalMonthlyRequirementValue": {
     "placeholders": {
       "amount": {
@@ -209,14 +166,6 @@
   "@goalRemainingValue": {
     "placeholders": {
       "amount": {
-        "type": "String"
-      }
-    }
-  },
-  "goalProgressValue": "{percent}%",
-  "@goalProgressValue": {
-    "placeholders": {
-      "percent": {
         "type": "String"
       }
     }
@@ -233,15 +182,8 @@
   "goalTypeReduceCreditCard": "Reduce Credit Card Spending",
   "goalTypePayDebt": "Pay Debt",
   "goalCategoryLabel": "Category",
-  "goalCreditCardLabel": "Credit Card",
   "errorGoalNotFound": "Goal not found.",
   "errorGoalTypeCannotBeChanged": "Goal type cannot be changed.",
-  "statusOnTrack": "On track",
-  "statusAtRisk": "At risk",
-  "statusBehind": "Behind",
-  "statusLost": "Lost",
-  "goalProgressPercent": "{percent}% completed",
-  "goalRemainingAmount": "{amount} remaining",
   "goalDetailsTitle": "Goal Details",
   "goalDeleteConfirmTitle": "Delete Goal?",
   "goalDeleteConfirmMessage": "Are you sure you want to delete this goal? This action cannot be undone.",
@@ -250,10 +192,6 @@
   "goalChartRealLine": "Actual",
   "goalChartStartLabel": "Start",
   "goalChartEndLabel": "Deadline",
-  "goalMilestone25": "25%",
-  "goalMilestone50": "50%",
-  "goalMilestone75": "75%",
-  "goalMilestone100": "100%",
   "goalAnalyzeWithAi": "Analyze with AI",
   "goalAiError": "We could not analyze the goal. Please try again.",
   "reconciliationError": "We could not analyze the statement. Please try again.",
@@ -309,7 +247,6 @@
   },
   "membersRemoveConfirm": "This person loses access to this workspace. Transactions, accounts and categories stay where they are — they belong to the workspace, not to whoever created them.",
   "membersRemoveSuccess": "Member removed.",
-  "membersRemoveError": "Could not remove the member.",
   "membersInviteSentAt": "Invited on {date}",
   "@membersInviteSentAt": {
     "placeholders": {
@@ -320,7 +257,6 @@
   },
   "membersResendAction": "Resend",
   "membersResendSuccess": "Invitation renewed.",
-  "membersResendError": "Could not renew the invitation.",
   "membersCancelInviteAction": "Cancel invitation",
   "membersCancelInviteTitle": "Cancel the invitation to {email}?",
   "@membersCancelInviteTitle": {
@@ -332,8 +268,6 @@
   },
   "membersCancelInviteConfirm": "The invitation stops showing up for the person you invited.",
   "membersCancelInviteSuccess": "Invitation cancelled.",
-  "membersCancelInviteError": "Could not cancel the invitation.",
-  "membersOnlyOwnerCanRemove": "Only the workspace owner can remove members.",
   "invitesSubtitle": "You have been invited to participate in the following workspaces:",
   "inviteFrom": "Sent by: {sender}",
   "@inviteFrom": {
@@ -347,33 +281,12 @@
   "declineButton": "Decline",
   "homeJourneyTab": "The Journey",
   "homeOverviewTab": "Overview",
-  "homeMissionsTab": "Missions",
   "homeHistoryTab": "Statement",
-  "homeTotalSavedMonth": "You saved {amount} more than planned!",
-  "homePointsEarned": "+{points} Points",
-  "homeRemainingAmount": "{amount} left ({percent}% completed)",
   "homeAccountsAndCards": "Balances & Invoices",
   "homeWhereIsMoney": "Where is the money?",
   "homeTotalSpent": "Total Spent",
-  "homeTotalBalance": "Total Balance",
-  "accountCreateAction": "Create New Account",
-  "accountCreateTypeAction": "Create New {type} Account",
-  "@accountCreateTypeAction": {
-    "placeholders": {
-      "type": {
-        "type": "String"
-      }
-    }
-  },
-  "homeAllAccounts": "All Accounts",
-  "homeThisMonth": "This Month",
-  "homeLastMonth": "Last Month",
-  "homeCustomPeriod": "Custom",
   "homeNewTransaction": "New Transaction",
-  "homeConsolidate": "Consolidate",
   "noTransactionsInPeriod": "No transactions found for this period",
-  "historyFilterPeriod": "Select Period",
-  "historyFilterAllAccounts": "All Accounts",
   "all": "All",
   "historyFilterTitle": "Filters",
   "historyFilterDescriptionLabel": "Description",
@@ -381,7 +294,6 @@
   "historyFilterCategoryLabel": "Category",
   "historyFilterAccountLabel": "Account",
   "historyFilterStatusLabel": "Status",
-  "historyFilterAmountRangeLabel": "Amount Range",
   "historyFilterMinAmountLabel": "Min Amount",
   "historyFilterMaxAmountLabel": "Max Amount",
   "transactionWizardSelectCategory": "Select Category",
@@ -410,7 +322,6 @@
   "categoryTypeLabel": "Type",
   "categoryTypeIncome": "Income",
   "categoryTypeExpense": "Expense",
-  "categoryTypeBoth": "Both",
   "categoryDeleteTitle": "Delete Category",
   "categoryDeleteConfirm": "Are you sure you want to delete the category \"{name}\"?",
   "categoryOthers": "Others",
@@ -423,6 +334,46 @@
   },
   "saveButton": "Save",
   "reconciliationTitle": "Bank Reconciliation",
+  "unnamedWorkspace": "Unnamed workspace",
+  "accountManagementEmptyOfType": "You don't have accounts of this type yet.",
+  "bankLogoOther": "Other",
+  "accountsMine": "My accounts",
+  "accountsOfMember": "{name}'s accounts",
+  "@accountsOfMember": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "accountsShared": "Shared accounts",
+  "planning503020TargetPercent": "Target: {percent}",
+  "@planning503020TargetPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "noCategory": "No category",
+  "noDescription": "No description",
+  "unnamedAccount": "Unnamed account",
+  "unnamedGoal": "Unnamed goal",
+  "automaticTransactionMoveWorkspace": "Move to another workspace",
+  "accountOwnersLabel": "Account owners",
+  "reconciliationPickTransaction": "Pick a transaction",
+  "transactionNewTitle": "New transaction",
+  "planning503020AlreadyPlanned": "Already planned:",
+  "loginTermsNotice": "By signing in, you agree to our Terms of Service and Privacy Policy.",
+  "inviteEmailHint": "name@example.com",
+  "uploadStatusReading": "Reading the statement file…",
+  "uploadStatusExtracting": "Extracting transactions and amounts…",
+  "uploadStatusSearching": "Looking for the matching entries…",
+  "uploadStatusPreparing": "Preparing reconciliation suggestions…",
+  "uploadStatusCompleted": "Reconciliation ready.",
+  "uploadStatusError": "We couldn't read this statement.",
+  "reconciliationAction": "Reconcile statement",
+  "reconciliationMissionCta": "Reconcile a statement now",
   "reconciliationTransactionsFound": "{count, plural, =0{No transactions found} =1{1 transaction found} other{{count} transactions found}}",
   "@reconciliationTransactionsFound": {
     "placeholders": {
@@ -449,13 +400,9 @@
   "reconciliationActionRestore": "Restore",
   "reconciliationActionLink": "Link",
   "reconciliationActionRegister": "Register",
-  "reconciliationActionAnalyze": "Analyze Statement",
   "reconciliationSystemLabel": "SYSTEM",
   "reconciliationExtratoLabel": "STATEMENT",
   "reconciliationNoMatchFound": "No matching transaction found",
-  "reconciliationSectionTitle": "Reconciliation",
-  "reconciliationSectionDesc": "Compare your records with the actual bank statement.",
-  "reconciliationChangeAccount": "Change",
   "cancelButton": "Cancel",
   "categoryColorLabel": "Category Color",
   "categoryIconLabel": "Category Icon",
@@ -485,7 +432,6 @@
       }
     }
   },
-  "addAccountButton": "Add Account",
   "addWorkspaceButton": "Add Workspace",
   "goalAccountLabel": "Associated Account",
   "transactionAddExpense": "Log Expense",
@@ -522,7 +468,6 @@
   "transactionFromAccountLabel": "From Account",
   "transactionToAccountLabel": "To Account",
   "transactionSaveSuccess": "Transaction saved successfully!",
-  "transactionDueDateLabel": "Due Date",
   "noAccountsFound": "No accounts found.",
   "initialBalanceLabel": "Initial Balance",
   "initialBalanceCreditCardLabel": "Next Invoice Amount",
@@ -531,14 +476,6 @@
   "initialBalanceDateLabel": "Initial Balance Date",
   "initialBalanceInvestmentDateLabel": "Initial Investment Date",
   "initialBalanceDebtDateLabel": "Current Amount Date",
-  "accountBankLogoLabel": "Bank/Brand Logo",
-  "accountOwnerIdsLabel": "Owners",
-  "customLabel": "Custom",
-  "accountNextInvoiceValueLabel": "Next invoice amount",
-  "accountInitialInvestmentValueLabel": "Initial investment balance",
-  "accountInitialDebtValueLabel": "Debt amount",
-  "accountInitialInvestmentDateLabel": "Initial investment date",
-  "accountInitialDebtDateLabel": "Debt date",
   "none": "None",
   "accountMethodDocument": "By Document",
   "accountMethodManual": "Manual",
@@ -547,7 +484,6 @@
   "accountManualDescription": "Fill in the account details manually if you don't have a document or prefer to set it up your way.",
   "accountDetectedDataTitle": "AI Detected Data",
   "accountDetectedTransactions": "{count, plural, =1{1 transaction found} other{{count} transactions found}}",
-  "accountDetectedPlannings": "{count, plural, =1{1 suggested planning} other{{count} suggested plannings}}",
   "accountDetectedConfirmation": "Confirm the details below to complete the registration.",
   "accountSelectFile": "SELECT FILE",
   "accountDropFile": "Drag and drop the file here or click to select",
@@ -557,11 +493,8 @@
   "onboardingPlanningAnalyzingTitle": "Analyzing patterns...",
   "onboardingPlanningAnalyzingDesc": "Our AI is analyzing your spending patterns to suggest ideal goals and plans for you.",
   "accountViewTransactions": "View Transactions",
-  "accountViewPlannings": "View Plannings",
   "accountDetectedTransactionsTitle": "Detected Transactions",
-  "accountDetectedPlanningsTitle": "Suggested Plannings",
   "historyEdit": "Edit",
-  "historyDelete": "Delete",
   "historyDeleteTitle": "Delete Transaction",
   "historyDeleteConfirm": "Are you sure you want to delete this transaction?",
   "today": "Today",
@@ -579,13 +512,6 @@
   "transactionTransfer": "Transfer",
   "transactionTransferCountsAsInvestment": "Will count as Investments",
   "transactionTransferCountsAsDebt": "Will count as Debts",
-  "transactionSelectSourceAccount": "Select Source Account",
-  "transactionSelectDestinationAccount": "Select Destination Account",
-  "transactionAddExpenseDesc": "Record a single expense that happened today or in the past.",
-  "transactionAddIncomeDesc": "Record a single income that happened today or in the past.",
-  "transactionPlanExpenseDesc": "Schedule a future expense, recurring or installment-based.",
-  "transactionPlanIncomeDesc": "Schedule a future income, recurring or installment-based.",
-  "transactionTransferDesc": "Move money between your bank accounts or credit cards.",
   "transactionOrderTypeLabel": "Transaction Type",
   "clear": "Clear",
   "validationEmailMessage": "Invalid E-mail",
@@ -634,39 +560,19 @@
   "periodFilterSemester": "Semester",
   "periodFilterYear": "Year",
   "periodFilterCustom": "Custom",
-  "periodFilterTitle": "Select Period",
-  "registerEffectivation": "Mark as realized",
   "returnToPending": "Return to Pending",
-  "partyHpLabel": "Party Health",
-  "partyStatusHealthy": "Party Safe",
-  "partyStatusStrained": "Party in Danger",
-  "partyStatusDefeated": "Party Defeated",
-  "partyTeamTitle": "Team",
+  "partyHpLabel": "Party health",
+  "partyStatusHealthy": "Party safe",
+  "partyStatusStrained": "Party in danger",
+  "partyStatusDefeated": "Party defeated",
+  "partyTitle": "Your Party",
   "planned": "Planned",
   "actual": "Actual",
   "excess": "Excess",
-  "invoiceDetailTitle": "Invoice Detail",
   "registerInvoicePayment": "Register Invoice Payment",
   "coachingTitle": "Financial Coach",
   "coachingConsultAction": "Consult Coach",
   "coachingViewLast": "View last analysis",
-  "coachingLastAnalysisFrom": "Last analysis from {date}",
-  "@coachingLastAnalysisFrom": {
-    "placeholders": {
-      "date": {
-        "type": "String"
-      }
-    }
-  },
-  "coachingWaitSevenDays": "You can consult the coach again in {days} days.",
-  "@coachingWaitSevenDays": {
-    "placeholders": {
-      "days": {
-        "type": "int"
-      }
-    }
-  },
-  "coachingWaitLessOneDay": "You can consult the coach again tomorrow.",
   "coachingConsulting": "Consulting Coach...",
   "coachingConsultingDesc": "Our AI is analyzing your financial health to give you the best advice.",
   "coachingError": "Error consulting coach. Please try again later.",
@@ -679,9 +585,7 @@
   "coachingHistoryTitle": "Insights History",
   "coachingReviewTips": "Review Tips",
   "weeklyMissions": "Weekly Missions",
-  "weeklyMissionsSuccess": "Successful Week!",
   "weeklyMissionsNone": "No missions for this week",
-  "weeklyMissionsSuccessDesc": "You have met all your goals. Congratulations!",
   "weeklyMissionsNoneDesc": "Set up plannings or add transactions to start.",
   "pendingMissions": "Pending",
   "completedMissions": "Completed",
@@ -697,22 +601,10 @@
       }
     }
   },
-  "weeklyGoal": "Weekly Goal",
   "xpValue": "{xp} XP",
   "@xpValue": {
     "placeholders": {
       "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "xpProgress": "{current} / {total} XP",
-  "@xpProgress": {
-    "placeholders": {
-      "current": {
-        "type": "String"
-      },
-      "total": {
         "type": "String"
       }
     }
@@ -736,27 +628,6 @@
       }
     }
   },
-  "remainingWeeklyPlanning": "Available this week",
-  "spentOfWeeklyPlanning": "{spent} of {limit}",
-  "@spentOfWeeklyPlanning": {
-    "placeholders": {
-      "spent": {
-        "type": "String"
-      },
-      "limit": {
-        "type": "String"
-      }
-    }
-  },
-  "hpLabel": "HP",
-  "overBudgetAmount": "Excess: {amount}",
-  "@overBudgetAmount": {
-    "placeholders": {
-      "amount": {
-        "type": "String"
-      }
-    }
-  },
   "transactionCascadeTitle": "Apply changes",
   "transactionCascadeDescription": "Do you want to apply these changes only to this installment or replicate to others?",
   "transactionCascadeOnlyThis": "Only this one",
@@ -764,17 +635,12 @@
   "transactionCascadeAll": "All of them",
   "transactionDeleteCascadeTitle": "Delete installments",
   "transactionDeleteCascadeDescription": "Do you want to delete only this installment or the others as well?",
-  "transactionDeleteCascadeOnlyThis": "Only this one",
-  "transactionDeleteCascadeThisAndNext": "This and next ones",
-  "transactionDeleteCascadeAll": "All of them",
-  "accountAnalysisFailed": "Processing failed",
   "completedMissionsSummary": "{count} {count, plural, =1{item} other{items}} • {xp} XP",
   "weeklyMissionsTitle": "Weekly Missions",
   "weeklyMissionsSuccessTitle": "Missions Completed!",
   "weeklyMissionsSuccessMessage": "Congratulations! You completed all activities for this week. Keep it up to maintain your financial health!",
   "accountStatementCurrent": "Current",
   "accountStatementFuture": "Future",
-  "currentBalance": "Current Balance",
   "transactions": "Transactions",
   "challengeStatusStable": "Stable",
   "challengeStatusWarning": "Warning",
@@ -800,7 +666,6 @@
     }
   },
   "paymentInfo": "Payment Info",
-  "accountOwnerLabel": "Ownership",
   "teamAchievementsTitle": "Team Achievements",
   "workspaceLabel": "Workspace: {name}",
   "@workspaceLabel": {
@@ -835,7 +700,6 @@
       }
     }
   },
-  "yourBadgesLabel": "Your Badges",
   "badgeUnlockedLabel": "Unlocked",
   "badgeLockedLabel": "Locked",
   "badgeRewardLabel": "Reward",
@@ -881,22 +745,17 @@
   "reconciliationStatusKeep": "Keep in System",
   "reconciliationStatusRemove": "Remove from System",
   "reconciliationStatusSystemOnly": "Only in System",
-  "goalDeleteButton": "Delete Goal",
   "goalEditButton": "Edit Goal",
   "goalStatusAtRisk": "At Risk",
   "goalStatusBehind": "Behind",
   "goalStatusLost": "Lost",
   "goalStatusOnTrack": "On Track",
-  "goalTransactionsTitle": "Related Transactions",
   "profileEditTitle": "Edit Profile",
   "profileEmailLabel": "Email",
   "profileNameLabel": "Name",
   "profilePhotoCamera": "Camera",
   "profilePhotoGallery": "Gallery",
-  "profilePhotoSourceTitle": "Choose photo source",
-  "profileSaveButton": "Save Changes",
   "profileTitle": "Profile",
-  "profileUpdateError": "Error updating profile.",
   "profileUpdateSuccess": "Profile updated successfully!",
   "goalDebtTotalLabel": "Total Debt Amount",
   "goalDebtTotalHint": "How much do you owe in total?",
@@ -1025,10 +884,10 @@
       }
     }
   },
-  "partyEmptyTitle": "Your team has no challenges yet",
-  "partyEmptyMessage": "Every category spending limit becomes a team challenge. Create the first one and follow it here.",
+  "partyEmptyTitle": "Your party has no challenges yet",
+  "partyEmptyMessage": "Every category spending limit becomes a party challenge. Create the first one and follow it here.",
   "partyEmptyButton": "Create first limit",
-  "partyErrorMessage": "We could not load the team status.",
+  "partyErrorMessage": "We could not load the party status.",
   "badgeCatalogUnavailableTitle": "Catalog unavailable",
   "badgeCatalogUnavailableMessage": "We have not received the achievement list from the server yet. Try again in a moment.",
   "badgeCategoryAdvanced": "Advanced Achievements",

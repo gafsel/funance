@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:funances/core/exceptions/business_exception.dart';
 import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 // Gerenciador de estado global para as modais de carregamento
 final List<Future<dynamic>> _activeFutures = [];
@@ -98,12 +98,7 @@ Future<T> showLoadingModal<T>(
     );
     rethrow;
   } catch (ex, stack) {
-    developer.log(
-      'Erro não tratado no showLoadingModal',
-      name: 'funances.LoadingModal',
-      error: ex,
-      stackTrace: stack,
-    );
+    AppLogger.error('Erro não tratado no showLoadingModal', ex, stack);
     rethrow;
   } finally {
     _activeFutures.remove(future);

@@ -71,7 +71,7 @@ class _MembersStepState extends ConsumerState<MembersStep> {
                       style: const TextStyle(color: AppColors.pureWhite),
                       decoration: InputDecoration(
                         labelText: l10n.emailLabel,
-                        hintText: 'exemplo@email.com',
+                        hintText: l10n.inviteEmailHint,
                       ),
                       keyboardType: TextInputType.emailAddress,
                       onSubmitted: (value) {

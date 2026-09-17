@@ -11,6 +11,9 @@ import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/home/presentation/widgets/installment_item.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:go_router/go_router.dart';
+import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// As missões da semana — as do SERVIDOR — e o checklist do que vence nela.
 ///
@@ -324,6 +327,28 @@ class _MissionCard extends StatelessWidget {
               style: theme.textTheme.labelSmall?.copyWith(color: accent),
             ),
           ],
+          // A missão de ORGANIZAÇÃO é a de pôr a casa em ordem, e conciliar o
+          // extrato é o caminho mais curto para isso — mas a conciliação
+          // morava escondida dentro da tela de uma conta. Enquanto a missão
+          // estiver aberta, ela traz o caminho junto.
+          if (mission.type == WeeklyMissionType.organization &&
+              !completed &&
+              !failed) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => context.push('/reconciliation'),
+                icon: const Icon(Icons.fact_check_outlined, size: 18),
+                label: Text(l10n.reconciliationMissionCta),
+                style: TextButton.styleFrom(
+                  foregroundColor: accent,
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -453,9 +478,11 @@ class _WeekChecklist extends ConsumerWidget {
         children: [
           Icon(Icons.cloud_off_outlined, color: theme.colorScheme.error),
           const SizedBox(width: 8),
-          Expanded(child: Text(l10n.errorUnknown)),
+          // "Erro inesperado" era a única coisa que este erro não era: sem
+          // rede, o texto agora fala em conexão.
+          Expanded(child: Text(errorMessageFor(context, e))),
           TextButton(
-            onPressed: () => ref.invalidate(MissionViewProviders.mission),
+            onPressed: () => Retry.missions(ref),
             child: Text(l10n.retry),
           ),
         ],

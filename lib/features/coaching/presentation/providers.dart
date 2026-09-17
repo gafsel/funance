@@ -24,6 +24,13 @@ sealed class CoachingViewProviders {
     return ref.watch(CoachingDomainProviders.service).getLastInsight();
   });
 
+  /// Um insight pelo id. A rota `/coaching?id=` passa o id e a tela carrega
+  /// daqui — nada de slide inteiro viajando no `extra`.
+  static final insightById = FutureProvider.autoDispose
+      .family<CoachingModel?, String>((ref, id) async {
+        return ref.watch(CoachingDomainProviders.service).getInsight(id);
+      });
+
   static final insightsHistory = FutureProvider<List<CoachingModel>>((ref) async {
     return ref.watch(CoachingDomainProviders.service).getInsightsHistory();
   });

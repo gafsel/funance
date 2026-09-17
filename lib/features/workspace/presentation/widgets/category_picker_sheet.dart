@@ -6,6 +6,9 @@ import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/widgets/category_form_screen.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class CategoryPickerSheet extends ConsumerWidget {
   final CategoryType? categoryType;
@@ -52,7 +55,24 @@ class CategoryPickerSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final categories = ref.watch(CategoryViewProviders.allStream).when(
+    final categoriesAsync = ref.watch(CategoryViewProviders.allStream);
+    // Sem rede, a lista vazia dizia "você não tem categorias" — o que é uma
+    // afirmação, e errada. Quando a leitura falha, o seletor diz o que houve e
+    // oferece tentar de novo.
+    if (categoriesAsync.hasError) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ErrorView.forError(
+            context,
+            categoriesAsync.error,
+            onRetry: () => Retry.categories(ref),
+          ),
+        ),
+      );
+    }
+
+    final categories = categoriesAsync.when(
           data: (data) => data
               .where(
                 (c) =>
@@ -100,7 +120,7 @@ class CategoryPickerSheet extends ConsumerWidget {
                         color: category.color.asColor(),
                       ),
                     ),
-                    title: Text(category.name),
+                    title: Text(category.displayName(l10n)),
                     onTap: () => Navigator.pop(context, category),
                   );
                 }

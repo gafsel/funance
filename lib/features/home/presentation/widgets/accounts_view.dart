@@ -10,6 +10,11 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/account_logo.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/money/money.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/utils/error_messages.dart';
 
 class AccountsView extends ConsumerWidget {
   const AccountsView({super.key});
@@ -39,7 +44,14 @@ class AccountsView extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, st) => Center(child: Text(e.toString())),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: ErrorView.forError(
+          context,
+          e,
+          onRetry: () => Retry.accounts(ref),
+        ),
+      ),
     );
   }
 
@@ -53,12 +65,13 @@ class AccountsView extends ConsumerWidget {
     final theme = Theme.of(context);
     final locale = context.locale;
 
-    double total = 0;
+    var total = Money.zero;
+    Object? totalError;
     // Só o total somado de saldos pode estar carregando: os saldos chegam por
     // stream e mostrar R$ 0,00 enquanto isso é um número errado com cara de
     // definitivo.
     bool isTotalLoading = false;
-    final Map<String, double> totalsByMonth = {};
+    final Map<String, Money> totalsByMonth = {};
 
     if (type == AccountType.creditCard) {
       for (final account in accounts) {
@@ -75,16 +88,22 @@ class AccountsView extends ConsumerWidget {
           continue;
         }
 
-        total += nextInvoice.amount;
+        final invoiceAmount = nextInvoice.amount.asMoney;
+        total += invoiceAmount;
         final monthKey = nextInvoice.dueDate.formated('MMMM', locale);
         totalsByMonth[monthKey] =
-            (totalsByMonth[monthKey] ?? 0) + nextInvoice.amount;
+            (totalsByMonth[monthKey] ?? Money.zero) + invoiceAmount;
       }
     } else {
       final totalAsync = ref.watch(
         AccountViewProviders.latestBalanceByType(type),
       );
-      total = totalAsync.valueOrNull ?? 0;
+      // R$ 0,00 no lugar de um saldo que não pôde ser lido é a mentira mais
+      // cara que esta tela sabe contar.
+      if (totalAsync.hasError) {
+        totalError = totalAsync.error;
+      }
+      total = (totalAsync.valueOrNull ?? 0).asMoney;
       isTotalLoading = totalAsync.isLoading && !totalAsync.hasValue;
     }
 
@@ -106,12 +125,34 @@ class AccountsView extends ConsumerWidget {
           l10n.fromAccountType(type),
           style: theme.textTheme.bodyMedium,
         ),
-        trailing: showMonthlyTotal
+        trailing: totalError != null
+            // Sem o saldo, a linha diz que não sabe — e oferece tentar de
+            // novo — em vez de escrever R$ 0,00 com cara de saldo.
+            // O texto completo do erro fica no tooltip: a linha do grupo não
+            // comporta a frase inteira, mas também não pode virar só um ícone
+            // sem nome — nem R$ 0,00, que era o que havia aqui.
+            ? Tooltip(
+                message: errorMessageFor(context, totalError),
+                child: TextButton.icon(
+                  icon: Icon(
+                    Icons.cloud_off,
+                    size: 16,
+                    color: theme.colorScheme.error,
+                  ),
+                  label: Text(l10n.retry),
+                  onPressed: () => Retry.accounts(ref),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.error,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              )
+            : showMonthlyTotal
             ? Text(
                 sortedMonthKeys
                     .map(
                       (month) =>
-                          '${month.capitalize()}: ${totalsByMonth[month]!.asCurrency(locale: locale)}',
+                          '${month.capitalize()}: ${totalsByMonth[month]!.format(locale: locale)}',
                     )
                     .join(" | "),
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -125,7 +166,7 @@ class AccountsView extends ConsumerWidget {
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
             : Text(
-                total.asCurrency(locale: locale),
+                total.format(locale: locale),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -158,16 +199,12 @@ class AccountsView extends ConsumerWidget {
           final nextInvoiceAsync = ref.watch(
             AccountViewProviders.nextInvoiceByAccountId(account.id),
           );
-          // A parcela é observada no build, não lida no onTap: as famílias são
-          // autoDispose, e um `ref.read` no callback criaria e descartaria o
-          // provider na hora — o toque nunca chegaria à tela de fatura.
-          final invoiceInstallment = ref
-              .watch(
-                AccountViewProviders.nextInvoiceInstallmentByAccountId(
-                  account.id,
-                ),
-              )
-              .valueOrNull;
+          // O id da parcela vem do próprio resumo que o servidor grava na
+          // conta (`nextInvoice.installmentId`). Antes havia uma segunda
+          // consulta só para descobrir a parcela, porque a rota recebia o
+          // modelo inteiro; agora a rota recebe o id, e o id já estava aqui.
+          final invoiceInstallmentId =
+              nextInvoiceAsync.valueOrNull?.installmentId;
           final usedLimit = -balance.balance;
           final availableLimit = (creditCard.limit - usedLimit).clamp(
             0.0,
@@ -179,11 +216,8 @@ class AccountsView extends ConsumerWidget {
 
           return ListTile(
             onTap: () {
-              // A tela de detalhe recebe a PARCELA da fatura; o resumo da conta
-              // responde pelo que aparece aqui, não pela navegação. Enquanto a
-              // rota receber o modelo inteiro, a parcela vem deste provider.
-              if (invoiceInstallment != null) {
-                context.push('/invoices/detail', extra: invoiceInstallment);
+              if (invoiceInstallmentId != null) {
+                context.push('/invoices/$invoiceInstallmentId');
               } else {
                 context.push('/workspace/accounts?type=${account.type.name}');
               }
@@ -194,7 +228,10 @@ class AccountsView extends ConsumerWidget {
               size: 32,
               showMembers: true,
             ),
-            title: Text(account.name, style: theme.textTheme.bodySmall),
+            title: Text(
+              account.displayName(l10n),
+              style: theme.textTheme.bodySmall,
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -279,7 +316,10 @@ class AccountsView extends ConsumerWidget {
             size: 32,
             showMembers: true,
           ),
-          title: Text(account.name, style: theme.textTheme.bodySmall),
+          title: Text(
+            account.displayName(context.l10n),
+            style: theme.textTheme.bodySmall,
+          ),
           trailing: Text(
             balance.balance.asCurrency(locale: locale),
             style: theme.textTheme.bodySmall,

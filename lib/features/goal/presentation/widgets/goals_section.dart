@@ -9,6 +9,8 @@ import 'package:funances/features/goal/presentation/model/goal_progress_ui.dart'
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 /// Seção de metas da Jornada.
 ///
@@ -90,7 +92,11 @@ class GoalsSection extends ConsumerWidget {
                   },
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (e, st) => Center(child: Text(e.toString())),
+                  error: (e, _) => ErrorView.forError(
+                    context,
+                    e,
+                    onRetry: () => Retry.goals(ref),
+                  ),
                 ),
       ],
     );
@@ -137,7 +143,9 @@ class GoalsSection extends ConsumerWidget {
   }
 
   void _showAddGoalDialog(BuildContext context, [GoalModel? goal]) {
-    context.push('/goals/form', extra: goal);
+    context.push(
+      goal == null ? '/goals/form' : '/goals/form?id=${goal.id}',
+    );
   }
 
   /// Grade responsiva de cards (a mesma quebra para as ativas e as encerradas).

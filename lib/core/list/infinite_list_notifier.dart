@@ -1,8 +1,8 @@
-import 'dart:developer';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/model/core_models.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 typedef QueryFunction<Q, E> =
     Future<QueryChunk<E>> Function(Q query, {dynamic chunkRef});
@@ -49,13 +49,16 @@ abstract class InfiniteListNotifier<Q, E>
 
     try {
       state = state.copyWith(status: InfiniteListStatus.loading);
-      log(
-        "Loading chunk with query: ${state.query}, ref: ${state.nextChunkRef}",
+      AppLogger.debug(
+        'Carregando página: consulta ${state.query}, ref ${state.nextChunkRef}',
+        name: 'list',
       );
 
       final chunk = await executor(state.query, chunkRef: state.nextChunkRef);
-      log(
-        "Loaded ${chunk.items.length} items. Has next: ${chunk.hasNextChunk}",
+      AppLogger.debug(
+        '${chunk.items.length} itens carregados; tem próxima: '
+        '${chunk.hasNextChunk}',
+        name: 'list',
       );
 
       final newItems = [...state.items, ...chunk.items];
@@ -69,11 +72,14 @@ abstract class InfiniteListNotifier<Q, E>
       // Se o chunk retornou itens vazios mas tem um nextChunkRef,
       // significa que o filtro em memória removeu tudo, então buscamos mais.
       if (chunk.items.isEmpty && chunk.hasNextChunk) {
-        log("Chunk is empty but has more data, loading next...");
+        AppLogger.debug(
+          'Página vazia com mais dados adiante; carregando a próxima',
+          name: 'list',
+        );
         await _load();
       }
     } catch (ex, stack) {
-      log("Failed to retrieve next chunk", error: ex, stackTrace: stack);
+      AppLogger.error('Falha ao carregar a próxima página', ex, stack);
 
       if (mounted) {
         state = state.copyWith(status: InfiniteListStatus.error, error: ex);

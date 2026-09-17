@@ -58,9 +58,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get invalidEmail => 'E-mail inválido';
 
   @override
-  String get shortPassword => 'A senha deve ter pelo menos 6 caracteres';
-
-  @override
   String get appErrorWidgetTitle => 'Algo deu errado';
 
   @override
@@ -208,6 +205,32 @@ class AppLocalizationsPt extends AppLocalizations {
       'Esta ação precisa de internet. Reconecte e tente de novo.';
 
   @override
+  String get reconciliationChooseAccount => 'Qual conta você quer conciliar?';
+
+  @override
+  String get errorOffline =>
+      'Sem conexão com a internet. Mostramos o que já estava no aparelho; toque em tentar de novo quando a rede voltar.';
+
+  @override
+  String get errorPermissionDenied =>
+      'Você não tem acesso a estes dados. Se acabou de sair de um workspace, entre de novo.';
+
+  @override
+  String get errorQuotaExhausted =>
+      'Limite de uso atingido. Tente de novo mais tarde.';
+
+  @override
+  String get errorNotAuthenticated =>
+      'Sua sessão expirou. Entre de novo para continuar.';
+
+  @override
+  String get errorNotFound => 'Este item não existe mais.';
+
+  @override
+  String get errorTimeout =>
+      'O servidor demorou demais para responder. Tente de novo.';
+
+  @override
   String get onboardingWelcomeTitle => 'Boas-vindas ao Funances!';
 
   @override
@@ -216,12 +239,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onboardingNext => 'Próximo';
-
-  @override
-  String get onboardingBack => 'Voltar';
-
-  @override
-  String get onboardingStart => 'Começar Jornada';
 
   @override
   String get onboardingPersonalTitle => 'Workspace Pessoal';
@@ -252,14 +269,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingWorkspaceNameLabel => 'Nome do Workspace';
 
   @override
-  String get onboardingWorkspaceCreateError => 'Erro ao criar workspace.';
-
-  @override
   String get onboardingGoalsTitle => 'Trace suas primeiras metas';
-
-  @override
-  String get onboardingGoalsDesc =>
-      'Economizar para uma viagem? Comprar um carro? Vamos configurar isso em breve.';
 
   @override
   String get onboardingGoalsButton => 'ENTENDI, PRÓXIMO PASSO';
@@ -291,14 +301,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingAccountsAddAnother => 'ADICIONAR OUTRA CONTA';
 
   @override
-  String get onboardingAccountsManual => 'Cadastro manual';
-
-  @override
-  String onboardingAccountsAttachment(String fileName) {
-    return 'Anexo: $fileName';
-  }
-
-  @override
   String get onboardingGoalsAnalysisTitle => 'SUGESTÕES DA IA';
 
   @override
@@ -326,9 +328,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get onboardingSuccessCTA => 'IR PARA A TELA PRINCIPAL';
-
-  @override
-  String get onboardingStepConceptsTitle => 'Entenda os Conceitos';
 
   @override
   String get onboardingStepConceptsDesc =>
@@ -364,34 +363,15 @@ class AppLocalizationsPt extends AppLocalizations {
       'O dia a dia! Registre suas entradas e saídas reais para acompanhar seu progresso em relação ao plano.';
 
   @override
-  String goalRemainingMonthly(String amount) {
-    return '$amount/mês';
-  }
-
-  @override
   String goalTargetTarget(String amount) {
     return 'Alvo: $amount';
-  }
-
-  @override
-  String get goalRemainingMonthlyDesc => 'Valor por mês';
-
-  @override
-  String goalRemainingMonthlyTarget(String amount, String date) {
-    return '$amount/mês até $date';
   }
 
   @override
   String get goalDetailsTitle => 'Detalhes da Meta';
 
   @override
-  String get goalTransactionsTitle => 'Transações Relacionadas';
-
-  @override
   String get goalEditButton => 'Editar Meta';
-
-  @override
-  String get goalDeleteButton => 'Excluir Meta';
 
   @override
   String get goalDeleteConfirmTitle => 'Excluir Meta?';
@@ -426,18 +406,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get goalChartEndLabel => 'Prazo';
-
-  @override
-  String get goalMilestone25 => '25%';
-
-  @override
-  String get goalMilestone50 => '50%';
-
-  @override
-  String get goalMilestone75 => '75%';
-
-  @override
-  String get goalMilestone100 => '100%';
 
   @override
   String get goalAnalyzeWithAi => 'Analisar com IA';
@@ -479,9 +447,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get goalAiClose => 'Entendi';
 
   @override
-  String get goalMonthlyRequirementLabel => 'Valor por mês';
-
-  @override
   String goalMonthlyRequirementValue(String amount) {
     return '$amount/mês';
   }
@@ -512,16 +477,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get profileEmailLabel => 'E-mail';
 
   @override
-  String get profileSaveButton => 'Salvar Alterações';
-
-  @override
   String get profileUpdateSuccess => 'Perfil atualizado com sucesso!';
-
-  @override
-  String get profileUpdateError => 'Erro ao atualizar perfil.';
-
-  @override
-  String get profilePhotoSourceTitle => 'Escolha a origem da foto';
 
   @override
   String get profilePhotoCamera => 'Câmera';
@@ -560,11 +516,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Futuro e segurança (investimentos e dívidas). Ideal: 20% da sua receita.';
 
   @override
-  String planning503020Ideal(String amount) {
-    return 'Meta: $amount';
-  }
-
-  @override
   String planning503020ActualAmount(String amount) {
     return 'Real: $amount';
   }
@@ -582,9 +533,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get planning503020Actual => 'Executado';
 
   @override
-  String get planning503020Goal => 'Meta';
-
-  @override
   String get planning503020SummaryActual => 'Gasto Real';
 
   @override
@@ -600,17 +548,7 @@ class AppLocalizationsPt extends AppLocalizations {
       'Gastos previstos superiores ao estimado!';
 
   @override
-  String get planning503020Save => 'SALVAR';
-
-  @override
   String get planning503020EmptyPool => 'Arraste categorias para cá';
-
-  @override
-  String get automaticTransactionFindExisting => 'Buscar Existente';
-
-  @override
-  String get automaticTransactionEmpty =>
-      'Nenhum novo lançamento identificado.';
 
   @override
   String get automaticTransactionSimulate => 'Simular Notificação';
@@ -626,23 +564,8 @@ class AppLocalizationsPt extends AppLocalizations {
   String get automaticTransactionGrantPermission => 'Conceder Permissão';
 
   @override
-  String automaticTransactionSuggestedCategory(Object category) {
-    return 'Categoria sugerida: $category';
-  }
-
-  @override
-  String automaticTransactionSuggestedAccount(Object account) {
-    return 'Conta sugerida: $account';
-  }
-
-  @override
   String goalRemainingValue(String amount) {
     return 'Faltam $amount';
-  }
-
-  @override
-  String goalProgressValue(String percent) {
-    return '$percent%';
   }
 
   @override
@@ -683,36 +606,11 @@ class AppLocalizationsPt extends AppLocalizations {
   String get goalCategoryLabel => 'Categoria';
 
   @override
-  String get goalCreditCardLabel => 'Cartão de Crédito';
-
-  @override
   String get errorGoalNotFound => 'Meta não encontrada.';
 
   @override
   String get errorGoalTypeCannotBeChanged =>
       'O tipo da meta não pode ser alterado.';
-
-  @override
-  String get statusOnTrack => 'Em dia';
-
-  @override
-  String get statusAtRisk => 'Alerta';
-
-  @override
-  String get statusBehind => 'Atrasada';
-
-  @override
-  String get statusLost => 'Perdida';
-
-  @override
-  String goalProgressPercent(Object percent) {
-    return '$percent% concluído';
-  }
-
-  @override
-  String goalRemainingAmount(Object amount) {
-    return 'Faltam $amount';
-  }
 
   @override
   String get continueButton => 'CONTINUAR';
@@ -780,9 +678,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get membersRemoveSuccess => 'Membro removido.';
 
   @override
-  String get membersRemoveError => 'Não foi possível remover o membro.';
-
-  @override
   String membersInviteSentAt(String date) {
     return 'Convidado em $date';
   }
@@ -792,9 +687,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get membersResendSuccess => 'Convite renovado.';
-
-  @override
-  String get membersResendError => 'Não foi possível renovar o convite.';
 
   @override
   String get membersCancelInviteAction => 'Cancelar convite';
@@ -810,13 +702,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get membersCancelInviteSuccess => 'Convite cancelado.';
-
-  @override
-  String get membersCancelInviteError => 'Não foi possível cancelar o convite.';
-
-  @override
-  String get membersOnlyOwnerCanRemove =>
-      'Apenas o dono do workspace pode remover membros.';
 
   @override
   String get invitesSubtitle =>
@@ -840,25 +725,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeOverviewTab => 'Visão Geral';
 
   @override
-  String get homeMissionsTab => 'Missões';
-
-  @override
   String get homeHistoryTab => 'Extrato';
-
-  @override
-  String homeTotalSavedMonth(Object amount) {
-    return 'Você economizou $amount a mais que o planejado!';
-  }
-
-  @override
-  String homePointsEarned(Object points) {
-    return '+$points Pontos';
-  }
-
-  @override
-  String homeRemainingAmount(Object amount, Object percent) {
-    return 'Faltam $amount ($percent% concluído)';
-  }
 
   @override
   String get homeAccountsAndCards => 'Saldos e Faturas';
@@ -867,14 +734,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get weeklyMissions => 'Missões da Semana';
 
   @override
-  String get weeklyMissionsSuccess => 'Semana de Sucesso!';
-
-  @override
   String get weeklyMissionsNone => 'Nenhuma missão para esta semana';
-
-  @override
-  String get weeklyMissionsSuccessDesc =>
-      'Você cumpriu todas as suas metas. Parabéns!';
 
   @override
   String get weeklyMissionsNoneDesc =>
@@ -895,16 +755,8 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get weeklyGoal => 'Meta da Semana';
-
-  @override
   String xpValue(String xp) {
     return '$xp XP';
-  }
-
-  @override
-  String xpProgress(String current, String total) {
-    return '$current / $total XP';
   }
 
   @override
@@ -918,68 +770,20 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get remainingWeeklyPlanning => 'Disponível na semana';
-
-  @override
-  String spentOfWeeklyPlanning(String spent, String limit) {
-    return '$spent de $limit';
-  }
-
-  @override
-  String get hpLabel => 'HP';
-
-  @override
-  String overBudgetAmount(String amount) {
-    return 'Excesso: $amount';
-  }
-
-  @override
   String get homeWhereIsMoney => 'Onde está o dinheiro?';
 
   @override
   String get homeTotalSpent => 'Total Gasto';
 
   @override
-  String get homeTotalBalance => 'Saldo Total';
-
-  @override
-  String get accountCreateAction => 'Cadastrar Nova Conta';
-
-  @override
-  String accountCreateTypeAction(String type) {
-    return 'Cadastrar Nova Conta de $type';
-  }
-
-  @override
-  String get homeAllAccounts => 'Todas as Contas';
-
-  @override
-  String get homeThisMonth => 'Este Mês';
-
-  @override
-  String get homeLastMonth => 'Mês Passado';
-
-  @override
-  String get homeCustomPeriod => 'Customizado';
-
-  @override
   String get homeNewTransaction => 'Novo Lançamento';
-
-  @override
-  String get homeConsolidate => 'Consolidar';
 
   @override
   String get noTransactionsInPeriod =>
       'Nenhuma transação encontrada para este período';
 
   @override
-  String get historyFilterPeriod => 'Selecionar Período';
-
-  @override
   String get historyFilterAccountLabel => 'Conta';
-
-  @override
-  String get historyFilterAllAccounts => 'Todas as Contas';
 
   @override
   String get all => 'Todos';
@@ -998,9 +802,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get historyFilterStatusLabel => 'Status';
-
-  @override
-  String get historyFilterAmountRangeLabel => 'Faixa de Valor';
 
   @override
   String get historyFilterMinAmountLabel => 'Valor Mínimo';
@@ -1092,9 +893,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get categoryTypeExpense => 'Despesa';
 
   @override
-  String get categoryTypeBoth => 'Ambos';
-
-  @override
   String get categoryDeleteTitle => 'Excluir Categoria';
 
   @override
@@ -1110,6 +908,91 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get reconciliationTitle => 'Conciliação Bancária';
+
+  @override
+  String get unnamedWorkspace => 'Workspace sem nome';
+
+  @override
+  String get accountManagementEmptyOfType =>
+      'Você ainda não tem contas deste tipo.';
+
+  @override
+  String get bankLogoOther => 'Outros';
+
+  @override
+  String get accountsMine => 'Minhas contas';
+
+  @override
+  String accountsOfMember(String name) {
+    return 'Contas de $name';
+  }
+
+  @override
+  String get accountsShared => 'Contas compartilhadas';
+
+  @override
+  String planning503020TargetPercent(String percent) {
+    return 'Meta: $percent';
+  }
+
+  @override
+  String get noCategory => 'Sem categoria';
+
+  @override
+  String get noDescription => 'Sem descrição';
+
+  @override
+  String get unnamedAccount => 'Conta sem nome';
+
+  @override
+  String get unnamedGoal => 'Meta sem nome';
+
+  @override
+  String get automaticTransactionMoveWorkspace => 'Mover para outro workspace';
+
+  @override
+  String get accountOwnersLabel => 'Titulares da conta';
+
+  @override
+  String get reconciliationPickTransaction => 'Selecionar lançamento';
+
+  @override
+  String get transactionNewTitle => 'Novo lançamento';
+
+  @override
+  String get planning503020AlreadyPlanned => 'Já previsto:';
+
+  @override
+  String get loginTermsNotice =>
+      'Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.';
+
+  @override
+  String get inviteEmailHint => 'exemplo@email.com';
+
+  @override
+  String get uploadStatusReading => 'Lendo o arquivo do extrato…';
+
+  @override
+  String get uploadStatusExtracting => 'Extraindo transações e valores…';
+
+  @override
+  String get uploadStatusSearching =>
+      'Procurando os lançamentos correspondentes…';
+
+  @override
+  String get uploadStatusPreparing => 'Preparando as sugestões de conciliação…';
+
+  @override
+  String get uploadStatusCompleted => 'Conciliação pronta.';
+
+  @override
+  String get uploadStatusError => 'Não foi possível ler este extrato.';
+
+  @override
+  String get reconciliationAction => 'Conciliar extrato';
+
+  @override
+  String get reconciliationMissionCta => 'Conciliar extrato agora';
 
   @override
   String reconciliationTransactionsFound(num count) {
@@ -1181,9 +1064,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get reconciliationActionRegister => 'Cadastrar';
 
   @override
-  String get reconciliationActionAnalyze => 'Analisar Extrato';
-
-  @override
   String get reconciliationSystemLabel => 'SISTEMA';
 
   @override
@@ -1192,16 +1072,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get reconciliationNoMatchFound =>
       'Nenhuma transação correlata encontrada';
-
-  @override
-  String get reconciliationSectionTitle => 'Conciliação';
-
-  @override
-  String get reconciliationSectionDesc =>
-      'Compare seus registros com o extrato bancário real.';
-
-  @override
-  String get reconciliationChangeAccount => 'Alterar';
 
   @override
   String get cancelButton => 'Cancelar';
@@ -1270,9 +1140,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String accountDeleteConfirm(String name) {
     return 'Deseja realmente excluir a conta \"$name\"? (Os dados não serão perdidos fisicamente)';
   }
-
-  @override
-  String get addAccountButton => 'Adicionar Conta';
 
   @override
   String get addWorkspaceButton => 'Adicionar Workspace';
@@ -1410,18 +1277,6 @@ class AppLocalizationsPt extends AppLocalizations {
       'Deseja excluir apenas esta parcela ou as demais também?';
 
   @override
-  String get transactionDeleteCascadeOnlyThis => 'Apenas esta';
-
-  @override
-  String get transactionDeleteCascadeThisAndNext => 'Esta e próximas';
-
-  @override
-  String get transactionDeleteCascadeAll => 'Todas';
-
-  @override
-  String get transactionDueDateLabel => 'Vencimento';
-
-  @override
   String get noAccountsFound => 'Nenhuma conta encontrada.';
 
   @override
@@ -1445,32 +1300,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get initialBalanceDebtDateLabel => 'Data do Valor Atual';
-
-  @override
-  String get accountBankLogoLabel => 'Logo do Banco/Bandeira';
-
-  @override
-  String get accountOwnerIdsLabel => 'Titulares';
-
-  @override
-  String get customLabel => 'Personalizado';
-
-  @override
-  String get accountNextInvoiceValueLabel => 'Valor da próxima fatura';
-
-  @override
-  String get accountInitialInvestmentValueLabel =>
-      'Saldo inicial do investimento';
-
-  @override
-  String get accountInitialDebtValueLabel => 'Valor da dívida';
-
-  @override
-  String get accountInitialInvestmentDateLabel =>
-      'Data inicial do investimento';
-
-  @override
-  String get accountInitialDebtDateLabel => 'Data da dívida';
 
   @override
   String get none => 'Nenhum';
@@ -1507,17 +1336,6 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String accountDetectedPlannings(num count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count planejamentos sugeridos',
-      one: '1 planejamento sugerido',
-    );
-    return '$_temp0';
-  }
-
-  @override
   String get accountDetectedConfirmation =>
       'Confirme os dados abaixo para concluir o registro.';
 
@@ -1539,9 +1357,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accountAnalysisProcessing => 'Processando dados...';
 
   @override
-  String get accountAnalysisFailed => 'Falha no processamento ';
-
-  @override
   String get onboardingPlanningAnalyzingTitle => 'Analisando padrões...';
 
   @override
@@ -1552,19 +1367,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accountViewTransactions => 'Ver Transações';
 
   @override
-  String get accountViewPlannings => 'Ver Planejamentos';
-
-  @override
   String get accountDetectedTransactionsTitle => 'Transações Detectadas';
 
   @override
-  String get accountDetectedPlanningsTitle => 'Planejamentos Sugeridos';
-
-  @override
   String get historyEdit => 'Editar';
-
-  @override
-  String get historyDelete => 'Excluir';
 
   @override
   String get historyDeleteTitle => 'Excluir Lançamento';
@@ -1618,33 +1424,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactionTransferCountsAsDebt => 'Vai contar como Dívidas';
-
-  @override
-  String get transactionSelectSourceAccount => 'Selecionar Conta de Origem';
-
-  @override
-  String get transactionSelectDestinationAccount =>
-      'Selecione a Conta de Destino';
-
-  @override
-  String get transactionAddExpenseDesc =>
-      'Registre uma despesa pontual que ocorreu hoje ou no passado.';
-
-  @override
-  String get transactionAddIncomeDesc =>
-      'Registre uma receita pontual que ocorreu hoje ou no passado.';
-
-  @override
-  String get transactionPlanExpenseDesc =>
-      'Agende uma despesa futura, recorrente ou parcelada.';
-
-  @override
-  String get transactionPlanIncomeDesc =>
-      'Agende uma receita futura, recorrente ou parcelada.';
-
-  @override
-  String get transactionTransferDesc =>
-      'Movimente saldo entre suas contas bancárias ou cartões.';
 
   @override
   String get transactionOrderTypeLabel => 'Tipo do Lançamento';
@@ -1801,9 +1580,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get periodFilterCustom => 'Customizado';
 
   @override
-  String get periodFilterTitle => 'Selecionar Período';
-
-  @override
   String completedMissionsSummary(num count, Object xp) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -1815,25 +1591,22 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get registerEffectivation => 'Marcar como realizado';
-
-  @override
   String get returnToPending => 'Retornar para Pendente';
 
   @override
-  String get partyHpLabel => 'Saúde da Equipe';
+  String get partyHpLabel => 'Saúde da Party';
 
   @override
-  String get partyStatusHealthy => 'Equipe em Segurança';
+  String get partyStatusHealthy => 'Party em segurança';
 
   @override
-  String get partyStatusStrained => 'Equipe em Perigo';
+  String get partyStatusStrained => 'Party em perigo';
 
   @override
-  String get partyStatusDefeated => 'Equipe Derrotada';
+  String get partyStatusDefeated => 'Party derrotada';
 
   @override
-  String get partyTeamTitle => 'Equipe';
+  String get partyTitle => 'Sua Party';
 
   @override
   String get planned => 'Planejado';
@@ -1843,9 +1616,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get excess => 'Excesso';
-
-  @override
-  String get invoiceDetailTitle => 'Detalhe de Fatura';
 
   @override
   String get registerInvoicePayment => 'Registrar Pagamento de Fatura';
@@ -1858,20 +1628,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get coachingViewLast => 'Ver última análise';
-
-  @override
-  String coachingLastAnalysisFrom(String date) {
-    return 'Última análise de $date';
-  }
-
-  @override
-  String coachingWaitSevenDays(int days) {
-    return 'Você poderá consultar o coach novamente em $days dias.';
-  }
-
-  @override
-  String get coachingWaitLessOneDay =>
-      'Você poderá consultar o coach novamente amanhã.';
 
   @override
   String get coachingConsulting => 'Consultando Coach...';
@@ -1925,9 +1681,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accountStatementFuture => 'Futuros';
 
   @override
-  String get currentBalance => 'Saldo Atual';
-
-  @override
   String get transactions => 'Lançamentos';
 
   @override
@@ -1965,9 +1718,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get paymentInfo => 'Informações de pagamento';
 
   @override
-  String get accountOwnerLabel => 'Titularidade';
-
-  @override
   String get teamAchievementsTitle => 'Conquistas da Equipe';
 
   @override
@@ -1992,9 +1742,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String weeklyStreaksLabelPlural(int streaks) {
     return 'Sequência semanal: $streaks semanas';
   }
-
-  @override
-  String get yourBadgesLabel => 'Suas Insígnias';
 
   @override
   String get badgeUnlockedLabel => 'Desbloqueado';
@@ -2212,18 +1959,18 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get partyEmptyTitle => 'Sua equipe ainda não tem desafios';
+  String get partyEmptyTitle => 'Sua party ainda não tem desafios';
 
   @override
   String get partyEmptyMessage =>
-      'Cada limite de gastos por categoria vira um desafio da equipe. Crie o primeiro e acompanhe aqui.';
+      'Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.';
 
   @override
   String get partyEmptyButton => 'Criar primeiro limite';
 
   @override
   String get partyErrorMessage =>
-      'Não foi possível carregar o status da equipe.';
+      'Não foi possível carregar o status da party.';
 
   @override
   String get badgeCatalogUnavailableTitle => 'Catálogo indisponível';

@@ -8,6 +8,9 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../providers.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class CategoryManagementScreen extends ConsumerStatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -76,7 +79,11 @@ class _CategoryManagementScreenState
   }
 
   void _showCategoryDialog(BuildContext context, [CategoryModel? category]) {
-    context.push('/workspace/categories/form', extra: category);
+    context.push(
+      category == null
+          ? '/workspace/categories/form'
+          : '/workspace/categories/form?id=${category.id}',
+    );
   }
 
   void _confirmDelete(
@@ -89,7 +96,7 @@ class _CategoryManagementScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.categoryDeleteTitle),
-        content: Text(l10n.categoryDeleteConfirm(category.name)),
+        content: Text(l10n.categoryDeleteConfirm(category.displayName(l10n))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -163,7 +170,7 @@ class _CategoryList extends ConsumerWidget {
                         size: 20,
                       ),
                     ),
-                    title: Text(category.name),
+                    title: Text(category.displayName(context.l10n)),
                     subtitle: Text(category.type.name.toUpperCase()),
                     trailing: isManaged ? null : Row(
                       mainAxisSize: MainAxisSize.min,
@@ -186,7 +193,16 @@ class _CategoryList extends ConsumerWidget {
               );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text(err.toString())),
+      error: (err, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ErrorView.forError(
+            context,
+            err,
+            onRetry: () => Retry.categories(ref),
+          ),
+        ),
+      ),
     );
   }
 }

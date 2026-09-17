@@ -14,6 +14,9 @@ import 'package:funances/features/finance/presentation/widgets/transaction_filte
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_payment_sheet.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/display_names.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class InvoiceDetailScreen extends ConsumerWidget {
   final InstallmentModel invoice;
@@ -112,7 +115,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       onPressed: () {
                         final account = accountAsync.valueOrNull;
                         if (account != null) {
-                          context.push('/reconciliation', extra: account);
+                          context.push('/reconciliation?accountId=${account.id}');
                         }
                       },
                       tooltip: l10n.reconciliationTitle,
@@ -122,8 +125,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                       label: l10n.editButton,
                       onPressed: () {
                         context.push(
-                          '/transactions/form',
-                          extra: {'installment': invoice},
+                          '/transactions/form?installmentId=${invoice.id}',
                         );
                       },
                       tooltip: l10n.editButton,
@@ -314,7 +316,13 @@ class InvoiceDetailScreen extends ConsumerWidget {
                     },
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
-                    error: (_, _) => const SizedBox.shrink(),
+                    // O gráfico É o conteúdo deste bloco: sumir em silêncio
+                    // fazia a fatura parecer sem categorias.
+                    error: (err, _) => ErrorView.forError(
+                      context,
+                      err,
+                      onRetry: () => Retry.invoiceChart(ref, invoice.invoiceKey),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -341,7 +349,7 @@ class InvoiceDetailScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              cat.category.name,
+                              cat.category.displayName(context.l10n),
                               style: theme.textTheme.labelSmall?.copyWith(
                                 fontSize: 10,
                                 color: contentColor.withValues(alpha: 0.8),

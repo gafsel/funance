@@ -16,6 +16,8 @@ import 'package:funances/features/finance/presentation/widgets/detail_header.dar
 import 'package:funances/features/finance/presentation/widgets/transaction_filter_bottom_sheet.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_list_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountStatementScreen extends ConsumerStatefulWidget {
   final String accountId;
@@ -49,7 +51,21 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
 
     return accountAsync.when(
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (error, stack) => Scaffold(body: Center(child: Text(error.toString()))),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ErrorView.forError(
+              context,
+              error,
+              // `byId` deriva de `all`: invalidar o derivado deixava o erro
+              // cacheado da lista de contas de pé.
+              onRetry: () => Retry.accounts(ref),
+            ),
+          ),
+        ),
+      ),
       data: (account) {
         if (account == null) {
           return Scaffold(
@@ -88,7 +104,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                           icon: Icons.edit_outlined,
                           label: context.l10n.editButton,
                           onPressed: () {
-                            context.push('/accounts/form', extra: account);
+                            context.push('/accounts/form?id=${account.id}');
                           },
                           tooltip: context.l10n.editButton,
                         ),
@@ -96,7 +112,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                           icon: Icons.account_balance_wallet_outlined,
                           label: context.l10n.reconciliationTitle,
                           onPressed: () {
-                            context.push('/reconciliation', extra: account);
+                            context.push('/reconciliation?accountId=${account.id}');
                           },
                           tooltip: context.l10n.reconciliationTitle,
                         ),
@@ -141,7 +157,7 @@ class _AccountStatementScreenState extends ConsumerState<AccountStatementScreen>
                             Padding(
                               padding: const EdgeInsets.all(16.0),
                               child: Text(
-                                "Novo Lançamento",
+                                l10n.transactionNewTitle,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
                                 ),

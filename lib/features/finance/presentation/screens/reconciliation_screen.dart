@@ -26,6 +26,37 @@ import 'package:funances/features/finance/presentation/widgets/reconciliation_hi
 import 'package:funances/core/widgets/loading_modal.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:funances/features/finance/presentation/widgets/statement_upload_panel.dart';
+import 'package:funances/features/finance/presentation/screens/account_selection_screen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:funances/core/money/money.dart';
+import 'package:funances/core/presentation/display_names.dart';
+
+/// Escolha da conta antes de conciliar.
+///
+/// A conciliação é uma ação de conta, mas quem chega pelo FAB ("Conciliar
+/// extrato") ainda não disse qual. Esta tela existe para que a rota
+/// `/reconciliation` funcione SEM parâmetro — digitada, compartilhada ou
+/// recarregada — em vez de mandar o usuário para a home.
+class ReconciliationAccountPickerScreen extends StatelessWidget {
+  const ReconciliationAccountPickerScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.reconciliationTitle)),
+      body: AccountSelectionScreen(
+        title: l10n.reconciliationChooseAccount,
+        showAddOption: false,
+        onAccountSelected: (account) {
+          if (account == null) return;
+          context.pushReplacement('/reconciliation?accountId=${account.id}');
+        },
+      ),
+    );
+  }
+}
 
 class ReconciliationScreen extends ConsumerWidget {
   final AccountModel account;
@@ -199,16 +230,13 @@ class ReconciliationScreen extends ConsumerWidget {
         .toList();
     final suggestedCount = suggestedMatches.length;
 
-    final suggestedAmount = suggestedMatches.fold<double>(0.0, (
-      accumulated,
-      m,
-    ) {
-      final amount =
+    final suggestedAmount = Money.sumOf(
+      suggestedMatches,
+      (m) =>
           m.documentTransaction?.amount ??
           m.systemInstallment?.referenceAmount ??
-          0.0;
-      return accumulated + amount;
-    });
+          0.0,
+    ).toDouble();
 
     final canConfirm = state.matches.every(
       (m) =>
@@ -343,7 +371,11 @@ class ReconciliationScreen extends ConsumerWidget {
                                 context,
                               );
 
-                              await loading(notifier.confirmReconciliation());
+                              await loading(
+                                notifier.confirmReconciliation(
+                                  uncategorizedLabel: l10n.categoryOthers,
+                                ),
+                              );
 
                               scaffoldMessenger.showSnackBar(
                                 SnackBar(
@@ -461,7 +493,12 @@ class _MatchItem extends StatelessWidget {
         children: [
           ListTile(
             leading: Icon(statusIcon, color: statusColor),
-            title: Text(docTx?.description ?? sysInst?.description ?? ""),
+            title: Text(
+              displayOr(
+                docTx?.description ?? sysInst?.description,
+                l10n.noDescription,
+              ),
+            ),
             subtitle: Text(
               (docTx?.date ?? sysInst?.referenceDate ?? DateTime.now())
                   .formated(l10n.formatSimpleDate, locale),
@@ -509,7 +546,7 @@ class _MatchItem extends StatelessWidget {
                           ),
                           if (category != null)
                             Text(
-                              category.name,
+                              category.displayName(l10n),
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontStyle: FontStyle.italic,
@@ -601,7 +638,7 @@ class _MatchItem extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          dTx.description,
+                          displayOr(dTx.description, l10n.noDescription),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -684,7 +721,7 @@ class _MatchItem extends StatelessWidget {
                           ),
                           if (category != null)
                             Text(
-                              category.name,
+                              category.displayName(l10n),
                               style: const TextStyle(
                                 fontSize: 10,
                                 fontStyle: FontStyle.italic,

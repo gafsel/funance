@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'dart:async';
 import 'package:funances/core/platform/app_platform.dart';
 import 'package:uuid/uuid.dart';
@@ -6,6 +5,7 @@ import 'package:flutter_notification_listener/flutter_notification_listener.dart
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
+import 'package:funances/core/observability/app_logger.dart';
 
 abstract class INotificationListenerService {
   Future<void> startListening();
@@ -84,9 +84,9 @@ class NotificationListenerService implements INotificationListenerService {
 
   @pragma('vm:entry-point')
   static Future<void> _handleNotificationStatic(NotificationEvent event) async {
-    developer.log(
+    AppLogger.debug(
       'Notificação recebida em background',
-      name: 'funances.NotificationListener',
+      name: 'notifications',
     );
     
     // Filtra notificações de sistema irrelevantes antes de enviar para o stream

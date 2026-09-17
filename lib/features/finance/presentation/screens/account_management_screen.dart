@@ -8,6 +8,9 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../domain/models/account_model.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
+import 'package:funances/core/presentation/display_names.dart';
 
 class AccountManagementScreen extends ConsumerWidget {
   final AccountType? initialType;
@@ -19,28 +22,41 @@ class AccountManagementScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final accountsByTypeAsync = ref.watch(AccountViewProviders.byTypeMap);
 
-    // Se o initialType estiver presente e o diálogo ainda não tiver sido mostrado,
-    // podemos disparar a abertura do diálogo após o primeiro frame.
-    if (initialType != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showAccountDialog(context, ref, null, initialType);
-      });
-    }
-
+    // `initialType` FILTRA a lista; não abre formulário nenhum. Quem chega
+    // aqui por `/workspace/accounts?type=creditCard` — a lista de contas da
+    // home, tocando num cartão sem fatura — quer VER os cartões. Abrir a
+    // criação por cima disso era responder outra pergunta.
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.accountManagementTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _showAccountDialog(context, ref),
+            // O "+" herda o tipo que a tela está mostrando: com a lista
+            // filtrada em cartões, a conta nova já nasce cartão.
+            onPressed: () => _showAccountDialog(context, ref, null, initialType),
           ),
         ],
       ),
       body: accountsByTypeAsync.when(
-        data: (accountsByType) {
+        data: (todosOsTipos) {
+          final accountsByType = initialType == null
+              ? todosOsTipos
+              : {
+                  for (final entry in todosOsTipos.entries)
+                    if (entry.key == initialType) entry.key: entry.value,
+                };
+
           if (accountsByType.isEmpty) {
-            return Center(child: Text(l10n.accountManagementEmpty));
+            // Filtrada por tipo, "você ainda não tem contas" seria falso: o
+            // usuário pode ter cinco contas correntes e nenhum cartão.
+            return Center(
+              child: Text(
+                initialType == null
+                    ? l10n.accountManagementEmpty
+                    : l10n.accountManagementEmptyOfType,
+              ),
+            );
           }
 
           return LayoutBuilder(
@@ -135,7 +151,16 @@ class AccountManagementScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, stack) => Center(child: Text(err.toString())),
+        error: (err, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: ErrorView.forError(
+              context,
+              err,
+              onRetry: () => Retry.accounts(ref),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -158,7 +183,11 @@ class AccountManagementScreen extends ConsumerWidget {
       },
       contentPadding: isGrid ? const EdgeInsets.symmetric(horizontal: 12) : null,
       leading: AccountLogo(account: account, size: 40, showMembers: true),
-      title: Text(account.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+      title: Text(
+        account.displayName(l10n),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       subtitle: Text(
         l10n.fromAccountType(account.type),
         maxLines: 1,
@@ -169,7 +198,7 @@ class AccountManagementScreen extends ConsumerWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () => context.push('/accounts/form', extra: account),
+            onPressed: () => context.push('/accounts/form?id=${account.id}'),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -199,7 +228,22 @@ class AccountManagementScreen extends ConsumerWidget {
     AccountModel? account,
     AccountType? initialType,
   ]) {
-    context.push('/accounts/form?id=${account?.id ?? ''}');
+    // Sem conta é CRIAÇÃO: nada de `?id=` vazio, que a rota lia como o id ''
+    // e respondia "este item não existe mais" em cima do formulário novo. O
+    // tipo sugerido vai pela query, que é o que sobrevive a um refresh.
+    if (account != null) {
+      context.push('/accounts/form?id=${account.id}');
+      return;
+    }
+
+    context.push(
+      Uri(
+        path: '/accounts/form',
+        queryParameters: {
+          if (initialType != null) 'type': initialType.name,
+        },
+      ).toString(),
+    );
   }
 
   void _confirmDelete(
@@ -212,7 +256,7 @@ class AccountManagementScreen extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.accountDeleteTitle),
-        content: Text(l10n.accountDeleteConfirm(account.name)),
+        content: Text(l10n.accountDeleteConfirm(account.displayName(l10n))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

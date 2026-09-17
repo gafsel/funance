@@ -12,6 +12,8 @@ import 'package:funances/features/onboarding/presentation/provider.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import 'package:funances/core/widgets/error_view.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class AccountsStep extends ConsumerWidget {
   const AccountsStep({super.key});
@@ -54,10 +56,11 @@ class AccountsStep extends ConsumerWidget {
                   ? _buildEmptyState(context, notifier)
                   : _buildAccountList(context, accounts, notifier),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Center(
-                child: Text(
-                  e.toString(),
-                  style: const TextStyle(color: Colors.red),
+              error: (e, _) => Center(
+                child: ErrorView.forError(
+                  context,
+                  e,
+                  onRetry: () => Retry.accounts(ref),
                 ),
               ),
             ),

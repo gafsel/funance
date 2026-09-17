@@ -12,6 +12,10 @@ sealed class GoalFormState with _$GoalFormState {
     String? id,
     required String name,
     required double targetAmount,
+
+    /// SÓ LEITURA: o progresso que o servidor calculou, carregado para a
+    /// análise de viabilidade poder falar em "quanto falta". Nenhum campo do
+    /// formulário o altera e o repositório não o envia numa edição.
     required double currentAmount,
     required DateTime startDate,
     required DateTime deadline,

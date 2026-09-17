@@ -69,6 +69,11 @@ sealed class CategoryPlanning503020State with _$CategoryPlanning503020State {
     @Default(0.0) double totalActualIncomes,
     @Default(true) bool isLoading,
     @Default(false) bool isSubmitting,
+
+    /// Falha da leitura do mês. O `listen` do notifier não tinha `onError`: a
+    /// exceção do stream sumia e a tela ficava com as pools vazias, dizendo
+    /// que não havia categoria em nenhuma delas.
+    Object? error,
   }) = _CategoryPlanning503020State;
 }
 

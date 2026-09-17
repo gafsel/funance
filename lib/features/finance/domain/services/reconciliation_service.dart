@@ -9,6 +9,7 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:uuid/uuid.dart';
 import 'finance_service.dart';
+import 'package:funances/core/money/money.dart';
 
 class ReconciliationService {
   final String workspaceId;
@@ -68,11 +69,15 @@ class ReconciliationService {
     );
 
     for (final docTx in docTransactions) {
+      // Mesmo valor é MESMO valor: em centavos inteiros a comparação é
+      // exata. A tolerância de um centavo que havia aqui não descrevia
+      // nenhuma regra de negócio — era só o medo do resto do `double`.
+      final docAmount = docTx.amount.asMoney;
+
       // Tentar encontrar uma correspondência exata (data e valor)
       InstallmentModel? match = availableInstallments.where((inst) {
         final dateDiff = inst.referenceDate.difference(docTx.date).inDays.abs();
-        return dateDiff <= 1 &&
-            (inst.referenceAmount - docTx.amount).abs() < 0.01;
+        return dateDiff <= 1 && inst.referenceAmount.asMoney == docAmount;
       }).firstOrNull;
 
       if (match != null) {
@@ -91,8 +96,7 @@ class ReconciliationService {
               .difference(docTx.date)
               .inDays
               .abs();
-          return dateDiff <= 7 &&
-              (inst.referenceAmount - docTx.amount).abs() < 0.01;
+          return dateDiff <= 7 && inst.referenceAmount.asMoney == docAmount;
         }).firstOrNull;
 
         if (match != null) {
@@ -142,7 +146,10 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.reading,
           progress: 0.25,
-          message: '[Fase 1/4] 📄 Lendo o arquivo do extrato...',
+          // O texto que o usuário vê sai do `status`, traduzido na tela
+          // (`AnalysisLoadingView`). Aqui fica só um rastro técnico: escrever
+          // frase pronta no documento era escolher o idioma de quem lê.
+          message: 'phase 1/4: reading statement file',
         ),
       );
     }
@@ -159,7 +166,7 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.searching,
           progress: 0.75,
-          message: '[Fase 3/4] 🧠 Buscando parcelas e projeções no sistema...',
+          message: 'phase 3/4: searching matching installments',
         ),
       );
     }
@@ -192,7 +199,7 @@ class ReconciliationService {
           UploadProgressModel(
             status: UploadStatus.completed,
             progress: 1.00,
-            message: '[Fase 4/4] ⚡ Preparando sugestões de conciliação...',
+            message: 'phase 4/4: preparing suggestions',
           ),
         );
       }
@@ -220,7 +227,7 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.preparing,
           progress: 0.90,
-          message: '[Fase 4/4] ⚡ Preparando sugestões de conciliação...',
+          message: 'phase 4/4: preparing suggestions',
         ),
       );
     }
@@ -234,7 +241,7 @@ class ReconciliationService {
         UploadProgressModel(
           status: UploadStatus.completed,
           progress: 1.00,
-          message: '[Fase 4/4] ⚡ Preparando sugestões de conciliação...',
+          message: 'phase 4/4: preparing suggestions',
         ),
       );
     }
@@ -242,9 +249,15 @@ class ReconciliationService {
     return matches;
   }
 
+  /// Confirma a conciliação.
+  ///
+  /// [uncategorizedLabel] é o nome da categoria criada para o lançamento que
+  /// o extrato não classificou. Ele vem da TELA porque é GRAVADO: o serviço
+  /// escrevia "Outros" em português no Firestore de qualquer usuário.
   Future<void> confirmReconciliation({
     required AccountModel selectedAccount,
     required List<ReconciliationMatch> matches,
+    required String uncategorizedLabel,
   }) async {
     final categories = await categoryService.getCategories().first;
 
@@ -343,7 +356,7 @@ class ReconciliationService {
               docTx.category ??
                   CategoryModel(
                     id: const Uuid().v4(),
-                    name: 'Outros',
+                    name: uncategorizedLabel,
                     icon: 'help',
                     color: '#9E9E9E',
                     type: type == OrderType.income

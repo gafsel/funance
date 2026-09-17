@@ -12,6 +12,8 @@ import 'package:funances/features/coaching/domain/models/coaching_model.dart';
 import 'package:funances/features/coaching/presentation/providers.dart';
 import 'package:funances/features/finance/presentation/widgets/analysis_loading_view.dart';
 import 'package:go_router/go_router.dart';
+import 'package:funances/core/utils/error_messages.dart';
+import 'package:funances/core/presentation/retry.dart';
 
 class CoachingInsightCard extends ConsumerWidget {
   const CoachingInsightCard({super.key});
@@ -42,7 +44,7 @@ class CoachingInsightCard extends ConsumerWidget {
         ),
         child: const Center(child: CircularProgressIndicator()),
       ),
-      error: (_, _) => Container(
+      error: (error, _) => Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 24),
         padding: const EdgeInsets.all(16),
@@ -54,10 +56,18 @@ class CoachingInsightCard extends ConsumerWidget {
           children: [
             Icon(Icons.psychology_outlined, color: theme.colorScheme.error),
             const SizedBox(width: 8),
-            Expanded(child: Text(l10n.coachingError)),
+            // Sem rede, "não foi possível gerar sua análise" manda o
+            // usuário tentar de novo sem dizer o que falta.
+            Expanded(
+              child: Text(
+                callableErrorMessage(
+                  error,
+                  errorMessageFor(context, error),
+                ),
+              ),
+            ),
             TextButton(
-              onPressed: () =>
-                  ref.invalidate(CoachingViewProviders.lastInsight),
+              onPressed: () => Retry.lastInsight(ref),
               child: Text(l10n.retry),
             ),
           ],
@@ -197,7 +207,7 @@ class CoachingInsightCard extends ConsumerWidget {
                             if (context.mounted) {
                               _logCoachingOpened(ref);
                               unawaited(
-                                context.push('/coaching', extra: coaching),
+                                context.push('/coaching?id=${coaching.id}'),
                               );
                             }
                           } catch (e) {
@@ -323,7 +333,7 @@ class CoachingInsightCard extends ConsumerWidget {
             builder: (context, ref, _) => InkWell(
               onTap: () {
                 _logCoachingOpened(ref);
-                context.push('/coaching', extra: lastCoaching);
+                context.push('/coaching?id=${lastCoaching.id}');
               },
               child: Text(
                 l10n.coachingViewLast,

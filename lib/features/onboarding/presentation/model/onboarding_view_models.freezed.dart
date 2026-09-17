@@ -14,7 +14,15 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$OnboardingState {
 
- OnboardingSteps get currentStep; WorkspaceModel get workspace; List<String> get inviteEmails; PlanningSuggestions? get planningSuggestions;
+ OnboardingSteps get currentStep; WorkspaceModel get workspace; List<String> get inviteEmails; PlanningSuggestions? get planningSuggestions;/// O documento do workspace já EXISTE no Firestore.
+///
+/// Não dá para deduzir isso do id: `WorkspaceModel.empty()` já nasce com
+/// um uuid, então "tem id" não quer dizer "foi gravado". Enquanto o
+/// workspace nascia junto com a ENTRADA no passo do nome, a diferença não
+/// aparecia; agora que ele nasce ao SAIR desse passo — com o nome que o
+/// usuário digitou —, tentar atualizar antes disso seria um `update()`
+/// num documento que não existe.
+ bool get workspaceCreated;
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +33,16 @@ $OnboardingStateCopyWith<OnboardingState> get copyWith => _$OnboardingStateCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other.inviteEmails, inviteEmails)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other.inviteEmails, inviteEmails)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions)&&(identical(other.workspaceCreated, workspaceCreated) || other.workspaceCreated == workspaceCreated));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(inviteEmails),planningSuggestions);
+int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(inviteEmails),planningSuggestions,workspaceCreated);
 
 @override
 String toString() {
-  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, planningSuggestions: $planningSuggestions)';
+  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, planningSuggestions: $planningSuggestions, workspaceCreated: $workspaceCreated)';
 }
 
 
@@ -45,7 +53,7 @@ abstract mixin class $OnboardingStateCopyWith<$Res>  {
   factory $OnboardingStateCopyWith(OnboardingState value, $Res Function(OnboardingState) _then) = _$OnboardingStateCopyWithImpl;
 @useResult
 $Res call({
- OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, PlanningSuggestions? planningSuggestions
+ OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, PlanningSuggestions? planningSuggestions, bool workspaceCreated
 });
 
 
@@ -62,13 +70,14 @@ class _$OnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? planningSuggestions = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? planningSuggestions = freezed,Object? workspaceCreated = null,}) {
   return _then(_self.copyWith(
 currentStep: null == currentStep ? _self.currentStep : currentStep // ignore: cast_nullable_to_non_nullable
 as OnboardingSteps,workspace: null == workspace ? _self.workspace : workspace // ignore: cast_nullable_to_non_nullable
 as WorkspaceModel,inviteEmails: null == inviteEmails ? _self.inviteEmails : inviteEmails // ignore: cast_nullable_to_non_nullable
 as List<String>,planningSuggestions: freezed == planningSuggestions ? _self.planningSuggestions : planningSuggestions // ignore: cast_nullable_to_non_nullable
-as PlanningSuggestions?,
+as PlanningSuggestions?,workspaceCreated: null == workspaceCreated ? _self.workspaceCreated : workspaceCreated // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of OnboardingState
@@ -171,10 +180,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions,  bool workspaceCreated)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingState() when $default != null:
-return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions);case _:
+return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions,_that.workspaceCreated);case _:
   return orElse();
 
 }
@@ -192,10 +201,10 @@ return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.plann
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions,  bool workspaceCreated)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingState():
-return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions);}
+return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions,_that.workspaceCreated);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -209,10 +218,10 @@ return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.plann
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( OnboardingSteps currentStep,  WorkspaceModel workspace,  List<String> inviteEmails,  PlanningSuggestions? planningSuggestions,  bool workspaceCreated)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingState() when $default != null:
-return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions);case _:
+return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.planningSuggestions,_that.workspaceCreated);case _:
   return null;
 
 }
@@ -224,7 +233,7 @@ return $default(_that.currentStep,_that.workspace,_that.inviteEmails,_that.plann
 
 
 class _OnboardingState extends OnboardingState {
-  const _OnboardingState({this.currentStep = OnboardingSteps.type, required this.workspace, final  List<String> inviteEmails = const [], this.planningSuggestions}): _inviteEmails = inviteEmails,super._();
+  const _OnboardingState({this.currentStep = OnboardingSteps.type, required this.workspace, final  List<String> inviteEmails = const [], this.planningSuggestions, this.workspaceCreated = false}): _inviteEmails = inviteEmails,super._();
   
 
 @override@JsonKey() final  OnboardingSteps currentStep;
@@ -237,6 +246,15 @@ class _OnboardingState extends OnboardingState {
 }
 
 @override final  PlanningSuggestions? planningSuggestions;
+/// O documento do workspace já EXISTE no Firestore.
+///
+/// Não dá para deduzir isso do id: `WorkspaceModel.empty()` já nasce com
+/// um uuid, então "tem id" não quer dizer "foi gravado". Enquanto o
+/// workspace nascia junto com a ENTRADA no passo do nome, a diferença não
+/// aparecia; agora que ele nasce ao SAIR desse passo — com o nome que o
+/// usuário digitou —, tentar atualizar antes disso seria um `update()`
+/// num documento que não existe.
+@override@JsonKey() final  bool workspaceCreated;
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
@@ -248,16 +266,16 @@ _$OnboardingStateCopyWith<_OnboardingState> get copyWith => __$OnboardingStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other._inviteEmails, _inviteEmails)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingState&&(identical(other.currentStep, currentStep) || other.currentStep == currentStep)&&(identical(other.workspace, workspace) || other.workspace == workspace)&&const DeepCollectionEquality().equals(other._inviteEmails, _inviteEmails)&&(identical(other.planningSuggestions, planningSuggestions) || other.planningSuggestions == planningSuggestions)&&(identical(other.workspaceCreated, workspaceCreated) || other.workspaceCreated == workspaceCreated));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(_inviteEmails),planningSuggestions);
+int get hashCode => Object.hash(runtimeType,currentStep,workspace,const DeepCollectionEquality().hash(_inviteEmails),planningSuggestions,workspaceCreated);
 
 @override
 String toString() {
-  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, planningSuggestions: $planningSuggestions)';
+  return 'OnboardingState(currentStep: $currentStep, workspace: $workspace, inviteEmails: $inviteEmails, planningSuggestions: $planningSuggestions, workspaceCreated: $workspaceCreated)';
 }
 
 
@@ -268,7 +286,7 @@ abstract mixin class _$OnboardingStateCopyWith<$Res> implements $OnboardingState
   factory _$OnboardingStateCopyWith(_OnboardingState value, $Res Function(_OnboardingState) _then) = __$OnboardingStateCopyWithImpl;
 @override @useResult
 $Res call({
- OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, PlanningSuggestions? planningSuggestions
+ OnboardingSteps currentStep, WorkspaceModel workspace, List<String> inviteEmails, PlanningSuggestions? planningSuggestions, bool workspaceCreated
 });
 
 
@@ -285,13 +303,14 @@ class __$OnboardingStateCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? planningSuggestions = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? currentStep = null,Object? workspace = null,Object? inviteEmails = null,Object? planningSuggestions = freezed,Object? workspaceCreated = null,}) {
   return _then(_OnboardingState(
 currentStep: null == currentStep ? _self.currentStep : currentStep // ignore: cast_nullable_to_non_nullable
 as OnboardingSteps,workspace: null == workspace ? _self.workspace : workspace // ignore: cast_nullable_to_non_nullable
 as WorkspaceModel,inviteEmails: null == inviteEmails ? _self._inviteEmails : inviteEmails // ignore: cast_nullable_to_non_nullable
 as List<String>,planningSuggestions: freezed == planningSuggestions ? _self.planningSuggestions : planningSuggestions // ignore: cast_nullable_to_non_nullable
-as PlanningSuggestions?,
+as PlanningSuggestions?,workspaceCreated: null == workspaceCreated ? _self.workspaceCreated : workspaceCreated // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

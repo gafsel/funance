@@ -194,12 +194,6 @@ abstract class AppLocalizations {
   /// **'E-mail inválido'**
   String get invalidEmail;
 
-  /// No description provided for @shortPassword.
-  ///
-  /// In pt, this message translates to:
-  /// **'A senha deve ter pelo menos 6 caracteres'**
-  String get shortPassword;
-
   /// No description provided for @appErrorWidgetTitle.
   ///
   /// In pt, this message translates to:
@@ -458,6 +452,48 @@ abstract class AppLocalizations {
   /// **'Esta ação precisa de internet. Reconecte e tente de novo.'**
   String get errorOfflineCallable;
 
+  /// No description provided for @reconciliationChooseAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Qual conta você quer conciliar?'**
+  String get reconciliationChooseAccount;
+
+  /// No description provided for @errorOffline.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem conexão com a internet. Mostramos o que já estava no aparelho; toque em tentar de novo quando a rede voltar.'**
+  String get errorOffline;
+
+  /// No description provided for @errorPermissionDenied.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você não tem acesso a estes dados. Se acabou de sair de um workspace, entre de novo.'**
+  String get errorPermissionDenied;
+
+  /// No description provided for @errorQuotaExhausted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite de uso atingido. Tente de novo mais tarde.'**
+  String get errorQuotaExhausted;
+
+  /// No description provided for @errorNotAuthenticated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sua sessão expirou. Entre de novo para continuar.'**
+  String get errorNotAuthenticated;
+
+  /// No description provided for @errorNotFound.
+  ///
+  /// In pt, this message translates to:
+  /// **'Este item não existe mais.'**
+  String get errorNotFound;
+
+  /// No description provided for @errorTimeout.
+  ///
+  /// In pt, this message translates to:
+  /// **'O servidor demorou demais para responder. Tente de novo.'**
+  String get errorTimeout;
+
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In pt, this message translates to:
@@ -475,18 +511,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Próximo'**
   String get onboardingNext;
-
-  /// No description provided for @onboardingBack.
-  ///
-  /// In pt, this message translates to:
-  /// **'Voltar'**
-  String get onboardingBack;
-
-  /// No description provided for @onboardingStart.
-  ///
-  /// In pt, this message translates to:
-  /// **'Começar Jornada'**
-  String get onboardingStart;
 
   /// No description provided for @onboardingPersonalTitle.
   ///
@@ -536,23 +560,11 @@ abstract class AppLocalizations {
   /// **'Nome do Workspace'**
   String get onboardingWorkspaceNameLabel;
 
-  /// No description provided for @onboardingWorkspaceCreateError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Erro ao criar workspace.'**
-  String get onboardingWorkspaceCreateError;
-
   /// No description provided for @onboardingGoalsTitle.
   ///
   /// In pt, this message translates to:
   /// **'Trace suas primeiras metas'**
   String get onboardingGoalsTitle;
-
-  /// No description provided for @onboardingGoalsDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Economizar para uma viagem? Comprar um carro? Vamos configurar isso em breve.'**
-  String get onboardingGoalsDesc;
 
   /// No description provided for @onboardingGoalsButton.
   ///
@@ -608,18 +620,6 @@ abstract class AppLocalizations {
   /// **'ADICIONAR OUTRA CONTA'**
   String get onboardingAccountsAddAnother;
 
-  /// No description provided for @onboardingAccountsManual.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cadastro manual'**
-  String get onboardingAccountsManual;
-
-  /// No description provided for @onboardingAccountsAttachment.
-  ///
-  /// In pt, this message translates to:
-  /// **'Anexo: {fileName}'**
-  String onboardingAccountsAttachment(String fileName);
-
   /// No description provided for @onboardingGoalsAnalysisTitle.
   ///
   /// In pt, this message translates to:
@@ -673,12 +673,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'IR PARA A TELA PRINCIPAL'**
   String get onboardingSuccessCTA;
-
-  /// No description provided for @onboardingStepConceptsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Entenda os Conceitos'**
-  String get onboardingStepConceptsTitle;
 
   /// No description provided for @onboardingStepConceptsDesc.
   ///
@@ -734,29 +728,11 @@ abstract class AppLocalizations {
   /// **'O dia a dia! Registre suas entradas e saídas reais para acompanhar seu progresso em relação ao plano.'**
   String get onboardingConceptTransactionsDesc;
 
-  /// No description provided for @goalRemainingMonthly.
-  ///
-  /// In pt, this message translates to:
-  /// **'{amount}/mês'**
-  String goalRemainingMonthly(String amount);
-
   /// No description provided for @goalTargetTarget.
   ///
   /// In pt, this message translates to:
   /// **'Alvo: {amount}'**
   String goalTargetTarget(String amount);
-
-  /// No description provided for @goalRemainingMonthlyDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor por mês'**
-  String get goalRemainingMonthlyDesc;
-
-  /// No description provided for @goalRemainingMonthlyTarget.
-  ///
-  /// In pt, this message translates to:
-  /// **'{amount}/mês até {date}'**
-  String goalRemainingMonthlyTarget(String amount, String date);
 
   /// No description provided for @goalDetailsTitle.
   ///
@@ -764,23 +740,11 @@ abstract class AppLocalizations {
   /// **'Detalhes da Meta'**
   String get goalDetailsTitle;
 
-  /// No description provided for @goalTransactionsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Transações Relacionadas'**
-  String get goalTransactionsTitle;
-
   /// No description provided for @goalEditButton.
   ///
   /// In pt, this message translates to:
   /// **'Editar Meta'**
   String get goalEditButton;
-
-  /// No description provided for @goalDeleteButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Excluir Meta'**
-  String get goalDeleteButton;
 
   /// No description provided for @goalDeleteConfirmTitle.
   ///
@@ -847,30 +811,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Prazo'**
   String get goalChartEndLabel;
-
-  /// No description provided for @goalMilestone25.
-  ///
-  /// In pt, this message translates to:
-  /// **'25%'**
-  String get goalMilestone25;
-
-  /// No description provided for @goalMilestone50.
-  ///
-  /// In pt, this message translates to:
-  /// **'50%'**
-  String get goalMilestone50;
-
-  /// No description provided for @goalMilestone75.
-  ///
-  /// In pt, this message translates to:
-  /// **'75%'**
-  String get goalMilestone75;
-
-  /// No description provided for @goalMilestone100.
-  ///
-  /// In pt, this message translates to:
-  /// **'100%'**
-  String get goalMilestone100;
 
   /// No description provided for @goalAnalyzeWithAi.
   ///
@@ -944,12 +884,6 @@ abstract class AppLocalizations {
   /// **'Entendi'**
   String get goalAiClose;
 
-  /// No description provided for @goalMonthlyRequirementLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor por mês'**
-  String get goalMonthlyRequirementLabel;
-
   /// No description provided for @goalMonthlyRequirementValue.
   ///
   /// In pt, this message translates to:
@@ -1004,29 +938,11 @@ abstract class AppLocalizations {
   /// **'E-mail'**
   String get profileEmailLabel;
 
-  /// No description provided for @profileSaveButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Salvar Alterações'**
-  String get profileSaveButton;
-
   /// No description provided for @profileUpdateSuccess.
   ///
   /// In pt, this message translates to:
   /// **'Perfil atualizado com sucesso!'**
   String get profileUpdateSuccess;
-
-  /// No description provided for @profileUpdateError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Erro ao atualizar perfil.'**
-  String get profileUpdateError;
-
-  /// No description provided for @profilePhotoSourceTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Escolha a origem da foto'**
-  String get profilePhotoSourceTitle;
 
   /// No description provided for @profilePhotoCamera.
   ///
@@ -1094,12 +1010,6 @@ abstract class AppLocalizations {
   /// **'Futuro e segurança (investimentos e dívidas). Ideal: 20% da sua receita.'**
   String get planning503020InvestmentDesc;
 
-  /// No description provided for @planning503020Ideal.
-  ///
-  /// In pt, this message translates to:
-  /// **'Meta: {amount}'**
-  String planning503020Ideal(String amount);
-
   /// No description provided for @planning503020ActualAmount.
   ///
   /// In pt, this message translates to:
@@ -1130,12 +1040,6 @@ abstract class AppLocalizations {
   /// **'Executado'**
   String get planning503020Actual;
 
-  /// No description provided for @planning503020Goal.
-  ///
-  /// In pt, this message translates to:
-  /// **'Meta'**
-  String get planning503020Goal;
-
   /// No description provided for @planning503020SummaryActual.
   ///
   /// In pt, this message translates to:
@@ -1160,29 +1064,11 @@ abstract class AppLocalizations {
   /// **'Gastos previstos superiores ao estimado!'**
   String get planning503020AlertSpecificGreater;
 
-  /// No description provided for @planning503020Save.
-  ///
-  /// In pt, this message translates to:
-  /// **'SALVAR'**
-  String get planning503020Save;
-
   /// No description provided for @planning503020EmptyPool.
   ///
   /// In pt, this message translates to:
   /// **'Arraste categorias para cá'**
   String get planning503020EmptyPool;
-
-  /// No description provided for @automaticTransactionFindExisting.
-  ///
-  /// In pt, this message translates to:
-  /// **'Buscar Existente'**
-  String get automaticTransactionFindExisting;
-
-  /// No description provided for @automaticTransactionEmpty.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nenhum novo lançamento identificado.'**
-  String get automaticTransactionEmpty;
 
   /// No description provided for @automaticTransactionSimulate.
   ///
@@ -1208,29 +1094,11 @@ abstract class AppLocalizations {
   /// **'Conceder Permissão'**
   String get automaticTransactionGrantPermission;
 
-  /// No description provided for @automaticTransactionSuggestedCategory.
-  ///
-  /// In pt, this message translates to:
-  /// **'Categoria sugerida: {category}'**
-  String automaticTransactionSuggestedCategory(Object category);
-
-  /// No description provided for @automaticTransactionSuggestedAccount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conta sugerida: {account}'**
-  String automaticTransactionSuggestedAccount(Object account);
-
   /// No description provided for @goalRemainingValue.
   ///
   /// In pt, this message translates to:
   /// **'Faltam {amount}'**
   String goalRemainingValue(String amount);
-
-  /// No description provided for @goalProgressValue.
-  ///
-  /// In pt, this message translates to:
-  /// **'{percent}%'**
-  String goalProgressValue(String percent);
 
   /// No description provided for @goalEmptyMessage.
   ///
@@ -1304,12 +1172,6 @@ abstract class AppLocalizations {
   /// **'Categoria'**
   String get goalCategoryLabel;
 
-  /// No description provided for @goalCreditCardLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cartão de Crédito'**
-  String get goalCreditCardLabel;
-
   /// No description provided for @errorGoalNotFound.
   ///
   /// In pt, this message translates to:
@@ -1321,42 +1183,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'O tipo da meta não pode ser alterado.'**
   String get errorGoalTypeCannotBeChanged;
-
-  /// No description provided for @statusOnTrack.
-  ///
-  /// In pt, this message translates to:
-  /// **'Em dia'**
-  String get statusOnTrack;
-
-  /// No description provided for @statusAtRisk.
-  ///
-  /// In pt, this message translates to:
-  /// **'Alerta'**
-  String get statusAtRisk;
-
-  /// No description provided for @statusBehind.
-  ///
-  /// In pt, this message translates to:
-  /// **'Atrasada'**
-  String get statusBehind;
-
-  /// No description provided for @statusLost.
-  ///
-  /// In pt, this message translates to:
-  /// **'Perdida'**
-  String get statusLost;
-
-  /// No description provided for @goalProgressPercent.
-  ///
-  /// In pt, this message translates to:
-  /// **'{percent}% concluído'**
-  String goalProgressPercent(Object percent);
-
-  /// No description provided for @goalRemainingAmount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Faltam {amount}'**
-  String goalRemainingAmount(Object amount);
 
   /// No description provided for @continueButton.
   ///
@@ -1472,12 +1298,6 @@ abstract class AppLocalizations {
   /// **'Membro removido.'**
   String get membersRemoveSuccess;
 
-  /// No description provided for @membersRemoveError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível remover o membro.'**
-  String get membersRemoveError;
-
   /// No description provided for @membersInviteSentAt.
   ///
   /// In pt, this message translates to:
@@ -1495,12 +1315,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Convite renovado.'**
   String get membersResendSuccess;
-
-  /// No description provided for @membersResendError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível renovar o convite.'**
-  String get membersResendError;
 
   /// No description provided for @membersCancelInviteAction.
   ///
@@ -1525,18 +1339,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Convite cancelado.'**
   String get membersCancelInviteSuccess;
-
-  /// No description provided for @membersCancelInviteError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível cancelar o convite.'**
-  String get membersCancelInviteError;
-
-  /// No description provided for @membersOnlyOwnerCanRemove.
-  ///
-  /// In pt, this message translates to:
-  /// **'Apenas o dono do workspace pode remover membros.'**
-  String get membersOnlyOwnerCanRemove;
 
   /// No description provided for @invitesSubtitle.
   ///
@@ -1574,35 +1376,11 @@ abstract class AppLocalizations {
   /// **'Visão Geral'**
   String get homeOverviewTab;
 
-  /// No description provided for @homeMissionsTab.
-  ///
-  /// In pt, this message translates to:
-  /// **'Missões'**
-  String get homeMissionsTab;
-
   /// No description provided for @homeHistoryTab.
   ///
   /// In pt, this message translates to:
   /// **'Extrato'**
   String get homeHistoryTab;
-
-  /// No description provided for @homeTotalSavedMonth.
-  ///
-  /// In pt, this message translates to:
-  /// **'Você economizou {amount} a mais que o planejado!'**
-  String homeTotalSavedMonth(Object amount);
-
-  /// No description provided for @homePointsEarned.
-  ///
-  /// In pt, this message translates to:
-  /// **'+{points} Pontos'**
-  String homePointsEarned(Object points);
-
-  /// No description provided for @homeRemainingAmount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Faltam {amount} ({percent}% concluído)'**
-  String homeRemainingAmount(Object amount, Object percent);
 
   /// No description provided for @homeAccountsAndCards.
   ///
@@ -1616,23 +1394,11 @@ abstract class AppLocalizations {
   /// **'Missões da Semana'**
   String get weeklyMissions;
 
-  /// No description provided for @weeklyMissionsSuccess.
-  ///
-  /// In pt, this message translates to:
-  /// **'Semana de Sucesso!'**
-  String get weeklyMissionsSuccess;
-
   /// No description provided for @weeklyMissionsNone.
   ///
   /// In pt, this message translates to:
   /// **'Nenhuma missão para esta semana'**
   String get weeklyMissionsNone;
-
-  /// No description provided for @weeklyMissionsSuccessDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Você cumpriu todas as suas metas. Parabéns!'**
-  String get weeklyMissionsSuccessDesc;
 
   /// No description provided for @weeklyMissionsNoneDesc.
   ///
@@ -1664,23 +1430,11 @@ abstract class AppLocalizations {
   /// **'{completed} de {total} completadas'**
   String weeklyMissionsProgress(String completed, String total);
 
-  /// No description provided for @weeklyGoal.
-  ///
-  /// In pt, this message translates to:
-  /// **'Meta da Semana'**
-  String get weeklyGoal;
-
   /// No description provided for @xpValue.
   ///
   /// In pt, this message translates to:
   /// **'{xp} XP'**
   String xpValue(String xp);
-
-  /// No description provided for @xpProgress.
-  ///
-  /// In pt, this message translates to:
-  /// **'{current} / {total} XP'**
-  String xpProgress(String current, String total);
 
   /// No description provided for @percentage.
   ///
@@ -1694,30 +1448,6 @@ abstract class AppLocalizations {
   /// **'{start} - {end}'**
   String dateRange(String start, String end);
 
-  /// No description provided for @remainingWeeklyPlanning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Disponível na semana'**
-  String get remainingWeeklyPlanning;
-
-  /// No description provided for @spentOfWeeklyPlanning.
-  ///
-  /// In pt, this message translates to:
-  /// **'{spent} de {limit}'**
-  String spentOfWeeklyPlanning(String spent, String limit);
-
-  /// No description provided for @hpLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'HP'**
-  String get hpLabel;
-
-  /// No description provided for @overBudgetAmount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Excesso: {amount}'**
-  String overBudgetAmount(String amount);
-
   /// No description provided for @homeWhereIsMoney.
   ///
   /// In pt, this message translates to:
@@ -1730,59 +1460,11 @@ abstract class AppLocalizations {
   /// **'Total Gasto'**
   String get homeTotalSpent;
 
-  /// No description provided for @homeTotalBalance.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saldo Total'**
-  String get homeTotalBalance;
-
-  /// No description provided for @accountCreateAction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cadastrar Nova Conta'**
-  String get accountCreateAction;
-
-  /// No description provided for @accountCreateTypeAction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cadastrar Nova Conta de {type}'**
-  String accountCreateTypeAction(String type);
-
-  /// No description provided for @homeAllAccounts.
-  ///
-  /// In pt, this message translates to:
-  /// **'Todas as Contas'**
-  String get homeAllAccounts;
-
-  /// No description provided for @homeThisMonth.
-  ///
-  /// In pt, this message translates to:
-  /// **'Este Mês'**
-  String get homeThisMonth;
-
-  /// No description provided for @homeLastMonth.
-  ///
-  /// In pt, this message translates to:
-  /// **'Mês Passado'**
-  String get homeLastMonth;
-
-  /// No description provided for @homeCustomPeriod.
-  ///
-  /// In pt, this message translates to:
-  /// **'Customizado'**
-  String get homeCustomPeriod;
-
   /// No description provided for @homeNewTransaction.
   ///
   /// In pt, this message translates to:
   /// **'Novo Lançamento'**
   String get homeNewTransaction;
-
-  /// No description provided for @homeConsolidate.
-  ///
-  /// In pt, this message translates to:
-  /// **'Consolidar'**
-  String get homeConsolidate;
 
   /// No description provided for @noTransactionsInPeriod.
   ///
@@ -1790,23 +1472,11 @@ abstract class AppLocalizations {
   /// **'Nenhuma transação encontrada para este período'**
   String get noTransactionsInPeriod;
 
-  /// No description provided for @historyFilterPeriod.
-  ///
-  /// In pt, this message translates to:
-  /// **'Selecionar Período'**
-  String get historyFilterPeriod;
-
   /// No description provided for @historyFilterAccountLabel.
   ///
   /// In pt, this message translates to:
   /// **'Conta'**
   String get historyFilterAccountLabel;
-
-  /// No description provided for @historyFilterAllAccounts.
-  ///
-  /// In pt, this message translates to:
-  /// **'Todas as Contas'**
-  String get historyFilterAllAccounts;
 
   /// No description provided for @all.
   ///
@@ -1843,12 +1513,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Status'**
   String get historyFilterStatusLabel;
-
-  /// No description provided for @historyFilterAmountRangeLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Faixa de Valor'**
-  String get historyFilterAmountRangeLabel;
 
   /// No description provided for @historyFilterMinAmountLabel.
   ///
@@ -2018,12 +1682,6 @@ abstract class AppLocalizations {
   /// **'Despesa'**
   String get categoryTypeExpense;
 
-  /// No description provided for @categoryTypeBoth.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ambos'**
-  String get categoryTypeBoth;
-
   /// No description provided for @categoryDeleteTitle.
   ///
   /// In pt, this message translates to:
@@ -2053,6 +1711,162 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Conciliação Bancária'**
   String get reconciliationTitle;
+
+  /// No description provided for @unnamedWorkspace.
+  ///
+  /// In pt, this message translates to:
+  /// **'Workspace sem nome'**
+  String get unnamedWorkspace;
+
+  /// No description provided for @accountManagementEmptyOfType.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você ainda não tem contas deste tipo.'**
+  String get accountManagementEmptyOfType;
+
+  /// No description provided for @bankLogoOther.
+  ///
+  /// In pt, this message translates to:
+  /// **'Outros'**
+  String get bankLogoOther;
+
+  /// No description provided for @accountsMine.
+  ///
+  /// In pt, this message translates to:
+  /// **'Minhas contas'**
+  String get accountsMine;
+
+  /// No description provided for @accountsOfMember.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contas de {name}'**
+  String accountsOfMember(String name);
+
+  /// No description provided for @accountsShared.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contas compartilhadas'**
+  String get accountsShared;
+
+  /// No description provided for @planning503020TargetPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta: {percent}'**
+  String planning503020TargetPercent(String percent);
+
+  /// No description provided for @noCategory.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem categoria'**
+  String get noCategory;
+
+  /// No description provided for @noDescription.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem descrição'**
+  String get noDescription;
+
+  /// No description provided for @unnamedAccount.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conta sem nome'**
+  String get unnamedAccount;
+
+  /// No description provided for @unnamedGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'Meta sem nome'**
+  String get unnamedGoal;
+
+  /// No description provided for @automaticTransactionMoveWorkspace.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mover para outro workspace'**
+  String get automaticTransactionMoveWorkspace;
+
+  /// No description provided for @accountOwnersLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Titulares da conta'**
+  String get accountOwnersLabel;
+
+  /// No description provided for @reconciliationPickTransaction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Selecionar lançamento'**
+  String get reconciliationPickTransaction;
+
+  /// No description provided for @transactionNewTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Novo lançamento'**
+  String get transactionNewTitle;
+
+  /// No description provided for @planning503020AlreadyPlanned.
+  ///
+  /// In pt, this message translates to:
+  /// **'Já previsto:'**
+  String get planning503020AlreadyPlanned;
+
+  /// No description provided for @loginTermsNotice.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ao entrar, você concorda com nossos Termos de Serviço e Política de Privacidade.'**
+  String get loginTermsNotice;
+
+  /// No description provided for @inviteEmailHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'exemplo@email.com'**
+  String get inviteEmailHint;
+
+  /// No description provided for @uploadStatusReading.
+  ///
+  /// In pt, this message translates to:
+  /// **'Lendo o arquivo do extrato…'**
+  String get uploadStatusReading;
+
+  /// No description provided for @uploadStatusExtracting.
+  ///
+  /// In pt, this message translates to:
+  /// **'Extraindo transações e valores…'**
+  String get uploadStatusExtracting;
+
+  /// No description provided for @uploadStatusSearching.
+  ///
+  /// In pt, this message translates to:
+  /// **'Procurando os lançamentos correspondentes…'**
+  String get uploadStatusSearching;
+
+  /// No description provided for @uploadStatusPreparing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Preparando as sugestões de conciliação…'**
+  String get uploadStatusPreparing;
+
+  /// No description provided for @uploadStatusCompleted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliação pronta.'**
+  String get uploadStatusCompleted;
+
+  /// No description provided for @uploadStatusError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível ler este extrato.'**
+  String get uploadStatusError;
+
+  /// No description provided for @reconciliationAction.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar extrato'**
+  String get reconciliationAction;
+
+  /// No description provided for @reconciliationMissionCta.
+  ///
+  /// In pt, this message translates to:
+  /// **'Conciliar extrato agora'**
+  String get reconciliationMissionCta;
 
   /// No description provided for @reconciliationTransactionsFound.
   ///
@@ -2168,12 +1982,6 @@ abstract class AppLocalizations {
   /// **'Cadastrar'**
   String get reconciliationActionRegister;
 
-  /// No description provided for @reconciliationActionAnalyze.
-  ///
-  /// In pt, this message translates to:
-  /// **'Analisar Extrato'**
-  String get reconciliationActionAnalyze;
-
   /// No description provided for @reconciliationSystemLabel.
   ///
   /// In pt, this message translates to:
@@ -2191,24 +1999,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nenhuma transação correlata encontrada'**
   String get reconciliationNoMatchFound;
-
-  /// No description provided for @reconciliationSectionTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Conciliação'**
-  String get reconciliationSectionTitle;
-
-  /// No description provided for @reconciliationSectionDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Compare seus registros com o extrato bancário real.'**
-  String get reconciliationSectionDesc;
-
-  /// No description provided for @reconciliationChangeAccount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Alterar'**
-  String get reconciliationChangeAccount;
 
   /// No description provided for @cancelButton.
   ///
@@ -2341,12 +2131,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Deseja realmente excluir a conta \"{name}\"? (Os dados não serão perdidos fisicamente)'**
   String accountDeleteConfirm(String name);
-
-  /// No description provided for @addAccountButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Adicionar Conta'**
-  String get addAccountButton;
 
   /// No description provided for @addWorkspaceButton.
   ///
@@ -2606,30 +2390,6 @@ abstract class AppLocalizations {
   /// **'Deseja excluir apenas esta parcela ou as demais também?'**
   String get transactionDeleteCascadeDescription;
 
-  /// No description provided for @transactionDeleteCascadeOnlyThis.
-  ///
-  /// In pt, this message translates to:
-  /// **'Apenas esta'**
-  String get transactionDeleteCascadeOnlyThis;
-
-  /// No description provided for @transactionDeleteCascadeThisAndNext.
-  ///
-  /// In pt, this message translates to:
-  /// **'Esta e próximas'**
-  String get transactionDeleteCascadeThisAndNext;
-
-  /// No description provided for @transactionDeleteCascadeAll.
-  ///
-  /// In pt, this message translates to:
-  /// **'Todas'**
-  String get transactionDeleteCascadeAll;
-
-  /// No description provided for @transactionDueDateLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Vencimento'**
-  String get transactionDueDateLabel;
-
   /// No description provided for @noAccountsFound.
   ///
   /// In pt, this message translates to:
@@ -2677,54 +2437,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Data do Valor Atual'**
   String get initialBalanceDebtDateLabel;
-
-  /// No description provided for @accountBankLogoLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Logo do Banco/Bandeira'**
-  String get accountBankLogoLabel;
-
-  /// No description provided for @accountOwnerIdsLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Titulares'**
-  String get accountOwnerIdsLabel;
-
-  /// No description provided for @customLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Personalizado'**
-  String get customLabel;
-
-  /// No description provided for @accountNextInvoiceValueLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor da próxima fatura'**
-  String get accountNextInvoiceValueLabel;
-
-  /// No description provided for @accountInitialInvestmentValueLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saldo inicial do investimento'**
-  String get accountInitialInvestmentValueLabel;
-
-  /// No description provided for @accountInitialDebtValueLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Valor da dívida'**
-  String get accountInitialDebtValueLabel;
-
-  /// No description provided for @accountInitialInvestmentDateLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Data inicial do investimento'**
-  String get accountInitialInvestmentDateLabel;
-
-  /// No description provided for @accountInitialDebtDateLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Data da dívida'**
-  String get accountInitialDebtDateLabel;
 
   /// No description provided for @none.
   ///
@@ -2774,12 +2486,6 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 transação encontrada} other{{count} transações encontradas}}'**
   String accountDetectedTransactions(num count);
 
-  /// No description provided for @accountDetectedPlannings.
-  ///
-  /// In pt, this message translates to:
-  /// **'{count, plural, =1{1 planejamento sugerido} other{{count} planejamentos sugeridos}}'**
-  String accountDetectedPlannings(num count);
-
   /// No description provided for @accountDetectedConfirmation.
   ///
   /// In pt, this message translates to:
@@ -2816,12 +2522,6 @@ abstract class AppLocalizations {
   /// **'Processando dados...'**
   String get accountAnalysisProcessing;
 
-  /// No description provided for @accountAnalysisFailed.
-  ///
-  /// In pt, this message translates to:
-  /// **'Falha no processamento '**
-  String get accountAnalysisFailed;
-
   /// No description provided for @onboardingPlanningAnalyzingTitle.
   ///
   /// In pt, this message translates to:
@@ -2840,35 +2540,17 @@ abstract class AppLocalizations {
   /// **'Ver Transações'**
   String get accountViewTransactions;
 
-  /// No description provided for @accountViewPlannings.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver Planejamentos'**
-  String get accountViewPlannings;
-
   /// No description provided for @accountDetectedTransactionsTitle.
   ///
   /// In pt, this message translates to:
   /// **'Transações Detectadas'**
   String get accountDetectedTransactionsTitle;
 
-  /// No description provided for @accountDetectedPlanningsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Planejamentos Sugeridos'**
-  String get accountDetectedPlanningsTitle;
-
   /// No description provided for @historyEdit.
   ///
   /// In pt, this message translates to:
   /// **'Editar'**
   String get historyEdit;
-
-  /// No description provided for @historyDelete.
-  ///
-  /// In pt, this message translates to:
-  /// **'Excluir'**
-  String get historyDelete;
 
   /// No description provided for @historyDeleteTitle.
   ///
@@ -2971,48 +2653,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Vai contar como Dívidas'**
   String get transactionTransferCountsAsDebt;
-
-  /// No description provided for @transactionSelectSourceAccount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Selecionar Conta de Origem'**
-  String get transactionSelectSourceAccount;
-
-  /// No description provided for @transactionSelectDestinationAccount.
-  ///
-  /// In pt, this message translates to:
-  /// **'Selecione a Conta de Destino'**
-  String get transactionSelectDestinationAccount;
-
-  /// No description provided for @transactionAddExpenseDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registre uma despesa pontual que ocorreu hoje ou no passado.'**
-  String get transactionAddExpenseDesc;
-
-  /// No description provided for @transactionAddIncomeDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Registre uma receita pontual que ocorreu hoje ou no passado.'**
-  String get transactionAddIncomeDesc;
-
-  /// No description provided for @transactionPlanExpenseDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Agende uma despesa futura, recorrente ou parcelada.'**
-  String get transactionPlanExpenseDesc;
-
-  /// No description provided for @transactionPlanIncomeDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Agende uma receita futura, recorrente ou parcelada.'**
-  String get transactionPlanIncomeDesc;
-
-  /// No description provided for @transactionTransferDesc.
-  ///
-  /// In pt, this message translates to:
-  /// **'Movimente saldo entre suas contas bancárias ou cartões.'**
-  String get transactionTransferDesc;
 
   /// No description provided for @transactionOrderTypeLabel.
   ///
@@ -3302,23 +2942,11 @@ abstract class AppLocalizations {
   /// **'Customizado'**
   String get periodFilterCustom;
 
-  /// No description provided for @periodFilterTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Selecionar Período'**
-  String get periodFilterTitle;
-
   /// No description provided for @completedMissionsSummary.
   ///
   /// In pt, this message translates to:
   /// **'{count} {count, plural, =1{item} other{itens}} • {xp} XP'**
   String completedMissionsSummary(num count, Object xp);
-
-  /// No description provided for @registerEffectivation.
-  ///
-  /// In pt, this message translates to:
-  /// **'Marcar como realizado'**
-  String get registerEffectivation;
 
   /// No description provided for @returnToPending.
   ///
@@ -3329,32 +2957,32 @@ abstract class AppLocalizations {
   /// No description provided for @partyHpLabel.
   ///
   /// In pt, this message translates to:
-  /// **'Saúde da Equipe'**
+  /// **'Saúde da Party'**
   String get partyHpLabel;
 
   /// No description provided for @partyStatusHealthy.
   ///
   /// In pt, this message translates to:
-  /// **'Equipe em Segurança'**
+  /// **'Party em segurança'**
   String get partyStatusHealthy;
 
   /// No description provided for @partyStatusStrained.
   ///
   /// In pt, this message translates to:
-  /// **'Equipe em Perigo'**
+  /// **'Party em perigo'**
   String get partyStatusStrained;
 
   /// No description provided for @partyStatusDefeated.
   ///
   /// In pt, this message translates to:
-  /// **'Equipe Derrotada'**
+  /// **'Party derrotada'**
   String get partyStatusDefeated;
 
-  /// No description provided for @partyTeamTitle.
+  /// No description provided for @partyTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Equipe'**
-  String get partyTeamTitle;
+  /// **'Sua Party'**
+  String get partyTitle;
 
   /// No description provided for @planned.
   ///
@@ -3373,12 +3001,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Excesso'**
   String get excess;
-
-  /// No description provided for @invoiceDetailTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Detalhe de Fatura'**
-  String get invoiceDetailTitle;
 
   /// No description provided for @registerInvoicePayment.
   ///
@@ -3403,24 +3025,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver última análise'**
   String get coachingViewLast;
-
-  /// No description provided for @coachingLastAnalysisFrom.
-  ///
-  /// In pt, this message translates to:
-  /// **'Última análise de {date}'**
-  String coachingLastAnalysisFrom(String date);
-
-  /// No description provided for @coachingWaitSevenDays.
-  ///
-  /// In pt, this message translates to:
-  /// **'Você poderá consultar o coach novamente em {days} dias.'**
-  String coachingWaitSevenDays(int days);
-
-  /// No description provided for @coachingWaitLessOneDay.
-  ///
-  /// In pt, this message translates to:
-  /// **'Você poderá consultar o coach novamente amanhã.'**
-  String get coachingWaitLessOneDay;
 
   /// No description provided for @coachingConsulting.
   ///
@@ -3518,12 +3122,6 @@ abstract class AppLocalizations {
   /// **'Futuros'**
   String get accountStatementFuture;
 
-  /// No description provided for @currentBalance.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saldo Atual'**
-  String get currentBalance;
-
   /// No description provided for @transactions.
   ///
   /// In pt, this message translates to:
@@ -3590,12 +3188,6 @@ abstract class AppLocalizations {
   /// **'Informações de pagamento'**
   String get paymentInfo;
 
-  /// No description provided for @accountOwnerLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Titularidade'**
-  String get accountOwnerLabel;
-
   /// No description provided for @teamAchievementsTitle.
   ///
   /// In pt, this message translates to:
@@ -3631,12 +3223,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Sequência semanal: {streaks} semanas'**
   String weeklyStreaksLabelPlural(int streaks);
-
-  /// No description provided for @yourBadgesLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Suas Insígnias'**
-  String get yourBadgesLabel;
 
   /// No description provided for @badgeUnlockedLabel.
   ///
@@ -3989,13 +3575,13 @@ abstract class AppLocalizations {
   /// No description provided for @partyEmptyTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Sua equipe ainda não tem desafios'**
+  /// **'Sua party ainda não tem desafios'**
   String get partyEmptyTitle;
 
   /// No description provided for @partyEmptyMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Cada limite de gastos por categoria vira um desafio da equipe. Crie o primeiro e acompanhe aqui.'**
+  /// **'Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.'**
   String get partyEmptyMessage;
 
   /// No description provided for @partyEmptyButton.
@@ -4007,7 +3593,7 @@ abstract class AppLocalizations {
   /// No description provided for @partyErrorMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Não foi possível carregar o status da equipe.'**
+  /// **'Não foi possível carregar o status da party.'**
   String get partyErrorMessage;
 
   /// No description provided for @badgeCatalogUnavailableTitle.

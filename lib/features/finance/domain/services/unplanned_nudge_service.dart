@@ -4,6 +4,7 @@ import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/core/money/money.dart';
 
 /// O convite que aparece depois de um gasto fora do plano.
 class UnplannedNudge {
@@ -145,7 +146,7 @@ class UnplannedNudgeService {
   /// três fixos: quem usa o app há um mês teria a sugestão dividida por três e
   /// receberia um limite que já nasce estourado.
   Future<double?> suggestedLimit(String categoryId, DateTime today) async {
-    var total = 0.0;
+    var total = Money.zero;
     var months = 0;
 
     for (var back = 1; back <= suggestionMonths; back++) {
@@ -159,7 +160,7 @@ class UnplannedNudgeService {
         final entry = summary?.categories[categoryId];
         if (entry == null) continue;
 
-        total += entry.actualAmount;
+        total += entry.actualAmount.asMoney;
         months++;
       } catch (_) {
         // Um mês ilegível não invalida os outros.
@@ -169,7 +170,7 @@ class UnplannedNudgeService {
 
     if (months == 0) return null;
 
-    final average = total / months;
+    final average = (total * (1 / months)).toDouble();
     if (average <= 0) return null;
 
     return roundUpToTen(average);
