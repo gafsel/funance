@@ -16,6 +16,11 @@ import { getWeekRefBefore } from "../../../../core/utils/week.utils";
 import { CategoryGroupService } from "./category_group.service";
 import { CategoryGroup } from "../models/category_group.model";
 import {
+    ALLOWED_ACTION_PATHS,
+    ALLOWED_ACTION_QUERY,
+    TRANSACTION_FORM_PATH,
+} from "../models/coaching_action_path.model";
+import {
     CoachingAnalysisPayload,
     CoachingResponse,
     CoachingSlide,
@@ -32,35 +37,6 @@ import {
     buildSavingsOpportunities,
     computeMonthlyIncome,
 } from "./coaching_context.utils";
-
-// Rotas internas válidas para actionPath — mesma allowlist do prompt em ai.config.ts
-const ALLOWED_ACTION_PATHS = [
-    "/planning",
-    "/planning-50-30-20",
-    "/workspace/categories",
-    "/workspace/accounts",
-    "/transactions/form",
-    "/",
-];
-
-/** Rota do formulário de lançamento — a única com query string obrigatória. */
-const TRANSACTION_FORM_PATH = "/transactions/form";
-
-/**
- * Query string aceita por rota: `{ rota: { parâmetro: valores permitidos } }`.
- *
- * O `actionPath` vira `context.push` no app, e o formulário de lançamento lê
- * `status` e `type` da query (`app_router.dart`). Qualquer outro parâmetro (ou
- * valor fora da lista) é DESCARTADO: a IA alucina query string com a mesma
- * facilidade com que alucina rota, e o que chega aqui vai direto para a
- * navegação do cliente.
- */
-const ALLOWED_ACTION_QUERY: Record<string, Record<string, string[]>> = {
-    [TRANSACTION_FORM_PATH]: {
-        status: ["pending", "paid"],
-        type: ["expense", "income", "transfer"],
-    },
-};
 
 /**
  * `status` do formulário quando a IA não manda um válido.

@@ -1,3 +1,5 @@
+import { buildActionPathPromptList } from "../../features/coaching/domain/models/coaching_action_path.model";
+
 export interface AIConfig {
   /**
    * Quando true, os documentos em workspaces/{id}/ai_logs passam a guardar o
@@ -339,14 +341,9 @@ export const DEFAULT_CONFIG: AIConfig = {
             3. Escolha um "animationType": "zoom", "slide", "bounce", "fade" ou "pulse".
             4. Se o slide recomendar uma ação prática no aplicativo (ex: planejar despesas, ver/criar metas, cadastrar transações, etc.), forneça os seguintes campos adicionais (caso contrário, preencha-os com null ou omita-os):
                 - "actionLabel": Texto curto do botão de ação (ex: "Ver Planejamento", "Nova Meta", "Ver Saldos", "Ver Categorias").
-                - "actionPath": O caminho exato da rota interna do app correspondente à ação. As rotas internas válidas são apenas:
-                    * "/planning" (para planejamento de despesas/receitas)
-                    * "/planning-50-30-20" (para planejamento da regra 50-30-20)
-                    * "/workspace/categories" (para gestão de categorias)
-                    * "/workspace/accounts" (para gestão de contas)
-                    * "/transactions/form?status=pending" (para AGENDAR/PLANEJAR um lançamento que ainda vai acontecer)
-                    * "/transactions/form?status=paid" (para REGISTRAR um lançamento que JÁ aconteceu)
-                    * "/" (para a tela principal/Dashboard)
+                - "actionPath": O caminho exato da rota interna do app correspondente à ação. As rotas internas válidas são APENAS estas — qualquer outra faz o slide chegar ao usuário SEM BOTÃO:
+${buildActionPathPromptList()}
+                  Escolha a rota pela AÇÃO que o slide propõe, não pelo assunto: um slide que pede para criar um teto vai para "/planning", e não para "/category-details", que só mostra o relatório.
                   REGRA OBRIGATÓRIA do formulário de lançamento: "/transactions/form" NUNCA pode vir sem "?status=". O formulário abre como "Registrei" (lançamento já efetivado) quando o status está ausente — use "?status=pending" sempre que a ação for planejar, agendar, reservar ou criar um teto para o futuro, e "?status=paid" só quando o usuário for registrar algo que já pagou ou recebeu. Opcionalmente acrescente "&type=expense", "&type=income" ou "&type=transfer".
 
             Retorne apenas um objeto JSON no formato:
