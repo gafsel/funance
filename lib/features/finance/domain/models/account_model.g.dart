@@ -6,6 +6,47 @@ part of 'account_model.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_NextInvoice _$NextInvoiceFromJson(Map<String, dynamic> json) => _NextInvoice(
+  dueDate: const DateTimeIsoConverter().fromJson(json['dueDate'] as String),
+  closingDate: const DateTimeIsoConverter().fromJson(
+    json['closingDate'] as String,
+  ),
+  cycleStart: const DateTimeIsoConverter().fromJson(
+    json['cycleStart'] as String,
+  ),
+  cycleEnd: const DateTimeIsoConverter().fromJson(json['cycleEnd'] as String),
+  amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+  orderId: json['orderId'] as String? ?? '',
+  installmentId: json['installmentId'] as String?,
+  status:
+      $enumDecodeNullable(_$InstallmentStatusEnumMap, json['status']) ??
+      InstallmentStatus.pending,
+  updatedAt: const DateTimeIsoNullableConverter().fromJson(
+    json['updatedAt'] as String?,
+  ),
+);
+
+Map<String, dynamic> _$NextInvoiceToJson(
+  _NextInvoice instance,
+) => <String, dynamic>{
+  'dueDate': const DateTimeIsoConverter().toJson(instance.dueDate),
+  'closingDate': const DateTimeIsoConverter().toJson(instance.closingDate),
+  'cycleStart': const DateTimeIsoConverter().toJson(instance.cycleStart),
+  'cycleEnd': const DateTimeIsoConverter().toJson(instance.cycleEnd),
+  'amount': instance.amount,
+  'orderId': instance.orderId,
+  'installmentId': instance.installmentId,
+  'status': _$InstallmentStatusEnumMap[instance.status]!,
+  'updatedAt': const DateTimeIsoNullableConverter().toJson(instance.updatedAt),
+};
+
+const _$InstallmentStatusEnumMap = {
+  InstallmentStatus.pending: 'pending',
+  InstallmentStatus.paid: 'paid',
+  InstallmentStatus.settled: 'settled',
+  InstallmentStatus.removed: 'removed',
+};
+
 CheckingAccount _$CheckingAccountFromJson(
   Map<String, dynamic> json,
 ) => CheckingAccount(
@@ -118,6 +159,9 @@ CreditCardAccount _$CreditCardAccountFromJson(
   ownerIds:
       (json['ownerIds'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
+  nextInvoice: json['nextInvoice'] == null
+      ? null
+      : NextInvoice.fromJson(json['nextInvoice'] as Map<String, dynamic>),
   $type: json['runtimeType'] as String?,
 );
 

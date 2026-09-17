@@ -49,6 +49,17 @@ sealed class InstallmentModel with _$InstallmentModel {
     ReplicationCascade? replicationCascade,
     double? xp,
     @Default(false) bool isInvoice,
+
+    // Janela do ciclo, gravada pelo servidor SÓ na parcela de fatura (F1.8).
+    // É dela que a tela de detalhe lista as compras — inclusive de uma fatura
+    // antiga, de que `account.nextInvoice` não fala. `includeToJson: false`
+    // porque o campo é do servidor: o app lê e nunca reenvia.
+    @JsonKey(includeToJson: false)
+    @DateTimeIsoNullableConverter()
+    DateTime? cycleStart,
+    @JsonKey(includeToJson: false)
+    @DateTimeIsoNullableConverter()
+    DateTime? cycleEnd,
   }) = _InstallmentModel;
 
   @JsonKey(includeToJson: true)

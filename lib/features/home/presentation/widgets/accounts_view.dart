@@ -62,15 +62,23 @@ class AccountsView extends ConsumerWidget {
 
     if (type == AccountType.creditCard) {
       for (final account in accounts) {
+        // F1.8: valor e vencimento vêm de `account.nextInvoice`, escrito pelo
+        // servidor. Enquanto o resumo de ALGUM cartão não chegou, o total do
+        // grupo está incompleto — e um total incompleto com cara de definitivo
+        // é pior do que um indicador de carregamento.
         final nextInvoice = ref
             .watch(AccountViewProviders.nextInvoiceByAccountId(account.id))
             .value;
-        if (nextInvoice != null) {
-          total += nextInvoice.amount;
-          final monthKey = nextInvoice.dueDate.formated('MMMM', locale);
-          totalsByMonth[monthKey] =
-              (totalsByMonth[monthKey] ?? 0) + nextInvoice.amount;
+
+        if (nextInvoice == null) {
+          isTotalLoading = true;
+          continue;
         }
+
+        total += nextInvoice.amount;
+        final monthKey = nextInvoice.dueDate.formated('MMMM', locale);
+        totalsByMonth[monthKey] =
+            (totalsByMonth[monthKey] ?? 0) + nextInvoice.amount;
       }
     } else {
       final totalAsync = ref.watch(
@@ -150,6 +158,16 @@ class AccountsView extends ConsumerWidget {
           final nextInvoiceAsync = ref.watch(
             AccountViewProviders.nextInvoiceByAccountId(account.id),
           );
+          // A parcela é observada no build, não lida no onTap: as famílias são
+          // autoDispose, e um `ref.read` no callback criaria e descartaria o
+          // provider na hora — o toque nunca chegaria à tela de fatura.
+          final invoiceInstallment = ref
+              .watch(
+                AccountViewProviders.nextInvoiceInstallmentByAccountId(
+                  account.id,
+                ),
+              )
+              .valueOrNull;
           final usedLimit = -balance.balance;
           final availableLimit = (creditCard.limit - usedLimit).clamp(
             0.0,
@@ -161,9 +179,11 @@ class AccountsView extends ConsumerWidget {
 
           return ListTile(
             onTap: () {
-              final nextInvoice = nextInvoiceAsync.valueOrNull;
-              if (nextInvoice != null) {
-                context.push('/invoices/detail', extra: nextInvoice);
+              // A tela de detalhe recebe a PARCELA da fatura; o resumo da conta
+              // responde pelo que aparece aqui, não pela navegação. Enquanto a
+              // rota receber o modelo inteiro, a parcela vem deste provider.
+              if (invoiceInstallment != null) {
+                context.push('/invoices/detail', extra: invoiceInstallment);
               } else {
                 context.push('/workspace/accounts?type=${account.type.name}');
               }
@@ -207,29 +227,34 @@ class AccountsView extends ConsumerWidget {
               ],
             ),
             trailing: nextInvoiceAsync.when(
-              data: (nextInvoice) => Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    (nextInvoice?.amount ?? 0.0).asCurrency(locale: locale),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (nextInvoice != null)
-                    Text(
-                      nextInvoiceAsync.when(
-                        data: (invoice) =>
-                            invoice?.dueDate.formated(l10n.formatSimpleDate) ??
-                            "-",
-                        error: (_, _) => "",
-                        loading: () => "",
+              // `nextInvoice` nulo = o servidor ainda não publicou o resumo
+              // desta conta (base anterior ao backfill). Mostrar "calculando" é
+              // honesto; R$ 0,00 seria um valor errado com cara de definitivo.
+              data: (nextInvoice) => nextInvoice == null
+                  ? Text(
+                      l10n.invoiceCalculating,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.hintColor,
                       ),
-                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          nextInvoice.amount.asCurrency(locale: locale),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          nextInvoice.dueDate.formated(l10n.formatSimpleDate),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
                     ),
-                ],
-              ),
               loading: () => const SizedBox(
                 width: 20,
                 height: 20,

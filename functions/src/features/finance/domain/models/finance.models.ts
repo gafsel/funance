@@ -35,6 +35,10 @@ export interface OrderModel {
     accountIds: string[];
     category?: CategoryModel;
     isInvoice?: boolean;
+    /** Só em order de FATURA — ver `INVOICE_CYCLE_FIELDS`. */
+    cycleStart?: Date;
+    cycleEnd?: Date;
+    closingDate?: Date;
 }
 
 export enum InstallmentStatus {
@@ -71,7 +75,29 @@ export interface InstallmentModel {
     referenceDate: Date;
     referenceAmount: number;
     isInvoice?: boolean;
+    /** Só em parcela de FATURA — ver `INVOICE_CYCLE_FIELDS`. */
+    cycleStart?: Date;
+    cycleEnd?: Date;
+    closingDate?: Date;
 }
+
+/**
+ * F1.8 — a janela do ciclo fica GRAVADA na order e na parcela de fatura.
+ *
+ * Sem isso, a tela de detalhe teria de recalcular o ciclo a partir do
+ * vencimento e do dia de fechamento da conta — que é exatamente a regra
+ * duplicada (e divergente) que este pacote eliminou. Uma fatura ANTIGA, aberta
+ * pelo histórico, também não tem de onde tirar a janela: `nextInvoice` fala só
+ * da próxima.
+ *
+ * Gravar a janela tem um segundo efeito, desejado: ela fica CONGELADA no que
+ * valia quando a fatura foi criada. Mudar o dia de fechamento do cartão hoje
+ * não reescreve o que uma fatura de três meses atrás continha.
+ *
+ * Escritos apenas pelo servidor; o cliente não os envia (`includeToJson: false`
+ * no modelo Dart).
+ */
+export const INVOICE_CYCLE_FIELDS = ["cycleStart", "cycleEnd", "closingDate"] as const;
 
 /**
  * Campos derivados/técnicos da parcela: escritos pelo PRÓPRIO servidor em
@@ -87,6 +113,10 @@ export const INSTALLMENT_DERIVED_FIELDS = new Set([
     "replicationCascade",
     "lastUpdate",
     "updatedAt",
+    // F1.8: a janela do ciclo é do servidor. Sem ela aqui, o backfill que
+    // preenche as faturas antigas dispararia o gatilho inteiro — sumário,
+    // meta, saldo, XP — para cada fatura da base, tudo com delta zero.
+    ...INVOICE_CYCLE_FIELDS,
 ]);
 
 /**
@@ -176,6 +206,40 @@ export enum BankLogo {
     amex = "amex",
 }
 
+/**
+ * F1.8 — resumo da PRÓXIMA fatura de um cartão, denormalizado em
+ * `accounts/{accountId}.nextInvoice`.
+ *
+ * Existe para que o cliente **leia** o vencimento, o fechamento e a janela do
+ * ciclo em vez de calculá-los: havia duas implementações da mesma regra (TS e
+ * Dart) e elas divergiam, de modo que app e servidor podiam apontar para
+ * faturas diferentes — o id da order de fatura deriva da data.
+ *
+ * Escrito **apenas pelo servidor** (`InvoiceSyncService`, via Admin SDK). As
+ * security rules negam ao cliente incluir o campo num create ou update da
+ * conta.
+ */
+export interface NextInvoiceModel {
+    /** Vencimento da fatura (meio-dia no fuso do produto). */
+    dueDate: Date;
+    /** Fechamento que gerou esta fatura (00:00 no fuso do produto). */
+    closingDate: Date;
+    /** Primeira compra que pertence a esta fatura — 00:00, inclusive. */
+    cycleStart: Date;
+    /** Última compra que pertence a esta fatura — 23:59:59.999, inclusive. */
+    cycleEnd: Date;
+    /** Valor da fatura em aberto. `0` quando ainda não há nenhuma compra. */
+    amount: number;
+    /** Id da order de fatura (`invoice-{accountId}-{YYYY-MM-DD}`). */
+    orderId: string;
+    /** Parcela da fatura, ou `null` enquanto a fatura não existe de fato. */
+    installmentId: string | null;
+    /** Status da parcela da fatura (sempre `pending` quando não existe). */
+    status: InstallmentStatus;
+    /** Carimbo da última sincronização. */
+    updatedAt?: Date;
+}
+
 export interface AccountModel {
     id: string;
     name: string;
@@ -191,6 +255,8 @@ export interface AccountModel {
     interestRate?: number;
     bankLogo?: BankLogo;
     ownerIds?: string[];
+    /** Somente leitura para o cliente — ver `NextInvoiceModel`. */
+    nextInvoice?: NextInvoiceModel | null;
 }
 
 /**

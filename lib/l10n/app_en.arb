@@ -1056,5 +1056,10 @@
     }
   },
   "journeyClosedGoalsTitle": "Closed goals",
-  "goalAwaitingOutcome": "Awaiting assessment"
+  "goalAwaitingOutcome": "Awaiting assessment",
+  "invoiceCalculating": "calculating…",
+  "@invoiceCalculating": {
+    "description": "Shown instead of the invoice amount while the server has not published the card's next invoice summary yet."
+  },
+  "invoiceCycleUnavailable": "We are closing this invoice. Purchases show up as soon as the calculation finishes."
 }

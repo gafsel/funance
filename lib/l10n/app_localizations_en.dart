@@ -2219,4 +2219,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goalAwaitingOutcome => 'Awaiting assessment';
+
+  @override
+  String get invoiceCalculating => 'calculating…';
+
+  @override
+  String get invoiceCycleUnavailable =>
+      'We are closing this invoice. Purchases show up as soon as the calculation finishes.';
 }

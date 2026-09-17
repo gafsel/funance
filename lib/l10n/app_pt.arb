@@ -1063,5 +1063,10 @@
     }
   },
   "journeyClosedGoalsTitle": "Metas encerradas",
-  "goalAwaitingOutcome": "Aguardando apuração"
+  "goalAwaitingOutcome": "Aguardando apuração",
+  "invoiceCalculating": "calculando…",
+  "@invoiceCalculating": {
+    "description": "Mostrado no lugar do valor da fatura enquanto o servidor ainda não publicou o resumo da próxima fatura do cartão."
+  },
+  "invoiceCycleUnavailable": "Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar."
 }

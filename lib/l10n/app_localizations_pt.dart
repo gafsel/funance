@@ -2236,4 +2236,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get goalAwaitingOutcome => 'Aguardando apuração';
+
+  @override
+  String get invoiceCalculating => 'calculando…';
+
+  @override
+  String get invoiceCycleUnavailable =>
+      'Estamos fechando esta fatura. As compras aparecem assim que o cálculo terminar.';
 }

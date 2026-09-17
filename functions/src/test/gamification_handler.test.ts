@@ -53,7 +53,25 @@ describe("gamification_handler — caminhos dos triggers", () => {
 describe("gamification_handler — guarda por conteúdo na parcela", () => {
     it("usa exatamente o mesmo conjunto de campos derivados do handler de finanças", () => {
         expect([...INSTALLMENT_DERIVED_FIELDS].sort())
-            .toEqual(["lastUpdate", "replicationCascade", "updatedAt", "xp"]);
+            .toEqual([
+                // F1.8: a janela do ciclo da fatura é escrita pelo servidor.
+                "closingDate", "cycleEnd", "cycleStart",
+                "lastUpdate", "replicationCascade", "updatedAt", "xp",
+            ]);
+    });
+
+    it("trata o preenchimento da janela do ciclo como escrita derivada", () => {
+        // O backfill de F1.8 grava cycleStart/cycleEnd nas faturas antigas.
+        // Sem a guarda, cada fatura da base reavaliaria badges e missões.
+        const before = { ...PENDING_INSTALLMENT, isInvoice: true };
+        const after = {
+            ...before,
+            cycleStart: "2025-02-05",
+            cycleEnd: "2025-03-04",
+            closingDate: "2025-03-05",
+        };
+
+        expect(isDerivedOnlyInstallmentWrite(before, after)).toBe(true);
     });
 
     it("reconhece a escrita derivada de xp + cascata", () => {

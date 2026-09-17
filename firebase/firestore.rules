@@ -159,9 +159,24 @@ service cloud.firestore {
           // escrevem 'xp: null' em docs que ainda não têm o campo — isso conta
           // como mudança de chave, mas não é uma alteração real de valor.
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['xp'])
-              || (request.resource.data.xp == null && !('xp' in resource.data)));
+              || (request.resource.data.xp == null && !('xp' in resource.data)))
+          // F1.8: a janela do ciclo da fatura é do SERVIDOR. Ela decide quais
+          // compras a tela de detalhe lista — reescrevê-la no cliente traria
+          // de volta, por outro caminho, a regra duplicada que o pacote tirou.
+          // Mesma exceção do xp: uma build que grave o doc inteiro manda
+          // 'null' nos campos que a parcela não tem (toda parcela que não é
+          // fatura), e isso não é uma alteração real de valor.
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['cycleStart', 'cycleEnd', 'closingDate'])
+              || (request.resource.data.get('cycleStart', null) == null
+                  && request.resource.data.get('cycleEnd', null) == null
+                  && request.resource.data.get('closingDate', null) == null
+                  && !('cycleStart' in resource.data)
+                  && !('cycleEnd' in resource.data)
+                  && !('closingDate' in resource.data)));
         // create/delete: não há fluxo real no cliente (addInstallment/deleteInstallment
         // são código morto); o servidor usa Admin SDK — negados por padrão.
+        // Um create carregando a janela do ciclo cai na mesma negação: não há
+        // `allow create` nenhum nesta coleção.
       }
 
       // Goals: Membros podem ler, criar e atualizar (exclusão é lógica via isDeleted)
@@ -292,7 +307,18 @@ service cloud.firestore {
         }
 
         allow read: if isMember(workspaceId);
-        allow create, update: if isMember(workspaceId) && validAccount(request.resource.data);
+        // `nextInvoice` (F1.8) é do SERVIDOR: vencimento, fechamento e janela
+        // do ciclo da próxima fatura. O cliente lê e nunca envia — nem na
+        // criação, nem num update que reenvie o documento inteiro. Sem esta
+        // negação, o app poderia gravar uma janela calculada por ele e voltar a
+        // apontar para uma fatura diferente da do servidor, que é exatamente o
+        // defeito que o pacote corrige.
+        allow create: if isMember(workspaceId)
+          && validAccount(request.resource.data)
+          && !('nextInvoice' in request.resource.data);
+        allow update: if isMember(workspaceId)
+          && validAccount(request.resource.data)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['nextInvoice']);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
 
         // Account Balances: Membros podem apenas ler (escrito pelo servidor)

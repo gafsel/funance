@@ -25,6 +25,7 @@ import { InviteServiceImpl } from "../features/workspace/domain/services/invite.
 import { WorkspaceServiceImpl } from "../features/workspace/domain/services/workspace.service.impl";
 import { GoalServiceImpl } from "../features/goal/domain/services/goal.service.impl";
 import { FinanceService } from "../features/finance/domain/services/finance.service";
+import { IInvoiceSyncService, InvoiceSyncServiceImpl } from "../features/finance/domain/services/invoice_sync.service";
 import { SummaryService } from "../features/finance/domain/services/summary.service";
 import { RebuildService } from "../features/finance/domain/services/rebuild.service";
 import { IRebuildRepository } from "../features/finance/domain/repositories/rebuild.repository";
@@ -51,6 +52,7 @@ class Container {
     private static _goalRepository: IGoalRepository;
     private static _goalService: IGoalService;
     private static _financeService: FinanceService;
+    private static _invoiceSyncService: IInvoiceSyncService;
     private static _summaryService: SummaryService;
     private static _rebuildRepository: IRebuildRepository;
     private static _rebuildService: RebuildService;
@@ -158,6 +160,14 @@ class Container {
             this._financeService = new FinanceService(this.financeRepository);
         }
         return this._financeService;
+    }
+
+    /** Resumo `nextInvoice` da conta de cartão (F1.8). */
+    static get invoiceSyncService(): IInvoiceSyncService {
+        if (!this._invoiceSyncService) {
+            this._invoiceSyncService = new InvoiceSyncServiceImpl(this.financeRepository);
+        }
+        return this._invoiceSyncService;
     }
 
     static get summaryService(): SummaryService {

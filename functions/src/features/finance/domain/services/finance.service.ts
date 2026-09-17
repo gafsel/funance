@@ -17,6 +17,7 @@ import { DEFAULT_FINANCE_CONFIG } from "../../../../core/config/finance.config";
 import { InvoiceService } from "./invoice.service";
 import { container } from "../../../../core/container";
 import { formatWeekId, getWeekRef } from "../../../../core/utils/week.utils";
+import { toDateKey } from "../../../../core/utils/date_key";
 
 /**
  * Divide um valor total em `count` parcelas usando aritmética de centavos inteiros,
@@ -294,6 +295,11 @@ export class FinanceService {
                 paidAmount: isPaid ? installmentAmount : undefined,
                 paidDate: paidDate,
                 isInvoice: after.isInvoice,
+                // Só a order de fatura carrega a janela do ciclo; ela desce
+                // para a parcela porque é ali que o app a lê (F1.8).
+                cycleStart: after.cycleStart,
+                cycleEnd: after.cycleEnd,
+                closingDate: after.closingDate,
             });
 
             lastDueDate = dueDate;
@@ -650,6 +656,21 @@ export class FinanceService {
         before: InstallmentModel | null,
         after: InstallmentModel | null
     ): Promise<void> {
+        // Cartões cuja próxima fatura precisa ser recalculada ao fim deste
+        // evento (F1.8). Só entram aqui contas que o evento de fato afetou —
+        // uma parcela pendente de cartão não mexe em fatura nenhuma.
+        const cardsToSync = new Set<string>();
+        const invoiceCard = (inst: InstallmentModel | null): string | undefined => {
+            if (!inst?.isInvoice || !inst.accounts) return undefined;
+            return Object.entries(inst.accounts).find(([, role]) => role === "credit")?.[0];
+        };
+
+        // A própria parcela de fatura mudou (valor, status ou deixou de
+        // existir): o resumo da conta muda junto, paga ou não.
+        for (const candidate of [invoiceCard(before), invoiceCard(after)]) {
+            if (candidate) cardsToSync.add(candidate);
+        }
+
         // Excluir faturas com valor zero
         if (after && after.isInvoice && after.amount === 0) {
             logger.info(`[processInvoiceUpdate] Excluindo fatura com valor zero: ${after.id}`);
@@ -657,6 +678,7 @@ export class FinanceService {
             if (after.orderId) {
                 await this.financeRepository.deleteOrder(workspaceId, after.orderId);
             }
+            await this.syncNextInvoices(workspaceId, cardsToSync);
             return;
         }
 
@@ -694,8 +716,9 @@ export class FinanceService {
                             if (isReversal) {
                                 delta = -delta;
                             }
-                            logger.info(`[processInvoiceUpdate] Atualizando próxima fatura: accountId=${accountId}, dueDate=${nextInvoiceDueDate.toISOString()}, delta=${delta}`);
+                            logger.info(`[processInvoiceUpdate] Atualizando próxima fatura: accountId=${accountId}, dueDate=${toDateKey(nextInvoiceDueDate)}, delta=${delta}`);
                             await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, nextInvoiceDueDate, delta);
+                            cardsToSync.add(accountId);
                         }
                         else {
                             logger.warn(`[processInvoiceUpdate] Conta não encontrada para fatura: ${accountId}`);
@@ -724,8 +747,9 @@ export class FinanceService {
                 const account = await this.financeRepository.getAccountById(workspaceId, accountId);
                 if (account?.runtimeType === AccountType.creditCard) {
                     const invoiceDueDate = InvoiceService.calculateInvoiceDueDate(inst.paidDate, account);
-                    logger.info(`[processInvoiceUpdate] Impactando fatura de cartão: accountId=${accountId}, role=${role}, invoiceDueDate=${invoiceDueDate.toISOString()}, delta=${-delta}, isReversal=${isReversal}`);
+                    logger.info(`[processInvoiceUpdate] Impactando fatura de cartão: accountId=${accountId}, role=${role}, invoiceDueDate=${toDateKey(invoiceDueDate)}, delta=${-delta}, isReversal=${isReversal}`);
                     await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, invoiceDueDate, -delta);
+                    cardsToSync.add(accountId);
                 }
             }
         };
@@ -750,6 +774,32 @@ export class FinanceService {
                 logger.info(`[processInvoiceUpdate] Detectada alteração em pagamento: ${after.id}, hasChangedAccount=${hasChangedAccount}, hasChangedAmount=${hasChangedAmount}, hasChangedDate=${hasChangedDate}`);
                 await handleInvoice(before, true);
                 await handleInvoice(after, false);
+            }
+        }
+
+        await this.syncNextInvoices(workspaceId, cardsToSync);
+    }
+
+    /**
+     * Recalcula `accounts/{id}.nextInvoice` dos cartões afetados (F1.8).
+     *
+     * **Por que isto converge mesmo lendo um valor momentaneamente velho.**
+     * `updateInvoiceWithDelta` escreve a ORDER; a parcela da fatura só ganha o
+     * novo valor quando `onOrderWritten` roda. A sincronização feita aqui
+     * enxerga a parcela anterior — mas a escrita da parcela dispara
+     * `onInstallmentWritten` -> `processInvoiceUpdate` de novo, e é essa última
+     * passagem que grava o valor certo. O cron diário é a terceira rede.
+     *
+     * Falhar aqui NÃO pode derrubar o pagamento que disparou o gatilho: o
+     * resumo é uma conveniência para o cliente, e o cron o reconstrói.
+     */
+    private async syncNextInvoices(workspaceId: string, accountIds: Set<string>): Promise<void> {
+        for (const accountId of accountIds) {
+            try {
+                await container.invoiceSyncService.syncNextInvoice(workspaceId, accountId);
+            }
+            catch (error) {
+                logger.warn(`[processInvoiceUpdate] Falha ao sincronizar nextInvoice de ${accountId}: ${error}`);
             }
         }
     }

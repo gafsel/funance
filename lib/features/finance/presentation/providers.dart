@@ -21,7 +21,6 @@ import 'package:funances/features/finance/domain/services/account_service.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/category_planning_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
-import 'package:funances/features/finance/domain/services/invoice_service.dart';
 import 'package:funances/features/finance/domain/services/notification_listener_service.dart';
 import 'package:funances/features/finance/domain/services/period_summary_service.dart';
 import 'package:funances/features/finance/data/repositories/planning_analysis_repository_impl.dart';
@@ -163,9 +162,26 @@ class ReconciliationDomainProviders {
 /// Chavear a família pelo `InstallmentModel` inteiro vazava um provider a
 /// cada edição: freezed gera um valor novo (e portanto uma chave nova) quando
 /// qualquer campo muda, e o provider antigo ficava para trás. O id identifica
-/// a fatura; a conta e o vencimento são o que o provider precisa para
-/// calcular o ciclo, e nenhum dos três muda ao editar valor ou descrição.
-typedef InvoiceKey = ({String invoiceId, String accountId, DateTime dueDate});
+/// a fatura; a conta, o vencimento e a janela do ciclo são o que o provider
+/// precisa, e nenhum deles muda ao editar valor ou descrição.
+///
+/// F1.8: `cycleStart`/`cycleEnd` vêm PRONTOS do servidor, gravados na própria
+/// parcela da fatura. Antes o app recalculava a janela com uma cópia Dart da
+/// regra que já divergia da do servidor no clamp do dia — e, como o id da order
+/// de fatura deriva da data, os dois podiam falar de faturas diferentes.
+typedef InvoiceKey = ({
+  String invoiceId,
+  String accountId,
+  DateTime dueDate,
+  DateTime? cycleStart,
+  DateTime? cycleEnd,
+});
+
+extension InvoiceKeyWindow on InvoiceKey {
+  /// `true` quando o servidor já publicou a janela desta fatura.
+  bool get hasServerCycle =>
+      accountId.isNotEmpty && cycleStart != null && cycleEnd != null;
+}
 
 extension InvoiceKeyExtension on InstallmentModel {
   /// Usa a mesma cadeia de resolução de conta da tela de detalhe
@@ -175,6 +191,8 @@ extension InvoiceKeyExtension on InstallmentModel {
     invoiceId: id,
     accountId: resolvedAccountId ?? "",
     dueDate: dueDate,
+    cycleStart: cycleStart,
+    cycleEnd: cycleEnd,
   );
 }
 
@@ -257,7 +275,34 @@ class AccountViewProviders {
         );
       });
 
+  /// Resumo da próxima fatura, LIDO do documento da conta (F1.8).
+  ///
+  /// O servidor é a única fonte de vencimento, fechamento e janela de ciclo.
+  /// `null` significa "ainda não sei" — conta que não é cartão, ou cartão cujo
+  /// resumo o servidor ainda não gravou (base anterior ao backfill). A tela
+  /// mostra "calculando" nesse caso, e nunca um valor inventado.
   static final nextInvoiceByAccountId = StreamProvider.autoDispose
+      .family<NextInvoice?, String>((ref, accountId) {
+        final accountAsync = ref.watch(AccountViewProviders.byId(accountId));
+
+        return accountAsync.when(
+          data: (account) => Stream.value(
+            account is CreditCardAccount ? account.nextInvoice : null,
+          ),
+          error: (error, stack) => Stream.error(error, stack),
+          loading: () => const Stream.empty(),
+        );
+      });
+
+  /// A PARCELA da próxima fatura, para navegar até a tela de detalhe (que
+  /// recebe um `InstallmentModel`).
+  ///
+  /// FALLBACK TEMPORÁRIO documentado: enquanto a rota `/invoices/detail`
+  /// receber o modelo inteiro, o app ainda precisa da parcela. A consulta é a
+  /// mesma que o servidor faz para montar `nextInvoice`, então as duas
+  /// concordam; o que saiu do cliente foi o CÁLCULO da fatura, não a leitura.
+  /// Quando a rota passar a receber só o id, este provider sai.
+  static final nextInvoiceInstallmentByAccountId = StreamProvider.autoDispose
       .family<InstallmentModel?, String>((ref, accountId) {
         return ref
             .watch(FinanceDomainProviders.service)
@@ -388,28 +433,24 @@ class FinanceViewProviders {
         InfiniteListState<TransactionQuery, InstallmentModel>,
         InvoiceKey
       >((ref, invoice) {
-        final accountAsync = ref.watch(
-          AccountViewProviders.byId(invoice.accountId),
-        );
-
-        final query = accountAsync.when(
-          data: (account) {
-            if (account == null) return TransactionQuery();
-
-            final (start, end) = InvoiceService.calculateInvoiceCycleRange(
-              invoice.dueDate,
-              account,
-            );
-
-            return TransactionQuery(
-              accountId: account.id,
-              startDate: start,
-              endDate: end,
-            );
-          },
-          error: (_, _) => TransactionQuery(),
-          loading: () => TransactionQuery(),
-        );
+        // A janela vem do servidor (gravada na própria parcela da fatura).
+        // Sem ela — fatura anterior a F1.8, antes do backfill — a consulta usa
+        // um intervalo VAZIO (fim antes do início) em vez de um intervalo
+        // chutado: o notifier carrega na construção, e uma query sem filtro
+        // traria os últimos lançamentos do workspace inteiro como se fossem
+        // desta fatura. A tela não chega a montar esta lista (mostra o aviso de
+        // fatura em fechamento); o intervalo vazio é a rede de segurança.
+        final query = invoice.hasServerCycle
+            ? TransactionQuery(
+                accountId: invoice.accountId,
+                startDate: invoice.cycleStart,
+                endDate: invoice.cycleEnd,
+              )
+            : TransactionQuery(
+                accountId: invoice.accountId,
+                startDate: invoice.dueDate,
+                endDate: invoice.dueDate.addCalendarDays(-1),
+              );
 
         return TransactionListNotifier(
           financeiroService: ref.watch(FinanceDomainProviders.service),
@@ -495,39 +536,22 @@ class FinanceViewProviders {
 
   static final invoiceInstallments = StreamProvider.autoDispose
       .family<List<InstallmentModel>, InvoiceKey>((ref, invoice) {
-        final accountAsync = ref.watch(
-          AccountViewProviders.byId(invoice.accountId),
-        );
+        if (!invoice.hasServerCycle) {
+          developer.log(
+            'Fatura ${invoice.invoiceId} sem janela de ciclo do servidor; '
+            'aguardando a sincronização em vez de calcular no cliente.',
+            name: 'funances.providers',
+          );
+          return const Stream.empty();
+        }
 
-        return accountAsync.when(
-          data: (account) {
-            if (account == null) return Stream.value([]);
-
-            final (start, end) = InvoiceService.calculateInvoiceCycleRange(
-              invoice.dueDate,
-              account,
+        return ref
+            .watch(FinanceDomainProviders.service)
+            .watchInstallments(
+              accountId: invoice.accountId,
+              startDate: invoice.cycleStart,
+              endDate: invoice.cycleEnd,
             );
-
-            return ref
-                .watch(FinanceDomainProviders.service)
-                .watchInstallments(
-                  accountId: account.id,
-                  startDate: start,
-                  endDate: end,
-                );
-          },
-          error: (e, s) {
-            developer.log(
-              'Falha ao resolver o período das parcelas da conta',
-              name: 'funances.providers',
-              error: e,
-              stackTrace: s,
-            );
-
-            return Stream.error(e, s);
-          },
-          loading: () => const Stream.empty(),
-        );
       });
 
   static final invoicePieChart = StreamProvider.autoDispose
