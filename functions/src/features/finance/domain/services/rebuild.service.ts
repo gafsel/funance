@@ -36,7 +36,11 @@
 
 import { getZonedParts, toDateKey } from "../../../../core/utils/date_key";
 import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
-import { CategoryModel } from "../../../workspace/domain/models/category.model";
+import {
+    CategoryModel,
+    categoryWithoutIdWarning,
+    hasCategoryId,
+} from "../../../workspace/domain/models/category.model";
 import {
     AccountModel,
     CategoryPlanningModel,
@@ -125,6 +129,12 @@ export interface RebuildReport {
     scanned: {
         installments: number;
         installmentsRemoved: number;
+        /**
+         * Parcelas com `category.id` vazio: contadas em saldo/XP, mas FORA dos
+         * `period_summaries`. Qualquer valor > 0 pede o script
+         * `fix_empty_category`.
+         */
+        installmentsWithoutCategory: number;
         accounts: number;
         categoryPlannings: number;
     };
@@ -240,11 +250,20 @@ export class RebuildAccumulator {
 
     installmentsSeen = 0;
     installmentsRemoved = 0;
+    /**
+     * Parcelas cuja categoria não tem id (`{id: "", name: "Supermercado"}`) e
+     * que por isso ficaram fora dos `period_summaries`. Elas continuam contando
+     * em saldo e XP — o contador existe para o relatório do rebuild dizer
+     * quantas precisam do `fix_empty_category`.
+     */
+    installmentsWithoutCategory = 0;
 
     constructor(
         accounts: AccountModel[],
         private summaryService: SummaryService,
-        private financeService: FinanceService
+        private financeService: FinanceService,
+        /** Só para o log do aviso de categoria sem id. */
+        private workspaceId: string = "?"
     ) {
         this.accountsById = new Map(accounts.map((account) => [account.id, account]));
     }
@@ -283,6 +302,10 @@ export class RebuildAccumulator {
         const impacts = this.summaryService.calculatePlanningImpacts(planning, 1, window);
 
         for (const impact of impacts) {
+            // Mesma regra do sumário: sem id não há chave de categoria para
+            // gravar. Um planejamento assim é ignorado inteiro.
+            if (!hasCategoryId(impact.category)) continue;
+
             const bucket = this.categoryBucket(impact.year, impact.month, impact.week, impact.category);
             bucket.general += impact.generalPlannedDelta ?? 0;
         }
@@ -318,7 +341,28 @@ export class RebuildAccumulator {
     /** `SummaryService.processInstallmentChange` (projetado + realizado). */
     private addSummaryImpact(installment: InstallmentModel): void {
         const category = this.resolveCategory(installment);
-        if (!category) return;
+
+        if (!hasCategoryId(category)) {
+            // MESMA REGRA DO GATILHO: categoria sem id é "sem categoria" e fica
+            // fora dos sumários (o saldo e o XP desta parcela seguem contando).
+            // Sem isso o acumulador criava a chave `categories.""` e o
+            // `--apply` morria na escrita — o dry-run nem acusava, porque não
+            // chega a montar a referência.
+            //
+            // Uma transferência sem contrapartida virtual (nenhuma conta de
+            // dívida/investimento) já era ignorada antes e NÃO conta aqui: o
+            // contador é das parcelas com categoria quebrada.
+            if (!hasCategoryId(installment.category)) {
+                this.installmentsWithoutCategory++;
+                console.warn(categoryWithoutIdWarning(
+                    "rebuild.service",
+                    this.workspaceId,
+                    installment.id,
+                    installment.category
+                ));
+            }
+            return;
+        }
 
         // Projetado: sempre, no `dueDate`, com `amount`.
         this.addSummaryValue(installment.dueDate, category, "specificCents", toCents(installment.amount));
@@ -534,7 +578,7 @@ export class RebuildService {
         const accounts = await this.rebuildRepository.getAccounts(workspaceId);
         const plannings = await this.rebuildRepository.getCategoryPlannings(workspaceId);
 
-        const accumulator = new RebuildAccumulator(accounts, this.summaryService, this.financeService);
+        const accumulator = new RebuildAccumulator(accounts, this.summaryService, this.financeService, workspaceId);
 
         await this.rebuildRepository.forEachInstallment(workspaceId, pageSize, (installment) => {
             accumulator.addInstallment(installment);
@@ -587,6 +631,7 @@ export class RebuildService {
             scanned: {
                 installments: accumulator.installmentsSeen,
                 installmentsRemoved: accumulator.installmentsRemoved,
+                installmentsWithoutCategory: accumulator.installmentsWithoutCategory,
                 accounts: accounts.length,
                 categoryPlannings: plannings.length,
             },

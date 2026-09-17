@@ -343,3 +343,50 @@ describe("FinanceRepositoryImpl.deleteInstallmentsByOrderId", () => {
         expect(deletedIds).toHaveLength(401);
     });
 });
+
+/**
+ * HOTFIX — categoria sem id. `categories.<id>` com id vazio vira um segmento
+ * vazio de FieldPath e o SDK rejeita o documento inteiro com "Element at index
+ * 0 should not be an empty string", sem dizer qual workspace nem qual período.
+ * O repositório é a DEFESA FINAL: quem chama já trata categoria sem id como
+ * "sem categoria" (ver `empty_category.test.ts`), então chegar aqui é bug de
+ * chamador — e o erro precisa apontar para ele.
+ */
+describe("FinanceRepositoryImpl.updatePeriodSummary", () => {
+    const CATEGORY: any = { id: "cat-mercado", name: "Supermercado" };
+
+    beforeEach(() => {
+        mockFirestoreState.collection = jest.fn(() => {
+            throw new Error("o Firestore não deveria ser tocado com categoria sem id");
+        });
+        mockFirestoreState.batch = () => ({
+            delete: jest.fn(), update: jest.fn(), set: jest.fn(), commit: jest.fn(),
+        });
+    });
+
+    it("rejeita categoria com id vazio antes de tocar no Firestore", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        await expect(
+            repository.updatePeriodSummary("w1", 2026, 3, { ...CATEGORY, id: "" }, { actualDelta: 10 })
+        ).rejects.toThrow(/categoria sem id/);
+
+        expect(mockFirestoreState.collection).not.toHaveBeenCalled();
+    });
+
+    it("o erro cita workspace, período e nome da categoria", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        await expect(
+            repository.updatePeriodSummary("w1", 2026, undefined, { ...CATEGORY, id: "" }, { actualDelta: 10 }, 10)
+        ).rejects.toThrow(/workspace=w1.*2026.*W10.*Supermercado/);
+    });
+
+    it("rejeita também categoria ausente", async () => {
+        const repository = new FinanceRepositoryImpl();
+
+        await expect(
+            repository.updatePeriodSummary("w1", 2026, 3, undefined as any, { actualDelta: 10 })
+        ).rejects.toThrow(/categoria sem id/);
+    });
+});

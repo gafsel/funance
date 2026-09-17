@@ -23,6 +23,8 @@ import {
 import { addCalendarDays, getZonedParts, localMidnightInstant } from "../../../../core/utils/timezone.utils";
 import {
     CategoryModel,
+    categoryWithoutIdWarning,
+    hasCategoryId,
     VIRTUAL_DEBT_EXPENSE_CATEGORY,
     VIRTUAL_DEBT_INCOME_CATEGORY,
     VIRTUAL_INVESTMENT_EXPENSE_CATEGORY,
@@ -371,26 +373,55 @@ export class SummaryService {
     ): Promise<void> {
         if (!before && !after) return;
 
+        // Um único evento chama estas rotinas até quatro vezes (antes/depois ×
+        // projetado/realizado). O aviso de categoria sem id sai UMA VEZ POR
+        // PARCELA, não uma por chamada.
+        const warned = new Set<string>();
+
         // 1. Processar Valor Planejado (Projeção) no dueDate
         if (before && before.status !== InstallmentStatus.removed) {
-            await this.updateSummaryProjetado(workspaceId, before, -1);
+            await this.updateSummaryProjetado(workspaceId, before, -1, warned);
         }
         if (after && after.status !== InstallmentStatus.removed) {
-            await this.updateSummaryProjetado(workspaceId, after, 1);
+            await this.updateSummaryProjetado(workspaceId, after, 1, warned);
         }
 
         // 2. Processar Valor Realizado (Fluxo de Caixa) no paidDate
         const isPaidStatus = (s: InstallmentStatus) => s === InstallmentStatus.paid || s === InstallmentStatus.settled;
 
         if (before && isPaidStatus(before.status) && before.paidDate && (before.paidAmount ?? before.amount)) {
-            await this.updateSummaryRealizado(workspaceId, before, -1);
+            await this.updateSummaryRealizado(workspaceId, before, -1, warned);
         }
         if (after && isPaidStatus(after.status) && after.paidDate && (after.paidAmount ?? after.amount)) {
-            await this.updateSummaryRealizado(workspaceId, after, 1);
+            await this.updateSummaryRealizado(workspaceId, after, 1, warned);
         }
     }
 
-    private async updateSummaryProjetado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
+    /**
+     * Categoria sem id (`{id: "", name: "Supermercado"}`) é SEM CATEGORIA para
+     * o sumário: a parcela não entra em `period_summaries`. Avisa uma vez por
+     * parcela — `warned` é o conjunto compartilhado pelas quatro chamadas do
+     * mesmo evento.
+     */
+    private warnCategoryWithoutIdOnce(
+        workspaceId: string,
+        inst: InstallmentModel,
+        category: CategoryModel | undefined,
+        warned: Set<string>
+    ): void {
+        const key = `${workspaceId}/${inst.id}`;
+        if (warned.has(key)) return;
+
+        warned.add(key);
+        console.warn(categoryWithoutIdWarning("summary.service", workspaceId, inst.id, category));
+    }
+
+    private async updateSummaryProjetado(
+        workspaceId: string,
+        inst: InstallmentModel,
+        multiplier: number,
+        warned: Set<string> = new Set<string>()
+    ) {
         let category = inst.category;
         const amount = inst.amount * multiplier;
 
@@ -408,7 +439,10 @@ export class SummaryService {
             // Normalmente PeriodSummaryCategoryModel tem actualAmount.
         }
 
-        if (!category) return;
+        if (!hasCategoryId(category)) {
+            this.warnCategoryWithoutIdOnce(workspaceId, inst, category, warned);
+            return;
+        }
 
         // Mês e ano no FUSO DO PRODUTO, igual ao dia (`toDateKey`) e à semana.
         const { year, month } = getZonedParts(inst.dueDate);
@@ -431,7 +465,12 @@ export class SummaryService {
         }, week);
     }
 
-    private async updateSummaryRealizado(workspaceId: string, inst: InstallmentModel, multiplier: number) {
+    private async updateSummaryRealizado(
+        workspaceId: string,
+        inst: InstallmentModel,
+        multiplier: number,
+        warned: Set<string> = new Set<string>()
+    ) {
         if (!inst.paidDate) return;
 
         let category = inst.category;
@@ -443,7 +482,10 @@ export class SummaryService {
             category = virtualData.category;
         }
 
-        if (!category) return;
+        if (!hasCategoryId(category)) {
+            this.warnCategoryWithoutIdOnce(workspaceId, inst, category, warned);
+            return;
+        }
 
         // Mês e ano no FUSO DO PRODUTO: um pagamento às 23h30 de 31/10 em São
         // Paulo é 01/11 em UTC e ia parar no sumário de novembro.

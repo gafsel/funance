@@ -1,0 +1,157 @@
+/**
+ * HOTFIX — categoria sem id (`{id: "", name: "Supermercado"}`).
+ *
+ * Conciliação/transação automática gravaram parcelas e orders com o nome da
+ * categoria mas sem id. A chave `period_summaries.categories.<id>` com id vazio
+ * vira um segmento vazio de `FieldPath` e o SDK rejeita o documento inteiro
+ * ("Element at index 0 should not be an empty string"), derrubando o gatilho de
+ * sumário.
+ *
+ * REGRA ÚNICA coberta aqui: categoria sem id é SEM CATEGORIA para efeito de
+ * sumário — não entra em `period_summaries`, nem projetado nem realizado, com
+ * um aviso por parcela. Saldo e XP não dependem de categoria e seguem contando
+ * (ver `rebuild.test.ts` e `finance_repository.test.ts` para as outras pontas).
+ */
+
+import { SummaryService } from "../features/finance/domain/services/summary.service";
+import {
+    InstallmentModel,
+    InstallmentStatus,
+    InstallmentType,
+    OrderType,
+} from "../features/finance/domain/models/finance.models";
+import { CategoryModel, CategoryType, hasCategoryId } from "../features/workspace/domain/models/category.model";
+
+const WORKSPACE = "ws-1";
+
+const CATEGORY: CategoryModel = {
+    id: "cat-mercado",
+    name: "Supermercado",
+    icon: "shopping_cart",
+    color: "#42A5F5",
+    type: CategoryType.expense,
+    isDeleted: false,
+};
+
+/** O documento realmente encontrado em produção: nome sem id. */
+const BROKEN_CATEGORY = { ...CATEGORY, id: "" };
+
+interface SummaryCall {
+    year: number;
+    month?: number;
+    week?: number;
+    category: CategoryModel;
+    data: Record<string, number | undefined>;
+}
+
+class FakeRepository {
+    calls: SummaryCall[] = [];
+
+    async updatePeriodSummary(
+        _workspaceId: string,
+        year: number,
+        month: number | undefined,
+        category: CategoryModel,
+        data: Record<string, number | undefined>,
+        week?: number
+    ): Promise<void> {
+        this.calls.push({ year, month, week, category, data });
+    }
+
+    async getAccountById(): Promise<null> {
+        return null;
+    }
+}
+
+function installment(overrides: Partial<InstallmentModel> = {}): InstallmentModel {
+    const date = new Date(2026, 2, 10, 12);
+    return {
+        id: "inst-1",
+        orderId: "order-1",
+        amount: 167.47,
+        dueDate: date,
+        description: "Compra no mercado",
+        installmentType: InstallmentType.single,
+        status: InstallmentStatus.paid,
+        type: OrderType.expense,
+        accounts: { "acc-checking": "debt" },
+        accountIds: ["acc-checking"],
+        category: BROKEN_CATEGORY,
+        paidAmount: 167.47,
+        paidDate: date,
+        referenceDate: date,
+        referenceAmount: 167.47,
+        ...overrides,
+    };
+}
+
+describe("hasCategoryId", () => {
+    it("só aceita id string não vazio", () => {
+        expect(hasCategoryId(CATEGORY)).toBe(true);
+        expect(hasCategoryId(BROKEN_CATEGORY)).toBe(false);
+        expect(hasCategoryId(undefined)).toBe(false);
+        expect(hasCategoryId(null)).toBe(false);
+        expect(hasCategoryId({ id: null })).toBe(false);
+        expect(hasCategoryId({} as CategoryModel)).toBe(false);
+    });
+});
+
+describe("SummaryService com categoria de id vazio", () => {
+    let repository: FakeRepository;
+    let service: SummaryService;
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+        repository = new FakeRepository();
+        service = new SummaryService(repository as any);
+        warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+    });
+
+    it("não escreve NENHUM sumário — nem projetado nem realizado", async () => {
+        await service.processInstallmentChange(WORKSPACE, null, installment());
+
+        expect(repository.calls).toHaveLength(0);
+    });
+
+    it("também não escreve no estorno (a parcela sai do sumário que nunca entrou)", async () => {
+        await service.processInstallmentChange(WORKSPACE, installment(), null);
+
+        expect(repository.calls).toHaveLength(0);
+    });
+
+    it("avisa UMA VEZ por parcela, citando workspace e parcela", async () => {
+        // Antes e depois pagos: são quatro chamadas internas (projetado e
+        // realizado, estorno e aplicação) para a mesma parcela.
+        await service.processInstallmentChange(
+            WORKSPACE,
+            installment({ amount: 100, paidAmount: 100 }),
+            installment()
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        const message = warn.mock.calls[0][0] as string;
+        expect(message).toContain(`workspace=${WORKSPACE}`);
+        expect(message).toContain("parcela=inst-1");
+        expect(message).toContain("Supermercado");
+    });
+
+    it("a categoria válida continua escrevendo mês, ano e semana nas duas frentes", async () => {
+        await service.processInstallmentChange(WORKSPACE, null, installment({ category: CATEGORY }));
+
+        // 3 documentos (mês, ano, semana) × projetado + realizado.
+        expect(repository.calls).toHaveLength(6);
+        expect(repository.calls.every((call) => call.category.id === CATEGORY.id)).toBe(true);
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    it("categoria ausente cai na mesma regra: fora do sumário, com um aviso", async () => {
+        await service.processInstallmentChange(WORKSPACE, null, installment({ category: undefined }));
+
+        expect(repository.calls).toHaveLength(0);
+        expect(warn).toHaveBeenCalledTimes(1);
+    });
+});

@@ -114,3 +114,36 @@ export function isSystemCategory(id: string, data?: { isSystem?: boolean } | nul
     }
     return id === INITIAL_BALANCE_CATEGORY_ID || id.startsWith(VIRTUAL_CATEGORY_ID_PREFIX);
 }
+
+/**
+ * A categoria é utilizável como CHAVE de agregação (`period_summaries`,
+ * planejamento, relatórios) — ou seja, tem um `id` não vazio.
+ *
+ * Existem em produção parcelas e orders com `category = {id: "", name: "..."}`,
+ * criadas pela conciliação/transação automática antes da validação de IA. Um id
+ * vazio vira um segmento vazio de `FieldPath` na escrita de `categories.<id>` e
+ * o SDK rejeita o documento inteiro ("Element at index 0 should not be an empty
+ * string"), derrubando o gatilho ou o `rebuild --apply`.
+ *
+ * REGRA ÚNICA: categoria sem id é tratada como SEM CATEGORIA para efeito de
+ * sumário — ela não entra em `period_summaries` (nem projetado nem realizado).
+ * Saldo e XP não dependem da categoria e continuam contando normalmente.
+ */
+export function hasCategoryId<T extends { id?: string | null }>(
+    category?: T | null
+): category is T & { id: string } {
+    return typeof category?.id === "string" && category.id.length > 0;
+}
+
+/**
+ * Mensagem única do aviso de categoria sem id, para o gatilho e o rebuild
+ * falarem a mesma língua no log (`origem` distingue quem emitiu).
+ */
+export function categoryWithoutIdWarning(
+    origin: string,
+    workspaceId: string,
+    installmentId: string,
+    category?: { name?: string } | null
+): string {
+    return `[${origin}] Parcela com categoria sem id: workspace=${workspaceId} parcela=${installmentId} categoria="${category?.name ?? ""}". Fora dos period_summaries (projetado e realizado); saldo e XP seguem normalmente. Corrija com o script fix_empty_category.`;
+}
