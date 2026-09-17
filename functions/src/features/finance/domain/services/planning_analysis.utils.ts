@@ -22,9 +22,9 @@ import {
  * categorias) e delega os cálculos e a validação do payload da IA para cá.
  */
 
-function round2(value: number): number {
-    return Math.round(value * 100) / 100;
-}
+// F1.10 — a aritmética monetária vem de `core/utils/money`: a cópia local de
+// `Math.round(value * 100) / 100` errava `1.005` (virava `1.00`).
+import { round2 } from "../../../../core/utils/money";
 
 function isFiniteNumber(value: any): value is number {
     return typeof value === "number" && isFinite(value);

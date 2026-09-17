@@ -148,13 +148,16 @@ describe("Saldo diário (integração com emulador do Firestore)", () => {
             workspaceId,
             ACCOUNT_ID,
             new Date("2023-01-01T15:00:00.000Z"),
-            -250.75
+            -25075
         );
 
         expect(await readBalance(workspaceId, anchorKey)).toMatchObject({
             dateKey: anchorKey,
             delta: 4749.25,
             balance: 4749.25,
+            // F1.10 — a verdade é o inteiro; o `double` acima é o espelho.
+            deltaCents: 474925,
+            balanceCents: 474925,
         });
 
         for (const key of [days[0], days[399], days[400], days[999]]) {
@@ -242,12 +245,14 @@ describe("Saldo diário (integração com emulador do Firestore)", () => {
         const lateNight = new Date("2026-03-11T02:30:00.000Z");
         expect(lateNight.toISOString().split("T")[0]).toBe("2026-03-11");
 
-        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, lateNight, -42.5);
+        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, lateNight, -4250);
 
         expect(await readBalance(workspaceId, "2026-03-10")).toMatchObject({
             dateKey: "2026-03-10",
             delta: -42.5,
             balance: -42.5,
+            deltaCents: -4250,
+            balanceCents: -4250,
         });
         expect(await readBalance(workspaceId, "2026-03-11")).toBeUndefined();
     });
@@ -256,16 +261,16 @@ describe("Saldo diário (integração com emulador do Firestore)", () => {
         const workspaceId = newWorkspace("anterior");
         await createAccount(workspaceId);
 
-        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-01T15:00:00.000Z"), 1000);
-        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-10T15:00:00.000Z"), -167.47);
-        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-20T15:00:00.000Z"), -50);
+        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-01T15:00:00.000Z"), 100000);
+        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-10T15:00:00.000Z"), -16747);
+        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-20T15:00:00.000Z"), -5000);
 
         expect((await readBalance(workspaceId, "2026-03-01"))!.balance).toBeCloseTo(1000, 2);
         expect((await readBalance(workspaceId, "2026-03-10"))!.balance).toBeCloseTo(832.53, 2);
         expect((await readBalance(workspaceId, "2026-03-20"))!.balance).toBeCloseTo(782.53, 2);
 
         // E um lançamento retroativo reposiciona toda a série.
-        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-05T15:00:00.000Z"), -100);
+        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-05T15:00:00.000Z"), -10000);
 
         expect((await readBalance(workspaceId, "2026-03-05"))!.balance).toBeCloseTo(900, 2);
         expect((await readBalance(workspaceId, "2026-03-10"))!.balance).toBeCloseTo(732.53, 2);
@@ -280,18 +285,24 @@ describe("Saldo diário (integração com emulador do Firestore)", () => {
         await balanceCollection(workspaceId).doc("2026-03-01").set({ balance: 1000 });
         await balanceCollection(workspaceId).doc("2026-03-20").set({ balance: 800 });
 
-        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-10T15:00:00.000Z"), -50);
+        await financeRepository.updateAccountBalance(workspaceId, ACCOUNT_ID, new Date("2026-03-10T15:00:00.000Z"), -5000);
 
         // O dia novo achou o legado mais recente ANTES dele (2026-03-01).
         expect(await readBalance(workspaceId, "2026-03-10")).toMatchObject({
             dateKey: "2026-03-10",
             delta: -50,
             balance: 950,
+            deltaCents: -5000,
+            balanceCents: 95000,
         });
         // E o legado POSTERIOR foi propagado e ganhou o dateKey.
         expect(await readBalance(workspaceId, "2026-03-20")).toMatchObject({
             dateKey: "2026-03-20",
             balance: 750,
+            // O documento legado (sem `balanceCents`) é SEMEADO com o espelho
+            // antes de receber o incremento: sem isso o inteiro nasceria de
+            // zero e discordaria do `double`.
+            balanceCents: 75000,
         });
     });
 });

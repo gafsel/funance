@@ -126,6 +126,7 @@ describe("buildPlanningMarks", () => {
         expect(buildPlanningMarks(planningDoc() as any, NOW)).toEqual({
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
         });
@@ -140,6 +141,7 @@ describe("buildPlanningMarks", () => {
         expect(buildPlanningMarks(planningDoc({ startMonth: "2024-01", endMonth: "2025-06" }) as any, NOW)).toEqual({
             summarizedUntil: PLANNING_FULLY_SUMMARIZED,
             appliedAmount: null,
+            appliedAmountCents: null,
             appliedFrom: null,
             appliedUntil: null,
         });
@@ -175,12 +177,14 @@ describe("migrate_planning_summaries", () => {
         expect(fixture.w1.p1).toMatchObject({
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
         });
         expect(fixture.w1.p2).toMatchObject({
             summarizedUntil: PLANNING_FULLY_SUMMARIZED,
             appliedAmount: 300,
+            appliedAmountCents: 30000,
             appliedUntil: "2026-10",
         });
     });

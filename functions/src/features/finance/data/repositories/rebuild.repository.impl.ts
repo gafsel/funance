@@ -153,6 +153,11 @@ export class RebuildRepositoryImpl implements IRebuildRepository {
                         dateKey: write.data!.dateKey,
                         delta: write.data!.delta,
                         balance: write.data!.balance,
+                        // F1.10 — os inteiros vão juntos, e o `set` sem merge
+                        // garante que um documento reconstruído nunca fique com
+                        // o espelho novo e o inteiro velho.
+                        deltaCents: write.data!.deltaCents,
+                        balanceCents: write.data!.balanceCents,
                         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                     },
                 };

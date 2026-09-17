@@ -10,6 +10,7 @@ import { FinanceService } from "../../features/finance/domain/services/finance.s
 import { SummaryService } from "../../features/finance/domain/services/summary.service";
 import { RebuildService } from "../../features/finance/domain/services/rebuild.service";
 import { assertWorkspaceOwner } from "../../core/services/workspace_access.service";
+import { fromCents, toCents } from "../../core/utils/money";
 import {
     AccountModel,
     AccountType,
@@ -500,9 +501,23 @@ describe("rebuildWorkspace — cenário determinístico", () => {
         const goodBalance = (await balanceRef.get()).data()!.balance;
         const goodSummary = (await summaryRef.get()).data()!.categories[MERCADO.id];
 
-        await balanceRef.set({ balance: 42, updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+        // F1.10 — a corrupção mexe nos DOIS lados do par. O inteiro é a fonte
+        // da verdade: um `double` estragado sozinho seria ignorado pelo cálculo
+        // (que leria o inteiro certo ao lado) e o teste não estaria
+        // corrompendo coisa nenhuma.
+        await balanceRef.set({
+            balance: 42,
+            balanceCents: 4200,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
         await summaryRef.set({
-            categories: { [MERCADO.id]: { actualAmount: 1, specificPlannedAmount: 2, generalPlannedAmount: 3 } },
+            categories: {
+                [MERCADO.id]: {
+                    actualAmount: 1, actualAmountCents: 100,
+                    specificPlannedAmount: 2, specificPlannedAmountCents: 200,
+                    generalPlannedAmount: 3, generalPlannedAmountCents: 300,
+                },
+            },
         }, { merge: true });
 
         const preview = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW });
@@ -514,16 +529,24 @@ describe("rebuildWorkspace — cenário determinístico", () => {
         expect(applied.mode).toBe("apply");
         expect(applied.writesCommitted).toBe(applied.totalChanges);
 
-        expect((await balanceRef.get()).data()!.balance).toBeCloseTo(goodBalance, 2);
+        const rebuiltBalance = (await balanceRef.get()).data()!;
+        expect(rebuiltBalance.balance).toBeCloseTo(goodBalance, 2);
+        // O par volta coerente: o inteiro é a verdade, o `double` é o espelho.
+        expect(rebuiltBalance.balanceCents).toBe(toCents(goodBalance));
+        expect(rebuiltBalance.balance).toBe(fromCents(rebuiltBalance.balanceCents));
+
         const restored = (await summaryRef.get()).data()!.categories[MERCADO.id];
         expect(restored.actualAmount).toBeCloseTo(goodSummary.actualAmount, 2);
+        expect(restored.actualAmountCents).toBe(toCents(goodSummary.actualAmount));
         expect(restored.specificPlannedAmount).toBeCloseTo(goodSummary.specificPlannedAmount, 2);
+        expect(restored.specificPlannedAmountCents).toBe(toCents(goodSummary.specificPlannedAmount));
 
         // CONTRATO: o `generalPlannedAmount` NÃO é reconstruível, então o
         // rebuild o preserva como está — inclusive quando está errado. Corrigir
         // esse campo exige o `--rebuild-planning` (destrutivo) ou reescrever o
         // planejamento pelo app, que dispara o gatilho.
         expect(restored.generalPlannedAmount).toBeCloseTo(3, 2);
+        expect(restored.generalPlannedAmountCents).toBe(300);
         expect(goodSummary.generalPlannedAmount).toBeCloseTo(0, 2);
 
         const second = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW });
@@ -630,7 +653,18 @@ describe("rebuildWorkspace — generalPlannedAmount com histórico", () => {
 
         expect(report.rebuildPlanning).toBe(false);
         expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
+        // F1.10 — ZERO, e é uma consequência da correção do ALTO 1: com a
+        // escrita de sumário transacional (leitura + valor absoluto), o
+        // `double` é SEMPRE `fromCents(cents)`. Quatro janelas sobrepostas de
+        // planejamento não deixam mais dízima no espelho — antes, três
+        // incrementos de 225,81 em `double` produziam 677.4300000000001 onde o
+        // inteiro dizia 67743 centavos, e o rebuild tinha de reescrever.
         expect(report.totalChanges).toBe(0);
+
+        const w31 = (await firestore.doc(`workspaces/${WORKSPACE_ID}/period_summaries/2026-W31`).get())
+            .data()!.categories[MERCADO.id];
+        expect(w31.generalPlannedAmountCents).toBe(67743);
+        expect(w31.generalPlannedAmount).toBe(677.43);
 
         // Mesmo aplicando, o planejado gravado continua intacto.
         await rebuildService.rebuildWorkspace(WORKSPACE_ID, { dryRun: false, now: NOW });
@@ -642,6 +676,36 @@ describe("rebuildWorkspace — generalPlannedAmount com histórico", () => {
                     .toEqual({ summaryId, categoryId, general: expect.closeTo(totals.general, 2) });
             }
         }
+    }, 120000);
+
+    it("o rebuild CONSERTA o espelho sujo que a base legada já tem", async () => {
+        // Documentos anteriores a este pacote acumularam `FieldValue.increment`
+        // em `double` por anos: o inteiro (quando a migração o preenche a
+        // partir do próprio `double`) fica certo e o espelho fica com dízima.
+        // O caminho de escrita novo não produz mais isso, mas o acervo produz —
+        // e é o `double` que o app lê.
+        const ref = firestore.doc(`workspaces/${WORKSPACE_ID}/period_summaries/2026-W31`);
+        const original = (await ref.get()).data()!.categories[MERCADO.id];
+
+        await ref.set({
+            categories: { [MERCADO.id]: { ...original, generalPlannedAmount: 677.4300000000001 } },
+        }, { merge: true });
+
+        const report = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW });
+
+        // A QUANTIA não muda — só o espelho. O contador separa as duas coisas.
+        expect(report.diff.periodSummaries.generalPlannedChanges).toBe(0);
+        expect(report.diff.periodSummaries.toUpdate).toBe(1);
+
+        await rebuildService.rebuildWorkspace(WORKSPACE_ID, { dryRun: false, now: NOW });
+
+        const fixed = (await ref.get()).data()!.categories[MERCADO.id];
+        expect(fixed.generalPlannedAmountCents).toBe(67743);
+        expect(fixed.generalPlannedAmount).toBe(677.43);
+
+        // Convergiu: a segunda passada não tem mais nada a fazer.
+        const second = await rebuildService.rebuildWorkspace(WORKSPACE_ID, { now: NOW });
+        expect(second.totalChanges).toBe(0);
     }, 120000);
 
     it("rodar de novo um mês depois continua sem mexer no planejado", async () => {

@@ -27,6 +27,9 @@ export interface ExistingBalanceData {
     dateKey?: string;
     delta?: number;
     balance?: number;
+    /** F1.10 — espelhos inteiros; ausentes antes da `migrate_money_cents`. */
+    deltaCents?: number;
+    balanceCents?: number;
 }
 
 /**
@@ -57,7 +60,14 @@ export interface BalanceWrite {
     accountId: string;
     docId: string;
     op: "set" | "delete";
-    data?: { dateKey: string, delta: number, balance: number };
+    data?: {
+        dateKey: string,
+        delta: number,
+        balance: number,
+        /** F1.10 — a fonte da verdade; os dois campos acima são o espelho. */
+        deltaCents: number,
+        balanceCents: number,
+    };
 }
 
 /** Sumário reconstruído: `workspaces/{wid}/period_summaries/{id}`. */
@@ -74,6 +84,10 @@ export interface SummaryWrite {
             generalPlannedAmount: number;
             specificPlannedAmount: number;
             actualAmount: number;
+            /** F1.10 — a fonte da verdade; os três campos acima são o espelho. */
+            generalPlannedAmountCents: number;
+            specificPlannedAmountCents: number;
+            actualAmountCents: number;
         }>;
     };
 }

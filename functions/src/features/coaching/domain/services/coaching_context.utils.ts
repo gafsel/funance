@@ -6,9 +6,9 @@ import { CategoryGroup } from "../models/category_group.model";
  * (percentuais, benchmark de estilo de vida e score de oportunidades) para cá.
  */
 
-function round2(value: number): number {
-    return Math.round(value * 100) / 100;
-}
+// F1.10 — a aritmética monetária vem de `core/utils/money`: a cópia local de
+// `Math.round(value * 100) / 100` errava `1.005` (virava `1.00`).
+import { round2 } from "../../../../core/utils/money";
 
 function clamp01(value: number): number {
     if (!isFinite(value) || value < 0) return 0;

@@ -109,6 +109,19 @@ const nextInvoiceDoc = () => ({
     status: "pending",
 });
 
+const orderDoc = (overrides: Record<string, unknown> = {}) => ({
+    amount: 502.4,
+    description: "Notebook",
+    dueDay: 10,
+    startMonth: "2026-03",
+    installmentType: "installment",
+    installmentCount: 3,
+    status: "active",
+    type: "expense",
+    accounts: { "acc-checking": "debt" },
+    ...overrides,
+});
+
 const installmentDoc = (overrides: Record<string, unknown> = {}) => ({
     orderId: ORDER_ID,
     amount: 167.47,
@@ -172,9 +185,14 @@ describe("firestore.rules", () => {
                 streaks: { missions: 2, plan: 3 },
             });
             await setDoc(doc(db, `invites/${INVITE_ID}`), inviteDoc());
+            await setDoc(doc(db, `workspaces/${WORKSPACE_ID}/orders/${ORDER_ID}`), {
+                ...orderDoc(),
+                // F1.10: o espelho inteiro já gravado pelo servidor.
+                amountCents: 50240,
+            });
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
-                installmentDoc()
+                installmentDoc({ amountCents: 16747, referenceAmountCents: 16747 })
             );
             await setDoc(
                 doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`),
@@ -956,6 +974,178 @@ describe("firestore.rules", () => {
                     { unplannedReason: null }
                 )
             );
+        });
+    });
+    describe("F1.10 — os espelhos inteiros (*Cents) são do SERVIDOR", () => {
+        // Nesta etapa o app não conhece os campos `*Cents`: ele lê e escreve o
+        // `double`, e o servidor completa o inteiro no passo derivado do
+        // gatilho. Se o cliente pudesse gravá-los, bastaria um `amount: 10` com
+        // `amountCents: 1` para que saldo, sumário e XP — que somam o INTEIRO —
+        // acreditassem em um centavo.
+
+        it("nega que o cliente crie uma order já com amountCents", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/orders/order-cents-forjada`),
+                    { ...orderDoc(), amountCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente altere o amountCents de uma order existente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/orders/${ORDER_ID}`), { amountCents: 1 })
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de uma parcela", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`);
+
+            await assertFails(updateDoc(ref, { amountCents: 1 }));
+            await assertFails(updateDoc(ref, { paidAmountCents: 1 }));
+            await assertFails(updateDoc(ref, { referenceAmountCents: 1 }));
+        });
+
+        it("tolera o reenvio do MESMO amountCents numa parcela (nada mudou)", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // A negação é por DIFERENÇA de valor: uma build futura que releia e
+            // reenvie o documento inteiro não é barrada por reenviar o que o
+            // servidor gravou.
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`),
+                    { amountCents: 16747, description: "Notebook novo" }
+                )
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de uma meta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`);
+
+            await assertFails(updateDoc(ref, { targetAmountCents: 1 }));
+            await assertFails(updateDoc(ref, { currentAmountCents: 999999 }));
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-cents-forjada`),
+                    { ...goalDoc(), targetAmountCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de um planejamento", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/category_planning/${PLANNING_ID}`);
+
+            await assertFails(updateDoc(ref, { amountCents: 1 }));
+            await assertFails(updateDoc(ref, { appliedAmountCents: 1 }));
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/category_planning/planning-cents-forjado`),
+                    { ...planningDoc(), amountCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente grave os *Cents de uma conta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+            const ref = doc(db, `workspaces/${WORKSPACE_ID}/accounts/${CARD_ID}`);
+
+            await assertFails(updateDoc(ref, { initialBalanceCents: 1 }));
+            await assertFails(updateDoc(ref, { limitCents: 1 }));
+            await assertFails(
+                setDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/accounts/acc-card-cents-forjado`),
+                    { ...cardDoc(), limitCents: 1 }
+                )
+            );
+        });
+
+        it("nega que o cliente reescreva o currentAmount de uma meta existente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // O progresso é do SERVIDOR desde wp/gamification-2; o formulário
+            // já não pede esse valor. Poder reescrevê-lo é poder declarar a
+            // própria meta cumprida — com os badges e o XP que vêm junto.
+            await assertFails(
+                updateDoc(doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`), { currentAmount: 999999 })
+            );
+        });
+
+        it("a meta ainda NASCE com currentAmount (zero) pelo formulário", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            await assertSucceeds(
+                setDoc(doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-nova-zero`), goalDoc({ currentAmount: 0 }))
+            );
+        });
+
+        it("NEGA o reenvio de um currentAmount DEFASADO — e isso é o esperado", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // Cenário real: o usuário abre o formulário da meta com
+            // `currentAmount: 0`, um pagamento cai nesse meio-tempo e o
+            // servidor grava 150, e o formulário salva reenviando o 0 que ele
+            // leu. A edição INTEIRA é negada.
+            //
+            // É o comportamento pretendido, e não um efeito colateral: o
+            // formulário não tem por que reenviar um campo que ele não edita, e
+            // aceitar o valor defasado desfaria um progresso que o servidor
+            // acabou de calcular. Quem resolve é o APP — o pacote
+            // wp/flutter-polish parou de enviar `currentAmount` no
+            // `updateGoal`, e ele é publicado ANTES do deploy destas rules
+            // (passo 0 do rollout). Enquanto isso não acontecer, a rule
+            // rejeitaria edições de meta de builds antigas.
+            await testEnv.withSecurityRulesDisabled(async (context) => {
+                await setDoc(
+                    doc(context.firestore(), `workspaces/${WORKSPACE_ID}/goals/goal-defasada`),
+                    goalDoc({ currentAmount: 150, currentAmountCents: 15000 })
+                );
+            });
+
+            await assertFails(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-defasada`),
+                    { name: "Reserva renomeada", currentAmount: 0 }
+                )
+            );
+
+            // O MESMO update sem o campo passa: é exatamente o que o app
+            // publicado no passo 0 faz.
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/goal-defasada`),
+                    { name: "Reserva renomeada" }
+                )
+            );
+        });
+
+        it("tolera o reenvio do MESMO currentAmount numa edição de meta", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            // A negação é por DIFERENÇA de valor: editar o nome reenviando o
+            // documento inteiro continua passando.
+            await assertSucceeds(
+                updateDoc(
+                    doc(db, `workspaces/${WORKSPACE_ID}/goals/${GOAL_ID}`),
+                    { name: "Reserva maior", currentAmount: 0 }
+                )
+            );
+        });
+
+        it("o membro LÊ os espelhos inteiros normalmente", async () => {
+            const db = testEnv.authenticatedContext(MEMBER_UID).firestore();
+
+            const snapshot = await assertSucceeds(
+                getDoc(doc(db, `workspaces/${WORKSPACE_ID}/installments/${INSTALLMENT_ID}`))
+            );
+            expect(snapshot.data()?.amountCents).toBe(16747);
         });
     });
 });

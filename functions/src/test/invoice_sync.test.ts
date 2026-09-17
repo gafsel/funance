@@ -279,6 +279,7 @@ describe("isSameNextInvoice", () => {
         cycleStart: spNoon("2025-02-05"),
         cycleEnd: spNoon("2025-03-04"),
         amount: 100,
+        amountCents: 10000,
         orderId: "invoice-acc-2025-03-10",
         installmentId: "inst-1",
         status: InstallmentStatus.pending,
@@ -289,7 +290,7 @@ describe("isSameNextInvoice", () => {
     });
 
     it("detecta mudança de valor, de status e de parcela", () => {
-        expect(isSameNextInvoice({ ...base, amount: 101 }, base)).toBe(false);
+        expect(isSameNextInvoice({ ...base, amount: 101, amountCents: 10100 }, base)).toBe(false);
         expect(isSameNextInvoice({ ...base, status: InstallmentStatus.paid }, base)).toBe(false);
         expect(isSameNextInvoice({ ...base, installmentId: null }, base)).toBe(false);
     });

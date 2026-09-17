@@ -61,6 +61,7 @@
 import * as admin from "firebase-admin";
 import { BatchOperation, commitInChunks } from "../core/utils/batch.utils";
 import { isMonthKey, toMonthKey } from "../core/utils/month_key";
+import { fromCents, resolveCents } from "../core/utils/money";
 import { CategoryPlanningMarks, CategoryPlanningModel } from "../features/finance/domain/models/finance.models";
 import {
     PLANNING_FULLY_SUMMARIZED,
@@ -101,9 +102,14 @@ export function buildPlanningMarks(planning: CategoryPlanningModel, now: Date): 
     const horizon = planningHorizon(now);
     const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, currentMonth, horizon);
 
+    // F1.10 — o marcador ganha o espelho inteiro junto: quem estorna depois
+    // precisa do valor ao centavo, não de um `double` aproximado.
+    const appliedCents = window ? resolveCents(planning.amount, planning.amountCents) : null;
+
     return {
         summarizedUntil: nextSummarizedUntil(planning.endMonth, horizon),
-        appliedAmount: window ? planning.amount : null,
+        appliedAmount: appliedCents === null ? null : fromCents(appliedCents),
+        appliedAmountCents: appliedCents,
         appliedFrom: window ? window.from : null,
         appliedUntil: window ? window.until : null,
     };

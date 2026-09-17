@@ -199,10 +199,15 @@ describe("Fluxo financeiro (integração com emulador do Firestore)", () => {
 
         const categorySummary = summary.categories[CATEGORY.id];
         expect(categorySummary).toBeDefined();
+        // F1.10 — cada total vem em par: o `*Cents` inteiro (fonte da verdade)
+        // e o `double` espelho que o app lê nesta etapa.
         expect(Object.keys(categorySummary).sort()).toEqual([
             "actualAmount",
+            "actualAmountCents",
             "generalPlannedAmount",
+            "generalPlannedAmountCents",
             "specificPlannedAmount",
+            "specificPlannedAmountCents",
         ]);
         // Nenhum CategoryPlanning foi criado, então o planejado geral é zero.
         expect(categorySummary.generalPlannedAmount).toBeCloseTo(0, 2);

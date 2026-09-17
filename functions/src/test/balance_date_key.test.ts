@@ -1,6 +1,10 @@
 /**
  * F1.4 — saldo diário sem corrida e sem estouro de transação.
  *
+ * F1.10 — o movimento entra em CENTAVOS INTEIROS (`updateAccountBalance` já
+ * não recebe reais) e o documento passou a guardar o par
+ * `deltaCents`/`balanceCents` (verdade) + `delta`/`balance` (espelho round2).
+ *
  * Cobre a transação pequena (dia + último dia anterior) e a propagação em
  * lotes, com um Firestore falso em memória rico o bastante para observar o que
  * de fato foi consultado e escrito:
@@ -21,6 +25,8 @@ const store = new Map<string, Map<string, Record<string, any>>>();
 let orderByCalls: Array<{ field: string, direction: string }> = [];
 /** Tamanho de cada batch commitado. */
 let committedBatchSizes: number[] = [];
+/** Escritas de cada transação — a propagação de saldo virou transacional (F1.10). */
+let transactionWriteCounts: number[] = [];
 /** Documentos escritos dentro de transações. */
 let transactionWrites: string[] = [];
 /** Leituras (consultas e documentos) feitas dentro de transações. */
@@ -177,22 +183,38 @@ const fakeFirestore = {
     },
     runTransaction: async (handler: any) => {
         const pending: Array<() => void> = [];
+        let writes = 0;
         const transaction = {
             async get(target: any) {
                 transactionReads++;
                 return target.get();
             },
+            // F1.10 — a propagação de saldo e a escrita de sumário passaram a
+            // ler em lote dentro da transação (`getAll`) para gravar valores
+            // ABSOLUTOS calculados a partir do inteiro.
+            async getAll(...refs: any[]) {
+                transactionReads += refs.length;
+                return Promise.all(refs.map(async (ref) => {
+                    const data = collectionOf(ref.__path).get(ref.id);
+                    return data
+                        ? { id: ref.id, exists: true, data: () => ({ ...data }) }
+                        : { id: ref.id, exists: false, data: () => undefined };
+                }));
+            },
             set(ref: any, data: any, options?: any) {
                 transactionWrites.push(`${ref.__path}/${ref.id}`);
+                writes++;
                 pending.push(() => applyWrite(ref.__path, ref.id, data, options?.merge === true));
             },
             update(ref: any, data: any) {
                 transactionWrites.push(`${ref.__path}/${ref.id}`);
+                writes++;
                 pending.push(() => applyWrite(ref.__path, ref.id, data, true));
             },
         };
         const result = await handler(transaction);
         pending.forEach((write) => write());
+        transactionWriteCounts.push(writes);
         return result;
     },
 };
@@ -242,24 +264,27 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         store.clear();
         orderByCalls = [];
         committedBatchSizes = [];
+        transactionWriteCounts = [];
         transactionWrites = [];
         transactionReads = 0;
         repository = new FinanceRepositoryImpl();
     });
 
     it("cria o documento do dia com dateKey, delta e balance", async () => {
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -167.47);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -16747);
 
         expect(read("2026-03-10")).toMatchObject({
             dateKey: "2026-03-10",
             delta: -167.47,
             balance: -167.47,
+            deltaCents: -16747,
+            balanceCents: -16747,
         });
     });
 
     it("nunca ordena por documentId descendente", async () => {
         seed("2026-03-01", { dateKey: "2026-03-01", delta: 1000, balance: 1000 });
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
         const descendingByKey = orderByCalls.filter((call) => call.field === "__name__" && call.direction === "desc");
         expect(descendingByKey).toEqual([]);
@@ -271,21 +296,25 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         seed("2026-03-01", { dateKey: "2026-03-01", delta: 1000, balance: 1000 });
         seed("2026-03-05", { dateKey: "2026-03-05", delta: -200, balance: 800 });
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
-        expect(read("2026-03-10")).toMatchObject({ dateKey: "2026-03-10", delta: -50, balance: 750 });
+        expect(read("2026-03-10")).toMatchObject({
+            dateKey: "2026-03-10", delta: -50, balance: 750, deltaCents: -5000, balanceCents: 75000,
+        });
     });
 
     it("soma vários movimentos no mesmo dia", async () => {
         seed("2026-03-01", { dateKey: "2026-03-01", delta: 1000, balance: 1000 });
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -30.25);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -3025);
 
-        expect(read("2026-03-10")).toMatchObject({ delta: -80.25, balance: 919.75 });
+        expect(read("2026-03-10")).toMatchObject({
+            delta: -80.25, balance: 919.75, deltaCents: -8025, balanceCents: 91975,
+        });
     });
 
-    it("escreve UM documento na transação e propaga o resto em lotes de 400", async () => {
+    it("escreve UM documento na transação do dia e propaga o resto em transações de 100", async () => {
         seed("2023-01-01", { dateKey: "2023-01-01", delta: 5000, balance: 5000 });
         // 1000 dias de saldo futuro: no modelo antigo, tudo isso entrava na
         // mesma transação e estourava o limite de 500 escritas.
@@ -297,14 +326,22 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
 
         transactionWrites = [];
         committedBatchSizes = [];
+        transactionWriteCounts = [];
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2023-01-01"), -100);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2023-01-01"), -10000);
 
-        expect(transactionWrites).toEqual([`${BALANCE_PATH}/2023-01-01`]);
-        expect(committedBatchSizes).toEqual([400, 400, 200]);
-        expect(committedBatchSizes.every((size) => size <= 400)).toBe(true);
+        // F1.10 — a propagação virou TRANSACIONAL: a semente do `balanceCents`
+        // de um documento pré-migração vem da leitura, e ela precisa estar no
+        // mesmo instante lógico da escrita. São transações de 100 dias, e não
+        // mais batches de 400.
+        expect(transactionWriteCounts[0]).toBe(1); // a transação do dia
+        expect(transactionWriteCounts.slice(1)).toEqual(new Array(10).fill(100));
+        expect(transactionWriteCounts.every((size) => size <= 100)).toBe(true);
+        expect(committedBatchSizes).toEqual([]);
 
-        expect(read("2023-01-01")).toMatchObject({ delta: 4900, balance: 4900 });
+        expect(read("2023-01-01")).toMatchObject({
+            delta: 4900, balance: 4900, deltaCents: 490000, balanceCents: 490000,
+        });
         expect(read("2023-01-02")!.balance).toBeCloseTo(4900, 2);
         expect(read("2025-09-27")!.balance).toBeCloseTo(4900, 2);
     });
@@ -313,7 +350,7 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         seed("2026-03-01", { dateKey: "2026-03-01", delta: 1000, balance: 1000 });
         seed("2026-03-20", { dateKey: "2026-03-20", delta: -100, balance: 900 });
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
         expect(read("2026-03-01")!.balance).toBeCloseTo(1000, 2);
         expect(read("2026-03-10")!.balance).toBeCloseTo(950, 2);
@@ -325,7 +362,7 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         seed("2026-03-01", { balance: 1000 });
         seed("2026-03-05", { balance: 800 });
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
         expect(read("2026-03-10")).toMatchObject({ dateKey: "2026-03-10", delta: -50, balance: 750 });
     });
@@ -336,7 +373,7 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         seed("2026-03-01", { dateKey: "2026-03-01", delta: 1000, balance: 1000 });
         seed("2026-03-05", { balance: 800 });
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
         expect(read("2026-03-10")!.balance).toBeCloseTo(750, 2);
     });
@@ -345,17 +382,21 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         seed("2026-03-01", { dateKey: "2026-03-01", delta: 1000, balance: 1000 });
         seed("2026-03-10", { balance: 900 }); // movimento de -100 implícito
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
-        expect(read("2026-03-10")).toMatchObject({ dateKey: "2026-03-10", delta: -150, balance: 850 });
+        expect(read("2026-03-10")).toMatchObject({
+            dateKey: "2026-03-10", delta: -150, balance: 850, deltaCents: -15000, balanceCents: 85000,
+        });
     });
 
     it("preenche o dateKey dos documentos legados durante a propagação", async () => {
         seed("2026-03-20", { balance: 500 });
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -50);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-03-10"), -5000);
 
-        expect(read("2026-03-20")).toMatchObject({ dateKey: "2026-03-20", balance: 450 });
+        expect(read("2026-03-20")).toMatchObject({
+            dateKey: "2026-03-20", balance: 450, balanceCents: 45000,
+        });
     });
 
     it("usa o dia de calendário de São Paulo, não o de UTC", async () => {
@@ -364,9 +405,9 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         expect(lateNightInSaoPaulo.toISOString().split("T")[0]).toBe("2026-03-11");
         expect(toDateKey(lateNightInSaoPaulo)).toBe("2026-03-10");
 
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, lateNightInSaoPaulo, -25);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, lateNightInSaoPaulo, -2500);
 
-        expect(read("2026-03-10")).toMatchObject({ dateKey: "2026-03-10", delta: -25 });
+        expect(read("2026-03-10")).toMatchObject({ dateKey: "2026-03-10", delta: -25, deltaCents: -2500 });
         expect(read("2026-03-11")).toBeUndefined();
     });
 
@@ -378,7 +419,7 @@ describe("FinanceRepositoryImpl.updateAccountBalance (F1.4)", () => {
         }
 
         transactionReads = 0;
-        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-06-01"), -10);
+        await repository.updateAccountBalance(WORKSPACE, ACCOUNT, noonInSaoPaulo("2026-06-01"), -1000);
 
         // 1 documento do dia + 1 consulta indexada + 1 sonda de legado.
         expect(transactionReads).toBe(3);

@@ -1,8 +1,10 @@
+import * as admin from "firebase-admin";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
-import { INSTALLMENT_DERIVED_FIELDS, InstallmentModel } from "../../domain/models/finance.models";
+import { INSTALLMENT_DERIVED_FIELDS, InstallmentModel, MONEY_CENTS_FIELDS } from "../../domain/models/finance.models";
+import { applyCentsPatch } from "../../../../core/utils/money_cents";
 
 // Reexportado por compatibilidade: a definição vive no modelo da parcela,
 // porque o gatilho de gamificação observa a mesma coleção e usa a mesma guarda.
@@ -12,6 +14,28 @@ export interface InstallmentEventContext {
     workspaceId: string;
     installmentId: string;
     eventId: string;
+}
+
+/**
+ * F1.10 — passo derivado: completa `amountCents`/`paidAmountCents`/
+ * `referenceAmountCents` a partir do `double` que o CLIENTE gravou.
+ *
+ * Roda ANTES da guarda por conteúdo de propósito. Uma escrita que só mexeu em
+ * campos derivados não tem o que recalcular no sumário, mas pode perfeitamente
+ * ser a primeira escrita a trazer um `paidAmount` novo de uma build antiga do
+ * app — e o inteiro precisa acompanhá-lo de qualquer jeito.
+ */
+async function syncInstallmentCents(
+    afterData: Record<string, any> | null,
+    ctx: InstallmentEventContext
+): Promise<void> {
+    if (!afterData) return;
+
+    const ref = admin.firestore()
+        .collection(`workspaces/${ctx.workspaceId}/installments`)
+        .doc(ctx.installmentId);
+
+    await applyCentsPatch(ref, afterData, MONEY_CENTS_FIELDS.installments, "onInstallmentWritten");
 }
 
 /** Converte o payload cru do evento no modelo de domínio. */
@@ -43,6 +67,8 @@ export async function handleInstallmentWritten(
     const { workspaceId, installmentId, eventId } = ctx;
 
     logger.info(`[onInstallmentWritten] Início do processamento: workspaceId=${workspaceId}, installmentId=${installmentId}`);
+
+    await syncInstallmentCents(afterData, ctx);
 
     // GUARDA POR CONTEÚDO: numa atualização (before e after existem), se o
     // conjunto de campos alterados couber dentro dos campos derivados, nada de

@@ -80,6 +80,7 @@ const CARD_WITHOUT_UPDATED_AT: AccountModel = {
         cycleStart: new Date("2026-03-04T00:00:00Z"),
         cycleEnd: new Date("2026-04-03T23:59:59Z"),
         amount: 1200,
+        amountCents: 120000,
         orderId: "invoice-acc-card-2026-04-10",
         installmentId: "inst-1",
         status: InstallmentStatus.pending,

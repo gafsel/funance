@@ -333,7 +333,7 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
         });
 
         const legacyCard = await repository.getAccountById(WORKSPACE_ID, LEGACY_CARD_ID);
-        await repository.updateInvoiceWithDelta(WORKSPACE_ID, legacyCard!, dueDate, 50);
+        await repository.updateInvoiceWithDelta(WORKSPACE_ID, legacyCard!, dueDate, 5000);
 
         // O delta foi para a order que já existia...
         const legacy = await firestore.doc(`workspaces/${WORKSPACE_ID}/orders/${legacyId}`).get();
@@ -352,7 +352,7 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
         const canonicalId = `invoice-${LEGACY_CARD_ID}-2025-06-10`;
 
         const legacyCard = await repository.getAccountById(WORKSPACE_ID, LEGACY_CARD_ID);
-        await repository.updateInvoiceWithDelta(WORKSPACE_ID, legacyCard!, dueDate, 75);
+        await repository.updateInvoiceWithDelta(WORKSPACE_ID, legacyCard!, dueDate, 7500);
 
         const canonical = await firestore.doc(`workspaces/${WORKSPACE_ID}/orders/${canonicalId}`).get();
         expect(canonical.data()?.amount).toBeCloseTo(75, 2);
@@ -372,6 +372,7 @@ describe("Fatura: nextInvoice do início ao pagamento (integração com emulador
             cycleStart: new Date(Date.UTC(2025, 1, 5, 3, 0, 0)),
             cycleEnd: new Date(Date.UTC(2025, 2, 5, 2, 59, 59)),
             amount: 0,
+            amountCents: 0,
             orderId: `invoice-${CARD_ID}-2025-03-10`,
             installmentId: null,
             status: InstallmentStatus.pending,

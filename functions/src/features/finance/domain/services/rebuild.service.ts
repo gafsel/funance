@@ -35,6 +35,7 @@
  */
 
 import { getZonedParts, toDateKey } from "../../../../core/utils/date_key";
+import { fromCents, resolveCents, toCents } from "../../../../core/utils/money";
 import { getWeekNumber, getWeekYear } from "../../../../core/utils/week.utils";
 import {
     CategoryModel,
@@ -73,8 +74,6 @@ export interface RebuildOptions {
     chunkSize?: number;
     /** Tamanho da página nas leituras (padrão 500). */
     pageSize?: number;
-    /** Tolerância de comparação em reais (padrão meio centavo). */
-    epsilon?: number;
     /**
      * Apaga também os documentos RESIDUAIS (padrão `false`).
      *
@@ -167,6 +166,10 @@ export interface SummaryCategoryTotals {
     generalPlannedAmount: number;
     specificPlannedAmount: number;
     actualAmount: number;
+    /** F1.10 — os mesmos três totais em CENTAVOS INTEIROS (a fonte da verdade). */
+    generalPlannedAmountCents: number;
+    specificPlannedAmountCents: number;
+    actualAmountCents: number;
 }
 
 export interface TargetSummaryDoc {
@@ -183,6 +186,9 @@ export interface TargetBalanceDoc {
     delta: number;
     /** Saldo acumulado ao fim do dia. */
     balance: number;
+    /** F1.10 — os mesmos dois valores em CENTAVOS INTEIROS. */
+    deltaCents: number;
+    balanceCents: number;
 }
 
 export interface TargetState {
@@ -195,13 +201,10 @@ export interface TargetState {
 }
 
 const DEFAULT_PAGE_SIZE = 500;
-const DEFAULT_EPSILON = 0.005;
 const DEFAULT_SAMPLE_LIMIT = 50;
 /** Teto de operações por batch — `commitInChunks` aceita 500, usamos 400 de folga. */
 const MAX_CHUNK_SIZE = 400;
 
-const toCents = (value: number) => Math.round(value * 100);
-const fromCents = (cents: number) => cents / 100;
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
 /**
@@ -230,8 +233,14 @@ const isPaidStatus = (status: InstallmentStatus | undefined) =>
     status === InstallmentStatus.paid || status === InstallmentStatus.settled;
 
 interface CategoryAccumulator {
-    /** Vem de `category_planning`: fração (amount/dias*7), acumulada em float. */
-    general: number;
+    /**
+     * Vem de `category_planning` (`amount/dias*7` para a semana). F1.10 — os
+     * impactos já chegam arredondados ao centavo por
+     * `SummaryService.calculatePlanningImpacts`, então também aqui a soma é
+     * INTEIRA: é o que torna gatilho e rebuild capazes de chegar ao mesmo
+     * número, em vez de a um número parecido.
+     */
+    generalCents: number;
     /** Dinheiro: acumulado em centavos inteiros. */
     specificCents: number;
     actualCents: number;
@@ -318,7 +327,7 @@ export class RebuildAccumulator {
             if (!hasCategoryId(impact.category)) continue;
 
             const bucket = this.categoryBucket(impact.year, impact.month, impact.week, impact.category);
-            bucket.general += impact.generalPlannedDelta ?? 0;
+            bucket.generalCents += toCents(impact.generalPlannedDelta ?? 0);
         }
     }
 
@@ -334,11 +343,11 @@ export class RebuildAccumulator {
         if (!installment.accounts || !installment.paidAmount || !installment.paidDate) return;
 
         const docId = balanceDocId(installment.paidDate);
+        // F1.10 — o valor vem do espelho INTEIRO da parcela quando ele existe.
+        const paidCents = resolveCents(installment.paidAmount, installment.paidAmountCents);
 
         for (const [accountId, role] of Object.entries(installment.accounts)) {
-            const deltaCents = role === "credit"
-                ? toCents(installment.paidAmount)
-                : -toCents(installment.paidAmount);
+            const deltaCents = role === "credit" ? paidCents : -paidCents;
 
             let perDay = this.balanceDeltaCents.get(accountId);
             if (!perDay) {
@@ -376,14 +385,21 @@ export class RebuildAccumulator {
         }
 
         // Projetado: sempre, no `dueDate`, com `amount`.
-        this.addSummaryValue(installment.dueDate, category, "specificCents", toCents(installment.amount));
+        this.addSummaryValue(
+            installment.dueDate,
+            category,
+            "specificCents",
+            resolveCents(installment.amount, installment.amountCents)
+        );
 
         // Realizado: no `paidDate`, com `paidAmount ?? amount`.
         if (!isPaidStatus(installment.status) || !installment.paidDate) return;
-        const actual = installment.paidAmount ?? installment.amount;
-        if (!actual) return;
+        const actualCents = installment.paidAmount !== undefined && installment.paidAmount !== null
+            ? resolveCents(installment.paidAmount, installment.paidAmountCents)
+            : resolveCents(installment.amount, installment.amountCents);
+        if (!actualCents) return;
 
-        this.addSummaryValue(installment.paidDate, category, "actualCents", toCents(actual));
+        this.addSummaryValue(installment.paidDate, category, "actualCents", actualCents);
     }
 
     /** `FinanceService.updateXpOnInstallmentChange` + `updateWeeklyTotalXp`. */
@@ -467,7 +483,7 @@ export class RebuildAccumulator {
 
         let bucket = summary.categories.get(category.id);
         if (!bucket) {
-            bucket = { general: 0, specificCents: 0, actualCents: 0 };
+            bucket = { generalCents: 0, specificCents: 0, actualCents: 0 };
             summary.categories.set(category.id, bucket);
         }
         return bucket;
@@ -485,7 +501,12 @@ export class RebuildAccumulator {
             for (const day of days) {
                 const deltaCents = perDay.get(day)!;
                 accumulated += deltaCents;
-                running.set(day, { delta: fromCents(deltaCents), balance: fromCents(accumulated) });
+                running.set(day, {
+                    delta: fromCents(deltaCents),
+                    balance: fromCents(accumulated),
+                    deltaCents,
+                    balanceCents: accumulated,
+                });
             }
             balances.set(accountId, running);
         }
@@ -495,9 +516,12 @@ export class RebuildAccumulator {
             const categories: Record<string, SummaryCategoryTotals> = {};
             for (const [categoryId, bucket] of summary.categories) {
                 categories[categoryId] = {
-                    generalPlannedAmount: bucket.general,
+                    generalPlannedAmount: fromCents(bucket.generalCents),
                     specificPlannedAmount: fromCents(bucket.specificCents),
                     actualAmount: fromCents(bucket.actualCents),
+                    generalPlannedAmountCents: bucket.generalCents,
+                    specificPlannedAmountCents: bucket.specificCents,
+                    actualAmountCents: bucket.actualCents,
                 };
             }
             summaries.set(docId, {
@@ -581,7 +605,6 @@ export class RebuildService {
         const startedAt = Date.now();
         const dryRun = options.dryRun !== false;
         const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
-        const epsilon = options.epsilon ?? DEFAULT_EPSILON;
         const sampleLimit = options.sampleLimit ?? DEFAULT_SAMPLE_LIMIT;
         const rebuildPlanning = options.rebuildPlanning === true;
         const baseDate = options.now ?? new Date();
@@ -610,7 +633,7 @@ export class RebuildService {
         if (!rebuildPlanning) {
             // Padrão: o `generalPlannedAmount` gravado é preservado como está —
             // ver `RebuildOptions.rebuildPlanning`.
-            preserveGeneralPlanned(target, existingSummaries, epsilon);
+            preserveGeneralPlanned(target, existingSummaries);
         }
 
         const accountIds = new Set<string>(await this.rebuildRepository.listAccountIds(workspaceId));
@@ -618,9 +641,9 @@ export class RebuildService {
             accountIds.add(accountId);
         }
 
-        const balances = await this.diffBalances(workspaceId, [...accountIds].sort(), target, pageSize, epsilon, sampleLimit);
-        const summaries = this.diffSummaries(existingSummaries, target, epsilon, sampleLimit);
-        const weeklyXp = await this.diffWeeklyXp(workspaceId, target, pageSize, epsilon, sampleLimit);
+        const balances = await this.diffBalances(workspaceId, [...accountIds].sort(), target, pageSize, sampleLimit);
+        const summaries = this.diffSummaries(existingSummaries, target, sampleLimit);
+        const weeklyXp = await this.diffWeeklyXp(workspaceId, target, pageSize, sampleLimit);
 
         const changes = [...balances.writes, ...summaries.writes, ...weeklyXp.writes];
         const residual = [...balances.residualWrites, ...summaries.residualWrites, ...weeklyXp.residualWrites];
@@ -661,7 +684,6 @@ export class RebuildService {
         accountIds: string[],
         target: TargetState,
         pageSize: number,
-        epsilon: number,
         sampleLimit: number
     ): Promise<DiffCollector> {
         const collector = new DiffCollector(sampleLimit);
@@ -680,15 +702,28 @@ export class RebuildService {
                     accountId,
                     docId,
                     op: "set",
-                    data: { dateKey: docId, delta: day.delta, balance: day.balance },
+                    data: {
+                        dateKey: docId,
+                        delta: day.delta,
+                        balance: day.balance,
+                        deltaCents: day.deltaCents,
+                        balanceCents: day.balanceCents,
+                    },
                 };
 
                 if (!current) {
                     collector.create(path, write);
                 }
                 else if (
-                    !numbersEqual(current.data.balance, day.balance, epsilon) ||
-                    !numbersEqual(current.data.delta, day.delta, epsilon) ||
+                    // F1.10 — a comparação é de CENTAVOS INTEIROS, e o
+                    // verificador confere os DOIS lados: o inteiro gravado E o
+                    // `double` espelho. Um documento cujo `balanceCents` bate
+                    // mas cujo `balance` escorregou continua sendo divergência,
+                    // porque é o `double` que o app lê hoje.
+                    storedCents(current.data.balance, current.data.balanceCents) !== day.balanceCents ||
+                    storedCents(current.data.delta, current.data.deltaCents) !== day.deltaCents ||
+                    !mirrorsCents(current.data.balance, day.balanceCents) ||
+                    !mirrorsCents(current.data.delta, day.deltaCents) ||
                     current.data.dateKey !== docId
                 ) {
                     // O `delta`/`dateKey` ausente é o documento anterior a F1.4:
@@ -712,7 +747,7 @@ export class RebuildService {
                 // Dia sem movimento: o documento só repete o saldo acumulado
                 // até ali (sobra de um pagamento estornado). Nenhuma consulta
                 // enxerga diferença, então não é divergência — é residual.
-                if (numbersEqual(doc.data.balance, impliedBalance(expected, expectedDays, doc.id), epsilon)) {
+                if (storedCents(doc.data.balance, doc.data.balanceCents) === impliedBalanceCents(expected, expectedDays, doc.id)) {
                     collector.residual(path, write);
                 }
                 else {
@@ -733,7 +768,6 @@ export class RebuildService {
     private diffSummaries(
         existing: ExistingDoc<ExistingSummaryData>[],
         target: TargetState,
-        epsilon: number,
         sampleLimit: number
     ): DiffCollector {
         const collector = new DiffCollector(sampleLimit);
@@ -747,12 +781,12 @@ export class RebuildService {
 
             if (!current) {
                 const hasPlanned = Object.values(expected.categories)
-                    .some((totals) => !numbersEqual(totals.generalPlannedAmount, 0, epsilon));
+                    .some((totals) => totals.generalPlannedAmountCents !== 0);
                 collector.create(path, write, hasPlanned);
                 continue;
             }
 
-            const comparison = compareSummary(current, expected, epsilon);
+            const comparison = compareSummary(current, expected);
 
             if (comparison.equal) {
                 collector.keep();
@@ -778,7 +812,7 @@ export class RebuildService {
             if (!parsePeriodId(doc.id)) {
                 collector.keep();
             }
-            else if (isZeroedSummary(doc, epsilon)) {
+            else if (isZeroedSummary(doc)) {
                 // Documento inteiramente zerado (sobra de lançamento estornado
                 // ou removido): equivale à ausência do documento.
                 collector.residual(path, write);
@@ -795,7 +829,6 @@ export class RebuildService {
         workspaceId: string,
         target: TargetState,
         pageSize: number,
-        epsilon: number,
         sampleLimit: number
     ): Promise<DiffCollector> {
         const collector = new DiffCollector(sampleLimit);
@@ -814,7 +847,10 @@ export class RebuildService {
             else if (
                 current.data.year !== expected.year ||
                 current.data.week !== expected.week ||
-                !numbersEqual(current.data.xp, expected.xp, epsilon)
+                // XP não é dinheiro, mas o `calculateXp` devolve meio ponto
+                // (15 ± 1,5): comparar em "centavos de XP" é exato do mesmo
+                // jeito e dispensa a tolerância.
+                toCents(current.data.xp) !== toCents(expected.xp)
             ) {
                 collector.update(path, write);
             }
@@ -829,7 +865,7 @@ export class RebuildService {
             const path = `weekly_xp/${doc.id}`;
             const write: RebuildWrite = { kind: "weeklyXp", docId: doc.id, op: "delete" };
 
-            if (numbersEqual(doc.data.xp ?? 0, 0, epsilon)) {
+            if (toCents(doc.data.xp ?? 0) === 0) {
                 collector.residual(path, write);
             }
             else {
@@ -841,14 +877,35 @@ export class RebuildService {
     }
 }
 
-/** Saldo acumulado que o rebuild enxerga no dia (último dia-alvo <= `dayId`). */
-function impliedBalance(expected: Map<string, TargetBalanceDoc>, sortedDays: string[], dayId: string): number {
+/** Saldo acumulado que o rebuild enxerga no dia (último dia-alvo <= `dayId`), em centavos. */
+function impliedBalanceCents(expected: Map<string, TargetBalanceDoc>, sortedDays: string[], dayId: string): number {
     let value = 0;
     for (const day of sortedDays) {
         if (day > dayId) break;
-        value = expected.get(day)!.balance;
+        value = expected.get(day)!.balanceCents;
     }
     return value;
+}
+
+/**
+ * Centavos de um par (`double`, `*Cents`) JÁ GRAVADO — o inteiro manda.
+ *
+ * F1.10: enquanto a `migrate_money_cents` não passa, o `*Cents` não existe e
+ * quem responde é o espelho.
+ */
+function storedCents(value: unknown, cents: unknown): number {
+    return resolveCents(typeof value === "number" ? value : Number(value), cents);
+}
+
+/**
+ * O `double` gravado é o espelho EXATO destes centavos?
+ *
+ * A pergunta é diferente de "os centavos batem": um documento pode ter o
+ * inteiro certo e o `double` com resíduo de `FieldValue.increment`, e é o
+ * `double` que o app lê hoje. O rebuild corrige os dois.
+ */
+function mirrorsCents(value: unknown, cents: number): boolean {
+    return typeof value === "number" && Number.isFinite(value) && value === fromCents(cents);
 }
 
 export interface PeriodIdParts {
@@ -886,7 +943,7 @@ export function parsePeriodId(docId: string): PeriodIdParts | null {
  * gravado é zero NÃO são copiadas: se nada mais as sustenta, elas somem do
  * documento como residual.
  */
-export function preserveGeneralPlanned(target: TargetState, existing: ExistingDoc<ExistingSummaryData>[], epsilon: number): void {
+export function preserveGeneralPlanned(target: TargetState, existing: ExistingDoc<ExistingSummaryData>[]): void {
     for (const doc of existing) {
         const parts = parsePeriodId(doc.id);
         if (!parts) continue;
@@ -894,8 +951,8 @@ export function preserveGeneralPlanned(target: TargetState, existing: ExistingDo
         const categories = doc.data?.categories ?? {};
 
         for (const [categoryId, totals] of Object.entries(categories)) {
-            const general = Number(totals?.generalPlannedAmount ?? 0);
-            if (!Number.isFinite(general) || numbersEqual(general, 0, epsilon)) continue;
+            const generalCents = storedCents(totals?.generalPlannedAmount ?? 0, totals?.generalPlannedAmountCents);
+            if (generalCents === 0) continue;
 
             let summary = target.summaries.get(doc.id);
             if (!summary) {
@@ -913,8 +970,14 @@ export function preserveGeneralPlanned(target: TargetState, existing: ExistingDo
                 generalPlannedAmount: 0,
                 specificPlannedAmount: 0,
                 actualAmount: 0,
+                generalPlannedAmountCents: 0,
+                specificPlannedAmountCents: 0,
+                actualAmountCents: 0,
             };
-            bucket.generalPlannedAmount = general;
+            // F1.10 — preservar é preservar a QUANTIA, não o `double` sujo: o
+            // inteiro é copiado e o espelho é reescrito a partir dele.
+            bucket.generalPlannedAmountCents = generalCents;
+            bucket.generalPlannedAmount = fromCents(generalCents);
             summary.categories[categoryId] = bucket;
         }
     }
@@ -928,7 +991,7 @@ export interface SummaryComparison {
 }
 
 /** Compara o documento gravado com o alvo, separando o que é residual. */
-export function compareSummary(current: ExistingDoc<ExistingSummaryData>, expected: TargetSummaryDoc, epsilon: number): SummaryComparison {
+export function compareSummary(current: ExistingDoc<ExistingSummaryData>, expected: TargetSummaryDoc): SummaryComparison {
     const data = current.data || {};
     let different = false;
     let generalPlannedChanged = false;
@@ -946,18 +1009,28 @@ export function compareSummary(current: ExistingDoc<ExistingSummaryData>, expect
 
         if (!currentTotals) {
             different = true;
-            if (!numbersEqual(expectedTotals.generalPlannedAmount, 0, epsilon)) generalPlannedChanged = true;
+            if (expectedTotals.generalPlannedAmountCents !== 0) generalPlannedChanged = true;
             continue;
         }
 
-        if (!numbersEqual(currentTotals.generalPlannedAmount ?? 0, expectedTotals.generalPlannedAmount, epsilon)) {
+        // F1.10 — compara o INTEIRO e, em seguida, se o `double` gravado é o
+        // espelho exato dele. As duas perguntas: a quantia está certa? e o
+        // campo que o app lê hoje está certo?
+        const generalCents = storedCents(currentTotals.generalPlannedAmount ?? 0, currentTotals.generalPlannedAmountCents);
+        const specificCents = storedCents(currentTotals.specificPlannedAmount ?? 0, currentTotals.specificPlannedAmountCents);
+        const actualCents = storedCents(currentTotals.actualAmount ?? 0, currentTotals.actualAmountCents);
+
+        if (generalCents !== expectedTotals.generalPlannedAmountCents ||
+            !mirrorsCents(currentTotals.generalPlannedAmount ?? 0, expectedTotals.generalPlannedAmountCents)) {
             different = true;
-            generalPlannedChanged = true;
+            generalPlannedChanged = generalCents !== expectedTotals.generalPlannedAmountCents;
         }
-        if (!numbersEqual(currentTotals.specificPlannedAmount ?? 0, expectedTotals.specificPlannedAmount, epsilon)) {
+        if (specificCents !== expectedTotals.specificPlannedAmountCents ||
+            !mirrorsCents(currentTotals.specificPlannedAmount ?? 0, expectedTotals.specificPlannedAmountCents)) {
             different = true;
         }
-        if (!numbersEqual(currentTotals.actualAmount ?? 0, expectedTotals.actualAmount, epsilon)) {
+        if (actualCents !== expectedTotals.actualAmountCents ||
+            !mirrorsCents(currentTotals.actualAmount ?? 0, expectedTotals.actualAmountCents)) {
             different = true;
         }
     }
@@ -965,16 +1038,16 @@ export function compareSummary(current: ExistingDoc<ExistingSummaryData>, expect
     for (const [categoryId, currentTotals] of Object.entries(currentCategories)) {
         if (expected.categories[categoryId]) continue;
 
-        const isZeroed = numbersEqual(currentTotals?.generalPlannedAmount ?? 0, 0, epsilon) &&
-            numbersEqual(currentTotals?.specificPlannedAmount ?? 0, 0, epsilon) &&
-            numbersEqual(currentTotals?.actualAmount ?? 0, 0, epsilon);
+        const isZeroed = isZeroedTotals(currentTotals);
 
         if (isZeroed) {
             zeroedCategoriesRemoved = true;
         }
         else {
             different = true;
-            if (!numbersEqual(currentTotals?.generalPlannedAmount ?? 0, 0, epsilon)) generalPlannedChanged = true;
+            if (storedCents(currentTotals?.generalPlannedAmount ?? 0, currentTotals?.generalPlannedAmountCents) !== 0) {
+                generalPlannedChanged = true;
+            }
         }
     }
 
@@ -985,20 +1058,15 @@ export function compareSummary(current: ExistingDoc<ExistingSummaryData>, expect
     };
 }
 
-/** `true` se todas as categorias do documento estão zeradas. */
-function isZeroedSummary(doc: ExistingDoc<ExistingSummaryData>, epsilon: number): boolean {
-    const categories = doc.data?.categories ?? {};
-
-    return Object.values(categories).every((totals) =>
-        numbersEqual(totals?.generalPlannedAmount ?? 0, 0, epsilon) &&
-        numbersEqual(totals?.specificPlannedAmount ?? 0, 0, epsilon) &&
-        numbersEqual(totals?.actualAmount ?? 0, 0, epsilon)
-    );
+/** Os três totais de uma categoria estão zerados? (em centavos inteiros). */
+function isZeroedTotals(totals: Partial<SummaryCategoryTotals> | undefined): boolean {
+    return storedCents(totals?.generalPlannedAmount ?? 0, totals?.generalPlannedAmountCents) === 0 &&
+        storedCents(totals?.specificPlannedAmount ?? 0, totals?.specificPlannedAmountCents) === 0 &&
+        storedCents(totals?.actualAmount ?? 0, totals?.actualAmountCents) === 0;
 }
 
-function numbersEqual(current: unknown, expected: number, epsilon: number): boolean {
-    const value = typeof current === "number" ? current : Number(current);
-    if (!Number.isFinite(value)) return false;
-    return Math.abs(value - expected) <= epsilon;
+/** `true` se todas as categorias do documento estão zeradas. */
+function isZeroedSummary(doc: ExistingDoc<ExistingSummaryData>): boolean {
+    return Object.values(doc.data?.categories ?? {}).every(isZeroedTotals);
 }
 

@@ -32,6 +32,7 @@ import {
     VIRTUAL_INVESTMENT_INCOME_CATEGORY
 } from "../../../workspace/domain/models/category.model";
 import { WeekRef, getWeekNumber, getWeekRef, getWeekStart, getWeekYear } from "../../../../core/utils/week.utils";
+import { fromCents, resolveCents, round2 } from "../../../../core/utils/money";
 
 /**
  * Sentinela de `summarizedUntil`: o planejamento cabe inteiro no horizonte, não
@@ -128,17 +129,30 @@ export function resolveAppliedWindow(
     planning: CategoryPlanningModel,
     currentMonth: string,
     horizon: string
-): (PlanningWindow & { amount: number }) | null {
+): (PlanningWindow & { amount: number, amountCents: number }) | null {
     const hasMarks = isMonthKey(planning.summarizedUntil) || planning.summarizedUntil === PLANNING_FULLY_SUMMARIZED;
 
     if (hasMarks) {
         if (!isMonthKey(planning.appliedFrom) || !isMonthKey(planning.appliedUntil)) return null;
-        const amount = typeof planning.appliedAmount === "number" ? planning.appliedAmount : planning.amount;
-        return { from: planning.appliedFrom, until: planning.appliedUntil, amount };
+        // F1.10 — o que foi aplicado é estornado pelo valor INTEIRO quando ele
+        // existe: o estorno tem de cancelar a aplicação ao centavo, senão sobra
+        // resíduo no `generalPlannedAmount` a cada edição.
+        const amountCents = typeof planning.appliedAmount === "number"
+            ? resolveCents(planning.appliedAmount, planning.appliedAmountCents)
+            : resolveCents(planning.amount, planning.amountCents);
+        return {
+            from: planning.appliedFrom,
+            until: planning.appliedUntil,
+            amount: fromCents(amountCents),
+            amountCents,
+        };
     }
 
     const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, currentMonth, horizon);
-    return window ? { ...window, amount: planning.amount } : null;
+    if (!window) return null;
+
+    const amountCents = resolveCents(planning.amount, planning.amountCents);
+    return { ...window, amount: fromCents(amountCents), amountCents };
 }
 
 /** `summarizedUntil` depois de processar até `horizon`. */
@@ -176,8 +190,21 @@ export class SummaryService {
                 // O planejamento do estorno usa o intervalo APLICADO como
                 // período: se o usuário encurtou o período, o estorno ainda
                 // precisa alcançar os meses que ficaram de fora.
+                // F1.10 — `amountCents` vai JUNTO do `amount`. Sem ele, o
+                // spread carregaria o `before.amountCents` do documento (o
+                // valor NOVO, se o usuário acabou de editar o planejamento) e
+                // `resolveCents` prefere o inteiro: o estorno cancelaria uma
+                // quantia que nunca foi aplicada. Sobrescrever um `double`
+                // monetário sem sobrescrever o par inteiro é o erro que esta
+                // etapa tornou possível — e silencioso.
                 impacts.push(...this.calculatePlanningImpacts(
-                    { ...before, amount: applied.amount, startMonth: applied.from, endMonth: applied.until },
+                    {
+                        ...before,
+                        amount: applied.amount,
+                        amountCents: applied.amountCents,
+                        startMonth: applied.from,
+                        endMonth: applied.until,
+                    },
                     -1,
                     { from: applied.from, until: applied.until }
                 ));
@@ -192,9 +219,11 @@ export class SummaryService {
                 impacts.push(...this.calculatePlanningImpacts(after, 1, window));
             }
 
+            const appliedCents = window ? resolveCents(after.amount, after.amountCents) : null;
             marks = {
                 summarizedUntil: nextSummarizedUntil(after.endMonth, horizon),
-                appliedAmount: window ? after.amount : null,
+                appliedAmount: appliedCents === null ? null : fromCents(appliedCents),
+                appliedAmountCents: appliedCents,
                 appliedFrom: window ? window.from : null,
                 appliedUntil: window ? window.until : null,
             };
@@ -231,14 +260,23 @@ export class SummaryService {
         const effective = intersectPlanningWindow(planning.startMonth, planning.endMonth, window.from, window.until);
         if (!effective) return impacts;
 
+        // F1.10 — o valor do planejamento vira CENTAVOS uma vez só, aqui, e
+        // todo impacto emitido é um decimal de duas casas exato. É o que
+        // permite que o gatilho (que soma em centavos) e o rebuild (idem)
+        // cheguem ao MESMO número: a proporção semanal `amount/dias*7` é uma
+        // dízima, e arredondá-la em lugares diferentes divergia.
+        const amountCents = resolveCents(planning.amount, planning.amountCents);
+
         for (const monthKey of monthKeyRange(effective.from, effective.until)) {
             const { year, month } = monthKeyParts(monthKey);
-            const monthlyDelta = planning.amount * multiplier;
+            const monthlyDelta = fromCents(amountCents * multiplier);
 
             impacts.push({ year, month, category: planning.category, generalPlannedDelta: monthlyDelta });
             impacts.push({ year, category: planning.category, generalPlannedDelta: monthlyDelta });
 
-            const weeklyDelta = (planning.amount / daysInMonthKey(monthKey)) * 7 * multiplier;
+            // A proporção semanal é arredondada ao centavo ANTES de virar
+            // impacto: o sumário guarda dinheiro, não fração de centavo.
+            const weeklyDelta = round2((amountCents / daysInMonthKey(monthKey)) * 7 * multiplier / 100);
             for (const week of weeksStartingInMonth(monthKey)) {
                 impacts.push({
                     year: week.year,
@@ -331,9 +369,16 @@ export class SummaryService {
         const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, alreadyDone, horizon);
         const impacts = window ? this.calculatePlanningImpacts(planning, 1, window) : [];
 
+        const appliedCents = window
+            ? resolveCents(planning.amount, planning.amountCents)
+            : (typeof planning.appliedAmount === "number"
+                ? resolveCents(planning.appliedAmount, planning.appliedAmountCents)
+                : null);
+
         const marks: CategoryPlanningMarks = {
             summarizedUntil: nextSummarizedUntil(planning.endMonth, horizon),
-            appliedAmount: window ? planning.amount : (planning.appliedAmount ?? null),
+            appliedAmount: appliedCents === null ? null : fromCents(appliedCents),
+            appliedAmountCents: appliedCents,
             appliedFrom: window
                 ? minMonthKey(isMonthKey(planning.appliedFrom) ? planning.appliedFrom : window.from, window.from)
                 : (planning.appliedFrom ?? null),
@@ -356,10 +401,12 @@ export class SummaryService {
         horizon: string
     ): Promise<void> {
         const window = intersectPlanningWindow(planning.startMonth, planning.endMonth, currentMonth, horizon);
+        const appliedCents = window ? resolveCents(planning.amount, planning.amountCents) : null;
 
         const marks: CategoryPlanningMarks = {
             summarizedUntil: nextSummarizedUntil(planning.endMonth, horizon),
-            appliedAmount: window ? planning.amount : null,
+            appliedAmount: appliedCents === null ? null : fromCents(appliedCents),
+            appliedAmountCents: appliedCents,
             appliedFrom: window ? window.from : null,
             appliedUntil: window ? window.until : null,
         };
@@ -438,7 +485,9 @@ export class SummaryService {
         warned: Set<string> = new Set<string>()
     ) {
         let category = inst.category;
-        const amount = inst.amount * multiplier;
+        // F1.10 — o delta é um decimal de duas casas exato: o repositório o
+        // converte em centavos sem perda.
+        const amount = fromCents(resolveCents(inst.amount, inst.amountCents) * multiplier);
 
         if (inst.type === OrderType.transfer) {
             const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);
@@ -498,7 +547,10 @@ export class SummaryService {
         if (!inst.paidDate) return;
 
         let category = inst.category;
-        const amount = (inst.paidAmount ?? inst.amount) * multiplier;
+        const actualCents = inst.paidAmount !== undefined && inst.paidAmount !== null
+            ? resolveCents(inst.paidAmount, inst.paidAmountCents)
+            : resolveCents(inst.amount, inst.amountCents);
+        const amount = fromCents(actualCents * multiplier);
 
         if (inst.type === OrderType.transfer) {
             const virtualData = await this.getVirtualCategoryImpact(workspaceId, inst);

@@ -129,10 +129,18 @@ service cloud.firestore {
         }
 
         allow read: if isMember(workspaceId);
-        allow create: if isMember(workspaceId) && validOrder(request.resource.data);
+        // F1.10: `amountCents` é o espelho INTEIRO do valor, e é ele a fonte da
+        // verdade do dinheiro. Quem o escreve é o servidor (na criação e no
+        // passo derivado de onOrderWritten); um cliente que pudesse gravá-lo
+        // poderia dizer "R$ 10,00" no `double` e 1 centavo no inteiro, e o
+        // sumário acreditaria no inteiro.
+        allow create: if isMember(workspaceId)
+          && validOrder(request.resource.data)
+          && !('amountCents' in request.resource.data);
         // Update usado pelo app ao editar transações recorrentes/parceladas
         // (TransactionFormScreen -> FinanceService.updateOrder). Campos gerados
-        // pelo servidor (ex.: lastGeneratedDueDate) não podem ser alterados.
+        // pelo servidor (ex.: lastGeneratedDueDate, amountCents) não podem ser
+        // alterados — a lista abaixo é FECHADA (hasOnly) e já os exclui.
         allow update: if isMember(workspaceId)
           && validOrder(request.resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -193,7 +201,15 @@ service cloud.firestore {
                   && request.resource.data.get('closingDate', null) == null
                   && !('cycleStart' in resource.data)
                   && !('cycleEnd' in resource.data)
-                  && !('closingDate' in resource.data)));
+                  && !('closingDate' in resource.data)))
+          // F1.10: os espelhos INTEIROS são do servidor. Nesta etapa o app não
+          // os conhece — ele lê e escreve o `double`, e o servidor completa o
+          // inteiro no passo derivado do gatilho. Sem esta negação, um cliente
+          // poderia gravar `amount: 10` com `amountCents: 1` e o saldo, o
+          // sumário e o XP acreditariam no inteiro. Reenviar exatamente o que o
+          // servidor gravou é no-op e passa (não entra em `affectedKeys`).
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['amountCents', 'paidAmountCents', 'referenceAmountCents']);
         // create/delete: não há fluxo real no cliente (addInstallment/deleteInstallment
         // são código morto); o servidor usa Admin SDK — negados por padrão.
         // Um create carregando a janela do ciclo cai na mesma negação: não há
@@ -226,13 +242,29 @@ service cloud.firestore {
         // cliente não cria os campos nem os altera — o app escreve a meta com
         // `update`, que só toca os campos enviados, então o desfecho sobrevive
         // a uma edição.
+        // F1.10: `targetAmountCents`/`currentAmountCents` entram na mesma lista.
+        // O progresso é escrito pelo servidor, e o alvo em centavos é o que o
+        // desfecho compara — um cliente que baixasse o alvo inteiro ganharia
+        // a meta (e os badges) sem ter guardado nada.
+        //
+        // A meta nasce em ZERO pelo formulário, então `currentAmount` continua
+        // permitido no CREATE. No UPDATE ele passa a ser server-only: quem o
+        // mantém é o servidor desde wp/gamification-2, o formulário já não
+        // pede esse valor, e o app parou de enviá-lo. Poder reescrevê-lo é
+        // poder declarar a própria meta cumprida — com os badges e o XP que
+        // vêm junto.
         allow create: if isMember(workspaceId)
           && validGoal(request.resource.data)
-          && !request.resource.data.keys().hasAny(['outcome', 'completedAt', 'failedAt']);
+          && !request.resource.data.keys().hasAny([
+            'outcome', 'completedAt', 'failedAt', 'targetAmountCents', 'currentAmountCents'
+          ]);
         allow update: if isMember(workspaceId)
           && validGoal(request.resource.data)
           && !request.resource.data.diff(resource.data).affectedKeys()
-               .hasAny(['outcome', 'completedAt', 'failedAt']);
+               .hasAny([
+                 'outcome', 'completedAt', 'failedAt',
+                 'currentAmount', 'targetAmountCents', 'currentAmountCents'
+               ]);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
       }
 
@@ -285,15 +317,20 @@ service cloud.firestore {
         // sumários. Se o cliente pudesse escrevê-los, um estorno passaria a
         // usar um intervalo forjado e o planejado do workspace ficaria errado.
         allow read: if isMember(workspaceId);
+        // F1.10: `amountCents` e `appliedAmountCents` são do servidor pela mesma
+        // razão — é o inteiro que o estorno usa, e um valor aplicado forjado
+        // deixaria o `generalPlannedAmount` do workspace errado para sempre.
         allow create: if isMember(workspaceId)
           && validPlanning(request.resource.data)
           && !request.resource.data.keys().hasAny([
-            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth'
+            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth',
+            'amountCents', 'appliedAmountCents'
           ]);
         allow update: if isMember(workspaceId)
           && validPlanning(request.resource.data)
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth'
+            'summarizedUntil', 'appliedAmount', 'appliedFrom', 'appliedUntil', 'lastSummaryMonth',
+            'amountCents', 'appliedAmountCents'
           ]);
         allow delete: if isMember(workspaceId);
       }
@@ -352,12 +389,18 @@ service cloud.firestore {
         // negação, o app poderia gravar uma janela calculada por ele e voltar a
         // apontar para uma fatura diferente da do servidor, que é exatamente o
         // defeito que o pacote corrige.
+        // F1.10: `initialBalanceCents`/`limitCents` são do servidor. O saldo
+        // inicial vira uma order sintética e, por ela, o saldo da conta inteira:
+        // um inteiro divergente do `double` faria o extrato contar uma história
+        // e o saldo, outra.
         allow create: if isMember(workspaceId)
           && validAccount(request.resource.data)
-          && !('nextInvoice' in request.resource.data);
+          && !('nextInvoice' in request.resource.data)
+          && !request.resource.data.keys().hasAny(['initialBalanceCents', 'limitCents']);
         allow update: if isMember(workspaceId)
           && validAccount(request.resource.data)
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['nextInvoice']);
+          && !request.resource.data.diff(resource.data).affectedKeys()
+               .hasAny(['nextInvoice', 'initialBalanceCents', 'limitCents']);
         // delete: exclusão é lógica (update isDeleted=true) — hard delete negado.
 
         // Account Balances: Membros podem apenas ler (escrito pelo servidor)

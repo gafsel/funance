@@ -132,9 +132,18 @@ describe("migrate_balance_date_key", () => {
 
         await migrateBalanceDateKey(firestore, { dryRun: false }, silent);
 
-        expect(fixture.w1.acc1["2026-03-01"]).toEqual({ balance: 1000, dateKey: "2026-03-01", delta: 1000 });
-        expect(fixture.w1.acc1["2026-03-10"]).toEqual({ balance: 832.53, dateKey: "2026-03-10", delta: -167.47 });
-        expect(fixture.w1.acc1["2026-03-20"]).toEqual({ balance: 782.53, dateKey: "2026-03-20", delta: -50 });
+        // F1.10 — os espelhos inteiros saem na MESMA escrita: sem isso o
+        // documento ficaria com `delta` novo e sem `deltaCents`, e a
+        // `migrate_money_cents` teria de passar atrás para completar.
+        expect(fixture.w1.acc1["2026-03-01"]).toEqual({
+            balance: 1000, dateKey: "2026-03-01", delta: 1000, deltaCents: 100000, balanceCents: 100000,
+        });
+        expect(fixture.w1.acc1["2026-03-10"]).toEqual({
+            balance: 832.53, dateKey: "2026-03-10", delta: -167.47, deltaCents: -16747, balanceCents: 83253,
+        });
+        expect(fixture.w1.acc1["2026-03-20"]).toEqual({
+            balance: 782.53, dateKey: "2026-03-20", delta: -50, deltaCents: -5000, balanceCents: 78253,
+        });
     });
 
     it("é idempotente: a segunda execução não muda nada", async () => {

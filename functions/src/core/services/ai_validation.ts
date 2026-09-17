@@ -19,6 +19,7 @@
  */
 
 import { HttpsError } from "firebase-functions/v2/https";
+import { round2 } from "../utils/money";
 import { GoalFeasibilityPayload } from "../../features/goal/domain/models/goal.model";
 
 // --- Limites -----------------------------------------------------------------
@@ -127,9 +128,12 @@ export function boundedInteger(value: unknown, min: number, max: number): number
     return int >= min && int <= max ? int : null;
 }
 
-export function round2(value: number): number {
-    return Math.round(value * 100) / 100;
-}
+/**
+ * F1.10 — reexportado de `core/utils/money`. Havia QUATRO cópias de
+ * `Math.round(value * 100) / 100` no backend, e as quatro erravam o mesmo caso:
+ * `1.005` virava `1.00`, porque `1.005 * 100` vale `100.49999999999999`.
+ */
+export { round2 };
 
 /**
  * Texto limpo e truncado. Remove caracteres de controle (o modelo às vezes

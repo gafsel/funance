@@ -29,6 +29,10 @@ npm run test:rules       # testes das security rules no emulador
 npm test                 # unit + integration
 ```
 
+> Se a porta 8080 estiver ocupada, copie o `firebase.json` para um arquivo
+> temporário com outra porta em `emulators.firestore.port` e rode com
+> `--config`; apague a cópia depois.
+
 ## Contratos com o app
 
 Esta é a lista ÚNICA do que o servidor escreve e o app lê — e do que o app
@@ -66,6 +70,7 @@ apenas reage ao que o cliente gravou.
 | `workspaces/{w}/ai_logs/{id}` — metadados da chamada | servidor | ninguém (rules negam) | F5.3 | [Logs de IA](#logs-de-ia-ai_logs-e-ttl) |
 | `workspaces/{w}/financial_coaching/{id}` — `{message, summary, type, slides[], date, generatedBy}` | servidor | app | F1.11 (tipada no backend) | [`actionPath` dos slides](#actionpath-dos-slides-de-coaching) |
 | `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
+| **Todos os `*Cents`** — `orders.amountCents`, `installments.{amount,paidAmount,referenceAmount}Cents`, `accounts.{initialBalance,limit}Cents`, `accounts.nextInvoice.amountCents`, `goals.{targetAmount,currentAmount}Cents`, `category_planning.{amount,appliedAmount}Cents`, `balance.{delta,balance}Cents`, `period_summaries.categories.{id}.{generalPlannedAmount,specificPlannedAmount,actualAmount}Cents` | servidor (rules negam ao cliente) | ninguém **ainda** — o app passa a ler na etapa C | F1.10 | [Dinheiro em centavos](#dinheiro-em-centavos-f110) |
 
 ### O que o app precisa acompanhar
 
@@ -84,6 +89,11 @@ Três pontos em que o app ainda não está alinhado com o servidor:
    a bússola deve aparecer em carregamento, não na patente Aprendiz.
 3. **`streaks.plan`** é o contrato novo; `weeklyStreaks` continua sendo o
    número de missões e **não pode mudar de tipo**.
+4. **Os campos `*Cents`** (F1.10) já existem em produção e são **server-only**.
+   Nesta etapa o app **continua lendo e escrevendo só o `double`** e não deve
+   enviá-los — as rules rejeitam. Na etapa C ele passa a preferi-los na
+   leitura e a escrever os dois. Ver
+   [Dinheiro em centavos](#dinheiro-em-centavos-f110).
 
 ### `undefined` não é gravado
 
@@ -98,6 +108,358 @@ preencher simplesmente não existe no documento**, e um campo obrigatório que
 chegar `undefined` derruba a escrita em vez de sumir calado. Os testes de
 integração e os scripts rodam com a mesma configuração — sem isso o emulador
 perdoaria o que a produção rejeita.
+
+## Dinheiro em centavos (F1.10)
+
+`0.1 + 0.2` vale `0.30000000000000004` em IEEE 754, e era exatamente assim que
+este backend somava dinheiro: saldo diário por `FieldValue.increment` de
+`double`, totais de `period_summaries` por incremento de `double`, total da
+order por `reduce(+)`, progresso de meta por delta acumulado. O erro não some
+sozinho — ele **acumula**, pagamento após pagamento. A única defesa espalhada
+pelo código eram comparações com épsilon (`Math.abs(diff) > 0.01`, `1e-9`,
+`0.005`), que escondem o sintoma e deixam a causa onde estava.
+
+A regra nova é uma frase: **todo cálculo monetário do servidor soma CENTAVOS
+INTEIROS, e o `double` gravado é o espelho `round2` do inteiro.**
+
+### O plano, em três etapas
+
+| Etapa | O que muda | Onde está |
+|---|---|---|
+| **A — aritmética segura já** | `core/utils/money.ts` e todo cálculo do servidor (saldo, sumários, XP, fatura, metas, Bússola, rebuild, análise de planejamento) passando a somar inteiros. As comparações com épsilon saem. **Nenhum campo novo.** | ✅ feita |
+| **B — dupla escrita + migração** | campos inteiros paralelos `*Cents` em tudo. O servidor grava sempre os dois; um passo derivado nos gatilhos completa o inteiro do que o CLIENTE escreve. `migrate_money_cents` backfilla o acervo e verifica. | ✅ feita |
+| **C — o app vira para o inteiro** | o app passa a **ler** `*Cents` (preferindo-os quando presentes) e a **escrever os dois**. Só depois disso o `double` vira campo derivado, e as rules podem passar a exigir a coerência entre os dois. | ⏳ depois do Flutter |
+
+**Por que três etapas e não uma.** O app em campo lê o `double` — e continua
+lendo por semanas, porque nem todo mundo atualiza no mesmo dia. Trocar o campo
+de uma vez quebraria toda build instalada. A ordem inverte o risco: primeiro o
+número fica certo (A), depois o inteiro passa a existir ao lado (B), e só
+quando o app já sabe lê-lo é que o `double` deixa de ser a fonte (C).
+
+### `core/utils/money.ts`
+
+| Função | O que faz |
+|---|---|
+| `toCents(v)` | reais → centavos inteiros, **half-away-from-zero** e imune ao ruído de representação |
+| `fromCents(c)` | centavos → reais com no máximo duas casas |
+| `round2(v)` | `fromCents(toCents(v))` — o espelho que vai para o campo `double` |
+| `addMoney`/`subtractMoney`/`sumMoney`/`sumCents` | soma e diferença exatas |
+| `moneyEquals(a, b)` | "é a mesma quantia?", em substituição ao épsilon |
+| `readCents(v)` / `resolveCents(double, cents)` | lê o campo `*Cents` gravado; **o inteiro é a fonte da verdade**, e o `double` só responde enquanto a migração não passou por aquele documento |
+| `classifyMoney(v)` | distingue **ausente**, **número** e **presente-mas-inválido** — é o que permite denunciar um campo sujo em vez de gravar zero calado |
+| `splitCents(total, n)` | reparte em partes inteiras, 1 centavo de resto por parte |
+
+Dois detalhes que não são estilo:
+
+**`toCents` não é `Math.round(v * 100)`.** `1.005 * 100` vale
+`100.49999999999999`, e `Math.round` devolveria 100 centavos para o que o
+usuário digitou como R$ 1,005. O literal decimal é a intenção; o `double` é só
+a representação mais próxima dela. Antes de arredondar, `toCents` recorta o
+valor escalado em **15 dígitos significativos** — o bastante para apagar o ruído
+(que vive no 16º/17º dígito) e pouco o bastante para não perder precisão real em
+valores grandes (as rules já limitam qualquer valor a ±1e12, e 1e12 × 100 = 1e14
+cabe em 15 dígitos).
+
+**O arredondamento é half-away-from-zero, não o `Math.round` do JavaScript.**
+`Math.round(-0.5)` é `-0`, e com isso R$ −1,005 viraria −100 centavos enquanto
+R$ 1,005 vira 101. O estorno deixaria de cancelar o lançamento. Aqui o módulo é
+arredondado e o sinal é reposto depois, de modo que
+`toCents(v) + toCents(-v) === 0` para todo `v`.
+
+**Fora do intervalo exato, `toCents` LANÇA** (`MoneyRangeError`). Acima de
+`MAX_SAFE_CENTS` (2^53 − 1 centavos, ≈ R$ 90 trilhões) o inteiro deixa de ser
+exato, e devolver um número ali seria inventar uma quantia para quem pediu uma
+conversão exata. As rules já limitam qualquer valor a ±1e12 — e 1e12 × 100 =
+1e14 cabe folgado —, então o erro só alcança dado que entrou por fora delas: é
+melhor parar do que seguir com um total silenciosamente errado. A migração
+trata o campo como **inválido** em vez de deixar o erro derrubar a execução.
+
+**Um campo que não é número nunca vira zero calado.** `toCents` devolve `0` para
+`NaN`/`Infinity` — é o padrão de LEITURA que o resto do backend já adota para
+documento sujo —, mas quem precisa SABER que o campo está sujo usa
+`classifyMoney`. Uma **string numérica** (`"1000"`) é classificada como
+`invalid` com o valor conversível ao lado: o dado é recuperável, mas o campo
+está no tipo errado e quem grava precisa ser avisado. Coagir calado
+transformaria um defeito de escrita do cliente em número aceito.
+
+Havia **quatro cópias** de `Math.round(value * 100) / 100` no backend
+(`finance.repository.impl`, `ai_validation`, `planning_analysis.utils`,
+`coaching_context.utils`, `coaching.service`) e as quatro erravam o mesmo caso.
+Hoje é uma função só.
+
+### Os campos `*Cents`, por coleção
+
+A lista ÚNICA vive em `MONEY_CENTS_FIELDS`, `SUMMARY_CENTS_FIELDS` e
+`BALANCE_CENTS_FIELDS` (`features/finance/domain/models/finance.models.ts`). Ela
+é consumida pelo passo derivado dos gatilhos, pelo script de migração e pelo
+verificador — três lugares que, com uma cópia cada, divergiriam no primeiro
+campo novo.
+
+| Coleção | Campo `double` | Campo inteiro | Quem escreve |
+|---|---|---|---|
+| `orders` | `amount` | `amountCents` | servidor (criação, fatura, cascata) + passo derivado |
+| `installments` | `amount` | `amountCents` | servidor + passo derivado |
+| `installments` | `paidAmount` | `paidAmountCents` | servidor + passo derivado |
+| `installments` | `referenceAmount` | `referenceAmountCents` | servidor + passo derivado |
+| `accounts` | `initialBalance` | `initialBalanceCents` | passo derivado |
+| `accounts` | `limit` | `limitCents` | passo derivado |
+| `accounts.nextInvoice` | `amount` | `amountCents` | servidor (`InvoiceSyncService`) |
+| `accounts/{a}/balance/{d}` | `delta` | `deltaCents` | servidor |
+| `accounts/{a}/balance/{d}` | `balance` | `balanceCents` | servidor |
+| `goals` | `targetAmount` | `targetAmountCents` | passo derivado |
+| `goals` | `currentAmount` | `currentAmountCents` | servidor (progresso) + passo derivado |
+| `category_planning` | `amount` | `amountCents` | passo derivado |
+| `category_planning` | `appliedAmount` | `appliedAmountCents` | servidor (marcadores de F1.5) |
+| `period_summaries.categories.{id}` | `generalPlannedAmount` | `generalPlannedAmountCents` | servidor |
+| `period_summaries.categories.{id}` | `specificPlannedAmount` | `specificPlannedAmountCents` | servidor |
+| `period_summaries.categories.{id}` | `actualAmount` | `actualAmountCents` | servidor |
+
+**Ausente continua ausente.** Um `paidAmount` que não existe **não** vira
+`paidAmountCents: 0` — isso diria que a parcela foi paga com valor zero, que é
+uma afirmação diferente de "não foi paga". Um inteiro pendurado sem o `double`
+correspondente é resíduo e o passo derivado o **apaga**.
+
+### O passo derivado dos gatilhos
+
+O servidor grava o par em tudo que ele escreve. Mas `orders`, `installments`,
+`accounts`, `goals` e `category_planning` também são escritos pelo **app**, que
+nesta etapa só conhece o `double`. Uma order criada pelo app nasceria com
+`amount` e sem `amountCents` — e o inteiro, que é a fonte da verdade, ficaria em
+branco justamente no documento mais novo.
+
+`core/utils/money_cents.ts` resolve isso com um passo no gatilho de cada
+coleção, com três propriedades obrigatórias:
+
+1. **idempotente** — calcular duas vezes dá o mesmo patch;
+2. **só escreve se MUDAR** — um documento já correto não gera escrita, e sem
+   isso o gatilho se realimentaria para sempre;
+3. **não dispara o gatilho de novo** — os `*Cents` estão nas guardas por
+   conteúdo, então o evento que essa escrita produz sai cedo.
+
+| Gatilho | Guarda por conteúdo |
+|---|---|
+| `onInstallmentWritten` | `INSTALLMENT_DERIVED_FIELDS` (já existia; ganhou os três `*Cents`) |
+| `onOrderWritten` | **`ORDER_DERIVED_FIELDS` — NOVA** |
+| `onGoalWritten` | **`GOAL_DERIVED_FIELDS` — NOVA** |
+| `onCategoryPlanningWritten` | `CATEGORY_PLANNING_DERIVED_FIELDS` (ganhou os dois `*Cents`) |
+| `onAccountCreated`/`onAccountUpdated` | não precisa: o handler já reage por **lista de permissão** estreita, e nenhum `*Cents` está nela |
+
+> ⚠️ **As duas guardas NOVAS não são otimização.** A order não tinha guarda
+> nenhuma: qualquer escrita nela dispara `onOrderWritten`, que reexecuta
+> `syncInstallments` **e grava um documento em `orders/{id}/history`**. Sem
+> `ORDER_DERIVED_FIELDS`, completar o `amountCents` das 1.074 orders de produção
+> criaria 1.074 registros de histórico do nada. Em `goals`, o mesmo evento
+> recalcula o progresso e reavalia a bateria inteira de badges.
+
+O passo fica **fora** da idempotência por `eventId_action` de propósito:
+reexecutá-lo é inofensivo (é uma função do conteúdo do documento, não um
+incremento), e ele não pode ser pulado só porque o marcador daquele evento já
+existia. Ele usa `update` e nunca `set`: se o documento for apagado entre o
+evento e a escrita, o `NOT_FOUND` é engolido — ressuscitar uma order apagada com
+um único campo seria pior do que não completar o inteiro.
+
+**O que ele NÃO faz:** nunca corrige o `double` a partir do inteiro. Nesta etapa
+o app ainda escreve o `double`, e sobrescrevê-lo seria o servidor discordando do
+usuário. Quem reconcilia os dois é o `rebuild_workspace`.
+
+### O `FieldValue.increment` saiu de todo caminho de dinheiro
+
+Saldo diário, `period_summaries` e a order de fatura são escritas
+**concorrentes**: ler-somar-gravar perderia deltas, e era por isso que elas
+usavam `FieldValue.increment`. Com o par (inteiro + espelho), isso deixou de
+funcionar por uma razão simples:
+
+> **Incrementar um campo que não existe começa do ZERO.**
+
+Num documento anterior à migração — `actualAmount: 1000`, sem
+`actualAmountCents` — um delta de +25 produzia `actualAmount: 1025` (certo) e
+`actualAmountCents: 2500` (errado). E o inteiro é a **fonte da verdade**: o
+número errado é justamente o que manda. Semear o campo fora da escrita não
+resolve: entre ler a semente e commitar, outro evento pode ter criado o campo.
+
+Então os quatro caminhos monetários passaram a **ler e gravar valor absoluto
+dentro de uma transação**:
+
+| Caminho | Como era | Como é |
+|---|---|---|
+| `period_summaries` (gatilho e planejamento) | `set` com 6 `increment` | transação: `getAll` dos documentos do lote → `set` com os valores calculados a partir do inteiro |
+| `accounts/{a}/balance` (dia) | já era transacional | idem, agora com o par |
+| `accounts/{a}/balance` (propagação) | `increment` em lotes de 400 | transação por página de 100 dias |
+| `orders` de fatura (`updateInvoiceWithDelta`) | `set` com 2 `increment` | transação: lê a order, grava o total absoluto |
+
+Dentro da transação o valor lido e o gravado pertencem ao mesmo instante
+lógico: o Firestore aborta e repete se qualquer documento lido mudar antes do
+commit. **O preço é contenção onde antes não havia** — um documento mensal
+tocado por dois pagamentos simultâneos faz um dos dois repetir. É um preço
+pequeno perto de gravar um total errado, e os lotes são pequenos de propósito
+(100 documentos por transação) para manter a janela estreita.
+
+O `increment` continua onde **não há dinheiro**: o `xp` semanal
+(`weekly_xp.xp`), que não tem espelho inteiro e não sofre do problema.
+
+**Consequência colateral, e boa:** o `double` deixou de poder escorregar. Ele é
+sempre `fromCents(cents)` na escrita, então a dízima
+(`677.4300000000001`) só existe no acervo gravado ANTES deste pacote. O
+`rebuild_workspace` continua sabendo corrigi-la.
+
+### O planejado do sumário mudou na SEGUNDA CASA
+
+Esta é a única mudança de VALOR que o pacote grava, e ela é deliberada.
+
+O `generalPlannedAmount` vem de `category_planning` rateado no período, e o
+rateio semanal é uma dízima: R$ 1.000,00 num mês de 31 dias dá
+`1000 / 31 * 7 = 225.80645161290323`. Antes esse número ia para o documento
+inteiro, com dezesseis casas. Agora ele é **arredondado ao centavo na origem**
+(`round2`), em `SummaryService.calculatePlanningImpacts`, e o sumário recebe
+`225.81`.
+
+O mesmo vale para o valor mensal quando o limite tem mais de duas casas:
+`250.555` passa a entrar como `250.56`.
+
+| Onde | Antes | Agora |
+|---|---|---|
+| semana de um mês de 31 dias, limite R$ 1.000 | `225.80645161290323` | `225.81` |
+| mês, limite `250.555` | `250.555` | `250.56` |
+
+**Por que arredondar na origem e não na gravação.** O gatilho e o
+`rebuild --rebuild-planning` calculam o mesmo rateio por caminhos diferentes.
+Arredondando só na escrita, cada um acumularia o seu resíduo e os dois
+divergiriam — que é exatamente o tipo de diferença que o dry-run do rebuild
+passaria a acusar todo mês. Arredondando na função única que os dois chamam,
+eles chegam ao mesmo inteiro.
+
+**Volume estimado em produção:** cerca de **2.043 totais** de
+`period_summaries` mudam na segunda casa decimal (os semanais dos 80
+planejamentos vigentes, mais os mensais de limite com mais de duas casas). A
+diferença por total é de **menos de um centavo**; a soma das semanas de um mês
+continua entre ~93% e ~117% do valor mensal, como sempre esteve — é proporção
+semanal, não rateio exato, e é assim que o app a apresenta. Nenhum saldo,
+realizado ou projetado muda: esses vêm de parcelas, que já eram valores de duas
+casas.
+
+A mudança aparece no dry-run do `rebuild --rebuild-planning` (passo 11 do
+rollout) e se consolida ali, ou no primeiro cron mensal depois do deploy.
+
+### Comparações com épsilon: o que saiu
+
+| Onde | Antes | Agora |
+|---|---|---|
+| `finance.repository.impl` | `PLANNING_DELTA_EPSILON = 1e-9` | `deltaCents === 0` — estorno e reaplicação do mesmo mês se anulam exatamente |
+| `goal.model` / `goal.service.impl` | `AMOUNT_EPSILON = 0.005` (duas cópias) | comparação de inteiros: "alcançou o alvo" é ao centavo |
+| `rebuild.service` | `epsilon` (opção do job, padrão 0,005) | a opção **sumiu**; a comparação é de inteiros, e o espelho é conferido à parte |
+| `finance.service.calculateXp` | `Math.abs(diff) > 0.01` | `Math.abs(diffCents) > 1` — ver abaixo |
+| `invoice_sync.isSameNextInvoice` | `current.amount === next.amount` | comparação de inteiros |
+| `diffInstallmentForCascade` | `after.amount !== before.amount` | comparação de inteiros |
+
+**A mudança de comportamento no XP é uma correção de inconsistência**, não uma
+mudança de regra. A faixa morta continua sendo de **um centavo**, mas antes ela
+não valia sempre: em `double`, `0.02 − 0.01` dá `0.010000000000000002` (era
+punido) e `3.01 − 3.00` dá `0.009999999999999787` (não era). A **mesma**
+diferença de um centavo tinha dois vereditos, conforme os valores envolvidos.
+Hoje um centavo nunca conta, dois centavos sempre contam.
+
+**As duas mudanças de resultado do pacote, juntas:** esta e o arredondamento do
+rateio do planejado (seção acima). Fora delas, todo cálculo devolve os mesmos
+números de antes — é o que as 882 asserções unitárias e as 196 do emulador
+verificam, com os fixtures inalterados.
+
+### `rebuild_workspace` com os dois campos
+
+O job passou a:
+
+- **ler** o inteiro como fonte da verdade (`resolveCents`) das parcelas, dos
+  saldos e dos sumários;
+- **gravar** os dois campos em todo documento que reconstrói;
+- **comparar** os dois. Um documento cujo `*Cents` bate mas cujo `double`
+  escorregou (resíduo de `FieldValue.increment`) **passou a ser divergência** —
+  e é justamente o `double` que o app lê nesta etapa. O contador
+  `generalPlannedChanges` continua contando só mudança de QUANTIA, então dá para
+  distinguir no dry-run "o planejado mudou" de "o espelho estava sujo".
+
+Um efeito prático: no primeiro rebuild depois deste pacote, é normal ver
+documentos de `period_summaries` marcados como `alterar` com
+`generalPlannedChanges = 0`. São espelhos com dízima
+(`677.4300000000001` onde o inteiro diz `67743`) sendo reescritos — resíduo de
+anos de `FieldValue.increment` em `double`, que o caminho de escrita novo já
+não produz. Do segundo rebuild em diante o número cai a zero.
+
+### Contrato com o cliente Flutter
+
+**Nesta etapa (B) o app segue lendo e escrevendo o `double`** — mas ele tem UMA
+mudança obrigatória, e ela precede o deploy.
+
+Os campos `*Cents` existem ao lado, são **server-only**, e as rules os rejeitam
+se o app tentar enviá-los — inclusive num formulário que serialize o documento
+inteiro. A negação é por **diferença de valor**: reenviar exatamente o que o
+servidor gravou é um no-op e passa. Como o app nunca produziu esses campos, isso
+sozinho não o afeta.
+
+> ⚠️ **O que MUDA para o app: `goals.currentAmount` passou a ser server-only no
+> update.** Quem o mantém é o servidor desde wp/gamification-2 e o formulário já
+> não pede esse valor — mas a build publicada hoje ainda o **reenvia** com o que
+> leu ao abrir a tela. Enquanto o valor não muda, passa; se um pagamento cair
+> entre abrir e salvar, a edição inteira é rejeitada e o usuário perde a
+> alteração que estava fazendo.
+>
+> Por isso o **passo 0** do [rollout](#ordem-de-rollout) é publicar o app sem
+> esse campo no `updateGoal`, e só então subir as rules. Não há versão tolerante
+> da regra: aceitar o número defasado desfaria um progresso que o servidor
+> acabou de calcular — poder reescrevê-lo é poder declarar a própria meta
+> cumprida, com os badges e o XP que vêm junto. O **create** continua aceitando:
+> a meta nasce em zero pelo formulário.
+
+**Na etapa C**, em duas escritas e uma leitura:
+
+1. **ler preferindo o inteiro.** Onde hoje o modelo Dart lê `amount`, passa a
+   ler `amountCents` quando presente e a cair em `amount` quando não — a mesma
+   regra de `resolveCents` no servidor. Enquanto houver documento não migrado
+   (ou escrito por uma build antiga), o `double` responde;
+2. **escrever os DOIS.** Todo formulário que hoje grava `amount: 10.5` passa a
+   gravar `amount: 10.5` **e** `amountCents: 1050`, na mesma escrita. As rules
+   deixam de negar os `*Cents` e passam a **exigir a coerência** entre os dois
+   (`amountCents == int(amount * 100)`), que é a garantia que só pode existir
+   depois que o cliente sabe produzi-la;
+3. **o `double` vira derivado.** A partir daí o servidor pode reescrever o
+   espelho a partir do inteiro sem discordar do usuário — o que hoje ele
+   deliberadamente não faz.
+
+> **Por que o app não pode pular para a etapa C agora.** Enquanto houver build
+> em campo que só escreve o `double`, um documento pode chegar com o `double`
+> novo e o `*Cents` velho. O passo derivado do gatilho conserta isso em
+> segundos, mas nesse intervalo o inteiro está errado — e o inteiro é a fonte da
+> verdade. A ordem (servidor primeiro, app depois) é o que garante que o campo
+> que manda nunca fique desatualizado por escrita de cliente.
+
+**O que o app pode fazer desde já, sem esperar:** formatar a partir do
+`*Cents` quando ele existir, nas telas em que o valor é só exibido. É leitura,
+não muda contrato nenhum e acaba com o `R$ 0,30000000000000004` que aparecia em
+totais somados no cliente.
+
+### Testes
+
+- `src/test/money.test.ts` — o módulo: `0.1+0.2`, `1.005`, `2.675`, `8.165`,
+  negativos simétricos, 1e6 parcelas de um centavo, repartição exaustiva,
+  precisão em valores grandes, `-0`;
+- `src/test/money_pipeline.test.ts` — a aritmética DENTRO das regras: total da
+  order, XP (com a faixa morta de um centavo), impactos de planejamento
+  (estorno + reaplicação dão zero exato) e desfecho de meta;
+- `src/test/migrate_money_cents.test.ts` — a regra do backfill e do passo
+  derivado, lado a lado;
+- `src/test/integration/money_cents.integration.test.ts` — o efeito contra o
+  emulador: campos criados, `double` intocado, segunda passada sem escrita,
+  `--verify` acusando e calando, órfão apagado, checkpoint zerado, e o passo
+  derivado que não ressuscita documento apagado;
+- `src/test/integration/cents_guards.integration.test.ts` — as guardas por
+  conteúdo contra o emulador: o eco da escrita do espelho não gera
+  `orders/{id}/history`, não recalcula meta nem badge, não estorna o
+  planejamento e não ressincroniza a fatura — e uma mudança REAL ao lado do
+  espelho continua passando;
+- `src/test/rules/firestore_rules.test.ts` — os `*Cents` negados ao cliente nas
+  cinco coleções e o `currentAmount` da meta no update, com o reenvio do mesmo
+  valor tolerado e o reenvio DEFASADO negado (o cenário do passo 0 do rollout).
+
+Ao todo: **882** asserções unitárias (`npm run test:unit`) e **196** no
+emulador (`npm run test:integration`), das quais **78** são de security rules.
 
 ## Configuração global
 
@@ -1976,20 +2338,50 @@ ordem abaixo é a que evita janela quebrada — **nada disso foi executado contr
 projeto real**.
 
 ```
+0. APP              publicar web + macOS SEM `currentAmount` no updateGoal
+                    ⏳ BLOQUEIA o passo 1 — ver o aviso abaixo
 1. rules + índices   firebase deploy --only firestore:rules,firestore:indexes
                      ⏳ ESPERAR os índices ficarem READY antes de seguir
-2. functions         firebase deploy --only functions
-3. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
-4. migração          node lib/scripts/migrate_planning_summaries.js    (dry-run → --apply)
-5. correção          node lib/scripts/fix_empty_category.js            (levantamento → --apply, uma categoria por vez)
+2. migração          node lib/scripts/migrate_balance_date_key.js      (dry-run → --apply)
+3. migração          node lib/scripts/migrate_planning_summaries.js    (dry-run → --apply)
 
-5. backfill          node lib/scripts/backfill_next_invoice.js                                  (dry-run → --apply)
-6. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
-7. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
-8. bússola           node lib/scripts/recompute_health.js                                           (dry-run → --apply)
+   ── F1.10, dinheiro em centavos: ANTES do deploy das functions ────────────
+4. verificação       node lib/scripts/migrate_money_cents.js --all-workspaces --verify   (RETRATO ANTES)
+5. centavos          node lib/scripts/migrate_money_cents.js --all-workspaces            (dry-run)
+                     node lib/scripts/migrate_money_cents.js --all-workspaces --apply
+6. verificação       node lib/scripts/migrate_money_cents.js --all-workspaces --verify   (RETRATO DEPOIS)
+   ──────────────────────────────────────────────────────────────────────────
+
+7. functions         firebase deploy --only functions
+8. correção          node lib/scripts/fix_empty_category.js            (levantamento → --apply, uma categoria por vez)
+9. backfill          node lib/scripts/backfill_next_invoice.js         (dry-run → --apply)
+10. rebuild           node lib/scripts/rebuild_workspace.js --all-workspaces                     (dry-run → --apply)
+11. rebuild planejado node lib/scripts/rebuild_workspace.js --all-workspaces --rebuild-planning  (dry-run → --apply)
+12. metas             node lib/scripts/recompute_goals.js                                        (dry-run → --apply)
+13. bússola           node lib/scripts/recompute_health.js                                       (dry-run → --apply)
 ```
 
-**1. Rules e índices primeiro, e espere ficarem READY.** O código novo consulta
+**0. O app primeiro — e este passo BLOQUEIA o resto.**
+
+As rules de F1.10 negam `goals.currentAmount` no **update**. O app publicado
+hoje (`fix/fase-0`) lê o `currentAmount` ao abrir o formulário da meta e o
+**reenvia** ao salvar. Isso passa enquanto o valor não muda — a negação é por
+diferença —, mas se um pagamento cair entre abrir e salvar, o servidor grava o
+progresso novo e o formulário manda o valor velho: **a edição inteira é
+rejeitada**, e o usuário perde a alteração de nome, de prazo ou de alvo que
+estava fazendo.
+
+O app do pacote `wp/flutter-polish` já parou de enviar o campo. Publique-o
+(web + macOS) e só então suba as rules. Não há versão tolerante da regra: o
+formulário não edita esse valor, e aceitar o número defasado desfaria um
+progresso que o servidor acabou de calcular — que é exatamente o que a regra
+existe para impedir.
+
+O cenário está coberto em `src/test/rules/firestore_rules.test.ts` ("NEGA o
+reenvio de um `currentAmount` DEFASADO — e isso é o esperado"), junto do update
+sem o campo, que é o que o app publicado faz.
+
+**1. Rules e índices, depois do app.** O código novo consulta
 `balance.dateKey` (descendente) e `category_planning.summarizedUntil` (no grupo
 de coleções). Enquanto o índice estiver `CREATING`, essas consultas respondem
 `FAILED_PRECONDITION` e o gatilho de saldo/cron de planejamento falha. Confira
@@ -2000,10 +2392,17 @@ gcloud firestore indexes fields list --project=funance-cef1b
 ```
 
 As rules podem ir junto: elas só **negam** campos novos ao cliente
-(`currentWeekId`, `currentWeekStart`, os quatro marcadores do planejamento e o
-`nextInvoice` da conta), e o app ainda não os envia. F1.8 **não acrescenta
-índice**: a consulta da próxima fatura já existia, porque era a que o app
-fazia.
+(`currentWeekId`, `currentWeekStart`, os quatro marcadores do planejamento, o
+`nextInvoice` da conta e — desde F1.10 — todos os `*Cents`), e o app ainda não
+os envia. F1.8 **não acrescenta índice**: a consulta da próxima fatura já
+existia, porque era a que o app fazia. **F1.10 também não acrescenta índice**:
+os campos `*Cents` não são consultados, só lidos e somados.
+
+> ⚠️ **As rules dos `*Cents` precisam ir ANTES das functions.** É o servidor que
+> passa a gravá-los; se o cliente puder escrevê-los primeiro, um documento pode
+> nascer com um inteiro forjado que o saldo, o sumário e o XP vão acreditar. A
+> negação é por DIFERENÇA de valor, então nenhuma build atual do app é
+> rejeitada — ela não envia esses campos.
 
 > ⚠️ **As rules de conta e o app andam juntos.** A partir deste deploy, um
 > `setDoc` que serialize a conta inteira sem `nextInvoice` é rejeitado (apagar o
@@ -2012,25 +2411,25 @@ fazia.
 > documento inteiro quebraria. Se houver clientes antigos em campo, suba as
 > rules junto com a versão nova do app.
 
-**2. Depois as functions.** Elas convivem com os documentos no formato antigo
-(ver "Compatibilidade com o formato antigo"), então não há janela de indisponi-
-bilidade entre o passo 2 e o 3 — só um custo de leitura maior por pagamento, em
-contas com histórico longo, até a migração rodar.
+**2 e 3. Migrações de F1.4/F1.5, na ordem.** `migrate_balance_date_key` preenche
+`dateKey`/`delta` nos saldos (e, desde F1.10, os espelhos inteiros na mesma
+escrita); `migrate_planning_summaries` grava os marcadores dos planejamentos.
+Ambas são idempotentes, dry-run por padrão e não mexem em `period_summaries`.
+Rodar a segunda também encerra a varredura de legados do cron mensal.
 
-**3 e 4. Migrações, na ordem.** `migrate_balance_date_key` preenche
-`dateKey`/`delta` nos saldos; `migrate_planning_summaries` grava os marcadores
-dos planejamentos. Ambas são idempotentes, dry-run por padrão e não mexem em
-`period_summaries`. Rodar a segunda também encerra a varredura de legados do
-cron mensal.
+Elas rodam ANTES do deploy das functions porque as functions atuais já
+convivem com o formato antigo (ver "Compatibilidade com o formato antigo") e
+porque os scripts rodam do **build local**, com ADC — não dependem de deploy
+nenhum.
 
-**5. Correção de categoria sem id.** `fix_empty_category` é um levantamento por
+**8. Correção de categoria sem id.** `fix_empty_category` é um levantamento por
 padrão: rode-o sem `--category-id` para ver quantas parcelas/orders estão com
 `category.id` vazio e com que nomes. A correção é feita uma categoria de cada
 vez, e só onde o nome bate — ver
 [Categoria sem id](#categoria-sem-id-fora-dos-sumários). Ela vem ANTES do
 rebuild porque é o rebuild que recoloca essas parcelas nos `period_summaries`.
 
-**5. Backfill da fatura — rode LOGO depois do passo 2.** `backfill_next_invoice`
+**9. Backfill da fatura — rode LOGO depois do deploy.** `backfill_next_invoice`
 preenche duas coisas independentes: `accounts/{id}.nextInvoice` e a janela do
 ciclo (`cycleStart`/`cycleEnd`/`closingDate`) das faturas já existentes.
 
@@ -2048,13 +2447,42 @@ caso — ele só existe para RECALCULAR o que já está gravado.
 O backfill não toca em saldo, sumário nem XP, então a ordem em relação ao
 rebuild é indiferente.
 
-**6. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
+**4, 5 e 6. Dinheiro em centavos, ANTES do deploy das functions.** O
+`--verify` é leitura pura: rode-o **antes** para ter o retrato de partida (e
+descobrir se já existe alguma divergência plantada) e **depois** para provar que
+o backfill fechou. O que se compara é a linha por coleção: `soma_double` e
+`soma_cents` têm de ser **idênticas** nos dois retratos, e `a_migrar` tem de cair
+a zero no segundo. As duas somas DIFERINDO é o único sinal que pede parada — ver
+[`migrate_money_cents.ts`](#migrate_money_centsts).
+
+> ⚠️ **A migração vem ANTES do deploy das functions**, e não depois. Ela roda do
+> **build local** com ADC (`GOOGLE_APPLICATION_CREDENTIALS` + `npm run build`),
+> então não depende de deploy nenhum — e o código novo nasce numa base que já
+> tem o inteiro em todo lugar. Na ordem inversa existiria uma janela em que as
+> functions novas escrevem sobre documentos sem `*Cents`: elas sabem lidar com
+> isso (a escrita é transacional e semeia o inteiro a partir do `double`), mas
+> é uma janela a menos para vigiar, de graça.
+>
+> A ordem entre a migração e os passos 8/9 é indiferente — eles não tocam em
+> dinheiro. O que **não** pode inverter é migração antes do rebuild: é o rebuild
+> que usa o inteiro como fonte da verdade.
+
+> **Depois do deploy o gatilho preenche sozinho.** Toda escrita do app num
+> documento monetário completa os `*Cents` dele. Isso não substitui a migração
+> (que cobre o acervo que ninguém toca), mas significa que um `--verify` rodado
+> semanas depois mostra `a_migrar` menor do que a tabela de volume.
+
+**7. As functions.** Elas convivem com os documentos no formato antigo, então
+não há janela de indisponibilidade — só um custo de leitura maior por pagamento,
+em contas com histórico longo, até a migração de `dateKey` ter rodado.
+
+**10. Rebuild.** Corrige o que as migrações não corrigem: dias e meses gravados
 em UTC (pagamento perto da meia-noite de Brasília), ids de semana antigos e
 saldos acumulados divergentes. `--all-workspaces` percorre a base um workspace
 de cada vez, com um relatório por workspace e um resumo final; um workspace que
 falha não interrompe os demais.
 
-**7. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
+**11. Rebuild com `--rebuild-planning`, ANTES do segundo cron mensal.** Este é o
 único passo que reescreve o `generalPlannedAmount`. O motivo do prazo: o valor
 gravado hoje carrega a acumulação do regime antigo (aplicação repetida sem
 estorno), e **cada execução do cron mensal soma mais um mês por cima desse
@@ -2064,7 +2492,23 @@ valor errado**. A primeira execução depois do deploy é inevitável; rodar o
 > ⚠️ **O rebuild não é transacional.** Escolha uma janela sem uso e refaça o
 > dry-run imediatamente antes de cada `--apply`.
 
-**8. Bússola da Liberdade, por ÚLTIMO.** `recompute_health` lê saldos e
+> **Espere ver documentos semanais de `period_summaries` marcados como
+> `alterar` com `generalPlannedChanges = 0`.** Não é o planejado mudando: é o
+> ESPELHO `double` sendo reescrito a partir do inteiro, onde anos de
+> `FieldValue.increment` deixaram uma dízima (`677.4300000000001` para
+> `67743` centavos). A quantia é a mesma; o campo que o app lê é que deixa de
+> ser uma dízima. Ver
+> [Dinheiro em centavos](#dinheiro-em-centavos-f110).
+
+**12. Metas, depois do rebuild.** `recompute_goals` recalcula o `currentAmount`
+de toda meta a partir da fonte de verdade de cada tipo — saldos diários,
+`period_summaries` mensais, parcelas pagas. As três fontes acabaram de ser
+reconstruídas pelos passos 10 e 11, e desde F1.10 o "mudou?" do script é uma
+comparação de centavos inteiros: rodá-lo antes gravaria progresso calculado
+sobre números que o rebuild ainda vai corrigir. Ele também é o que dá aos
+`*Cents` das metas o valor RECALCULADO, em vez do espelho do que estava lá.
+
+**13. Bússola da Liberdade, por ÚLTIMO.** `recompute_health` lê saldos e
 `period_summaries`; rodá-lo antes do rebuild gravaria um placar calculado sobre
 os números que o rebuild ainda vai corrigir — e o usuário veria a patente mudar
 sozinha no dia seguinte. Ele é a primeira passada da base existente: sem ela, um
@@ -2097,6 +2541,7 @@ resto do projeto (`npm run build`) e executados manualmente com `node`.
 | `migrate_planning_summaries.ts` | marcadores do planejamento | [Planejamento (F1.5)](#planejamento-de-categoria-horizonte-rolante-f15) |
 | `fix_empty_category.ts` | corrige `category.id` vazio em parcelas/orders | aqui |
 | `recompute_health.ts` | base inicial da Bússola da Liberdade | aqui |
+| `migrate_money_cents.ts` | espelhos inteiros `*Cents` em todo documento monetário | [Dinheiro em centavos](#dinheiro-em-centavos-f110) |
 
 | `backfill_next_invoice.ts` | `nextInvoice` nas contas de cartão e a janela do ciclo nas faturas | [Fatura (F1.8)](#fatura-uma-implementação-no-servidor-f18) |
 | `rebuild_workspace.ts` | reconstrói saldos, sumários e XP | aqui |
@@ -2396,6 +2841,175 @@ Resumo final: `workspaces`, `gravados`, `iguais` e `falhas`. Saída de código:
 > antes gravaria um placar calculado sobre números que o rebuild ainda vai
 > corrigir, e o usuário veria a patente mudar sozinha no dia seguinte.
 
+### `migrate_money_cents.ts`
+
+Preenche os espelhos INTEIROS `*Cents` em todos os documentos monetários da
+base — ver [Dinheiro em centavos](#dinheiro-em-centavos-f110) para a lista de
+campos por coleção.
+
+- **Dry-run por padrão**: só escreve com `--apply`.
+- **Idempotente**: um documento já correto não gera escrita nenhuma. Rodar duas
+  vezes seguidas faz a segunda reportar zero.
+- **NÃO toca no `double`**: o inteiro é derivado dele, nunca o contrário. Nesta
+  etapa o app ainda escreve o `double`, e sobrescrevê-lo seria o servidor
+  discordando do usuário. Quem reconcilia os dois é o `rebuild_workspace`.
+- **Ausente continua ausente**: um `paidAmount` inexistente não vira
+  `paidAmountCents: 0`. Um inteiro pendurado sem o `double` correspondente é
+  resíduo e é apagado.
+- **Patch ANINHADO nos mapas**: em `period_summaries` e em `nextInvoice` o
+  patch é `{categories: {id: {...}}}` gravado com `set(..., {merge: true})`, e
+  não um caminho pontilhado `"categories.mercado.actualAmountCents"`. É a mesma
+  razão que levou o repositório a usar `FieldPath` em chave de mapa: um id de
+  categoria com ponto seria interpretado como caminho aninhado e gravaria no
+  lugar errado.
+- **Ausente continua ausente, e sujo NÃO vira zero**: um campo monetário
+  presente que não é número finito (a string `"1000"`, um booleano, `NaN`) é
+  contado em `inválidos`, listado por caminho e faz o `--verify` FALHAR. Gravar
+  `amountCents: 0` porque o `double` era a string `"1000"` apagaria mil reais
+  com um número de cara legítima. Um valor **acima do intervalo exato** de
+  centavos (`MoneyRangeError`) cai na mesma contagem, com o caminho do
+  documento: ele é um documento sujo, não um defeito do workspace, e derrubar a
+  varredura inteira por causa dele esconderia os outros 4.539.
+- **Checkpoint reiniciável, pela LISTA DE PENDENTES**:
+  `config/cron_checkpoints.moneyCentsPendingWorkspaces` guarda os workspaces que
+  ainda faltam — inclusive os que **falharam**. Um marcador de avanço ("o último
+  concluído") faria o workspace que falha ficar atrás do marcador e nunca mais
+  ser visitado: a execução seguinte varreria zero, zeraria o checkpoint e sairia
+  com código 0, escondendo o defeito exatamente onde ele importa. Ao terminar
+  sem pendência o campo é zerado. Use `--restart` para ignorá-lo.
+- **Um lote não é perdido por um documento apagado.** `batch.update` é atômico:
+  se um documento sumiu entre a leitura e o commit, o lote inteiro é rejeitado
+  com `NOT_FOUND`. O script degrada para escrita por documento, descarta os que
+  sumiram e propaga qualquer outro erro. (Trocar por `set(..., {merge: true})`
+  não falharia, mas CRIARIA o documento apagado — uma order fantasma com um
+  único campo. Um patch de espelho não ressuscita nada.)
+- Escreve em lotes de no máximo 400 operações (`commitInChunks`).
+
+```bash
+cd functions
+npm run build
+
+# 1) Simulação (padrão — não escreve nada)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_money_cents.js --project=<projectId> --all-workspaces
+
+# 2) Um workspace só, para conferir o efeito
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_money_cents.js --project=<projectId> --workspace=<wid> --apply
+
+# 3) Base inteira (somente após revisar o dry-run)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_money_cents.js --project=<projectId> --all-workspaces --apply
+
+# 4) Verificação (leitura pura — rode ANTES e DEPOIS do passo 3)
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/migrate_money_cents.js --project=<projectId> --all-workspaces --verify
+```
+
+| Flag                | Efeito                                                        |
+|---------------------|---------------------------------------------------------------|
+| _(nenhuma)_         | dry-run: apenas relata o que seria gravado                     |
+| `--apply`           | executa as escritas                                            |
+| `--verify`          | não escreve nada; reporta divergências e as somas por coleção   |
+| `--project=<id>`    | projectId do Firebase (default: `GOOGLE_CLOUD_PROJECT`)         |
+| `--workspace=<id>`  | limita a execução a um único workspace                          |
+| `--all-workspaces`  | percorre TODOS os workspaces (é o padrão sem `--workspace`)     |
+| `--page-size=<n>`   | documentos lidos por página (default 500)                       |
+| `--restart`         | ignora o checkpoint e recomeça do início                        |
+
+**Reparo dirigido.** `--workspace=<id> --apply` conserta UM workspace e o
+**remove da lista de pendentes** se ele fechar — o workspace consertado à mão
+não fica listado como pendente, e o runbook não passa a mentir sobre o que
+ainda falta. O que ele NÃO faz é fechar a varredura: os outros workspaces
+pendentes continuam lá, e quem os visita é a execução `--all-workspaces`. O
+roteiro depois de uma falha é:
+
+```bash
+# 1) a varredura falhou em <wid>; conserte a causa e repare só ele
+node lib/scripts/migrate_money_cents.js --project=<p> --workspace=<wid> --apply
+
+# 2) feche a base (o checkpoint já não lista <wid>; se sobrou alguém, é ele que roda)
+node lib/scripts/migrate_money_cents.js --project=<p> --all-workspaces --apply
+
+# 3) confira
+node lib/scripts/migrate_money_cents.js --project=<p> --all-workspaces --verify
+```
+
+Um dry-run ou um `--verify` dirigidos **nunca** tocam no checkpoint: eles não
+consertam nada.
+
+**O que o `--verify` responde.** Para cada coleção ele imprime `lidos`,
+`a_migrar`, `já_ok`, `divergentes`, `órfãos`, `inválidos` e **duas somas**:
+`soma_double` (a soma de todos os valores monetários calculada a partir do
+`double`) e `soma_cents` (a mesma soma pelo `*Cents` gravado, caindo no `double`
+onde ele ainda não existe). Órfãos e inválidos **não entram nas somas**: o
+primeiro é um inteiro sem `double` (resíduo a apagar) e o segundo é um campo que
+não é número.
+
+O veredito é explícito, e ele só passa quando **as três** contagens são zero:
+
+| Contagem | O que significa |
+|---|---|
+| `divergentes > 0` | algum `*Cents` discorda do `double`. O relatório lista até 20 caminhos |
+| `a_migrar > 0` | a base ainda **não está migrada** — o inteiro sequer existe nesses documentos |
+| `inválidos > 0` | campo monetário presente e não numérico |
+
+> ⚠️ **`a_migrar > 0` FALHA o `--verify`.** Dizer "nenhuma divergência" numa base
+> em que o inteiro não existe seria um atestado de saúde para o silêncio: sem
+> `*Cents`, não há o que divergir.
+
+- **antes** da migração as duas somas batem e `a_migrar` é alto → `--verify`
+  falha, e é o esperado: é o retrato de partida;
+- **depois** as duas continuam batendo, `a_migrar` é zero e o veredito é
+  `VERIFY: OK`.
+
+Resumo final: `workspaces`, `escritas`, `falhas`, `pendentes`, `a_migrar`,
+`órfãos`, `inválidos`, a lista dos workspaces que falharam e a linha por
+coleção. Um `--apply` que fecha termina com uma linha afirmativa:
+
+```
+[migrate_money_cents] ✔ Migração FECHADA: 4540 documento(s) corrigido(s), 0 pendente(s), 0 divergência(s), 0 campo(s) inválido(s).
+```
+
+> **As contagens do veredito são do estado DEPOIS da execução.** As linhas por
+> coleção são de ANTES da escrita (é o que a varredura viu); `a_migrar`,
+> `divergentes` e `órfãos` do resumo descontam o que o `--apply` corrigiu. Sem
+> isso, uma execução que consertou uma divergência sairia com código 1
+> reclamando exatamente dela.
+
+Saída de código:
+
+| Modo | Sai 0 quando |
+|---|---|
+| `--verify` | a base está migrada, coerente e limpa |
+| `--apply` | nenhum workspace falhou e nada ficou pendente |
+| dry-run | a simulação rodou (`a_migrar > 0` é o RESULTADO dela, não um erro); falha só com workspace ilegível, campo inválido ou divergência |
+
+> ⚠️ **NÃO EXECUTADO** contra o projeto real (`funance-cef1b`).
+
+**Volume e custo em produção** (contagem por leitura, em 2026-09-17):
+
+| Coleção | Documentos a migrar | Campos `*Cents` a criar |
+|---|---:|---:|
+| `orders` | 1.074 | 1.074 |
+| `installments` | 2.378 | 6.217 |
+| `accounts` | 24 | 32 |
+| `accounts/{a}/balance` | 692 | 1.384 |
+| `goals` | 20 | 40 |
+| `category_planning` | 80 | 129 |
+| `period_summaries` | 272 | 12.255 |
+| **total** | **4.540** | **21.131** |
+
+São **3 workspaces**. O custo de uma passada `--apply` é ~4.540 leituras +
+~4.540 escritas de documento (o campo dentro do documento não é cobrado à
+parte), o que cabe de sobra na cota gratuita diária — **menos de R$ 0,05** pela
+tabela do Firestore. Doze lotes de 400. O `--verify` é leitura pura:
+~4.540 leituras por execução.
+
+> Escala: mesmo com a base cem vezes maior (~450 mil documentos), a migração
+> seria uma execução de poucos minutos e alguns reais. O checkpoint existe para
+> o caso de ela ser interrompida no meio, não porque se espere que seja.
+
 ### `rebuild_workspace.ts`
 
 Reconstrói, para **um** workspace, tudo o que hoje os gatilhos mantêm de forma
@@ -2440,7 +3054,10 @@ Características:
 - **Idempotente**: aplicar duas vezes seguidas não muda nada; a segunda
   execução reporta zero diferenças.
 - **Determinístico**: dinheiro é somado em centavos inteiros e os planejamentos
-  são processados em ordem fixa de id.
+  são processados em ordem fixa de id. Desde F1.10 o job também **lê** o
+  `*Cents` gravado como fonte da verdade e **grava os dois campos**; a
+  comparação deixou de ter tolerância (a opção `epsilon` saiu) e passou a
+  conferir também se o `double` é o espelho exato do inteiro.
 - Escritas em lotes de no máximo 400 operações (`commitInChunks`). As parcelas
   são lidas em streaming, página a página — nenhuma lista de parcelas fica
   retida —, mas os **agregados** (saldo por conta/dia, sumários por período e

@@ -1,4 +1,5 @@
 import { HttpsError } from "firebase-functions/v2/https";
+import { round2 } from "../../../../core/utils/money";
 import { IFinanceRepository } from "../../../finance/domain/repositories/finance.repository";
 import { IGoalRepository } from "../../../goal/domain/repositories/goal.repository";
 import { ICategoryRepository } from "../../../workspace/domain/repositories/category.repository";
@@ -714,7 +715,8 @@ export class CoachingService {
         };
     }
 
+    /** F1.10 — delega para a aritmética única (`core/utils/money`). */
     private round2(value: number): number {
-        return Math.round(value * 100) / 100;
+        return round2(value);
     }
 }

@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { fromCents, readCents, resolveCents, toCents } from "../../../../core/utils/money";
 import * as logger from "firebase-functions/logger";
 
 import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
@@ -77,15 +78,25 @@ export class HealthRepositoryImpl implements IHealthRepository {
 
         const resolved = await Promise.all(pending.map((entry) => entry.promise));
 
+        // F1.10 — as duas somas em CENTAVOS INTEIROS: a Bússola compara o saldo
+        // de dívida deste mês com o do mês anterior numa faixa morta de R$ 1,00
+        // (`ALIVIO_STABLE_EPSILON`), e resíduo de `double` acumulado em dezenas
+        // de contas caberia dentro dela — ou saltaria fora.
+        let liquidCents = 0;
+        let debtCents = 0;
+
         resolved.forEach((balance, index) => {
             if (balance === null) return;
             if (LIQUID_ACCOUNT_TYPES.has(pending[index].type)) {
-                totals.liquid += balance;
+                liquidCents += toCents(balance);
             }
             else {
-                totals.debt += balance;
+                debtCents += toCents(balance);
             }
         });
+
+        totals.liquid = fromCents(liquidCents);
+        totals.debt = fromCents(debtCents);
 
         return totals;
     }
@@ -117,8 +128,11 @@ export class HealthRepositoryImpl implements IHealthRepository {
         const chosen = legacy ?? candidate;
         if (!chosen) return null;
 
-        const value = Number(chosen.data()?.balance ?? 0);
-        return Number.isFinite(value) ? value : null;
+        // F1.10 — o INTEIRO manda; o `double` responde só na base não migrada.
+        const data = chosen.data() ?? {};
+        const value = Number(data.balance ?? 0);
+        if (!Number.isFinite(value) && readCents(data.balanceCents) === null) return null;
+        return fromCents(resolveCents(Number.isFinite(value) ? value : 0, data.balanceCents));
     }
 
     /** Último documento por id no intervalo `(after, upTo]`, varrendo ascendente. */
@@ -190,6 +204,8 @@ export class HealthRepositoryImpl implements IHealthRepository {
         ]);
 
         const totals: MonthlyTotals = { income: 0, expense: 0 };
+        let incomeCents = 0;
+        let expenseCents = 0;
 
         for (const [categoryId, actual] of actuals) {
             const category = categories.get(categoryId);
@@ -201,12 +217,15 @@ export class HealthRepositoryImpl implements IHealthRepository {
             if (isSystemCategory(categoryId, category)) continue;
 
             if (category.type === "income") {
-                totals.income += actual;
+                incomeCents += toCents(actual);
             }
             else if (category.type === "expense") {
-                totals.expense += actual;
+                expenseCents += toCents(actual);
             }
         }
+
+        totals.income = fromCents(incomeCents);
+        totals.expense = fromCents(expenseCents);
 
         return totals;
     }
@@ -221,10 +240,13 @@ export class HealthRepositoryImpl implements IHealthRepository {
             .where("status", "in", ["paid", "settled"])
             .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))
             .where("paidDate", "<=", admin.firestore.Timestamp.fromDate(until))
-            .select("type", "amount", "paidAmount", "isInvoice", "category.id", "category.isSystem")
+            .select(
+                "type", "amount", "paidAmount", "amountCents", "paidAmountCents",
+                "isInvoice", "category.id", "category.isSystem"
+            )
             .get();
 
-        let total = 0;
+        let totalCents = 0;
         for (const doc of snapshot.docs) {
             if (doc.get("type") !== "expense") continue;
             // A parcela de FATURA é a consolidação das compras do ciclo (e é
@@ -240,11 +262,14 @@ export class HealthRepositoryImpl implements IHealthRepository {
             }
 
             const paid = doc.get("paidAmount");
-            const value = finiteOr(paid, finiteOr(doc.get("amount"), 0));
-            if (value > 0) total += value;
+            // F1.10 — o valor vem do espelho INTEIRO quando ele existe.
+            const cents = paid !== undefined && paid !== null
+                ? resolveCents(finiteOr(paid, 0), doc.get("paidAmountCents"))
+                : resolveCents(finiteOr(doc.get("amount"), 0), doc.get("amountCents"));
+            if (cents > 0) totalCents += cents;
         }
 
-        return total;
+        return fromCents(totalCents);
     }
 
     async getCategoryLimitOutcomes(workspaceId: string, monthKey: string): Promise<CategoryLimitOutcome[]> {
@@ -277,12 +302,17 @@ export class HealthRepositoryImpl implements IHealthRepository {
             if (!category || isSystemCategory(categoryId, category)) continue;
             if (category.type !== "expense") continue;
 
-            limits.set(categoryId, (limits.get(categoryId) ?? 0) + amount);
+            // Dois planejamentos da mesma categoria somam em CENTAVOS.
+            limits.set(categoryId, (limits.get(categoryId) ?? 0) + resolveCents(amount, data.amountCents));
         }
 
         const outcomes: CategoryLimitOutcome[] = [];
-        for (const [categoryId, limit] of limits) {
-            outcomes.push({ categoryId, limit, actual: actuals.get(categoryId) ?? 0 });
+        for (const [categoryId, limitCents] of limits) {
+            outcomes.push({
+                categoryId,
+                limit: fromCents(limitCents),
+                actual: actuals.get(categoryId) ?? 0,
+            });
         }
         // Ordem estável: o mesmo estado sempre produz a mesma lista, o que
         // torna o teste e o diff do script legíveis.

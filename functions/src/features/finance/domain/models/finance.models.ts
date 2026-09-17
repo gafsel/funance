@@ -1,4 +1,45 @@
 import { CategoryModel } from "../../../workspace/domain/models/category.model";
+import { fromCents, resolveCents } from "../../../../core/utils/money";
+
+/**
+ * F1.10 — DINHEIRO EM CENTAVOS: o mapa de cada campo monetário `double` para o
+ * campo inteiro paralelo, por coleção.
+ *
+ * Esta é a lista ÚNICA. Ela é consumida pelo passo derivado dos gatilhos (que
+ * completa os `*Cents` do que o CLIENTE escreve), pelo script
+ * `migrate_money_cents` e pelo verificador — três lugares que, se tivessem
+ * cada um a sua cópia, divergiriam no primeiro campo novo.
+ *
+ * `null` do lado do `double` (um `paidAmount` ausente) não gera campo inteiro:
+ * ausente continua significando ausente, e não "zero".
+ */
+export const MONEY_CENTS_FIELDS = {
+    orders: { amount: "amountCents" },
+    installments: {
+        amount: "amountCents",
+        paidAmount: "paidAmountCents",
+        referenceAmount: "referenceAmountCents",
+    },
+    accounts: { initialBalance: "initialBalanceCents", limit: "limitCents" },
+    goals: { targetAmount: "targetAmountCents", currentAmount: "currentAmountCents" },
+    category_planning: { amount: "amountCents", appliedAmount: "appliedAmountCents" },
+} as const satisfies Record<string, Record<string, string>>;
+
+/** Coleções cobertas pelo passo derivado e pela migração de centavos. */
+export type MoneyCentsCollection = keyof typeof MONEY_CENTS_FIELDS;
+
+/** Os três totais de `period_summaries`, no mesmo formato. */
+export const SUMMARY_CENTS_FIELDS = {
+    generalPlannedAmount: "generalPlannedAmountCents",
+    specificPlannedAmount: "specificPlannedAmountCents",
+    actualAmount: "actualAmountCents",
+} as const;
+
+/** `delta`/`balance` do saldo diário, no mesmo formato. */
+export const BALANCE_CENTS_FIELDS = {
+    delta: "deltaCents",
+    balance: "balanceCents",
+} as const;
 
 export enum OrderStatus {
     active = "active",
@@ -21,6 +62,8 @@ export enum InstallmentType {
 export interface OrderModel {
     id: string;
     amount: number;
+    /** F1.10 — `amount` em CENTAVOS INTEIROS. Ver `MONEY_CENTS_FIELDS`. */
+    amountCents?: number;
     dueDay: number;
     description: string;
     startMonth: string; // YYYY-MM
@@ -58,9 +101,13 @@ export interface InstallmentModel {
     id: string;
     orderId: string;
     amount: number;
+    /** F1.10 — `amount` em CENTAVOS INTEIROS. Ver `MONEY_CENTS_FIELDS`. */
+    amountCents?: number;
     dueDate: Date;
     description: string;
     paidAmount?: number;
+    /** F1.10 — `paidAmount` em CENTAVOS INTEIROS. */
+    paidAmountCents?: number;
     paidDate?: Date;
     installmentNumber?: number;
     installmentCount?: number;
@@ -74,6 +121,8 @@ export interface InstallmentModel {
     xp?: number;
     referenceDate: Date;
     referenceAmount: number;
+    /** F1.10 — `referenceAmount` em CENTAVOS INTEIROS. */
+    referenceAmountCents?: number;
     isInvoice?: boolean;
     /**
      * F2.3 — por que esta parcela rendeu ZERO XP.
@@ -167,6 +216,33 @@ export const INSTALLMENT_DERIVED_FIELDS = new Set([
     // preenche as faturas antigas dispararia o gatilho inteiro — sumário,
     // meta, saldo, XP — para cada fatura da base, tudo com delta zero.
     ...INVOICE_CYCLE_FIELDS,
+    // F1.10: os espelhos inteiros. O passo derivado do gatilho completa os
+    // `*Cents` da parcela que o CLIENTE gravou; sem eles aqui essa escrita
+    // redispararia sumário, meta, saldo, fatura e XP — para cada uma das
+    // parcelas da base durante a migração, todas com delta zero.
+    ...Object.values(MONEY_CENTS_FIELDS.installments),
+]);
+
+/**
+ * F1.10 — campos da ORDER escritos pelo próprio servidor como espelho inteiro.
+ *
+ * A order não tinha guarda por conteúdo: qualquer escrita nela dispara
+ * `onOrderWritten`, que reexecuta `syncInstallments` e grava um documento em
+ * `orders/{id}/history`. Sem esta lista, completar o `amountCents` de mil
+ * orders na migração criaria mil registros de histórico do nada.
+ */
+export const ORDER_DERIVED_FIELDS = new Set<string>([
+    ...Object.values(MONEY_CENTS_FIELDS.orders),
+]);
+
+/**
+ * F1.10 — campos da META escritos pelo servidor como espelho inteiro.
+ *
+ * Mesmo motivo: `onGoalWritten` recalcula o progresso e reavalia os badges a
+ * cada escrita, e o backfill dos `*Cents` não é uma mudança de meta.
+ */
+export const GOAL_DERIVED_FIELDS = new Set<string>([
+    ...Object.values(MONEY_CENTS_FIELDS.goals),
 ]);
 
 /**
@@ -186,12 +262,16 @@ export interface CategoryPlanningModel {
     id: string;
     category: CategoryModel;
     amount: number;
+    /** F1.10 — `amount` em CENTAVOS INTEIROS. Ver `MONEY_CENTS_FIELDS`. */
+    amountCents?: number;
     startMonth: string; // YYYY-MM
     endMonth: string; // YYYY-MM
     /** LEGADO (pré-F1.5): ninguém grava mais; substituído por `summarizedUntil`. */
     lastSummaryMonth?: string; // YYYY-MM
     summarizedUntil?: string; // YYYY-MM | "9999-12"
     appliedAmount?: number | null;
+    /** F1.10 — `appliedAmount` em CENTAVOS INTEIROS. */
+    appliedAmountCents?: number | null;
     appliedFrom?: string | null; // YYYY-MM
     appliedUntil?: string | null; // YYYY-MM
 }
@@ -201,7 +281,7 @@ export interface CategoryPlanningModel {
  * evento. Uma escrita que mexe só neles é o eco da execução anterior e não
  * pode disparar o gatilho de novo (senão o estorno/reaplicação vira laço).
  */
-export const CATEGORY_PLANNING_DERIVED_FIELDS = new Set([
+export const CATEGORY_PLANNING_DERIVED_FIELDS = new Set<string>([
     "summarizedUntil",
     "appliedAmount",
     "appliedFrom",
@@ -209,12 +289,18 @@ export const CATEGORY_PLANNING_DERIVED_FIELDS = new Set([
     "lastSummaryMonth",
     "lastUpdate",
     "updatedAt",
+    // F1.10: o espelho inteiro do valor e do valor aplicado. Sem eles aqui, o
+    // passo derivado que completa `amountCents` estornaria e reaplicaria o
+    // planejamento inteiro — em laço, que é exatamente o que a guarda evita.
+    ...Object.values(MONEY_CENTS_FIELDS.category_planning),
 ]);
 
 /** Marcadores gravados no planejamento depois de aplicar os impactos. */
 export interface CategoryPlanningMarks {
     summarizedUntil: string;
     appliedAmount: number | null;
+    /** F1.10 — espelho inteiro de `appliedAmount`. */
+    appliedAmountCents: number | null;
     appliedFrom: string | null;
     appliedUntil: string | null;
 }
@@ -243,6 +329,16 @@ export interface PeriodSummaryCategoryTotals {
     specificPlannedAmount: number;
     /** Soma do que de fato foi pago/recebido no período. */
     actualAmount: number;
+    /**
+     * F1.10 — os mesmos três totais em CENTAVOS INTEIROS. São eles a FONTE DA
+     * VERDADE; os `double` acima são o espelho `round2`.
+     *
+     * Opcionais porque a base ainda tem documentos anteriores à migração
+     * (`migrate_money_cents`). Quem soma usa `resolveCents(double, cents)`.
+     */
+    generalPlannedAmountCents?: number;
+    specificPlannedAmountCents?: number;
+    actualAmountCents?: number;
 }
 
 /**
@@ -290,10 +386,20 @@ export function toPeriodSummaryDocument(
     const categories: Record<string, PeriodSummaryCategoryTotals> = {};
 
     for (const [categoryId, totals] of Object.entries(rawCategories)) {
+        // F1.10 — o INTEIRO manda: onde `*Cents` existe, o `double` entregue ao
+        // consumidor é o espelho exato dele. Num documento ainda não migrado o
+        // `double` responde sozinho, como sempre respondeu.
+        const generalCents = resolveCents(summaryNumber(totals?.generalPlannedAmount), totals?.generalPlannedAmountCents);
+        const specificCents = resolveCents(summaryNumber(totals?.specificPlannedAmount), totals?.specificPlannedAmountCents);
+        const actualCents = resolveCents(summaryNumber(totals?.actualAmount), totals?.actualAmountCents);
+
         categories[categoryId] = {
-            generalPlannedAmount: summaryNumber(totals?.generalPlannedAmount),
-            specificPlannedAmount: summaryNumber(totals?.specificPlannedAmount),
-            actualAmount: summaryNumber(totals?.actualAmount),
+            generalPlannedAmount: fromCents(generalCents),
+            specificPlannedAmount: fromCents(specificCents),
+            actualAmount: fromCents(actualCents),
+            generalPlannedAmountCents: generalCents,
+            specificPlannedAmountCents: specificCents,
+            actualAmountCents: actualCents,
         };
     }
 
@@ -364,6 +470,8 @@ export interface NextInvoiceModel {
     cycleEnd: Date;
     /** Valor da fatura em aberto. `0` quando ainda não há nenhuma compra. */
     amount: number;
+    /** F1.10 — `amount` em CENTAVOS INTEIROS. */
+    amountCents: number;
     /** Id da order de fatura (`invoice-{accountId}-{YYYY-MM-DD}`). */
     orderId: string;
     /** Parcela da fatura, ou `null` enquanto a fatura não existe de fato. */
@@ -382,10 +490,14 @@ export interface AccountModel {
     runtimeType: AccountType;
     isDeleted: boolean;
     initialBalance: number;
+    /** F1.10 — `initialBalance` em CENTAVOS INTEIROS. */
+    initialBalanceCents?: number;
     initialBalanceDate: Date;
     closingDay?: number;
     dueDay?: number;
     limit?: number;
+    /** F1.10 — `limit` em CENTAVOS INTEIROS. */
+    limitCents?: number;
     interestRate?: number;
     bankLogo?: BankLogo;
     ownerIds?: string[];
@@ -410,6 +522,14 @@ export interface AccountBalanceModel {
     delta?: number;
     /** Saldo acumulado ao FIM do dia. */
     balance: number;
+    /**
+     * F1.10 — `delta`/`balance` em CENTAVOS INTEIROS. Esta é a FONTE DA VERDADE
+     * do saldo: o `double` ao lado é o espelho, e é ele que acumulava erro ao
+     * ser somado com `FieldValue.increment` pagamento após pagamento.
+     * Ausentes nos documentos anteriores à `migrate_money_cents`.
+     */
+    deltaCents?: number;
+    balanceCents?: number;
     updatedAt: Date;
 }
 
@@ -418,7 +538,15 @@ export interface PeriodSummaryUpdateModel {
     month?: number;
     week?: number;
     category: CategoryModel;
+    /**
+     * F1.10 — os deltas são valores monetários JÁ ARREDONDADOS a duas casas
+     * (`round2`) por quem os produziu. O repositório converte cada um em
+     * centavos com `toCents`, que é exato justamente porque o valor já é um
+     * decimal de duas casas.
+     */
     generalPlannedDelta?: number;
     specificPlannedDelta?: number;
     actualDelta?: number;
 }
+
+
