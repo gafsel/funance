@@ -33,6 +33,10 @@ const NOW = new Date("2026-02-15T12:00:00.000Z");
 const CATEGORY_ID = "cat-mercado";
 const DEBT_ACCOUNT_ID = "acc-emprestimo";
 const MIGRATED_ACCOUNT_ID = "acc-emprestimo-migrado";
+/** Cofrinho: conta `investment`, onde o SALDO é o progresso da meta. */
+const SAVINGS_ACCOUNT_ID = "acc-cofrinho-disney";
+/** Conta corrente: o progresso continua sendo o que entrou desde o início. */
+const CHECKING_ACCOUNT_ID = "acc-corrente";
 
 const CATEGORY: CategoryModel = {
     id: CATEGORY_ID,
@@ -129,6 +133,47 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         await migrated.doc("2026-01-10").set({ balance: -2000, dateKey: "2026-01-10", updatedAt: new Date() });
         await migrated.doc("2026-02-01").set({ balance: -1500, dateKey: "2026-02-01", updatedAt: new Date() });
         await migrated.doc("2026-03-01").set({ balance: -900, updatedAt: new Date() });
+
+        // Documentos de CONTA: é o `runtimeType` deles que decide se uma meta
+        // `saveMoney` mede saldo (cofrinho) ou aportes.
+        const accounts = firestore.collection(`workspaces/${WORKSPACE_ID}/accounts`);
+        await accounts.doc(SAVINGS_ACCOUNT_ID).set({
+            name: "Cofrinho Disney",
+            runtimeType: "investment",
+            isDeleted: false,
+            initialBalance: 0,
+        }, { merge: true });
+        await accounts.doc(CHECKING_ACCOUNT_ID).set({
+            name: "Conta Corrente",
+            runtimeType: "checking",
+            isDeleted: false,
+            initialBalance: 0,
+        }, { merge: true });
+        await accounts.doc(DEBT_ACCOUNT_ID).set({
+            name: "Empréstimo",
+            runtimeType: "debt",
+            isDeleted: false,
+            initialBalance: 0,
+        }, { merge: true });
+
+        // Cofrinho com dinheiro guardado ANTES de qualquer meta existir.
+        await firestore
+            .collection(`workspaces/${WORKSPACE_ID}/accounts/${SAVINGS_ACCOUNT_ID}/balance`)
+            .doc("2026-02-10")
+            .set({ balance: 263.41, dateKey: "2026-02-10", updatedAt: new Date() });
+
+        // Aporte na conta corrente, para o outro lado da regra.
+        await firestore.collection(`workspaces/${WORKSPACE_ID}/installments`).doc("i-aporte").set({
+            orderId: "o-aporte",
+            amount: 500,
+            paidAmount: 500,
+            status: "paid",
+            type: "income",
+            accounts: { [CHECKING_ACCOUNT_ID]: "credit" },
+            accountIds: [CHECKING_ACCOUNT_ID],
+            dueDate: admin.firestore.Timestamp.fromDate(new Date("2026-02-10T12:00:00.000Z")),
+            paidDate: admin.firestore.Timestamp.fromDate(new Date("2026-02-10T12:00:00.000Z")),
+        });
     });
 
     afterAll(async () => {
@@ -220,6 +265,86 @@ describe("Progresso automático das metas (integração com emulador)", () => {
         // Saldo em 2026-01-01 é o de 2025-12-20 (-5000, o mais próximo ANTES do
         // início); o atual é -3800. Amortizados: 1200.
         expect(saved.currentAmount).toBe(1200);
+    });
+
+    // ── saveMoney: cofrinho mede SALDO, conta corrente mede APORTES ───────
+
+    it("saveMoney em conta de investimento mede o SALDO do cofrinho", async () => {
+        const goalId = "goal-disney";
+        await goalRef(goalId).set({
+            name: "Disney 2030",
+            runtimeType: "saveMoney",
+            targetAmount: 30000,
+            currentAmount: 0,
+            accountId: SAVINGS_ACCOUNT_ID,
+            // Meta criada HOJE sobre um cofrinho que já tinha R$ 263,41.
+            startDate: admin.firestore.Timestamp.fromDate(NOW),
+            deadline: admin.firestore.Timestamp.fromDate(new Date("2030-12-31T00:00:00.000Z")),
+            isDeleted: false,
+        });
+
+        await service.processInstallmentChange(
+            WORKSPACE_ID,
+            null,
+            installment({
+                accounts: { [SAVINGS_ACCOUNT_ID]: "credit" },
+                accountIds: [SAVINGS_ACCOUNT_ID],
+                type: OrderType.income,
+            })
+        );
+
+        const saved = (await goalRef(goalId).get()).data()!;
+        // Pela regra dos aportes a meta nasceria em ZERO: nenhuma parcela foi
+        // paga DEPOIS do startDate. O saldo do cofrinho é o progresso.
+        expect(saved.currentAmount).toBeCloseTo(263.41, 2);
+    });
+
+    it("saveMoney em conta CORRENTE continua medindo os aportes desde o início", async () => {
+        const goalId = "goal-corrente";
+        const goal = {
+            name: "Reserva na corrente",
+            runtimeType: "saveMoney",
+            targetAmount: 30000,
+            currentAmount: 0,
+            accountId: CHECKING_ACCOUNT_ID,
+            startDate: admin.firestore.Timestamp.fromDate(new Date("2026-01-01T00:00:00.000Z")),
+            deadline: admin.firestore.Timestamp.fromDate(new Date("2026-12-31T00:00:00.000Z")),
+            isDeleted: false,
+        };
+        await goalRef(goalId).set(goal);
+
+        const computed = await service.computeCurrentAmount(WORKSPACE_ID, {
+            ...goal,
+            id: goalId,
+            startDate: new Date("2026-01-01T00:00:00.000Z"),
+            deadline: new Date("2026-12-31T00:00:00.000Z"),
+        } as any);
+
+        // O aporte de 500 pago em 10/02 — o saldo da conta não entra na conta.
+        expect(computed).toBe(500);
+    });
+
+    it("cofrinho SEM saldo gravado mantém o progresso em vez de zerá-lo", async () => {
+        const emptyAccountId = "acc-cofrinho-vazio";
+        await firestore.collection(`workspaces/${WORKSPACE_ID}/accounts`).doc(emptyAccountId).set({
+            name: "Cofrinho recém-criado",
+            runtimeType: "investment",
+            isDeleted: false,
+            initialBalance: 0,
+        });
+
+        const computed = await service.computeCurrentAmount(WORKSPACE_ID, {
+            id: "goal-cofrinho-vazio",
+            runtimeType: "saveMoney",
+            targetAmount: 100,
+            currentAmount: 42,
+            accountId: emptyAccountId,
+            startDate: new Date("2026-01-01T00:00:00.000Z"),
+            isDeleted: false,
+        } as any);
+
+        // `null` = "nada a afirmar": o `recomputeGoal` mantém o valor atual.
+        expect(computed).toBeNull();
     });
 
     // ── Fechamento no vencimento (cron `closeExpiredGoals`) ───────────────

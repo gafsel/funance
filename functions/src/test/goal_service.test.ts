@@ -7,6 +7,7 @@ import {
     isGoalFailed,
 } from "../features/goal/domain/models/goal.model";
 import {
+    AccountType,
     InstallmentModel,
     InstallmentStatus,
     InstallmentType,
@@ -72,6 +73,9 @@ function makeRepository() {
         updateGoalOutcome: jest.fn().mockResolvedValue(undefined),
         getCategoryActualByMonths: jest.fn().mockResolvedValue(0),
         getBalancesForGoal: jest.fn().mockResolvedValue({ startBalance: null, currentBalance: null }),
+        getCurrentBalance: jest.fn().mockResolvedValue(null),
+        // Conta corrente por padrão: `saveMoney` segue no caminho dos aportes.
+        getAccountType: jest.fn().mockResolvedValue(AccountType.checking),
         getPaidInstallmentsByAccountSince: jest.fn().mockResolvedValue([]),
     };
 }
@@ -391,6 +395,126 @@ describe("GoalServiceImpl.computeCurrentAmount — recálculo total", () => {
 
         expect(result).toBeNull();
         expect(repository.updateGoalProgress).not.toHaveBeenCalled();
+    });
+});
+
+/**
+ * Decisão do produto: `saveMoney` numa conta de INVESTIMENTO (cofrinho) mede o
+ * SALDO da conta, não os aportes desde o início. Caso real: meta "Disney 2030"
+ * na conta "Cofrinho Disney", saldo 263,41 e `startDate` = hoje — a meta nascia
+ * em ZERO porque nenhum aporte tinha sido feito DEPOIS da criação dela.
+ */
+describe("GoalServiceImpl — saveMoney de cofrinho (conta de investimento)", () => {
+    let repository: ReturnType<typeof makeRepository>;
+    let service: GoalServiceImpl;
+
+    /** Meta criada hoje sobre um cofrinho que já tem dinheiro. */
+    const disney = (over: Partial<any> = {}) => goalDoc({
+        id: "g-disney",
+        name: "Disney 2030",
+        targetAmount: 30000,
+        currentAmount: 0,
+        accountId: "acc-cofrinho",
+        startDate: new Date("2026-06-15T00:00:00.000"),
+        ...over,
+    });
+
+    beforeEach(() => {
+        repository = makeRepository();
+        service = new GoalServiceImpl(repository as any, agora);
+        repository.getAccountType.mockResolvedValue(AccountType.investment);
+        repository.getCurrentBalance.mockResolvedValue(263.41);
+    });
+
+    it("computeCurrentAmount devolve o SALDO da conta, não os aportes", async () => {
+        // Nenhuma parcela paga desde o início: pela regra antiga daria zero.
+        repository.getPaidInstallmentsByAccountSince.mockResolvedValue([]);
+
+        const total = await service.computeCurrentAmount("w1", disney() as any);
+
+        expect(total).toBe(263.41);
+        expect(repository.getCurrentBalance).toHaveBeenCalledWith("w1", "acc-cofrinho");
+        // O caminho dos aportes nem é tocado.
+        expect(repository.getPaidInstallmentsByAccountSince).not.toHaveBeenCalled();
+    });
+
+    it("cofrinho no negativo não vira progresso negativo (piso zero)", async () => {
+        repository.getCurrentBalance.mockResolvedValue(-50);
+
+        expect(await service.computeCurrentAmount("w1", disney() as any)).toBe(0);
+    });
+
+    it("cofrinho sem nenhum saldo gravado mantém o progresso", async () => {
+        repository.getCurrentBalance.mockResolvedValue(null);
+
+        expect(await service.computeCurrentAmount("w1", disney() as any)).toBeNull();
+    });
+
+    it("meta sem conta não tenta ler saldo nenhum", async () => {
+        expect(await service.computeCurrentAmount("w1", disney({ accountId: undefined }) as any)).toBeNull();
+        expect(repository.getCurrentBalance).not.toHaveBeenCalled();
+    });
+
+    it("o gatilho de parcela faz RECÁLCULO TOTAL, não delta", async () => {
+        repository.getActiveGoalsByAccount.mockResolvedValue([disney()]);
+
+        await service.processInstallmentChange("w1", null, installment({
+            accounts: { "acc-cofrinho": "credit" },
+            accountIds: ["acc-cofrinho"],
+        }));
+
+        // 263,41 é o saldo da conta — não 0 + 500 (o aporte deste evento).
+        expect(repository.updateGoalProgress).toHaveBeenCalledTimes(1);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(263.41);
+    });
+
+    it("o tipo da conta é lido UMA vez por conta do evento", async () => {
+        repository.getActiveGoalsByAccount.mockResolvedValue([
+            disney(),
+            disney({ id: "g-disney-2", name: "Disney 2031" }),
+        ]);
+
+        await service.processInstallmentChange("w1", null, installment({
+            accounts: { "acc-cofrinho": "credit" },
+            accountIds: ["acc-cofrinho"],
+        }));
+
+        expect(repository.getAccountType).toHaveBeenCalledTimes(1);
+        expect(repository.updateGoalProgress).toHaveBeenCalledTimes(2);
+    });
+
+    it("conta CORRENTE mantém a regra dos aportes desde o início", async () => {
+        repository.getAccountType.mockResolvedValue(AccountType.checking);
+        repository.getActiveGoalsByAccount.mockResolvedValue([goalDoc()]);
+
+        await service.processInstallmentChange("w1", null, installment());
+
+        // Delta do evento (+500), não o saldo da conta.
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(500);
+        expect(repository.getCurrentBalance).not.toHaveBeenCalled();
+    });
+
+    it("conta sem `runtimeType` conhecido também mantém a regra dos aportes", async () => {
+        repository.getAccountType.mockResolvedValue(null);
+        repository.getPaidInstallmentsByAccountSince.mockResolvedValue([
+            { amount: 500, paidAmount: 500, accounts: { "acc-cofrinho": "credit" } },
+        ]);
+
+        expect(await service.computeCurrentAmount("w1", disney() as any)).toBe(500);
+    });
+
+    it("reduceCreditCard não muda de regra numa conta de investimento", async () => {
+        repository.getPaidInstallmentsByAccountSince.mockResolvedValue([
+            { amount: 200, paidAmount: 120, accounts: { "acc-cofrinho": "debt" } },
+        ]);
+
+        const total = await service.computeCurrentAmount(
+            "w1",
+            disney({ runtimeType: "reduceCreditCard" }) as any
+        );
+
+        expect(total).toBe(120);
+        expect(repository.getCurrentBalance).not.toHaveBeenCalled();
     });
 });
 

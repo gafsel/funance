@@ -806,16 +806,37 @@ que ninguém atualizava.
 
 | Tipo | Fonte da verdade | Quando é recalculado |
 |---|---|---|
-| `saveMoney` | parcelas pagas da conta desde `startDate`: crédito soma, débito subtrai | **delta** do evento de parcela |
+| `saveMoney` em conta **de investimento** (cofrinho) | **saldo atual da conta** (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
+| `saveMoney` em qualquer outra conta | parcelas pagas da conta desde `startDate`: crédito soma, débito subtrai | **delta** do evento de parcela |
 | `reduceCreditCard` | parcelas pagas da conta desde `startDate`: só os débitos | **delta** do evento de parcela |
 | `reduceExpense` | `actualAmount` da categoria nos `period_summaries` **mensais** do período da meta | **recálculo total** quando uma parcela daquela categoria muda |
 | `payDebt` | `saldo atual da conta − saldo no fim do dia ANTERIOR ao startDate` (piso zero) | **recálculo total** quando uma parcela daquela conta muda |
 
-Nos dois primeiros tipos e em `payDebt`, `currentAmount` é **conquista**: quanto
-já foi juntado ou amortizado, e alcançar o alvo é vencer. Em `reduceExpense` e
+Em `saveMoney` e `payDebt`, `currentAmount` é **conquista**: quanto já foi
+juntado ou amortizado, e alcançar o alvo é vencer. Em `reduceExpense` e
 `reduceCreditCard` ele é **gasto contra um teto**: passar do alvo é **estourar o
 orçamento**, e é por isso que a conclusão de uma meta não pode ser inferida
 desse número — ver "Contrato: meta ativa e desfecho".
+
+**Decisão — `saveMoney` de cofrinho mede SALDO, não aportes.** Quando a conta da
+meta é do tipo `investment` (cofrinho, reserva, caixinha), o progresso é o
+**saldo atual da conta**, com piso zero: o dinheiro que está lá **é** o que foi
+guardado, inclusive o que já estava antes de a meta existir. Somar apenas os
+aportes desde o `startDate` fazia uma meta criada hoje sobre um cofrinho cheio
+nascer em zero — caso real: meta "Disney 2030" na conta "Cofrinho Disney" com
+R$ 263,41 e `startDate` = hoje, mostrando **0 de 263,41 guardados**.
+
+Em qualquer outro tipo de conta (corrente, cartão, dívida) a regra continua
+sendo **o que entrou desde o início** — créditos menos débitos das parcelas
+pagas. Uma conta corrente tem saldo por mil motivos alheios à meta; ali o saldo
+não é progresso nenhum, só o aporte conta.
+
+A consequência operacional é a mesma de `payDebt`: `saveMoney` de cofrinho sai
+do caminho do **delta** e passa a ser **recálculo total** no gatilho de parcela,
+lendo o saldo mais recente da conta. O tipo da conta custa **uma leitura de
+documento por conta do evento**, reaproveitada por todas as metas dela e buscada
+só quando existe alguma `saveMoney`. Cofrinho sem nenhum saldo gravado mantém o
+progresso, em vez de zerá-lo.
 
 **Decisão — `reduceExpense` lê os sumários mensais, não as parcelas.** O
 documento mensal já é a consolidação que o próprio servidor mantém
@@ -1248,7 +1269,9 @@ Recalcula o `currentAmount` de **todas** as metas pela regra nova (ver
 "Metas (`goals`): progresso automático nos quatro tipos"), usando a mesma
 função que o gatilho usa (`GoalServiceImpl.computeCurrentAmount`). Serve para a
 base legada, onde `reduceExpense` e `payDebt` estão paradas em zero desde
-sempre e as de conta podem ter derivado por um evento perdido.
+sempre e as de conta podem ter derivado por um evento perdido. É também o
+caminho para trazer as metas `saveMoney` de **cofrinho** para o saldo da conta:
+elas só se corrigem sozinhas no próximo evento de parcela daquela conta.
 
 - **Idempotente**: pula a meta cujo valor já bate (tolerância de 1 centavo).
 - **Dry-run por padrão**: só escreve com `--apply`.

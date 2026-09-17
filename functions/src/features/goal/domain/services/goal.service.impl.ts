@@ -1,6 +1,6 @@
 import * as logger from "firebase-functions/logger";
 import { IGoalService } from "./goal.service";
-import { InstallmentModel, InstallmentStatus } from "../../../finance/domain/models/finance.models";
+import { AccountType, InstallmentModel, InstallmentStatus } from "../../../finance/domain/models/finance.models";
 import { GoalOutcomeStamp, IGoalRepository, InstallmentLike } from "../repositories/goal.repository";
 import {
     GoalModel,
@@ -39,15 +39,17 @@ export class GoalServiceImpl implements IGoalService {
      *
      * Dois caminhos, por custo:
      *
-     * - `saveMoney` e `reduceCreditCard` (metas de CONTA) andam pelo DELTA do
-     *   evento: a contribuição da parcela antiga sai, a da nova entra. É o
-     *   comportamento que já existia e não lê nada além das próprias metas.
-     * - `reduceExpense` (meta de CATEGORIA) e `payDebt` (meta de CONTA DE
-     *   DÍVIDA) são RECALCULADAS do zero pela fonte de verdade — os
-     *   `period_summaries` mensais e os saldos diários da conta. Elas não têm
-     *   delta confiável: o realizado da categoria e o saldo da conta são
-     *   mantidos por outros gatilhos, e somar delta em cima disso divergiria a
-     *   cada reprocessamento.
+     * - `saveMoney` em conta que NÃO é de investimento, e `reduceCreditCard`
+     *   (metas de CONTA) andam pelo DELTA do evento: a contribuição da parcela
+     *   antiga sai, a da nova entra. É o comportamento que já existia e não lê
+     *   nada além das próprias metas.
+     * - `reduceExpense` (meta de CATEGORIA), `payDebt` (meta de CONTA DE
+     *   DÍVIDA) e `saveMoney` de COFRINHO (conta de investimento) são
+     *   RECALCULADAS do zero pela fonte de verdade — os `period_summaries`
+     *   mensais e os saldos diários da conta. Elas não têm delta confiável: o
+     *   realizado da categoria e o saldo da conta são mantidos por outros
+     *   gatilhos, e somar delta em cima disso divergiria a cada
+     *   reprocessamento.
      */
     async processInstallmentChange(workspaceId: string, before: InstallmentModel | null, after: InstallmentModel | null): Promise<void> {
         const accountIds = new Set<string>();
@@ -63,6 +65,18 @@ export class GoalServiceImpl implements IGoalService {
             // Metas não deletadas da conta (inclusive as já concluídas: o
             // estorno de um pagamento precisa poder puxar o progresso de volta).
             const goals = await this.goalRepository.getActiveGoalsByAccount(workspaceId, accountId);
+            if (goals.length === 0) continue;
+
+            // Uma leitura do tipo da conta por conta do evento, reaproveitada
+            // por todas as metas dela — só é buscada se houver alguma
+            // `saveMoney`, que é a única que depende do tipo.
+            let isSavings: boolean | null = null;
+            const savingsAccount = async () => {
+                if (isSavings === null) {
+                    isSavings = await this.isSavingsBalanceAccount(workspaceId, accountId);
+                }
+                return isSavings;
+            };
 
             for (const goal of goals) {
                 const goalType = resolveGoalType(goal);
@@ -75,6 +89,19 @@ export class GoalServiceImpl implements IGoalService {
                 }
 
                 if (goalType !== GoalType.saveMoney && goalType !== GoalType.reduceCreditCard) {
+                    continue;
+                }
+
+                // Cofrinho: o progresso É o saldo da conta, não a soma dos
+                // aportes deste evento. Como em `payDebt`, o delta não serve —
+                // o saldo é mantido por outro gatilho e somar por cima
+                // divergiria. Recálculo total, lendo o saldo mais recente.
+                if (goalType === GoalType.saveMoney && await savingsAccount()) {
+                    const balance = await this.savingsBalance(workspaceId, goal.accountId ?? accountId);
+                    // Cofrinho sem saldo gravado: mantém o valor atual, como
+                    // `recomputeGoal` faria — a meta ainda passa pelo
+                    // `writeProgress` porque o prazo pode ter vencido.
+                    await this.writeProgress(workspaceId, goal, balance ?? Number(goal.currentAmount ?? 0));
                     continue;
                 }
 
@@ -160,9 +187,57 @@ export class GoalServiceImpl implements IGoalService {
         case GoalType.payDebt:
             return this.computePayDebt(workspaceId, goal);
         case GoalType.saveMoney:
+            return this.computeSaveMoney(workspaceId, goal);
         case GoalType.reduceCreditCard:
             return this.computeFromAccountInstallments(workspaceId, goal, goalType);
         }
+    }
+
+    /**
+     * `saveMoney`: duas fontes de verdade, escolhidas pelo TIPO DA CONTA.
+     *
+     * - conta de INVESTIMENTO (cofrinho, reserva): o progresso é o SALDO ATUAL
+     *   da conta, com piso zero. O dinheiro que está lá É o que foi guardado —
+     *   inclusive o que já estava antes da meta existir. Somar só os aportes
+     *   desde o `startDate` fazia uma meta criada hoje sobre um cofrinho cheio
+     *   nascer em zero: caso real "Disney 2030", conta "Cofrinho Disney" com
+     *   R$ 263,41 e `startDate` = hoje, mostrando 0 de 263,41 guardados.
+     * - qualquer outro tipo (corrente, cartão, dívida): o progresso é o que
+     *   ENTROU desde o início — créditos menos débitos das parcelas pagas. Uma
+     *   conta corrente tem saldo por mil motivos alheios à meta; ali só o
+     *   aporte conta.
+     */
+    private async computeSaveMoney(workspaceId: string, goal: GoalModel): Promise<number | null> {
+        const accountId = goal.accountId;
+        if (!accountId) {
+            return null;
+        }
+
+        if (!(await this.isSavingsBalanceAccount(workspaceId, accountId))) {
+            return this.computeFromAccountInstallments(workspaceId, goal, GoalType.saveMoney);
+        }
+
+        return this.savingsBalance(workspaceId, accountId);
+    }
+
+    /**
+     * Saldo do cofrinho com piso zero. `null` quando a conta não tem nenhum
+     * saldo gravado — nada a afirmar sobre o progresso, mesma postura de
+     * `payDebt`.
+     */
+    private async savingsBalance(workspaceId: string, accountId: string): Promise<number | null> {
+        const balance = await this.goalRepository.getCurrentBalance(workspaceId, accountId);
+        if (balance === null) {
+            return null;
+        }
+        return balance > 0 ? balance : 0;
+    }
+
+    /** A conta da meta é um cofrinho (conta de investimento)? */
+    private async isSavingsBalanceAccount(workspaceId: string, accountId?: string): Promise<boolean> {
+        if (!accountId) return false;
+        const type = await this.goalRepository.getAccountType(workspaceId, accountId);
+        return type === AccountType.investment;
     }
 
     /**
@@ -227,10 +302,10 @@ export class GoalServiceImpl implements IGoalService {
     }
 
     /**
-     * Recálculo total de `saveMoney`/`reduceCreditCard` a partir das parcelas
-     * pagas da conta desde `startDate` — a MESMA regra que o caminho
-     * incremental aplica parcela a parcela. Só é usado fora do gatilho
-     * (criação da meta e script de recálculo).
+     * Recálculo total a partir das parcelas pagas da conta desde `startDate` —
+     * a MESMA regra que o caminho incremental aplica parcela a parcela. Vale
+     * para `reduceCreditCard` e para `saveMoney` em conta que não é cofrinho.
+     * Só é usado fora do gatilho (criação da meta e script de recálculo).
      */
     private async computeFromAccountInstallments(
         workspaceId: string,

@@ -1,4 +1,5 @@
 import * as admin from "firebase-admin";
+import { AccountType } from "../../../finance/domain/models/finance.models";
 import {
     GoalBalances,
     GoalOutcomeStamp,
@@ -164,6 +165,33 @@ export class GoalRepositoryImpl implements IGoalRepository {
     }
 
     /**
+     * Saldo mais recente da conta — o progresso de uma meta `saveMoney` de
+     * cofrinho. Mesmo caminho duplo de `getBalancesForGoal`, mas UMA consulta:
+     * quem só quer o saldo de hoje não paga a varredura do marco zero.
+     */
+    async getCurrentBalance(workspaceId: string, accountId: string): Promise<number | null> {
+        return this.lastBalanceUpTo(this.balanceCollection(workspaceId, accountId), MAX_DATE_KEY);
+    }
+
+    /**
+     * `runtimeType` da conta. Vale um documento por recálculo de meta de conta
+     * — o preço de distinguir cofrinho (investimento) de conta corrente.
+     */
+    async getAccountType(workspaceId: string, accountId: string): Promise<AccountType | null> {
+        const doc = await this.db
+            .collection("workspaces")
+            .doc(workspaceId)
+            .collection("accounts")
+            .doc(accountId)
+            .get();
+
+        if (!doc.exists) return null;
+
+        const raw = doc.data()?.runtimeType;
+        return isAccountType(raw) ? raw : null;
+    }
+
+    /**
      * Saldo do último documento com id/`dateKey` até `limitKey`.
      *
      * Com `exclusive`, o próprio `limitKey` fica DE FORA (`<` em vez de `<=`) —
@@ -310,6 +338,11 @@ function outcomePayload(stamp?: GoalOutcomeStamp | null): Record<string, any> {
     return stamp.outcome === GoalOutcome.success
         ? { outcome: GoalOutcome.success, completedAt: at }
         : { outcome: GoalOutcome.failed, failedAt: at };
+}
+
+/** `runtimeType` de conta dentro do enum — documento sujo/legado vira `null`. */
+function isAccountType(value: unknown): value is AccountType {
+    return typeof value === "string" && (Object.values(AccountType) as string[]).includes(value);
 }
 
 /**
