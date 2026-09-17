@@ -262,6 +262,57 @@ um único campo seria pior do que não completar o inteiro.
 o app ainda escreve o `double`, e sobrescrevê-lo seria o servidor discordando do
 usuário. Quem reconcilia os dois é o `rebuild_workspace`.
 
+#### O evento carrega o inteiro DEFASADO — os handlers normalizam em memória
+
+Corrigir o banco não basta, e essa foi a lição de um defeito em produção.
+
+O payload de um evento do Firestore é o documento **como ele estava naquele
+instante**. Quando o app edita um valor (`amount: 500 → 1000`), ele não toca no
+espelho — os `*Cents` são server-only —, então o `afterData` chega com o
+`double` NOVO e o inteiro VELHO. O passo derivado conserta o documento, mas o
+objeto em memória continua mentindo; e toda a regra de negócio abaixo dele
+resolve dinheiro por `resolveCents`, que **prefere o inteiro**.
+
+O resultado observado: uma edição de limite de R$ 500 para R$ 1.000 era aplicada
+nos sumários como R$ 500, com `appliedAmount: 500` nos marcadores — e o segundo
+evento (o eco da escrita do espelho) saía pela guarda por conteúdo sem corrigir
+nada. O mesmo padrão valia para `amount`/`paidAmount` de parcela (um aumento de
+R$ 100 para R$ 250 virava delta ZERO no saldo e no sumário) e para o
+`targetAmount` de meta (baixar o alvo não desfechava).
+
+**A correção é `withFreshCents(data, fields)`** (`core/utils/money_cents.ts`):
+uma CÓPIA do payload com todos os `*Cents` recalculados a partir do `double`,
+pela mesma regra de `buildCentsPatch`. Os handlers montam `before` e `after` a
+partir dela — os dois lados, porque o `before` também pode carregar um espelho
+defasado se o evento anterior ainda não tinha sido patchado.
+
+| Handler | O que normaliza |
+|---|---|
+| `onInstallmentWritten` | `amount`, `paidAmount`, `referenceAmount` (em `toInstallmentModel`) |
+| `onCategoryPlanningWritten` | `amount`, `appliedAmount` |
+| `onGoalWritten` | `targetAmount`, `currentAmount` — depois da guarda e do patch |
+| `onOrderWritten` | `amount` |
+| `onAccountCreated`/`onAccountUpdated` | `initialBalance`, `limit` |
+
+> **Por que NÃO relaxar o `resolveCents`** para só preferir o inteiro quando ele
+> bate com o `double`: isso apagaria o sinal. A divergência entre os dois é
+> exatamente o que o `--verify` da migração existe para denunciar, e um
+> `resolveCents` tolerante faria toda divergência virar "o `double` ganha", em
+> silêncio, em todo lugar. `withFreshCents` tem escopo explícito: o payload de
+> um evento, onde a divergência tem causa conhecida e inofensiva.
+
+Nos handlers de **order** e de **conta** a normalização é profilaxia: hoje
+nenhum consumidor lê o `amountCents` da order nem o `initialBalanceCents` da
+conta a partir do evento (`syncInstallments` reparte o `double`,
+`syncInitialBalance` monta a order sintética a partir dele). Os testes desses
+dois casos travam o CONTRATO do handler — o modelo entregue ao serviço carrega
+um par coerente —, para que trocar um `amount` por `resolveCents(...)` lá dentro
+amanhã não reintroduza o defeito calado.
+
+Coberto por `src/test/integration/stale_cents.integration.test.ts` (os cinco
+caminhos, cada um falhando sem a normalização) e pelos unitários de
+`withFreshCents` em `src/test/migrate_money_cents.test.ts`.
+
 ### O `FieldValue.increment` saiu de todo caminho de dinheiro
 
 Saldo diário, `period_summaries` e a order de fatura são escritas
@@ -360,7 +411,7 @@ Hoje um centavo nunca conta, dois centavos sempre contam.
 
 **As duas mudanças de resultado do pacote, juntas:** esta e o arredondamento do
 rateio do planejado (seção acima). Fora delas, todo cálculo devolve os mesmos
-números de antes — é o que as 882 asserções unitárias e as 196 do emulador
+números de antes — é o que as 888 asserções unitárias e as 202 do emulador
 verificam, com os fixtures inalterados.
 
 ### `rebuild_workspace` com os dois campos
@@ -458,7 +509,7 @@ totais somados no cliente.
   cinco coleções e o `currentAmount` da meta no update, com o reenvio do mesmo
   valor tolerado e o reenvio DEFASADO negado (o cenário do passo 0 do rollout).
 
-Ao todo: **882** asserções unitárias (`npm run test:unit`) e **196** no
+Ao todo: **888** asserções unitárias (`npm run test:unit`) e **202** no
 emulador (`npm run test:integration`), das quais **78** são de security rules.
 
 ## Configuração global

@@ -4,7 +4,7 @@ import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
 import { INSTALLMENT_DERIVED_FIELDS, InstallmentModel, MONEY_CENTS_FIELDS } from "../../domain/models/finance.models";
-import { applyCentsPatch } from "../../../../core/utils/money_cents";
+import { applyCentsPatch, withFreshCents } from "../../../../core/utils/money_cents";
 
 // Reexportado por compatibilidade: a definição vive no modelo da parcela,
 // porque o gatilho de gamificação observa a mesma coleção e usa a mesma guarda.
@@ -42,11 +42,18 @@ async function syncInstallmentCents(
 function toInstallmentModel(data: Record<string, any> | null, id: string | undefined): InstallmentModel | null {
     if (!data) return null;
 
+    // HOTFIX — o payload do evento carrega o `*Cents` de ANTES do passo
+    // derivado. Uma edição de `amount`/`paidAmount` feita pelo app chega com o
+    // `double` novo e o inteiro velho, e `resolveCents` prefere o inteiro:
+    // saldo, sumário, XP, meta e fatura processariam o valor ANTIGO — um
+    // aumento de 100 para 250 viraria delta ZERO.
+    const fresh = withFreshCents(data, MONEY_CENTS_FIELDS.installments);
+
     return {
-        ...data,
+        ...fresh,
         id,
-        dueDate: (data.dueDate?.toDate ? data.dueDate.toDate() : new Date(data.dueDate)),
-        paidDate: data.paidDate?.toDate ? data.paidDate.toDate() : (data.paidDate ? new Date(data.paidDate) : null),
+        dueDate: (fresh.dueDate?.toDate ? fresh.dueDate.toDate() : new Date(fresh.dueDate)),
+        paidDate: fresh.paidDate?.toDate ? fresh.paidDate.toDate() : (fresh.paidDate ? new Date(fresh.paidDate) : null),
     } as InstallmentModel;
 }
 

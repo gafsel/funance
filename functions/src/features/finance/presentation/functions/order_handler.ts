@@ -4,7 +4,7 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { container } from "../../../../core/container";
 import { MONEY_CENTS_FIELDS, ORDER_DERIVED_FIELDS, OrderModel } from "../../domain/models/finance.models";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
-import { applyCentsPatch } from "../../../../core/utils/money_cents";
+import { applyCentsPatch, withFreshCents } from "../../../../core/utils/money_cents";
 
 // Reexportada por conveniência: quem testa a guarda importa daqui, como já
 // acontece com `INSTALLMENT_DERIVED_FIELDS`.
@@ -56,14 +56,17 @@ export async function handleOrderWritten(
         );
     }
 
+    // HOTFIX — o payload do evento carrega o `*Cents` de ANTES do passo
+    // derivado; `resolveCents` prefere o inteiro, então `syncInstallments`
+    // repartiria o valor ANTIGO entre as parcelas.
     const before = beforeData ? {
         id: orderId,
-        ...beforeData,
+        ...withFreshCents(beforeData, MONEY_CENTS_FIELDS.orders),
     } as OrderModel : null;
 
     const after = afterData ? {
         id: orderId,
-        ...afterData,
+        ...withFreshCents(afterData, MONEY_CENTS_FIELDS.orders),
     } as OrderModel : null;
 
     console.log(`Order ${orderId} escrita no workspace ${workspaceId}. Sincronizando installments.`);

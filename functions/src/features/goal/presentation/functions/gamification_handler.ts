@@ -16,7 +16,7 @@ import {
     INSTALLMENT_DERIVED_FIELDS,
     MONEY_CENTS_FIELDS,
 } from "../../../finance/domain/models/finance.models";
-import { applyCentsPatch } from "../../../../core/utils/money_cents";
+import { applyCentsPatch, withFreshCents } from "../../../../core/utils/money_cents";
 import { GAMIFICATION_TIME_ZONE } from "../../domain/services/gamification_time.util";
 import { GoalModel, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 
@@ -365,8 +365,21 @@ export async function handleGoalWritten(
     // carimbar; avaliar os badges sobre o `after` cru os faria julgar o valor
     // ANTERIOR ao recálculo — e um badge de conclusão perdido nessa passagem só
     // reapareceria na próxima escrita da meta, se houver alguma.
+    // HOTFIX — o payload do evento carrega o `*Cents` de ANTES do passo
+    // derivado. `evaluateGoalOutcome` compara
+    // `resolveCents(targetAmount, targetAmountCents)`, que prefere o inteiro:
+    // baixar o alvo de R$ 1.000 para R$ 500 seria julgado contra 1000, e a meta
+    // não desfecharia.
+    //
+    // A normalização vem DEPOIS da guarda por conteúdo e do passo derivado, de
+    // propósito: a guarda compara os documentos CRUS, e é assim que ela
+    // reconhece o eco da escrita do espelho — normalizar antes apagaria
+    // justamente a diferença que ela procura. O `applyCentsPatch` também
+    // precisa do documento cru, porque é ele quem decide o que gravar.
+    const fresh = withFreshCents(afterData, MONEY_CENTS_FIELDS.goals);
+
     const goal: GoalModel = {
-        ...afterData,
+        ...fresh,
         id: goalId,
         startDate: toGoalDate(afterData.startDate) ?? new Date(),
         deadline: toGoalDate(afterData.deadline) ?? undefined,
@@ -394,7 +407,7 @@ export async function handleGoalWritten(
         // O documento como ele ficou DEPOIS do recálculo: `goal` carrega o
         // `currentAmount`/`currentAmountCents` novos e o `outcome` carimbado.
         const evaluated = {
-            ...afterData,
+            ...fresh,
             currentAmount: goal.currentAmount,
             currentAmountCents: goal.currentAmountCents,
             outcome: goal.outcome ?? afterData.outcome ?? null,
