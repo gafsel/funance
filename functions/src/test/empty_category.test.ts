@@ -15,6 +15,8 @@
 
 import { SummaryService } from "../features/finance/domain/services/summary.service";
 import {
+    AccountModel,
+    AccountType,
     InstallmentModel,
     InstallmentStatus,
     InstallmentType,
@@ -63,8 +65,11 @@ class FakeRepository {
         this.calls.push({ year, month, week, category, data });
     }
 
-    async getAccountById(): Promise<null> {
-        return null;
+    /** Conta devolvida a QUALQUER `getAccountById` — `null` desliga a virtual. */
+    account: AccountModel | null = null;
+
+    async getAccountById(): Promise<AccountModel | null> {
+        return this.account;
     }
 }
 
@@ -206,6 +211,51 @@ describe("SummaryService com categoria de id vazio", () => {
         }));
 
         expect(repository.calls).toHaveLength(0);
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    /**
+     * O aviso julga a categoria EFETIVA — a mesma que a guarda acabou de
+     * recusar —, e não `inst.category`.
+     *
+     * Numa transferência sem contrapartida virtual o serviço saía ANTES da
+     * guarda, então uma transferência com categoria quebrada (`{id: ""}`)
+     * ficava fora do sumário sem uma palavra, embora `isCategoryRefBroken`
+     * diga que id vazio é defeito em QUALQUER tipo.
+     */
+    it("transferência com categoria QUEBRADA avisa (id vazio é defeito em qualquer tipo)", async () => {
+        await service.processInstallmentChange(WORKSPACE, null, installment({
+            type: OrderType.transfer,
+            category: BROKEN_CATEGORY,
+            accounts: { "acc-origem": "debt", "acc-destino": "credit" },
+            accountIds: ["acc-origem", "acc-destino"],
+        }));
+
+        expect(repository.calls).toHaveLength(0);
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn.mock.calls[0][0] as string).toContain("parcela=inst-1");
+    });
+
+    /**
+     * Com contrapartida virtual, a categoria efetiva é a VIRTUAL — que sempre
+     * tem id. A original quebrada não importa mais: ela foi SUBSTITUÍDA, o
+     * sumário é escrito normalmente e não há defeito a denunciar.
+     */
+    it("transferência com contrapartida virtual escreve pela virtual, sem aviso", async () => {
+        repository.account = {
+            id: "acc-destino",
+            runtimeType: AccountType.investment,
+        } as AccountModel;
+
+        await service.processInstallmentChange(WORKSPACE, null, installment({
+            type: OrderType.transfer,
+            category: BROKEN_CATEGORY,
+            accounts: { "acc-origem": "debt", "acc-destino": "credit" },
+            accountIds: ["acc-origem", "acc-destino"],
+        }));
+
+        expect(repository.calls).toHaveLength(6);
+        expect(repository.calls.every((call) => call.category.id === "virtual_investment_expense")).toBe(true);
         expect(warn).not.toHaveBeenCalled();
     });
 });
