@@ -32,7 +32,7 @@ void main() {
         options: DefaultFirebaseOptions.currentPlatform,
       );
       await CrashReporter.initialize();
-      await configureFirestorePersistence();
+      configureFirestorePersistence();
 
       FlutterError.onError = CrashReporter.recordFlutterError;
 

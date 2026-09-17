@@ -122,14 +122,17 @@ void main() {
   }
 
   group('seleção na web (bytes, sem caminho)', () {
-    testWidgets('o painel pede os bytes ao seletor', (tester) async {
-      // Sem `withData: true` a web devolve `bytes` nulo E `path` nulo: não
-      // sobra nada para enviar ao Storage.
-      final picker = _FakeFilePicker(_webPick('extrato.ofx', 2048));
+    testWidgets('fora da web o painel NÃO pede os bytes ao seletor', (
+      tester,
+    ) async {
+      // Os testes rodam na VM, que tem sistema de arquivos. Ali pedimos só o
+      // caminho: com os bytes, um arquivo de 50 MB passaria inteiro pela
+      // memória do app antes de qualquer checagem de tamanho.
+      final picker = _FakeFilePicker(_diskPick(tempDir, 'extrato.ofx', 16));
 
       await pick(tester, null, picker: picker);
 
-      expect(picker.askedForData, isTrue);
+      expect(picker.askedForData, isFalse);
     });
 
     testWidgets('arquivo sem caminho é entregue com os bytes', (tester) async {
@@ -192,6 +195,35 @@ void main() {
         reason: 'sem conteúdo não há o que analisar; 0 byte passaria no limite',
       );
       expect(find.text('Não foi possível ler o arquivo.'), findsOneWidget);
+    });
+  });
+
+  group('tamanho é conferido antes de ler o arquivo', () {
+    testWidgets('o que o seletor declara acima do limite é recusado na hora', (
+      tester,
+    ) async {
+      // Sem nem bytes nem caminho: se o painel tentasse LER para medir, este
+      // caso não teria como passar. É essa a diferença — a recusa acontece
+      // antes de qualquer leitura.
+      final gigante = PlatformFile(
+        name: 'extrato.pdf',
+        size: 11 * 1024 * 1024,
+      );
+
+      final selected = await pick(tester, gigante);
+
+      expect(selected, isEmpty);
+      expect(find.textContaining('11.0 MB'), findsOneWidget);
+    });
+
+    testWidgets('tamanho declarado como zero não reprova ninguém', (
+      tester,
+    ) async {
+      // Zero é "o seletor não sabe", não "arquivo vazio": quem decide nesse
+      // caso é a checagem final, sobre os bytes.
+      final selected = await pick(tester, _webPick('extrato.ofx', 2048));
+
+      expect(selected, hasLength(1));
     });
   });
 

@@ -2488,4 +2488,7 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String get transactionSavePendingSync =>
       'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.';
+
+  @override
+  String get uploadFolderNotSupported => 'Arraste um arquivo, não uma pasta.';
 }

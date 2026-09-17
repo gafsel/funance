@@ -2470,4 +2470,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get transactionSavePendingSync =>
       'Saved on this device. Instalments appear when the connection is back.';
+
+  @override
+  String get uploadFolderNotSupported => 'Drop a file, not a folder.';
 }

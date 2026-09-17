@@ -4441,6 +4441,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.'**
   String get transactionSavePendingSync;
+
+  /// No description provided for @uploadFolderNotSupported.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arraste um arquivo, não uma pasta.'**
+  String get uploadFolderNotSupported;
 }
 
 class _AppLocalizationsDelegate

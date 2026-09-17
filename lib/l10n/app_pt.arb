@@ -1247,5 +1247,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "uploadFolderNotSupported": "Arraste um arquivo, não uma pasta."
 }

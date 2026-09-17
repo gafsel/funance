@@ -116,6 +116,40 @@ class CrashReporter {
     unawaited(_logWebErrorEvent(error, kind));
   }
 
+  /// Quantos eventos `web_error` esta sessão ainda pode mandar.
+  ///
+  /// Um erro na web costuma vir em rajada — um `build` que falha repete a cada
+  /// quadro. Sem teto, uma única tela quebrada geraria milhares de eventos,
+  /// estouraria a cota do Analytics e afogaria os eventos de produto. Para
+  /// saber que algo quebrou, os primeiros bastam.
+  static const int _webErrorBudget = 20;
+  static int _webErrorsSent = 0;
+
+  /// Tipos já reportados nesta sessão.
+  ///
+  /// O mesmo erro repetido não acrescenta informação: o que interessa é a
+  /// LISTA de coisas que quebraram, não quantas vezes cada uma repetiu.
+  static final Set<String> _webErrorsSeen = <String>{};
+
+  @visibleForTesting
+  static void resetWebErrorBudget() {
+    _webErrorsSent = 0;
+    _webErrorsSeen.clear();
+  }
+
+  /// Decide se este erro ainda merece um evento.
+  ///
+  /// Separado do envio para o teste poder exercitar a regra sem Analytics.
+  @visibleForTesting
+  static bool shouldSendWebError(String errorType) {
+    if (!_webErrorsSeen.add(errorType)) return false;
+    if (_webErrorsSent >= _webErrorBudget) return false;
+
+    _webErrorsSent++;
+
+    return true;
+  }
+
   /// Manda ao Analytics só o suficiente para CONTAR o erro.
   ///
   /// Nada do texto do erro vai junto: a mensagem de uma exceção do app pode
@@ -124,13 +158,14 @@ class CrashReporter {
   /// `kind` diz de que handler ela veio — dá para ver que algo quebrou e onde
   /// olhar, sem nenhum dado do usuário.
   static Future<void> _logWebErrorEvent(Object? error, String kind) async {
+    final String type = webErrorType(error);
+
+    if (!shouldSendWebError(type)) return;
+
     try {
       await FirebaseAnalytics.instance.logEvent(
         name: webErrorEvent,
-        parameters: <String, Object>{
-          'kind': kind,
-          'error_type': webErrorType(error),
-        },
+        parameters: <String, Object>{'kind': kind, 'error_type': type},
       );
     } catch (_) {
       // Um erro ao relatar erro não pode virar um segundo erro: o

@@ -1240,5 +1240,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "uploadFolderNotSupported": "Drop a file, not a folder."
 }

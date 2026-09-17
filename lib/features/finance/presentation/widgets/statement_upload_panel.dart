@@ -75,13 +75,29 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
 
     final DropItem dropped = files.first;
 
+    // Pasta arrastada. `readAsBytes` numa pasta falha, e falhava calada: o
+    // usuário soltava a pasta e não acontecia nada.
+    if (dropped is DropItemDirectory) {
+      _warn(context.l10n.uploadFolderNotSupported);
+      return;
+    }
+
+    // O tamanho vem ANTES dos bytes: um extrato de 50 MB não precisa passar
+    // pela memória do app só para ser recusado.
+    final int declaredSize = await dropped.length();
+
+    if (!mounted || _rejectsDeclaredSize(declaredSize)) return;
 
     // `readAsBytes` do desktop_drop funciona nas duas pontas: no desktop lê do
     // disco, na web lê o blob que o navegador entregou.
+    final Uint8List bytes = await dropped.readAsBytes();
+
+    if (!mounted) return;
+
     _accept(
       PickedDocument(
         name: dropped.name,
-        bytes: await dropped.readAsBytes(),
+        bytes: bytes,
         // Na web o `path` do item arrastado é uma URL de blob, não um
         // caminho. Guardá-la convidaria alguém a tentar abri-la mais tarde.
         path: AppPlatform.hasFileSystem ? dropped.path : null,
@@ -89,14 +105,33 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
     );
   }
 
+  /// true quando o tamanho declarado já reprova o arquivo — e avisa.
+  ///
+  /// Zero significa "não sei": alguns seletores não declaram tamanho. Aí não
+  /// dá para decidir nada aqui, e quem resolve é a checagem final, sobre os
+  /// bytes de verdade.
+  bool _rejectsDeclaredSize(int size) {
+    if (size <= 0 || StatementUploadLimits.isWithinLimit(size)) return false;
+
+    _warn(
+      context.l10n.uploadFileTooLarge(
+        _humanSize(size),
+        StatementUploadLimits.maxMegabytes,
+      ),
+    );
+
+    return true;
+  }
+
   Future<void> _pickFile() async {
-    // `withData: true` é o que faz o seletor devolver os bytes. Sem ele, na
-    // web `PlatformFile.bytes` vem nulo e `path` também — não sobrava nada
-    // para enviar.
     final FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: widget.allowedExtensions,
-      withData: true,
+      // Na web não existe caminho: os bytes são a única forma de receber o
+      // arquivo, e sem isto `bytes` e `path` vinham os dois nulos. Fora da
+      // web pedimos só o caminho, para poder recusar pelo tamanho ANTES de
+      // carregar o arquivo inteiro na memória.
+      withData: !AppPlatform.hasFileSystem,
     );
 
     if (result == null || result.files.isEmpty) return;
@@ -104,6 +139,9 @@ class _StatementUploadPanelState extends State<StatementUploadPanel>
     if (!mounted) return;
 
     final PlatformFile picked = result.files.single;
+
+    if (_rejectsDeclaredSize(picked.size)) return;
+
     final Uint8List? bytes = picked.bytes ?? _readFromDisk(picked.path);
 
     if (bytes == null) {
