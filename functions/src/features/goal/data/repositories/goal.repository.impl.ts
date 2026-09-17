@@ -8,6 +8,7 @@ import {
 } from "../../domain/repositories/goal.repository";
 import { GoalModel, GoalOutcome, resolveGoalOutcome, toGoalDate } from "../../domain/models/goal.model";
 import { stripUndefined } from "../../../../core/utils/firestore.utils";
+import { fromCents, readCents, resolveCents } from "../../../../core/utils/money";
 
 /** Máximo de documentos por `getAll` — evita um lote gigante numa meta longa. */
 const MAX_SUMMARY_DOCS_PER_BATCH = 100;
@@ -70,10 +71,18 @@ export class GoalRepositoryImpl implements IGoalRepository {
     async updateGoalProgress(
         workspaceId: string,
         goalId: string,
-        currentAmount: number,
+        currentAmountCents: number,
         outcome?: GoalOutcomeStamp | null
     ): Promise<void> {
-        const payload: Record<string, unknown> = { currentAmount, ...outcomePayload(outcome) };
+        // F1.10 — DUPLA ESCRITA: o inteiro é a verdade e o `double` é o espelho
+        // que o app lê hoje. Os dois saem na MESMA escrita, de propósito: um
+        // caminho que atualizasse só um deles criaria a divergência que a etapa
+        // existe para impedir.
+        const payload: Record<string, unknown> = {
+            currentAmount: fromCents(currentAmountCents),
+            currentAmountCents,
+            ...outcomePayload(outcome),
+        };
         await this.goalsCollection(workspaceId).doc(goalId).set(payload, { merge: true });
     }
 
@@ -106,22 +115,24 @@ export class GoalRepositoryImpl implements IGoalRepository {
         // categorias não vira 40x payload.
         const fieldPath = new admin.firestore.FieldPath("categories", categoryId, "actualAmount");
 
-        let total = 0;
+        // F1.10 — a soma dos meses é feita em CENTAVOS INTEIROS. A máscara
+        // pede os DOIS campos: o inteiro, quando o documento já foi migrado, e
+        // o `double`, que responde enquanto ele não foi.
+        const centsPath = new admin.firestore.FieldPath("categories", categoryId, "actualAmountCents");
+
+        let totalCents = 0;
         for (let i = 0; i < monthKeys.length; i += MAX_SUMMARY_DOCS_PER_BATCH) {
             const chunk = monthKeys.slice(i, i + MAX_SUMMARY_DOCS_PER_BATCH);
             const refs = chunk.map((key) => collection.doc(key));
-            const docs = await this.db.getAll(...refs, { fieldMask: [fieldPath] });
+            const docs = await this.db.getAll(...refs, { fieldMask: [fieldPath, centsPath] });
 
             for (const doc of docs) {
-                const raw = doc.get(fieldPath);
-                const value = Number(raw ?? 0);
-                if (Number.isFinite(value)) {
-                    total += value;
-                }
+                const value = Number(doc.get(fieldPath) ?? 0);
+                totalCents += resolveCents(Number.isFinite(value) ? value : 0, doc.get(centsPath));
             }
         }
 
-        return total;
+        return fromCents(totalCents);
     }
 
     /**
@@ -225,8 +236,12 @@ export class GoalRepositoryImpl implements IGoalRepository {
         const chosen = legacy ?? candidate;
         if (!chosen) return null;
 
-        const value = Number(chosen.data()?.balance ?? 0);
-        return Number.isFinite(value) ? value : null;
+        // F1.10 — o saldo lido prefere o INTEIRO; o `double` só responde
+        // enquanto o documento não passou pela `migrate_money_cents`.
+        const data = chosen.data() ?? {};
+        const value = Number(data.balance ?? 0);
+        if (!Number.isFinite(value) && readCents(data.balanceCents) === null) return null;
+        return fromCents(resolveCents(Number.isFinite(value) ? value : 0, data.balanceCents));
     }
 
     /**

@@ -16,14 +16,19 @@ export interface IGoalRepository {
   getGoal(workspaceId: string, goalId: string): Promise<GoalModel | null>;
   updateGoal(workspaceId: string, goal: GoalModel): Promise<void>;
   /**
-   * Escrita mínima do progresso: só `currentAmount` (e o desfecho, quando a
-   * meta acabou de desfechar). Não reescreve o documento inteiro, de modo que
-   * uma edição feita no app entre a leitura e a escrita não é sobrescrita.
+   * Escrita mínima do progresso: só `currentAmount`/`currentAmountCents` (e o
+   * desfecho, quando a meta acabou de desfechar). Não reescreve o documento
+   * inteiro, de modo que uma edição feita no app entre a leitura e a escrita
+   * não é sobrescrita.
+   *
+   * F1.10 — o progresso entra em CENTAVOS INTEIROS: é o repositório que grava
+   * o par (inteiro + espelho `round2`), para que não exista um caminho em que
+   * só um dos dois seja atualizado.
    */
   updateGoalProgress(
     workspaceId: string,
     goalId: string,
-    currentAmount: number,
+    currentAmountCents: number,
     outcome?: GoalOutcomeStamp | null
   ): Promise<void>;
   /**
@@ -99,6 +104,9 @@ export interface GoalBalances {
 export interface InstallmentLike {
   amount?: number;
   paidAmount?: number;
+  /** F1.10 — espelhos inteiros, quando o documento já foi migrado. */
+  amountCents?: number;
+  paidAmountCents?: number;
   paidDate?: Date | null;
   status?: string;
   accounts?: Record<string, "debt" | "credit">;

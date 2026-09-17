@@ -38,6 +38,7 @@ import { isDateKey, toDateKey } from "../../../../core/utils/date_key";
 import { getZonedParts } from "../../../../core/utils/timezone.utils";
 import { InvoiceService } from "../../domain/services/invoice.service";
 import { RawFirestoreDate, TimestampLike, stripUndefined } from "../../../../core/utils/firestore.utils";
+import { fromCents, readCents, resolveCents, toCents } from "../../../../core/utils/money";
 
 /**
  * Limite de escritas por transação do Firestore é 500. O cron agrupa parcelas
@@ -58,13 +59,6 @@ const MAX_INSTALLMENTS_PER_UNIT = MAX_WRITES_PER_TRANSACTION - 1;
  */
 const BALANCE_PROPAGATION_PAGE_SIZE = DEFAULT_CHUNK_SIZE;
 
-/** Dinheiro em centavos inteiros: evita que o saldo acumule erro de ponto flutuante. */
-function roundCents(value: number): number {
-    return Math.round(value * 100) / 100;
-}
-
-/** Abaixo disso o delta de planejamento é ruído de ponto flutuante. */
-const PLANNING_DELTA_EPSILON = 1e-9;
 
 /**
  * O que `updateInstallment` lê do documento JÁ GRAVADO para recalcular os
@@ -76,11 +70,14 @@ interface StoredInstallmentDates {
     paidDate?: TimestampLike | null;
     amount?: number;
     paidAmount?: number | null;
+    amountCents?: number;
+    paidAmountCents?: number | null;
 }
 
 interface PlanningCategoryBucket {
     category: CategoryModel;
-    delta: number;
+    /** F1.10 — o delta acumulado em CENTAVOS INTEIROS. */
+    deltaCents: number;
 }
 
 interface PlanningSummaryGroup {
@@ -120,10 +117,15 @@ function groupPlanningUpdates(updates: PeriodSummaryUpdateModel[]): Map<string, 
         const categoryKey = update.category?.id ?? "";
         let bucket = group.categories.get(categoryKey);
         if (!bucket) {
-            bucket = { category: update.category, delta: 0 };
+            bucket = { category: update.category, deltaCents: 0 };
             group.categories.set(categoryKey, bucket);
         }
-        bucket.delta += update.generalPlannedDelta ?? 0;
+        // F1.10 — o agrupamento soma CENTAVOS. Somando os `double`, o estorno
+        // de um planejamento raramente cancelava a aplicação exatamente, e
+        // sobrava um resto de 1e-13 que virava escrita: era por isso que
+        // existia o `PLANNING_DELTA_EPSILON = 1e-9` logo abaixo. Em inteiros o
+        // par estorno + reaplicação do mesmo mês dá zero e some.
+        bucket.deltaCents += toCents(update.generalPlannedDelta ?? 0);
     }
 
     return groups;
@@ -159,6 +161,14 @@ export function buildInstallmentDocument(
         paidDate: installment.paidDate ? admin.firestore.Timestamp.fromDate(installment.paidDate) : null,
         referenceDate: admin.firestore.Timestamp.fromDate(referenceDate),
         referenceAmount: referenceAmount,
+        // F1.10 — DUPLA ESCRITA: toda parcela criada pelo servidor já nasce com
+        // os espelhos inteiros. `paidAmountCents` só existe quando a parcela
+        // nasce paga: ausente continua significando ausente, nunca zero.
+        amountCents: toCents(installment.amount),
+        referenceAmountCents: toCents(referenceAmount),
+        paidAmountCents: installment.paidAmount !== undefined && installment.paidAmount !== null
+            ? toCents(installment.paidAmount)
+            : undefined,
     });
 }
 
@@ -194,7 +204,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         // `OrderModel` tem campos opcionais (`endMonth`, `installmentCount`,
         // `category`, a janela do ciclo da fatura): o que o chamador não
         // preencheu não vai para o documento.
-        const data = stripUndefined(order);
+        // F1.10 — a order criada pelo servidor já nasce com o espelho inteiro.
+        const data = stripUndefined({ ...order, amountCents: toCents(order.amount) });
         if (id) {
             await collection.doc(id).set(data);
             return id;
@@ -221,7 +232,14 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     async updateOrder(workspaceId: string, orderId: string, order: Partial<OrderModel>): Promise<void> {
         // `Partial<OrderModel>`: as chaves ausentes vêm como `undefined` e
         // significam "não mexer neste campo", nunca "apagar".
-        await this.getOrdersCollection(workspaceId).doc(orderId).update(stripUndefined(order));
+        // F1.10 — quem mexe no `amount` mexe no espelho inteiro na MESMA
+        // escrita. `updateInvoiceWithDelta` não passa por aqui: lá o valor é um
+        // `FieldValue.increment` e os dois campos já vão juntos.
+        const patch: Partial<OrderModel> = order.amount !== undefined
+            ? { ...order, amountCents: toCents(order.amount) }
+            : order;
+
+        await this.getOrdersCollection(workspaceId).doc(orderId).update(stripUndefined(patch));
     }
 
     /**
@@ -385,6 +403,19 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 const paidAmount = installment.paidAmount !== undefined ? installment.paidAmount : currentData.paidAmount;
                 const amount = installment.amount !== undefined ? installment.amount : currentData.amount;
                 data.referenceAmount = (paidAmount !== undefined && paidAmount !== null) ? paidAmount : amount;
+                data.referenceAmountCents = toCents(data.referenceAmount as number);
+            }
+
+            // F1.10 — o espelho inteiro acompanha SEMPRE o valor em reais, na
+            // MESMA escrita: um `amount` novo com um `amountCents` velho é
+            // exatamente a divergência que a etapa existe para impedir.
+            if (installment.amount !== undefined) {
+                data.amountCents = toCents(installment.amount);
+            }
+            if (installment.paidAmount !== undefined) {
+                data.paidAmountCents = installment.paidAmount === null
+                    ? null
+                    : toCents(installment.paidAmount);
             }
 
             // Sincronizar accountIds se accounts mudar
@@ -713,10 +744,12 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const operations: BatchOperation[] = [];
 
         for (const [docId, group] of groupPlanningUpdates(updates)) {
-            const categories: Record<string, { generalPlannedAmount: admin.firestore.FieldValue }> = {};
+            const categories: Record<string, Record<string, admin.firestore.FieldValue>> = {};
 
             for (const bucket of group.categories.values()) {
-                if (Math.abs(bucket.delta) < PLANNING_DELTA_EPSILON) continue;
+                // Delta ZERO exato — sem épsilon: em centavos inteiros não há
+                // ruído a tolerar.
+                if (bucket.deltaCents === 0) continue;
 
                 // MESMA REGRA DO SUMÁRIO (`hasCategoryId`): id vazio vira um
                 // segmento vazio de FieldPath e o SDK rejeita o documento
@@ -732,7 +765,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 }
 
                 categories[bucket.category.id] = {
-                    generalPlannedAmount: admin.firestore.FieldValue.increment(bucket.delta),
+                    generalPlannedAmount: admin.firestore.FieldValue.increment(fromCents(bucket.deltaCents)),
+                    generalPlannedAmountCents: admin.firestore.FieldValue.increment(bucket.deltaCents),
                 };
             }
 
@@ -795,15 +829,28 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         },
         runtimeType: string
     ): Record<string, unknown> {
+        // F1.10 — DUPLA ESCRITA. Cada total ganha um par: o `*Cents` inteiro,
+        // que é a fonte da verdade, e o `double` espelho. Os dois são
+        // `FieldValue.increment` pelo mesmo motivo de sempre (a escrita é um
+        // merge concorrente, e ler-somar-gravar perderia deltas); o inteiro,
+        // porém, não acumula erro. O delta chega em reais já arredondado a duas
+        // casas, então `toCents` é exato.
+        const generalCents = toCents(data.generalPlannedDelta ?? 0);
+        const specificCents = toCents(data.specificPlannedDelta ?? 0);
+        const actualCents = toCents(data.actualDelta ?? 0);
+
         return {
             year,
             month: month ?? null,
             week: week ?? null,
             categories: {
                 [category.id]: {
-                    generalPlannedAmount: admin.firestore.FieldValue.increment(data.generalPlannedDelta ?? 0),
-                    specificPlannedAmount: admin.firestore.FieldValue.increment(data.specificPlannedDelta ?? 0),
-                    actualAmount: admin.firestore.FieldValue.increment(data.actualDelta ?? 0),
+                    generalPlannedAmount: admin.firestore.FieldValue.increment(fromCents(generalCents)),
+                    specificPlannedAmount: admin.firestore.FieldValue.increment(fromCents(specificCents)),
+                    actualAmount: admin.firestore.FieldValue.increment(fromCents(actualCents)),
+                    generalPlannedAmountCents: admin.firestore.FieldValue.increment(generalCents),
+                    specificPlannedAmountCents: admin.firestore.FieldValue.increment(specificCents),
+                    actualAmountCents: admin.firestore.FieldValue.increment(actualCents),
                 },
             },
             lastUpdate: admin.firestore.FieldValue.serverTimestamp(),
@@ -899,7 +946,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
                 closingDate: admin.firestore.Timestamp.fromDate(nextInvoice.closingDate),
                 cycleStart: admin.firestore.Timestamp.fromDate(nextInvoice.cycleStart),
                 cycleEnd: admin.firestore.Timestamp.fromDate(nextInvoice.cycleEnd),
-                amount: nextInvoice.amount,
+                amount: fromCents(nextInvoice.amountCents),
+                amountCents: nextInvoice.amountCents,
                 orderId: nextInvoice.orderId,
                 installmentId: nextInvoice.installmentId,
                 status: nextInvoice.status,
@@ -947,7 +995,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         workspaceId: string,
         accountId: string,
         date: Date,
-        delta: number
+        deltaCents: number
     ): Promise<void> {
         const dateKey = toDateKey(date);
         const balancesColl = this.getAccountBalanceCollection(workspaceId, accountId);
@@ -956,27 +1004,33 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         await this.firestore.runTransaction(async (transaction) => {
             const doc = await transaction.get(docRef);
             const previous = await this.readPreviousBalanceDoc(balancesColl, dateKey, transaction);
-            const previousBalance = toNumber(previous?.balance);
+            const previousBalanceCents = previous?.balanceCents ?? 0;
 
             const data = doc.exists ? doc.data() ?? {} : null;
             // Documento legado (só `balance`, sem `delta`): o movimento do dia é
             // a diferença para o saldo do dia anterior — a mesma conta que o
-            // script de migração faz.
-            const currentDelta = data
-                ? (typeof data.delta === "number" ? data.delta : toNumber(data.balance) - previousBalance)
+            // script de migração faz. Em centavos a subtração é exata.
+            const currentDeltaCents = data
+                ? (readCents(data.deltaCents) ?? (typeof data.delta === "number"
+                    ? toCents(data.delta)
+                    : toCents(toNumber(data.balance)) - previousBalanceCents))
                 : 0;
 
-            const newDelta = roundCents(currentDelta + delta);
+            const newDeltaCents = currentDeltaCents + deltaCents;
+            const newBalanceCents = previousBalanceCents + newDeltaCents;
 
             transaction.set(docRef, {
                 dateKey,
-                delta: newDelta,
-                balance: roundCents(previousBalance + newDelta),
+                // F1.10 — o INTEIRO é a verdade; o `double` é o espelho round2.
+                deltaCents: newDeltaCents,
+                balanceCents: newBalanceCents,
+                delta: fromCents(newDeltaCents),
+                balance: fromCents(newBalanceCents),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             }, { merge: true });
         });
 
-        await this.propagateBalanceDelta(balancesColl, dateKey, delta);
+        await this.propagateBalanceDelta(balancesColl, dateKey, deltaCents);
     }
 
     /**
@@ -995,9 +1049,11 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
     private async propagateBalanceDelta(
         balancesColl: admin.firestore.CollectionReference,
         dateKey: string,
-        delta: number
+        deltaCents: number
     ): Promise<void> {
-        if (!delta) return;
+        if (!deltaCents) return;
+
+        const delta = fromCents(deltaCents);
 
         let cursor: admin.firestore.QueryDocumentSnapshot | null = null;
 
@@ -1013,11 +1069,26 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             if (snapshot.empty) return;
 
             const operations: BatchOperation[] = snapshot.docs.map((doc) => {
+                const current = doc.data() ?? {};
+                // F1.10 — os DOIS campos são incrementados, e os dois pelo
+                // mesmo motivo de antes: `FieldValue.increment` é atômico, e a
+                // propagação roda fora de transação. A diferença é que o
+                // incremento INTEIRO não acumula erro nenhum — enquanto o do
+                // `double` continua podendo escorregar no 15º dígito. Quando os
+                // dois discordam, é o inteiro que vale (`resolveCents`), e o
+                // `rebuild_workspace` reescreve o espelho a partir dele.
                 const data: Record<string, unknown> = {
                     balance: admin.firestore.FieldValue.increment(delta),
+                    balanceCents: admin.firestore.FieldValue.increment(deltaCents),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 };
-                if (!isDateKey(doc.data()?.dateKey)) {
+                // Documento anterior à migração: semeia `balanceCents` com o
+                // valor do espelho ANTES de incrementar, senão o incremento
+                // nasceria a partir de zero e o inteiro divergiria do double.
+                if (readCents(current.balanceCents) === null) {
+                    data.balanceCents = toCents(toNumber(current.balance)) + deltaCents;
+                }
+                if (!isDateKey(current.dateKey)) {
                     data.dateKey = doc.id;
                 }
                 return { op: "update", ref: doc.ref, data };
@@ -1047,7 +1118,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         balancesColl: admin.firestore.CollectionReference,
         dateKey: string,
         transaction?: admin.firestore.Transaction
-    ): Promise<{ id: string, balance: number, data: admin.firestore.DocumentData } | null> {
+    ): Promise<{ id: string, balance: number, balanceCents: number, data: admin.firestore.DocumentData } | null> {
         const run = async (query: admin.firestore.Query) =>
             (transaction ? transaction.get(query) : query.get());
 
@@ -1064,7 +1135,8 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
 
         if (!chosen) return null;
         const data = chosen.data() ?? {};
-        return { id: chosen.id, balance: toNumber(data.balance), data };
+        const balanceCents = resolveCents(toNumber(data.balance), data.balanceCents);
+        return { id: chosen.id, balance: fromCents(balanceCents), balanceCents, data };
     }
 
     /** Último documento por id no intervalo aberto `(after, before)`, varrendo ascendente. */
@@ -1116,6 +1188,7 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
             id: previous.id,
             dateKey: isDateKey(data.dateKey) ? data.dateKey : previous.id,
             balance: previous.balance,
+            balanceCents: previous.balanceCents,
             updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt),
         } as AccountBalanceModel;
     }
@@ -1155,9 +1228,9 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         workspaceId: string,
         account: AccountModel,
         dueDate: Date,
-        delta: number
+        deltaCents: number
     ): Promise<void> {
-        if (delta === 0) return;
+        if (deltaCents === 0) return;
 
         const orderRef = await this.resolveInvoiceOrderRef(workspaceId, account.id, dueDate);
 
@@ -1174,7 +1247,10 @@ export class FinanceRepositoryImpl implements IFinanceRepository {
         const cycle = InvoiceService.calculateInvoiceCycleRange(dueDate, account);
 
         const orderData = {
-            amount: admin.firestore.FieldValue.increment(delta),
+            // F1.10 — dupla escrita no total da fatura: o inteiro manda, o
+            // `double` é o espelho.
+            amount: admin.firestore.FieldValue.increment(fromCents(deltaCents)),
+            amountCents: admin.firestore.FieldValue.increment(deltaCents),
             dueDay: p.day,
             description: `Fatura ${account.name}`,
             startMonth: monthKey,
@@ -1335,7 +1411,8 @@ function toAccountModel(id: string, data: admin.firestore.DocumentData): Account
             closingDate: toDateOrNull(raw.closingDate)!,
             cycleStart: toDateOrNull(raw.cycleStart)!,
             cycleEnd: toDateOrNull(raw.cycleEnd)!,
-            amount: typeof raw.amount === "number" ? raw.amount : 0,
+            amount: fromCents(resolveCents(typeof raw.amount === "number" ? raw.amount : 0, raw.amountCents)),
+            amountCents: resolveCents(typeof raw.amount === "number" ? raw.amount : 0, raw.amountCents),
             orderId: typeof raw.orderId === "string" ? raw.orderId : "",
             installmentId: typeof raw.installmentId === "string" ? raw.installmentId : null,
             status: raw.status ?? InstallmentStatus.pending,

@@ -80,6 +80,9 @@ function makeRepository() {
     };
 }
 
+// F1.10 — `updateGoalProgress` recebe CENTAVOS INTEIROS: o repositório é quem
+// grava o par (inteiro + espelho `round2`), de modo que não exista caminho em
+// que só um dos dois seja atualizado.
 describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditCard (delta)", () => {
     let repository: ReturnType<typeof makeRepository>;
     let service: GoalServiceImpl;
@@ -97,7 +100,7 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
         expect(repository.updateGoalProgress).toHaveBeenCalledTimes(1);
         const [, goalId, amount] = repository.updateGoalProgress.mock.calls[0];
         expect(goalId).toBe("g1");
-        expect(amount).toBe(500);
+        expect(amount).toBe(50000);
     });
 
     it("estorna a contribuição quando o pagamento é desfeito", async () => {
@@ -120,7 +123,7 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
             type: OrderType.expense,
         }));
 
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(-500);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(-50000);
     });
 
     it("em reduceCreditCard, só os débitos contam", async () => {
@@ -134,7 +137,7 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
             paidAmount: 300,
         }));
 
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(300);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(30000);
 
         repository.updateGoalProgress.mockClear();
         repository.getActiveGoalsByAccount.mockResolvedValue([goalDoc({ runtimeType: "reduceCreditCard" })]);
@@ -151,7 +154,7 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
 
         await service.processInstallmentChange("w1", null, installment());
 
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(500);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(50000);
     });
 
     it("ignora metas cujo tipo não é reconhecido", async () => {
@@ -180,7 +183,7 @@ describe("GoalServiceImpl.processInstallmentChange — saveMoney e reduceCreditC
         await service.processInstallmentChange("w1", null, installment());
 
         const [, , amount, stamp] = repository.updateGoalProgress.mock.calls[0];
-        expect(amount).toBe(500);
+        expect(amount).toBe(50000);
         expect(stamp.outcome).toBe(GoalOutcome.success);
         expect(stamp.at).toBeInstanceOf(Date);
     });
@@ -240,7 +243,7 @@ describe("GoalServiceImpl.processInstallmentChange — reduceExpense (categoria)
         const [, categoryId, monthKeys] = repository.getCategoryActualByMonths.mock.calls[0];
         expect(categoryId).toBe("cat1");
         expect(monthKeys).toEqual(["2026-01", "2026-02", "2026-03"]);
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(430.5);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(43050);
     });
 
     it("recalcula também pela categoria ANTERIOR quando a parcela troca de categoria", async () => {
@@ -313,7 +316,7 @@ describe("GoalServiceImpl.processInstallmentChange — payDebt (saldo da conta)"
         }));
 
         expect(repository.getBalancesForGoal).toHaveBeenCalledWith("w1", "accDebt", debtGoal().startDate);
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(200);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(20000);
     });
 
     it("dívida que cresceu não vira progresso negativo", async () => {
@@ -349,7 +352,7 @@ describe("GoalServiceImpl.processInstallmentChange — payDebt (saldo da conta)"
             accountIds: ["accDebt"],
         }));
 
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(150);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(15000);
     });
 });
 
@@ -465,7 +468,7 @@ describe("GoalServiceImpl — saveMoney de cofrinho (conta de investimento)", ()
 
         // 263,41 é o saldo da conta — não 0 + 500 (o aporte deste evento).
         expect(repository.updateGoalProgress).toHaveBeenCalledTimes(1);
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(263.41);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(26341);
     });
 
     it("o tipo da conta é lido UMA vez por conta do evento", async () => {
@@ -490,7 +493,7 @@ describe("GoalServiceImpl — saveMoney de cofrinho (conta de investimento)", ()
         await service.processInstallmentChange("w1", null, installment());
 
         // Delta do evento (+500), não o saldo da conta.
-        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(500);
+        expect(repository.updateGoalProgress.mock.calls[0][2]).toBe(50000);
         expect(repository.getCurrentBalance).not.toHaveBeenCalled();
     });
 
@@ -630,7 +633,7 @@ describe("GoalServiceImpl.writeProgress — desfecho por tipo", () => {
         }));
 
         const [, , amount, stamp] = repository.updateGoalProgress.mock.calls[0];
-        expect(amount).toBe(500);
+        expect(amount).toBe(50000);
         expect(stamp.outcome).toBe(GoalOutcome.failed);
     });
 

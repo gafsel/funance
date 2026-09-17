@@ -260,6 +260,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
         expect(call.marks).toEqual({
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
         });
@@ -289,6 +290,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
         expect(repository.calls[0].marks).toEqual({
             summarizedUntil: PLANNING_FULLY_SUMMARIZED,
             appliedAmount: null,
+            appliedAmountCents: null,
             appliedFrom: null,
             appliedUntil: null,
         });
@@ -303,6 +305,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
             endMonth: "2030-12",
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
         });
@@ -327,6 +330,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
             endMonth: "2030-12",
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
         });
@@ -355,6 +359,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
             amount: 1000,
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
         });
@@ -374,6 +379,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
             amount: 7777, // valor corrente, irrelevante para o estorno
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2026-10",
         });
@@ -409,6 +415,7 @@ describe("processCategoryPlanningChange (F1.5)", () => {
         const comMarcas = planning({
             summarizedUntil: "2027-08",
             appliedAmount: 500,
+            appliedAmountCents: 50000,
             appliedFrom: "2026-09",
             appliedUntil: "2026-12",
         });
@@ -446,6 +453,7 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
             ...planning({ amount: 1000, startMonth: "2026-01", endMonth: "2030-12" }),
             summarizedUntil: "2027-08",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
             workspaceId: "w1",
@@ -461,6 +469,7 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
         expect(call.marks).toEqual({
             summarizedUntil: "2027-09",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-09",
         });
@@ -497,6 +506,7 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
         expect(repository.calls[0].marks).toEqual({
             summarizedUntil: "2027-09",
             appliedAmount: 1000,
+            appliedAmountCents: 100000,
             appliedFrom: "2026-10",
             appliedUntil: "2027-09",
         });
@@ -522,6 +532,7 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
             ...planning({ amount: 100, startMonth: "2026-01", endMonth: "2027-02" }),
             summarizedUntil: "2027-08",
             appliedAmount: 100,
+            appliedAmountCents: 10000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-02",
             workspaceId: "w1",
@@ -608,6 +619,7 @@ describe("generateCategoryPlanningSummaries (cron mensal, F1.5)", () => {
             ...planning({ amount: 600, startMonth: "2026-09", endMonth: "2040-12" }),
             summarizedUntil: "2027-08",
             appliedAmount: 600,
+            appliedAmountCents: 60000,
             appliedFrom: "2026-09",
             appliedUntil: "2027-08",
             workspaceId: "w1",

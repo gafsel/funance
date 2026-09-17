@@ -11,6 +11,7 @@ import {
     resolveGoalOutcome,
     resolveGoalType,
 } from "../models/goal.model";
+import { fromCents, resolveCents, sumCents, toCents } from "../../../../core/utils/money";
 
 /**
  * Teto de meses lidos no cálculo de uma meta `reduceExpense`. Uma meta de 10
@@ -20,8 +21,6 @@ import {
  */
 export const MAX_GOAL_SUMMARY_MONTHS = 120;
 
-/** Diferença abaixo da qual o valor é considerado igual (centavos/float). */
-const AMOUNT_EPSILON = 0.005;
 
 export class GoalServiceImpl implements IGoalService {
     /**
@@ -105,20 +104,25 @@ export class GoalServiceImpl implements IGoalService {
                     continue;
                 }
 
-                let amountChange = 0;
+                // F1.10 — o delta do evento é somado em CENTAVOS INTEIROS. Em
+                // `double`, "sai a contribuição antiga, entra a nova" quase
+                // nunca dava zero exato quando o valor não mudava, e o resíduo
+                // ia parar no progresso da meta a cada reprocessamento.
+                let changeCents = 0;
                 if (before && isPaidStatus(before.status) && before.paidDate) {
                     if (before.paidDate >= goal.startDate && before.accounts && before.accounts[accountId]) {
-                        amountChange -= this.calculateContribution(goalType, before, accountId);
+                        changeCents -= this.calculateContributionCents(goalType, before, accountId);
                     }
                 }
                 if (after && isPaidStatus(after.status) && after.paidDate) {
                     if (after.paidDate >= goal.startDate && after.accounts && after.accounts[accountId]) {
-                        amountChange += this.calculateContribution(goalType, after, accountId);
+                        changeCents += this.calculateContributionCents(goalType, after, accountId);
                     }
                 }
 
-                if (amountChange !== 0) {
-                    await this.writeProgress(workspaceId, goal, (goal.currentAmount || 0) + amountChange);
+                if (changeCents !== 0) {
+                    const currentCents = resolveCents(goal.currentAmount || 0, goal.currentAmountCents);
+                    await this.writeProgress(workspaceId, goal, fromCents(currentCents + changeCents));
                 }
             }
         }
@@ -297,8 +301,10 @@ export class GoalServiceImpl implements IGoalService {
         }
 
         // Sem saldo até o startDate, a dívida começou em zero naquele ponto.
-        const reduction = currentBalance - (startBalance ?? 0);
-        return reduction > 0 ? reduction : 0;
+        // F1.10 — a subtração é em centavos: dois saldos "iguais" em `double`
+        // podiam diferir num resto de 1e-13 e virar progresso.
+        const reductionCents = toCents(currentBalance) - toCents(startBalance ?? 0);
+        return reductionCents > 0 ? fromCents(reductionCents) : 0;
     }
 
     /**
@@ -323,11 +329,9 @@ export class GoalServiceImpl implements IGoalService {
             goal.startDate
         );
 
-        let total = 0;
-        for (const installment of installments) {
-            total += contributionOf(goalType, installment, accountId);
-        }
-        return total;
+        return fromCents(sumCents(
+            installments.map((installment) => fromCents(contributionCentsOf(goalType, installment, accountId)))
+        ));
     }
 
     /**
@@ -349,8 +353,12 @@ export class GoalServiceImpl implements IGoalService {
             return null;
         }
 
+        // F1.10 — "mudou?" é uma comparação de INTEIROS, sem folga: a meia
+        // folga de centavo existia só para o `double` não acusar mudança onde
+        // não houve nenhuma.
         const current = Number(goal.currentAmount ?? 0);
-        const amountChanged = Math.abs(nextAmount - current) >= AMOUNT_EPSILON;
+        const nextCents = toCents(nextAmount);
+        const amountChanged = nextCents !== resolveCents(current, goal.currentAmountCents);
 
         const now = this.now();
         const outcome = resolveGoalOutcome(goal) === null
@@ -362,17 +370,18 @@ export class GoalServiceImpl implements IGoalService {
             return null;
         }
 
-        await this.goalRepository.updateGoalProgress(workspaceId, goal.id, nextAmount, stamp);
+        await this.goalRepository.updateGoalProgress(workspaceId, goal.id, nextCents, stamp);
 
-        goal.currentAmount = nextAmount;
+        goal.currentAmount = fromCents(nextCents);
+        goal.currentAmountCents = nextCents;
         if (stamp) {
             applyOutcome(goal, stamp);
         }
-        return nextAmount;
+        return goal.currentAmount;
     }
 
-    private calculateContribution(goalType: GoalType, inst: InstallmentModel, accountId: string): number {
-        return contributionOf(goalType, inst as InstallmentLike, accountId);
+    private calculateContributionCents(goalType: GoalType, inst: InstallmentModel, accountId: string): number {
+        return contributionCentsOf(goalType, inst as InstallmentLike, accountId);
     }
 }
 
@@ -402,17 +411,20 @@ function isPaidStatus(status: InstallmentStatus): boolean {
  * `saveMoney`: crédito soma, débito subtrai (é o saldo que a meta persegue).
  * `reduceCreditCard`: só o gasto (débito) conta — é um teto, não um saldo.
  */
-function contributionOf(goalType: GoalType, inst: InstallmentLike, accountId: string): number {
+function contributionCentsOf(goalType: GoalType, inst: InstallmentLike, accountId: string): number {
     const role = inst.accounts?.[accountId];
     if (!role) return 0;
 
-    const amount = inst.paidAmount || inst.amount || 0;
+    // Mesma escolha de valor de antes (`paidAmount || amount`, com o zero
+    // caindo para o planejado), agora em CENTAVOS INTEIROS.
+    const paidCents = resolveCents(inst.paidAmount, inst.paidAmountCents);
+    const amountCents = paidCents !== 0 ? paidCents : resolveCents(inst.amount, inst.amountCents);
 
     if (goalType === GoalType.saveMoney) {
-        return role === "credit" ? amount : -amount;
+        return role === "credit" ? amountCents : -amountCents;
     }
     if (goalType === GoalType.reduceCreditCard) {
-        return role === "debt" ? amount : 0;
+        return role === "debt" ? amountCents : 0;
     }
     return 0;
 }

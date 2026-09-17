@@ -41,6 +41,7 @@ import {
     CRON_WORKSPACE_CONCURRENCY,
 } from "../../../../core/config/functions.config";
 import { startOfDayInTz } from "../../../../core/utils/timezone.utils";
+import { fromCents, resolveCents } from "../../../../core/utils/money";
 
 /** Chave ESTÁVEL do checkpoint do cron: mudá-la recomeça a varredura uma vez. */
 export const NEXT_INVOICE_CHECKPOINT_KEY = "next_invoice_sync";
@@ -97,7 +98,7 @@ export class InvoiceSyncServiceImpl implements IInvoiceSyncService {
         await this.financeRepository.setAccountNextInvoice(workspaceId, accountId, next);
         logger.debug(
             `[InvoiceSync] ${workspaceId}/${accountId}: fatura ${next.orderId}, ` +
-            `valor ${next.amount}, status ${next.status}.`
+            `valor ${fromCents(next.amountCents)}, status ${next.status}.`
         );
         return true;
     }
@@ -182,12 +183,17 @@ export class InvoiceSyncServiceImpl implements IInvoiceSyncService {
             }
             : computed;
 
+        // F1.10 — o resumo carrega o valor nas duas formas: o inteiro, que é a
+        // verdade, e o `double` espelho que o app lê hoje.
+        const amountCents = pending ? resolveCents(pending.amount, pending.amountCents) : 0;
+
         return {
             dueDate,
             closingDate: cycle.closingDate,
             cycleStart: cycle.start,
             cycleEnd: cycle.end,
-            amount: pending?.amount ?? 0,
+            amount: fromCents(amountCents),
+            amountCents,
             orderId: pending?.orderId ?? InvoiceService.invoiceOrderId(accountId, dueDate),
             installmentId: pending?.id ?? null,
             status: pending?.status ?? InstallmentStatus.pending,
@@ -210,7 +216,10 @@ export function isSameNextInvoice(
         && sameInstant(current.closingDate, next.closingDate)
         && sameInstant(current.cycleStart, next.cycleStart)
         && sameInstant(current.cycleEnd, next.cycleEnd)
-        && current.amount === next.amount
+        // Compara o INTEIRO: dois `double` que representam a mesma quantia
+        // podiam diferir no 15º dígito e transformar toda sincronização numa
+        // escrita — e toda escrita num novo `onAccountUpdated`.
+        && resolveCents(current.amount, current.amountCents) === next.amountCents
         && current.orderId === next.orderId
         && (current.installmentId ?? null) === (next.installmentId ?? null)
         && current.status === next.status;

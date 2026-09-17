@@ -19,6 +19,7 @@ import { InvoiceService } from "./invoice.service";
 import { container } from "../../../../core/container";
 import { formatWeekId, getWeekRef } from "../../../../core/utils/week.utils";
 import { toDateKey } from "../../../../core/utils/date_key";
+import { fromCents, resolveCents, round2, splitCents, sumMoney, toCents } from "../../../../core/utils/money";
 
 /**
  * Divide um valor total em `count` parcelas usando aritmética de centavos inteiros,
@@ -26,15 +27,19 @@ import { toDateKey } from "../../../../core/utils/date_key";
  * O resto da divisão é distribuído 1 centavo por parcela nas primeiras `resto` parcelas.
  */
 export function splitAmountIntoInstallments(totalAmount: number, count: number): number[] {
+    return splitAmountIntoInstallmentCents(totalAmount, count).map(fromCents);
+}
+
+/**
+ * A mesma divisão, em CENTAVOS INTEIROS — é ela que alimenta o campo
+ * `amountCents` da parcela (F1.10). A versão em reais acima é o espelho.
+ */
+export function splitAmountIntoInstallmentCents(totalAmount: number, count: number): number[] {
     if (!Number.isFinite(totalAmount) || !Number.isInteger(count) || count <= 0) {
         return [];
     }
 
-    const totalCents = Math.round(totalAmount * 100);
-    const baseCents = Math.floor(totalCents / count);
-    const remainderCents = totalCents - (baseCents * count);
-
-    return Array.from({ length: count }, (_, i) => (baseCents + (i < remainderCents ? 1 : 0)) / 100);
+    return splitCents(toCents(totalAmount), count);
 }
 
 /** Campos replicáveis que mudaram entre a versão anterior e a nova da parcela. */
@@ -61,7 +66,10 @@ export function diffInstallmentForCascade(
     before: InstallmentModel,
     after: InstallmentModel
 ): InstallmentCascadeChanges {
-    const amount = after.amount !== before.amount;
+    // F1.10 — "o valor mudou?" é uma comparação de CENTAVOS: dois `double` que
+    // representam a mesma quantia podiam diferir no último bit e disparar uma
+    // cascata para todas as irmãs sem nada ter mudado.
+    const amount = resolveCents(after.amount, after.amountCents) !== resolveCents(before.amount, before.amountCents);
     const dueDate = (after.dueDate?.getTime() ?? null) !== (before.dueDate?.getTime() ?? null);
     const description = after.description !== before.description;
     const category = after.category?.id !== before.category?.id;
@@ -163,11 +171,10 @@ export function buildOrderUpdateFromCascade(
     const activeInstallments = updatedInstallments.filter((i) => i.status !== InstallmentStatus.removed);
 
     if (changes.amount || changes.removed) {
-        const totalAmount = activeInstallments.reduce(
-            (sum, i) => sum + installmentValueForOrderTotal(i),
-            0
-        );
-        orderUpdate.amount = Math.round(totalAmount * 100) / 100;
+        // F1.10 — a soma é feita em CENTAVOS INTEIROS. O `reduce(+)` sobre
+        // `double` que existia aqui fazia dez parcelas de R$ 50,24 somarem
+        // 502.4000000000001, e o total da order carregava o resto para sempre.
+        orderUpdate.amount = sumMoney(activeInstallments.map(installmentValueForOrderTotal));
     }
 
     if (changes.description) orderUpdate.description = after.description;
@@ -309,7 +316,8 @@ export class FinanceService {
         // 4. Criar as installments
         if (after.isInvoice && existingInstallments.length > 0) {
             const existingInvoice = existingInstallments[0];
-            if (existingInvoice.amount !== expectedInstallments[0].amount) {
+            if (resolveCents(existingInvoice.amount, existingInvoice.amountCents)
+                !== toCents(expectedInstallments[0].amount)) {
                 const isInvoicePaid = existingInvoice.status === InstallmentStatus.paid
                     || existingInvoice.status === InstallmentStatus.settled;
 
@@ -501,7 +509,10 @@ export class FinanceService {
         // Caso 3: Alteração em pagamento existente (Era pago e continua pago)
         else if (isBeforePaid && isAfterPaid && before && after) {
             const hasChangedAccount = JSON.stringify(before.accounts) !== JSON.stringify(after.accounts);
-            const hasChangedAmount = before.paidAmount !== after.paidAmount;
+            // F1.10 — em centavos: um `paidAmount` reescrito com a mesma quantia
+            // não pode estornar e reaplicar o saldo.
+            const hasChangedAmount = resolveCents(before.paidAmount, before.paidAmountCents)
+                !== resolveCents(after.paidAmount, after.paidAmountCents);
             const hasChangedDate = before.paidDate?.getTime() !== after.paidDate?.getTime();
 
             if (hasChangedAccount || hasChangedAmount || hasChangedDate) {
@@ -553,7 +564,8 @@ export class FinanceService {
         }
         // Caso 3: Alteração em pagamento existente (Era pago e continua pago)
         else if (isBeforePaid && isAfterPaid && before && after) {
-            const hasChangedAmount = before.paidAmount !== after.paidAmount;
+            const hasChangedAmount = resolveCents(before.paidAmount, before.paidAmountCents)
+                !== resolveCents(after.paidAmount, after.paidAmountCents);
             const hasChangedDate = before.paidDate?.getTime() !== after.paidDate?.getTime();
 
             if (hasChangedAmount || hasChangedDate) {
@@ -584,19 +596,25 @@ export class FinanceService {
      */
     calculateXp(inst: InstallmentModel): number {
         const baseXP = 15;
-        const predictedAmount = inst.amount;
-        const actualAmount = inst.paidAmount ?? inst.amount;
+        const predictedCents = resolveCents(inst.amount, inst.amountCents);
+        const actualCents = inst.paidAmount !== undefined && inst.paidAmount !== null
+            ? resolveCents(inst.paidAmount, inst.paidAmountCents)
+            : predictedCents;
 
-        if (predictedAmount === 0) return 0;
+        if (predictedCents === 0) return 0;
 
-        const diff = actualAmount - predictedAmount;
+        const diffCents = actualCents - predictedCents;
         const isExpense = inst.type === OrderType.expense;
 
-        // Se o valor for diferente, há uma inflação ou deflação de 10% dos XP (1.5 XP)
-        if (Math.abs(diff) > 0.01) {
+        // F1.10 — a comparação passou a ser em CENTAVOS INTEIROS. A faixa morta
+        // de UM centavo é a mesma de antes (`Math.abs(diff) > 0.01`), mas agora
+        // ela vale sempre: em `double`, `0.02 - 0.01` dá 0.010000000000000002 e
+        // era punido, enquanto `3.01 - 3.00` dá 0.009999999999999787 e não era.
+        // A mesma diferença de um centavo tinha dois vereditos.
+        if (Math.abs(diffCents) > 1) {
             // Para despesa: se gastou MAIS (diff > 0), pune (-10%). Se gastou MENOS (diff < 0), premia (+10%).
             // Para ganho: se ganhou MAIS (diff > 0), premia (+10%). Se ganhou MENOS (diff < 0), pune (-10%).
-            const shouldReward = isExpense ? diff < 0 : diff > 0;
+            const shouldReward = isExpense ? diffCents < 0 : diffCents > 0;
             return baseXP + (shouldReward ? 1.5 : -1.5);
         }
 
@@ -648,23 +666,21 @@ export class FinanceService {
             return;
         }
 
+        // F1.10 — o movimento vai para o repositório em CENTAVOS INTEIROS: é
+        // ele que soma no saldo do dia e propaga para os dias seguintes, e era
+        // ali que o erro de `double` se acumulava, pagamento após pagamento.
+        const paidCents = resolveCents(installment.paidAmount, installment.paidAmountCents);
+
         for (const [accountId, role] of Object.entries(installment.accounts)) {
             // Se for expense/transfer (debt): -amount. Se for income (credit): +amount.
             // Se for estorno (isReversal), inverte o sinal.
-
-            let delta = 0;
-            if (role === "credit") {
-                delta = installment.paidAmount;
-            }
-            else {
-                delta = -installment.paidAmount;
-            }
+            let deltaCents = role === "credit" ? paidCents : -paidCents;
 
             if (isReversal) {
-                delta = -delta;
+                deltaCents = -deltaCents;
             }
 
-            await this.financeRepository.updateAccountBalance(workspaceId, accountId, installment.paidDate, delta);
+            await this.financeRepository.updateAccountBalance(workspaceId, accountId, installment.paidDate, deltaCents);
         }
     }
 
@@ -689,7 +705,7 @@ export class FinanceService {
         }
 
         // Excluir faturas com valor zero
-        if (after && after.isInvoice && after.amount === 0) {
+        if (after && after.isInvoice && resolveCents(after.amount, after.amountCents) === 0) {
             logger.info(`[processInvoiceUpdate] Excluindo fatura com valor zero: ${after.id}`);
             await this.financeRepository.deleteInstallment(workspaceId, after.id);
             if (after.orderId) {
@@ -712,10 +728,15 @@ export class FinanceService {
 
             // Se for o pagamento de uma fatura, precisamos checar a diferença e impactar a próxima
             if (inst.isInvoice) {
-                const diff = (inst.paidAmount || 0) - (inst.amount || 0);
-                logger.info(`[processInvoiceUpdate] Processando pagamento de fatura: id=${inst.id}, diff=${diff}, isReversal=${isReversal}`);
+                // F1.10 — a diferença entre o pago e o previsto é calculada em
+                // CENTAVOS: em `double` uma fatura paga com o valor exato podia
+                // render `diff = 1.4210854715202004e-14` e disparar um delta
+                // fantasma na fatura seguinte.
+                const diffCents = resolveCents(inst.paidAmount, inst.paidAmountCents)
+                    - resolveCents(inst.amount, inst.amountCents);
+                logger.info(`[processInvoiceUpdate] Processando pagamento de fatura: id=${inst.id}, diff=${fromCents(diffCents)}, isReversal=${isReversal}`);
 
-                if (diff !== 0) {
+                if (diffCents !== 0) {
                     // Para faturas (isInvoice), identificamos a conta de crédito (que recebeu o pagamento)
                     let accountId: string | undefined;
 
@@ -729,12 +750,12 @@ export class FinanceService {
                             const nextInvoiceDueDate = InvoiceService.calculateInvoiceDueDate(inst.paidDate, account);
                             // Se pago a mais (diff > 0), decrementa a próxima (delta negativo)
                             // Se pago a menos (diff < 0), incrementa a próxima (delta positivo)
-                            let delta = -diff;
+                            let deltaCents = -diffCents;
                             if (isReversal) {
-                                delta = -delta;
+                                deltaCents = -deltaCents;
                             }
-                            logger.info(`[processInvoiceUpdate] Atualizando próxima fatura: accountId=${accountId}, dueDate=${toDateKey(nextInvoiceDueDate)}, delta=${delta}`);
-                            await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, nextInvoiceDueDate, delta);
+                            logger.info(`[processInvoiceUpdate] Atualizando próxima fatura: accountId=${accountId}, dueDate=${toDateKey(nextInvoiceDueDate)}, delta=${fromCents(deltaCents)}`);
+                            await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, nextInvoiceDueDate, deltaCents);
                             cardsToSync.add(accountId);
                         }
                         else {
@@ -748,24 +769,20 @@ export class FinanceService {
                 return;
             }
 
+            const paidCents = resolveCents(inst.paidAmount, inst.paidAmountCents);
+
             for (const [accountId, role] of Object.entries(inst.accounts)) {
-                let delta = 0;
-                if (role === "credit") {
-                    delta = inst.paidAmount;
-                }
-                else {
-                    delta = -inst.paidAmount;
-                }
+                let deltaCents = role === "credit" ? paidCents : -paidCents;
 
                 if (isReversal) {
-                    delta = -delta;
+                    deltaCents = -deltaCents;
                 }
 
                 const account = await this.financeRepository.getAccountById(workspaceId, accountId);
                 if (account?.runtimeType === AccountType.creditCard) {
                     const invoiceDueDate = InvoiceService.calculateInvoiceDueDate(inst.paidDate, account);
-                    logger.info(`[processInvoiceUpdate] Impactando fatura de cartão: accountId=${accountId}, role=${role}, invoiceDueDate=${toDateKey(invoiceDueDate)}, delta=${-delta}, isReversal=${isReversal}`);
-                    await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, invoiceDueDate, -delta);
+                    logger.info(`[processInvoiceUpdate] Impactando fatura de cartão: accountId=${accountId}, role=${role}, invoiceDueDate=${toDateKey(invoiceDueDate)}, delta=${fromCents(-deltaCents)}, isReversal=${isReversal}`);
+                    await this.financeRepository.updateInvoiceWithDelta(workspaceId, account, invoiceDueDate, -deltaCents);
                     cardsToSync.add(accountId);
                 }
             }
@@ -784,7 +801,8 @@ export class FinanceService {
         // Caso 3: Alteração em pagamento existente
         else if (isBeforePaid && isAfterPaid && before && after) {
             const hasChangedAccount = JSON.stringify(before.accounts) !== JSON.stringify(after.accounts);
-            const hasChangedAmount = before.paidAmount !== after.paidAmount;
+            const hasChangedAmount = resolveCents(before.paidAmount, before.paidAmountCents)
+                !== resolveCents(after.paidAmount, after.paidAmountCents);
             const hasChangedDate = before.paidDate?.getTime() !== after.paidDate?.getTime();
 
             if (hasChangedAccount || hasChangedAmount || hasChangedDate) {
@@ -875,7 +893,9 @@ export class FinanceService {
         };
 
         return {
-            amount: Math.abs(account.initialBalance),
+            // F1.10 — `round2` para que o saldo inicial informado pelo cliente
+            // entre no sistema já como um decimal de duas casas exato.
+            amount: round2(Math.abs(account.initialBalance)),
             description: "Saldo Inicial",
             category: category,
             status: OrderStatus.settled,
@@ -921,7 +941,7 @@ export class FinanceService {
             return;
         }
 
-        const hasChanged = existingOrder.amount !== order.amount
+        const hasChanged = resolveCents(existingOrder.amount, existingOrder.amountCents) !== toCents(order.amount)
             || existingOrder.dueDay !== order.dueDay
             || existingOrder.startMonth !== order.startMonth
             || existingOrder.type !== order.type

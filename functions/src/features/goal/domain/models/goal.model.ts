@@ -1,3 +1,5 @@
+import { resolveCents } from "../../../../core/utils/money";
+
 /**
  * Tipos de meta, com os valores REALMENTE persistidos no Firestore.
  *
@@ -39,7 +41,11 @@ export interface GoalModel {
   id: string;
   name: string;
   targetAmount: number;
+  /** F1.10 — `targetAmount` em CENTAVOS INTEIROS. Ver `MONEY_CENTS_FIELDS`. */
+  targetAmountCents?: number;
   currentAmount: number;
+  /** F1.10 — `currentAmount` em CENTAVOS INTEIROS. */
+  currentAmountCents?: number;
   /** Pode faltar em documentos legados: o cliente sempre grava. */
   deadline?: Date;
   icon?: string;
@@ -94,8 +100,6 @@ export function resolveGoalOutcome(goal: any): GoalOutcome | null {
     return raw === GoalOutcome.success || raw === GoalOutcome.failed ? raw : null;
 }
 
-/** Folga para ruído de ponto flutuante ao comparar valores. */
-const AMOUNT_EPSILON = 0.005;
 
 /**
  * Desfecho que o ESTADO ATUAL da meta impõe, ou `null` se ela continua em
@@ -110,16 +114,24 @@ const AMOUNT_EPSILON = 0.005;
  * Uma meta sem `deadline` e sem `targetAmount` válido nunca desfecha sozinha.
  */
 export function evaluateGoalOutcome(goal: any, now: Date = new Date()): GoalOutcome | null {
+    // F1.10 — a comparação é em CENTAVOS INTEIROS. A folga de meio centavo que
+    // existia aqui (`AMOUNT_EPSILON = 0.005`) era exatamente o arredondamento
+    // que `toCents` agora faz de forma exata: "alcançou o alvo" passou a
+    // significar "alcançou, ao centavo", sem uma margem que o código carregava
+    // só para não ser traído pelo `double`.
     const current = Number(goal?.currentAmount ?? 0);
     const target = Number(goal?.targetAmount ?? 0);
     const hasAmounts = Number.isFinite(current) && Number.isFinite(target) && target > 0;
     const accumulation = isAccumulationGoal(resolveGoalType(goal));
 
     if (hasAmounts) {
-        if (accumulation && current >= target - AMOUNT_EPSILON) {
+        const currentCents = resolveCents(current, goal?.currentAmountCents);
+        const targetCents = resolveCents(target, goal?.targetAmountCents);
+
+        if (accumulation && currentCents >= targetCents) {
             return GoalOutcome.success;
         }
-        if (!accumulation && current > target + AMOUNT_EPSILON) {
+        if (!accumulation && currentCents > targetCents) {
             return GoalOutcome.failed;
         }
     }

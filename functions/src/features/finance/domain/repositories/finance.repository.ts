@@ -177,11 +177,20 @@ export interface IFinanceRepository {
   ): Promise<void>;
 
   // Account Balances
+  /**
+   * Soma `deltaCents` (CENTAVOS INTEIROS, F1.10) ao saldo do dia e propaga o
+   * acumulado para os dias seguintes.
+   *
+   * O parâmetro deixou de ser reais de propósito: era aqui que o erro de ponto
+   * flutuante se acumulava, um `FieldValue.increment` de `double` por
+   * pagamento. O documento passa a guardar `deltaCents`/`balanceCents` como
+   * verdade e `delta`/`balance` como espelho `round2`.
+   */
   updateAccountBalance(
     workspaceId: string,
     accountId: string,
     date: Date,
-    delta: number
+    deltaCents: number
   ): Promise<void>;
   getLastBalanceBefore(
     workspaceId: string,
@@ -194,11 +203,15 @@ export interface IFinanceRepository {
   updateOrderCategory(workspaceId: string, category: CategoryModel): Promise<void>;
   /** Reescreve a cópia embutida da categoria em todas as parcelas que a usam. */
   updateInstallmentCategory(workspaceId: string, category: CategoryModel): Promise<void>;
+  /**
+   * Soma `deltaCents` (CENTAVOS INTEIROS, F1.10) ao valor da order de fatura do
+   * vencimento, criando-a quando não existe.
+   */
   updateInvoiceWithDelta(
     workspaceId: string,
     account: AccountModel,
     dueDate: Date,
-    delta: number
+    deltaCents: number
   ): Promise<void>;
 
   // Coaching History (workspaces/{wid}/financial_coaching — escrito apenas via

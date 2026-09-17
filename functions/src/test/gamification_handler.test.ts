@@ -54,9 +54,11 @@ describe("gamification_handler — guarda por conteúdo na parcela", () => {
     it("usa exatamente o mesmo conjunto de campos derivados do handler de finanças", () => {
         expect([...INSTALLMENT_DERIVED_FIELDS].sort())
             .toEqual([
+                // F1.10: os espelhos inteiros do valor da parcela.
+                "amountCents",
                 // F1.8: a janela do ciclo da fatura é escrita pelo servidor.
                 "closingDate", "cycleEnd", "cycleStart",
-                "lastUpdate", "replicationCascade",
+                "lastUpdate", "paidAmountCents", "referenceAmountCents", "replicationCascade",
                 // F2.3: gravado na mesma escrita do xp.
                 "unplannedReason",
                 "updatedAt", "xp",
