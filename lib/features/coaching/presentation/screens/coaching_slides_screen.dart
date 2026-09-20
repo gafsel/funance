@@ -14,6 +14,30 @@ import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Rotas internas que um slide de coaching pode acionar.
+///
+/// A IA pode alucinar um `actionPath` fora deste conjunto; nesse caso o botão
+/// não é exibido. Precisa ser a MESMA lista de `coaching_action_path.model.ts`
+/// no backend (ver functions/README.md, "Rotas do coaching") — e é diferente
+/// da allowlist das MISSÕES, que tem `/reconciliation` e não tem cinco destas.
+///
+/// Pública para que um teste possa conferi-la contra o router: um caminho com
+/// erro de digitação não quebra nada, só faz o slide perder o botão em
+/// silêncio.
+const Set<String> coachingActionPaths = {
+  '/',
+  '/planning',
+  '/planning-50-30-20',
+  '/goals/form',
+  '/accounts/form',
+  '/transactions/form',
+  '/category-details',
+  '/workspace/categories',
+  '/workspace/accounts',
+  '/workspace/badges',
+  '/coaching/history',
+};
+
 class CoachingSlidesScreen extends ConsumerStatefulWidget {
   const CoachingSlidesScreen({super.key, required this.coaching});
 
@@ -71,28 +95,10 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
     return Scaffold(body: _buildSlides(context));
   }
 
-  /// Rotas internas que um slide pode acionar. A IA pode alucinar um
-  /// `actionPath` fora deste conjunto; nesse caso o botão não é exibido.
-  /// Precisa ser a MESMA lista de `coaching_action_path.model.ts` no backend
-  /// (ver functions/README.md, "Rotas do coaching").
-  static const _allowedActionPaths = {
-    '/',
-    '/planning',
-    '/planning-50-30-20',
-    '/goals/form',
-    '/accounts/form',
-    '/transactions/form',
-    '/category-details',
-    '/workspace/categories',
-    '/workspace/accounts',
-    '/workspace/badges',
-    '/coaching/history',
-  };
-
   static bool _isAllowedActionPath(String? path) {
     if (path == null) return false;
     final normalized = Uri.tryParse(path)?.path ?? path;
-    return _allowedActionPaths.contains(normalized);
+    return coachingActionPaths.contains(normalized);
   }
 
   /// A tinta de tudo que pousa sobre a cor do slide.

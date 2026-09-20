@@ -64,10 +64,19 @@ String _fallbackCategory(AppLocalizations l10n, WeeklyMissionModel mission) =>
 
 /// Rotas que uma missão pode acionar.
 ///
-/// Mesma lista de `MISSION_ACTION_PATHS` no backend. É a allowlist do
-/// coaching **mais** `/reconciliation`, e as duas continuam separadas de
-/// propósito: uma build antiga do app não desenha um botão de conciliação num
-/// slide de coaching, e o catálogo de missões depende de que ela exista.
+/// Mesma lista de `MISSION_ACTION_PATHS` no backend, e ela NÃO é a do
+/// coaching mais uma rota — o comentário anterior dizia isso e estava errado.
+/// São sete caminhos aqui e onze lá, com seis em comum: só as missões têm
+/// `/reconciliation`, e só o coaching tem `/`, `/goals/form`,
+/// `/accounts/form`, `/workspace/badges` e `/coaching/history`.
+///
+/// As duas seguem separadas de propósito: cada catálogo do servidor emite o
+/// seu conjunto, e uma build antiga do app não deve desenhar um botão para um
+/// destino que o outro catálogo passou a usar.
+///
+/// `/goals` e `/missions` — as telas novas — ficam de FORA das duas até que o
+/// servidor as emita. Uma allowlist é a lista do que chega, não a do que
+/// existe: adicionar destino que ninguém manda só aumenta a superfície.
 ///
 /// Um `actionPath` fora deste conjunto simplesmente não vira botão.
 const Set<String> missionActionPaths = {

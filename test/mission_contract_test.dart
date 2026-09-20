@@ -11,6 +11,7 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/router/app_router.dart';
+import 'package:funances/features/coaching/presentation/screens/coaching_slides_screen.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
@@ -100,6 +101,46 @@ void main() {
               '`$path` está na allowlist e não é rota do app: a missão que '
               'apontar para lá perde o botão em silêncio',
         );
+      }
+    });
+
+    /// O coaching tem a PRÓPRIA allowlist, espelhada de outro arquivo do
+    /// backend. O comentário do `mission_labels.dart` dizia que uma era a
+    /// outra "mais `/reconciliation`", e não é: são sete caminhos contra
+    /// onze, com seis em comum.
+    test('a allowlist do coaching também existe no router', () {
+      final rotas = _rotasDoApp(container);
+
+      for (final path in coachingActionPaths) {
+        expect(
+          rotas,
+          contains(path),
+          reason: '`$path` está na allowlist do coaching e não é rota do app',
+        );
+      }
+    });
+
+    test('as duas listas são diferentes, e a diferença é a documentada', () {
+      expect(
+        missionActionPaths.difference(coachingActionPaths),
+        {'/reconciliation'},
+      );
+      expect(coachingActionPaths.difference(missionActionPaths), {
+        '/',
+        '/goals/form',
+        '/accounts/form',
+        '/workspace/badges',
+        '/coaching/history',
+      });
+    });
+
+    test('as telas novas ficam de fora enquanto o servidor não as emite', () {
+      // Uma allowlist é a lista do que CHEGA, não a do que existe: destino
+      // que ninguém manda só aumenta a superfície.
+      for (final nova in ['/goals', '/missions']) {
+        expect(_rotasDoApp(container), contains(nova));
+        expect(missionActionPaths, isNot(contains(nova)));
+        expect(coachingActionPaths, isNot(contains(nova)));
       }
     });
 
