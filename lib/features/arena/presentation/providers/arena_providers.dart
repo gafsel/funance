@@ -4,6 +4,7 @@ import 'package:funances/core/time/product_week.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/domain/services/arena_calculator.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/presentation/providers/account_view_providers.dart';
@@ -334,10 +335,27 @@ sealed class ArenaViewProviders {
           overdueInstallments: overdueData,
           accountTypes: typeData,
           members: members.valueOrNull ?? const <UserModel>[],
+          memberOrder: ref.watch(memberOrder),
+          currentUser: ref.watch(AuthDomainProviders.currentUser),
         ),
       ),
     );
   });
+
+  /// A ordem de ENTRADA no workspace, e o documento local do próprio usuário.
+  ///
+  /// Os dois consertam a mesma coisa no elenco da cena: quem é o herói 0.
+  /// `getWorkspaceMembers` devolve os documentos na ordem dos UIDs do
+  /// Firestore (é um `where(documentId, in: [...])`), e o avatar que vem por
+  /// ali só existe depois do deploy das functions. Ver
+  /// [ArenaCalculator.roster].
+  static final memberOrder = Provider<List<String>>(
+    (ref) => ref.watch(
+      WorkspaceViewProviders.workspace.select(
+        (state) => state.currentWorkspace?.members ?? const <String>[],
+      ),
+    ),
+  );
 
   /// `true` quando o cofre corrente é empresa: troca "categorias" por
   /// "centros de custo" e "compromissos" por "contas a pagar".
@@ -402,6 +420,8 @@ sealed class ArenaViewProviders {
           // sem ele (zero moeda).
           weeklyXp: xp.valueOrNull ?? 0,
           members: members.valueOrNull ?? const <UserModel>[],
+          memberOrder: ref.watch(memberOrder),
+          currentUser: ref.watch(AuthDomainProviders.currentUser),
         ),
       ),
     );

@@ -38,6 +38,8 @@ class ArenaInputs {
     required this.weekInstallments,
     required this.overdueInstallments,
     required this.members,
+    this.memberOrder = const <String>[],
+    this.currentUser,
     this.accountTypes = const <String, AccountType>{},
     this.weeklyXp = 0,
     this.maxHeroes = 2,
@@ -66,8 +68,32 @@ class ArenaInputs {
   /// Parcelas ainda pendentes com vencimento ANTES da semana.
   final List<InstallmentModel> overdueInstallments;
 
-  /// Membros do workspace, na ordem de entrada (o primeiro é o dono).
+  /// Membros do workspace, na ordem em que a callable os devolveu — que **não
+  /// é** a ordem de entrada. Ver [memberOrder].
   final List<UserModel> members;
+
+  /// `workspaces/{id}.members`: os uids na ORDEM DE ENTRADA, com o criador no
+  /// primeiro lugar.
+  ///
+  /// Existe porque `getWorkspaceMembers` lê os documentos com um
+  /// `where(documentId, in: [...])`, e o Firestore devolve isso na ordem dos
+  /// UIDs, não na do array. Era sorte de alfabeto quem ficava com o
+  /// cavaleiro: um uid começado em "a" tomava o lugar do criador do cofre. O
+  /// array do workspace é a única lista que guarda a chegada — o backend usa
+  /// exatamente ela para decidir quem é o dono.
+  ///
+  /// Vazia (um teste, um workspace ainda sem o campo) mantém a ordem que
+  /// veio.
+  final List<String> memberOrder;
+
+  /// O documento do PRÓPRIO usuário, lido direto de `users/{uid}`.
+  ///
+  /// A lista de membros vem inteira da callable, inclusive a linha do próprio
+  /// usuário — e a callable só passa a devolver o `avatar` depois do deploy
+  /// das functions. Sem esta sobreposição, quem escolhesse um herói não veria
+  /// a própria escolha na cena, que é a metade da funcionalidade que não
+  /// depende de servidor nenhum.
+  final UserModel? currentUser;
 
   /// O tipo de CADA conta do workspace — inclusive as que não são caixa.
   ///
@@ -208,16 +234,51 @@ abstract final class ArenaCalculator {
   /// O avatar ESCOLHIDO pelo membro; a ordem de entrada quando não há
   /// escolha.
   ///
-  /// Um `avatar` gravado com nome desconhecido não cai no cavaleiro fixo (que
-  /// é o que `HeroSkin.fromName` faria): ele cai no mesmo boneco que o membro
-  /// teria sem campo nenhum, que é a resposta menos surpreendente para quem
-  /// olha a cena.
-  static HeroSkin skinForMember(UserModel member, int index) {
-    final escolhido = member.avatar;
-    if (escolhido == null || escolhido.isEmpty) return skinForIndex(index);
+  /// Um `avatar` gravado com nome desconhecido não cai no cavaleiro fixo: ele
+  /// cai no mesmo boneco que o membro teria sem campo nenhum, que é a
+  /// resposta menos surpreendente para quem olha a cena.
+  static HeroSkin skinForMember(UserModel member, int index) =>
+      HeroSkin.tryFromName(member.avatar) ?? skinForIndex(index);
 
-    return HeroSkin.values.where((s) => s.name == escolhido).firstOrNull ??
-        skinForIndex(index);
+  /// O elenco na ORDEM DE ENTRADA, com o documento local do próprio usuário
+  /// no lugar da linha que veio da callable.
+  ///
+  /// Duas correções que precisam acontecer ANTES de qualquer índice ser
+  /// atribuído, porque é o índice que decide o boneco de quem não escolheu e
+  /// quem leva o distintivo de repetido:
+  ///
+  /// 1. **ordem**: `getWorkspaceMembers` devolve os documentos na ordem dos
+  ///    UIDs do Firestore, não na de chegada. [ArenaInputs.memberOrder] é o
+  ///    array do workspace, que guarda a chegada de verdade;
+  /// 2. **o próprio usuário**: a linha dele vem da callable, que só entrega o
+  ///    `avatar` depois do deploy das functions. O documento local já tem.
+  ///
+  /// Quem não estiver em [ArenaInputs.memberOrder] (convite recém-aceito que
+  /// o app ainda não recarregou) vai para o FIM, na ordem em que veio — some
+  /// da cena só quem já não cabia nela.
+  static List<UserModel> roster(ArenaInputs inputs) {
+    final posicao = <String, int>{
+      for (var i = 0; i < inputs.memberOrder.length; i++)
+        inputs.memberOrder[i]: i,
+    };
+
+    final ordenados = [...inputs.members];
+    if (posicao.isNotEmpty) {
+      final semLugar = posicao.length;
+      ordenados.sort((a, b) {
+        final pa = posicao[a.id] ?? (semLugar + inputs.members.indexOf(a));
+        final pb = posicao[b.id] ?? (semLugar + inputs.members.indexOf(b));
+        return pa.compareTo(pb);
+      });
+    }
+
+    final eu = inputs.currentUser;
+    if (eu == null) return ordenados;
+
+    return [
+      for (final membro in ordenados)
+        if (membro.id == eu.id) membro.copyWith(avatar: eu.avatar) else membro,
+    ];
   }
 
   /// O monstro da semana, sorteado pelo ID da semana.
@@ -339,7 +400,8 @@ abstract final class ArenaCalculator {
     final currentBalance = Money.sumOf(accounts, (a) => a.current);
 
     // ── Elenco ─────────────────────────────────────────────────────────────
-    final cast = inputs.members.take(inputs.maxHeroes).toList();
+    final elenco = roster(inputs);
+    final cast = elenco.take(inputs.maxHeroes).toList();
     final skins = [
       for (var index = 0; index < cast.length; index++)
         skinForMember(cast[index], index),
@@ -372,7 +434,7 @@ abstract final class ArenaCalculator {
       overdueAmount: overdue.toDouble(),
       monsterSkin: skinForWeek(inputs.weekId, enraged: overdue > Money.zero),
       heroes: heroes,
-      extraMembers: inputs.members.length - cast.length,
+      extraMembers: elenco.length - cast.length,
       weeklyXp: inputs.weeklyXp,
     );
   }
