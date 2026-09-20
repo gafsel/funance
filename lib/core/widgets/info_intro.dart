@@ -256,7 +256,12 @@ class InfoIntroButton extends StatelessWidget {
       onPressed: onPressed,
       tooltip: label,
       iconSize: 22,
-      visualDensity: VisualDensity.compact,
+      // 48×48 de ALVO com 22 de figura: o `visualDensity: compact` que estava
+      // aqui derrubava o toque para 38×32 medidos na tela, abaixo do mínimo
+      // de acessibilidade. O tamanho do desenho não muda — quem cresce é a
+      // área que recebe o dedo.
+      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+      padding: EdgeInsets.zero,
       color: onGame ? palette.onGame2 : palette.ink2,
       // O rótulo vai no ÍCONE, e não só no tooltip: `tooltip` vira a dica de
       // quem usa mouse e a "dica" da semântica, mas não o NOME do botão — e
@@ -285,10 +290,24 @@ mixin IntroPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
 
   Widget buildIntroBody(BuildContext context);
 
+  /// A tela já tem o que explicar?
+  ///
+  /// O padrão é "sim" — as folhas do HUD carregam o texto delas em constante.
+  /// Quem depende de dado que chega do servidor sobrescreve: a vitrine de
+  /// conquistas lê a régua de XP de `config/badges`, e com o catálogo ainda
+  /// frio a apresentação abria um painel VAZIO e — o defeito de verdade —
+  /// gravava a marca. A aula que ninguém viu ficava dada por vista para
+  /// sempre.
+  bool get canIntroduce => true;
+
   /// Completa quando a tela terminou de aparecer. O padrão é "já apareceu";
   /// quem entra animando — uma folha modal — espera a animação.
   Future<void> waitIntroEntrance() => Future<void>.value();
 
+  /// Pede a apresentação para depois do quadro atual.
+  ///
+  /// Pode ser chamado mais de uma vez — do `initState` e de novo quando o
+  /// dado chegar. O que garante uma apresentação só é [_introduced].
   void scheduleIntro() {
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeIntroduce());
   }
@@ -298,7 +317,9 @@ mixin IntroPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// A pergunta ao disco vem ANTES de qualquer espera de animação: quem já
   /// leu não pode pagar nem um quadro de atraso por causa de quem nunca leu.
   Future<void> _maybeIntroduce() async {
-    if (_introduced) return;
+    // Sem conteúdo, não há apresentação — e o `_introduced` fica FALSO, para
+    // que a chegada do dado possa marcar uma nova tentativa.
+    if (_introduced || !canIntroduce) return;
     _introduced = true;
 
     final store = ref.read(IntroProviders.store);
@@ -306,7 +327,13 @@ mixin IntroPanelMixin<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     if (!mounted) return;
 
     await waitIntroEntrance();
-    if (!mounted) return;
+
+    // O conteúdo pode ter ido embora enquanto a tela entrava — e a marca
+    // NUNCA é gravada por um painel que não abriu.
+    if (!mounted || !canIntroduce) {
+      _introduced = false;
+      return;
+    }
 
     await openIntro();
     await store.markSeen(introKey);

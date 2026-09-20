@@ -99,12 +99,34 @@ class _BadgesCabinetViewState extends ConsumerState<BadgesCabinetView>
 
   @override
   Widget buildIntroBody(BuildContext context) =>
-      XpSourcesSection(sources: widget.catalog?.xpSources ?? const []);
+      XpSourcesSection(sources: _sources);
+
+  List<XpSource> get _sources => widget.catalog?.xpSources ?? const [];
+
+  /// A régua de XP vem do servidor (`config/badges`). Enquanto ela não
+  /// chega, não há aula para dar — e dar uma aula vazia por dada seria
+  /// perder a única vez em que ela aparece sozinha.
+  @override
+  bool get canIntroduce => _sources.isNotEmpty;
+
+  /// A vitrine é uma ROTA, e ela entra deslizando: esperar a entrada é o que
+  /// tira o piscar, como nas folhas do HUD.
+  @override
+  Future<void> waitIntroEntrance() => waitModalEntrance(context);
 
   @override
   void initState() {
     super.initState();
     scheduleIntro();
+  }
+
+  /// O catálogo costuma chegar DEPOIS do primeiro quadro. Quando ele chega,
+  /// a apresentação é pedida de novo — o `scheduleIntro` já sabe não se
+  /// repetir.
+  @override
+  void didUpdateWidget(BadgesCabinetView old) {
+    super.didUpdateWidget(old);
+    if (canIntroduce) scheduleIntro();
   }
 
   @override

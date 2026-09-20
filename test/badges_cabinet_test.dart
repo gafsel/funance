@@ -322,6 +322,32 @@ void main() {
       expect(find.byKey(const ValueKey('intro-panel')), findsOneWidget);
     });
 
+    testWidgets('catálogo frio: nada abre, e NADA é dado por visto', (
+      tester,
+    ) async {
+      // O caso que o QA mediu: `config/badges` chega no segundo quadro. Sem
+      // guarda, a apresentação abria um painel vazio e gravava a marca — a
+      // aula que ninguém viu ficava dada por vista para sempre.
+      await tester.pumpWidget(_app(const _Atrasada(), introSeen: false));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('intro-panel')), findsNothing);
+      expect(
+        (await SharedPreferences.getInstance()).getBool(
+          IntroStore.keyFor(IntroKeys.badgesXpSources),
+        ),
+        isNull,
+        reason: 'painel que não abriu não grava marca',
+      );
+
+      // O catálogo chega.
+      await tester.pump(const Duration(milliseconds: 16));
+      await _settle(tester);
+
+      expect(find.byKey(const ValueKey('intro-panel')), findsOneWidget);
+      expect(find.text('Registrar um lançamento'), findsOneWidget);
+    });
+
     testWidgets('as conquistas ficam ACIMA da dobra em 400x800', (
       tester,
     ) async {
@@ -369,4 +395,59 @@ void main() {
       expect(badgeIconFor('rocket_launch'), Icons.rocket_launch);
     });
   });
+}
+
+/// A vitrine com o catálogo chegando DEPOIS do primeiro quadro, como o
+/// Firestore o entrega.
+class _Atrasada extends StatefulWidget {
+  const _Atrasada();
+
+  @override
+  State<_Atrasada> createState() => _AtrasadaState();
+}
+
+class _AtrasadaState extends State<_Atrasada> {
+  BadgeCatalog? _catalog;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 16), () {
+      if (mounted) {
+        setState(() {
+          _catalog = const BadgeCatalog(
+            version: 'v1',
+            badges: [
+              BadgeCatalogItem(
+                id: 'first_step',
+                name: {'pt': 'Primeiro Passo'},
+                icon: 'rocket_launch',
+                xpReward: 100,
+                category: BadgeCategory.advanced,
+              ),
+            ],
+            levelThresholds: [0, 300],
+            xpSources: [
+              XpSource(
+                id: 'transaction_logged',
+                name: {'pt': 'Registrar um lançamento'},
+                xp: 5,
+              ),
+            ],
+          );
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => BadgesCabinetView(
+    catalog: _catalog,
+    isLoading: _catalog == null,
+    workspaceName: 'Casa',
+    level: 1,
+    xp: 0,
+    weeklyStreaks: 0,
+    unlockedBadges: const {},
+  );
 }
