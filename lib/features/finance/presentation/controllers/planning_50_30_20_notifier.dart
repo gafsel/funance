@@ -65,8 +65,9 @@ class Planning503020Notifier
   }
 
   void _changeMonth(DateTime newDate) {
-    if (state.date.year == newDate.year && state.date.month == newDate.month)
+    if (state.date.year == newDate.year && state.date.month == newDate.month) {
       return;
+    }
     state = state.copyWith(date: newDate);
     _init();
   }

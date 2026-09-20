@@ -6,6 +6,7 @@ import 'package:funances/features/arena/presentation/widgets/arena_heroes_sheet.
 import 'package:funances/features/arena/presentation/widgets/arena_hp_bar.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 
 import 'arena_harness.dart';
 
@@ -445,6 +446,34 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.byType(ArenaHpBar), findsNWidgets(2));
+    });
+
+    testWidgets('a cena tem semântica: a luta não é um retângulo mudo', (
+      tester,
+    ) async {
+      await pumpArena(tester);
+
+      expect(
+        find.bySemanticsLabel(RegExp('A luta da semana')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('no desktop a cena tem largura máxima e fica centrada', (
+      tester,
+    ) async {
+      await pumpArena(tester, size: const Size(1300, 900));
+
+      final cena = tester.getRect(find.byType(GameWidget<ArenaGame>));
+
+      expect(
+        cena.width,
+        lessThanOrEqualTo(arenaMaxSceneWidth),
+        reason:
+            'esticada de borda a borda a luta virava um friso, com os atores '
+            'em pontas opostas de mil e duzentos pixels',
+      );
+      expect(cena.center.dx, closeTo(650, 1));
     });
 
     testWidgets('o pé da cena já tem a faixa reservada do HUD mensal', (

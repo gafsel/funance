@@ -4621,6 +4621,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Agendado · {date}'**
   String arenaScheduledOn(String date);
+
+  /// No description provided for @arenaSceneSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'A luta da semana: os heróis contra {monster}, que ainda tem {remaining} de vida.'**
+  String arenaSceneSemantics(String monster, String remaining);
+
+  /// No description provided for @arenaDefeatedBanner.
+  ///
+  /// In pt, this message translates to:
+  /// **'Monstro derrotado — {amount} pagos nesta semana'**
+  String arenaDefeatedBanner(String amount);
 }
 
 class _AppLocalizationsDelegate

@@ -5,6 +5,8 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_radius.dart';
 import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/screens/arena_screen.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -88,10 +90,50 @@ class ArenaHomeBlock extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        l10n.arenaWeekChallenge,
-                        style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: AppColors.inkInverse2),
+                      child: Consumer(
+                        builder: (context, ref, _) {
+                          final state = ref
+                              .watch(ArenaViewProviders.state)
+                              .valueOrNull;
+
+                          // Semana vencida: o título cede lugar ao placar. É
+                          // o único momento em que o bloco tem uma notícia
+                          // para dar, e "Desafio da semana" desperdiçaria a
+                          // linha repetindo o óbvio.
+                          if (state != null && state.isDefeated) {
+                            return Row(
+                              children: [
+                                const Icon(
+                                  Icons.emoji_events,
+                                  size: 16,
+                                  color: AppColors.gold,
+                                ),
+                                AppSpacing.gapXxs,
+                                Expanded(
+                                  child: Text(
+                                    l10n.arenaDefeatedBanner(
+                                      state.monsterMaxHp.asCurrency(
+                                        locale: context.locale,
+                                      ),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(color: AppColors.gold),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+
+                          return Text(
+                            l10n.arenaWeekChallenge,
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(color: AppColors.inkInverse2),
+                          );
+                        },
                       ),
                     ),
                     // A porta para a tela cheia. Ela saiu da `AppBar` — o

@@ -30,6 +30,14 @@ import 'package:funances/l10n/app_localizations.dart';
 /// já existe.
 double arenaFooterSlotHeight({required bool compact}) => compact ? 56 : 64;
 
+/// Largura máxima da CENA, em pixels lógicos.
+///
+/// Num monitor a cena esticava de borda a borda e os atores iam parar em
+/// pontas opostas de uma faixa de mil e duzentos pixels: deixava de ser uma
+/// luta e virava um friso. O placar continua ocupando a largura inteira — ele
+/// é leitura, e leitura larga é boa —, mas o combate fica no meio.
+const double arenaMaxSceneWidth = 720;
+
 /// A Arena montada: placar em cima, cena embaixo.
 ///
 /// Existe como widget, e não só como tela, porque ela é usada nos dois
@@ -267,6 +275,7 @@ class _ArenaViewState extends ConsumerState<ArenaView>
         }
 
         final game = _gameFor(ArenaTheme.of(context));
+        final monsterName = _monsterName(context, state.monsterSkin);
 
         // O `ref.listen` acima só dispara em MUDANÇA — o primeiro estado
         // nunca passaria por ele, e a cena abriria sem monstro nenhum.
@@ -276,7 +285,28 @@ class _ArenaViewState extends ConsumerState<ArenaView>
         game.overdueLabel = (value) =>
             '+${value.overdueAmount.asCurrency(locale: context.locale)}';
 
-        final scene = ClipRect(child: GameWidget(game: game));
+        // A cena inteira é UM alvo para o leitor de tela: sem isto, o
+        // `GameWidget` é um retângulo mudo, e quem navega por semântica não
+        // tem como saber que existe uma luta ali — nem como abrir as duas
+        // folhas, que só tinham porta pelas barras.
+        final scene = Semantics(
+          container: true,
+          label: context.l10n.arenaSceneSemantics(
+            monsterName,
+            state.monsterHp.asCurrency(locale: context.locale),
+          ),
+          child: ClipRect(child: GameWidget(game: game)),
+        );
+
+        // O `GameWidget` não recorta sozinho, e a última fileira de tiles do
+        // chão passa da borda: sem o `ClipRect` o cenário vazava por cima do
+        // que estivesse embaixo.
+        final boxed = Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: arenaMaxSceneWidth),
+            child: scene,
+          ),
+        );
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -290,25 +320,29 @@ class _ArenaViewState extends ConsumerState<ArenaView>
               ),
               child: ArenaHud(
                 state: state,
-                monsterName: _monsterName(context, state.monsterSkin),
+                monsterName: monsterName,
                 compact: widget.compact,
                 onTapHeroes: _openHeroesSheet,
                 onTapMonster: _openMonsterSheet,
               ),
             ),
-            // O `GameWidget` não recorta sozinho, e a última fileira de tiles
-            // do chão passa da borda: sem o `ClipRect` o cenário vazava por
-            // cima do que estivesse embaixo.
             if (widget.sceneHeight == null)
-              Expanded(child: scene)
+              Expanded(child: boxed)
             else
-              SizedBox(height: widget.sceneHeight, child: scene),
+              SizedBox(height: widget.sceneHeight, child: boxed),
             // A faixa do HUD mensal, ainda vazia. Ver
-            // [arenaFooterSlotHeight].
-            SizedBox(
+            // [arenaFooterSlotHeight]. O filete em cima dela é o que separa
+            // "espaço reservado" de "cena cortada": sem a linha, a tarja
+            // escura no pé parecia a cena terminando no meio.
+            Container(
               key: const ValueKey('arena-footer-slot'),
               height: arenaFooterSlotHeight(compact: widget.compact),
               width: double.infinity,
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: AppColors.gameFrame, width: 0.5),
+                ),
+              ),
             ),
           ],
         );

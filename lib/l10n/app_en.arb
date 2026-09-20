@@ -1501,5 +1501,24 @@
         "type": "String"
       }
     }
+  },
+  "arenaSceneSemantics": "This week's fight: the heroes against {monster}, still at {remaining} of life.",
+  "@arenaSceneSemantics": {
+    "placeholders": {
+      "monster": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaDefeatedBanner": "Monster defeated — {amount} paid this week",
+  "@arenaDefeatedBanner": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   }
 }

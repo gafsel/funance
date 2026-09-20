@@ -139,20 +139,21 @@ class FinanceViewProviders {
         );
       });
 
-  static final history = StateNotifierProvider.autoDispose<
-    TransactionListNotifier,
-    InfiniteListState<TransactionQuery, InstallmentModel>
-  >((ref) {
-    // A aba de histórico guarda filtros e as páginas já carregadas; sem o
-    // keepAlive elas seriam descartadas a cada ida e volta para outra aba.
-    ref.keepAlive();
-    return TransactionListNotifier(
-      financeiroService: ref.watch(FinanceDomainProviders.service),
-    );
-  });
+  static final history =
+      StateNotifierProvider.autoDispose<
+        TransactionListNotifier,
+        InfiniteListState<TransactionQuery, InstallmentModel>
+      >((ref) {
+        // A aba de histórico guarda filtros e as páginas já carregadas; sem o
+        // keepAlive elas seriam descartadas a cada ida e volta para outra aba.
+        ref.keepAlive();
+        return TransactionListNotifier(
+          financeiroService: ref.watch(FinanceDomainProviders.service),
+        );
+      });
 
-  static final invoiceInstallmentsList =
-      StateNotifierProvider.autoDispose.family<
+  static final invoiceInstallmentsList = StateNotifierProvider.autoDispose
+      .family<
         TransactionListNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>,
         InvoiceKey
@@ -182,8 +183,8 @@ class FinanceViewProviders {
         );
       });
 
-  static final goalTransactions =
-      StateNotifierProvider.autoDispose.family<
+  static final goalTransactions = StateNotifierProvider.autoDispose
+      .family<
         TransactionListNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>,
         TransactionQuery
@@ -194,8 +195,8 @@ class FinanceViewProviders {
         );
       });
 
-  static final statement =
-      StateNotifierProvider.autoDispose.family<
+  static final statement = StateNotifierProvider.autoDispose
+      .family<
         AccountStatementNotifier,
         InfiniteListState<TransactionQuery, InstallmentModel>,
         ({String accountId, bool isFuture})
@@ -244,7 +245,9 @@ class FinanceViewProviders {
         account,
       ) {
         return ReconciliationNotifier(
-          reconciliationService: ref.watch(ReconciliationDomainProviders.service),
+          reconciliationService: ref.watch(
+            ReconciliationDomainProviders.service,
+          ),
           account: account,
           analytics: ref.watch(analyticsServiceProvider),
         );

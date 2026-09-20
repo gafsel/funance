@@ -94,9 +94,7 @@ List<Widget> transactionCategoryAndAccountFields(
     if (state.type == OrderType.transfer)
       AccountFormField(
         initialValue: state.accountIdTarget,
-        decoration: InputDecoration(
-          labelText: l10n.transactionToAccountLabel,
-        ),
+        decoration: InputDecoration(labelText: l10n.transactionToAccountLabel),
         onChanged: notifier.updateAccountIdTarget,
         validator: v.all([v.notEmpty()]),
         autoOpen:

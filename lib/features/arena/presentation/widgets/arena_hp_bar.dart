@@ -19,6 +19,11 @@ import 'package:funances/core/theme/app_spacing.dart';
 /// [mirrored] espelha tudo: o preenchimento cresce da direita para a
 /// esquerda, o chanfro fica na ponta esquerda e o conteúdo alinha à direita.
 /// É assim que a barra do monstro se opõe à dos heróis em vez de repeti-la.
+///
+/// O chanfro é cortado no recorte que envolve a barra INTEIRA, e por isso ele
+/// vale para a calha e para o preenchimento ao mesmo tempo — as duas pontas
+/// internas têm o mesmo bico. Um chanfro só no preenchimento deixaria um
+/// dente retangular de calha sobrando quando a vida encolhesse.
 class ArenaHpBar extends StatelessWidget {
   const ArenaHpBar({
     super.key,
@@ -62,60 +67,93 @@ class ArenaHpBar extends StatelessWidget {
 
     // O chanfro é cortado no espaço do FILHO e só depois espelhado: assim o
     // bico fica sempre na ponta voltada para o centro, com um clipper só.
+    //
+    // A MOLDURA é desenhada por fora do recorte, sobre o mesmo caminho: é ela
+    // que diz onde a barra está quando a vida acaba. Sem ela, uma barra vazia
+    // lia igual a "não há barra nenhuma aqui" — ver
+    // `test/arena/arena_contrast_test.dart`.
     return Transform.flip(
       flipX: mirrored,
-      child: ClipPath(
-        clipper: const _ChamferClipper(),
-        child: SizedBox(
-          height: height,
-          // `StackFit.expand` é obrigatório, não estilo: num `Stack` frouxo
-          // o `FractionallySizedBox` recebe altura nenhuma, e o `ColoredBox`
-          // dentro dele não tem tamanho próprio — a barra desenhava com
-          // ZERO de altura e a tela mostrava só a calha escura, com os
-          // números certos ao lado.
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              const ColoredBox(color: AppColors.surfaceDeep),
-              // 1. O fantasma: mesma fração, mas com atraso e mais devagar.
-              //    Fica POR BAIXO do preenchimento, então só aparece no
-              //    rastro do que encolheu.
-              _Fill(
-                ratio: ratio,
-                color: palette.dangerText,
-                duration: reduce
-                    ? Duration.zero
-                    : const Duration(milliseconds: 900),
-                curve: const Interval(0.45, 1, curve: Curves.easeOut),
-              ),
-              _Fill(
-                ratio: ratio,
-                color: fill,
-                duration: AppDurations.respectingMotion(
-                  context,
-                  AppDurations.celebrate,
+      child: CustomPaint(
+        foregroundPainter: const _FramePainter(),
+        child: ClipPath(
+          clipper: const _ChamferClipper(),
+          child: SizedBox(
+            height: height,
+            // `StackFit.expand` é obrigatório, não estilo: num `Stack` frouxo
+            // o `FractionallySizedBox` recebe altura nenhuma, e o `ColoredBox`
+            // dentro dele não tem tamanho próprio — a barra desenhava com
+            // ZERO de altura e a tela mostrava só a calha escura, com os
+            // números certos ao lado.
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // A calha tem cor PRÓPRIA. Na rodada 1 era o mesmo
+                // `surfaceDeep` do bloco, e uma barra quase vazia não tinha
+                // onde terminar: "5% de vida" lia igual a "não há barra
+                // nenhuma aqui".
+                const ColoredBox(color: AppColors.gameTrough),
+                // 1. O fantasma: mesma fração, mas com atraso e mais devagar.
+                //    Fica POR BAIXO do preenchimento, então só aparece no
+                //    rastro do que encolheu.
+                _Fill(
+                  ratio: ratio,
+                  color: palette.dangerText,
+                  duration: reduce
+                      ? Duration.zero
+                      : const Duration(milliseconds: 900),
+                  curve: const Interval(0.45, 1, curve: Curves.easeOut),
                 ),
-                curve: AppDurations.curve,
-              ),
-              // 2. A faixa comprometida: hachura, e não uma cor chapada.
-              //    Cor chapada leria como "outra vida"; a hachura lê como
-              //    "reservado". Ela mora na ponta CHEIA da barra porque o
-              //    que tem dono é a primeira coisa que sai.
-              if (committedRatio > 0)
-                _CommittedBand(
-                  extent: committedRatio,
-                  color: palette.onGame2,
+                _Fill(
+                  ratio: ratio,
+                  color: fill,
                   duration: AppDurations.respectingMotion(
                     context,
                     AppDurations.celebrate,
                   ),
+                  curve: AppDurations.curve,
                 ),
-            ],
+                // 2. A faixa comprometida: hachura, e não uma cor chapada.
+                //    Cor chapada leria como "outra vida"; a hachura lê como
+                //    "reservado". Ela mora na ponta CHEIA da barra porque o
+                //    que tem dono é a primeira coisa que sai.
+                if (committedRatio > 0)
+                  _CommittedBand(
+                    extent: committedRatio,
+                    color: palette.onGame2,
+                    duration: AppDurations.respectingMotion(
+                      context,
+                      AppDurations.celebrate,
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// O quadro claro em volta da barra, no mesmo bico do recorte.
+class _FramePainter extends CustomPainter {
+  const _FramePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawPath(
+      const _ChamferClipper().getClip(size),
+      Paint()
+        ..color = AppColors.gameFrame
+        ..style = PaintingStyle.stroke
+        // 1,5 e não 1: num aparelho de densidade alta uma linha de um ponto
+        // some contra o preenchimento claro do herói.
+        ..strokeWidth = 1.5,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_FramePainter oldDelegate) => false;
 }
 
 /// O bico da ponta interna.
@@ -227,7 +265,7 @@ class _HatchPainter extends CustomPainter {
 
     canvas.drawRect(
       Offset.zero & size,
-      Paint()..color = AppColors.surfaceDeep.withValues(alpha: 0.45),
+      Paint()..color = AppColors.gameTrough.withValues(alpha: 0.5),
     );
 
     for (var x = -size.height; x < size.width; x += step) {

@@ -118,11 +118,7 @@ class AllocationProgressBar extends ConsumerWidget {
 }
 
 class _Label extends StatelessWidget {
-  const _Label({
-    required this.text,
-    required this.color,
-    required this.align,
-  });
+  const _Label({required this.text, required this.color, required this.align});
 
   final String text;
   final Color color;

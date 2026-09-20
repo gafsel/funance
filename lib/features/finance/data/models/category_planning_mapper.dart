@@ -6,9 +6,6 @@ extension CategoryPlanningFirestoreX on DocumentSnapshot {
     final data = this.data() as Map<String, dynamic>?;
     if (data == null) throw Exception('CategoryPlanning data is null');
 
-    return CategoryPlanningModel.fromJson({
-      ...data,
-      'id': id,
-    });
+    return CategoryPlanningModel.fromJson({...data, 'id': id});
   }
 }

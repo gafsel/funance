@@ -17,9 +17,10 @@ class PeriodSummaryRepositoryImpl implements IPeriodSummaryRepository {
     int month,
   ) {
     final id = "$year-${month.toString().padLeft(2, '0')}";
-    return collection(workspaceId).doc(id).snapshots().map(
-          (doc) => doc.exists ? doc.toPeriodSummaryModel() : null,
-        );
+    return collection(workspaceId)
+        .doc(id)
+        .snapshots()
+        .map((doc) => doc.exists ? doc.toPeriodSummaryModel() : null);
   }
 
   @override
@@ -29,8 +30,9 @@ class PeriodSummaryRepositoryImpl implements IPeriodSummaryRepository {
     int week,
   ) {
     final id = "$year-W${week.toString().padLeft(2, '0')}";
-    return collection(workspaceId).doc(id).snapshots().map(
-          (doc) => doc.exists ? doc.toPeriodSummaryModel() : null,
-        );
+    return collection(workspaceId)
+        .doc(id)
+        .snapshots()
+        .map((doc) => doc.exists ? doc.toPeriodSummaryModel() : null);
   }
 }

@@ -1,5 +1,3 @@
-
-
 import 'package:funances/core/files/picked_document.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
@@ -9,12 +7,11 @@ import 'package:uuid/uuid.dart';
 
 part 'account_view_models.freezed.dart';
 
-
 @freezed
 sealed class AccountFormArgs with _$AccountFormArgs {
-  factory AccountFormArgs({AccountModel? account, AccountType? type}) = _AccountFormArgs;
+  factory AccountFormArgs({AccountModel? account, AccountType? type}) =
+      _AccountFormArgs;
 }
-
 
 enum AccountRegistrationMethod { document, manual }
 
@@ -52,6 +49,7 @@ sealed class AccountFormState with _$AccountFormState {
     PickedDocument? selectedFile,
     @Default(AccountProcessingStatus.none)
     AccountProcessingStatus processingStatus,
+
     /// O erro cru da análise do documento. A frase é montada na TELA, com
     /// `callableErrorMessage`/`errorMessageFor`: aqui não há idioma.
     Object? analysisError,
@@ -91,25 +89,25 @@ sealed class AccountFormState with _$AccountFormState {
     if (originalAccount != null) {
       return originalAccount!
           .copyWith(
-        name: name,
-        icon: icon,
-        color: color,
-        initialBalanceDate: initialBalanceDate,
-        initialBalance: initialBalance,
-        bankLogo: bankLogo,
-        ownerIds: ownerIds,
-      )
+            name: name,
+            icon: icon,
+            color: color,
+            initialBalanceDate: initialBalanceDate,
+            initialBalance: initialBalance,
+            bankLogo: bankLogo,
+            ownerIds: ownerIds,
+          )
           .map(
-        checking: (checking) => checking,
-        investment: (investment) =>
-            investment.copyWith(interestRate: interestRate!),
-        creditCard: (creditCard) => creditCard.copyWith(
-          dueDay: dueDay!,
-          closingDay: closingDay!,
-          limit: limit!,
-        ),
-        debt: (debt) => debt.copyWith(interestRate: interestRate!),
-      );
+            checking: (checking) => checking,
+            investment: (investment) =>
+                investment.copyWith(interestRate: interestRate!),
+            creditCard: (creditCard) => creditCard.copyWith(
+              dueDay: dueDay!,
+              closingDay: closingDay!,
+              limit: limit!,
+            ),
+            debt: (debt) => debt.copyWith(interestRate: interestRate!),
+          );
     }
 
     switch (type) {
@@ -168,10 +166,8 @@ sealed class AccountFormState with _$AccountFormState {
 
 @freezed
 sealed class CategoryAmountModel with _$CategoryAmountModel {
-
   factory CategoryAmountModel({
     required CategoryModel category,
     required double amount,
   }) = _CategoryAmountModel;
-
 }

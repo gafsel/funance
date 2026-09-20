@@ -82,7 +82,9 @@ class AccountViewProviders {
         final service = ref.watch(AccountDomainProviders.service);
 
         return Rx.combineLatestList(
-          accounts.map((account) => service.getLatestAccountBalance(account.id)),
+          accounts.map(
+            (account) => service.getLatestAccountBalance(account.id),
+          ),
         ).map(
           (balances) =>
               Money.sumOf(balances, (balance) => balance.balance).toDouble(),

@@ -286,12 +286,7 @@ class FinanceMapper {
   /// nome, devolve vazio — a tela diz "Sem categoria" no idioma de quem lê.
   static CategoryModel _toCategory(dynamic json) {
     if (json == null || json is! Map) {
-      return const CategoryModel(
-        id: '',
-        name: '',
-        icon: 'category',
-        color: '',
-      );
+      return const CategoryModel(id: '', name: '', icon: 'category', color: '');
     }
 
     return CategoryModel(
@@ -358,6 +353,7 @@ class FinanceMapper {
     if (value == 'pay_debt') return GoalType.payDebt;
     return GoalType.saveMoney;
   }
+
   static ReconciliationTransaction toReconciliationTransaction(dynamic json) {
     if (json == null || json is! Map) {
       return ReconciliationTransaction(

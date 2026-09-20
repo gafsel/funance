@@ -12,8 +12,7 @@ sealed class ReconciliationTransaction with _$ReconciliationTransaction {
   const factory ReconciliationTransaction({
     required String description,
     required double amount,
-    @DateTimeTwelvePmConverter()
-    required DateTime date,
+    @DateTimeTwelvePmConverter() required DateTime date,
     required OrderType type, // income or expense
     CategoryModel? category,
   }) = _ReconciliationTransaction;
@@ -22,12 +21,7 @@ sealed class ReconciliationTransaction with _$ReconciliationTransaction {
       _$ReconciliationTransactionFromJson(json);
 }
 
-enum ReconciliationMatchStatus {
-  matched,
-  unmatched,
-  suggested,
-  ignored,
-}
+enum ReconciliationMatchStatus { matched, unmatched, suggested, ignored }
 
 @freezed
 sealed class ReconciliationMatch with _$ReconciliationMatch {
@@ -35,7 +29,8 @@ sealed class ReconciliationMatch with _$ReconciliationMatch {
     ReconciliationTransaction? documentTransaction,
     InstallmentModel? systemInstallment,
     OrderModel? createdOrder,
-    @Default(ReconciliationMatchStatus.unmatched) ReconciliationMatchStatus status,
+    @Default(ReconciliationMatchStatus.unmatched)
+    ReconciliationMatchStatus status,
     String? customDescription,
     CategoryModel? customCategory,
     OrderType? customType,

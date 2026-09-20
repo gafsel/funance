@@ -43,11 +43,7 @@ abstract class IUnplannedNudgeStore {
     DateTime today,
   );
 
-  Future<void> markShown(
-    String workspaceId,
-    String categoryId,
-    DateTime today,
-  );
+  Future<void> markShown(String workspaceId, String categoryId, DateTime today);
 }
 
 /// Decide se o nudge de gasto não planejado deve aparecer.
@@ -92,8 +88,7 @@ class UnplannedNudgeService {
     // "Realizada": agendar um gasto JÁ é planejar, e perguntar sobre limite
     // nesse momento seria corrigir quem acabou de acertar.
     final isRealized =
-        status == InstallmentStatus.paid ||
-        status == InstallmentStatus.settled;
+        status == InstallmentStatus.paid || status == InstallmentStatus.settled;
     if (!isRealized) return null;
 
     // Casou com um agendamento: o gasto estava previsto, ainda que sem

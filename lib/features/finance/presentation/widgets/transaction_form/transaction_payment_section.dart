@@ -23,9 +23,7 @@ List<Widget> transactionPaymentFields(
 
   return [
     FullWidthItem(const Divider()),
-    FullWidthItem(
-      Text(l10n.paymentInfo, style: theme.textTheme.titleMedium),
-    ),
+    FullWidthItem(Text(l10n.paymentInfo, style: theme.textTheme.titleMedium)),
     DateFormField(
       initialValue: state.paidDate,
       onChanged: (date) {

@@ -2629,4 +2629,14 @@ class AppLocalizationsPt extends AppLocalizations {
   String arenaScheduledOn(String date) {
     return 'Agendado · $date';
   }
+
+  @override
+  String arenaSceneSemantics(String monster, String remaining) {
+    return 'A luta da semana: os heróis contra $monster, que ainda tem $remaining de vida.';
+  }
+
+  @override
+  String arenaDefeatedBanner(String amount) {
+    return 'Monstro derrotado — $amount pagos nesta semana';
+  }
 }

@@ -51,12 +51,12 @@ class ReconciliationRepositoryImpl implements IReconciliationRepository {
         .collection('reconciliations')
         .doc(recId)
         .set({
-      'id': recId,
-      'status': 'completed',
-      'confirmedMatchesCount': confirmedMatchesCount,
-      'totalTransactionsProcessed': totalTransactionsProcessed,
-      'createdTransactionsCount': createdTransactionsCount,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+          'id': recId,
+          'status': 'completed',
+          'confirmedMatchesCount': confirmedMatchesCount,
+          'totalTransactionsProcessed': totalTransactionsProcessed,
+          'createdTransactionsCount': createdTransactionsCount,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
   }
 }

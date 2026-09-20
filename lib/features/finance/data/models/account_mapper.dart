@@ -24,7 +24,9 @@ Map<String, dynamic> accountJsonFromFirestore(
     ...data,
     'id': id,
     if (data['initialBalanceDate'] is Timestamp)
-      'initialBalanceDate': (data['initialBalanceDate']! as Timestamp).toDate().toIso8601String(),
+      'initialBalanceDate': (data['initialBalanceDate']! as Timestamp)
+          .toDate()
+          .toIso8601String(),
     // F1.8: o resumo da próxima fatura vem do servidor com Timestamps
     // aninhados; `fromJson` só entende ISO.
     if (data['nextInvoice'] is Map)
@@ -70,7 +72,9 @@ extension AccountBalanceFirestoreX on DocumentSnapshot {
       ...data,
       'id': id,
       if (data['updatedAt'] is Timestamp)
-        'updatedAt': (data['updatedAt'] as Timestamp).toDate().toIso8601String(),
+        'updatedAt': (data['updatedAt'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
     });
   }
 }

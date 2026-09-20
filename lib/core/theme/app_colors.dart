@@ -27,6 +27,25 @@ abstract final class AppColors {
   /// Superfície elevada: cartões dentro de um bloco escuro.
   static const Color surfaceRaised = Color(0xFF1B5566);
 
+  /// A calha vazia das barras de vida: o que sobra quando a vida sai.
+  ///
+  /// Mais escura que [surfaceDeep] de propósito. Ela é o "sem vida", e
+  /// precisa ler como buraco — não como uma segunda cor de superfície.
+  ///
+  /// Ela sozinha NÃO se separa do fundo profundo (1,38:1), e isso é uma
+  /// escolha, não um descuido: quem delimita a barra é a moldura
+  /// ([gameFrame]). A conta que obriga a isso está em
+  /// `test/arena/arena_contrast_test.dart` — com o violeta do monstro, não
+  /// existe calha que se separe do fundo E deixe o preenchimento aparecer.
+  static const Color gameTrough = Color(0xFF05171D);
+
+  /// A moldura das barras de vida.
+  ///
+  /// É ela que diz ONDE a barra está, e por isso ela existe: uma barra quase
+  /// vazia sem moldura lia igual a "não há barra nenhuma aqui". É também a
+  /// solução que todo jogo de luta usa — o quadro claro em volta do HP.
+  static const Color gameFrame = Color(0xFFB7CDD3);
+
   /// Texto e ícones sobre superfície de jogo.
   static const Color inkInverse = Color(0xFFF7FAFB);
 
