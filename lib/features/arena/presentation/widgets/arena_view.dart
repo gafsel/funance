@@ -15,6 +15,21 @@ import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
+/// Altura da faixa reservada no PÉ da cena, em pixels lógicos.
+///
+/// Ela está vazia de propósito. O próximo pacote põe aí um HUD de escopo
+/// MENSAL — quatro ícones com anel de progresso (poção = investimentos,
+/// vila = categorias, ovo = cartões, gota = dívidas) —, e reservar a altura
+/// agora é o que evita que a chegada dele reorganize a cena, a altura da
+/// Home e os quatro goldens de uma vez.
+///
+/// Os dados que esse HUD vai querer já saem calculados daqui: `state.accounts`
+/// traz saldo de partida e saldo atual por conta, e `ArenaViewProviders`
+/// expõe as contas líquidas separadas por tipo. O que falta para ele — cartão,
+/// dívida e a receita prevista do mês — é consulta nova, e não recorte do que
+/// já existe.
+double arenaFooterSlotHeight({required bool compact}) => compact ? 56 : 64;
+
 /// A Arena montada: placar em cima, cena embaixo.
 ///
 /// Existe como widget, e não só como tela, porque ela é usada nos dois
@@ -257,6 +272,13 @@ class _ArenaViewState extends ConsumerState<ArenaView>
               Expanded(child: scene)
             else
               SizedBox(height: widget.sceneHeight, child: scene),
+            // A faixa do HUD mensal, ainda vazia. Ver
+            // [arenaFooterSlotHeight].
+            SizedBox(
+              key: const ValueKey('arena-footer-slot'),
+              height: arenaFooterSlotHeight(compact: widget.compact),
+              width: double.infinity,
+            ),
           ],
         );
       },

@@ -30,10 +30,15 @@ class ArenaHomeBlock extends ConsumerWidget {
   const ArenaHomeBlock({super.key});
 
   /// Fração da altura da tela que a cena ocupa no celular.
-  static const double compactSceneFraction = 0.34;
+  ///
+  /// Encolheu de 0,34 para 0,30 quando a faixa do HUD mensal foi reservada no
+  /// pé da cena (`arenaFooterSlotHeight`): o bloco inteiro tem um orçamento
+  /// de altura, e ele não podia crescer por causa de um espaço que ainda está
+  /// vazio.
+  static const double compactSceneFraction = 0.30;
 
   /// Teto da cena no desktop.
-  static const double wideSceneHeight = 220;
+  static const double wideSceneHeight = 190;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,8 +52,8 @@ class ArenaHomeBlock extends ConsumerWidget {
         final compact = constraints.layout.isCompact;
         final sceneHeight = compact
             ? (MediaQuery.sizeOf(context).height * compactSceneFraction).clamp(
-                150.0,
-                260.0,
+                140.0,
+                230.0,
               )
             : wideSceneHeight;
 

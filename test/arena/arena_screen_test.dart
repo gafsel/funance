@@ -348,6 +348,23 @@ void main() {
       expect(find.byType(ArenaHpBar), findsNWidgets(2));
     });
 
+    testWidgets('o pé da cena já tem a faixa reservada do HUD mensal', (
+      tester,
+    ) async {
+      await pumpArena(tester);
+
+      final slot = find.byKey(const ValueKey('arena-footer-slot'));
+      expect(
+        slot,
+        findsOneWidget,
+        reason:
+            'a faixa está vazia de propósito: o HUD de escopo mensal chega no '
+            'próximo pacote, e reservar a altura agora evita que ele '
+            'reorganize a cena, a altura da Home e os goldens de uma vez',
+      );
+      expect(tester.getSize(slot).height, 56);
+    });
+
     testWidgets('"reduzir movimento" não quebra nada', (tester) async {
       await pumpArena(tester, reduceMotion: true);
 
