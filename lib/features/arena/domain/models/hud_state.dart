@@ -420,16 +420,57 @@ class HudVillage {
 
   int get plannedCount => villagers.length;
 
-  /// A vila está de pé: a soma do realizado cabe na soma do planejado, com
-  /// pelo menos [hudVillageMinimum] aldeões.
+  /// A vila está de pé: os DOIS envelopes fechados, com pelo menos
+  /// [hudVillageMinimum] aldeões.
   ///
-  /// A soma é a das DESPESAS, e os aldeões de investimento ficam de fora
-  /// dela: somar um aporte ao gasto faria guardar dinheiro derrubar a vila,
-  /// que é exatamente o contrário do que o jogo premia. Eles contam um a um,
-  /// pelo próprio estado, no [aliveCount].
+  /// São dois, e não um só, porque as duas metades do plano se medem em
+  /// direções opostas: o envelope de DESPESA fecha gastando no máximo o
+  /// planejado; o de INVESTIMENTO, aportando no mínimo o planejado. É o
+  /// contrato que o backend (`wp/villagers-investment`) fechou, e o dono
+  /// aprovou com "acho justo, pode seguir".
+  ///
+  /// As duas consequências que um envelope só não dava:
+  ///
+  /// 1. **aporte generoso não paga estouro de despesa.** Com uma soma única,
+  ///    quem investisse R\$ 5.000 a mais compraria o direito de estourar o
+  ///    mercado em R\$ 5.000 — e a vila diria que o mês foi bom;
+  /// 2. **o envelope de investimento sozinho derruba a vila.** Quem planejou
+  ///    aportar e não aportou não fechou o plano que escreveu, ainda que não
+  ///    tenha gasto um centavo a mais.
+  ///
+  /// Sem nenhum aldeão de investimento, [investmentEnvelopeMet] é `true` por
+  /// vacuidade e a regra degenera na antiga — nenhum cofre sem categoria de
+  /// investimento muda de comportamento.
   bool get isAlive =>
       villagers.length >= hudVillageMinimum &&
-      expenseActualTotal <= expensePlannedTotal;
+      expenseEnvelopeMet &&
+      investmentEnvelopeMet;
+
+  /// O envelope de DESPESA fechou: gastou no máximo o planejado.
+  bool get expenseEnvelopeMet => expenseActualTotal <= expensePlannedTotal;
+
+  /// O envelope de INVESTIMENTO fechou: aportou no mínimo o planejado.
+  ///
+  /// Vila sem envelope de investimento nenhum (ninguém planejou aportar) o
+  /// tem por fechado: a ausência de meta não é meta descumprida.
+  bool get investmentEnvelopeMet =>
+      investmentPlannedTotal.cents <= 0 ||
+      investmentActualTotal >= investmentPlannedTotal;
+
+  /// A vila está EM RISCO: as despesas couberam e só falta o aporte.
+  ///
+  /// É o estado do meio do mês, e ele existe pela mesma razão do aldeão em
+  /// risco: ainda dá tempo de aportar, e chamar isso de vila caída seria dar
+  /// por perdido o que ainda se ganha. No FECHAMENTO não há meio-termo — o
+  /// retrato do servidor grava vivo ou caído.
+  bool get isAtRisk =>
+      villagers.length >= hudVillageMinimum &&
+      expenseEnvelopeMet &&
+      !investmentEnvelopeMet;
+
+  /// A vila CAIU: o envelope de despesa estourou.
+  bool get isFallen =>
+      villagers.length >= hudVillageMinimum && !expenseEnvelopeMet;
 
   /// Σ planejado só das DESPESAS.
   Money get expensePlannedTotal =>
@@ -438,6 +479,17 @@ class HudVillage {
   /// Σ realizado só das DESPESAS.
   Money get expenseActualTotal =>
       Money.sum(villagers.where((v) => !v.isInvestment).map((v) => v.actual));
+
+  /// Σ planejado só dos INVESTIMENTOS: o alvo do envelope de aporte.
+  Money get investmentPlannedTotal =>
+      Money.sum(villagers.where((v) => v.isInvestment).map((v) => v.planned));
+
+  /// Σ aportado.
+  Money get investmentActualTotal =>
+      Money.sum(villagers.where((v) => v.isInvestment).map((v) => v.actual));
+
+  /// Há envelope de investimento neste mês (alguém planejou aportar).
+  bool get hasInvestmentEnvelope => investmentPlannedTotal.isPositive;
 
   /// O anel: Σ realizado ÷ Σ planejado das despesas, de 0 a 1.
   double get ring {

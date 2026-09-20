@@ -4904,11 +4904,29 @@ abstract class AppLocalizations {
   /// **'{alive} de {planned} de pé'**
   String hudVillageAliveCount(int alive, int planned);
 
-  /// No description provided for @hudVillageSpent.
+  /// No description provided for @hudVillageEnvelopeExpense.
   ///
   /// In pt, this message translates to:
-  /// **'{actual} de {planned} gastos'**
-  String hudVillageSpent(String actual, String planned);
+  /// **'Despesas: {actual} de {planned}'**
+  String hudVillageEnvelopeExpense(String actual, String planned);
+
+  /// No description provided for @hudVillageEnvelopeInvestment.
+  ///
+  /// In pt, this message translates to:
+  /// **'Investimentos: {actual} de {planned}'**
+  String hudVillageEnvelopeInvestment(String actual, String planned);
+
+  /// No description provided for @hudVillageAtRisk.
+  ///
+  /// In pt, this message translates to:
+  /// **'A vila está em risco: as despesas couberam, mas falta aporte.'**
+  String get hudVillageAtRisk;
+
+  /// No description provided for @hudSemanticsVillageAtRisk.
+  ///
+  /// In pt, this message translates to:
+  /// **'vila em risco, falta aporte'**
+  String get hudSemanticsVillageAtRisk;
 
   /// No description provided for @hudVillageAlive.
   ///

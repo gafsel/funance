@@ -16,16 +16,23 @@ import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
-/// A tinta do anel da vila: verde enquanto cabe, laranja perto do limite,
-/// vermelho quando estourou.
+/// A tinta do anel da vila: verde enquanto cabe, laranja perto do limite ou
+/// com aporte faltando, vermelho quando estourou.
 ///
 /// A vila é o único dos quatro em que o anel JULGA, e ela pode: o limite é o
 /// que o próprio usuário escreveu. Nos outros três o anel só mede tamanho.
+///
+/// O anel MEDE o envelope de despesa — é o que o dono já viu, e a fração de
+/// um envelope só é a única que cabe num arco —, mas a TINTA leva os dois: a
+/// vila com as despesas em dia e o aporte faltando fica âmbar, e não verde.
+/// Verde ali seria o rodapé dizendo que o mês fechou quando metade do plano
+/// não fechou.
 Color hudVillageColor(HudVillage village) {
   if (village.isEmpty) return AppColors.inkInverse2;
 
   final progress = village.progress ?? 0;
   if (progress > 1) return AppColors.danger;
+  if (village.isAtRisk) return AppColors.warning;
   if (progress >= 0.9) return AppColors.warning;
   return AppColors.success;
 }
@@ -189,6 +196,12 @@ String hudCompactMoney(Money value, String locale) =>
       ? l10n.hudSemanticsVillageNeedsThree
       : village.isAlive
       ? l10n.hudSemanticsVillageAlive
+      // Quem não vê o anel âmbar precisa ouvir POR QUE a vila não está de
+      // pé: "falta aporte" e "o gasto passou do plano" pedem coisas
+      // opostas, e um "vila caída" para os dois casos mandaria o usuário
+      // cortar despesa justamente quando o que falta é guardar.
+      : village.isAtRisk
+      ? l10n.hudSemanticsVillageAtRisk
       : l10n.hudSemanticsVillageFallen,
 );
 

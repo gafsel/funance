@@ -348,7 +348,10 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          RegExp('^Vila: 12 de 18 aldeões vivos, vila viva'),
+          // O cofre real de setembro: as despesas couberam, mas a meta de
+          // R\$ 200 de "Investimentos" não recebeu nada — o segundo
+          // envelope está aberto, e a vila está EM RISCO, não viva.
+          RegExp('^Vila: 12 de 18 aldeões vivos, vila em risco, falta aporte'),
         ),
         findsOneWidget,
       );
@@ -627,6 +630,70 @@ void main() {
       expect(find.text('Vivos (12)'), findsOneWidget);
       expect(find.text('Caídos (5)'), findsOneWidget);
       expect(find.text('Em risco (1)'), findsOneWidget);
+    });
+
+    testWidgets('a folha mostra os DOIS envelopes, um em cada linha', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, size: const Size(400, 1600));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      // Sem a segunda linha, o usuário lia "despesas dentro do plano" ao
+      // lado de "a vila não está de pé" e concluía que o app errou a conta.
+      expect(
+        find.text('Despesas: R\$\u{00A0}14.912,20 de R\$\u{00A0}22.020,00'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Investimentos: R\$\u{00A0}0,00 de R\$\u{00A0}200,00'),
+        findsOneWidget,
+      );
+
+      // E a frase de estado diz qual dos dois está aberto.
+      expect(
+        find.text(
+          'A vila está em risco: as despesas couberam, mas falta aporte.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('sem meta de aporte, a linha de investimento não aparece', (
+      tester,
+    ) async {
+      // Vila sem envelope de investimento não tem o que mostrar ali, e uma
+      // linha "R\$ 0,00 de R\$ 0,00" é ruído.
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        hud: hudTestState(
+          categories: [
+            for (final nome in ['Mercado', 'Lazer', 'Saúde'])
+              HudCategoryReading(
+                categoryId: 'cat-$nome',
+                name: nome,
+                icon: 'shopping_cart',
+                color: '#FF5722',
+                isExpense: true,
+                isSystem: false,
+                planned: 1000,
+                actual: 400,
+              ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Despesas: '), findsOneWidget);
+      expect(find.textContaining('Investimentos: '), findsNothing);
+      expect(
+        find.text('A vila está de pé: a soma cabe no plano.'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('o aldeão de investimento enche o anel em âmbar', (

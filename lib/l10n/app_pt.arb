@@ -1684,17 +1684,12 @@
       }
     }
   },
-  "hudVillageSpent": "{actual} de {planned} gastos",
-  "@hudVillageSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
+  "hudVillageEnvelopeExpense": "Despesas: {actual} de {planned}",
+  "@hudVillageEnvelopeExpense": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageEnvelopeInvestment": "Investimentos: {actual} de {planned}",
+  "@hudVillageEnvelopeInvestment": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageAtRisk": "A vila está em risco: as despesas couberam, mas falta aporte.",
+  "hudSemanticsVillageAtRisk": "vila em risco, falta aporte",
   "hudVillageAlive": "A vila está de pé: a soma cabe no plano.",
   "hudVillageFallen": "A vila caiu: o gasto passou do plano.",
   "hudVillageNeedsThree": "A vila só conta com três aldeões ou mais.",

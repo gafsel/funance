@@ -2461,7 +2461,7 @@ razões.
 
 | Ícone | Dados usados | Fórmula | Escala | XP envolvido |
 |---|---|---|---|---|
-| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema **e `allocation`** | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **de pé** se `realizado ≤ planejado` na despesa comum e se `realizado ≥ planejado` na de `allocation: investment`; **HP** = `planejado − realizado` (na de investimento, `realizado − planejado`) | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` **das despesas** (o aporte fica fora da soma) com ≥ 3 aldeões | **+15** por aldeão de pé (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
+| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema **e `allocation`** | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **de pé** se `realizado ≤ planejado` na despesa comum e se `realizado ≥ planejado` na de `allocation: investment`; **HP** = `planejado − realizado` (na de investimento, `realizado − planejado`) | contagem `villagersAlive`/`villagersPlanned`; vila viva se **os DOIS envelopes fecham** — `Σ realizado ≤ Σ planejado` das despesas **e** `Σ realizado ≥ Σ planejado` dos investimentos — com ≥ 3 aldeões | **+15** por aldeão de pé (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
 | **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` — **todas juntas**: emergência e objetivo somam | `r = saldoInvestimentoCents / expectedIncome.cents` | sem classe abaixo de 0,5× (só a razão) · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
 | **Incubados** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o monstro não recebe o nome da classe | nenhum |
 | **Veneno** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo dos incubados | nenhum |
@@ -2607,12 +2607,42 @@ com `double`, e a vila morreria por ruído de representação.
 >   guardar dinheiro derrubar a vila.
 >
 > O **app já aplica** a regra nova (`HudVillager.state`, a partir de
-> `categories.allocation`). O **`evaluateMonthlyVillagersXp` ainda não**: ele
-> continua pagando pela regra antiga, e por isso um mês em que o usuário
-> aportou a meta paga menos XP do que o HUD projetou. O alinhamento do
-> servidor é um pacote de backend separado, e ele precisa ler `allocation`
-> no join de `categories` que o fechamento já faz. Enquanto isso não sai, a
-> divergência é do XP, não do que o usuário vê.
+> `categories.allocation`), e o backend a fechou em `wp/villagers-investment`
+> — o dono aprovou com *"acho justo, pode seguir"*.
+
+**A VILA tem dois envelopes, e ela precisa dos dois.**
+
+```
+vila viva ⇔ (Σ realizado das despesas orçadas  ≤ Σ planejado delas)
+          E (Σ realizado dos investimentos orçados ≥ Σ planejado deles)
+          E (≥ 3 aldeões)
+```
+
+As duas metades do plano se medem em direções OPOSTAS, e uma soma só não
+consegue medir as duas. O que os dois envelopes compram:
+
+- **aporte generoso não paga estouro de despesa.** Com soma única, quem
+  aportasse R$ 5.000 a mais comprava o direito de estourar o mercado em
+  R$ 5.000, e a vila dizia que o mês foi bom;
+- **o envelope de investimento sozinho derruba a vila.** Quem planejou
+  aportar e não aportou não fechou o plano que escreveu, ainda que não tenha
+  gasto um centavo a mais;
+- **sem nenhuma categoria de investimento a regra DEGENERA na antiga** — o
+  envelope vazio está fechado por vacuidade, e nenhum cofre que não usa
+  `allocation: investment` muda de comportamento. O teto de dez aldeões e o
+  mínimo de três continuam iguais.
+
+No app: o ANEL da vila continua sendo o progresso do envelope de DESPESA (a
+fração de um envelope só é a única que cabe num arco, e é o que o dono já
+viu), mas a TINTA e o ESTADO levam os dois — vila com despesas em dia e
+aporte faltando fica **âmbar, "em risco"**, e não verde. "Em risco" é estado
+de meio de mês: ainda dá para aportar. No FECHAMENTO não há meio-termo, e o
+retrato do servidor grava vivo ou caído. A folha mostra os dois envelopes,
+uma linha cada — *"Despesas: R$ 14.912,20 de R$ 22.020,00"* e
+*"Investimentos: R$ 0,00 de R$ 200,00"* —, porque sem a segunda linha o
+usuário lê "despesas dentro do plano" ao lado de "a vila não está de pé" e
+conclui que o app errou a conta. A semântica do ícone diz qual envelope está
+aberto: "vila em risco, falta aporte" pede o contrário de "vila caída".
 
 **Duas idempotências, e as duas são necessárias:**
 
@@ -2913,9 +2943,9 @@ HUD mensal, e que mexem em regra de jogo já publicada, em procedimento de
 operação ou em decisão que ainda é do dono. Ficam escritas para não virarem
 descoberta de novo.
 
-**6. O `evaluateMonthlyVillagersXp` precisa da regra invertida do aldeão de
-investimento.** O app já a aplica; o servidor ainda paga pela regra antiga.
-Ver o aviso em "Os aldeões: o XP mensal" — é pacote de backend separado.
+**6. ~~O `evaluateMonthlyVillagersXp` precisa da regra invertida~~ — FECHADA.**
+O backend a entregou em `wp/villagers-investment`, com os dois envelopes da
+vila; o app espelha o mesmo contrato. Ver "Os aldeões: o XP mensal".
 
 **7. Perguntas ainda abertas ao dono, levantadas neste pacote e NÃO
 decididas:** dois níveis de poção (emergência e objetivo separados na mesma

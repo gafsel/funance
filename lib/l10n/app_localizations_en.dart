@@ -2803,9 +2803,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String hudVillageSpent(String actual, String planned) {
-    return '$actual of $planned spent';
+  String hudVillageEnvelopeExpense(String actual, String planned) {
+    return 'Expenses: $actual of $planned';
   }
+
+  @override
+  String hudVillageEnvelopeInvestment(String actual, String planned) {
+    return 'Investments: $actual of $planned';
+  }
+
+  @override
+  String get hudVillageAtRisk =>
+      'The village is at risk: expenses fit, but the investment is short.';
+
+  @override
+  String get hudSemanticsVillageAtRisk => 'village at risk, investment short';
 
   @override
   String get hudVillageAlive => 'The village holds: the total fits the plan.';

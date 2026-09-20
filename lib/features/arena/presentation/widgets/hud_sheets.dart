@@ -75,7 +75,7 @@ class _HudSheet extends StatelessWidget {
     required this.color,
     required this.explanation,
     required this.children,
-    this.subtitle,
+    this.subtitles = const [],
     this.chip,
     this.stage = 0,
     this.progress = 0,
@@ -87,10 +87,14 @@ class _HudSheet extends StatelessWidget {
   /// O número grande: o total, a razão, a contagem de aldeões.
   final Widget headline;
 
-  final String? subtitle;
+  /// As linhas logo abaixo do número grande. São uma lista porque a vila
+  /// tem DOIS envelopes para mostrar — despesa e investimento —, e é a
+  /// comparação entre as duas linhas que explica uma vila caída com as
+  /// despesas em dia.
+  final List<String> subtitles;
 
   /// A pílula logo abaixo do número grande. Hoje só a poção tem uma: os
-  /// "meses de pé". Fica fora do [subtitle] porque não é uma frase — é um
+  /// "meses de pé". Fica fora das [subtitles] porque não é uma frase — é um
   /// número com unidade, e ele se lê de relance.
   final String? chip;
 
@@ -163,10 +167,10 @@ class _HudSheet extends StatelessWidget {
                 ),
               ),
             ],
-            if (subtitle != null) ...[
+            for (final linha in subtitles) ...[
               AppSpacing.gapXxs,
               Text(
-                subtitle!,
+                linha,
                 style: theme.textTheme.bodySmall?.copyWith(color: palette.ink2),
               ),
             ],
@@ -437,12 +441,14 @@ class _PotionSheet extends StatelessWidget {
       // o vocabulário que o dono pediu para o que se guarda. Abaixo de meio
       // mês de receita não há classe nenhuma — fica só a razão, e o chip de
       // meses de pé diz o resto.
-      subtitle: potion.ratio.isUnknown
-          ? null
+      subtitles: potion.ratio.isUnknown
+          ? const []
           : [
-              hudTierLabel(l10n, potion.ratio),
-              hudRatioOfIncome(l10n, potion.ratio, locale),
-            ].nonNulls.join(' · '),
+              [
+                hudTierLabel(l10n, potion.ratio),
+                hudRatioOfIncome(l10n, potion.ratio, locale),
+              ].nonNulls.join(' · '),
+            ],
       // O chip de MESES DE PÉ, logo abaixo do valor: a razão dita na unidade
       // que o dono quis ver no lugar da palavra que saiu — "quantos meses eu
       // aguento". É a mesma conta do anel; o que muda é que "1,5 meses de
@@ -499,15 +505,25 @@ class _VillageSheet extends StatelessWidget {
       headline: Text(
         l10n.hudVillageAliveCount(village.aliveCount, village.plannedCount),
       ),
-      subtitle: village.isEmpty
-          ? null
-          : l10n.hudVillageSpent(
-              // "gastos" é sobre DESPESA: um aporte de investimento não é
-              // gasto, e somá-lo aqui faria a linha acusar de gastador
-              // justamente quem guardou.
-              village.expenseActualTotal.format(locale: locale),
-              village.expensePlannedTotal.format(locale: locale),
-            ),
+      // Os DOIS envelopes, uma linha cada. É o que explica uma vila caída
+      // com as despesas em dia: sem a segunda linha, o usuário lê "R\$
+      // 14.912,20 de R\$ 22.020,00 gastos" ao lado de "a vila caiu" e conclui
+      // que o app errou a conta. A linha de investimento só aparece quando
+      // existe envelope de investimento — vila sem meta de aporte não tem o
+      // que mostrar, e uma linha "R\$ 0,00 de R\$ 0,00" é ruído.
+      subtitles: village.isEmpty
+          ? const []
+          : [
+              l10n.hudVillageEnvelopeExpense(
+                village.expenseActualTotal.format(locale: locale),
+                village.expensePlannedTotal.format(locale: locale),
+              ),
+              if (village.hasInvestmentEnvelope)
+                l10n.hudVillageEnvelopeInvestment(
+                  village.investmentActualTotal.format(locale: locale),
+                  village.investmentPlannedTotal.format(locale: locale),
+                ),
+            ],
       explanation: [
         isBusiness ? l10n.hudVillageGameBusiness : l10n.hudVillageGame,
         isBusiness ? l10n.hudVillageFinanceBusiness : l10n.hudVillageFinance,
@@ -524,6 +540,11 @@ class _VillageSheet extends StatelessWidget {
                 ? l10n.hudVillageNeedsThree
                 : village.isAlive
                 ? l10n.hudVillageAlive
+                // EM RISCO é o meio do mês: as despesas couberam e só falta
+                // aportar. No fechamento não há meio-termo, e o retrato do
+                // servidor grava vivo ou caído.
+                : village.isAtRisk
+                ? l10n.hudVillageAtRisk
                 : l10n.hudVillageFallen,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: village.isAlive ? palette.successText : palette.dangerText,
@@ -887,7 +908,7 @@ class _EggSheet extends StatelessWidget {
       // Sem classe: os incubados mostram a razão, e quem diz se ela é boa ou
       // ruim é a cor do anel e a mini explicação. "Gole" sobre R$ 20.187,80
       // em faturas elogiava o usuário pelo tamanho da dívida.
-      subtitle: hudRatioOfIncome(l10n, egg.ratio, locale),
+      subtitles: [?hudRatioOfIncome(l10n, egg.ratio, locale)],
       explanation: [l10n.hudEggGame, l10n.hudEggFinance, l10n.hudEggXp],
       children: [
         _IncomeNote(hud: hud),
@@ -1083,7 +1104,7 @@ class _DropSheet extends StatelessWidget {
       headline: Text(drop.total.format(locale: locale)),
       // Sem classe, pela mesma razão dos incubados: o que se DEVE não se
       // mede na escala do que se guarda.
-      subtitle: hudRatioOfIncome(l10n, drop.ratio, locale),
+      subtitles: [?hudRatioOfIncome(l10n, drop.ratio, locale)],
       explanation: [l10n.hudDropGame, l10n.hudDropFinance, l10n.hudDropXp],
       children: [
         _IncomeNote(hud: hud),

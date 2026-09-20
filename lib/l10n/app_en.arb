@@ -1684,17 +1684,12 @@
       }
     }
   },
-  "hudVillageSpent": "{actual} of {planned} spent",
-  "@hudVillageSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
+  "hudVillageEnvelopeExpense": "Expenses: {actual} of {planned}",
+  "@hudVillageEnvelopeExpense": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageEnvelopeInvestment": "Investments: {actual} of {planned}",
+  "@hudVillageEnvelopeInvestment": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageAtRisk": "The village is at risk: expenses fit, but the investment is short.",
+  "hudSemanticsVillageAtRisk": "village at risk, investment short",
   "hudVillageAlive": "The village holds: the total fits the plan.",
   "hudVillageFallen": "The village fell: spending went past the plan.",
   "hudVillageNeedsThree": "The village only counts with three villagers or more.",

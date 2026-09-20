@@ -692,6 +692,142 @@ void main() {
     });
   });
 
+  group('a vila tem DOIS envelopes', () {
+    // O contrato que o backend (wp/villagers-investment) fechou e o dono
+    // aprovou: vila viva ⇔ despesas dentro do planejado E investimentos
+    // acima do planejado. As duas metades do plano se medem em direções
+    // opostas, e uma soma só não consegue medir as duas.
+
+    test('sem categoria de investimento, degenera na regra antiga', () {
+      // Nenhum cofre que não usa allocation de investimento muda de
+      // comportamento: o envelope vazio está fechado por vacuidade.
+      final dentro = _hud(
+        categorias: [
+          _categoria('Mercado', planejado: 1000, realizado: 400),
+          _categoria('Lazer', planejado: 1000, realizado: 400),
+          _categoria('Saúde', planejado: 1000, realizado: 400),
+        ],
+      ).village;
+      final fora = _hud(
+        categorias: [
+          _categoria('Mercado', planejado: 1000, realizado: 4000),
+          _categoria('Lazer', planejado: 1000, realizado: 400),
+          _categoria('Saúde', planejado: 1000, realizado: 400),
+        ],
+      ).village;
+
+      expect(dentro.hasInvestmentEnvelope, isFalse);
+      expect(dentro.investmentEnvelopeMet, isTrue);
+      expect(dentro.isAlive, isTrue);
+      expect(fora.isAlive, isFalse);
+      expect(fora.isFallen, isTrue);
+    });
+
+    test('aporte generoso NÃO paga estouro de despesa', () {
+      // Com uma soma única, quem aportasse R$ 5.000 a mais compraria o
+      // direito de estourar o mercado em R$ 5.000 e a vila diria que o mês
+      // foi bom. São dois envelopes justamente para isso não acontecer.
+      final vila = _hud(
+        categorias: [
+          _categoria('Mercado', planejado: 1000, realizado: 6000),
+          _categoria('Lazer', planejado: 1000, realizado: 400),
+          _categoria('Saúde', planejado: 1000, realizado: 400),
+          _categoria(
+            'Investimentos',
+            planejado: 200,
+            realizado: 5200,
+            investimento: true,
+          ),
+        ],
+      ).village;
+
+      expect(vila.investmentEnvelopeMet, isTrue);
+      expect(vila.expenseEnvelopeMet, isFalse);
+      expect(vila.isAlive, isFalse);
+      expect(vila.isFallen, isTrue);
+      expect(vila.isAtRisk, isFalse);
+    });
+
+    test('o envelope de investimento sozinho derruba a vila', () {
+      // Quem planejou aportar e não aportou não fechou o plano que
+      // escreveu, ainda que não tenha gasto um centavo a mais.
+      final vila = _hud(
+        categorias: [
+          _categoria('Mercado', planejado: 1000, realizado: 400),
+          _categoria('Lazer', planejado: 1000, realizado: 400),
+          _categoria('Saúde', planejado: 1000, realizado: 400),
+          _categoria(
+            'Investimentos',
+            planejado: 200,
+            realizado: 50,
+            investimento: true,
+          ),
+        ],
+      ).village;
+
+      expect(vila.expenseEnvelopeMet, isTrue);
+      expect(vila.investmentEnvelopeMet, isFalse);
+      expect(vila.isAlive, isFalse);
+      // No meio do mês isso é RISCO, e não queda: ainda dá para aportar.
+      expect(vila.isAtRisk, isTrue);
+      expect(vila.isFallen, isFalse);
+      // E os 100 da vila não entram na projeção enquanto ela não fecha.
+      expect(vila.projectedXp, 3 * 15);
+    });
+
+    test('o teto de dez e o mínimo de três não mudaram', () {
+      final trinta = _hud(
+        categorias: [
+          for (var i = 0; i < 30; i++) _categoria('c$i', planejado: 10),
+          _categoria(
+            'Investimentos',
+            planejado: 200,
+            realizado: 200,
+            investimento: true,
+          ),
+        ],
+      ).village;
+      final dois = _hud(
+        categorias: [
+          _categoria('Mercado', planejado: 1000, realizado: 400),
+          _categoria(
+            'Investimentos',
+            planejado: 200,
+            realizado: 200,
+            investimento: true,
+          ),
+        ],
+      ).village;
+
+      expect(trinta.aliveCount, 31);
+      expect(trinta.isAlive, isTrue);
+      expect(trinta.projectedXp, 10 * 15 + 100);
+
+      expect(dois.isAlive, isFalse);
+      expect(dois.isAtRisk, isFalse);
+      expect(dois.isFallen, isFalse);
+    });
+
+    test('exatamente o alvo JÁ fecha o envelope de aporte', () {
+      final vila = _hud(
+        categorias: [
+          _categoria('Mercado', planejado: 1000, realizado: 400),
+          _categoria('Lazer', planejado: 1000, realizado: 400),
+          _categoria(
+            'Investimentos',
+            planejado: 200,
+            realizado: 200,
+            investimento: true,
+          ),
+        ],
+      ).village;
+
+      expect(vila.investmentActualTotal.cents, 20000);
+      expect(vila.investmentPlannedTotal.cents, 20000);
+      expect(vila.isAlive, isTrue);
+    });
+  });
+
   group('o ovo: as faturas por vir', () {
     test('a fatura VENCIDA vai para o topo da lista', () {
       // Ela continua entrando na soma — o contrato é Σ nextInvoice, e uma
