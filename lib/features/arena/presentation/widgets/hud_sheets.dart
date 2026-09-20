@@ -17,6 +17,7 @@ import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_account_logo.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
@@ -335,6 +336,7 @@ class _Line extends StatelessWidget {
     super.key,
     required this.name,
     required this.value,
+    this.accountId,
     this.support,
     this.supportColor,
     this.color,
@@ -342,6 +344,13 @@ class _Line extends StatelessWidget {
     this.onTap,
     this.footer,
   });
+
+  /// A conta de onde a linha saiu, quando ela é de uma CONTA.
+  ///
+  /// Com ele a linha ganha a logo do banco e os donos, como na Visão Geral;
+  /// sem ele — a categoria sem proteção da vila — fica o ícone da leitura.
+  /// Uma categoria não tem banco nem proprietário.
+  final String? accountId;
 
   final String name;
   final Money value;
@@ -377,19 +386,22 @@ class _Line extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: dot.withValues(alpha: 0.16),
-                    borderRadius: AppRadius.brSm,
+                if (accountId case final id?)
+                  HudAccountLogo(accountId: id, color: color, icon: icon)
+                else
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: dot.withValues(alpha: 0.16),
+                      borderRadius: AppRadius.brSm,
+                    ),
+                    child: Icon(
+                      icon?.asIcon() ?? Icons.circle,
+                      size: 16,
+                      color: dot,
+                    ),
                   ),
-                  child: Icon(
-                    icon?.asIcon() ?? Icons.circle,
-                    size: 16,
-                    color: dot,
-                  ),
-                ),
                 AppSpacing.gapXs,
                 Expanded(
                   child: Column(
@@ -536,6 +548,7 @@ class _PotionSheet extends StatelessWidget {
               key: ValueKey('hud-potion-${account.id}'),
               name: account.name,
               value: account.amount,
+              accountId: account.id,
               color: account.color,
               icon: 'savings',
               onTap: () => context.push('/accounts/${account.id}/statement'),
@@ -997,6 +1010,7 @@ class _EggSheet extends StatelessWidget {
               key: ValueKey('hud-invoice-${invoice.accountId}'),
               name: invoice.name,
               value: invoice.amount,
+              accountId: invoice.accountId,
               color: invoice.color,
               icon: 'credit_card',
               // A vencida diz que venceu, e diz em tinta de perigo. Ela
@@ -1194,6 +1208,7 @@ class _DropSheet extends StatelessWidget {
               key: ValueKey('hud-debt-${debt.accountId}'),
               name: debt.name,
               value: debt.balance,
+              accountId: debt.accountId,
               color: debt.color,
               icon: 'account_balance',
               support: debt.installment == null

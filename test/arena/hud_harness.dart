@@ -8,6 +8,7 @@ import 'package:funances/features/arena/domain/services/hud_calculator.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+import 'package:funances/features/finance/presentation/providers/account_view_providers.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
@@ -267,7 +268,7 @@ HudState hudTestState({
           debts ??
           const [
             HudBalanceReading(
-              accountId: 'itau',
+              accountId: 'emprestimo-itau',
               name: 'Empréstimo Itaú',
               balance: -7623.68,
               color: '#EC7000',
@@ -280,7 +281,11 @@ HudState hudTestState({
       // apresenta como o retrato do cofre do dono, e um número inventado
       // aqui é uma mentira que os goldens fotografam.
       debtInstallments: {
-        'itau': (
+        // O id do EMPRÉSTIMO, que não é o do cartão. Os dois se chamavam
+        // 'itau' aqui dentro, e no cofre real eles são duas contas — o que
+        // não fazia diferença enquanto a folha só mostrava nome e valor, e
+        // passou a fazer quando ela foi buscar a logo do banco pelo id.
+        'emprestimo-itau': (
           amount: Money.fromDouble(3811.78),
           dueDate: DateTime(2026, 9, 22),
         ),
@@ -313,6 +318,14 @@ Widget hudFooterApp(
       (ref) => asyncState ?? AsyncValue<HudState>.data(hud),
     ),
     ArenaViewProviders.isBusiness.overrideWith((ref) => isBusiness),
+    // A faixa vive sozinha neste harness — sem a Home e sem os dublês dela.
+    // As folhas mostram a logo do banco e os donos de cada conta, e o mapa
+    // é o caminho mais curto até isso: um `Provider` derivado, que aqui
+    // recebe o valor pronto em vez de um stream de mentira.
+    AccountViewProviders.byIdMap.overrideWithValue({
+      for (final conta in arenaTestAccounts()) conta.id: conta,
+    }),
+    ...arenaAccountOverrides(),
   ],
   child: MaterialApp.router(
     debugShowCheckedModeBanner: false,
