@@ -29,6 +29,12 @@ import 'package:funances/features/workspace/domain/repositories/category_reposit
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
+import 'package:funances/features/finance/presentation/screens/automatic_transactions_screen.dart';
+import 'package:funances/features/goal/presentation/screen/goals_screen.dart';
+import 'package:funances/features/home/presentation/screens/missions_screen.dart';
+import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
+import 'package:go_router/go_router.dart';
+
 import 'journey_fakes.dart';
 
 /// Monta a Home de verdade num teste de widget.
@@ -347,6 +353,50 @@ Widget homeApp(Widget home, {required List<Override> overrides}) =>
         home: Scaffold(body: home),
       ),
     );
+
+/// A Home dentro de um `MaterialApp.router`, para testar NAVEGAÇÃO.
+///
+/// As telas que a Home abre — `/missions`, `/goals`,
+/// `/automatic-transactions` — têm uma saída própria para quando não há
+/// histórico, e "não há histórico" só existe com um router de verdade: um
+/// `MaterialApp` comum não tem para onde voltar nem como provar que voltou.
+Widget homeRouterApp({
+  required List<Override> overrides,
+  required GoRouter router,
+}) => ProviderScope(
+  overrides: overrides,
+  child: MaterialApp.router(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    routerConfig: router,
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('pt'),
+  ),
+);
+
+/// Um router com as telas que a Home abre, e uma raiz reconhecível.
+GoRouter homeRouter({String initialLocation = '/'}) => GoRouter(
+  initialLocation: initialLocation,
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (_, _) => const Scaffold(body: Text('a raiz do app')),
+    ),
+    GoRoute(path: '/jornada', builder: (_, _) => const JourneyTab()),
+    GoRoute(path: '/missions', builder: (_, _) => const MissionsScreen()),
+    GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
+    GoRoute(
+      path: '/automatic-transactions',
+      builder: (_, _) => const AutomaticTransactionsScreen(),
+    ),
+  ],
+);
 
 List<Override> homeOverrides({
   List<WeeklyMissionModel> missions = const [],
