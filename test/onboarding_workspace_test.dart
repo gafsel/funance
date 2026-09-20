@@ -8,7 +8,10 @@ import 'package:funances/features/goal/domain/repositories/goal_repository.dart'
 import 'package:funances/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:funances/features/onboarding/domain/services/onboarding_service.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/user/domain/repositories/user_repository.dart';
+import 'package:funances/features/user/domain/services/user_service.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 import 'package:funances/features/workspace/domain/repositories/invite_repository.dart';
@@ -74,12 +77,34 @@ class _NaoUsadoMeta with _NaoUsado implements IGoalRepository {}
 
 class _NaoUsadoOnboarding with _NaoUsado implements OnboardingRepository {}
 
-({OnboardingNotifier notifier, _FakeWorkspaceRepository workspaces}) _montar() {
+/// Guarda o que foi escrito em `users/{uid}` — é onde o avatar do onboarding
+/// tem de aparecer.
+class _FakeUserRepository with _NaoUsado implements IUserRepository {
+  final List<(String, Map<String, dynamic>)> escritas = [];
+
+  @override
+  Future<void> updateUser(String id, Map<String, dynamic> data) async {
+    escritas.add((id, data));
+  }
+}
+
+({
+  OnboardingNotifier notifier,
+  _FakeWorkspaceRepository workspaces,
+  _FakeUserRepository users,
+})
+_montar({String? avatarAtual}) {
   final workspaces = _FakeWorkspaceRepository();
   final accounts = _FakeAccountRepository();
+  final users = _FakeUserRepository();
 
   final service = OnboardingService(
-    user: UserModel(id: 'u1', email: 'a@b.c', createdAt: DateTime(2026)),
+    user: UserModel(
+      id: 'u1',
+      email: 'a@b.c',
+      avatar: avatarAtual,
+      createdAt: DateTime(2026),
+    ),
     accountRepository: accounts,
     categoryRepository: _NaoUsadoCategoria(),
     financeRepository: _NaoUsadoFinance(),
@@ -99,16 +124,18 @@ class _NaoUsadoOnboarding with _NaoUsado implements OnboardingRepository {}
         workspaceId: 'w1',
         repository: _NaoUsadoCategoria(),
       ),
+      userService: UserService(users),
       analytics: FakeAnalyticsService(),
       today: DateTime(2026, 3, 10),
     ),
     workspaces: workspaces,
+    users: users,
   );
 }
 
 void main() {
   test('o documento NÃO nasce ao entrar no passo do nome', () async {
-    final (:notifier, :workspaces) = _montar();
+    final (:notifier, :workspaces, :users) = _montar();
 
     // type → name: o usuário ainda não digitou nada.
     notifier.setWorkspaceType(WorkspaceType.personal);
@@ -121,7 +148,7 @@ void main() {
   });
 
   test('nasce ao sair do passo, com o nome digitado', () async {
-    final (:notifier, :workspaces) = _montar();
+    final (:notifier, :workspaces, :users) = _montar();
 
     notifier.setWorkspaceType(WorkspaceType.personal);
     await Future<void>.delayed(Duration.zero);
@@ -137,7 +164,7 @@ void main() {
   });
 
   test('o passo seguinte atualiza o mesmo documento, sem criar outro', () async {
-    final (:notifier, :workspaces) = _montar();
+    final (:notifier, :workspaces, :users) = _montar();
 
     notifier.setWorkspaceType(WorkspaceType.personal);
     await Future<void>.delayed(Duration.zero);
@@ -152,5 +179,51 @@ void main() {
     expect(workspaces.criados, hasLength(1));
     expect(workspaces.atualizados, isNotEmpty);
     expect(workspaces.atualizados.every((w) => w.id == id), isTrue);
+  });
+
+  test('o avatar pré-selecionado é o cavaleiro para quem nunca escolheu', () {
+    final (:notifier, :workspaces, :users) = _montar();
+
+    expect(notifier.state.avatar, HeroSkin.knight);
+  });
+
+  test('quem já tem avatar reabre o onboarding com ele marcado', () {
+    final (:notifier, :workspaces, :users) = _montar(avatarAtual: 'healer');
+
+    expect(notifier.state.avatar, HeroSkin.healer);
+
+    // E um segundo cofre não reinicia a escolha do herói.
+    notifier.startNew();
+    expect(notifier.state.avatar, HeroSkin.healer);
+  });
+
+  test('a escolha do avatar vai para users/{uid} ao sair do passo', () async {
+    final (:notifier, :workspaces, :users) = _montar();
+
+    notifier.setWorkspaceType(WorkspaceType.personal);
+    await Future<void>.delayed(Duration.zero);
+
+    notifier.setAvatar(HeroSkin.ranger);
+    notifier.setWorkspaceName('Casa');
+
+    // Escolher não escreve: o usuário experimenta os oito antes de decidir.
+    expect(users.escritas, isEmpty);
+
+    await notifier.nextStep();
+
+    expect(users.escritas, hasLength(1));
+    expect(users.escritas.single.$1, 'u1');
+    expect(users.escritas.single.$2, {'avatar': 'ranger'});
+  });
+
+  test('quem pula o seletor sai com o padrão gravado', () async {
+    final (:notifier, :workspaces, :users) = _montar();
+
+    notifier.setWorkspaceType(WorkspaceType.personal);
+    await Future<void>.delayed(Duration.zero);
+    notifier.setWorkspaceName('Casa');
+    await notifier.nextStep();
+
+    expect(users.escritas.single.$2, {'avatar': 'knight'});
   });
 }
