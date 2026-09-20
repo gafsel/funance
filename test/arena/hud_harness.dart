@@ -26,7 +26,13 @@ import 'arena_harness.dart';
 final DateTime hudTestToday = DateTime(2026, 9, 20);
 
 /// R$ 18.550,00 — salário de R$ 17.000 mais R$ 1.550 de benefícios,
-/// agendados no mês.
+/// agendados no mês, no retrato da manhã de 20/09.
+///
+/// DEFASADO de propósito: às 12:37 do mesmo dia o servidor republicou
+/// `expectedIncome` como R$ 18.000,00 (planned). As três razões não mudam
+/// de dígito (< 0,1× · 1,1× · 0,4×), mas o valor aparece literal nas
+/// folhas e em goldens; a atualização fica para o próximo retrato mensal
+/// (ver README, "HUD mensal da Arena").
 final ExpectedIncome hudTestIncome = ExpectedIncome(
   monthKey: '2026-09',
   amount: Money.fromCents(1855000),
