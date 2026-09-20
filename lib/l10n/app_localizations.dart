@@ -4517,7 +4517,7 @@ abstract class AppLocalizations {
   /// No description provided for @arenaShortfall.
   ///
   /// In pt, this message translates to:
-  /// **'−{amount} em caixa'**
+  /// **'faltam {amount}'**
   String arenaShortfall(String amount);
 
   /// No description provided for @arenaShortfallLabel.

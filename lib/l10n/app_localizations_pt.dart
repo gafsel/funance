@@ -2568,7 +2568,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String arenaShortfall(String amount) {
-    return '−$amount em caixa';
+    return 'faltam $amount';
   }
 
   @override

@@ -322,8 +322,14 @@ class _HeroValue extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // O par fala a língua da BARRA: HP sobre régua, e não os saldos
+          // crus. O QA pegou os dois discordando — a barra media
+          // `heroHp/heroMaxHp` e o texto ao lado dizia "−R$ 6,4k / −R$ 6,4k",
+          // que é a leitura antiga e parece uma barra cheia escrita por
+          // extenso. Os saldos REAIS, com sinal, continuam na folha dos
+          // heróis, que é onde eles têm espaço para ser entendidos.
           AnimatedDouble(
-            value: state.currentBalance,
+            value: state.heroHp,
             formatter: (context, value) =>
                 value.asCompactCurrency(locale: context.locale),
             duration: AppDurations.respectingMotion(
@@ -334,7 +340,7 @@ class _HeroValue extends StatelessWidget {
             style: style,
           ),
           Text(
-            ' / ${state.initialBalance.asCompactCurrency(locale: context.locale)}',
+            ' / ${state.heroMaxHp.asCompactCurrency(locale: context.locale)}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: palette.onGame2,
               fontFeatures: const [FontFeature.tabularFigures()],
