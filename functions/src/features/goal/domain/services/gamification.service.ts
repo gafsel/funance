@@ -59,6 +59,7 @@ import {
     VILLAGE_MIN_VILLAGERS,
     VILLAGER_ALIVE_XP,
     VILLAGER_XP_CATEGORY_CAP,
+    VILLAGER_INVESTMENT_ALLOCATION,
     VillagerRow,
     VillagersOutcome,
     evaluateVillagers,
@@ -909,8 +910,8 @@ export const XP_SOURCES: XpSourceConfig[] = [
         name: { pt: "Aldeão protegido", en: "Villager protected" },
         xp: XP_VALUES.villagerAlive,
         description: {
-            pt: `Cada categoria com orçamento que fecha o MÊS sem estourar. Até ${VILLAGER_XP_CATEGORY_CAP} categorias por mês. Categoria sem orçamento não é aldeão e não perde nada.`,
-            en: `Each category with a budget that closes the MONTH without going over. Up to ${VILLAGER_XP_CATEGORY_CAP} categories per month. A category with no budget is not a villager and loses nothing.`,
+            pt: `Cada categoria com orçamento que fecha o MÊS sem estourar. Categoria de INVESTIMENTO é ao contrário: vive quem alcança o aporte planejado. Até ${VILLAGER_XP_CATEGORY_CAP} categorias por mês. Categoria sem orçamento não é aldeão e não perde nada.`,
+            en: `Each category with a budget that closes the MONTH without going over. An INVESTMENT category works the other way around: it survives by reaching the planned contribution. Up to ${VILLAGER_XP_CATEGORY_CAP} categories per month. A category with no budget is not a villager and loses nothing.`,
         },
     },
     {
@@ -918,8 +919,8 @@ export const XP_SOURCES: XpSourceConfig[] = [
         name: { pt: "Vila protegida", en: "Village protected" },
         xp: XP_VALUES.villageAlive,
         description: {
-            pt: `Bônus no fechamento do mês quando a soma do realizado fica dentro da soma do planejado, com pelo menos ${VILLAGE_MIN_VILLAGERS} categorias com orçamento.`,
-            en: `Bonus at month close when total spending stays within total budget, with at least ${VILLAGE_MIN_VILLAGERS} budgeted categories.`,
+            pt: `Bônus no fechamento do mês quando a soma do realizado fica dentro da soma do planejado — e, no investimento, alcança a soma dos aportes planejados —, com pelo menos ${VILLAGE_MIN_VILLAGERS} categorias com orçamento.`,
+            en: `Bonus at month close when total spending stays within total budget — and investment contributions reach their planned total — with at least ${VILLAGE_MIN_VILLAGERS} budgeted categories.`,
         },
     },
     {
@@ -2292,6 +2293,11 @@ export class GamificationService {
      *
      * É o que o `--dry-run` do script de recálculo executa, e é o que torna a
      * simulação honesta: ela roda exatamente o mesmo cálculo do `--apply`.
+     *
+     * A peneira também classifica cada linha em COMUM ou INVESTIMENTO pela
+     * `allocation` da categoria — é o único lugar do servidor que lê esse
+     * campo para o jogo, e é por isso que o cron, o retrato e o recálculo
+     * retroativo aplicam a regra invertida sem cada um ter a sua cópia dela.
      */
     async computeMonthlyVillagers(workspaceId: string, monthKey: string): Promise<VillagersOutcome> {
         if (!isMonthKey(monthKey)) {
@@ -2312,13 +2318,22 @@ export class GamificationService {
             if (row.type !== CategoryType.expense) continue;
             // SEM ORÇAMENTO NÃO É ALDEÃO. A categoria aparece no detalhe como
             // "sem proteção" e não perde nada: o jogo premia planejar de
-            // propósito, então quem ainda não planejou não é punido.
+            // propósito, então quem ainda não planejou não é punido. Vale
+            // também para o INVESTIMENTO: quem não declarou um alvo de aporte
+            // não falhou em alcançá-lo.
             if (row.generalPlannedAmountCents <= 0) continue;
 
             villagers.push({
                 categoryId: row.categoryId,
                 plannedCents: row.generalPlannedAmountCents,
                 actualCents: row.actualAmountCents,
+                // A `allocation` vem do documento ATUAL da categoria (o join
+                // que o repositório já faz), e não de uma cópia congelada no
+                // sumário: quem reclassifica uma categoria como investimento
+                // muda o que ela significa, inclusive no mês que está
+                // correndo. Categoria apagada nem chega aqui — o join a
+                // descarta antes.
+                isInvestment: row.allocation === VILLAGER_INVESTMENT_ALLOCATION,
             });
         }
 
