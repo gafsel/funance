@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
+import 'package:funances/core/intro/intro_store.dart';
 import 'package:funances/features/workspace/presentation/screens/badges_cabinet_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'golden_support.dart';
 
@@ -71,6 +73,14 @@ const _catalog = BadgeCatalog(
 );
 
 void main() {
+  // A vitrine passou a consultar "já vi a explicação". Os PNGs são do estado
+  // de todo dia — a apresentação tem captura própria, no pacote do HUD.
+  setUp(
+    () => SharedPreferences.setMockInitialValues({
+      IntroStore.keyFor(IntroKeys.badgesXpSources): true,
+    }),
+  );
+
   testWidgets('vitrine de emblemas — catálogo completo', (tester) async {
     await setGoldenSurface(tester, const Size(760, 1100));
 

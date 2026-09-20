@@ -24,6 +24,7 @@ class LevelHeaderCard extends StatelessWidget {
     required this.weeklyStreaks,
     required this.unlockedCount,
     required this.totalCount,
+    this.info,
   });
 
   final String workspaceName;
@@ -35,6 +36,14 @@ class LevelHeaderCard extends StatelessWidget {
   final int weeklyStreaks;
   final int unlockedCount;
   final int totalCount;
+
+  /// O ícone de informação da vitrine, no canto do cabeçalho.
+  ///
+  /// Ele entra AQUI, e não numa linha própria acima do cartão: a vitrine
+  /// existe para mostrar conquistas, e uma faixa só com um "i" custaria
+  /// quarenta pixels da dobra — que é justamente o que este pacote foi
+  /// devolver.
+  final Widget? info;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +93,7 @@ class LevelHeaderCard extends StatelessWidget {
               onGame: true,
               label: l10n.badgeCatalogTotal(unlockedCount, totalCount),
             ),
+            ?info,
           ],
         ),
         AppSpacing.gapLg,

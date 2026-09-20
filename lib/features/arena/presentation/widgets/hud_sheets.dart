@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_colors.dart';
@@ -16,9 +14,9 @@ import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
-import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
+import 'package:funances/core/intro/intro_store.dart';
+import 'package:funances/core/widgets/info_intro.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_account_logo.dart';
-import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:go_router/go_router.dart';
@@ -38,8 +36,8 @@ import 'package:go_router/go_router.dart';
 /// no meio do caminho. Ela vinha entre o número e a lista, e o dono mediu o
 /// resultado: *"a descrição ocupa muito espaço e o que importa fica espremido
 /// num scroll na parte de baixo da tela"*. Agora ela mora atrás do ícone de
-/// informação do cabeçalho ([HudExplanationButton]) e se apresenta sozinha na
-/// primeira abertura de cada folha — ver [HudIntroStore].
+/// informação do cabeçalho ([InfoIntroButton]) e se apresenta sozinha na
+/// primeira abertura de cada folha — ver [IntroStore].
 abstract final class HudSheets {
   static Future<void> potion(BuildContext context, HudState hud) {
     return _show(context, (context) => _PotionSheet(hud: hud));
@@ -127,78 +125,28 @@ class _HudSheet extends ConsumerStatefulWidget {
   ConsumerState<_HudSheet> createState() => _HudSheetState();
 }
 
-class _HudSheetState extends ConsumerState<_HudSheet> {
-  /// Onde o balão do desktop se ancora.
-  final GlobalKey _infoKey = GlobalKey();
+class _HudSheetState extends ConsumerState<_HudSheet>
+    with IntroPanelMixin<_HudSheet> {
+  @override
+  String get introKey => switch (widget.slot) {
+    HudSlot.potion => IntroKeys.hudPotion,
+    HudSlot.village => IntroKeys.hudVillage,
+    HudSlot.egg => IntroKeys.hudEgg,
+    HudSlot.drop => IntroKeys.hudDrop,
+  };
 
-  /// A apresentação automática acontece UMA vez por montagem da folha, e o
-  /// campo é o que garante isso: `addPostFrameCallback` roda por quadro, e
-  /// sem ele um rebuild abriria um segundo painel por cima do primeiro.
-  bool _introduced = false;
+  @override
+  Widget buildIntroBody(BuildContext context) =>
+      IntroLines(lines: widget.explanation);
+
+  /// A folha é modal: a explicação espera ela terminar de subir.
+  @override
+  Future<void> waitIntroEntrance() => waitModalEntrance(context);
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeIntroduce());
-  }
-
-  /// A primeira abertura desta folha mostra a explicação sozinha.
-  ///
-  /// A pergunta ao disco vem ANTES de qualquer espera de animação: quem já
-  /// leu não pode pagar nem um quadro de atraso por causa de quem nunca leu.
-  Future<void> _maybeIntroduce() async {
-    if (_introduced) return;
-    _introduced = true;
-
-    final store = ref.read(HudIntroProviders.store);
-    if (await store.wasSeen(widget.slot)) return;
-    if (!mounted) return;
-
-    // Esperar a folha TERMINAR de subir é o que tira o piscar: um painel que
-    // aparece enquanto a folha ainda desliza mostra as duas em movimento e
-    // faz o usuário achar que apertou duas vezes.
-    await _entered();
-    if (!mounted) return;
-
-    await _openExplanation();
-    await store.markSeen(widget.slot);
-  }
-
-  /// Completa quando a folha parou de entrar.
-  Future<void> _entered() {
-    final animation = ModalRoute.of(context)?.animation;
-    if (animation == null || animation.isCompleted) return Future<void>.value();
-
-    final completer = Completer<void>();
-
-    void listener(AnimationStatus status) {
-      if (status == AnimationStatus.completed ||
-          status == AnimationStatus.dismissed) {
-        animation.removeStatusListener(listener);
-        if (!completer.isCompleted) completer.complete();
-      }
-    }
-
-    animation.addStatusListener(listener);
-    return completer.future;
-  }
-
-  Future<void> _openExplanation() {
-    return showHudExplanation(
-      context,
-      lines: widget.explanation,
-      anchor: _anchor(),
-    );
-  }
-
-  /// O retângulo do ícone na tela, para o balão do desktop nascer colado
-  /// nele. Sem render box — folha ainda não medida — o painel cai no formato
-  /// de folha modal, que não depende de âncora.
-  Rect? _anchor() {
-    final box = _infoKey.currentContext?.findRenderObject();
-    if (box is! RenderBox || !box.hasSize) return null;
-
-    return box.localToGlobal(Offset.zero) & box.size;
+    scheduleIntro();
   }
 
   @override
@@ -249,10 +197,10 @@ class _HudSheetState extends ConsumerState<_HudSheet> {
                 // A porta da explicação, no canto do cabeçalho: longe do
                 // número grande, que é o que a folha existe para mostrar, e
                 // no mesmo lugar nas quatro folhas.
-                HudExplanationButton(
-                  key: _infoKey,
+                InfoIntroButton(
+                  key: introAnchorKey,
                   label: widget.howItWorks,
-                  onPressed: _openExplanation,
+                  onPressed: openIntro,
                 ),
               ],
             ),

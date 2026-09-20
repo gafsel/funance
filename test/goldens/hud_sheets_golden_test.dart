@@ -148,7 +148,7 @@ void main() {
         introSeen: false);
 
     await expectLater(
-      find.byKey(const ValueKey('hud-explanation')),
+      find.byKey(const ValueKey('intro-panel')),
       matchesGoldenFile('images/hud_explicacao.png'),
     );
   });

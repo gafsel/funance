@@ -6,11 +6,11 @@ import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/domain/services/hud_calculator.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
-import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
+import 'package:funances/core/intro/intro_store.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
 import 'package:funances/features/finance/presentation/providers/account_view_providers.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
-import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
+import 'package:funances/core/widgets/info_intro.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -413,7 +413,7 @@ Future<void> pumpHudFooter(
 }) async {
   SharedPreferences.setMockInitialValues({
     if (introSeen)
-      for (final slot in HudSlot.values) HudIntroStore.keyFor(slot): true,
+      for (final intro in IntroKeys.all) IntroStore.keyFor(intro): true,
   });
 
   tester.view.physicalSize = size;
@@ -457,6 +457,6 @@ Future<void> openHudSheet(WidgetTester tester, int index) async {
 
 /// Abre a explicação pelo ícone de informação do cabeçalho da folha.
 Future<void> openHudExplanation(WidgetTester tester) async {
-  await tester.tap(find.byType(HudExplanationButton));
+  await tester.tap(find.byType(InfoIntroButton));
   await tester.pumpAndSettle();
 }

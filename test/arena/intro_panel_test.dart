@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:funances/features/arena/domain/models/hud_state.dart';
-import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
-import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
+import 'package:funances/core/intro/intro_store.dart';
+import 'package:funances/core/widgets/info_intro.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'hud_harness.dart';
@@ -22,7 +21,7 @@ import 'hud_harness.dart';
 ///    folha a mostra sozinha — e a segunda, não.
 
 /// O painel de explicação está na tela?
-Finder get _painel => find.byKey(const ValueKey('hud-explanation'));
+Finder get _painel => find.byKey(const ValueKey('intro-panel'));
 
 /// Fecha a folha do HUD.
 ///
@@ -35,28 +34,28 @@ Future<void> _fecharFolha(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Future<bool?> _marcado(HudSlot slot) async =>
-    (await SharedPreferences.getInstance()).getBool(HudIntroStore.keyFor(slot));
+Future<bool?> _marcado(String intro) async =>
+    (await SharedPreferences.getInstance()).getBool(IntroStore.keyFor(intro));
 
 void main() {
   group('a memória do aparelho', () {
     test('sem marca, a folha nunca foi apresentada', () async {
       SharedPreferences.setMockInitialValues({});
-      final store = HudIntroStore();
+      final store = IntroStore();
 
-      expect(await store.wasSeen(HudSlot.potion), isFalse);
+      expect(await store.wasSeen(IntroKeys.hudPotion), isFalse);
     });
 
     test('a marca é por SLOT: ler sobre a poção não ensina a vila', () async {
       SharedPreferences.setMockInitialValues({});
-      final store = HudIntroStore();
+      final store = IntroStore();
 
-      await store.markSeen(HudSlot.potion);
+      await store.markSeen(IntroKeys.hudPotion);
 
-      expect(await store.wasSeen(HudSlot.potion), isTrue);
-      expect(await store.wasSeen(HudSlot.village), isFalse);
-      expect(await store.wasSeen(HudSlot.egg), isFalse);
-      expect(await store.wasSeen(HudSlot.drop), isFalse);
+      expect(await store.wasSeen(IntroKeys.hudPotion), isTrue);
+      expect(await store.wasSeen(IntroKeys.hudVillage), isFalse);
+      expect(await store.wasSeen(IntroKeys.hudEgg), isFalse);
+      expect(await store.wasSeen(IntroKeys.hudDrop), isFalse);
     });
 
     test('"rever as explicações" apaga as quatro de uma vez', () async {
@@ -65,14 +64,14 @@ void main() {
       // porta que enferruja: quando a opção chegar, ela não vai inventar uma
       // segunda forma de apagar as chaves.
       SharedPreferences.setMockInitialValues({
-        for (final slot in HudSlot.values) HudIntroStore.keyFor(slot): true,
+        for (final intro in IntroKeys.all) IntroStore.keyFor(intro): true,
       });
-      final store = HudIntroStore();
+      final store = IntroStore();
 
       await store.showAgain();
 
-      for (final slot in HudSlot.values) {
-        expect(await store.wasSeen(slot), isFalse, reason: slot.name);
+      for (final intro in IntroKeys.all) {
+        expect(await store.wasSeen(intro), isFalse, reason: intro);
       }
     });
   });
@@ -97,13 +96,13 @@ void main() {
 
       // A marca só é gravada quando o painel FECHA: enquanto ele está na
       // tela, ninguém leu nada ainda.
-      expect(await _marcado(HudSlot.potion), isNull);
+      expect(await _marcado(IntroKeys.hudPotion), isNull);
 
-      await tester.tap(find.byKey(const ValueKey('hud-explanation-got-it')));
+      await tester.tap(find.byKey(const ValueKey('intro-panel-got-it')));
       await tester.pumpAndSettle();
 
       expect(_painel, findsNothing);
-      expect(await _marcado(HudSlot.potion), isTrue);
+      expect(await _marcado(IntroKeys.hudPotion), isTrue);
     });
 
     testWidgets('tocar FORA do painel também conta como lido', (tester) async {
@@ -122,7 +121,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_painel, findsNothing);
-      expect(await _marcado(HudSlot.potion), isTrue);
+      expect(await _marcado(IntroKeys.hudPotion), isTrue);
     });
 
     testWidgets('na SEGUNDA vez a folha abre direto nos dados', (tester) async {
@@ -133,7 +132,7 @@ void main() {
       );
 
       await openHudSheet(tester, 0);
-      await tester.tap(find.byKey(const ValueKey('hud-explanation-got-it')));
+      await tester.tap(find.byKey(const ValueKey('intro-panel-got-it')));
       await tester.pumpAndSettle();
       await _fecharFolha(tester);
 
@@ -156,22 +155,22 @@ void main() {
 
       await openHudSheet(tester, 0);
       expect(_painel, findsOneWidget, reason: 'poção');
-      await tester.tap(find.byKey(const ValueKey('hud-explanation-got-it')));
+      await tester.tap(find.byKey(const ValueKey('intro-panel-got-it')));
       await tester.pumpAndSettle();
       await _fecharFolha(tester);
 
       await openHudSheet(tester, 1);
       expect(_painel, findsOneWidget, reason: 'vila');
       expect(find.textContaining('Cada categoria com orçamento'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('hud-explanation-got-it')));
+      await tester.tap(find.byKey(const ValueKey('intro-panel-got-it')));
       await tester.pumpAndSettle();
       await _fecharFolha(tester);
 
-      expect(await _marcado(HudSlot.potion), isTrue);
-      expect(await _marcado(HudSlot.village), isTrue);
+      expect(await _marcado(IntroKeys.hudPotion), isTrue);
+      expect(await _marcado(IntroKeys.hudVillage), isTrue);
       // As duas que ninguém abriu continuam devendo a aula.
-      expect(await _marcado(HudSlot.egg), isNull);
-      expect(await _marcado(HudSlot.drop), isNull);
+      expect(await _marcado(IntroKeys.hudEgg), isNull);
+      expect(await _marcado(IntroKeys.hudDrop), isNull);
 
       await openHudSheet(tester, 2);
       expect(_painel, findsOneWidget, reason: 'incubados');
@@ -223,7 +222,7 @@ void main() {
       await openHudExplanation(tester);
       expect(_painel, findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('hud-explanation-got-it')));
+      await tester.tap(find.byKey(const ValueKey('intro-panel-got-it')));
       await tester.pumpAndSettle();
 
       await openHudExplanation(tester);
@@ -299,7 +298,7 @@ void main() {
       // tela de distância do que ele abriu.
       expect(find.byType(BottomSheet), findsOneWidget);
 
-      final icone = tester.getRect(find.byType(HudExplanationButton));
+      final icone = tester.getRect(find.byType(InfoIntroButton));
       final balao = tester.getRect(_painel);
 
       // Encostado no ícone: embaixo dele quando cabe, em cima quando não

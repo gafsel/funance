@@ -921,11 +921,11 @@ void main() {
       // Quem já leu a explicação abre a folha e vê a conta: o texto está
       // atrás do ícone, e não mais entre o valor e a lista.
       expect(find.text('Cofrinho Disney'), findsOneWidget);
-      expect(find.byKey(const ValueKey('hud-explanation')), findsNothing);
+      expect(find.byKey(const ValueKey('intro-panel')), findsNothing);
 
       await openHudExplanation(tester);
 
-      expect(find.byKey(const ValueKey('hud-explanation')), findsOneWidget);
+      expect(find.byKey(const ValueKey('intro-panel')), findsOneWidget);
     });
 
     testWidgets('segurar abre a tela de dados', (tester) async {
@@ -955,11 +955,11 @@ void main() {
         await openHudSheet(tester, caso.indice);
 
         expect(find.text(caso.linha), findsOneWidget);
-        expect(find.byKey(const ValueKey('hud-explanation')), findsNothing);
+        expect(find.byKey(const ValueKey('intro-panel')), findsNothing);
 
         await openHudExplanation(tester);
 
-        expect(find.byKey(const ValueKey('hud-explanation')), findsOneWidget);
+        expect(find.byKey(const ValueKey('intro-panel')), findsOneWidget);
       });
     }
   });

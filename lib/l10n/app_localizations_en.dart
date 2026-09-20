@@ -2588,10 +2588,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudDropTitle => 'Poison';
 
   @override
-  String get hudExplanationTitle => 'How it works';
+  String get introPanelTitle => 'How it works';
 
   @override
-  String get hudExplanationGotIt => 'Got it';
+  String get introPanelGotIt => 'Got it';
+
+  @override
+  String get badgesXpSourcesHowItWorks => 'How to earn XP';
 
   @override
   String get hudPotionHowItWorks => 'How the Potion works';

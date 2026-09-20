@@ -2604,10 +2604,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hudDropTitle => 'Veneno';
 
   @override
-  String get hudExplanationTitle => 'Como funciona';
+  String get introPanelTitle => 'Como funciona';
 
   @override
-  String get hudExplanationGotIt => 'Entendi';
+  String get introPanelGotIt => 'Entendi';
+
+  @override
+  String get badgesXpSourcesHowItWorks => 'Como ganhar XP';
 
   @override
   String get hudPotionHowItWorks => 'Como funciona a Poção';

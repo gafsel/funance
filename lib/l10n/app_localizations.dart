@@ -4556,17 +4556,23 @@ abstract class AppLocalizations {
   /// **'Veneno'**
   String get hudDropTitle;
 
-  /// No description provided for @hudExplanationTitle.
+  /// No description provided for @introPanelTitle.
   ///
   /// In pt, this message translates to:
   /// **'Como funciona'**
-  String get hudExplanationTitle;
+  String get introPanelTitle;
 
-  /// No description provided for @hudExplanationGotIt.
+  /// No description provided for @introPanelGotIt.
   ///
   /// In pt, this message translates to:
   /// **'Entendi'**
-  String get hudExplanationGotIt;
+  String get introPanelGotIt;
+
+  /// No description provided for @badgesXpSourcesHowItWorks.
+  ///
+  /// In pt, this message translates to:
+  /// **'Como ganhar XP'**
+  String get badgesXpSourcesHowItWorks;
 
   /// No description provided for @hudPotionHowItWorks.
   ///
