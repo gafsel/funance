@@ -1422,4 +1422,46 @@ void main() {
       expect(find.text('Vai contar como Investimentos'), findsOneWidget);
     });
   });
+
+  /// O campo de data do formulário lia `DateTime.now()` direto, enquanto o
+  /// resto do app lê o `todayProvider`. Duas consequências: o golden do
+  /// lançamento gravava a data em que foi gerado e quebrava sozinho no dia
+  /// seguinte, e a virada de meia-noite — que o `todayProvider` existe para
+  /// tratar — não alcançava o campo mais visível da tela.
+  group('a data nova vem do relógio injetado', () {
+    final relogio = DateTime(2026, 3, 15);
+
+    test('o vencimento é o dia do relógio', () {
+      final state = TransactionFormState.creation(
+        type: OrderType.expense,
+        today: relogio,
+      );
+
+      expect(state.dueDate, relogio);
+      expect(state.paidDate, relogio);
+    });
+
+    test('uma data pedida por quem abre continua mandando', () {
+      final escolhida = DateTime(2026, 1, 2);
+
+      final state = TransactionFormState.creation(
+        type: OrderType.expense,
+        date: escolhida,
+        today: relogio,
+      );
+
+      expect(state.dueDate, escolhida);
+    });
+
+    test('agendamento não nasce pago', () {
+      final state = TransactionFormState.creation(
+        type: OrderType.expense,
+        status: InstallmentStatus.pending,
+        today: relogio,
+      );
+
+      expect(state.dueDate, relogio);
+      expect(state.paidDate, isNull);
+    });
+  });
 }

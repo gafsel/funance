@@ -224,7 +224,18 @@ sealed class TransactionFormState with _$TransactionFormState {
     String? description,
     DateTime? date,
     double? amount,
+
+    /// O dia corrente, do relógio INJETADO.
+    ///
+    /// Sem ele a fábrica lia `DateTime.now()` — e "hoje" deixava de ser
+    /// testável justamente no campo mais visível do formulário. O golden do
+    /// lançamento gravava a data em que ele foi gerado e quebrava sozinho no
+    /// dia seguinte, sem ninguém ter mexido na tela; o resto do app já lia o
+    /// `todayProvider`, que existe para isso (e é o que faz a virada de
+    /// meia-noite funcionar).
+    DateTime? today,
   }) {
+    final agora = today ?? DateTime.now();
     final effectiveStatus = status ?? InstallmentStatus.paid;
     final isPaid =
         effectiveStatus == InstallmentStatus.paid ||
@@ -234,8 +245,8 @@ sealed class TransactionFormState with _$TransactionFormState {
       formType: TransactionFormType.order,
       type: type,
       category: category,
-      dueDate: date ?? DateTime.now(),
-      paidDate: isPaid ? date ?? DateTime.now() : null,
+      dueDate: date ?? agora,
+      paidDate: isPaid ? date ?? agora : null,
       status: effectiveStatus,
       installmentType: installmentType ?? InstallmentType.single,
       accountIdSource: accountIdSource,

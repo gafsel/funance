@@ -60,6 +60,7 @@ class FinanceViewProviders {
             amount: args.amount,
             description: args.description,
             date: args.date,
+            today: ref.watch(todayProvider),
           ),
           financeService: ref.watch(FinanceDomainProviders.service),
           analytics: ref.watch(analyticsServiceProvider),
