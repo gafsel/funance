@@ -205,6 +205,24 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Centros de custo'), findsNothing);
+      expect(find.text('Vila'), findsOneWidget);
+    });
+
+    testWidgets('e a FOLHA da vila também se chama Vila na empresa', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, isBusiness: true, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vila'), findsOneWidget);
+
+      // "Centro de custo" sobrevive onde ele é a coisa CERTA de dizer: o
+      // texto financeiro da mini explicação, que fala do plano real da
+      // empresa e não do jogo.
+      expect(find.textContaining('limite por centro de custo'), findsOneWidget);
+      expect(find.textContaining('Cada linha do plano'), findsOneWidget);
     });
 
     testWidgets('a poção pequena não vira zero: "< 0,1×"', (tester) async {
@@ -216,7 +234,9 @@ void main() {
       // R$ 263,41 sobre R$ 18.550,00 — a folha diz a classe E a razão, e a
       // razão não pode negar um saldo que existe.
       expect(
-        find.text('gole · < 0,1× da receita prevista do mês (R\$\u{00A0}18.550,00)'),
+        find.text(
+          'gole · < 0,1× da receita prevista do mês (R\$\u{00A0}18.550,00)',
+        ),
         findsOneWidget,
       );
     });
@@ -319,7 +339,9 @@ void main() {
 
       expect(
         find.bySemanticsLabel(
-          RegExp('^Ovo: R\\\$\u{00A0}20[.]187,80, receita prevista ainda não calculada'),
+          RegExp(
+            '^Ovo: R\\\$\u{00A0}20[.]187,80, receita prevista ainda não calculada',
+          ),
         ),
         findsOneWidget,
       );
