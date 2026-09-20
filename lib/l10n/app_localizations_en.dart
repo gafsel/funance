@@ -701,9 +701,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get declineButton => 'Decline';
 
   @override
-  String get homeJourneyTab => 'The Journey';
-
-  @override
   String get homeOverviewTab => 'Overview';
 
   @override
@@ -1573,28 +1570,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get returnToPending => 'Return to Pending';
 
   @override
-  String get partyHpLabel => 'Party health';
-
-  @override
-  String get partyStatusHealthy => 'Party safe';
-
-  @override
-  String get partyStatusStrained => 'Party in danger';
-
-  @override
-  String get partyStatusDefeated => 'Party defeated';
-
-  @override
-  String get partyTitle => 'Your Party';
-
-  @override
   String get planned => 'Planned';
 
   @override
   String get actual => 'Actual';
-
-  @override
-  String get excess => 'Excess';
 
   @override
   String get registerInvoicePayment => 'Register Invoice Payment';
@@ -1634,9 +1613,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachingNoSlides => 'No slides were generated. Please try again.';
 
   @override
-  String get coachingViewHistory => 'View history';
-
-  @override
   String get coachingHistoryTitle => 'Insights History';
 
   @override
@@ -1669,18 +1645,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get transactions => 'Transactions';
-
-  @override
-  String get challengeStatusStable => 'Stable';
-
-  @override
-  String get challengeStatusWarning => 'Warning';
-
-  @override
-  String get challengeStatusCritical => 'Critical';
-
-  @override
-  String get rest => 'Rest';
 
   @override
   String get category => 'Category';
@@ -1920,19 +1884,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String goalOverLimit(String amount) {
     return '$amount over';
   }
-
-  @override
-  String get partyEmptyTitle => 'Your party has no challenges yet';
-
-  @override
-  String get partyEmptyMessage =>
-      'Every category spending limit becomes a party challenge. Create the first one and follow it here.';
-
-  @override
-  String get partyEmptyButton => 'Create first limit';
-
-  @override
-  String get partyErrorMessage => 'We could not load the party status.';
 
   @override
   String get badgeCatalogUnavailableTitle => 'Catalog unavailable';
@@ -2332,7 +2283,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionCtaPlanning503020 => 'Open the 50-30-20';
 
   @override
-  String get missionCtaCategories => 'See the Party';
+  String get missionCtaCategories => 'See categories';
 
   @override
   String get missionCtaAccounts => 'See accounts';
@@ -2357,17 +2308,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String levelBadgeSemantics(int level, int percent) {
     return 'Vault level $level, $percent% to the next one';
-  }
-
-  @override
-  String get compassStripTitle => 'Compass';
-
-  @override
-  String get compassStripOpen => 'See the full Compass';
-
-  @override
-  String compassStripDelta(String points) {
-    return '$points since last month';
   }
 
   @override
@@ -2405,6 +2345,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String automaticTransactionPendingCount(int count) {
+    return '$count pending';
+  }
+
+  @override
   String get goalsTitle => 'Goals';
 
   @override
@@ -2439,17 +2384,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get arenaExhausted => 'Exhausted';
-
-  @override
-  String get arenaHint =>
-      'Tap the monster to confirm a payment. Tap the heroes to see the accounts.';
-
-  @override
   String get automaticTransactionSeeAllShort => 'See all';
-
-  @override
-  String get arenaWeekChallenge => 'This week\'s challenge';
 
   @override
   String get arenaFree => 'Free';
@@ -2575,11 +2510,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String arenaSceneSemantics(String monster, String remaining) {
     return 'This week\'s fight: the heroes against $monster, still at $remaining of life.';
-  }
-
-  @override
-  String arenaDefeatedBanner(String amount) {
-    return 'Monster defeated — $amount paid this week';
   }
 
   @override

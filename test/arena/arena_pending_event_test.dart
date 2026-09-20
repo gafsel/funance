@@ -5,9 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
-import 'package:funances/features/arena/presentation/widgets/arena_home_block.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 import 'package:go_router/go_router.dart';
 
+import '../support/home_harness.dart';
 import 'arena_harness.dart';
 
 /// O golpe que espera a cena voltar à frente.
@@ -33,16 +34,13 @@ Future<void> _navegar(WidgetTester tester) async {
   }
 }
 
-/// Uma Home de mentira com o bloco da Arena, e uma rota empilhada que imita o
-/// formulário de lançamento.
+/// A Home — que agora É a Arena — e uma rota empilhada que imita o formulário
+/// de lançamento.
 Widget _app() => MaterialApp.router(
   debugShowCheckedModeBanner: false,
   routerConfig: GoRouter(
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (_, _) => const Scaffold(body: ArenaHomeBlock()),
-      ),
+      GoRoute(path: '/', builder: (_, _) => const Scaffold(body: ArenaTab())),
       GoRoute(
         path: '/transactions/form',
         builder: (_, _) => const Scaffold(body: Center(child: Text('form'))),
@@ -54,6 +52,17 @@ Widget _app() => MaterialApp.router(
   locale: const Locale('pt'),
 );
 
+/// Os mesmos dublês da Home: a cena carrega os ícones de missões, Bússola,
+/// coach e pendências, e cada um deles lê um provider.
+List<Override> _overrides() => homeOverrides(
+  extra: [
+    ArenaViewProviders.state.overrideWith(
+      (ref) => AsyncValue<ArenaState>.data(arenaTestState()),
+    ),
+    ArenaViewProviders.isBusiness.overrideWith((ref) => false),
+  ],
+);
+
 void main() {
   testWidgets(
     'o golpe espera o formulário sair da frente — e vale para o SEGUNDO '
@@ -63,14 +72,7 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
 
-      final container = ProviderContainer(
-        overrides: [
-          ArenaViewProviders.state.overrideWith(
-            (ref) => AsyncValue<ArenaState>.data(arenaTestState()),
-          ),
-          ArenaViewProviders.isBusiness.overrideWith((ref) => false),
-        ],
-      );
+      final container = ProviderContainer(overrides: _overrides());
       addTearDown(container.dispose);
 
       await tester.runAsync(() async {
@@ -89,7 +91,7 @@ void main() {
       Future<void> lancar(double valor) async {
         // 1. o usuário abre o formulário: a Home continua MONTADA, mas deixa
         //    de ser a rota da frente.
-        final context = tester.element(find.byType(ArenaHomeBlock));
+        final context = tester.element(find.byType(ArenaTab));
         unawaited(GoRouter.of(context).push<void>('/transactions/form'));
         await _navegar(tester);
 
@@ -142,14 +144,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    final container = ProviderContainer(
-      overrides: [
-        ArenaViewProviders.state.overrideWith(
-          (ref) => AsyncValue<ArenaState>.data(arenaTestState()),
-        ),
-        ArenaViewProviders.isBusiness.overrideWith((ref) => false),
-      ],
-    );
+    final container = ProviderContainer(overrides: _overrides());
     addTearDown(container.dispose);
 
     await tester.runAsync(() async {

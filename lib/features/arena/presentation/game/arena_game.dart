@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/foundation.dart' show clampDouble;
+import 'package:flutter/foundation.dart' show clampDouble, visibleForTesting;
 import 'package:flutter/painting.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
@@ -17,7 +17,14 @@ import 'package:funances/features/arena/presentation/game/arena_theme.dart';
 /// A conversão para pixels é do `camera.viewfinder.zoom` — sem
 /// `FixedResolutionViewport`, sem tarja preta e com uma arte só do celular ao
 /// macOS.
-const double arenaPreferredHeight = 110;
+///
+/// Subiu de 110 para 200 com o full-bleed. Enquanto a cena era um bloco de
+/// 190px no topo da Home, 110 unidades de mundo eram a tela inteira dela; com
+/// a caixa passando a ter 900px de altura num monitor, o mesmo número pedia
+/// um zoom de 8× e o mago saía com duzentos pixels de altura — a luta virava
+/// um close. O celular não muda: lá quem manda é o teto de zoom da largura
+/// mínima de mundo.
+const double arenaPreferredHeight = 200;
 
 /// A cena nunca é mais estreita que isto, em unidades de mundo.
 ///
@@ -36,16 +43,27 @@ const double arenaMaxWorldWidth = 280;
 /// monstro um pouco menor.
 const double arenaCompactWidth = 165;
 
-/// Altura MÁXIMA da parede, em unidades de mundo. O resto, para baixo, é
-/// chão.
+/// A parede, em unidades de mundo: uma fração do PALCO — o que sobra da caixa
+/// depois do véu do topo — com um piso que vem do tamanho do bicho.
 ///
-/// É um TETO, e não um piso do chão, e a diferença apareceu na captura: com
-/// um piso fixo de chão, a caixa larga e baixa do desktop (61 unidades de
-/// altura) gastava 58 delas em areia e deixava três unidades de tijolo — uma
-/// listra cinza no topo, que não é cenário nenhum. Com um teto de parede, as
-/// duas proporções ficam iguais: metade e metade quando a caixa é baixa,
-/// parede constante e chão crescendo quando ela é alta.
-const double arenaMaxWallBand = 38;
+/// A fração sozinha já falhou duas vezes, e pelo mesmo motivo: ela mede a
+/// caixa, e quem dá escala à cena é o BONECO. O QA mediu o resultado — 108px
+/// de parede contra 115px de monstro num celular, 123 contra 206 num monitor:
+/// uma aranha maior que a muralha atrás dela. Num jogo de plataforma isso
+/// não é estilo, é erro de proporção.
+///
+/// [arenaWallToActor] é o piso que conserta isso: a faixa de tijolo nunca
+/// mede menos que 1,3 vezes a altura do ator mais alto. A fração continua
+/// existindo para dar mais parede quando há folga — ela é o que faz a caixa
+/// alta do celular ter horizonte em vez de um friso.
+const double arenaWallFraction = 0.30;
+
+/// Quantas vezes o boneco mais alto a parede tem de medir, no mínimo.
+const double arenaWallToActor = 1.3;
+
+/// Teto da parede, como fração do palco. Sem ele, uma caixa muito baixa com
+/// um monstro grande viraria um muro com um tapete embaixo.
+const double arenaMaxWallShare = 0.55;
 
 /// O cenário: parede de tijolo em cima, chão de areia embaixo.
 ///
@@ -64,7 +82,7 @@ class _ArenaBackdrop extends Component {
 
   double _worldWidth = arenaMinWorldWidth;
   double _worldHeight = arenaPreferredHeight;
-  double _horizon = arenaPreferredHeight - arenaMaxWallBand;
+  double _horizon = arenaPreferredHeight * arenaWallFraction;
 
   void resize(double width, double height, double horizon) {
     _worldWidth = width;
@@ -108,6 +126,30 @@ class _ArenaBackdrop extends Component {
     }
 
     _renderWallShade(canvas, line);
+    _renderFloorShade(canvas, line);
+  }
+
+  /// Escurece o chão do horizonte para baixo.
+  ///
+  /// Com a cena ocupando a aba inteira, um monitor ganhou quatrocentos pixels
+  /// de areia lisa embaixo dos bonecos — e areia lisa não tem profundidade
+  /// nenhuma. O degradê é a mesma ideia da sombra da parede, virada para o
+  /// outro lado: o chão desce na direção de quem olha em vez de ficar
+  /// deitado.
+  void _renderFloorShade(Canvas canvas, double line) {
+    if (line >= _worldHeight) return;
+
+    final rect = Rect.fromLTWH(0, line, _worldWidth, _worldHeight - line);
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[theme.wallShadeBottom, theme.floorShade],
+        ).createShader(rect),
+    );
   }
 
   /// Escurece a parede de cima para baixo.
@@ -167,6 +209,37 @@ class ArenaGame extends FlameGame {
 
   bool get isSceneReady => _monster != null;
 
+  /// O monstro, para quem precisa medir a TINTA dele.
+  ///
+  /// Existe por causa de um defeito que nenhuma captura pega: o efeito de
+  /// susto da morte engolia o filtro de cadáver e deixava o bicho deitado em
+  /// cor cheia. Isso não se prova por pixel — prova-se lendo o
+  /// `paint.colorFilter` depois de a animação assentar.
+  @visibleForTesting
+  MonsterActor? get monster => _monster;
+
+  /// A faixa de tijolo, em pixels da caixa. O que o QA mediu.
+  @visibleForTesting
+  double get wallPixels => math.max(0, (_horizon - _topInsetWorld) * _zoom);
+
+  /// A altura do boneco mais alto, em pixels da caixa.
+  @visibleForTesting
+  double get tallestActorPixels => math.max(_heroSide, _monsterSide) * _zoom;
+
+  /// A altura, em pixels da CAIXA, acima da qual não há ator nenhum.
+  ///
+  /// É a linha do chão menos o mais alto dos bonecos, convertida para pixels
+  /// pelo zoom da câmera. Quem desenha por cima da cena — a coluna de ícones,
+  /// o placar — usa isto para saber onde pode pousar sem cobrir a luta. A
+  /// rodada 1 chutou "no alto da lateral" e o QA achou o mago coberto a
+  /// 400×544: a faixa livre depende da PROPORÇÃO da caixa, e um número fixo
+  /// não tem como acertá-la.
+  double get safeTopBand {
+    if (size.y <= 0) return 0;
+    final tallest = math.max(_heroSide, _monsterSide);
+    return math.max(0, (_groundY - tallest) * _zoom);
+  }
+
   /// O zoom: a altura preferida, PRESA na faixa de largura de mundo.
   ///
   /// `clampDouble` com os dois limites vindos da largura da caixa — é a regra
@@ -186,8 +259,39 @@ class ArenaGame extends FlameGame {
   double get _worldHeight =>
       size.y <= 0 ? arenaPreferredHeight : size.y / _zoom;
 
-  /// Onde a parede termina e o chão começa: metade da caixa, com teto.
-  double get _horizon => math.min(_worldHeight * 0.5, arenaMaxWallBand);
+  /// Quanto do topo da caixa está coberto pelo VÉU do HUD, em pixels.
+  ///
+  /// Quem mede é a tela e passa para cá: o véu tem o placar, o banner de
+  /// fechamento (quando há) e a faixa de ícones, e a altura disso não se
+  /// calcula de fora. A cena usa o número para empurrar o cenário INTEIRO
+  /// para baixo dele — é o que faz o horizonte, os braseiros e os bonecos
+  /// aparecerem abaixo do véu em vez de atrás dele.
+  double get topInset => _topInset;
+  double _topInset = 0;
+
+  set topInset(double value) {
+    if ((value - _topInset).abs() < 0.5) return;
+    _topInset = value;
+    if (!isMounted) return;
+    _layout();
+  }
+
+  /// O véu, em unidades de mundo.
+  double get _topInsetWorld => size.y <= 0 ? 0 : _topInset / _zoom;
+
+  /// O PALCO: o que sobra da caixa depois do véu. É ele que dá escala a tudo
+  /// — parede, chão e bonecos —, e não a caixa inteira: um celular baixo tem
+  /// a mesma caixa de antes e menos palco, e era exatamente ali que a parede
+  /// virava friso.
+  double get _stage => math.max(_worldHeight - _topInsetWorld, 1);
+
+  /// Onde a parede termina e o chão começa.
+  double get _horizon =>
+      _topInsetWorld +
+      math.min(
+        math.max(_stage * arenaWallFraction, _monsterSide * arenaWallToActor),
+        _stage * arenaMaxWallShare,
+      );
 
   double get _floorBand => _worldHeight - _horizon;
 
@@ -204,10 +308,10 @@ class ArenaGame extends FlameGame {
   /// A altura entra na conta junto com a largura: numa caixa larga e baixa,
   /// só a largura deixava os bonecos mais altos que a parede inteira.
   double get _heroSide =>
-      clampDouble(math.min(_worldWidth * 0.16, _worldHeight * 0.46), 19, 32);
+      clampDouble(math.min(_worldWidth * 0.16, _stage * 0.22), 17, 32);
 
   double get _monsterSide =>
-      clampDouble(math.min(_worldWidth * 0.22, _worldHeight * 0.58), 26, 42);
+      clampDouble(math.min(_worldWidth * 0.22, _stage * 0.30), 22, 42);
 
   @override
   Color backgroundColor() => AppColors.surfaceDeep;
@@ -359,10 +463,31 @@ class ArenaGame extends FlameGame {
     _monster!.scarText = next.isEnraged ? _overdueLabel?.call(next) : null;
 
     if (next.isDefeated) {
-      _monster!.flee();
+      _monster!.fall();
+      _showDeathMark();
     } else {
       _monster!.revive();
+      _hideDeathMark();
     }
+  }
+
+  /// O X sobre o corpo. Ele é do MUNDO e não do monstro — ver [DeathMark].
+  DeathMark? _deathMark;
+
+  void _showDeathMark() {
+    if (_deathMark != null) return;
+
+    final mark = DeathMark(
+      color: theme.ink,
+      size: Vector2.all(_monsterSide * 0.34),
+    );
+    _deathMark = mark;
+    world.add(mark);
+  }
+
+  void _hideDeathMark() {
+    _deathMark?.removeFromParent();
+    _deathMark = null;
   }
 
   /// Como escrever a cicatriz. Vem da tela porque o texto é traduzido e
@@ -405,7 +530,27 @@ class ArenaGame extends FlameGame {
       );
     }
 
-    _monster?.position = Vector2(width * (_isCompact ? 0.72 : 0.74), groundY);
+    final monster = _monster;
+    if (monster != null) {
+      final x = width * (_isCompact ? 0.72 : 0.74);
+
+      // Deitado, o bicho gira em torno do PÉ (o `anchor` é `bottomCenter`), e
+      // o que era a base vira o meio do corpo: sem subir meia largura, metade
+      // dele fica enterrada na areia.
+      monster.position = Vector2(
+        x,
+        groundY - (monster.isFallen ? monster.size.x * 0.5 : 0),
+      );
+
+      // O X fica sobre o corpo caído, que se estende para a DIREITA do ponto
+      // de apoio — é para lá que a rotação o deitou.
+      _deathMark
+        ?..size = Vector2.all(_monsterSide * 0.34)
+        ..position = Vector2(
+          x + monster.size.y * 0.45,
+          groundY - monster.size.x * 0.9,
+        );
+    }
   }
 
   // ── Eventos ──────────────────────────────────────────────────────────────

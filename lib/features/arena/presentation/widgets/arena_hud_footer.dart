@@ -24,12 +24,29 @@ import 'package:go_router/go_router.dart';
 /// Cada ícone responde a três gestos: ver (o anel e a tinta), tocar (a folha
 /// com os números) e segurar (a tela de dados de onde aqueles números saem).
 class ArenaHudFooter extends ConsumerStatefulWidget {
-  const ArenaHudFooter({super.key, required this.height, this.compact = false});
+  const ArenaHudFooter({
+    super.key,
+    required this.height,
+    this.compact = false,
+    this.reserveNotch = false,
+  });
 
   final double height;
 
   /// Celular: ícone e tipografia menores.
   final bool compact;
+
+  /// Abre um vão no MEIO da faixa para o botão de lançar.
+  ///
+  /// O FAB é entalhado no centro da barra inferior — decisão de produto, em
+  /// todas as telas principais — e a metade de cima dele sobe para dentro do
+  /// corpo da tela. O QA mediu a sobreposição: `Rect(172,708→228,764)` do
+  /// botão contra `0,680→400,736` da faixa, 28px de ovo e vila escondidos
+  /// atrás do círculo dourado.
+  ///
+  /// Quem cede é a faixa, e não o botão: lançar é a ação que o app existe
+  /// para receber. Dois slots de cada lado do vão.
+  final bool reserveNotch;
 
   @override
   ConsumerState<ArenaHudFooter> createState() => _ArenaHudFooterState();
@@ -89,6 +106,7 @@ class _ArenaHudFooterState extends ConsumerState<ArenaHudFooter> {
             hud: hud,
             compact: widget.compact,
             isBusiness: isBusiness,
+            reserveNotch: widget.reserveNotch,
             // O NOME sob cada figura só onde há largura para ele. Num
             // celular quatro rótulos a mais disputam os mesmos 400 px com
             // quatro números, e é o número que perde. Do tablet para cima a
@@ -108,12 +126,21 @@ class _Slots extends StatelessWidget {
     required this.compact,
     required this.isBusiness,
     required this.showNames,
+    required this.reserveNotch,
   });
 
   final HudState hud;
   final bool compact;
   final bool isBusiness;
   final bool showNames;
+  final bool reserveNotch;
+
+  /// Largura do vão do botão de lançar, em pixels lógicos.
+  ///
+  /// O FAB tem 56 de diâmetro e o `notchMargin` da barra soma mais um respiro
+  /// de cada lado. 76 deixa 10px de folga entre o círculo e o slot vizinho —
+  /// o bastante para o anel não encostar no dourado.
+  static const double notchWidth = 76;
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +204,8 @@ class _Slots extends StatelessWidget {
             path: '/planning',
           ),
         ),
+        // O vão do botão de lançar, entre a vila e o ovo.
+        if (reserveNotch) const SizedBox(width: notchWidth),
         Expanded(
           child: _Slot(
             slot: HudSlot.egg,
@@ -408,13 +437,25 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
                     // O nome é EXCLUÍDO da semântica: ele já está no rótulo
                     // do botão, e lido duas vezes viraria "Incubados: …
                     // Incubados".
-                    ExcludeSemantics(
-                      child: Text(
-                        widget.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.inkInverse2,
+                    //
+                    // `Flexible` + `FittedBox`: a faixa tem altura FIXA (é o
+                    // que impede a cena de reorganizar quando os números
+                    // chegam), e a 1,6 de escala de texto o nome estourava
+                    // por 0,78px — a listra amarela e preta atravessando o
+                    // rodapé por causa de menos de um pixel. Quem encolhe é o
+                    // nome: a figura é o que identifica o slot.
+                    Flexible(
+                      child: ExcludeSemantics(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            widget.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.inkInverse2,
+                            ),
+                          ),
                         ),
                       ),
                     ),

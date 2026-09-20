@@ -1340,12 +1340,6 @@ abstract class AppLocalizations {
   /// **'Recusar'**
   String get declineButton;
 
-  /// No description provided for @homeJourneyTab.
-  ///
-  /// In pt, this message translates to:
-  /// **'A Jornada'**
-  String get homeJourneyTab;
-
   /// No description provided for @homeOverviewTab.
   ///
   /// In pt, this message translates to:
@@ -2942,36 +2936,6 @@ abstract class AppLocalizations {
   /// **'Retornar para Pendente'**
   String get returnToPending;
 
-  /// No description provided for @partyHpLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saúde da Party'**
-  String get partyHpLabel;
-
-  /// No description provided for @partyStatusHealthy.
-  ///
-  /// In pt, this message translates to:
-  /// **'Party em segurança'**
-  String get partyStatusHealthy;
-
-  /// No description provided for @partyStatusStrained.
-  ///
-  /// In pt, this message translates to:
-  /// **'Party em perigo'**
-  String get partyStatusStrained;
-
-  /// No description provided for @partyStatusDefeated.
-  ///
-  /// In pt, this message translates to:
-  /// **'Party derrotada'**
-  String get partyStatusDefeated;
-
-  /// No description provided for @partyTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sua Party'**
-  String get partyTitle;
-
   /// No description provided for @planned.
   ///
   /// In pt, this message translates to:
@@ -2983,12 +2947,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Realizado'**
   String get actual;
-
-  /// No description provided for @excess.
-  ///
-  /// In pt, this message translates to:
-  /// **'Excesso'**
-  String get excess;
 
   /// No description provided for @registerInvoicePayment.
   ///
@@ -3062,12 +3020,6 @@ abstract class AppLocalizations {
   /// **'Nenhum slide foi gerado. Tente novamente.'**
   String get coachingNoSlides;
 
-  /// No description provided for @coachingViewHistory.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver histórico'**
-  String get coachingViewHistory;
-
   /// No description provided for @coachingHistoryTitle.
   ///
   /// In pt, this message translates to:
@@ -3133,30 +3085,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Lançamentos'**
   String get transactions;
-
-  /// No description provided for @challengeStatusStable.
-  ///
-  /// In pt, this message translates to:
-  /// **'Estável'**
-  String get challengeStatusStable;
-
-  /// No description provided for @challengeStatusWarning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Alerta'**
-  String get challengeStatusWarning;
-
-  /// No description provided for @challengeStatusCritical.
-  ///
-  /// In pt, this message translates to:
-  /// **'Crítico'**
-  String get challengeStatusCritical;
-
-  /// No description provided for @rest.
-  ///
-  /// In pt, this message translates to:
-  /// **'Restante'**
-  String get rest;
 
   /// No description provided for @category.
   ///
@@ -3541,30 +3469,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Estourou {amount}'**
   String goalOverLimit(String amount);
-
-  /// No description provided for @partyEmptyTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sua party ainda não tem desafios'**
-  String get partyEmptyTitle;
-
-  /// No description provided for @partyEmptyMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.'**
-  String get partyEmptyMessage;
-
-  /// No description provided for @partyEmptyButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar primeiro limite'**
-  String get partyEmptyButton;
-
-  /// No description provided for @partyErrorMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível carregar o status da party.'**
-  String get partyErrorMessage;
 
   /// No description provided for @badgeCatalogUnavailableTitle.
   ///
@@ -4223,7 +4127,7 @@ abstract class AppLocalizations {
   /// No description provided for @missionCtaCategories.
   ///
   /// In pt, this message translates to:
-  /// **'Ver a Party'**
+  /// **'Ver as categorias'**
   String get missionCtaCategories;
 
   /// No description provided for @missionCtaAccounts.
@@ -4267,24 +4171,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nível {level} do cofre, {percent}% para o próximo'**
   String levelBadgeSemantics(int level, int percent);
-
-  /// No description provided for @compassStripTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Bússola'**
-  String get compassStripTitle;
-
-  /// No description provided for @compassStripOpen.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver a Bússola completa'**
-  String get compassStripOpen;
-
-  /// No description provided for @compassStripDelta.
-  ///
-  /// In pt, this message translates to:
-  /// **'{points} desde o mês passado'**
-  String compassStripDelta(String points);
 
   /// No description provided for @dueSoonToday.
   ///
@@ -4333,6 +4219,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver as {count} pendências'**
   String automaticTransactionSeeAll(int count);
+
+  /// Quantas pendências de leitura de notificação esperam triagem. Vai no leitor de tela dos ícones que mostram só o número.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} pendentes'**
+  String automaticTransactionPendingCount(int count);
 
   /// No description provided for @goalsTitle.
   ///
@@ -4388,29 +4280,11 @@ abstract class AppLocalizations {
   /// **'+{count} na equipe'**
   String arenaTeamExtra(int count);
 
-  /// No description provided for @arenaExhausted.
-  ///
-  /// In pt, this message translates to:
-  /// **'Exausto'**
-  String get arenaExhausted;
-
-  /// No description provided for @arenaHint.
-  ///
-  /// In pt, this message translates to:
-  /// **'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.'**
-  String get arenaHint;
-
   /// No description provided for @automaticTransactionSeeAllShort.
   ///
   /// In pt, this message translates to:
   /// **'Ver todas'**
   String get automaticTransactionSeeAllShort;
-
-  /// No description provided for @arenaWeekChallenge.
-  ///
-  /// In pt, this message translates to:
-  /// **'Desafio da semana'**
-  String get arenaWeekChallenge;
 
   /// No description provided for @arenaFree.
   ///
@@ -4579,12 +4453,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'A luta da semana: os heróis contra {monster}, que ainda tem {remaining} de vida.'**
   String arenaSceneSemantics(String monster, String remaining);
-
-  /// No description provided for @arenaDefeatedBanner.
-  ///
-  /// In pt, this message translates to:
-  /// **'Monstro derrotado — {amount} pagos nesta semana'**
-  String arenaDefeatedBanner(String amount);
 
   /// No description provided for @arenaClosingWon.
   ///

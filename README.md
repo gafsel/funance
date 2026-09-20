@@ -247,19 +247,51 @@ Para rodar no **macOS/iOS** e evitar erros de Keychain:
 
 ## 🏠 Decisões de produto da Home
 
-A Home é a tela que se abre todo dia, e a decisão principal dela é a ORDEM.
-Ela responde a uma pergunta só — "o que eu preciso saber agora?" — e o teto
-de altura é de **duas rolagens com dados típicos**, medido em
+**A primeira aba é o JOGO, tela inteira.** Não há ordem de blocos para
+decidir, porque não há blocos: a aba é a cena da Arena, e a cena preenche o
+que sobra entre o placar e o rodapé mensal. O teto de altura deixou de ser
+"duas rolagens" e virou **uma tela, sem rolagem** — medido em
 `test/home_height_test.dart`.
 
-1. a conquista do momento (chega por cima, no `CelebrationHost`);
-2. quanto sobra no mês;
-3. o que vence hoje e amanhã;
-4. as pendências do leitor de notificação;
-5. as missões da semana, em resumo e com um botão só;
-6. **o empurrão: o coaching, em uma linha**;
-7. a linha da Bússola;
-8. uma meta em destaque.
+```
+┌──────────────────────────────┐
+│ heróis ▬▬▬▬  4/7  ▬▬▬ monstro│  o placar: duas vidas que se opõem
+├──────────────────────────────┤
+│ ⓘ                            │  os ícones de jogo, na lateral
+│ ⓘ        ⚔                   │  a cena do Flame
+│ ⓘ     🧙 🛡      🕷          │
+│ ⓘ                            │
+├──────────────────────────────┤
+│  🧪 gole  🏘 13/18  🥚  💧   │  o HUD mensal
+└──────────────────────────────┘
+```
+
+Os valores da cena são **compactos** — `R$ 12,1k`, `R$ 980`, `R$ 1,2M`. Ela é
+uma referência lúdica do estado da semana; quem toca numa barra recebe a folha
+de detalhe com os centavos exatos.
+
+### Os ícones no lugar dos blocos
+
+Cada bloco que rolava abaixo da Arena virou um ícone na lateral esquerda da
+cena, com o número que o bloco levava uma linha inteira para dizer:
+
+| ícone        | badge         | abre                                  |
+|--------------|---------------|---------------------------------------|
+| pergaminho   | `1/3`         | a folha com o resumo das missões      |
+| bússola      | a pontuação   | a Bússola da Liberdade completa       |
+| coach        | um ponto      | a última análise, ou pede uma nova    |
+| faísca       | N em vermelho | a triagem dos lançamentos identificados |
+
+A lateral e não o topo: o topo é do placar e o pé é do HUD mensal. No ALTO da
+lateral e não no meio: centrados, os ícones caem na linha do chão e cobrem os
+bonecos.
+
+### O botão de lançar ganhou duas portas
+
+Os **lançamentos identificados** saíram do card gigante e viraram uma opção do
+FAB, com o contador de pendências no canto do ícone; o sinal discreto na cena
+continua existindo, no ícone da faísca. As **metas**, que perderam o bloco em
+destaque, entraram na grade de estratégia do mesmo botão.
 
 ### "Gasto fora do plano" NÃO é bloco de Home
 
@@ -269,13 +301,14 @@ tomar, e é ali — com o valor ainda na tela e o dedo ainda no aparelho — que
 ele pode virar uma correção. Repetido na Home, no dia seguinte, ele vira um
 boletim sobre algo que já passou.
 
-O slot 6 da Home fica com o **coaching em uma linha**, que é o empurrão que
-olha para frente.
+### O que NÃO mora na primeira aba
 
-### O que NÃO mora na Home
-
-- a lista completa de metas → `/goals` (na Home fica a de prazo mais curto);
-- a semana de missões, com cartões, XP e checklist → `/missions`;
-- a Bússola completa → a folha que abre pela linha;
-- a Party → a Visão Geral, ao lado da distribuição 50-30-20;
+- a lista de metas → `/goals`, pelo botão de lançar;
+- a semana de missões, com cartões, XP e checklist → `/missions`, pelo
+  cabeçalho da folha do pergaminho;
+- a Bússola completa → a folha que abre pelo ícone;
+- a fila inteira de pendências → `/automatic-transactions`;
+- a Party → **saiu do app**: ela não faz mais sentido com a visão de jogo. O
+  anel dela sobreviveu genérico em `core/widgets/progress_ring_icon.dart`,
+  para a grade da vila;
 - "como ganhar XP" → a vitrine de emblemas.

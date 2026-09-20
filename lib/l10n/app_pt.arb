@@ -294,7 +294,6 @@
   },
   "acceptButton": "Aceitar",
   "declineButton": "Recusar",
-  "homeJourneyTab": "A Jornada",
   "homeOverviewTab": "Visão Geral",
   "homeHistoryTab": "Extrato",
   "homeAccountsAndCards": "Saldos e Faturas",
@@ -623,14 +622,8 @@
   "periodFilterCustom": "Customizado",
   "completedMissionsSummary": "{count} {count, plural, =1{item} other{itens}} • {xp} XP",
   "returnToPending": "Retornar para Pendente",
-  "partyHpLabel": "Saúde da Party",
-  "partyStatusHealthy": "Party em segurança",
-  "partyStatusStrained": "Party em perigo",
-  "partyStatusDefeated": "Party derrotada",
-  "partyTitle": "Sua Party",
   "planned": "Planejado",
   "actual": "Realizado",
-  "excess": "Excesso",
   "registerInvoicePayment": "Registrar Pagamento de Fatura",
   "coachingTitle": "Coach Financeiro",
   "coachingConsultAction": "Consultar Coach",
@@ -643,7 +636,6 @@
   "coachingSlideFinish": "Concluir",
   "coachingNoData": "Nenhum dado de coaching disponível.",
   "coachingNoSlides": "Nenhum slide foi gerado. Tente novamente.",
-  "coachingViewHistory": "Ver histórico",
   "coachingHistoryTitle": "Histórico de Insights",
   "coachingReviewTips": "Rever Dicas",
   "coachingTypeWarning": "Alerta",
@@ -655,10 +647,6 @@
   "accountStatementCurrent": "Atual",
   "accountStatementFuture": "Futuros",
   "transactions": "Lançamentos",
-  "challengeStatusStable": "Estável",
-  "challengeStatusWarning": "Alerta",
-  "challengeStatusCritical": "Crítico",
-  "rest": "Restante",
   "category": "Categoria",
   "realization": "Realização",
   "difference": "Diferença",
@@ -862,10 +850,6 @@
       }
     }
   },
-  "partyEmptyTitle": "Sua party ainda não tem desafios",
-  "partyEmptyMessage": "Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.",
-  "partyEmptyButton": "Criar primeiro limite",
-  "partyErrorMessage": "Não foi possível carregar o status da party.",
   "badgeCatalogUnavailableTitle": "Catálogo indisponível",
   "badgeCatalogUnavailableMessage": "Ainda não recebemos a lista de conquistas do servidor. Tente de novo em instantes.",
   "badgeCategoryAdvanced": "Conquistas Avançadas",
@@ -1184,7 +1168,7 @@
   "missionFallbackCategoryBusiness": "de maior peso",
   "missionCtaPlanning": "Planejar agora",
   "missionCtaPlanning503020": "Abrir o 50-30-20",
-  "missionCtaCategories": "Ver a Party",
+  "missionCtaCategories": "Ver as categorias",
   "missionCtaAccounts": "Ver contas",
   "missionCtaCategoryDetails": "Ver categoria",
   "missionCtaTransactionForm": "Lançar agora",
@@ -1206,16 +1190,6 @@
       },
       "percent": {
         "type": "int"
-      }
-    }
-  },
-  "compassStripTitle": "Bússola",
-  "compassStripOpen": "Ver a Bússola completa",
-  "compassStripDelta": "{points} desde o mês passado",
-  "@compassStripDelta": {
-    "placeholders": {
-      "points": {
-        "type": "String"
       }
     }
   },
@@ -1256,6 +1230,15 @@
   },
   "automaticTransactionSeeAll": "Ver as {count} pendências",
   "@automaticTransactionSeeAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automaticTransactionPendingCount": "{count} pendentes",
+  "@automaticTransactionPendingCount": {
+    "description": "Quantas pendências de leitura de notificação esperam triagem. Vai no leitor de tela dos ícones que mostram só o número.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -1323,10 +1306,7 @@
   "arenaEnraged": "+{amount} atrasado",
   "arenaEmpty": "Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.",
   "arenaTeamExtra": "+{count} na equipe",
-  "arenaExhausted": "Exausto",
-  "arenaHint": "Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.",
   "automaticTransactionSeeAllShort": "Ver todas",
-  "arenaWeekChallenge": "Desafio da semana",
   "arenaFree": "Livre",
   "arenaHealed": "Recebido na semana",
   "arenaRemainingPrefix": "falta",
@@ -1470,14 +1450,6 @@
         "type": "String"
       },
       "remaining": {
-        "type": "String"
-      }
-    }
-  },
-  "arenaDefeatedBanner": "Monstro derrotado — {amount} pagos nesta semana",
-  "@arenaDefeatedBanner": {
-    "placeholders": {
-      "amount": {
         "type": "String"
       }
     }

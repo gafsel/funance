@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_elevation.dart';
@@ -9,6 +10,7 @@ import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/widgets/section_header.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
+import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -170,6 +172,37 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
             : l10n.transactionTransfer,
         onTap: () => _navigateToForm(context, OrderType.transfer, status),
       ),
+      // Decisão 8 do dono: *"os lançamentos identificados podem ser uma opção
+      // extra do fab? como podemos retirar o card gigante da tela e ainda
+      // deixar o cadastro desses lançamentos fácil?"*
+      //
+      // O card saiu da Home e a triagem virou isto: uma opção do botão que a
+      // pessoa já usa para lançar, com o contador de pendências no canto. Ela
+      // fica na grade do REALIZADO porque é disso que se trata — movimentação
+      // que já aconteceu e o banco avisou; o que falta é registrar.
+      if (!isScheduled)
+        Consumer(
+          builder: (context, ref, _) {
+            final pending = ref
+                .watch(
+                  AutomaticTransactionViewProviders.automaticTransactions,
+                )
+                .pendingTransactions
+                .length;
+
+            return _buildActionItem(
+              context,
+              icon: Icons.auto_awesome,
+              color: palette.tealText,
+              label: l10n.automaticTransactionTitle,
+              badge: pending == 0 ? null : '$pending',
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/automatic-transactions');
+              },
+            );
+          },
+        ),
     ]);
   }
 
@@ -222,6 +255,20 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
           context.push('/reconciliation');
         },
       ),
+      // As metas perderam o bloco que tinham na Home quando a primeira aba
+      // virou a cena do jogo, e `/goals` ficou sem porta nenhuma no app. Ela
+      // é uma ferramenta de estratégia como as outras desta grade — de
+      // horizonte mais longo que todas elas.
+      _buildActionItem(
+        context,
+        icon: Icons.flag_outlined,
+        color: AppColors.goldDeep,
+        label: l10n.goalsTitle,
+        onTap: () {
+          Navigator.pop(context);
+          context.push('/goals');
+        },
+      ),
     ]);
   }
 
@@ -231,6 +278,9 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
     required Color color,
     required String label,
     required VoidCallback onTap,
+
+    /// O número no canto do ícone. `null` quando não há o que contar.
+    String? badge,
   }) {
     final theme = Theme.of(context);
     final palette = context.palette;
@@ -252,13 +302,24 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Flexible(
-              child: Container(
-                padding: AppSpacing.allXs,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: FittedBox(child: Icon(icon, color: color, size: 24)),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    padding: AppSpacing.allXs,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: FittedBox(child: Icon(icon, color: color, size: 24)),
+                  ),
+                  if (badge != null)
+                    Positioned(
+                      right: -6,
+                      top: -4,
+                      child: _CountBadge(count: badge),
+                    ),
+                ],
               ),
             ),
             AppSpacing.gapXxs,
@@ -285,5 +346,41 @@ class _TransactionActionSheetState extends State<TransactionActionSheet> {
   ) {
     Navigator.pop(context);
     context.push('/transactions/form?type=${type.name}&status=${status.name}');
+  }
+}
+
+/// Quantas pendências esperam por trás de uma opção do FAB.
+///
+/// Vermelho e não dourado: é fila, não recompensa. O contorno é da superfície
+/// do cartão, para o número não encostar no ícone quando ele cresce a três
+/// dígitos.
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+
+  final String count;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+      constraints: const BoxConstraints(minWidth: 18),
+      decoration: BoxDecoration(
+        color: AppColors.danger,
+        borderRadius: AppRadius.brPill,
+        border: Border.all(color: context.palette.paper),
+      ),
+      child: Text(
+        count,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: AppColors.inkInverse,
+          fontSize: 10,
+          height: 1.4,
+        ),
+      ),
+    );
   }
 }

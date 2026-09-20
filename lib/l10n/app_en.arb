@@ -275,7 +275,6 @@
   },
   "acceptButton": "Accept",
   "declineButton": "Decline",
-  "homeJourneyTab": "The Journey",
   "homeOverviewTab": "Overview",
   "homeHistoryTab": "Statement",
   "homeAccountsAndCards": "Balances & Invoices",
@@ -561,14 +560,8 @@
   "periodFilterYear": "Year",
   "periodFilterCustom": "Custom",
   "returnToPending": "Return to Pending",
-  "partyHpLabel": "Party health",
-  "partyStatusHealthy": "Party safe",
-  "partyStatusStrained": "Party in danger",
-  "partyStatusDefeated": "Party defeated",
-  "partyTitle": "Your Party",
   "planned": "Planned",
   "actual": "Actual",
-  "excess": "Excess",
   "registerInvoicePayment": "Register Invoice Payment",
   "coachingTitle": "Financial Coach",
   "coachingConsultAction": "Consult Coach",
@@ -581,7 +574,6 @@
   "coachingSlideFinish": "Finish",
   "coachingNoData": "No coaching data available.",
   "coachingNoSlides": "No slides were generated. Please try again.",
-  "coachingViewHistory": "View history",
   "coachingHistoryTitle": "Insights History",
   "coachingReviewTips": "Review Tips",
   "coachingTypeWarning": "Alert",
@@ -636,10 +628,6 @@
   "accountStatementCurrent": "Current",
   "accountStatementFuture": "Future",
   "transactions": "Transactions",
-  "challengeStatusStable": "Stable",
-  "challengeStatusWarning": "Warning",
-  "challengeStatusCritical": "Critical",
-  "rest": "Rest",
   "category": "Category",
   "realization": "Realization",
   "difference": "Difference",
@@ -855,10 +843,6 @@
       }
     }
   },
-  "partyEmptyTitle": "Your party has no challenges yet",
-  "partyEmptyMessage": "Every category spending limit becomes a party challenge. Create the first one and follow it here.",
-  "partyEmptyButton": "Create first limit",
-  "partyErrorMessage": "We could not load the party status.",
   "badgeCatalogUnavailableTitle": "Catalog unavailable",
   "badgeCatalogUnavailableMessage": "We have not received the achievement list from the server yet. Try again in a moment.",
   "badgeCategoryAdvanced": "Advanced Achievements",
@@ -1177,7 +1161,7 @@
   "missionFallbackCategoryBusiness": "heaviest",
   "missionCtaPlanning": "Plan now",
   "missionCtaPlanning503020": "Open the 50-30-20",
-  "missionCtaCategories": "See the Party",
+  "missionCtaCategories": "See categories",
   "missionCtaAccounts": "See accounts",
   "missionCtaCategoryDetails": "See category",
   "missionCtaTransactionForm": "Add an entry",
@@ -1199,16 +1183,6 @@
       },
       "percent": {
         "type": "int"
-      }
-    }
-  },
-  "compassStripTitle": "Compass",
-  "compassStripOpen": "See the full Compass",
-  "compassStripDelta": "{points} since last month",
-  "@compassStripDelta": {
-    "placeholders": {
-      "points": {
-        "type": "String"
       }
     }
   },
@@ -1249,6 +1223,15 @@
   },
   "automaticTransactionSeeAll": "See all {count} pending",
   "@automaticTransactionSeeAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "automaticTransactionPendingCount": "{count} pending",
+  "@automaticTransactionPendingCount": {
+    "description": "Quantas pendências de leitura de notificação esperam triagem. Vai no leitor de tela dos ícones que mostram só o número.",
     "placeholders": {
       "count": {
         "type": "int"
@@ -1323,10 +1306,7 @@
   "arenaEnraged": "+{amount} overdue",
   "arenaEmpty": "No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.",
   "arenaTeamExtra": "+{count} on the team",
-  "arenaExhausted": "Exhausted",
-  "arenaHint": "Tap the monster to confirm a payment. Tap the heroes to see the accounts.",
   "automaticTransactionSeeAllShort": "See all",
-  "arenaWeekChallenge": "This week's challenge",
   "arenaFree": "Free",
   "arenaHealed": "Received this week",
   "arenaRemainingPrefix": "left",
@@ -1470,14 +1450,6 @@
         "type": "String"
       },
       "remaining": {
-        "type": "String"
-      }
-    }
-  },
-  "arenaDefeatedBanner": "Monster defeated — {amount} paid this week",
-  "@arenaDefeatedBanner": {
-    "placeholders": {
-      "amount": {
         "type": "String"
       }
     }

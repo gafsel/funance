@@ -1,121 +1,186 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:funances/core/widgets/app_scaffold.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
-import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/arena/domain/models/hud_state.dart';
+import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
+
+import 'arena/arena_harness.dart';
+import 'arena/hud_harness.dart';
 import 'support/home_harness.dart';
 
-/// D2 — a Home tem de caber.
+/// D2 — a Home tem de caber. Agora ela cabe por CONSTRUÇÃO.
 ///
 /// "A Home está longa demais" foi a segunda coisa que o dono disse sobre o
-/// APK, e a primeira rodada tratou isso como uma questão de ORDEM. Não é:
-/// reordenar o que não cabe só muda o que se perde primeiro. Com dados
-/// típicos — três missões, o checklist da semana, uma meta em andamento, o
-/// coaching e um mês com renda cadastrada — a tela media 1477px (2,7 telas) a
-/// 400px e 1283px (2,4) a 800px.
+/// APK. A rodada anterior atacou isso cortando e resumindo blocos, e o teto
+/// que este arquivo media era de DUAS telas — com dados típicos ela chegava a
+/// 1.477px a 400px de largura, 2,7 viewports.
 ///
-/// O teto é DOIS viewports. Não é um número bonito: é a distância a partir da
-/// qual o que está no fim da tela deixa de existir para quem abre o app e
-/// olha. Ele é medido aqui, e não conferido no olho, porque a altura cresce
-/// por acúmulo — cada bloco parece razoável sozinho.
+/// A decisão 1 tirou a pergunta do caminho: a primeira aba é a cena do jogo,
+/// e a cena ocupa o que sobra entre o placar e o rodapé mensal. Não há mais
+/// acúmulo possível — nenhum bloco novo pode empurrar outro para fora da
+/// tela, porque não há bloco nenhum. O que este arquivo mede, então, mudou de
+/// pergunta: não é mais "cabe em quantas telas?", é **"cabe em UMA, sem
+/// rolagem e sem estourar?"**.
+///
+/// Ele mede na tela REAL (`HomeScreen`), e não só na aba: é a `AppBar`, a
+/// barra inferior e o botão de lançar que comem o viewport, e foi medindo só
+/// a aba que a rodada anterior viu 1,5 telas enquanto o aparelho mostrava
+/// 7,1.
 
-/// A altura real do conteúdo da Jornada, em pixels.
-double _alturaDoConteudo(WidgetTester tester) {
-  final coluna = find
-      .descendant(of: find.byType(AppContentWidth), matching: find.byType(Column))
-      .first;
-  return tester.getSize(coluna).height;
+/// Monta a tela inteira e deixa a folha de sprites carregar.
+///
+/// O `runAsync` não é detalhe: o `decodeImageFromList` do Flame depende do
+/// relógio de verdade, e o relógio falso do `flutter_test` nunca entrega o
+/// resultado do codec.
+Future<void> _pumpTelaReal(
+  WidgetTester tester,
+  Size size, {
+  double textScale = 1,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      homeApp(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+          child: const HomeScreen(),
+        ),
+        overrides: arenaOverrides(
+          missions: homeTypicalMissions(),
+          pendingAutomatic: homeTypicalPending(),
+          lastInsight: homeTypicalInsight(),
+          extra: [
+            // O rodapé mensal só desenha as quatro figuras quando tem
+            // números: sem isto a faixa fica vazia e o teste do entalhe
+            // mediria o nada.
+            HudViewProviders.state.overrideWith(
+              (ref) => AsyncValue<HudState>.data(hudTestState()),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+  });
+
+  await arenaFrames(tester);
 }
 
 void main() {
-  for (final largura in <double>[400, 800]) {
-    testWidgets('D2 — a Home cabe em duas rolagens a ${largura.toInt()}px', (
-      tester,
-    ) async {
-      const altura = 544.0;
+  for (final tamanho in const <Size>[
+    // o celular do dono, e a altura de viewport que a rodada anterior media
+    Size(400, 800),
+    Size(400, 544),
+    // tablet em pé e desktop
+    Size(800, 600),
+    Size(1300, 900),
+  ]) {
+    final nome = '${tamanho.width.toInt()}×${tamanho.height.toInt()}';
 
-      await pumpHome(
-        tester,
-        const JourneyTab(),
-        overrides: homeOverrides(
-          missions: homeTypicalMissions(),
-          installments: homeTypicalInstallments(),
-          goals: homeTypicalGoals(),
-          categories: homeTypicalCategories,
-          summary: homeTypicalSummary(),
-          // A CONTAGEM REAL do aparelho: 35 pendências do leitor de
-          // notificação e uma análise de coaching recente. A fixture antiga
-          // tinha uma pendência e nenhuma análise — media 1,5 telas aqui
-          // enquanto o app media 7,1.
-          pendingAutomatic: homeTypicalPending(),
-          lastInsight: homeTypicalInsight(),
-        ),
-        size: Size(largura, altura),
-      );
+    testWidgets('D2 — a Home cabe em UMA tela a $nome', (tester) async {
+      await _pumpTelaReal(tester, tamanho);
 
-      final medida = _alturaDoConteudo(tester);
+      final aba = tester.getSize(find.byType(ArenaTab));
+      final viewport = tester.getSize(find.byType(TabBarView));
 
-      debugPrint(
-        'ALTURA ${largura.toInt()}px: ${medida.toStringAsFixed(0)}px — '
-        '${(medida / altura).toStringAsFixed(1)} telas',
+      expect(
+        aba.height,
+        lessThanOrEqualTo(viewport.height + 0.5),
+        reason:
+            'a aba mede ${aba.height.toStringAsFixed(0)}px num viewport de '
+            '${viewport.height.toStringAsFixed(0)}px',
       );
 
       expect(
-        medida,
-        lessThanOrEqualTo(altura * 2),
-        reason:
-            'a Home mede ${medida.toStringAsFixed(0)}px em ${largura.toInt()}'
-            '×${altura.toInt()} — '
-            '${(medida / altura).toStringAsFixed(1)} telas; o teto é 2',
+        find.descendant(
+          of: find.byType(ArenaTab),
+          matching: find.byType(Scrollable),
+        ),
+        findsNothing,
+        reason: 'a cena preenche; não há o que rolar',
       );
+
+      // Um `RenderFlex` estourado vira exceção no `pump`. É a rede que pega o
+      // caso em que o placar, a cena e o rodapé somados passam da altura —
+      // exatamente o que aconteceria numa tela muito baixa.
+      expect(tester.takeException(), isNull);
     });
   }
 
-  /// A mesma medida na tela REAL, e não só na aba.
+  /// M3 — o botão de lançar invadia o HUD mensal.
   ///
-  /// `JourneyTab` é o conteúdo; `HomeScreen` é o que o app monta — com
-  /// `AppBar`, barra inferior, `TabBarView` e o botão de lançar disputando o
-  /// mesmo espaço. Medir só a aba deixaria de fora justamente o que encolhe o
-  /// viewport, e foi assim que a Home mediu 1,5 telas aqui enquanto o
-  /// aparelho mostrava 7,1.
-  for (final largura in <double>[400, 800]) {
-    testWidgets('D2 — e a Home REAL cabe a ${largura.toInt()}px', (
+  /// O QA mediu: `Rect(172,708→228,764)` do FAB contra `0,680→400,736` da
+  /// faixa — 28px de ovo e de vila escondidos atrás do círculo dourado. O
+  /// botão não sai do lugar (é a ação que o app existe para receber, e a
+  /// decisão do dono é que ele fica na barra de todas as telas principais);
+  /// quem cede é a faixa, com um vão no meio.
+  // 1,6 é o topo da escala de texto do sistema. N5 do QA: o rodapé mensal
+  // estourava por 0,78px ali — a listra amarela e preta atravessando a faixa
+  // por causa de menos de um pixel.
+  for (final escala in const <double>[1, 1.3, 1.6]) {
+    testWidgets('M3 — o FAB não cobre nenhum slot do HUD (texto ×$escala)', (
       tester,
     ) async {
-      const altura = 544.0;
+      await _pumpTelaReal(tester, const Size(400, 800), textScale: escala);
 
-      await pumpHome(
-        tester,
-        const HomeScreen(),
-        overrides: homeOverrides(
-          missions: homeTypicalMissions(),
-          installments: homeTypicalInstallments(),
-          goals: homeTypicalGoals(),
-          categories: homeTypicalCategories,
-          summary: homeTypicalSummary(),
-          pendingAutomatic: homeTypicalPending(),
-          lastInsight: homeTypicalInsight(),
-        ),
-        size: Size(largura, altura),
-      );
+      final fab = tester.getRect(find.byType(FloatingActionButton));
+      final slots = find.byType(HudGlyph);
 
-      final medida = _alturaDoConteudo(tester);
-      final visivel = tester.getSize(find.byType(TabBarView)).height;
+      expect(slots, findsNWidgets(4), reason: 'poção, vila, ovo e gota');
 
-      debugPrint(
-        'ALTURA REAL ${largura.toInt()}px: ${medida.toStringAsFixed(0)}px em '
-        'viewport de ${visivel.toStringAsFixed(0)}px — '
-        '${(medida / visivel).toStringAsFixed(1)} telas',
-      );
-
-      expect(
-        medida,
-        lessThanOrEqualTo(visivel * 2),
-        reason:
-            '${medida.toStringAsFixed(0)}px em ${visivel.toStringAsFixed(0)}'
-            'px de viewport — ${(medida / visivel).toStringAsFixed(1)} telas',
-      );
+      for (final slot in slots.evaluate()) {
+        final figura = tester.getRect(find.byWidget(slot.widget));
+        expect(
+          figura.overlaps(fab),
+          isFalse,
+          reason:
+              'a figura em $figura fica atrás do botão em $fab; o vão do '
+              'entalhe não deu conta',
+        );
+      }
     });
   }
+
+  testWidgets('o rodapé mensal fica ACIMA da barra inferior', (tester) async {
+    // Era o que `extendBody: true` escondia: o corpo se estendia por baixo da
+    // barra, e os quatro ícones do HUD mensal — a última linha da cena —
+    // ficavam atrás dela.
+    await _pumpTelaReal(tester, const Size(400, 800));
+
+    final rodape = tester.getRect(
+      find.byKey(const ValueKey('arena-footer-slot')),
+    );
+    final barra = tester.getRect(find.byType(BottomAppBar));
+
+    expect(rodape.bottom, lessThanOrEqualTo(barra.top + 0.5));
+  });
+
+  testWidgets('num monitor a ARTE estica, e o que se lê não', (tester) async {
+    // Inverteu com o full-bleed: a cena passou a ser o fundo da aba e vai de
+    // borda a borda mesmo num monitor; o teto de largura ficou com os
+    // overlays, que são o que se lê.
+    await _pumpTelaReal(tester, const Size(1300, 900));
+
+    expect(
+      tester.getSize(find.byType(ArenaView)).width,
+      greaterThan(arenaMaxSceneWidth),
+    );
+    expect(
+      tester.getSize(find.byType(ArenaHud)).width,
+      lessThanOrEqualTo(arenaMaxSceneWidth),
+    );
+  });
 }

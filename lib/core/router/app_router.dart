@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/presentation/screens/splash_screen.dart';
 import 'package:funances/core/router/entity_route.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
-import 'package:funances/features/arena/presentation/screens/arena_screen.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/auth/presentation/screens/login_screen.dart';
 import 'package:funances/features/coaching/domain/models/coaching_model.dart';
@@ -395,14 +395,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/missions',
         builder: (context, state) => const MissionsScreen(),
       ),
-      // POC da Arena (F-arena). Rota de primeiro nível porque a cena é uma
-      // tela inteira, e não uma aba: o `GameWidget` precisa saber quando NÃO
-      // está visível para parar o loop, e uma aba dentro do `TabBarView` da
-      // Home fica montada mesmo escondida.
-      GoRoute(
-        path: arenaRoutePath,
-        builder: (context, state) => const ArenaScreen(),
-      ),
+      // A Arena não tem mais tela própria: ela É a primeira aba da Home
+      // (decisão 1 do dono). O endereço continua respondendo porque ele já
+      // circulou — link, notificação, um atalho salvo —, e um deep link que
+      // passa a dar 404 é a pior forma de aposentar uma rota. Ele leva para
+      // onde a Arena está agora, que é a abertura do app.
+      GoRoute(path: arenaRoutePath, redirect: (context, state) => '/'),
       GoRoute(path: '/goals', builder: (context, state) => const GoalsScreen()),
       GoRoute(
         path: '/goals/form',

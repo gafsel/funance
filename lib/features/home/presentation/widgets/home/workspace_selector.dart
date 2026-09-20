@@ -51,11 +51,22 @@ class WorkspaceSelector extends ConsumerWidget {
           // aparecia só como a diferença entre dois pictogramas de 20px. O
           // selo diz a palavra — e é aqui, ao lado do nome, que ele mora: o
           // corpo da Home tinha uma segunda cópia do mesmo cabeçalho.
+          // O selo também CEDE em fonte grande. O nome do cofre já cedia
+          // (`Flexible` + reticências), e o selo não: a 1,6 de escala de
+          // texto o título da AppBar estourava por 0,78px, com a listra
+          // amarela e preta atravessando o topo da tela por causa de menos de
+          // um pixel. Encolher a palavra é melhor que cortá-la, porque é a
+          // palavra que diz se o cofre é pessoal ou empresa.
           if (currentWorkspace != null) ...[
             AppSpacing.gapXs,
-            WorkspaceTypeBadge(
-              type: currentWorkspace.type,
-              onGame: isNavigationRail,
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: WorkspaceTypeBadge(
+                  type: currentWorkspace.type,
+                  onGame: isNavigationRail,
+                ),
+              ),
             ),
           ],
           Icon(Icons.arrow_drop_down, color: color),

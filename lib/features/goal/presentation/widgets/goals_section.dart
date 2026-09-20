@@ -20,11 +20,12 @@ import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/core/presentation/retry.dart';
 import 'package:funances/core/widgets/empty_state.dart';
 
-/// Seção de metas da Jornada.
+/// A seção de metas.
 ///
-/// Vive fora do `JourneyTab` para poder ser montada sozinha num teste de
-/// widget: o resto da aba puxa coaching, missões e Party, cada um com os seus
-/// providers e o seu Firebase, e nada disso tem a ver com a lista de metas.
+/// Ela era um bloco da Home até a primeira aba virar a cena do jogo; hoje
+/// mora em `/goals`, que abre pela grade de estratégia do botão de lançar.
+/// Continua sendo um widget solto, e não parte de uma tela, porque é assim
+/// que ela se monta sozinha num teste — sem puxar o Firebase de mais nada.
 class GoalsSection extends ConsumerWidget {
   const GoalsSection({
     super.key,

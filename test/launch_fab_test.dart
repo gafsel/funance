@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/finance/presentation/widgets/launch_fab.dart';
 import 'package:funances/features/finance/presentation/widgets/transaction_action_sheet.dart';
 import 'package:funances/l10n/app_localizations.dart';
+
+import 'support/home_harness.dart';
 
 /// F-design/7 — o botão de lançar.
 ///
@@ -20,7 +23,13 @@ import 'package:funances/l10n/app_localizations.dart';
 /// `Scaffold` dela — Home (as quatro abas, inclusive Histórico) e Contas;
 /// Metas é seção da aba Jornada e herda o FAB da Home.
 
-Widget _app({Widget? fab, Widget? bottomBar, ThemeData? theme}) => MaterialApp(
+/// O `ProviderScope` deixou de ser opcional: a folha de lançamento mostra o
+/// contador de pendências do leitor de notificação (decisão 8 do dono), e ler
+/// esse contador é ler um provider.
+Widget _app({Widget? fab, Widget? bottomBar, ThemeData? theme}) =>
+    ProviderScope(overrides: homeOverrides(), child: _material(fab, bottomBar, theme));
+
+Widget _material(Widget? fab, Widget? bottomBar, ThemeData? theme) => MaterialApp(
   theme: theme ?? AppTheme.light,
   localizationsDelegates: const [
     AppLocalizations.delegate,

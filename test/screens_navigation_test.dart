@@ -7,7 +7,12 @@ import 'package:funances/features/home/presentation/screens/missions_screen.dart
 import 'package:funances/features/home/presentation/widgets/missions/mission_card.dart';
 import 'package:funances/features/home/presentation/widgets/missions/week_checklist.dart';
 import 'package:funances/features/home/presentation/widgets/missions/weekly_xp.dart';
+import 'package:funances/features/home/presentation/widgets/compass/freedom_compass_sheet.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_icon_glyphs.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_scene_icons.dart';
+import 'package:funances/features/home/domain/models/financial_health_model.dart';
 
+import 'arena/arena_harness.dart';
 import 'support/home_harness.dart';
 
 /// M3 — as telas que a Home passou a abrir.
@@ -38,26 +43,68 @@ Future<void> _pump(
   await tester.pump(const Duration(milliseconds: 600));
 }
 
+/// A primeira aba — que é a CENA — dentro do router de teste.
+///
+/// `runAsync` porque a folha de sprites do Flame é decodificada pelo relógio
+/// de verdade: sem ela a cena nunca termina de montar e os ícones da lateral
+/// não existem.
+Future<void> _pumpCena(
+  WidgetTester tester, {
+  List<Override> overrides = const [],
+}) async {
+  tester.view.physicalSize = const Size(420, 900);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      homeRouterApp(
+        overrides: overrides,
+        router: homeRouter(initialLocation: '/jornada'),
+      ),
+    );
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+  });
+
+  await arenaFrames(tester);
+}
+
+/// Toca num ícone da faixa da cena pela FIGURA dele.
+Future<void> _tocarIcone(WidgetTester tester, ArenaGlyph glifo) async {
+  await tester.tap(
+    find.byWidgetPredicate((w) => w is ArenaSceneIcon && w.glyph == glifo),
+  );
+  await arenaFrames(tester, count: 20);
+}
+
 void main() {
   group('MissionsScreen', () {
-    testWidgets('abre pelo cabeçalho do resumo da Home', (tester) async {
-      await _pump(
+    testWidgets('abre pelo pergaminho da cena, passando pela folha', (
+      tester,
+    ) async {
+      // O caminho inteiro da decisão 7: o bloco de missões virou um ícone na
+      // lateral da cena; o ícone abre a folha com o MESMO resumo que estava
+      // na Home; e o cabeçalho do resumo continua sendo a porta da semana.
+      await _pumpCena(
         tester,
-        em: '/jornada',
-        overrides: homeOverrides(missions: homeTypicalMissions()),
+        overrides: arenaOverrides(missions: homeTypicalMissions()),
       );
 
       expect(find.byType(MissionsScreen), findsNothing);
 
+      await _tocarIcone(tester, ArenaGlyph.scroll);
       await tester.tap(find.text('Missões Semanais'));
-      await tester.pumpAndSettle();
+      await arenaFrames(tester, count: 20);
 
       expect(
         find.byType(MissionsScreen),
         findsOneWidget,
         reason:
-            'o resumo é a porta: sem ela, o checklist e o XP da semana '
-            'saíram da Home para lugar nenhum',
+            'sem esta porta, o checklist e o XP da semana saíram da Home '
+            'para lugar nenhum',
       );
     });
 
@@ -102,23 +149,23 @@ void main() {
     }
 
     testWidgets('e com histórico, volta para de onde veio', (tester) async {
-      await _pump(
+      await _pumpCena(
         tester,
-        em: '/jornada',
-        overrides: homeOverrides(missions: homeTypicalMissions()),
+        overrides: arenaOverrides(missions: homeTypicalMissions()),
       );
 
+      await _tocarIcone(tester, ArenaGlyph.scroll);
       await tester.tap(find.text('Missões Semanais'));
-      await tester.pumpAndSettle();
+      await arenaFrames(tester, count: 20);
       expect(find.byType(MissionsScreen), findsOneWidget);
 
       await tester.tap(find.byType(BackButton));
-      await tester.pumpAndSettle();
+      await arenaFrames(tester, count: 20);
 
       expect(
         find.text('a raiz do app'),
         findsNothing,
-        reason: 'a Jornada é de onde veio; a raiz seria um salto para trás',
+        reason: 'a cena é de onde veio; a raiz seria um salto para trás',
       );
       expect(find.byType(MissionsScreen), findsNothing);
     });
@@ -162,57 +209,111 @@ void main() {
     });
   });
 
-  group('as portas da Home', () {
-    testWidgets('B3 — "Ver as N pendências" abre a tela cheia', (
+  /// Decisão 8 do dono: *"os lançamentos identificados podem ser uma opção
+  /// extra do fab? como podemos retirar o card gigante da tela e ainda deixar
+  /// o cadastro desses lançamentos fácil?"*
+  ///
+  /// O card saiu da Home, e a triagem ganhou DUAS portas: a principal é o
+  /// botão de lançar, que está em todas as telas principais; a discreta é o
+  /// ícone com o contador na lateral da cena. As metas, que perderam o bloco
+  /// da Home na mesma mudança, ficaram na grade de estratégia do mesmo botão.
+  group('as portas que saíram para o FAB', () {
+    testWidgets('a opção "Lançamentos Identificados" abre a triagem', (
       tester,
     ) async {
       await _pump(
         tester,
-        em: '/jornada',
+        em: '/',
         overrides: homeOverrides(pendingAutomatic: homeTypicalPending()),
       );
 
       expect(find.byType(AutomaticTransactionsScreen), findsNothing);
 
-      await tester.tap(find.text('Ver as 35 pendências'));
+      await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      expect(find.byType(AutomaticTransactionsScreen), findsOneWidget);
-      expect(find.textContaining('COMPRA CARTAO'), findsNWidgets(35));
-    });
-
-    testWidgets('B3 — o cabeçalho das pendências abre a mesma tela', (
-      tester,
-    ) async {
-      await _pump(
-        tester,
-        em: '/jornada',
-        overrides: homeOverrides(
-          pendingAutomatic: homeTypicalPending(count: 2),
-        ),
+      expect(
+        find.text('35'),
+        findsOneWidget,
+        reason: 'a opção leva o contador de pendências no canto do ícone',
       );
 
       await tester.tap(find.text('Lançamentos Identificados'));
       await tester.pumpAndSettle();
 
       expect(find.byType(AutomaticTransactionsScreen), findsOneWidget);
+      expect(find.textContaining('COMPRA CARTAO'), findsNWidgets(35));
     });
 
-    testWidgets('B3 — "Ver as N metas" abre a lista de metas', (tester) async {
+    testWidgets('e a ferramenta "Metas" abre a lista', (tester) async {
       await _pump(
         tester,
-        em: '/jornada',
+        em: '/',
         overrides: homeOverrides(goals: homeTwoGoals()),
       );
 
-      expect(find.byType(GoalsScreen), findsNothing);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Ver as 2 metas'));
+      await tester.tap(find.text('Metas'));
       await tester.pumpAndSettle();
 
       expect(find.byType(GoalsScreen), findsOneWidget);
       expect(find.text('Reserva de emergência'), findsOneWidget);
       expect(find.text('Trocar de carro'), findsOneWidget);
+    });
+
+    testWidgets('a bússola abre a Bússola da Liberdade', (tester) async {
+      // B11 do QA: dois dos quatro ícones da cena não tinham teste de
+      // DESTINO. Que eles desenham o número certo já estava guardado; para
+      // onde eles levam, não — e um ícone que não abre nada é indistinguível
+      // de um ícone que abre a coisa errada.
+      await _pumpCena(
+        tester,
+        overrides: arenaOverrides(
+          health: const FinancialHealth(score: 72, tier: FreedomTier.guardiao),
+        ),
+      );
+
+      await _tocarIcone(tester, ArenaGlyph.compass);
+
+      expect(find.byType(FreedomCompassSheet), findsOneWidget);
+    });
+
+    testWidgets('o coach abre a última análise, quando ela ainda vale', (
+      tester,
+    ) async {
+      await _pumpCena(
+        tester,
+        overrides: arenaOverrides(lastInsight: homeTypicalInsight()),
+      );
+
+      await _tocarIcone(tester, ArenaGlyph.coach);
+
+      expect(
+        find.text('coach'),
+        findsOneWidget,
+        reason:
+            'com análise recente ele NÃO pede uma nova: abre a que existe, '
+            'que é a mesma decisão que a linha compacta da Home tomava',
+      );
+    });
+
+    testWidgets('o ícone da cena é a porta discreta da mesma triagem', (
+      tester,
+    ) async {
+      await _pumpCena(
+        tester,
+        overrides: arenaOverrides(
+          pendingAutomatic: homeTypicalPending(count: 2),
+        ),
+      );
+
+      expect(find.byType(AutomaticTransactionsScreen), findsNothing);
+
+      await _tocarIcone(tester, ArenaGlyph.spark);
+
+      expect(find.byType(AutomaticTransactionsScreen), findsOneWidget);
     });
   });
 }

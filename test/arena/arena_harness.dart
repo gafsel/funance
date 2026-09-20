@@ -5,14 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
-import 'package:funances/features/arena/presentation/screens/arena_screen.dart';
-import 'package:funances/features/arena/presentation/widgets/arena_home_block.dart';
-import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
+import 'package:funances/features/coaching/domain/models/coaching_model.dart';
+import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/home/domain/models/financial_health_model.dart';
+import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
+
+import '../support/home_harness.dart';
 
 /// Monta a Arena num teste, com o estado já calculado.
 ///
@@ -187,21 +192,50 @@ const List<LocalizationsDelegate<Object>> arenaLocalizationDelegates =
 
 List<Locale> get arenaSupportedLocales => AppLocalizations.supportedLocales;
 
+/// Os dublês de uma Arena montada: os da Home mais o estado da cena.
+///
+/// Os quatro ícones da lateral leem providers que eram de outros blocos —
+/// missões, Bússola, coach e pendências —, e é por isso que um teste da cena
+/// precisa de tudo o que a Home precisava.
+List<Override> arenaOverrides({
+  ArenaState? state,
+  bool isBusiness = false,
+  List<WeeklyMissionModel> missions = const [],
+  List<AutomaticTransactionModel> pendingAutomatic = const [],
+  FinancialHealth? health,
+  CoachingModel? lastInsight,
+  List<Override> extra = const [],
+}) => homeOverrides(
+  currentUser: arenaTestUser,
+  missions: missions,
+  pendingAutomatic: pendingAutomatic,
+  health: health,
+  lastInsight: lastInsight,
+  extra: [
+    ArenaViewProviders.state.overrideWith(
+      (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
+    ),
+    ArenaViewProviders.isBusiness.overrideWith((ref) => isBusiness),
+    ...extra,
+  ],
+);
+
 /// A Arena dentro de um router de verdade, para os toques terem para onde ir.
+///
+/// Os dublês vêm de `homeOverrides`, e não de uma lista própria: desde que a
+/// Arena virou a Home inteira, a cena carrega os ícones das missões, da
+/// Bússola, do coach e das pendências — quatro providers que antes eram de
+/// outros blocos. Duas listas de dublê para a mesma tela divergiriam na
+/// primeira vez que alguém acrescentasse um ícone.
 Widget arenaApp(
   ArenaState state, {
   ThemeData? theme,
   bool reduceMotion = false,
   bool isBusiness = false,
-  Widget? home,
+  List<Override>? overrides,
 }) => ProviderScope(
-  overrides: [
-    ArenaViewProviders.state.overrideWith(
-      (ref) => AsyncValue<ArenaState>.data(state),
-    ),
-    ArenaViewProviders.isBusiness.overrideWith((ref) => isBusiness),
-    AuthDomainProviders.currentUser.overrideWith((ref) => arenaTestUser),
-  ],
+  overrides:
+      overrides ?? arenaOverrides(state: state, isBusiness: isBusiness),
   child: MaterialApp.router(
     debugShowCheckedModeBanner: false,
     theme: theme ?? AppTheme.light,
@@ -212,10 +246,15 @@ Widget arenaApp(
       child: child!,
     ),
     routerConfig: GoRouter(
-      initialLocation: '/arena',
+      initialLocation: '/',
       routes: [
-        GoRoute(path: '/', builder: (_, _) => home ?? const _Marker('home')),
-        GoRoute(path: arenaRoutePath, builder: (_, _) => const ArenaScreen()),
+        // A Arena É a raiz: a primeira aba da Home. A rota `/arena` continua
+        // existindo e redireciona para cá — exatamente como no router do app.
+        GoRoute(
+          path: '/',
+          builder: (_, _) => const Scaffold(body: ArenaTab()),
+        ),
+        GoRoute(path: arenaRoutePath, redirect: (_, _) => '/'),
         GoRoute(
           path: '/accounts/:id/statement',
           builder: (_, _) => const _Marker('extrato'),
@@ -224,6 +263,12 @@ Widget arenaApp(
           path: '/transactions/form',
           builder: (_, _) => const _Marker('editar lançamento'),
         ),
+        GoRoute(
+          path: '/automatic-transactions',
+          builder: (_, _) => const _Marker('triagem'),
+        ),
+        GoRoute(path: '/missions', builder: (_, _) => const _Marker('semana')),
+        GoRoute(path: '/coaching', builder: (_, _) => const _Marker('coach')),
       ],
     ),
     localizationsDelegates: arenaLocalizationDelegates,
@@ -255,6 +300,7 @@ Future<void> pumpArena(
   ThemeData? theme,
   bool reduceMotion = false,
   bool isBusiness = false,
+  List<Override>? overrides,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -267,57 +313,7 @@ Future<void> pumpArena(
         theme: theme,
         reduceMotion: reduceMotion,
         isBusiness: isBusiness,
-      ),
-    );
-
-    for (var i = 0; i < 12; i++) {
-      await tester.pump(Duration.zero);
-      await Future<void>.delayed(const Duration(milliseconds: 16));
-    }
-  });
-
-  await arenaFrames(tester);
-}
-
-/// Monta o BLOCO da Arena como ele vive na Home, com a rota de tela cheia do
-/// outro lado da porta.
-Future<void> pumpArenaHome(
-  WidgetTester tester, {
-  ArenaState? state,
-  Size size = const Size(400, 800),
-}) async {
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-
-  await tester.runAsync(() async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          ArenaViewProviders.state.overrideWith(
-            (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
-          ),
-          ArenaViewProviders.isBusiness.overrideWith((ref) => false),
-        ],
-        child: MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light,
-          routerConfig: GoRouter(
-            routes: [
-              GoRoute(
-                path: '/',
-                builder: (_, _) => const Scaffold(body: ArenaHomeBlock()),
-              ),
-              GoRoute(
-                path: arenaRoutePath,
-                builder: (_, _) => const _Marker('arena em tela cheia'),
-              ),
-            ],
-          ),
-          localizationsDelegates: arenaLocalizationDelegates,
-          supportedLocales: arenaSupportedLocales,
-          locale: const Locale('pt'),
-        ),
+        overrides: overrides,
       ),
     );
 

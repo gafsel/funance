@@ -3,23 +3,38 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
-import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+import 'package:funances/features/home/domain/models/financial_health_model.dart';
 
 import '../arena/arena_harness.dart';
 import '../arena/hud_harness.dart';
 import '../support/home_harness.dart';
 import 'golden_support.dart';
 
-/// A Home com a Arena no topo — claro e escuro, celular e desktop.
+/// A Home, que agora É a Arena — celular e desktop.
 ///
-/// A ordem dos blocos tem teste de posição (`home_v2_test`) e a altura tem
-/// teste de medida (`home_height_test`). O que nenhum dos dois vê é a TINTA:
-/// duas barras que se opõem só funcionam se o teal dos heróis e o violeta do
-/// monstro se separarem nos dois temas, e se o placar continuar legível sobre
-/// o azul profundo do bloco. É disso que estes quatro PNGs são a rede.
+/// **Sem par claro/escuro.** Esta aba não tem tema: a cena tem PALETA
+/// PRÓPRIA. O fundo é `surfaceDeep` nos dois modos, a tinta do HUD é
+/// `inkInverse`/`inkInverse2` nos dois, os sprites são pixel art com as cores
+/// do Kenney, e o véu é a mesma chapa de `surfaceDeep`. O QA comparou os
+/// PNGs: os pares `_escuro` diferiam em 26 pixels do total — o cursor do
+/// carregamento de um deles —, ou seja, eram cópias caras de manter e de
+/// revisar.
+///
+/// Onde o tema AINDA muda alguma coisa é nas FOLHAS que a cena abre — contas,
+/// compromissos, missões, Bússola —, e essas têm os goldens delas
+/// (`arena_sheets_golden_test`, `hud_sheets_golden_test`), nos dois temas.
+///
+/// O que está na tela tem teste de estrutura (`home_arena_test`) e a altura
+/// tem teste de medida (`home_height_test`). O que nenhum dos dois vê é a
+/// TINTA: duas barras que se opõem só funcionam se o teal dos heróis e o
+/// violeta do monstro se separarem nos dois temas; a coluna de ícones da
+/// lateral só funciona se ela ler sobre a areia do chão e sobre o tijolo da
+/// parede; e o monstro morto só lê como morto se o cinza dele se separar do
+/// cenário. É disso que estes PNGs são a rede.
 ///
 /// O estado da Arena é FIXO (`arenaTestState`): o golden não pode depender do
 /// dia em que roda, e a cena do Flame depende de um relógio de verdade para
@@ -40,7 +55,7 @@ Future<void> _pump(
   await tester.runAsync(() async {
     await tester.pumpWidget(
       homeApp(
-        const JourneyTab(),
+        const ArenaTab(),
         brightness: brightness,
         overrides: [
           ...homeOverrides(
@@ -51,6 +66,12 @@ Future<void> _pump(
             summary: homeTypicalSummary(),
             pendingAutomatic: homeTypicalPending(),
             lastInsight: homeTypicalInsight(),
+            // O índice publicado: sem ele o ícone da bússola sai apagado, e
+            // o estado normal da cena é justamente o de ter pontuação.
+            health: const FinancialHealth(
+              score: 72,
+              tier: FreedomTier.guardiao,
+            ),
           ),
           ArenaViewProviders.state.overrideWith(
             (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
@@ -88,20 +109,18 @@ void main() {
       tamanho: const Size(400, 800),
       tema: Brightness.light,
     ),
+    // A tela BAIXA, que é onde o QA achou a coluna de ícones por cima do
+    // mago. Aqui ela prova o contrário: a faixa de ícones fica no véu do
+    // topo, e os bonecos continuam inteiros embaixo dela.
     (
-      nome: 'home_arena_celular_escuro',
-      tamanho: const Size(400, 800),
-      tema: Brightness.dark,
+      nome: 'home_arena_celular_baixo',
+      tamanho: const Size(400, 544),
+      tema: Brightness.light,
     ),
     (
       nome: 'home_arena_desktop',
       tamanho: const Size(1300, 900),
       tema: Brightness.light,
-    ),
-    (
-      nome: 'home_arena_desktop_escuro',
-      tamanho: const Size(1300, 900),
-      tema: Brightness.dark,
     ),
   ];
 
@@ -110,7 +129,7 @@ void main() {
       await _pump(tester, size: caso.tamanho, brightness: caso.tema);
 
       await expectLater(
-        find.byType(JourneyTab),
+        find.byType(ArenaTab),
         matchesGoldenFile('images/${caso.nome}.png'),
       );
     });
@@ -185,34 +204,109 @@ void main() {
     ],
   );
 
-  for (final tema in Brightness.values) {
-    final sufixo = tema == Brightness.dark ? '_escuro' : '';
+  /// A semana VENCIDA: o monstro no chão.
+  ///
+  /// Decisão 2 do dono. Até aqui o bicho encolhia e sumia, e a captura da
+  /// semana ganha mostrava uma arena vazia. Este PNG é o que prova as três
+  /// coisas que dizem "morto" sem arte nova: o corpo tombado, o cinza por
+  /// luminância (que funciona inclusive sobre o demônio vermelho) e o X. Mais
+  /// a barra do monstro zerada e o selo "Derrotado" no lugar de sempre.
+  ArenaState derrotado() => arenaTestState(
+    currentBalance: 4820,
+    commitments: [
+      arenaTestCommitment(paid: true),
+      arenaTestCommitment(
+        id: 'luz',
+        description: 'Luz',
+        amount: 180,
+        dayOffset: 2,
+        paid: true,
+      ),
+    ],
+  );
 
-    testWidgets('golden — o rombo real$sufixo', (tester) async {
-      await _pump(
-        tester,
-        size: const Size(400, 800),
-        brightness: tema,
-        state: oRombo(),
+  /// A morte AO VIVO, depois de tudo assentar.
+  ///
+  /// O golden do estado parado já existia e mostrava o cadáver certo; o
+  /// defeito que o QA achou só aparece no CAMINHO — o susto branco entrava
+  /// por cima do cinza e, ao terminar, deixava o filtro dele no lugar. Esta
+  /// captura é a do caminho.
+  testWidgets('golden — o monstro morre na tela', (tester) async {
+    await loadAppFonts();
+
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final fonte = StateProvider<ArenaState>((ref) => arenaTestState());
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        homeApp(
+          const ArenaTab(),
+          overrides: [
+            ...homeOverrides(
+              missions: homeTypicalMissions(),
+              pendingAutomatic: homeTypicalPending(),
+              lastInsight: homeTypicalInsight(),
+              health: const FinancialHealth(
+                score: 72,
+                tier: FreedomTier.guardiao,
+              ),
+            ),
+            ArenaViewProviders.state.overrideWith(
+              (ref) => AsyncValue<ArenaState>.data(ref.watch(fonte)),
+            ),
+            ArenaViewProviders.isBusiness.overrideWith((ref) => false),
+            HudViewProviders.state.overrideWith(
+              (ref) => AsyncValue<HudState>.data(hudTestState()),
+            ),
+          ],
+        ),
       );
 
-      await expectLater(
-        find.byType(JourneyTab),
-        matchesGoldenFile('images/home_arena_rombo$sufixo.png'),
-      );
+      for (var i = 0; i < 14; i++) {
+        await tester.pump(Duration.zero);
+        await Future<void>.delayed(const Duration(milliseconds: 16));
+      }
     });
 
-    testWidgets('golden — monstro a 30% de vida$sufixo', (tester) async {
+    // A semana fecha com a cena na frente.
+    tester.element(find.byType(ArenaTab));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ArenaTab)),
+    );
+    container.read(fonte.notifier).state = arenaTestState(
+      currentBalance: 4820,
+      commitments: [arenaTestCommitment(paid: true)],
+    );
+
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
+
+    await expectLater(
+      find.byType(ArenaTab),
+      matchesGoldenFile('images/home_arena_morte_ao_vivo.png'),
+    );
+  });
+
+  for (final caso in <({String nome, ArenaState Function() estado})>[
+    (nome: 'home_arena_derrotado', estado: derrotado),
+    (nome: 'home_arena_rombo', estado: oRombo),
+    (nome: 'home_arena_monstro_30', estado: quaseVencida),
+  ]) {
+    testWidgets('golden — ${caso.nome}', (tester) async {
       await _pump(
         tester,
         size: const Size(400, 800),
-        brightness: tema,
-        state: quaseVencida(),
+        brightness: Brightness.light,
+        state: caso.estado(),
       );
 
       await expectLater(
-        find.byType(JourneyTab),
-        matchesGoldenFile('images/home_arena_monstro_30$sufixo.png'),
+        find.byType(ArenaTab),
+        matchesGoldenFile('images/${caso.nome}.png'),
       );
     });
   }

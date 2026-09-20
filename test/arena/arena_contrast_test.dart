@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_scrim.dart';
 
 /// A barra de vida é uma INFORMAÇÃO, e ela é feita só de cor.
 ///
@@ -52,8 +53,73 @@ double _contrast(Color a, Color b) {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+/// Uma cor com opacidade, desenhada SOBRE outra.
+///
+/// É a conta que o `ColoredBox` do véu faz na tela, refeita aqui: o teste
+/// precisa da cor RESULTANTE para medir contraste contra ela.
+Color _over(Color top, Color bottom) {
+  final a = top.a;
+  return Color.from(
+    alpha: 1,
+    red: top.r * a + bottom.r * (1 - a),
+    green: top.g * a + bottom.g * (1 - a),
+    blue: top.b * a + bottom.b * (1 - a),
+  );
+}
+
 void main() {
   const limite = 3.0;
+
+  /// O véu do HUD sobre a cena — o pedido do dono da segunda rodada.
+  ///
+  /// A cena virou o FUNDO da aba inteira, e o placar, a faixa de ícones e o
+  /// HUD mensal passaram a flutuar sobre ela. Sobre o quê, exatamente, não dá
+  /// para saber: parede de tijolo cinza, areia clara, um braseiro laranja, um
+  /// demônio vermelho — a arte muda com a luta e com o tamanho da tela.
+  ///
+  /// O que dá para saber é o PIOR CASO. O véu é uma chapa de `surfaceDeep`
+  /// com opacidade fixa; quanto mais clara a arte por baixo, mais clara a
+  /// chapa resultante, e menos contraste ela dá ao texto claro por cima. O
+  /// pior caso é o branco puro, e é contra ele que estes testes medem.
+  ///
+  /// O limite aqui é 4,5:1 — texto, e não componente.
+  group('o véu do HUD sobre a cena', () {
+    const textoLimite = 4.5;
+
+    // O extremo claro e o extremo escuro do que a arte pode ser.
+    final extremos = <String, Color>{
+      'arte branca': const Color(0xFFFFFFFF),
+      'arte preta': const Color(0xFF000000),
+    };
+
+    for (final tinta in <String, Color>{
+      'tinta principal': AppColors.inkInverse,
+      'tinta secundária': AppColors.inkInverse2,
+    }.entries) {
+      for (final arte in extremos.entries) {
+        test('${tinta.key} sobre o véu, com ${arte.key}', () {
+          final chapa = _over(ArenaScrim.cover, arte.value);
+          final razao = _contrast(tinta.value, chapa);
+
+          expect(
+            razao,
+            greaterThanOrEqualTo(textoLimite),
+            reason:
+                '${razao.toStringAsFixed(2)}:1 — se o véu afinar, o placar '
+                'deixa de ser legível sobre a cena',
+          );
+        });
+      }
+    }
+
+    test('e o dourado dos números do HUD também', () {
+      // O ouro é a tinta dos valores que sobem na cena e do selo de vitória.
+      final chapa = _over(ArenaScrim.cover, const Color(0xFFFFFFFF));
+      final razao = _contrast(AppColors.gold, chapa);
+
+      expect(razao, greaterThanOrEqualTo(textoLimite), reason: '$razao:1');
+    });
+  });
 
   test('a moldura se separa do bloco atrás dela', () {
     final razao = _contrast(AppColors.gameFrame, AppColors.surfaceDeep);

@@ -9,6 +9,12 @@ import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_theme.dart';
+import 'package:funances/features/arena/presentation/game/arena_actors.dart';
+import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
+
 import 'arena_harness.dart';
 
 /// A cena e o placar, montados de verdade.
@@ -57,11 +63,21 @@ void main() {
       expect(tester.widget<ArenaHpBar>(bars.last).mirrored, isTrue);
     });
 
-    testWidgets('a barra dos heróis mostra "atual / inicial"', (tester) async {
+    testWidgets('a barra dos heróis mostra "atual / inicial", compacto', (
+      tester,
+    ) async {
       await pumpArena(tester);
 
-      expect(find.textContaining('3.980'), findsWidgets);
-      expect(find.textContaining('5.200'), findsWidgets);
+      // Decisão 13 do dono: no placar o dinheiro é referência lúdica, não
+      // extrato. R\$ 3.980,00 vira "R\$ 4k" e R\$ 5.200,00 vira "R\$ 5,2k";
+      // os centavos exatos estão na folha das contas, a um toque daqui.
+      expect(find.textContaining('4k'), findsWidgets);
+      expect(find.textContaining('5,2k'), findsWidgets);
+      expect(
+        find.textContaining('3.980'),
+        findsNothing,
+        reason: 'o número de extrato saiu da barra',
+      );
     });
 
     testWidgets('a hachura do comprometido é a vida do monstro', (
@@ -139,6 +155,87 @@ void main() {
       expect(state.monsterSkin, MonsterSkin.demon);
     });
 
+    /// A1 — o achado ALTO do QA, que nenhuma captura de estado pega.
+    ///
+    /// O `ColorEffect` do Flame ESCREVE em `paint.colorFilter` a cada quadro
+    /// e, no fim, deixa lá o filtro da cor de origem com opacidade zero. Ele
+    /// não restaura o que havia antes. Quando o monstro morria AO VIVO, o
+    /// susto branco entrava por cima do cinza de cadáver e, ao terminar,
+    /// deixava um filtro transparente no lugar dele: o bicho ficava deitado,
+    /// com o X, e **em cor cheia** até a semana seguinte.
+    ///
+    /// Quem abria a Home numa semana já vencida via o cadáver certo; quem
+    /// assistia à morte via o errado — que é o pior dos dois casos, porque é
+    /// o momento em que a pessoa está olhando.
+    testWidgets('A1 — morrer AO VIVO deixa o cadáver cinza, não colorido', (
+      tester,
+    ) async {
+      final vivo = arenaTestState();
+      final morto = arenaTestState(
+        commitments: [arenaTestCommitment(paid: true)],
+      );
+
+      // A cena lê um `Provider`, que não se escreve de fora. A fonte
+      // mutável entra por baixo dele: é o que deixa a semana FECHAR com a
+      // tela montada, que é o caminho do defeito.
+      final fonte = StateProvider<ArenaState>((ref) => vivo);
+      final container = ProviderContainer(
+        overrides: arenaOverrides(
+          extra: [
+            ArenaViewProviders.state.overrideWith(
+              (ref) => AsyncValue<ArenaState>.data(ref.watch(fonte)),
+            ),
+          ],
+        ),
+      );
+      addTearDown(container.dispose);
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.light,
+              localizationsDelegates: arenaLocalizationDelegates,
+              supportedLocales: arenaSupportedLocales,
+              locale: const Locale('pt'),
+              home: const Scaffold(body: ArenaTab()),
+            ),
+          ),
+        );
+        for (var i = 0; i < 12; i++) {
+          await tester.pump(Duration.zero);
+          await Future<void>.delayed(const Duration(milliseconds: 16));
+        }
+      });
+      await arenaFrames(tester);
+
+      final jogo = tester
+          .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
+          .game!;
+
+      expect(jogo.monster!.isFallen, isFalse, reason: 'ele começa de pé');
+
+      // A semana fecha COM a cena na frente: é o caminho que dispara o susto.
+      container.read(fonte.notifier).state = morto;
+      await tester.pump();
+
+      // Tempo de sobra para o `ColorEffect` do susto terminar (0,08 + 0,12,
+      // duas vezes).
+      await arenaFrames(tester, count: 40);
+
+      expect(jogo.monster!.isFallen, isTrue);
+      expect(
+        jogo.monster!.paint.colorFilter,
+        MonsterActor.corpseFilter,
+        reason:
+            'o susto terminou e deixou o filtro dele no lugar do cinza: o '
+            'bicho está deitado, com o X, e em cor cheia',
+      );
+      expect(find.text('Derrotado'), findsOneWidget);
+    });
+
     testWidgets('monstro sem vida vira "Derrotado"', (tester) async {
       await pumpArena(
         tester,
@@ -184,8 +281,10 @@ void main() {
 
       // Sem o "R\$" na busca: o formatador usa espaço não separável entre o
       // símbolo e o número, e um teste que casa com o espaço comum falha por
-      // um caractere invisível.
-      expect(find.textContaining('9.007,31'), findsWidgets);
+      // um caractere invisível. O selo também é compacto (decisão 13): a
+      // 400px "Falta R\$ 9.007,31 em caixa" saía cortado, e um selo cortado
+      // não informa nada.
+      expect(find.textContaining('9k'), findsWidgets);
       expect(find.textContaining('em caixa'), findsOneWidget);
 
       final barra = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
@@ -206,10 +305,37 @@ void main() {
       );
     });
 
-    testWidgets('saldo negativo deixa os heróis exaustos', (tester) async {
-      await pumpArena(tester, state: arenaTestState(currentBalance: -120));
+    /// Achado de game design #4 do QA: com o caixa NEGATIVO a barra ficava
+    /// coberta de hachura de ponta a ponta, e o olho lê uma barra cheia de
+    /// vermelho como vida cheia. Era o retrato real do cofre naquele dia —
+    /// −R\$ 6.361,92 em caixa — e a Arena dizia que estava tudo no lugar.
+    ///
+    /// Uma barra vazia é uma barra vazia. A hachura nunca passa da vida que
+    /// existe, e quem conta o tamanho do buraco é o selo, que traz o número.
+    testWidgets('saldo negativo é barra VAZIA, e o selo diz de quanto', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(initialBalance: -6361.92, currentBalance: -6361.92),
+      );
 
-      expect(find.text('Exausto'), findsOneWidget);
+      final barra = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
+
+      expect(barra.ratio, 0, reason: 'não sobrou vida nenhuma');
+      expect(
+        barra.committedRatio,
+        0,
+        reason:
+            'a hachura cobria a barra inteira e lia como "vida cheia" — ela '
+            'nunca passa do que existe',
+      );
+      expect(barra.pressed, isTrue);
+
+      // O número do buraco, no lugar da palavra "Exausto": com a barra
+      // vazia, a palavra sozinha não diz de quanto é.
+      expect(find.textContaining('7,7k'), findsWidgets);
+      expect(find.textContaining('em caixa'), findsOneWidget);
     });
   });
 
@@ -688,18 +814,6 @@ void main() {
       expect(find.byType(ArenaHpBar), findsNWidgets(2));
     });
 
-    testWidgets('o botão do bloco abre a Arena em tela cheia', (tester) async {
-      // A porta para `/arena` mora no bloco da Home. Aqui ela é TOCADA: uma
-      // varredura de texto diria "o endereço aparece no arquivo", que é
-      // outra coisa.
-      await pumpArenaHome(tester);
-
-      await tester.tap(find.byKey(const ValueKey('arena-open-full')));
-      await arenaFrames(tester, count: 20);
-
-      expect(find.text('arena em tela cheia'), findsOneWidget);
-    });
-
     testWidgets('a cena tem semântica: a luta não é um retângulo mudo', (
       tester,
     ) async {
@@ -708,21 +822,21 @@ void main() {
       expect(find.bySemanticsLabel(RegExp('A luta da semana')), findsOneWidget);
     });
 
-    testWidgets('no desktop a cena tem largura máxima e fica centrada', (
+    testWidgets('no desktop a ARTE estica e o PLACAR fica centrado', (
       tester,
     ) async {
+      // Inverteu com o full-bleed. A cena virou o fundo da aba e vai de
+      // borda a borda mesmo num monitor; o teto de largura ficou com os
+      // overlays — esticado, o placar deixa a vida dos heróis e a do monstro
+      // a mil pixels uma da outra, e elas param de se enfrentar.
       await pumpArena(tester, size: const Size(1300, 900));
 
       final cena = tester.getRect(find.byType(GameWidget<ArenaGame>));
+      final placar = tester.getRect(find.byType(ArenaHud));
 
-      expect(
-        cena.width,
-        lessThanOrEqualTo(arenaMaxSceneWidth),
-        reason:
-            'esticada de borda a borda a luta virava um friso, com os atores '
-            'em pontas opostas de mil e duzentos pixels',
-      );
-      expect(cena.center.dx, closeTo(650, 1));
+      expect(cena.width, 1300);
+      expect(placar.width, lessThanOrEqualTo(arenaMaxSceneWidth));
+      expect(placar.center.dx, closeTo(650, 8));
     });
 
     testWidgets('o pé da cena já tem a faixa reservada do HUD mensal', (

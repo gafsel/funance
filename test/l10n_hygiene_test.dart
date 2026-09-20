@@ -106,25 +106,37 @@ void main() {
     }
   });
 
-  test('"Party" é o grupo de categorias; "Equipe" são os membros', () {
-    // Decisão de produto: o vocabulário de jogo fica com as categorias.
-    for (final key in [
-      'partyTitle',
-      'partyHpLabel',
-      'partyStatusHealthy',
-      'partyEmptyTitle',
-      'partyEmptyMessage',
-      'partyErrorMessage',
-    ]) {
+  test('"Party" saiu do ARB junto com o bloco — chave E texto', () {
+    // Decisão 9 do dono: *"na aba de visão geral, pode retirar a
+    // visualização de Party — essa visão não faz mais sentido com a nova
+    // visão de jogo"*. O bloco saiu da Visão Geral, e com ele as chaves que
+    // só ele usava.
+    //
+    // A primeira versão desta varredura olhava só o PREFIXO da chave, e foi
+    // assim que "Ver a Party" sobreviveu dentro de `missionCtaCategories`:
+    // uma missão ainda mandava o usuário para uma tela que não existe mais,
+    // com o nome de um bloco aposentado. Chave e TEXTO, nos dois idiomas.
+    for (final entry in {'pt': pt, 'en': en}.entries) {
+      final chaves = entry.value.keys
+          .where((k) => k.toLowerCase().contains('party'))
+          .toList();
       expect(
-        pt[key]!.toLowerCase(),
-        contains('party'),
-        reason: '$key deveria falar em party',
+        chaves,
+        isEmpty,
+        reason: 'a Party voltou em ${entry.key}: ${chaves.join(', ')}',
       );
+
+      final textos = entry.value.entries
+          .where((e) => e.value.toLowerCase().contains('party'))
+          .map((e) => e.key)
+          .toList();
       expect(
-        pt[key]!.toLowerCase(),
-        isNot(contains('equipe')),
-        reason: '$key mistura o vocabulário dos membros',
+        textos,
+        isEmpty,
+        reason:
+            'texto falando em Party em ${entry.key}: ${textos.join(', ')} — '
+            'o vocabulário do bloco aposentado não pode sobreviver dentro '
+            'de uma frase',
       );
     }
 

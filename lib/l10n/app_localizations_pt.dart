@@ -707,9 +707,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get declineButton => 'Recusar';
 
   @override
-  String get homeJourneyTab => 'A Jornada';
-
-  @override
   String get homeOverviewTab => 'Visão Geral';
 
   @override
@@ -1586,28 +1583,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get returnToPending => 'Retornar para Pendente';
 
   @override
-  String get partyHpLabel => 'Saúde da Party';
-
-  @override
-  String get partyStatusHealthy => 'Party em segurança';
-
-  @override
-  String get partyStatusStrained => 'Party em perigo';
-
-  @override
-  String get partyStatusDefeated => 'Party derrotada';
-
-  @override
-  String get partyTitle => 'Sua Party';
-
-  @override
   String get planned => 'Planejado';
 
   @override
   String get actual => 'Realizado';
-
-  @override
-  String get excess => 'Excesso';
 
   @override
   String get registerInvoicePayment => 'Registrar Pagamento de Fatura';
@@ -1648,9 +1627,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get coachingNoSlides => 'Nenhum slide foi gerado. Tente novamente.';
 
   @override
-  String get coachingViewHistory => 'Ver histórico';
-
-  @override
   String get coachingHistoryTitle => 'Histórico de Insights';
 
   @override
@@ -1683,18 +1659,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactions => 'Lançamentos';
-
-  @override
-  String get challengeStatusStable => 'Estável';
-
-  @override
-  String get challengeStatusWarning => 'Alerta';
-
-  @override
-  String get challengeStatusCritical => 'Crítico';
-
-  @override
-  String get rest => 'Restante';
 
   @override
   String get category => 'Categoria';
@@ -1935,20 +1899,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String goalOverLimit(String amount) {
     return 'Estourou $amount';
   }
-
-  @override
-  String get partyEmptyTitle => 'Sua party ainda não tem desafios';
-
-  @override
-  String get partyEmptyMessage =>
-      'Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.';
-
-  @override
-  String get partyEmptyButton => 'Criar primeiro limite';
-
-  @override
-  String get partyErrorMessage =>
-      'Não foi possível carregar o status da party.';
 
   @override
   String get badgeCatalogUnavailableTitle => 'Catálogo indisponível';
@@ -2349,7 +2299,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get missionCtaPlanning503020 => 'Abrir o 50-30-20';
 
   @override
-  String get missionCtaCategories => 'Ver a Party';
+  String get missionCtaCategories => 'Ver as categorias';
 
   @override
   String get missionCtaAccounts => 'Ver contas';
@@ -2374,17 +2324,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String levelBadgeSemantics(int level, int percent) {
     return 'Nível $level do cofre, $percent% para o próximo';
-  }
-
-  @override
-  String get compassStripTitle => 'Bússola';
-
-  @override
-  String get compassStripOpen => 'Ver a Bússola completa';
-
-  @override
-  String compassStripDelta(String points) {
-    return '$points desde o mês passado';
   }
 
   @override
@@ -2422,6 +2361,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String automaticTransactionPendingCount(int count) {
+    return '$count pendentes';
+  }
+
+  @override
   String get goalsTitle => 'Metas';
 
   @override
@@ -2456,17 +2400,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get arenaExhausted => 'Exausto';
-
-  @override
-  String get arenaHint =>
-      'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.';
-
-  @override
   String get automaticTransactionSeeAllShort => 'Ver todas';
-
-  @override
-  String get arenaWeekChallenge => 'Desafio da semana';
 
   @override
   String get arenaFree => 'Livre';
@@ -2592,11 +2526,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String arenaSceneSemantics(String monster, String remaining) {
     return 'A luta da semana: os heróis contra $monster, que ainda tem $remaining de vida.';
-  }
-
-  @override
-  String arenaDefeatedBanner(String amount) {
-    return 'Monstro derrotado — $amount pagos nesta semana';
   }
 
   @override

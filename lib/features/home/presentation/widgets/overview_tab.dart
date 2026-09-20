@@ -10,7 +10,6 @@ import 'package:funances/features/home/presentation/widgets/overview/balance_sum
 import 'package:funances/features/home/presentation/widgets/overview/category_summary_view.dart';
 import 'package:funances/features/home/presentation/widgets/period_selection.dart';
 import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
-import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +21,14 @@ export 'package:funances/features/home/presentation/widgets/overview/balance_sum
 export 'package:funances/features/home/presentation/widgets/overview/category_summary_view.dart';
 
 /// A aba Visão Geral: contas, distribuição 50-30-20 e "onde está o dinheiro".
+///
+/// A **Party saiu daqui** (decisão 9 do dono: "essa visão não faz mais
+/// sentido com a nova visão de jogo"). Ela tinha vindo da Home por um bom
+/// motivo — falava de planejamento por categoria, que é o assunto desta aba
+/// —, mas era um segundo jogo dentro do app, com uma vida, um status e um
+/// emoji próprios, competindo com a luta da semana que agora abre a primeira
+/// aba. O anel dela sobreviveu genérico em
+/// `core/widgets/progress_ring_icon.dart`.
 ///
 /// A mesma sequência de blocos em duas montagens — duas colunas acima de 900px,
 /// empilhada abaixo. É repetição literal de propósito: tentar unificar as duas
@@ -64,12 +71,6 @@ class OverviewTab extends ConsumerWidget {
                             const AccountsView(),
                             AppSpacing.gapXl,
                             const Planning503020DistributionCard(),
-                            AppSpacing.gapXl,
-                            // A Party veio da Home: ela fala dos desafios de
-                            // planejamento por categoria, que é o assunto
-                            // desta aba e não do que precisa ser decidido
-                            // hoje.
-                            const TeamStatusView(),
                             const SizedBox(height: 1),
                           ],
                         ),
@@ -100,8 +101,6 @@ class OverviewTab extends ConsumerWidget {
                   AppSpacing.gapXl,
                   // Distribuição 50-30-20
                   const Planning503020DistributionCard(),
-                  AppSpacing.gapXl,
-                  const TeamStatusView(),
                   AppSpacing.gapXl,
                   // Onde está o dinheiro?
                   _buildWhereIsMoneyHeader(l10n, theme),
