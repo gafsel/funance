@@ -374,7 +374,10 @@ class _CommitmentRow extends StatelessWidget {
         when == null ? due : DateFormat.MMMEd(locale).format(when),
       );
     }
-    if (commitment.isPaid) return l10n.arenaPaidOn(due);
+    // "Pago" só para a linha que CAIU. Numa parcial ele contradizia a linha
+    // logo abaixo, que diz quanto ainda falta — e é o vencimento que
+    // continua importando ali.
+    if (commitment.isStruck) return l10n.arenaPaidOn(due);
     if (commitment.isBehind) {
       return l10n.arenaOverdueSince(due, -commitment.daysUntilDue);
     }

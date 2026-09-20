@@ -228,11 +228,13 @@ void main() {
       expect(state.paidSoFar, 1200);
     });
 
-    test('pagar a mais não ENGORDA o monstro', () {
-      // O inicial é o PLANO — o que a semana se propôs a pagar. Uma conta de
-      // R\$ 180 quitada por R\$ 183,45 não fazia a semana dever R\$ 183,45: o
-      // que ela devia continua sendo R\$ 180, e os R\$ 3,45 a mais são um
-      // detalhe da linha.
+    test('despesa comum custa o que custou — para mais ou para menos', () {
+      // Uma conta de luz prevista em R\$ 180 e quitada por R\$ 183,45 tirou
+      // R\$ 183,45 do caixa, e é isso que a semana pesou. Não há "excedente"
+      // aqui: a previsão era do próprio usuário, e a realidade a corrigiu.
+      //
+      // O excedente só existe onde QUEM COBROU foi outro — a fatura. Ver o
+      // grupo de quitação parcial.
       final state = ArenaCalculator.from(
         _inputs(
           week: [
@@ -247,10 +249,10 @@ void main() {
         ),
       );
 
-      expect(state.monsterMaxHp, 180);
+      expect(state.monsterMaxHp, 183.45);
       expect(state.monsterHp, 0);
       expect(state.isDefeated, isTrue);
-      expect(state.commitments.single.overpaid, closeTo(3.45, 0.001));
+      expect(state.commitments.single.overpaid, 0);
     });
 
     test('receita não alimenta o monstro', () {
@@ -664,6 +666,66 @@ void main() {
       expect(state.struckCount, 1, reason: 'só a luz caiu');
       expect(state.partialCommitments.single.installment.id, 'inter');
       expect(state.isDefeated, isFalse);
+    });
+
+    test('despesa comum paga a MENOS é conta resolvida, não dívida', () {
+      // O monstro fantasma. Uma despesa comum é um lançamento do próprio
+      // usuário: se a conta de água nasceu com R\$ 400 previstos e foi quitada
+      // por R\$ 347,42, a conta ACABOU — o que sobrou é uma previsão que errou
+      // por cima, não dívida. Tratar o `amount` como cobrança deixava
+      // R\$ 52,58 de monstro de pé para sempre.
+      //
+      // Medido na base do cofre: 13 despesas comuns quitadas têm `amount`
+      // sobrevivente diferente do pago; duas delas pagaram a MENOS ("Amazon
+      // Canais", R\$ 36,90 previstos e R\$ 34,90 pagos, e o empréstimo por
+      // quatro centavos).
+      final agua = InstallmentModel(
+        id: 'agua',
+        orderId: 'order-agua',
+        amount: 400,
+        paidAmount: 347.42,
+        paidDate: _sunday.add(const Duration(days: 1)),
+        description: 'Água',
+        dueDate: _sunday.add(const Duration(days: 1)),
+        status: InstallmentStatus.paid,
+        type: OrderType.expense,
+        installmentType: InstallmentType.single,
+        accounts: const {'corrente': AccountImpact.debt},
+      );
+
+      final state = ArenaCalculator.from(_inputs(week: [agua]));
+
+      expect(state.monsterMaxHp, 347.42, reason: 'o plano é o que saiu');
+      expect(state.monsterHp, 0);
+      expect(state.isDefeated, isTrue);
+      expect(state.commitments.single.isPartial, isFalse);
+      expect(state.commitments.single.residue, 0);
+    });
+
+    test('a FATURA paga a menos continua devendo — quem cobrou foi outro', () {
+      // A outra metade da mesma regra. A fatura não é uma previsão do
+      // usuário: é uma cobrança do cartão, e pagar menos deixa saldo devedor.
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [invoicePaid(id: 'inter', amount: 12130.09, paid: 1000)],
+        ),
+      );
+
+      expect(state.monsterMaxHp, 12130.09);
+      expect(state.monsterHp, 11130.09);
+      expect(state.commitments.single.isPartial, isTrue);
+      expect(state.isDefeated, isFalse);
+    });
+
+    test('despesa comum pendente continua valendo o previsto', () {
+      // A regra nova não pode zerar o que ainda não foi pago: sem
+      // `paidAmount`, o `referenceAmount` devolve o `amount`.
+      final state = ArenaCalculator.from(
+        _inputs(week: [_expense(id: 'agua', amount: 400, dayOffset: 2)]),
+      );
+
+      expect(state.monsterMaxHp, 400);
+      expect(state.monsterHp, 400);
     });
 
     test('resíduo de centavos conta como quitado', () {

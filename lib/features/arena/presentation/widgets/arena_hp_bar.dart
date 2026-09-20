@@ -264,8 +264,16 @@ class _HatchPainter extends CustomPainter {
 
   final Color color;
 
-  /// Rombo: traços mais juntos. Aqui a densidade É informação, e é a única
-  /// que sobra quando a faixa já ocupa a barra inteira.
+  /// Rombo: traços mais juntos, mais opacos e SEM o véu por baixo.
+  ///
+  /// Os três andam juntos, e o motivo é uma conta de tinta. A hachura normal
+  /// é um traço a 50% sobre um véu escuro a 50% sobre o preenchimento: três
+  /// camadas translúcidas que somam para o cinza, que é o que ela quer —
+  /// "reservado". No rombo a cor É a informação, e o mesmo empilhamento
+  /// comia o vermelho: medido no golden, #4A4544 — cinza puro, sem sinal
+  /// nenhum de perigo.
+  ///
+  /// Sem o véu e a 85%, o traço chega à tela quase como ele mesmo.
   final bool dense;
 
   /// Distância entre traços. Fixa em pontos lógicos de propósito: uma hachura
@@ -277,13 +285,17 @@ class _HatchPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = color.withValues(alpha: 0.5)
+      ..color = color.withValues(alpha: dense ? 0.85 : 0.5)
       ..strokeWidth = 2;
 
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()..color = AppColors.gameTrough.withValues(alpha: 0.5),
-    );
+    // O véu escurece o preenchimento para a hachura normal ler como
+    // "reservado". No rombo ele é justamente o que mata a cor.
+    if (!dense) {
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()..color = AppColors.gameTrough.withValues(alpha: 0.5),
+      );
+    }
 
     final passo = dense ? denseStep : step;
 

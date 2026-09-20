@@ -89,21 +89,25 @@ sealed class ArenaCommitment with _$ArenaCommitment {
 
   /// O PLANO: quanto este compromisso pesava quando a semana começou.
   ///
-  /// É o `amount` quando ele sobrevive, e o `referenceAmount` quando não.
-  /// Os dois casos existem e são diferentes:
+  /// A pergunta que decide é **quem cobrou**:
   ///
-  /// - numa **parcela comum**, a quitação ZERA o `amount` e move o valor para
-  ///   o `paidAmount`. Somar por `amount` daria zero e a barra encolheria
-  ///   pelo total; por isso o `referenceAmount` (`paidAmount ?? amount`)
-  ///   entra como saída;
-  /// - numa **fatura**, o `amount` SOBREVIVE à quitação — ele é o que o
-  ///   cartão cobrou. Uma fatura de R$ 12.130,09 paga em R$ 1.000 continua
-  ///   com os dois campos, e `referenceAmount` devolveria R$ 1.000: o monstro
-  ///   perderia R$ 11.130 de vida e comemoraria uma vitória que não houve.
+  /// - uma **FATURA** é uma cobrança de terceiro. O `amount` sobrevive à
+  ///   quitação porque ele é o que o cartão cobrou, e pagar menos que isso
+  ///   deixa dívida: R$ 12.130,09 cobrados com R$ 1.000 pagos continuam
+  ///   devendo R$ 11.130,09. Aqui o plano é o `amount`;
+  /// - uma **despesa comum** é um lançamento do próprio usuário. Se a conta
+  ///   de água nasceu com R$ 400 previstos e foi quitada por R$ 347,42, a
+  ///   conta ACABOU — o que sobrou não é dívida, é uma previsão que errou por
+  ///   cima. Tratar o `amount` como cobrança aqui deixava um monstro fantasma
+  ///   de R$ 52,58 de pé, para sempre.
   ///
-  /// O plano é sempre o maior dos dois mundos — o que se propôs a pagar.
-  double get planned =>
-      installment.amount > 0 ? installment.amount : installment.referenceAmount;
+  /// Fora da fatura vale o `referenceAmount` (`paidAmount ?? amount`), que
+  /// responde as duas formas: pendente devolve o previsto, quitada devolve o
+  /// que saiu — inclusive quando a quitação zera o `amount`, que é como o app
+  /// grava a parcela comum.
+  double get planned => installment.isInvoice && installment.amount > 0
+      ? installment.amount
+      : installment.referenceAmount;
 
   /// O que de fato saiu do caixa por este compromisso, HOJE.
   ///
@@ -132,7 +136,7 @@ sealed class ArenaCommitment with _$ArenaCommitment {
   /// Até quanto um resto conta como zero, em reais.
   ///
   /// Medido na base: de 73 faturas do cofre, TRÊS fecharam com dois a quatro
-  /// centavos faltando (R\$ 3.942,04 cobrados, R\$ 3.942,00 pagos). É o
+  /// centavos faltando (R$ 3.942,04 cobrados, R$ 3.942,00 pagos). É o
   /// arredondamento do banco, não uma dívida — e com "resto exatamente zero"
   /// essas semanas terminariam com o monstro vivo em quatro centavos, para
   /// sempre, sem vitória nenhuma.
