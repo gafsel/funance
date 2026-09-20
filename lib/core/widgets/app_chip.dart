@@ -58,20 +58,34 @@ class StatusPill extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = context.palette;
 
-    final Color base =
+    // A pílula tem DUAS cores, e elas só coincidem por acaso.
+    //
+    // `ink` escreve; `fill` pinta o fundo a 12% e a borda a 28%. Para as
+    // semânticas as duas são a mesma, porque a tinta de texto diluída dá um
+    // fundo discreto do mesmo matiz. Para a recompensa não dá: a pílula
+    // dourada precisa de um fundo DE OURO, e ouro sobre papel claro é
+    // ilegível como texto — 2,23:1 com `goldDeep`, que era o que havia aqui.
+    // Separar os dois papéis mantém a pílula dourada E legível: fundo de
+    // `gold`, texto de `rewardText` (13,37:1 no claro, 6,80:1 no escuro).
+    final Color ink =
         color ??
         switch (tone) {
           StatusTone.neutral => palette.ink2,
           StatusTone.ok => palette.successText,
           StatusTone.warning => palette.warningText,
           StatusTone.danger => palette.dangerText,
-          StatusTone.reward => AppColors.goldDeep,
+          StatusTone.reward => palette.rewardText,
           StatusTone.info => palette.tealText,
         };
 
+    final Color fill = color ?? switch (tone) {
+      StatusTone.reward => AppColors.gold,
+      _ => ink,
+    };
+
     final style =
         (dense ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)
-            ?.copyWith(color: base);
+            ?.copyWith(color: ink);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -79,15 +93,15 @@ class StatusPill extends StatelessWidget {
         vertical: dense ? 2 : AppSpacing.xxs,
       ),
       decoration: BoxDecoration(
-        color: base.withValues(alpha: 0.12),
+        color: fill.withValues(alpha: 0.12),
         borderRadius: AppRadius.brPill,
-        border: Border.all(color: base.withValues(alpha: 0.28)),
+        border: Border.all(color: fill.withValues(alpha: 0.28)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: dense ? 12 : 14, color: base),
+            Icon(icon, size: dense ? 12 : 14, color: ink),
             SizedBox(width: dense ? 4 : AppSpacing.xxs),
           ],
           Flexible(

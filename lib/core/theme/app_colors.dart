@@ -111,12 +111,11 @@ abstract final class AppColors {
 
   /// Laranja legível sobre papel escuro.
   ///
-  /// É a própria cor cheia: medida, ela já dá 4,73:1 sobre `paperDark` e
-  /// 5,65:1 sobre `surfaceDeep`. Existe como token separado para que o papel
-  /// "tinta de texto no escuro" seja explícito nos três casos — e para que
-  /// mudar o laranja de preenchimento um dia não mude, em silêncio, a
-  /// legibilidade do texto.
-  static const Color warningInkDark = warning;
+  /// A cor cheia dá 4,73:1 sobre `paperDark` e passaria no papel liso, mas a
+  /// superfície real de um aviso é a PÍLULA — o próprio laranja a 12% sobre o
+  /// papel —, e lá ela caía para 4,07:1. Este tom sobe para 4,61:1 na pílula
+  /// e 5,52:1 no papel.
+  static const Color warningInkDark = Color(0xFFFFA061);
 
   /// Erro **e** destrutivo: um token só. Antes eram quatro vermelhos
   /// concorrentes (e um roxo no `ColorScheme.error`).

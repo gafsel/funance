@@ -98,6 +98,17 @@ class AppPalette extends ThemeExtension<AppPalette> {
   Color get dangerText =>
       isDark ? AppColors.dangerInkDark : AppColors.dangerInk;
 
+  /// Tinta de RECOMPENSA na superfície corrente: XP, nível, missão, badge.
+  ///
+  /// O ouro vivo (`gold`) é cor de PREENCHIMENTO — botão, aro, barra cheia —
+  /// e só se lê sobre escuro: sobre papel claro ele dá 1,52:1. Quem precisa
+  /// escrever "é jogo" numa tela de papel usa esta tinta, que vale 13,37:1
+  /// no claro e 6,80:1 no escuro.
+  ///
+  /// Sobre uma superfície de jogo o ouro vivo continua certo — ali a regra é
+  /// `palette.onGame`, não esta.
+  Color get rewardText => isDark ? AppColors.gold : AppColors.goldInk;
+
   /// Cor de um valor monetário pelo sinal. Zero é neutro de propósito: um
   /// saldo zerado não é uma boa nem uma má notícia.
   Color moneyInk(num value) {
