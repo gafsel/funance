@@ -17,7 +17,8 @@ encomendar arte de verdade.
 - **O que é**: folha de 12 × 11 tiles de 16 × 16 px, **sem espaçamento** entre
   eles (por isso a variante "packed"). O índice de um tile é
   `linha * 12 + coluna`, e é assim que `ArenaSprites` o endereça.
-- **O que a Arena usa da folha** (o resto vai no binário porque separar 12
+- **O que a Arena usa da folha** (o tile 48, a areia clara, NÃO é usado: ver
+  o porquê no `ArenaSprites.floor`) (o resto vai no binário porque separar 12
   arquivos de 150 bytes custa mais do que os 5 KB da folha inteira):
 
   | Índice | O que é          | Onde aparece                       |
@@ -36,8 +37,8 @@ encomendar arte de verdade.
   |    121 | fantasma         | monstro da semana                  |
   |    108 | gosma            | monstro da semana                  |
   |     82 | casulo           | casulo da fatura do cartão         |
-  |     48 | chão de areia    | piso da arena                      |
-  |     49 | chão salpicado   | piso da arena (variação)           |
+  |      0 | chão de terra escura | piso da arena (ver `floor`)    |
+  |     24 | chão salpicado   | piso da arena (variação)           |
   |     40 | parede de tijolo | fundo da arena                     |
   |     29 | braseiro         | tocha do fundo                     |
 

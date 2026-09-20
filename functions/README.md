@@ -107,13 +107,34 @@ mago) — que é exatamente o que ele já fazia. Um valor fora da lista recebe o
 mesmo tratamento. **O servidor não valida e não preenche**: quem sabe a ordem
 de entrada é o app.
 
-**Quem lê.** O próprio usuário lê o seu documento direto. O avatar dos OUTROS
-membros chega pela callable `getWorkspaceMembers`, que projeta
-`{id, email, displayName, photoUrl, avatar, createdAt, lastLogin}` — as rules
-de `users/{uid}` só deixam cada um ler o próprio documento, então sem esta
-projeção a escolha do parceiro existiria no banco e nunca chegaria à cena.
-**Isso exige deploy das functions**: até ele acontecer, o app mostra o avatar
-do usuário corrente e o boneco da ordem de entrada para os demais.
+**Quem lê.** A lista de membros da Arena vem INTEIRA da callable
+`getWorkspaceMembers` — inclusive a linha do próprio usuário —, e a callable
+projeta `{id, email, displayName, photoUrl, avatar, createdAt, lastLogin}`.
+As rules de `users/{uid}` só deixam cada um ler o próprio documento, então sem
+esta projeção a escolha do parceiro existiria no banco e nunca chegaria à
+cena.
+
+O app **sobrepõe**, sobre essa lista, o `avatar` do documento local do usuário
+corrente (`ArenaCalculator.roster`). É isso que faz a metade da funcionalidade
+que não depende de servidor nenhum funcionar antes do deploy: **cada um vê a
+própria escolha; a do parceiro só aparece depois que as functions subirem.**
+Sem a sobreposição ninguém veria nada, porque nem a própria linha traz o campo.
+
+**Ordem de rollout: functions ANTES do app.** Não há migração nem
+retrocompatibilidade a proteger — o campo é novo e a projeção só ACRESCENTA
+uma chave a um objeto que o app já sabe ler (`UserModel.avatar` é opcional, e
+uma versão antiga do app simplesmente ignora a chave). Subir as functions
+primeiro faz o avatar do parceiro já estar disponível no instante em que a
+versão nova do app chega às lojas; subir na ordem inversa deixa uma janela em
+que cada um só vê a si mesmo, sem nada quebrado e sem aviso nenhum na tela.
+
+**Ordem de entrada.** A callable lê os documentos com
+`where(documentId, in: [...])`, e o Firestore devolve isso na ordem dos UIDs —
+não na ordem de chegada. Quem precisa da chegada (a Arena, para decidir o
+boneco de quem não escolheu) ordena pelo array `workspaces/{w}.members`, que é
+a mesma lista que o backend usa em `assertWorkspaceOwner` para saber quem é o
+dono. **A ordem da resposta da callable não é contrato** e não deve ser
+tratada como tal.
 
 ### O que o app precisa acompanhar
 
