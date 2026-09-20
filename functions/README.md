@@ -2771,6 +2771,20 @@ existe: rodar
 é reescrito idêntico. Sinal para procurar: o log do cron termina com
 `varredura interrompida em <workspaceId>`.
 
+### Índice exigido pelo app (lição de 2026-09-20)
+
+O histórico da vila lê `workspaces/{w}/monthly_reports` com
+`orderBy(__name__, desc).limit(6)`. Ordenar pelo id do documento em ordem
+DECRESCENTE exige um índice composto de um campo só (`__name__ DESC`, escopo
+COLLECTION) — sem ele o Firestore responde `failed-precondition`, o rodapé
+do HUD engole o erro por decisão de design e a faixa fica VAZIA em todas as
+plataformas. Foi exatamente o que aconteceu na primeira entrega: dev e QA
+validaram com fixtures e leituras diretas do Firestore, e ninguém abriu o
+app contra produção. O índice está em `firebase/firestore.indexes.json`;
+regra que fica: **toda consulta nova do app roda contra produção (ou contra o
+emulador com os índices carregados) antes da entrega**, e um pacote que cria
+consulta nova sai com o índice no MESMO rollout, antes do app.
+
 ### O que o app ainda precisa fazer
 
 1. **Ler `expectedIncome`, nunca recalculá-lo** — é o único jeito de o
