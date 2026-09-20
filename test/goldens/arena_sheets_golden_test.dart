@@ -73,7 +73,66 @@ Future<void> _pumpSheet(
   await arenaFrames(tester, count: 12);
 }
 
+/// A semana com uma fatura paga PELA METADE.
+///
+/// O caso real que reprovou a rodada 3: "Fatura [Gabriel] Cartão Inter",
+/// R\$ 12.130,09 cobrados e R\$ 1.000 pagos. A linha carrega três decisões que
+/// só existem em pixel — a meia espada, o "R\$ 1.000,00 de R\$ 12.130,09 —
+/// falta R\$ 11.130,09" e o link de ajustar — e nenhuma delas tinha captura.
+Future<void> _pumpParcial(
+  WidgetTester tester, {
+  required Brightness brightness,
+}) async {
+  await loadAppFonts();
+
+  await pumpArena(
+    tester,
+    size: const Size(400, 800),
+    theme: brightness == Brightness.dark ? AppTheme.dark : null,
+    state: arenaTestState(
+      commitments: [
+        arenaTestCommitment(
+          id: 'inter',
+          description: 'Fatura [Gabriel] Cartão Inter',
+          amount: 12130.09,
+          partial: 1000,
+          dayOffset: 2,
+        ),
+        arenaTestCommitment(
+          id: 'c6',
+          description: 'Fatura [Bárbara] Cartão C6',
+          amount: 3942.04,
+          partial: 3942.00,
+          dayOffset: 3,
+        ),
+        arenaTestCommitment(
+          id: 'luz',
+          description: 'Luz',
+          amount: 180,
+          dayOffset: 4,
+        ),
+      ],
+    ),
+  );
+
+  await tester.tap(find.byType(ArenaHpBar).last);
+  await arenaFrames(tester, count: 12);
+}
+
 void main() {
+  for (final tema in Brightness.values) {
+    final sufixo = tema == Brightness.dark ? '_escuro' : '';
+
+    testWidgets('golden — fatura paga pela metade$sufixo', (tester) async {
+      await _pumpParcial(tester, brightness: tema);
+
+      await expectLater(
+        find.byType(ArenaMonsterSheet),
+        matchesGoldenFile('images/arena_monstro_parcial$sufixo.png'),
+      );
+    });
+  }
+
   for (final tema in Brightness.values) {
     final sufixo = tema == Brightness.dark ? '_escuro' : '';
 
