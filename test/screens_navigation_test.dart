@@ -7,7 +7,10 @@ import 'package:funances/features/home/presentation/screens/missions_screen.dart
 import 'package:funances/features/home/presentation/widgets/missions/mission_card.dart';
 import 'package:funances/features/home/presentation/widgets/missions/week_checklist.dart';
 import 'package:funances/features/home/presentation/widgets/missions/weekly_xp.dart';
+import 'package:funances/features/home/presentation/widgets/compass/freedom_compass_sheet.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_icon_glyphs.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_scene_icons.dart';
+import 'package:funances/features/home/domain/models/financial_health_model.dart';
 
 import 'arena/arena_harness.dart';
 import 'support/home_harness.dart';
@@ -69,10 +72,10 @@ Future<void> _pumpCena(
   await arenaFrames(tester);
 }
 
-/// Toca num ícone da lateral da cena pelo pictograma dele.
-Future<void> _tocarIcone(WidgetTester tester, IconData icone) async {
+/// Toca num ícone da faixa da cena pela FIGURA dele.
+Future<void> _tocarIcone(WidgetTester tester, ArenaGlyph glifo) async {
   await tester.tap(
-    find.byWidgetPredicate((w) => w is ArenaSceneIcon && w.icon == icone),
+    find.byWidgetPredicate((w) => w is ArenaSceneIcon && w.glyph == glifo),
   );
   await arenaFrames(tester, count: 20);
 }
@@ -92,7 +95,7 @@ void main() {
 
       expect(find.byType(MissionsScreen), findsNothing);
 
-      await _tocarIcone(tester, Icons.menu_book_rounded);
+      await _tocarIcone(tester, ArenaGlyph.scroll);
       await tester.tap(find.text('Missões Semanais'));
       await arenaFrames(tester, count: 20);
 
@@ -151,7 +154,7 @@ void main() {
         overrides: arenaOverrides(missions: homeTypicalMissions()),
       );
 
-      await _tocarIcone(tester, Icons.menu_book_rounded);
+      await _tocarIcone(tester, ArenaGlyph.scroll);
       await tester.tap(find.text('Missões Semanais'));
       await arenaFrames(tester, count: 20);
       expect(find.byType(MissionsScreen), findsOneWidget);
@@ -260,6 +263,42 @@ void main() {
       expect(find.text('Trocar de carro'), findsOneWidget);
     });
 
+    testWidgets('a bússola abre a Bússola da Liberdade', (tester) async {
+      // B11 do QA: dois dos quatro ícones da cena não tinham teste de
+      // DESTINO. Que eles desenham o número certo já estava guardado; para
+      // onde eles levam, não — e um ícone que não abre nada é indistinguível
+      // de um ícone que abre a coisa errada.
+      await _pumpCena(
+        tester,
+        overrides: arenaOverrides(
+          health: const FinancialHealth(score: 72, tier: FreedomTier.guardiao),
+        ),
+      );
+
+      await _tocarIcone(tester, ArenaGlyph.compass);
+
+      expect(find.byType(FreedomCompassSheet), findsOneWidget);
+    });
+
+    testWidgets('o coach abre a última análise, quando ela ainda vale', (
+      tester,
+    ) async {
+      await _pumpCena(
+        tester,
+        overrides: arenaOverrides(lastInsight: homeTypicalInsight()),
+      );
+
+      await _tocarIcone(tester, ArenaGlyph.coach);
+
+      expect(
+        find.text('coach'),
+        findsOneWidget,
+        reason:
+            'com análise recente ele NÃO pede uma nova: abre a que existe, '
+            'que é a mesma decisão que a linha compacta da Home tomava',
+      );
+    });
+
     testWidgets('o ícone da cena é a porta discreta da mesma triagem', (
       tester,
     ) async {
@@ -272,7 +311,7 @@ void main() {
 
       expect(find.byType(AutomaticTransactionsScreen), findsNothing);
 
-      await _tocarIcone(tester, Icons.auto_awesome);
+      await _tocarIcone(tester, ArenaGlyph.spark);
 
       expect(find.byType(AutomaticTransactionsScreen), findsOneWidget);
     });

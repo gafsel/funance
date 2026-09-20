@@ -130,16 +130,13 @@ class ArenaHud extends StatelessWidget {
   Widget? _heroBadge(BuildContext context) {
     final l10n = context.l10n;
 
-    if (state.heroMood == HeroMood.exhausted) {
-      return StatusPill(
-        label: l10n.arenaExhausted,
-        tone: StatusTone.danger,
-        dense: true,
-        onGame: true,
-      );
-    }
 
-    // O ROMBO, espelho EXATO do "enfurecido" do outro lado — inclusive no
+    // O ROMBO. Ele vale TAMBÉM para o caixa negativo, que antes mostrava só
+    // a palavra "Exausto": com a barra vazia — e ela ficou vazia de verdade
+    // desde que a hachura parou de cobri-la inteira —, "Exausto" é a única
+    // coisa na tela, e ela não diz de quanto é o buraco. O número diz.
+    //
+    // Espelho EXATO do "enfurecido" do outro lado — inclusive no
     // comprimento: "+R$ 8.310,55 atrasado" de um lado, "−R$ 9.007,31 em
     // caixa" do outro. A primeira redação ("Falta R$ … em caixa") saía
     // cortada em "em …" a 400px, e um selo cortado não informa nada. Sem ele, o retrato real

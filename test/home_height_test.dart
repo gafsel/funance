@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/features/arena/domain/models/hud_state.dart';
+import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
+
 import 'arena/arena_harness.dart';
+import 'arena/hud_harness.dart';
 import 'support/home_harness.dart';
 
 /// D2 — a Home tem de caber. Agora ela cabe por CONSTRUÇÃO.
@@ -31,7 +38,11 @@ import 'support/home_harness.dart';
 /// O `runAsync` não é detalhe: o `decodeImageFromList` do Flame depende do
 /// relógio de verdade, e o relógio falso do `flutter_test` nunca entrega o
 /// resultado do codec.
-Future<void> _pumpTelaReal(WidgetTester tester, Size size) async {
+Future<void> _pumpTelaReal(
+  WidgetTester tester,
+  Size size, {
+  double textScale = 1,
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -39,11 +50,22 @@ Future<void> _pumpTelaReal(WidgetTester tester, Size size) async {
   await tester.runAsync(() async {
     await tester.pumpWidget(
       homeApp(
-        const HomeScreen(),
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+          child: const HomeScreen(),
+        ),
         overrides: arenaOverrides(
           missions: homeTypicalMissions(),
           pendingAutomatic: homeTypicalPending(),
           lastInsight: homeTypicalInsight(),
+          extra: [
+            // O rodapé mensal só desenha as quatro figuras quando tem
+            // números: sem isto a faixa fica vazia e o teste do entalhe
+            // mediria o nada.
+            HudViewProviders.state.overrideWith(
+              (ref) => AsyncValue<HudState>.data(hudTestState()),
+            ),
+          ],
         ),
       ),
     );
@@ -98,6 +120,37 @@ void main() {
     });
   }
 
+  /// M3 — o botão de lançar invadia o HUD mensal.
+  ///
+  /// O QA mediu: `Rect(172,708→228,764)` do FAB contra `0,680→400,736` da
+  /// faixa — 28px de ovo e de vila escondidos atrás do círculo dourado. O
+  /// botão não sai do lugar (é a ação que o app existe para receber, e a
+  /// decisão do dono é que ele fica na barra de todas as telas principais);
+  /// quem cede é a faixa, com um vão no meio.
+  for (final escala in const <double>[1, 1.3]) {
+    testWidgets('M3 — o FAB não cobre nenhum slot do HUD (texto ×$escala)', (
+      tester,
+    ) async {
+      await _pumpTelaReal(tester, const Size(400, 800), textScale: escala);
+
+      final fab = tester.getRect(find.byType(FloatingActionButton));
+      final slots = find.byType(HudGlyph);
+
+      expect(slots, findsNWidgets(4), reason: 'poção, vila, ovo e gota');
+
+      for (final slot in slots.evaluate()) {
+        final figura = tester.getRect(find.byWidget(slot.widget));
+        expect(
+          figura.overlaps(fab),
+          isFalse,
+          reason:
+              'a figura em $figura fica atrás do botão em $fab; o vão do '
+              'entalhe não deu conta',
+        );
+      }
+    });
+  }
+
   testWidgets('o rodapé mensal fica ACIMA da barra inferior', (tester) async {
     // Era o que `extendBody: true` escondia: o corpo se estendia por baixo da
     // barra, e os quatro ícones do HUD mensal — a última linha da cena —
@@ -112,13 +165,19 @@ void main() {
     expect(rodape.bottom, lessThanOrEqualTo(barra.top + 0.5));
   });
 
-  testWidgets('num monitor a Arena não estica de borda a borda', (
-    tester,
-  ) async {
+  testWidgets('num monitor a ARTE estica, e o que se lê não', (tester) async {
+    // Inverteu com o full-bleed: a cena passou a ser o fundo da aba e vai de
+    // borda a borda mesmo num monitor; o teto de largura ficou com os
+    // overlays, que são o que se lê.
     await _pumpTelaReal(tester, const Size(1300, 900));
 
-    final cena = tester.getSize(find.byType(ArenaView));
-
-    expect(cena.width, lessThanOrEqualTo(arenaMaxSceneWidth));
+    expect(
+      tester.getSize(find.byType(ArenaView)).width,
+      greaterThan(arenaMaxSceneWidth),
+    );
+    expect(
+      tester.getSize(find.byType(ArenaHud)).width,
+      lessThanOrEqualTo(arenaMaxSceneWidth),
+    );
   });
 }

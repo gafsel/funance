@@ -1195,7 +1195,11 @@ void main() {
       expect(state.committedRatio, closeTo(1200 / 5000, 0.0001));
     });
 
-    test('comprometido acima do saldo de domingo: a hachura para em 1', () {
+    test('a hachura para na VIDA, e não em 1', () {
+      // Ela é a parte do que se TEM que já tem dono, e é desenhada a partir
+      // da ponta cheia da barra. Passando da vida, ela cobria calha vazia —
+      // e uma faixa de ponta a ponta o olho lê como barra cheia. Aqui a vida
+      // é 300/400 = 0,75, e o comprometido (1200) satura nela.
       final state = ArenaCalculator.from(
         _inputs(
           accounts: [_account('corrente', initial: 400, current: 300)],
@@ -1203,8 +1207,24 @@ void main() {
         ),
       );
 
-      expect(state.committedRatio, 1);
+      expect(state.heroHpRatio, 0.75);
+      expect(state.committedRatio, 0.75);
       expect(state.freeBalance, -900);
+    });
+
+    test('caixa NEGATIVO é barra vazia, e hachura nenhuma', () {
+      // O retrato real do cofre no dia do QA: −R\$ 6.361,92 em caixa, e a
+      // barra coberta de vermelho de ponta a ponta dizendo "vida cheia".
+      final state = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('corrente', initial: -6361.92, current: -6361.92)],
+          week: [_expense(id: 'aluguel', amount: 1200)],
+        ),
+      );
+
+      expect(state.heroHpRatio, 0);
+      expect(state.committedRatio, 0);
+      expect(state.isPressed, isTrue, reason: 'o rombo continua sendo rombo');
     });
 
     test('saldo negativo: exausto', () {

@@ -28,8 +28,14 @@ import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
 /// mensal, em qualquer altura de tela; não existe mais um "abaixo da dobra"
 /// nesta aba. É o que a decisão pede ao dizer que não há mais o que expandir.
 ///
-/// **A largura máxima é a da Arena inteira**, e não só a da cena: num monitor
-/// de 1300px o placar de borda a borda deixa a vida dos heróis e a do monstro
+/// **A cena é o FUNDO da aba inteira** — pedido do dono na segunda rodada:
+/// *"pra ficar mais bonito, deixe a animação tomar a tela toda e faça os
+/// ícones fazerem um overlay com um gradient que garante um contraste"*. A
+/// arte vai de borda a borda; o placar, a faixa de ícones e o HUD mensal
+/// flutuam por cima, cada um dentro do seu véu.
+///
+/// A largura máxima passou a valer só para o que se LÊ sobre a cena: num
+/// monitor de 1300px o placar esticado deixa a vida dos heróis e a do monstro
 /// a mil pixels uma da outra, e elas param de se enfrentar. Ver
 /// [arenaMaxSceneWidth].
 class ArenaTab extends ConsumerWidget {
@@ -42,26 +48,18 @@ class ArenaTab extends ConsumerWidget {
         // `LayoutBuilder` e não o `MediaQuery` da janela: no desktop a Home
         // divide a largura com o `NavigationRail`, e uma janela de 1040px
         // entrega à aba bem menos do que isso.
-        final compact = constraints.layout.isCompact;
+        final layout = constraints.layout;
 
         return ColoredBox(
-          // O fundo é o da cena, e não o do tema: nas bordas que sobram num
-          // monitor, o cinza do app ao lado do azul profundo da arena leria
-          // como uma imagem colada na página.
+          // O fundo é o da cena, e não o do tema: enquanto a folha de sprites
+          // não termina de carregar, o cinza do app apareceria por um quadro
+          // atrás de tudo.
           color: AppColors.surfaceDeep,
-          child: SafeArea(
-            // Em baixo quem cuida do espaço é o `Scaffold` da Home: a barra
-            // inferior já reserva a área segura do aparelho, e somar as duas
-            // deixaria uma tarja vazia entre o rodapé mensal e a barra.
-            bottom: false,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: arenaMaxSceneWidth,
-                ),
-                child: ArenaView(compact: compact),
-              ),
-            ),
+          child: ArenaView(
+            compact: layout.isCompact,
+            // O botão de lançar só é ENTALHADO onde existe barra inferior —
+            // no desktop ele flutua no canto e não passa por cima de nada.
+            reserveNotch: !layout.usesRail,
           ),
         );
       },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/analytics/analytics_providers.dart';
 import 'package:funances/core/model/core_models.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/time/clock.dart';
@@ -40,6 +41,7 @@ import 'package:funances/features/home/presentation/screens/missions_screen.dart
 import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 import 'package:go_router/go_router.dart';
 
+import 'fake_analytics.dart';
 import 'journey_fakes.dart';
 
 /// Monta a Home de verdade num teste de widget.
@@ -436,6 +438,13 @@ GoRouter homeRouter({String initialLocation = '/'}) => GoRouter(
       builder: (_, _) => const Scaffold(body: ArenaTab()),
     ),
     GoRoute(path: '/missions', builder: (_, _) => const MissionsScreen()),
+    // O destino do ícone do coach. Um marcador, e não a tela de verdade: o
+    // que o teste guarda é PARA ONDE o ícone leva, e a tela de coaching puxa
+    // o serviço de IA.
+    GoRoute(
+      path: '/coaching',
+      builder: (_, _) => const Scaffold(body: Text('coach')),
+    ),
     GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
     GoRoute(
       path: '/automatic-transactions',
@@ -491,6 +500,9 @@ List<Override> homeOverrides({
     FakeWorkspaceRepository(),
   ),
   AuthDomainProviders.currentUser.overrideWithValue(currentUser),
+  // O funil de analytics passa pelo Firebase. Qualquer toque que registre um
+  // evento — abrir o coach, por exemplo — explodia com "No Firebase App".
+  analyticsServiceProvider.overrideWithValue(FakeAnalyticsService()),
   JourneyDomainProviders.repository.overrideWithValue(
     FakeJourneyRepository(missions: missions, health: health),
   ),

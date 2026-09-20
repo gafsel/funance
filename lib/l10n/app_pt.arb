@@ -636,7 +636,6 @@
   "coachingSlideFinish": "Concluir",
   "coachingNoData": "Nenhum dado de coaching disponível.",
   "coachingNoSlides": "Nenhum slide foi gerado. Tente novamente.",
-  "coachingViewHistory": "Ver histórico",
   "coachingHistoryTitle": "Histórico de Insights",
   "coachingReviewTips": "Rever Dicas",
   "coachingTypeWarning": "Alerta",
@@ -1168,7 +1167,7 @@
   "missionFallbackCategoryBusiness": "de maior peso",
   "missionCtaPlanning": "Planejar agora",
   "missionCtaPlanning503020": "Abrir o 50-30-20",
-  "missionCtaCategories": "Ver a Party",
+  "missionCtaCategories": "Ver as categorias",
   "missionCtaAccounts": "Ver contas",
   "missionCtaCategoryDetails": "Ver categoria",
   "missionCtaTransactionForm": "Lançar agora",
@@ -1190,16 +1189,6 @@
       },
       "percent": {
         "type": "int"
-      }
-    }
-  },
-  "compassStripTitle": "Bússola",
-  "compassStripOpen": "Ver a Bússola completa",
-  "compassStripDelta": "{points} desde o mês passado",
-  "@compassStripDelta": {
-    "placeholders": {
-      "points": {
-        "type": "String"
       }
     }
   },
@@ -1316,7 +1305,6 @@
   "arenaEnraged": "+{amount} atrasado",
   "arenaEmpty": "Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.",
   "arenaTeamExtra": "+{count} na equipe",
-  "arenaExhausted": "Exausto",
   "automaticTransactionSeeAllShort": "Ver todas",
   "arenaFree": "Livre",
   "arenaHealed": "Recebido na semana",

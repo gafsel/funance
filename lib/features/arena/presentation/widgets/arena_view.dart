@@ -14,6 +14,7 @@ import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.da
 import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_scene_icons.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_scrim.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_week_closing_banner.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -62,10 +63,22 @@ const double arenaMaxSceneWidth = 720;
 /// dos compromissos). A conta está em `ArenaCalculator`; a arte, no
 /// `ArenaGame`.
 class ArenaView extends ConsumerStatefulWidget {
-  const ArenaView({super.key, this.compact = false});
+  const ArenaView({
+    super.key,
+    this.compact = false,
+    this.reserveNotch = false,
+  });
 
   /// Celular: tipografia e marcador menores.
   final bool compact;
+
+  /// Há um botão de lançar entalhado na barra inferior logo abaixo.
+  ///
+  /// Quando há, o HUD mensal abre um vão no meio para ele: metade do FAB sobe
+  /// para dentro do corpo da tela, e o QA mediu 28px de sobreposição com a
+  /// faixa. O botão não sai do lugar — ele é a ação que o app existe para
+  /// receber; quem cede é a faixa.
+  final bool reserveNotch;
 
   @override
   ConsumerState<ArenaView> createState() => _ArenaViewState();
@@ -327,61 +340,100 @@ class _ArenaViewState extends ConsumerState<ArenaView>
       middle = const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
+    // A cena é o FUNDO da aba inteira — pedido do dono: "deixe a animação
+    // tomar a tela toda". Placar, faixa de ícones e HUD mensal deixaram de
+    // dividir a altura com ela e passaram a flutuar por cima, cada um dentro
+    // do seu véu ([ArenaScrim]), que é o que garante o contraste sobre
+    // qualquer trecho da arte.
+    return Stack(
       children: [
-        if (playable)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.xs,
-              AppSpacing.xs,
-              AppSpacing.xs,
-              AppSpacing.xxs,
-            ),
-            child: ArenaHud(
-              state: state,
-              monsterName: _monsterName(context, state.monsterSkin),
-              compact: widget.compact,
-              onTapHeroes: _openHeroesSheet,
-              onTapMonster: _openMonsterSheet,
-            ),
-          ),
-        // O placar da semana que fechou, quando há um e ele ainda não foi
-        // visto. Ele mora ENTRE o placar e a cena: é notícia, e notícia vem
-        // antes do estado — mas depois das duas barras, que são o que a tela
-        // existe para mostrar.
-        const ArenaWeekClosingBanner(),
-        Expanded(
-          // Os ícones de jogo ficam POR CIMA da cena, e não numa coluna ao
-          // lado dela: a cena é a tela inteira agora, e roubar 44px de
-          // largura dela encolheria o mundo do Flame — os bonecos já estão
-          // presos entre 130 e 280 unidades de largura de mundo. Sobrepostos,
-          // eles custam zero à luta.
-          child: Stack(
-            children: [
-              Positioned.fill(child: middle),
-              // No ALTO da lateral, e não no meio dela: centrados, os quatro
-              // ícones caíam exatamente na linha do chão, e o de baixo ficava
-              // por cima do mago. Em cima eles pegam a parede e a faixa de
-              // areia vazia acima dos bonecos, que é o pedaço da cena onde
-              // nunca acontece nada.
-              Positioned(
-                left: 0,
-                top: AppSpacing.xs,
-                child: ArenaSceneIcons(compact: widget.compact),
+        Positioned.fill(child: middle),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: ArenaScrim.top(
+            child: SafeArea(
+              // Só em cima: embaixo quem reserva a área segura do aparelho é
+              // a barra inferior da Home.
+              bottom: false,
+              child: _Centered(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (playable)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.xs,
+                          AppSpacing.xs,
+                          AppSpacing.xs,
+                          AppSpacing.xxs,
+                        ),
+                        child: ArenaHud(
+                          state: state,
+                          monsterName: _monsterName(context, state.monsterSkin),
+                          compact: widget.compact,
+                          onTapHeroes: _openHeroesSheet,
+                          onTapMonster: _openMonsterSheet,
+                        ),
+                      ),
+                    // O placar da semana que fechou, quando há um e ele ainda
+                    // não foi visto. É notícia, e notícia vem antes do estado
+                    // — mas depois das duas barras, que são o que a tela
+                    // existe para mostrar.
+                    const ArenaWeekClosingBanner(),
+                    // A faixa de ícones fica AQUI, e não numa coluna na
+                    // lateral: abaixo do placar nunca há ator, porque o
+                    // placar já está acima da cabeça do mais alto deles. Ver
+                    // `ArenaGame.safeTopBand`.
+                    ArenaSceneIcons(compact: widget.compact),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
-        // A faixa do HUD mensal. O filete em cima dela é o que separa
-        // "espaço reservado" de "cena cortada": sem a linha, a tarja escura no
-        // pé parecia a cena terminando no meio.
-        ArenaHudFooter(
-          height: arenaFooterSlotHeight(compact: widget.compact),
-          compact: widget.compact,
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: ArenaScrim.bottom(
+            child: _Centered(
+              child: ArenaHudFooter(
+                height: arenaFooterSlotHeight(compact: widget.compact),
+                compact: widget.compact,
+                // O botão de lançar fica no centro da barra inferior em todas
+                // as telas principais — decisão de produto — e a metade de
+                // cima dele invade a faixa. Quem cede é a faixa: dois slots
+                // de cada lado do entalhe.
+                reserveNotch: widget.reserveNotch,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
+}
+
+/// A largura de leitura dos overlays.
+///
+/// A CENA é de borda a borda; o que se lê sobre ela, não. Num monitor de
+/// 1300px o placar esticado deixa a vida dos heróis e a do monstro a mil
+/// pixels uma da outra, e elas param de se enfrentar — que é a única coisa
+/// que aquele desenho existe para fazer.
+class _Centered extends StatelessWidget {
+  const _Centered({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: arenaMaxSceneWidth),
+      child: child,
+    ),
+  );
 }
 
 /// O nome do bicho da semana. Fica aqui, e não no enum, porque é texto

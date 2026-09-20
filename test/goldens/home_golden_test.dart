@@ -102,6 +102,14 @@ void main() {
       tamanho: const Size(400, 800),
       tema: Brightness.dark,
     ),
+    // A tela BAIXA, que é onde o QA achou a coluna de ícones por cima do
+    // mago. Aqui ela prova o contrário: a faixa de ícones fica no véu do
+    // topo, e os bonecos continuam inteiros embaixo dela.
+    (
+      nome: 'home_arena_celular_baixo',
+      tamanho: const Size(400, 544),
+      tema: Brightness.light,
+    ),
     (
       nome: 'home_arena_desktop',
       tamanho: const Size(1300, 900),
@@ -214,6 +222,72 @@ void main() {
       ),
     ],
   );
+
+  /// A morte AO VIVO, depois de tudo assentar.
+  ///
+  /// O golden do estado parado já existia e mostrava o cadáver certo; o
+  /// defeito que o QA achou só aparece no CAMINHO — o susto branco entrava
+  /// por cima do cinza e, ao terminar, deixava o filtro dele no lugar. Esta
+  /// captura é a do caminho.
+  testWidgets('golden — o monstro morre na tela', (tester) async {
+    await loadAppFonts();
+
+    tester.view.physicalSize = const Size(400, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final fonte = StateProvider<ArenaState>((ref) => arenaTestState());
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        homeApp(
+          const ArenaTab(),
+          overrides: [
+            ...homeOverrides(
+              missions: homeTypicalMissions(),
+              pendingAutomatic: homeTypicalPending(),
+              lastInsight: homeTypicalInsight(),
+              health: const FinancialHealth(
+                score: 72,
+                tier: FreedomTier.guardiao,
+              ),
+            ),
+            ArenaViewProviders.state.overrideWith(
+              (ref) => AsyncValue<ArenaState>.data(ref.watch(fonte)),
+            ),
+            ArenaViewProviders.isBusiness.overrideWith((ref) => false),
+            HudViewProviders.state.overrideWith(
+              (ref) => AsyncValue<HudState>.data(hudTestState()),
+            ),
+          ],
+        ),
+      );
+
+      for (var i = 0; i < 14; i++) {
+        await tester.pump(Duration.zero);
+        await Future<void>.delayed(const Duration(milliseconds: 16));
+      }
+    });
+
+    // A semana fecha com a cena na frente.
+    tester.element(find.byType(ArenaTab));
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ArenaTab)),
+    );
+    container.read(fonte.notifier).state = arenaTestState(
+      currentBalance: 4820,
+      commitments: [arenaTestCommitment(paid: true)],
+    );
+
+    for (var i = 0; i < 30; i++) {
+      await tester.pump(const Duration(milliseconds: 80));
+    }
+
+    await expectLater(
+      find.byType(ArenaTab),
+      matchesGoldenFile('images/home_arena_morte_ao_vivo.png'),
+    );
+  });
 
   for (final tema in Brightness.values) {
     final sufixo = tema == Brightness.dark ? '_escuro' : '';

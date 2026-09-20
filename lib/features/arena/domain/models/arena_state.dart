@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 
@@ -396,9 +398,22 @@ sealed class ArenaState with _$ArenaState {
   double get overheal => isOverhealed ? currentBalance - initialBalance : 0;
 
   /// Fração comprometida (hachurada), na mesma régua da barra.
+  ///
+  /// **Nunca passa da vida que existe.** A hachura é a parte do que se TEM
+  /// que já tem dono, e ela é desenhada a partir da ponta cheia da barra: com
+  /// a barra vazia e a hachura em 100%, a tela mostrava uma faixa vermelha de
+  /// ponta a ponta que o olho lê como vida CHEIA.
+  ///
+  /// Era o retrato real do cofre no dia do QA — caixa em −R\$ 6.361,92, barra
+  /// em zero — e a Arena dizia que estava tudo no lugar. Uma barra vazia é
+  /// uma barra vazia; quem conta o tamanho do buraco é o selo, que traz o
+  /// número.
   double get committedRatio {
-    if (initialBalance <= 0) return committed > 0 ? 1 : 0;
-    return (committed / initialBalance).clamp(0.0, 1.0).toDouble();
+    final bruta = initialBalance <= 0
+        ? (committed > 0 ? 1.0 : 0.0)
+        : (committed / initialBalance).clamp(0.0, 1.0).toDouble();
+
+    return math.min(bruta, heroHpRatio);
   }
 
   /// O caixa não cobre o que a semana já deve.

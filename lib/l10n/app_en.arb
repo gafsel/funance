@@ -574,7 +574,6 @@
   "coachingSlideFinish": "Finish",
   "coachingNoData": "No coaching data available.",
   "coachingNoSlides": "No slides were generated. Please try again.",
-  "coachingViewHistory": "View history",
   "coachingHistoryTitle": "Insights History",
   "coachingReviewTips": "Review Tips",
   "coachingTypeWarning": "Alert",
@@ -1161,7 +1160,7 @@
   "missionFallbackCategoryBusiness": "heaviest",
   "missionCtaPlanning": "Plan now",
   "missionCtaPlanning503020": "Open the 50-30-20",
-  "missionCtaCategories": "See the Party",
+  "missionCtaCategories": "See categories",
   "missionCtaAccounts": "See accounts",
   "missionCtaCategoryDetails": "See category",
   "missionCtaTransactionForm": "Add an entry",
@@ -1183,16 +1182,6 @@
       },
       "percent": {
         "type": "int"
-      }
-    }
-  },
-  "compassStripTitle": "Compass",
-  "compassStripOpen": "See the full Compass",
-  "compassStripDelta": "{points} since last month",
-  "@compassStripDelta": {
-    "placeholders": {
-      "points": {
-        "type": "String"
       }
     }
   },
@@ -1316,7 +1305,6 @@
   "arenaEnraged": "+{amount} overdue",
   "arenaEmpty": "No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.",
   "arenaTeamExtra": "+{count} on the team",
-  "arenaExhausted": "Exhausted",
   "automaticTransactionSeeAllShort": "See all",
   "arenaFree": "Free",
   "arenaHealed": "Received this week",

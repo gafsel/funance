@@ -7,6 +7,13 @@ import 'package:funances/core/theme/app_radius.dart';
 /// O `Tooltip` e o `Semantics` não são enfeite: o rótulo tem 10px e some em
 /// fonte grande, e sem `selected: true` o leitor de tela não diz qual aba
 /// está aberta.
+///
+/// A barra tem 60px de altura fixa, e ícone mais rótulo em fonte grande não
+/// cabiam neles: a 1,3 de escala de texto o item estourava por 4px, com a
+/// listra amarela e preta em cima do botão de lançar. Quem encolhe é o
+/// RÓTULO — o `Flexible` deixa o texto ceder altura e o `FittedBox` o
+/// reduz —, porque o ícone é o que identifica a aba e o rótulo é a legenda
+/// dele.
 
 class HomeBottomBarItem extends StatelessWidget {
   const HomeBottomBarItem({
@@ -42,13 +49,18 @@ class HomeBottomBarItem extends StatelessWidget {
               children: [
                 Icon(isSelected ? selectedIcon : icon, color: color),
                 const SizedBox(height: 2),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: color),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: color),
+                    ),
+                  ),
                 ),
               ],
             ),

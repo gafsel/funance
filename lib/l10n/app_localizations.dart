@@ -3020,12 +3020,6 @@ abstract class AppLocalizations {
   /// **'Nenhum slide foi gerado. Tente novamente.'**
   String get coachingNoSlides;
 
-  /// No description provided for @coachingViewHistory.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver histórico'**
-  String get coachingViewHistory;
-
   /// No description provided for @coachingHistoryTitle.
   ///
   /// In pt, this message translates to:
@@ -4127,7 +4121,7 @@ abstract class AppLocalizations {
   /// No description provided for @missionCtaCategories.
   ///
   /// In pt, this message translates to:
-  /// **'Ver a Party'**
+  /// **'Ver as categorias'**
   String get missionCtaCategories;
 
   /// No description provided for @missionCtaAccounts.
@@ -4171,24 +4165,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Nível {level} do cofre, {percent}% para o próximo'**
   String levelBadgeSemantics(int level, int percent);
-
-  /// No description provided for @compassStripTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Bússola'**
-  String get compassStripTitle;
-
-  /// No description provided for @compassStripOpen.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ver a Bússola completa'**
-  String get compassStripOpen;
-
-  /// No description provided for @compassStripDelta.
-  ///
-  /// In pt, this message translates to:
-  /// **'{points} desde o mês passado'**
-  String compassStripDelta(String points);
 
   /// No description provided for @dueSoonToday.
   ///
@@ -4297,12 +4273,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'+{count} na equipe'**
   String arenaTeamExtra(int count);
-
-  /// No description provided for @arenaExhausted.
-  ///
-  /// In pt, this message translates to:
-  /// **'Exausto'**
-  String get arenaExhausted;
 
   /// No description provided for @automaticTransactionSeeAllShort.
   ///

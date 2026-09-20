@@ -1613,9 +1613,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get coachingNoSlides => 'No slides were generated. Please try again.';
 
   @override
-  String get coachingViewHistory => 'View history';
-
-  @override
   String get coachingHistoryTitle => 'Insights History';
 
   @override
@@ -2282,7 +2279,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get missionCtaPlanning503020 => 'Open the 50-30-20';
 
   @override
-  String get missionCtaCategories => 'See the Party';
+  String get missionCtaCategories => 'See categories';
 
   @override
   String get missionCtaAccounts => 'See accounts';
@@ -2307,17 +2304,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String levelBadgeSemantics(int level, int percent) {
     return 'Vault level $level, $percent% to the next one';
-  }
-
-  @override
-  String get compassStripTitle => 'Compass';
-
-  @override
-  String get compassStripOpen => 'See the full Compass';
-
-  @override
-  String compassStripDelta(String points) {
-    return '$points since last month';
   }
 
   @override
@@ -2392,9 +2378,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String arenaTeamExtra(int count) {
     return '+$count on the team';
   }
-
-  @override
-  String get arenaExhausted => 'Exhausted';
 
   @override
   String get automaticTransactionSeeAllShort => 'See all';
