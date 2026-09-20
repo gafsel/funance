@@ -2,6 +2,7 @@ import { CategoryPlanningModel } from "../../../finance/domain/models/finance.mo
 import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
 import { MissionCapacity, MissionParams, WeeklyMissionType } from "../models/mission_catalog";
 import { BadgeAudience, WorkspaceAudience } from "../models/audience.model";
+import { MonthlyVillagersReport } from "../models/monthly_report.model";
 
 /**
  * `WeeklyMissionType` mora no CATÁLOGO (`domain/models/mission_catalog.ts`),
@@ -28,6 +29,18 @@ export interface PeriodSummaryRow {
     actualAmount: number;
     generalPlannedAmount: number;
     specificPlannedAmount: number;
+    /**
+     * F1.10 — os mesmos três totais em CENTAVOS INTEIROS. São eles que mandam,
+     * como já mandam em `WeeklySummaryRow`.
+     *
+     * O XP dos ALDEÕES compara realizado com planejado categoria a categoria e
+     * depois soma os dois lados do mês inteiro: com `double`, um mês de doze
+     * categorias pode fechar em `1200.0000000000002 > 1200` e matar a vila
+     * inteira por ruído de representação.
+     */
+    actualAmountCents: number;
+    generalPlannedAmountCents: number;
+    specificPlannedAmountCents: number;
 }
 
 /**
@@ -126,8 +139,15 @@ export interface WorkspaceStreaksSource {
     weeklyStreaks?: unknown;
 }
 
-/** Famílias de XP concedido UMA ÚNICA VEZ por categoria (`xpAwardedFor.<grupo>.<id>`). */
-export type XpOnceGroup = "planning" | "recurring";
+/**
+ * Famílias de XP concedido UMA ÚNICA VEZ (`xpAwardedFor.<grupo>.<chave>`).
+ *
+ * `planning` e `recurring` são por CATEGORIA (F2.3). `monthlyVillagers` é por
+ * MÊS (`YYYY-MM`): o fechamento da aldeia paga uma vez só por mês, e o
+ * marcador precisa ser durável — o marcador de `_idempotency` tem TTL de 30
+ * dias, e o script de recálculo retroativo roda depois disso.
+ */
+export type XpOnceGroup = "planning" | "recurring" | "monthlyVillagers";
 
 /**
  * O documento do workspace do ponto de vista da GAMIFICAÇÃO.
@@ -343,6 +363,13 @@ export interface IGamificationRepository {
     ): Promise<boolean>;
     /** Linhas (categoria x mês) do period_summary, já achatadas e com join em categories. */
     getPeriodSummaries(workspaceId: string, year: number, month: number): Promise<PeriodSummaryRow[]>;
+    /**
+     * Grava o retrato da aldeia em `workspaces/{w}/monthly_reports/{YYYY-MM}`
+     * (sobrescreve). Nunca cria o workspace.
+     */
+    saveMonthlyReport(workspaceId: string, report: MonthlyVillagersReport): Promise<void>;
+    /** Retrato já gravado para o mês, ou `null`. */
+    getMonthlyReport(workspaceId: string, monthKey: string): Promise<MonthlyVillagersReport | null>;
     getCategoriesCount(workspaceId: string): Promise<number>;
     getPaidInstallments(workspaceId: string): Promise<GamificationInstallment[]>;
     getPaidInstallmentsSince(workspaceId: string, since: Date): Promise<GamificationInstallment[]>;

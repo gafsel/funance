@@ -369,6 +369,17 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // HUD mensal — retrato da ALDEIA no fechamento do mês
+      // (workspaces/{w}/monthly_reports/{YYYY-MM}): quantas categorias tinham
+      // orçamento, quantas sobreviveram, se a vila aguentou e quanto XP o mês
+      // rendeu. Mesma postura do health_history: é o placar do usuário, ele LÊ
+      // e só o servidor escreve — poder escrever aqui seria ressuscitar os
+      // próprios aldeões depois do fim do mês.
+      match /monthly_reports/{monthId} {
+        allow read: if isMember(workspaceId);
+        allow write: if false;
+      }
+
       // Accounts: Membros podem ler, criar e atualizar (exclusão é lógica via isDeleted)
       match /accounts/{accountId} {
 

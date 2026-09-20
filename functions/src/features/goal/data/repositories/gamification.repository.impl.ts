@@ -22,6 +22,10 @@ import { calculateLevel } from "../../domain/services/gamification.service";
 import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
 import { stripUndefined } from "../../../../core/utils/firestore.utils";
 import { BadgeAudience, appliesToAudience, resolveAudience } from "../../domain/models/audience.model";
+import { MonthlyVillagersReport } from "../../domain/models/monthly_report.model";
+
+/** Subcoleção do retrato mensal da aldeia (HUD mensal). */
+export const MONTHLY_REPORTS_COLLECTION = "monthly_reports";
 
 export class GamificationRepositoryImpl implements IGamificationRepository {
     async getWorkspaceById(workspaceId: string): Promise<GamificationWorkspace | null> {
@@ -507,11 +511,33 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
                     actualAmount: raw.actualAmount,
                     generalPlannedAmount: raw.generalPlannedAmount,
                     specificPlannedAmount: raw.specificPlannedAmount,
+                    // `toPeriodSummaryDocument` já resolveu o inteiro a partir
+                    // do `double` num documento ainda não migrado.
+                    actualAmountCents: raw.actualAmountCents ?? 0,
+                    generalPlannedAmountCents: raw.generalPlannedAmountCents ?? 0,
+                    specificPlannedAmountCents: raw.specificPlannedAmountCents ?? 0,
                 });
             }
         }
 
         return rows;
+    }
+
+    async saveMonthlyReport(workspaceId: string, report: MonthlyVillagersReport): Promise<void> {
+        await admin.firestore()
+            .collection(`workspaces/${workspaceId}/${MONTHLY_REPORTS_COLLECTION}`)
+            .doc(report.monthKey)
+            .set({ ...report });
+    }
+
+    async getMonthlyReport(workspaceId: string, monthKey: string): Promise<MonthlyVillagersReport | null> {
+        const doc = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/${MONTHLY_REPORTS_COLLECTION}`)
+            .doc(monthKey)
+            .get();
+
+        if (!doc.exists) return null;
+        return doc.data() as MonthlyVillagersReport;
     }
 
     async getCategoriesCount(workspaceId: string): Promise<number> {

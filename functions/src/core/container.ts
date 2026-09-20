@@ -270,7 +270,11 @@ class Container {
                 // `financeService` aqui construiria o serviço de finanças toda
                 // vez que a gamificação fosse pedida.
                 (workspaceId, date, deltaXp) =>
-                    this.financeService.updateWeeklyTotalXp(workspaceId, date, deltaXp)
+                    this.financeService.updateWeeklyTotalXp(workspaceId, date, deltaXp),
+                // HUD mensal — o cron mensal republica a receita prevista do
+                // mês que começa. Injetada pela mesma razão do writer acima.
+                (workspaceId, now) =>
+                    this.expectedIncomeService.publishCurrentMonth(workspaceId, now)
             );
         }
         return this._gamificationService;
