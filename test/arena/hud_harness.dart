@@ -6,9 +6,13 @@ import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/domain/services/hud_calculator.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
+import 'package:funances/features/arena/presentation/providers/hud_intro_store.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_explanation.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'arena_harness.dart';
 
@@ -377,6 +381,11 @@ class HudMarker extends StatelessWidget {
 }
 
 /// Monta a faixa num tamanho dado.
+///
+/// [introSeen] decide se as quatro explicações já foram lidas NESTE aparelho.
+/// O padrão é `true`, e ele é o estado do usuário de todo dia: a folha abre
+/// com os dados e nada mais. Quem testa a apresentação automática — e só ele
+/// — passa `false`.
 Future<void> pumpHudFooter(
   WidgetTester tester, {
   HudState? hud,
@@ -385,9 +394,15 @@ Future<void> pumpHudFooter(
   bool compact = true,
   bool isBusiness = false,
   bool reduceMotion = true,
+  bool introSeen = true,
   AsyncValue<HudState>? asyncState,
   Color? background,
 }) async {
+  SharedPreferences.setMockInitialValues({
+    if (introSeen)
+      for (final slot in HudSlot.values) HudIntroStore.keyFor(slot): true,
+  });
+
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -413,4 +428,22 @@ Future<void> pumpHudFooter(
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 16));
   }
+}
+
+/// Abre a folha de um slot da faixa e espera o que vem depois dela.
+///
+/// Os dois `pumpAndSettle` não são superstição: entre o toque e o painel de
+/// apresentação há uma ida ao disco (o `SharedPreferences`), e uma leitura
+/// assíncrona não agenda quadro nenhum — o primeiro `pumpAndSettle` volta
+/// antes de a resposta chegar, e o segundo é o que desenha o que ela abriu.
+Future<void> openHudSheet(WidgetTester tester, int index) async {
+  await tester.tap(find.byType(HudGlyph).at(index));
+  await tester.pumpAndSettle();
+  await tester.pumpAndSettle();
+}
+
+/// Abre a explicação pelo ícone de informação do cabeçalho da folha.
+Future<void> openHudExplanation(WidgetTester tester) async {
+  await tester.tap(find.byType(HudExplanationButton));
+  await tester.pumpAndSettle();
 }
