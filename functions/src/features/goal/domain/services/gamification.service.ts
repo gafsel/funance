@@ -1,5 +1,5 @@
 import * as logger from "firebase-functions/logger";
-import { CategoryType, isSystemCategory } from "../../../workspace/domain/models/category.model";
+import { CategoryType, hasCategoryId, isSystemCategory } from "../../../workspace/domain/models/category.model";
 import { IAIRepository } from "../../../../core/services/ai.service";
 import { IIdempotencyService } from "../../../../core/services/idempotency.service";
 import { forEachWorkspacePaged } from "../../../../core/utils/cron_runner";
@@ -28,11 +28,14 @@ import {
     EMPTY_MISSION_CONTEXT,
     MISSION_CATALOG,
     MissionParams,
+    MissionCapacity,
     MissionSelectionContext,
     MissionProgressRule,
     MissionTemplate,
+    NO_MISSION_CAPACITY,
     WEEKLY_MISSION_TYPES,
     buildMissionName,
+    buildMissionSelectionContext,
     findMissionTemplate,
     selectMissionTemplate,
 } from "../models/mission_catalog";
@@ -117,6 +120,17 @@ export type MissionTriggerEvent = Exclude<MissionEventType, "weekly_close">;
 export const ACTIVE_WORKSPACE_WINDOW_DAYS = 30;
 
 /**
+ * Janela do "lançamento automático RECENTE" da peneira de capacidade, em dias
+ * — contada para trás a partir do domingo que inicia a semana sorteada, não do
+ * instante da geração: o sorteio tem de ser reproduzível fora do gatilho (o
+ * script de retag chega ao mesmo template dias depois).
+ *
+ * Trinta dias, e não sete: a captura de notificação pode ficar uma semana sem
+ * trazer nada sem que o workspace tenha deixado de tê-la ligada.
+ */
+export const CAPACITY_WINDOW_DAYS = 30;
+
+/**
  * O que o cron fez com as missões da semana nova de um workspace:
  * `generated` criou as três, `exists` já as encontrou (geração preguiçosa ou
  * reexecução do cron), `dormant` pulou por falta de atividade.
@@ -155,6 +169,10 @@ const RULE_EVENT_SOURCES: Record<MissionProgressRule, MissionEventType[]> = {
     invoice_paid_on_time: ["transaction", "weekly_close"],
     weekly_margin_above_plan: ["transaction", "weekly_close"],
     income_received_vs_planned: ["transaction", "weekly_close"],
+    // Categorizar é EDITAR uma parcela, e toda edição de parcela chega como
+    // `transaction` (o gatilho de installment). O fechamento entra para a
+    // passada final da semana.
+    categorized_week_installments: ["transaction", "weekly_close"],
 };
 
 /**
@@ -344,6 +362,14 @@ export function sumWeeklyTotals(rows: WeeklySummaryRow[]): WeeklyTotals {
     return totals;
 }
 
+/**
+ * `installments.type` de uma transferência — e de uma FATURA, que é gravada
+ * como transferência. Literal porque o enum mora na feature `finance`; o mesmo
+ * valor está em `category.model.ts` (`TRANSFER_ORDER_TYPE`), coberto por teste
+ * contra `OrderType.transfer`.
+ */
+const TRANSFER_INSTALLMENT_TYPE = "transfer";
+
 /** A forma de longe mais comum: progresso é uma contagem e o alvo é um piso. */
 function atLeast(progress: number, target: number): MissionEvaluation {
     return { progress, completed: progress >= target };
@@ -363,7 +389,7 @@ const pad2 = (value: number) => String(value).padStart(2, "0");
  * `automatic_transactions.date`. É o que permite comparar a janela da semana
  * com o campo direto na consulta, como string.
  */
-function localWallClockIso(date: Date): string {
+export function localWallClockIso(date: Date): string {
     const p = getZonedParts(date);
     return `${p.year}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}.000`;
 }
@@ -1080,7 +1106,7 @@ export class GamificationService {
         let consistencyDoc = await this.gamificationRepository.getWeeklyMission(workspaceId, weekId, "consistency");
         if (!consistencyDoc) {
             const generateMissions = async () => {
-                await this.generateWeeklyMissions(workspaceId, weekId, monthKey);
+                await this.generateWeeklyMissions(workspaceId, weekId, monthKey, startOfWeek);
             };
             if (this.idempotencyService) {
                 // Chave por workspace+semana: escritas paralelas de installments
@@ -1346,6 +1372,43 @@ export class GamificationService {
             return { progress: reached ? target : 0, completed: reached };
         }
 
+        case "categorized_week_installments": {
+            // Mede as parcelas pagas da semana, pela leitura MEMOIZADA da
+            // avaliação (`readPaidInstallments`). Quanto ela custa depende da
+            // missão de DISCIPLINA sorteada para a mesma semana:
+            //
+            //  - `days_within_category_limit` (27 das 53 semanas do ano) já
+            //    fez essa leitura: aqui o custo é ZERO;
+            //  - `weekly_margin_above_plan` (as outras 26) lê o sumário, não
+            //    as parcelas: aqui o custo é UMA consulta.
+            //
+            // Nunca mais de uma, e é a mesma consulta que a avaliação já sabe
+            // fazer — nenhuma fonte de dados nova entrou no caminho.
+            const installments = await this.readPaidInstallments(ctx);
+
+            let total = 0;
+            let categorized = 0;
+            for (const inst of installments) {
+                if (inst.status === "removed") continue;
+                // Transferência (e fatura, que é transferência) não tem
+                // categoria POR DESENHO — ver `isCategoryRefBroken`. Contá-la
+                // no denominador deixaria a missão em 100% inalcançável para
+                // quem transfere dinheiro entre as próprias contas.
+                if (inst.type === TRANSFER_INSTALLMENT_TYPE) continue;
+                total++;
+                if (hasCategoryId(inst.category)) categorized++;
+            }
+
+            // Semana sem nenhuma parcela a categorizar: não há o que medir.
+            // `null` preserva o progresso gravado em vez de escrever um 100%
+            // que ninguém conquistou — a missão fica pendente e a semana
+            // fecha sem ela, que é o desfecho honesto.
+            if (total === 0) return null;
+
+            const percent = Math.floor((categorized / total) * 100);
+            return atLeast(percent, target);
+        }
+
         case "income_received_vs_planned": {
             const totals = sumWeeklyTotals(await this.readWeeklySummary(ctx));
             if (totals.plannedIncomeCents <= 0) return null;
@@ -1426,6 +1489,7 @@ export class GamificationService {
         workspaceId: string,
         weekId: string,
         monthKey: string,
+        weekStart: Date,
         options: { aiGarnish?: boolean } = {}
     ): Promise<void> {
         // O tempero de IA é do caminho PREGUIÇOSO (um workspace, disparado por
@@ -1481,21 +1545,53 @@ export class GamificationService {
             }
         }
 
-        // Contexto do SORTEIO: os totais planejados da semana. Ele peneira os
-        // templates que não teriam como ser medidos — a missão de receita numa
-        // semana sem receita prevista, a de margem sem os dois lados do plano
-        // (ver `MissionTemplate.isEligible`). É uma leitura só, uma vez por
-        // semana por workspace, e evita uma missão travada em 0% por sete dias.
+        // Contexto do SORTEIO, em duas metades (ver `MissionSelectionContext`):
+        //
+        //  - os totais PLANEJADOS da semana peneiram o que não teria como ser
+        //    MEDIDO — a missão de receita numa semana sem receita prevista, a
+        //    de margem sem os dois lados do plano;
+        //  - a CAPACIDADE peneira o que não teria como ser CUMPRIDO — a fatura
+        //    do cartão corporativo num workspace sem cartão nenhum.
+        //
+        // Quatro leituras, uma vez por semana por workspace de EMPRESA. Num
+        // workspace pessoal nenhuma acontece: a organização pessoal tem um
+        // único candidato, e peneirar uma lista de um elemento não muda o
+        // resultado (ver "Elegibilidade" no README).
         let context: MissionSelectionContext = EMPTY_MISSION_CONTEXT;
         if (audience === "business") {
-            // Só a empresa tem template com `isEligible`; num workspace pessoal
-            // a leitura seria paga para nada.
-            try {
-                context = sumWeeklyTotals(await this.gamificationRepository.getWeeklySummaryRows(workspaceId, weekId));
+            // As duas leituras falham SEPARADAMENTE. Zerar as duas por causa
+            // de uma faria o gerador e o script de retag divergirem na
+            // primeira falha transitória — e a peneira que sobrou continua
+            // valendo: é melhor sortear sem saber a capacidade do que sortear
+            // sem saber nada.
+            const [rowsResult, capacityResult] = await Promise.allSettled([
+                this.gamificationRepository.getWeeklySummaryRows(workspaceId, weekId),
+                this.gamificationRepository.getMissionCapacity(
+                    workspaceId,
+                    localWallClockIso(addCalendarDays(weekStart, -CAPACITY_WINDOW_DAYS))
+                ),
+            ]);
+
+            let totals = { plannedIncomeCents: 0, plannedExpenseCents: 0 };
+            if (rowsResult.status === "fulfilled") {
+                totals = sumWeeklyTotals(rowsResult.value);
             }
-            catch (e) {
-                logger.error("[GamificationService] Falha ao ler o sumário da semana para o sorteio:", e);
+            else {
+                logger.error("[GamificationService] Falha ao ler o sumário da semana para o sorteio:", rowsResult.reason);
             }
+
+            // Sem capacidade conhecida, tudo o que depende de capacidade é
+            // reprovado e a organização cai na missão que sempre dá para
+            // cumprir — o lado seguro de errar.
+            let capacity: MissionCapacity = NO_MISSION_CAPACITY;
+            if (capacityResult.status === "fulfilled") {
+                capacity = capacityResult.value;
+            }
+            else {
+                logger.error("[GamificationService] Falha ao ler a capacidade do workspace para o sorteio:", capacityResult.reason);
+            }
+
+            context = buildMissionSelectionContext(totals, capacity);
         }
 
         // 1. O CATÁLOGO escolhe — determinístico, sem rede.
@@ -1739,7 +1835,7 @@ export class GamificationService {
         }
 
         const generate = async () => {
-            await this.generateWeeklyMissions(workspaceId, weekId, monthKey, { aiGarnish: false });
+            await this.generateWeeklyMissions(workspaceId, weekId, monthKey, weekStart, { aiGarnish: false });
         };
 
         if (this.idempotencyService) {

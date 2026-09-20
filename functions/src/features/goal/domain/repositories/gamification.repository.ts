@@ -1,6 +1,6 @@
 import { CategoryPlanningModel } from "../../../finance/domain/models/finance.models";
 import { RawFirestoreDate } from "../../../../core/utils/firestore.utils";
-import { MissionParams, WeeklyMissionType } from "../models/mission_catalog";
+import { MissionCapacity, MissionParams, WeeklyMissionType } from "../models/mission_catalog";
 import { BadgeAudience, WorkspaceAudience } from "../models/audience.model";
 
 /**
@@ -302,6 +302,14 @@ export interface IGamificationRepository {
      * `limit(1)`: uma leitura, não uma varredura.
      */
     hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean>;
+    /**
+     * A CAPACIDADE do workspace — o que ele tem como cumprir (ver
+     * `MissionCapacity`). Três consultas com `limit(1)`: conta de cartão de
+     * crédito ativa, extrato já conciliado alguma vez e lançamento automático
+     * a partir de `automaticTransactionsSince` (relógio local, o formato em
+     * que `automatic_transactions.date` é gravado).
+     */
+    getMissionCapacity(workspaceId: string, automaticTransactionsSince: string): Promise<MissionCapacity>;
     /** Planejamentos por categoria do workspace (documento cru + id). */
     getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
     getCompletedReconciliationsCount(workspaceId: string, limit?: number): Promise<number>;

@@ -2470,11 +2470,19 @@ catálogo, pela validação existente) e ficou de fora deste pacote.
 | já tem as missões (reexecução do cron, ou geração preguiçosa que chegou antes) | **1** (a missão de consistência) |
 | dormente | **2** (missão + atividade) |
 | ativo, `personal` | **4** (missão, atividade, workspace, planejamentos) |
-| ativo, `business` | **5** (as quatro + o sumário da semana, para a peneira de elegibilidade) |
+| ativo, `business` | **8** (as quatro + o sumário da semana + as três consultas `limit(1)` da peneira de CAPACIDADE) |
 
 A leitura de METAS saiu do caminho do cron: ela só alimentava o prompt do
 Gemini. As escritas são três `create` por workspace gerado — e `create` não
 sobrescreve missão existente.
+
+As três leituras de capacidade (cartão, conciliação, lançamento automático)
+entraram com a peneira de CAPACIDADE e só acontecem em workspace `business` —
+ver [Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio). São `limit(1)`
+e correm em paralelo com o sumário; o workspace pessoal continua em 4 leituras.
+Uma falha em qualquer das duas metades do contexto degrada **só aquela
+metade**: zerar as duas por causa de uma faria o gerador e o script de retag
+divergirem na primeira falha transitória.
 
 **Idempotência em duas camadas**: a checagem de existência (que é também o
 caminho de 1 leitura de uma reexecução) e a MESMA chave da geração preguiçosa
@@ -2505,6 +2513,7 @@ placeholders (`{category}`, `{target}`), `target`, `rewardXp`, `progressRule`,
 | business | organization | `business_organization_reconcile_statements` | conciliar N extratos das contas da empresa | `reconciled_statements` | 1 | 200 | `/reconciliation` |
 | business | organization | `business_organization_categorize_auto` | categorizar ou descartar N lançamentos automáticos | `categorized_auto_transactions` | 3 | 200 | `/workspace/categories` |
 | business | organization | `business_organization_invoice_on_time` | pagar a fatura corporativa até o vencimento | `invoice_paid_on_time` | 1 | 200 | `/workspace/accounts` |
+| business | organization | `business_organization_categorize_week` | categorizar N% dos lançamentos pagos da semana | `categorized_week_installments` | 100 | 200 | `/workspace/categories` |
 
 **Pessoal mantém os três objetivos que já existiam** — são os que estão em
 produção e os que o jogo já sabe medir. O que mudou neles foi o TEXTO: os
@@ -2527,13 +2536,43 @@ produz uma missão que o avaliador **não tem como medir**: 0% por sete dias,
 semana perfeita impossível e streak zerada, sem que o usuário tenha feito nada
 de errado.
 
-Por isso o template pode declarar `isEligible(context)`, e o contexto são os
-totais PLANEJADOS da semana, lidos uma vez na geração:
+Por isso o template pode declarar `isEligible(context)`. O contexto tem **duas
+metades**, e elas respondem perguntas diferentes:
 
-| Template | Elegível quando |
-|---|---|
-| `business_consistency_income_forecast` | `plannedIncomeCents > 0` |
-| `business_discipline_margin` | `plannedIncomeCents > 0` **e** `plannedExpenseCents > 0` |
+- os totais **PLANEJADOS** da semana (`period_summaries/{weekId}`) dizem se a
+  missão tem como ser **medida nesta semana**;
+- a **CAPACIDADE** (`MissionCapacity`) diz se ela tem como ser **cumprida,
+  alguma vez** — são fatos estáveis do workspace, não da janela.
+
+**Tabela de elegibilidade, por template:**
+
+| Template | Tipo | Elegível quando | Peneira |
+|---|---|---|---|
+| `personal_consistency_plan_limits` | consistency | sempre | — |
+| `personal_discipline_top_category` | discipline | sempre | — |
+| `personal_organization_reconcile_items` | organization | sempre | — (ver nota abaixo) |
+| `business_consistency_cost_centers` | consistency | sempre | — |
+| `business_consistency_income_forecast` | consistency | `plannedIncomeCents > 0` | plano |
+| `business_discipline_top_cost_center` | discipline | sempre | — |
+| `business_discipline_margin` | discipline | `plannedIncomeCents > 0` **e** `plannedExpenseCents > 0` | plano |
+| `business_organization_reconcile_statements` | organization | `hasReconciledStatementEver` | capacidade |
+| `business_organization_categorize_auto` | organization | `hasRecentAutomaticTransaction` | capacidade |
+| `business_organization_invoice_on_time` | organization | `hasCreditCardAccount` | capacidade |
+| `business_organization_categorize_week` | organization | **sempre** | — (é a garantia) |
+
+As três capacidades são **booleanos**, e não contagens, porque toda pergunta é
+"existe ao menos um?" — as consultas usam `limit(1)`:
+
+| Campo | Pergunta | Consulta |
+|---|---|---|
+| `hasCreditCardAccount` | tem cartão de crédito? | `accounts` com `runtimeType == creditCard` e `isDeleted == false` |
+| `hasReconciledStatementEver` | já conciliou **alguma vez**? | `reconciliations` com `status == completed` |
+| `hasRecentAutomaticTransaction` | recebe notificação? | `automatic_transactions` com `date >=` (domingo da semana − `CAPACITY_WINDOW_DAYS` = 30 dias) |
+
+A janela dos lançamentos automáticos é ancorada no **domingo que inicia a
+semana sorteada**, não no instante da geração: o sorteio tem de ser
+reproduzível fora do gatilho — é o que permite ao `retag_weekly_missions`
+chegar ao mesmo template dias depois.
 
 A peneira roda **antes** do hash: numa semana sem receita prevista, a
 consistência da empresa cai sempre em "planejar centros de custo", que é o que
@@ -2558,25 +2597,58 @@ O contexto só é lido em workspace `business` — num pessoal nenhum template t
 > que roda os dois caminhos de código sobre os mesmos dados, nos quatro
 > contextos, numa semana em que a peneira de fato troca o template.
 
-**`isEligible` NÃO cobre as missões de `organization`** — é uma lacuna
-consciente, não um esquecimento. As três corporativas de organização
-(conciliar extrato, triar lançamentos automáticos, pagar a fatura no prazo) são
-**prospectivas**: elas pedem algo que o usuário ainda vai fazer durante a
-semana. Uma peneira pelo que já aconteceu NAQUELA JANELA as tornaria
-permanentemente inelegíveis, porque no instante da geração a semana está vazia
-por definição — seria trocar "missão difícil de medir" por "missão que nunca é
-sorteada".
+#### A peneira de organização: um RISCO, não um defeito observado
 
-A peneira correta para elas é de **capacidade**, não de janela: só ofereça
-"pagar a fatura" a quem tem cartão, "conciliar extrato" a quem tem conta, e
-"triar lançamentos automáticos" a quem usa a captura por notificação. São fatos
-ESTÁVEIS do workspace, e por isso convergem entre gerador e retag. O que
-impediu de implementar agora foi o critério de custo: são três leituras que o
-gerador **ainda não faz** (contagem de contas, contas de cartão, e um
-`limit(1)` em `automatic_transactions`), enquanto a peneira de receita/margem
-reaproveita o sumário que ele já lê. Fica como pacote próprio, com o efeito
-conhecido: hoje uma empresa sem cartão de crédito recebe "fechar a fatura
-corporativa no prazo" a cada três semanas, e não tem como cumpri-la.
+As três missões corporativas de organização são **prospectivas**: pedem algo
+que o usuário ainda vai fazer durante a semana. Peneirá-las pelo que já
+aconteceu NAQUELA JANELA as tornaria permanentemente inelegíveis (no instante
+da geração a semana está vazia por definição) — por isso a peneira delas é de
+**capacidade**, não de janela.
+
+O risco que ela fecha: um workspace **sem cartão de crédito** podia sortear
+"fechar a fatura corporativa no prazo", um **sem nenhum extrato conciliado**
+podia sortear "conciliar um extrato", e um **sem captura por notificação**
+podia sortear "triar lançamentos automáticos". Não seriam missões difíceis —
+seriam missões que **nenhuma ação dentro do app conseguiria concluir**, e que
+ainda impedem a semana perfeita e zeram a streak de quem não fez nada de
+errado. Como o sorteio é por hash da semana, é questão de tempo até cair numa
+delas.
+
+> **O caso `a70134c1` foi FALSO ALARME, e vale registrar por quê.** A suspeita
+> que originou este pacote era que aquele workspace tivesse recebido
+> `business_organization_invoice_on_time` em 2026-W38 sem ter cartão. Ele
+> **tem**: um `creditCard` ("Cartão Inter", criado em 2026-06-03, com
+> `nextInvoice` vencendo em 2026-10-20), além de 2 conciliações e 3 lançamentos
+> automáticos recentes — capacidade cheia nas três perguntas. A checagem que
+> levantou o alarme leu `type` em vez de `runtimeType`, que é o discriminador
+> da union de contas (ver `getCreditCardAccountIds`). A missão daquela semana
+> era legítima, e o dry-run do retag em produção confirmou: **`reparadas=0` nos
+> cinco workspaces**. A peneira continua valendo — ela fecha o risco antes de
+> ele aparecer —, mas nenhum workspace de produção precisou de reparo em W38.
+
+**A garantia: `business_organization_categorize_week`.** Uma empresa pode não
+ter nenhuma das três capacidades, e aí a peneira derrubaria os três candidatos
+— com o atalho "se ninguém for elegível, sorteia entre TODOS", o sorteio
+devolveria justamente a missão impossível que acabou de descartar. Por isso o
+catálogo ganhou uma quarta missão de organização **sem `isEligible`**:
+categorizar os lançamentos pagos da semana. Ela existe em qualquer workspace
+que movimente dinheiro, é medida com as parcelas que a avaliação já sabe ler
+(no máximo **uma** consulta a mais — ver `categorized_week_installments` nas
+regras de progresso) e é o mesmo hábito que o `fix_empty_category` existe para
+reparar.
+
+O teste de matriz cobre as **oito** combinações de capacidade × 53 semanas e
+exige uma invariante só: *o template devolvido passa na própria peneira* — o
+atalho do `all` nunca é alcançado na organização de empresa.
+
+**Por que `personal_organization_reconcile_items` NÃO é peneirado.** A
+organização pessoal tem **um único** candidato. Peneirar uma lista de um
+elemento não muda nada: sem ninguém elegível, o sorteio volta a correr sobre
+todos e devolve o mesmo template. Uma peneira ali custaria leitura e não
+mudaria o resultado — e é por isso que o gerador **não lê capacidade nenhuma**
+em workspace pessoal. O dia em que a organização pessoal ganhar um segundo
+template, a peneira passa a valer a pena; até lá, seria uma linha de tabela
+mentindo sobre o que acontece.
 
 > **Uma empresa pode não fechar a semana perfeita numa semana sem receita
 > prevista.** A missão de receita some do sorteio (bom), mas a de margem
@@ -2680,6 +2752,29 @@ TRANSAÇÃO (a fatura paga).
 | `invoice_paid_on_time` | faturas pagas até o DIA do vencimento | parcelas pagas com `isInvoice` | transação, fechamento |
 | `weekly_margin_above_plan` | margem realizada ≥ margem planejada | `period_summaries/{YYYY-Www}` | transação, fechamento |
 | `income_received_vs_planned` | % da receita **prevista** que entrou | `period_summaries/{YYYY-Www}` (`specificPlannedAmount`) | transação, fechamento |
+| `categorized_week_installments` | % das parcelas PAGAS da semana que têm categoria de verdade | parcelas pagas na semana (a leitura que a avaliação já faz) | transação, fechamento |
+
+`categorized_week_installments` é a missão de organização que **sempre dá para
+cumprir** (ver [Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio)).
+
+**O que ela custa depende da DISCIPLINA da mesma semana.** A leitura de
+parcelas pagas é memoizada por avaliação, então:
+
+| Disciplina sorteada | Semanas do ano | Custo da organização |
+|---|---|---|
+| `days_within_category_limit` | 27 de 53 | **zero** — a leitura já foi feita |
+| `weekly_margin_above_plan` (lê o sumário) | 26 de 53 | **uma** consulta de parcelas |
+
+Nunca mais de uma, e é a mesma consulta que a avaliação já sabe fazer: nenhuma
+fonte de dados nova entrou no caminho de avaliação. Duas outras decisões dela:
+
+- **transferência fica fora do denominador.** Transferência — e fatura, que é
+  gravada como transferência — não carrega categoria **por desenho** (ver
+  `isCategoryRefBroken` em "Categoria sem id"). Contá-la deixaria os 100%
+  inalcançáveis para quem move dinheiro entre as próprias contas;
+- **semana sem nenhuma parcela a categorizar devolve `null`**, não 100%. Não há
+  o que medir, e escrever um 100% que ninguém conquistou pagaria XP por uma
+  semana parada. A missão fica pendente e a semana fecha sem ela.
 
 #### Os dois "planejados" do sumário não são a mesma coisa
 
@@ -3031,7 +3126,7 @@ Independente do bloco acima, e muito menor. Três passos, nesta ordem:
 1. índices     firebase deploy --only firestore:indexes
                ⏳ ESPERAR o índice de `reconciliations` (status, createdAt) ficar READY
 2. functions   firebase deploy --only functions
-3. retag       node lib/scripts/retag_weekly_missions.js   (dry-run → --apply)
+3. retag       node lib/scripts/retag_weekly_missions.js --all-workspaces   (dry-run → --apply)
                ⏳ na MESMA semana do deploy — ver o script
 ```
 
@@ -3450,6 +3545,37 @@ vendo "Reduzir gastos com alimentação" até o domingo seguinte ao deploy.
 | **concluída** (qualquer tipo de workspace) | só CARIMBA: `templateKey`, `workspaceType`, `actionPath`, `nameKey`, `params`. `name`, `target`, `progress`, `status`, `rewardXp` e `completedAt` ficam intocados |
 | **aberta**, workspace `business` | SUBSTITUÍDA pelo template corporativo da semana: nome, alvo, XP, rota e chaves do catálogo, `progress` de volta a 0 |
 | **aberta**, workspace `personal` | só CARIMBA. O objetivo já era o certo |
+| **aberta e JÁ carimbada**, com template hoje INELEGÍVEL, `progress == 0` | REPARADA: trocada pelo template elegível da semana |
+| **aberta e JÁ carimbada**, com template hoje INELEGÍVEL, `progress > 0` | MANTIDA, e listada no resumo como `mantidas_com_progresso` |
+
+#### O reparo da missão impossível
+
+É o que conserta 2026-W38 no que já está gravado. O servidor novo não sorteia
+mais `business_organization_invoice_on_time` para um workspace sem cartão (ver
+[Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio)), mas a missão
+gravada continuaria na tela, incumprível, até a virada da semana.
+
+O script lê a MESMA capacidade que o servidor (três consultas `limit(1)`:
+cartão, conciliação, lançamento automático) e, para cada missão **aberta e já
+carimbada** cujo `templateKey` tem `isEligible` que hoje REPROVA aquele
+workspace, troca o documento inteiro pelo template elegível da semana.
+
+**Só com `progress == 0`.** Progresso é trabalho do usuário: trocar a missão
+por baixo dele apagaria o que ele fez, e um número que anda para trás na tela é
+pior que uma missão difícil. Com progresso, a missão fica — e o resumo diz
+quais foram, para a decisão ser de quem opera, não do script.
+
+O reparo **não toca em missão concluída** (ela é troféu, e o XP já entrou) nem
+em missão cujo template não tem peneira. Com `--week=<YYYY-Www>`, o mês do
+planejamento e a janela de capacidade são os **daquela semana**, não os de
+hoje: rodar na terça seguinte tem de reproduzir o sorteio de domingo.
+
+```bash
+# O caso de 2026-W38, um workspace só:
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b \
+    --week=2026-W38 --workspace=a70134c1... --apply
+```
 
 **A missão concluída NÃO é estornada.** O XP dela já entrou no workspace, já
 subiu nível e já pode ter desbloqueado badge; desfazer isso exigiria reverter
@@ -3468,15 +3594,19 @@ o que deve medir; trocar a frase só produziria churn na tela de quem não tem
 problema nenhum.
 
 É IDEMPOTENTE (pula quem já tem `templateKey`, a não ser com `--force`),
-DRY-RUN por padrão e paginado por cursor.
+DRY-RUN por padrão e paginado por cursor. O **alcance é explícito**: sem
+`--workspace=<id>` nem `--all-workspaces` o script aborta, e um argumento
+desconhecido (um `--worskpace=` com erro de digitação, por exemplo) também —
+num script que escreve, uma flag engolida calada faz o operador achar que
+limitou o alcance quando não limitou.
 
 ```bash
 cd functions
 npm run build
 
-# 1) Simulação (padrão — não escreve nada)
+# 1) Simulação da base inteira (padrão — não escreve nada)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
-  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --all-workspaces
 
 # 2) Um workspace só, para conferir o efeito
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
@@ -3484,7 +3614,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 
 # 3) Base inteira (somente após revisar o dry-run)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
-  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --apply
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --all-workspaces --apply
 ```
 
 Flags: `--apply`, `--project=<id>`, `--workspace=<id>`, `--week=<YYYY-Www>`,
