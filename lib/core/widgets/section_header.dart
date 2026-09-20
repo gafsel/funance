@@ -64,6 +64,12 @@ class SectionHeader extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = context.palette;
 
+    // O TÍTULO é marcado como cabeçalho para o leitor de tela. Sem isto, os
+    // gestos de "próximo cabeçalho" — que é como se percorre uma tela longa
+    // sem enxergar — não encontravam nada: o app inteiro tinha zero nós de
+    // cabeçalho, e configurações, emblemas e grupos de conta se liam como uma
+    // lista contínua de texto. Só o texto entra no nó: o contador e o ícone
+    // continuam com a semântica deles.
     return switch (_variant) {
       _SectionHeaderVariant.label => Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -72,9 +78,12 @@ class SectionHeader extends StatelessWidget {
           AppSpacing.md,
           AppSpacing.xs,
         ),
-        child: Text(
-          title.toUpperCase(),
-          style: theme.textTheme.labelSmall?.copyWith(color: palette.ink2),
+        child: Semantics(
+          header: true,
+          child: Text(
+            title.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(color: palette.ink2),
+          ),
         ),
       ),
       _SectionHeaderVariant.withIcon => Padding(
@@ -96,9 +105,14 @@ class SectionHeader extends StatelessWidget {
             ),
             AppSpacing.gapXs,
             Expanded(
-              child: Text(
-                title,
-                style: theme.textTheme.titleLarge?.copyWith(color: palette.ink),
+              child: Semantics(
+                header: true,
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: palette.ink,
+                  ),
+                ),
               ),
             ),
             ?trailing,
@@ -113,10 +127,13 @@ class SectionHeader extends StatelessWidget {
               Icon(icon, color: palette.ink2, size: 22),
               AppSpacing.gapXs,
               Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: palette.ink,
+                child: Semantics(
+                  header: true,
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: palette.ink,
+                    ),
                   ),
                 ),
               ),

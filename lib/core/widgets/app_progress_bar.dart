@@ -114,7 +114,20 @@ class AppProgressBar extends StatelessWidget {
       ),
     );
 
+    // `container: true` e `excludeSemantics: true`: sem os dois, a barra não
+    // virava um nó próprio — o rótulo e o valor se misturavam ao texto que
+    // estivesse em volta, e "Moradia" + "62%" podiam ser lidos como parte da
+    // frase do vizinho. Com container a barra é UMA coisa que se lê como
+    // "Moradia, 62%".
+    //
+    // Sem `semanticLabel` não há nó nenhum: uma barra decorativa dentro de um
+    // bloco que já se descreve (o selo de nível, por exemplo) só acrescentaria
+    // um "62%" solto no meio da leitura.
+    if (semanticLabel == null) return bar;
+
     return Semantics(
+      container: true,
+      excludeSemantics: true,
       label: semanticLabel,
       value: '${(fraction * 100).round()}%',
       child: bar,

@@ -104,71 +104,97 @@ class _CompassStripState extends State<CompassStrip> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              borderRadius: AppRadius.brMd,
-              onTap: () => setState(() => _expanded = !_expanded),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.explore_outlined, size: 18, color: ink2),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      widget.title,
-                      style: theme.textTheme.labelMedium?.copyWith(color: ink2),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      widget.score == null
-                          ? '—'
-                          : widget.score!.round().toString(),
-                      style: AppTypography.counter(ink).copyWith(fontSize: 18),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Flexible(
-                      child: Text(
-                        widget.tierLabel,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(color: ink2),
-                      ),
-                    ),
-                    if (hasDelta) ...[
+          // A linha é um BOTÃO que abre e fecha, e o leitor de tela não tinha
+          // como saber nem uma coisa nem outra: ela se anunciava como um
+          // punhado de textos soltos — "Bússola", "48", "Estrategista" — sem
+          // dizer que respondia ao toque, e sem dizer se os quatro
+          // componentes estavam à mostra ou escondidos.
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            button: true,
+            expanded: _expanded,
+            onTap: () => setState(() => _expanded = !_expanded),
+            label: widget.title,
+            value: [
+              widget.score == null ? '—' : widget.score!.round().toString(),
+              widget.tierLabel,
+              ?(hasDelta ? widget.deltaLabel : null),
+            ].join(', '),
+            child: Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                borderRadius: AppRadius.brMd,
+                onTap: () => setState(() => _expanded = !_expanded),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.explore_outlined, size: 18, color: ink2),
                       const SizedBox(width: AppSpacing.xs),
-                      Icon(
-                        delta > 0 ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                        size: 18,
-                        color: delta > 0
-                            ? palette.successText
-                            : palette.dangerText,
+                      Text(
+                        widget.title,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: ink2,
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        widget.score == null
+                            ? '—'
+                            : widget.score!.round().toString(),
+                        style: AppTypography.counter(
+                          ink,
+                        ).copyWith(fontSize: 18),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
                       Flexible(
                         child: Text(
-                          widget.deltaLabel!,
+                          widget.tierLabel,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: delta > 0
-                                ? palette.successText
-                                : palette.dangerText,
+                            color: ink2,
                           ),
                         ),
                       ),
-                    ],
-                    const Spacer(),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.25 : 0,
-                      duration: AppDurations.respectingMotion(
-                        context,
-                        AppDurations.normal,
+                      if (hasDelta) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        Icon(
+                          delta > 0
+                              ? Icons.arrow_drop_up
+                              : Icons.arrow_drop_down,
+                          size: 18,
+                          color: delta > 0
+                              ? palette.successText
+                              : palette.dangerText,
+                        ),
+                        Flexible(
+                          child: Text(
+                            widget.deltaLabel!,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: delta > 0
+                                  ? palette.successText
+                                  : palette.dangerText,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const Spacer(),
+                      AnimatedRotation(
+                        turns: _expanded ? 0.25 : 0,
+                        duration: AppDurations.respectingMotion(
+                          context,
+                          AppDurations.normal,
+                        ),
+                        curve: AppDurations.curve,
+                        child: Icon(Icons.chevron_right, size: 20, color: ink2),
                       ),
-                      curve: AppDurations.curve,
-                      child: Icon(Icons.chevron_right, size: 20, color: ink2),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
