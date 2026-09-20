@@ -169,6 +169,35 @@ void main() {
       expect(find.text('Em avaliação'), findsOneWidget);
     });
 
+    /// M8 — a documentação prometia "variação da semana" e o texto na tela
+    /// dizia "desde o mês passado". O dado é mensal: o índice é publicado uma
+    /// vez por mês e `healthHistory` vem em `monthKey`. Quem manda é a fonte.
+    testWidgets('M8 — a variação fala do período que o dado tem', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const SizedBox(
+          width: 380,
+          child: CompassStrip(
+            title: 'Bússola',
+            score: 48,
+            tierLabel: 'Estrategista',
+            delta: 3,
+            deltaLabel: '3 desde o mês passado',
+            components: [],
+          ),
+        ),
+      );
+
+      expect(find.text('3 desde o mês passado'), findsOneWidget);
+      expect(
+        find.textContaining('semana'),
+        findsNothing,
+        reason: 'não existe série semanal do índice para comparar',
+      );
+    });
+
     testWidgets('sem variação, não inventa uma seta', (tester) async {
       await _pump(
         tester,

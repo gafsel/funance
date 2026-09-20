@@ -32,8 +32,16 @@ class CompassComponentData {
 ///
 /// A Home antiga dava um bloco grande e estático à Bússola, que muda uma vez
 /// por mês. A regra nova: o que muda por dia ocupa o corpo, o que muda por mês
-/// vira linha. Aqui ficam o número, a patente e a variação da semana; os
-/// quatro componentes só aparecem quando alguém toca.
+/// vira linha. Aqui ficam o número, a patente e a VARIAÇÃO desde o ponto
+/// anterior do histórico; os quatro componentes só aparecem quando alguém
+/// toca.
+///
+/// A variação é mensal porque o dado é mensal. O índice de liberdade é
+/// publicado pelo servidor uma vez por mês (`healthHistory` vem em
+/// `monthKey`), e não existe ponto semanal para comparar: a documentação
+/// dizia "variação da semana" e o texto na tela dizia "desde o mês passado",
+/// duas promessas diferentes para o mesmo número. Se um dia houver série
+/// semanal, é [deltaLabel] que muda — o widget não calcula período nenhum.
 ///
 /// Widget puro: quem liga aos providers é a camada de feature.
 class CompassStrip extends StatefulWidget {
@@ -62,7 +70,8 @@ class CompassStrip extends StatefulWidget {
 
   final List<CompassComponentData> components;
 
-  /// "3 esta semana" — já traduzido e sem o sinal, que a seta desenha.
+  /// "3 desde o mês passado" — já traduzido, com o período que a fonte de
+  /// dados de fato oferece, e sem o sinal, que a seta desenha.
   final String? deltaLabel;
 
   /// A variação em pontos. O sinal decide a seta e a cor.

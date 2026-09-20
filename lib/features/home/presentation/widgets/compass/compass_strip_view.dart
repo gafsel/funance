@@ -58,11 +58,16 @@ class CompassStripView extends ConsumerWidget {
     );
   }
 
-  /// Variação em pontos desde o ponto anterior do histórico.
+  /// Variação em pontos desde o ponto anterior do histórico — ou seja, desde
+  /// o MÊS passado.
   ///
-  /// `healthHistory` vem do mais recente para o mais antigo. Com menos de dois
-  /// pontos não há variação a mostrar — e mostrar "0" ali seria afirmar que
-  /// nada mudou, o que é diferente de ainda não saber.
+  /// `healthHistory` é uma série mensal (`monthKey`) e vem do mais recente
+  /// para o mais antigo. Não há série semanal do índice: quando houver, é
+  /// aqui e no texto do rótulo que o período muda, e não no widget, que não
+  /// calcula período nenhum.
+  ///
+  /// Com menos de dois pontos não há variação a mostrar — e escrever "0" ali
+  /// seria afirmar que nada mudou, o que é diferente de ainda não saber.
   static double? _delta(
     FinancialHealth? health,
     List<FinancialHealthPoint>? history,
