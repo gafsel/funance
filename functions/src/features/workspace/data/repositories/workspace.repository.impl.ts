@@ -83,6 +83,7 @@ export class WorkspaceRepositoryImpl implements IWorkspaceRepository {
                     email: data.email,
                     displayName: data.displayName,
                     photoUrl: data.photoUrl,
+                    avatar: data.avatar,
                     createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
                     lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin,
                 });
