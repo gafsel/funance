@@ -245,6 +245,43 @@ void main() {
     });
   });
 
+  group('semana sem luta', () {
+    testWidgets('o recado aparece, e as portas continuam na tela', (
+      tester,
+    ) async {
+      // O cofre recém criado — sem conta e sem compromisso — é exatamente
+      // quem mais precisa das portas, e era de quem elas sumiam: o recado
+      // "a arena está vazia" vinha NO LUGAR da Arena inteira, levando junto o
+      // rodapé mensal e a coluna de ícones.
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          initialBalance: 0,
+          currentBalance: 0,
+          commitments: const [],
+          accounts: const [],
+        ),
+        overrides: arenaOverrides(
+          state: arenaTestState(
+            initialBalance: 0,
+            currentBalance: 0,
+            commitments: const [],
+            accounts: const [],
+          ),
+          missions: homeTypicalMissions(),
+        ),
+      );
+
+      expect(find.textContaining('a arena está vazia'), findsOneWidget);
+      expect(find.byType(ArenaSceneIcon), findsNWidgets(3));
+      expect(
+        find.byKey(const ValueKey('arena-footer-slot')),
+        findsOneWidget,
+        reason: 'o HUD mensal fala do MÊS: ele não depende de haver luta',
+      );
+    });
+  });
+
   group('a folha das missões', () {
     testWidgets('abre com o MESMO conteúdo do bloco que saiu da Home', (
       tester,
