@@ -2663,13 +2663,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hudVillageTitle => 'Vila';
 
   @override
-  String get hudEggTitle => 'Ovo';
+  String get hudEggTitle => 'Incubados';
 
   @override
-  String get hudDropTitle => 'Gota';
+  String get hudEggSheetTitle => 'Monstros incubados';
 
   @override
-  String get hudTierNone => 'gole';
+  String get hudDropTitle => 'Veneno';
 
   @override
   String get hudTierSemi => 'semi';
@@ -2749,13 +2749,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hudSemanticsEggCalm => 'faturas dentro da receita';
 
   @override
-  String get hudSemanticsEggEmpty => 'nenhuma fatura prevista';
+  String get hudSemanticsEggEmpty => 'nenhum monstro incubado';
 
   @override
-  String get hudSemanticsDropActive => 'dívida ativa';
+  String get hudSemanticsDropActive => 'veneno ativo, dívida em aberto';
 
   @override
-  String get hudSemanticsDropClear => 'sem dívida';
+  String get hudSemanticsDropClear => 'sem veneno, nenhuma dívida';
 
   @override
   String get hudSemanticsPotionEmpty => 'poção vazia';
@@ -2765,23 +2765,34 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudPotionGame =>
-      'Suas contas de investimento viram poções, e quanto maior a poção, mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de receita guardado.';
+      'A poção é tudo o que você investiu, junto: capital que trabalha por você e rende sem esforço seu. De meio mês de receita guardado em diante ela ganha classe — semi, regular, super e hiper —, uma a cada meio mês a mais.';
 
   @override
   String get hudPotionFinance =>
-      'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses você já tem de pé.';
+      'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses de contas ele já cobre. Reserva de emergência e dinheiro de objetivo somam juntos: um é para o que você não previu, o outro para o que você já planejou (uma viagem, uma compra), e os dois servem à mesma coisa — as contas do dia a dia não serem afetadas.';
 
   @override
   String get hudPotionXp =>
-      'XP: nenhum; a poção é consequência do que você guardou, não uma missão a cumprir.';
+      'XP: nenhum; a poção é consequência do que você guardou — e ela só cresce de verdade depois que o veneno some, porque juro de dívida corre mais rápido que rendimento. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.';
+
+  @override
+  String hudPotionMonths(int count, String months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$months meses de pé',
+      one: '$months mês de pé',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get hudPotionEmpty =>
-      'Nenhuma conta de investimento com saldo. A poção está vazia.';
+      'Nenhuma conta de investimento com saldo. A poção está vazia, e sem ela todo mês recomeça do zero.';
 
   @override
   String get hudVillageGame =>
-      'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+      'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Categoria de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se você investir o que planejou, e fica em risco enquanto faltar.';
 
   @override
   String get hudVillageFinance =>
@@ -2789,11 +2800,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudVillageXp =>
-      'XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.';
+      'XP: +15 por aldeão de pé no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar. O aldeão de investimento conta como de pé quando a meta foi cumprida.';
 
   @override
   String get hudVillageGameBusiness =>
-      'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+      'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Centro de custo de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se a empresa investir o que planejou, e fica em risco enquanto faltar.';
 
   @override
   String get hudVillageFinanceBusiness =>
@@ -2813,9 +2824,21 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String hudVillageSpent(String actual, String planned) {
-    return '$actual de $planned gastos';
+  String hudVillageEnvelopeExpense(String actual, String planned) {
+    return 'Despesas: $actual de $planned';
   }
+
+  @override
+  String hudVillageEnvelopeInvestment(String actual, String planned) {
+    return 'Investimentos: $actual de $planned';
+  }
+
+  @override
+  String get hudVillageAtRisk =>
+      'A vila está em risco: as despesas couberam, mas falta aporte.';
+
+  @override
+  String get hudSemanticsVillageAtRisk => 'vila em risco, falta aporte';
 
   @override
   String get hudVillageAlive => 'A vila está de pé: a soma cabe no plano.';
@@ -2833,6 +2856,21 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String hudVillagerGoal(String actual, String planned) {
+    return '$actual de $planned investidos';
+  }
+
+  @override
+  String hudVillagerMissing(String actual, String planned, String missing) {
+    return '$actual de $planned investidos — faltam $missing para o aldeão ficar de pé';
+  }
+
+  @override
+  String hudVillageAtRiskGroup(int count) {
+    return 'Em risco ($count)';
+  }
+
+  @override
   String hudVillagerHp(String hp, String planned) {
     return '$hp de $planned';
   }
@@ -2840,6 +2878,21 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String hudVillagerOver(String amount) {
     return '$amount além do orçamento';
+  }
+
+  @override
+  String hudVillageAliveGroup(int count) {
+    return 'Vivos ($count)';
+  }
+
+  @override
+  String hudVillageFallenGroup(int count) {
+    return 'Caídos ($count)';
+  }
+
+  @override
+  String hudVillagerSemantics(String name, String state) {
+    return '$name: $state';
   }
 
   @override
@@ -2865,18 +2918,42 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudEggGame =>
-      'As faturas que estão para vencer se juntam num ovo, e ele cresce com o que você já gastou sem pagar. Um ovo grande choca no próximo vencimento.';
+      'Toda despesa no cartão fortalece um monstro que eclode no mês que vem. Quanto mais você incuba, maior a criatura que vem cobrar.';
 
   @override
   String get hudEggFinance =>
-      'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês.';
+      'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês. Fatura prevista é despesa; fatura esquecida é surpresa ruim.';
 
   @override
   String get hudEggXp =>
-      'XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava planejado vale zero.';
+      'XP: nenhum; o monstro não tira XP, mas o gasto de cartão sem plano come o dinheiro que viraria poção — e é a poção que leva à independência.';
 
   @override
-  String get hudEggEmpty => 'Nenhuma fatura prevista. Não há ovo nenhum.';
+  String get hudEggEmpty =>
+      'Nenhuma fatura prevista. Não há monstro nenhum incubado.';
+
+  @override
+  String hudCardLimitLabel(String name) {
+    return 'Limite do $name';
+  }
+
+  @override
+  String hudCardLimitUsage(int percent) {
+    return '$percent% do limite usado';
+  }
+
+  @override
+  String hudCardLimitFree(String amount) {
+    return '$amount até o limite';
+  }
+
+  @override
+  String hudCardLimitOver(String amount) {
+    return '$amount acima do limite';
+  }
+
+  @override
+  String get hudCardLimitUnknown => 'Limite não informado neste cartão.';
 
   @override
   String hudInvoiceOverdue(int days) {
@@ -2901,18 +2978,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudDropGame =>
-      'O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota de dois meses inteiros de receita é uma dívida que manda no seu ano.';
+      'As dívidas são veneno: os juros corroem seu capital sem parar e puxam o HP do herói para baixo todo mês.';
 
   @override
   String get hudDropFinance =>
-      'Financeiro: é o saldo devedor dividido pela receita prevista do mês.';
+      'Financeiro: é o saldo devedor dividido pela receita prevista do mês. Sem antídoto, os juros comem antes o que seria o seu patrimônio.';
 
   @override
   String get hudDropXp =>
-      'XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado pago e pelas metas de quitação.';
+      'XP: nenhum direto; quitar rende XP pelo lançamento planejado pago e pelas metas de quitação. Neutralizar o veneno é o primeiro passo da independência financeira.';
 
   @override
-  String get hudDropEmpty => 'Nenhuma dívida em aberto. A gota está seca.';
+  String get hudDropEmpty =>
+      'Nenhuma dívida em aberto. O veneno está neutralizado, e o que você ganha é seu.';
 
   @override
   String hudDebtInstallment(String amount, String date) {

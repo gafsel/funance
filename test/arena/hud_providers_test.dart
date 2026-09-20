@@ -464,6 +464,87 @@ void main() {
       expect(hud.village.unprotected.map((u) => u.name), ['Assinaturas']);
     });
 
+    test('categoria virtual e saldo inicial não viram aldeãs', () async {
+      // O defeito que esta asserção impede, e que rodou em produção: em
+      // workspace LEGADO o campo `isSystem` não existe em documento nenhum
+      // (ele só chega com o migrate_system_categories), e a peneira do HUD
+      // olhava só para a flag. As duas categorias `virtual_*` do cofre do
+      // dono entravam como aldeãs — com allocation de investimento e alvo de
+      // R$ 4.000 sem aporte —, e derrubavam o envelope de investimento
+      // sozinhas: o app dizia "9/18, vila em risco, +135 XP" e o servidor
+      // pagava "9/16, vila viva, 235 XP".
+      //
+      // Note o `isSystem: false` EXPLÍCITO nas três: é exatamente o
+      // documento que existe em produção.
+      final hud = await _estado(
+        _container(
+          contas: _ContasFake(const [], const {}),
+          sumario: _SumarioFake(
+            PeriodSummaryModel.month(
+              year: 2026,
+              month: 9,
+              lastUpdate: _hoje,
+              categories: const {
+                'mercado': PeriodSummaryCategoryModel(
+                  generalPlannedAmount: 1000,
+                  actualAmount: 400,
+                ),
+                'virtual_investment_expense': PeriodSummaryCategoryModel(
+                  generalPlannedAmount: 2000,
+                ),
+                'virtual_debt_expense': PeriodSummaryCategoryModel(
+                  generalPlannedAmount: 2000,
+                ),
+                'initial-balance': PeriodSummaryCategoryModel(
+                  generalPlannedAmount: 900,
+                  actualAmount: 900,
+                ),
+              },
+            ),
+          ),
+          categorias: _CategoriasFake(const [
+            CategoryModel(
+              id: 'mercado',
+              name: 'Supermercado',
+              icon: 'shopping_cart',
+              color: '#FF5722',
+              isSystem: false,
+            ),
+            CategoryModel(
+              id: 'virtual_investment_expense',
+              name: 'Aporte em investimento',
+              icon: 'savings',
+              color: '#4CAF50',
+              isSystem: false,
+              allocation: CategoryAllocation.investment,
+            ),
+            CategoryModel(
+              id: 'virtual_debt_expense',
+              name: 'Abatimento de dívida',
+              icon: 'account_balance',
+              color: '#EC7000',
+              isSystem: false,
+              allocation: CategoryAllocation.investment,
+            ),
+            CategoryModel(
+              id: 'initial-balance',
+              name: 'Saldo inicial',
+              icon: 'account_balance_wallet',
+              color: '#9E9E9E',
+              isSystem: false,
+            ),
+          ]),
+        ),
+      );
+
+      expect(hud.village.villagers.map((v) => v.name), ['Supermercado']);
+      expect(hud.village.unprotected, isEmpty);
+      // E o envelope de investimento continua vazio: sem aldeão de
+      // investimento, ele está fechado por vacuidade.
+      expect(hud.village.hasInvestmentEnvelope, isFalse);
+      expect(hud.village.investmentEnvelopeMet, isTrue);
+    });
+
     test('id de categoria que o app não conhece não vira aldeão', () async {
       // `fantasma` tem R$ 3.800 de orçamento no sumário e nenhum documento de
       // categoria — é uma categoria apagada de vez. Sem o descarte, ela

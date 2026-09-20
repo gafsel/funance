@@ -24,6 +24,12 @@ import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 /// — quem mede o tamanho da dívida é o anel — e um ovo que também mudasse de
 /// cor perderia, justo no estágio em que mais importa, a única coisa que o
 /// identifica de relance.
+///
+/// A terceira é do pacote de conteúdo: as duas figuras ganharam MIOLO sem
+/// ganhar silhueta nova. O veneno tem caveira, o monstro incubado
+/// aparece por dentro da casca no último estágio — e nada disso pode mexer
+/// nos contornos, senão a distinção que as três primeiras afirmações
+/// protegem se perde por outro caminho.
 
 const double _lado = 30;
 
@@ -104,6 +110,31 @@ double _distancia(List<bool> a, List<bool> b) {
   }
 
   return uniao == 0 ? 0 : diferenca / uniao;
+}
+
+/// Quantos pixels opacos têm EXATAMENTE esta cor.
+///
+/// É como se prova que uma figura foi escavada: a caveira do veneno e o corpo
+/// do monstro são pintados com a cor da calha, e contar essa cor é contar o
+/// buraco. Uma tolerância pequena cobre a suavização das bordas.
+int _contaCor(ByteData pixels, Color alvo, {int? ateLinha}) {
+  final r = (alvo.r * 255).round();
+  final g = (alvo.g * 255).round();
+  final b = (alvo.b * 255).round();
+  final limite = ateLinha == null
+      ? pixels.lengthInBytes
+      : ateLinha * _lado.toInt() * 4;
+  var n = 0;
+
+  for (var i = 0; i + 3 < limite; i += 4) {
+    if (pixels.getUint8(i + 3) < 250) continue;
+    if ((pixels.getUint8(i) - r).abs() > 6) continue;
+    if ((pixels.getUint8(i + 1) - g).abs() > 6) continue;
+    if ((pixels.getUint8(i + 2) - b).abs() > 6) continue;
+    n++;
+  }
+
+  return n;
 }
 
 /// A cor média dos pixels opacos.
@@ -209,6 +240,92 @@ void main() {
     });
 
     expect(cor.b, greaterThan(cor.g));
+  });
+
+  testWidgets('o veneno tem caveira: o miolo é escavado, não liso', (
+    tester,
+  ) async {
+    // O dono disse que dívida é VENENO, e uma gota lisa dizia "água". A
+    // caveira e a bolha são buracos na tinta — pixels da cor da calha
+    // DENTRO da silhueta. Sem eles a figura volta a ser uma gota d'água, e
+    // nenhum teste de contorno perceberia.
+    late int escavados;
+    late int noBico;
+
+    await tester.runAsync(() async {
+      final bytes = await _pixels(
+        tester,
+        HudSlot.drop,
+        color: AppColors.violet,
+        stage: 0,
+        filled: true,
+      );
+
+      escavados = _contaCor(bytes, AppColors.gameTrough);
+      // O terço de cima é o BICO, e é ele que faz a gota ser uma gota. Um
+      // buraco ali quebra a ponta e a figura deixa de se distinguir das
+      // outras três — que é o defeito que este arquivo inteiro existe para
+      // impedir.
+      noBico = _contaCor(bytes, AppColors.gameTrough, ateLinha: _lado ~/ 3);
+    });
+
+    debugPrint('VENENO — $escavados pixels escavados, $noBico deles no bico');
+
+    expect(
+      escavados,
+      greaterThan(40),
+      reason:
+          'a gota voltou a ser lisa: sem a caveira ela lê como água, '
+          'e o nome do ícone passou a ser Veneno',
+    );
+    expect(
+      noBico,
+      0,
+      reason: 'a escavação subiu para o bico e quebrou a ponta da gota',
+    );
+  });
+
+  testWidgets('o monstro aparece na casca no último estágio', (tester) async {
+    // O estágio 2 era um olho entreaberto. O dono pediu o MONSTRO — o bicho
+    // que o cartão está fortalecendo —, e a diferença entre um olho e um
+    // corpo com chifres se mede em área.
+    late int rachado;
+    late int eclodindo;
+
+    await tester.runAsync(() async {
+      rachado = _contaCor(
+        await _pixels(
+          tester,
+          HudSlot.egg,
+          color: AppColors.success,
+          stage: 1,
+          filled: true,
+        ),
+        AppColors.gameTrough,
+      );
+      eclodindo = _contaCor(
+        await _pixels(
+          tester,
+          HudSlot.egg,
+          color: AppColors.success,
+          stage: 2,
+          filled: true,
+        ),
+        AppColors.gameTrough,
+      );
+    });
+
+    debugPrint('MONSTRO — calha: estágio 1 = $rachado, estágio 2 = $eclodindo');
+
+    // O corpo do bicho é muito maior que as duas rachaduras a mais que o
+    // estágio 2 desenha: o dobro é um piso folgado para "apareceu um bicho".
+    expect(
+      eclodindo,
+      greaterThan(rachado * 2),
+      reason:
+          'o estágio 2 desenhou só mais uma rachadura: o monstro não está '
+          'dentro da casca',
+    );
   });
 
   testWidgets('a casca muda a cada estágio, e a silhueta não', (tester) async {

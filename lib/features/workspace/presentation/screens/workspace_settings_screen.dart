@@ -90,6 +90,20 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
     final isTab = Navigator.of(context).canPop() == false;
     final theme = Theme.of(context);
 
+    // O recorte do topo — notch, ilha, barra de status.
+    //
+    // Como ABA, esta tela é o corpo direto do `TabBarView` da Home: não há
+    // `AppBar` própria para empurrar o conteúdo para baixo, e num desktop com
+    // rail (ou num celular cuja casca perca a barra) o primeiro cabeçalho de
+    // seção nascia debaixo do relógio do sistema. Vai como PADDING da lista e
+    // não como `SafeArea`: assim o conteúdo passa por baixo do recorte ao
+    // rolar, em vez de bater numa parede invisível.
+    //
+    // Quando existe `AppBar` — a tela aberta por rota — o `Scaffold` já
+    // consumiu esse recanto e `paddingOf` devolve zero. Os dois casos saem
+    // certos sem um `if`.
+    final topInset = MediaQuery.paddingOf(context).top;
+
     final body = workspace == null
         ? const Center(child: CircularProgressIndicator())
         : LayoutBuilder(
@@ -102,10 +116,15 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                 final childAspectRatio = itemWidth / 160;
 
                 return ListView(
-                  padding: const EdgeInsets.only(
+                  padding: EdgeInsets.only(
+                    top: topInset,
                     bottom: AppSpacing.bottomBarSafeArea,
                   ),
                   children: [
+                    // Aparência e som no TOPO, aqui também: são as duas
+                    // configurações que se trocam por gosto, e a grade de
+                    // cartões abaixo é trabalho.
+                    const AppearanceSection(),
                     GridView.count(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -167,16 +186,18 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const AppearanceSection(),
                   ],
                 );
               }
 
               return ListView(
                 padding: EdgeInsets.only(
+                  top: topInset,
                   bottom: isTab ? AppSpacing.bottomBarSafeArea : 0,
                 ),
                 children: [
+                  const AppearanceSection(),
+                  const Divider(),
                   SectionHeader.label(l10n.profileTitle),
                   ListTile(
                     leading: const Icon(Icons.person_outline),
@@ -223,8 +244,6 @@ class WorkspaceSettingsScreen extends ConsumerWidget {
                       context.push('/workspace/members');
                     },
                   ),
-                  const Divider(),
-                  const AppearanceSection(),
                   const Divider(),
                   ListTile(
                     leading: const Icon(Icons.logout, color: AppColors.danger),

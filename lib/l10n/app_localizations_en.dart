@@ -2646,13 +2646,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudVillageTitle => 'Village';
 
   @override
-  String get hudEggTitle => 'Egg';
+  String get hudEggTitle => 'Incubating';
 
   @override
-  String get hudDropTitle => 'Drop';
+  String get hudEggSheetTitle => 'Incubating monsters';
 
   @override
-  String get hudTierNone => 'sip';
+  String get hudDropTitle => 'Poison';
 
   @override
   String get hudTierSemi => 'semi';
@@ -2732,13 +2732,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudSemanticsEggCalm => 'invoices within income';
 
   @override
-  String get hudSemanticsEggEmpty => 'no upcoming invoice';
+  String get hudSemanticsEggEmpty => 'no monster incubating';
 
   @override
-  String get hudSemanticsDropActive => 'active debt';
+  String get hudSemanticsDropActive => 'poison active, open debt';
 
   @override
-  String get hudSemanticsDropClear => 'no debt';
+  String get hudSemanticsDropClear => 'no poison, no debt';
 
   @override
   String get hudSemanticsPotionEmpty => 'empty potion';
@@ -2748,23 +2748,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudPotionGame =>
-      'Your investment accounts become potions, and the bigger the potion, the longer you survive away from battle. The tier climbs every half month of income saved.';
+      'The potion is everything you invested, together: capital that works for you and yields with no effort of yours. From half a month of income stored on it earns a class — semi, regular, super and hyper — one more for every extra half month.';
 
   @override
   String get hudPotionFinance =>
-      'Finance: it\'s your invested balance divided by this month\'s expected income — how many months you already have standing.';
+      'Finance: it\'s your invested balance divided by this month\'s expected income — how many months of bills it already covers. Emergency money and goal money add up together: one is for what you did not see coming, the other for what you already planned (a trip, a purchase), and both do the same job — keeping the day-to-day bills untouched.';
 
   @override
   String get hudPotionXp =>
-      'XP: none; the potion follows from what you saved, not from a quest.';
+      'XP: none; the potion follows from what you saved — and it only really grows once the poison is gone, because debt interest runs faster than any yield. When the income it generates pays your expenses, the battle is over: that is financial independence.';
+
+  @override
+  String hudPotionMonths(int count, String months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$months months standing',
+      one: '$months month standing',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get hudPotionEmpty =>
-      'No investment account with a balance. The potion is empty.';
+      'No investment account with a balance. The potion is empty, and without it every month starts from zero.';
 
   @override
   String get hudVillageGame =>
-      'Every budgeted category is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
+      'Every budgeted category is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls. An INVESTMENT category works the other way around: there the villager only stands if you invest what you planned, and stays at risk while anything is missing.';
 
   @override
   String get hudVillageFinance =>
@@ -2772,11 +2783,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudVillageXp =>
-      'XP: +15 per villager alive at month end, up to 10 categories, plus 100 if the whole village holds.';
+      'XP: +15 per villager standing at month end, up to 10 categories, plus 100 if the whole village holds. An investment villager counts as standing once its goal is met.';
 
   @override
   String get hudVillageGameBusiness =>
-      'Every budgeted cost center is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
+      'Every budgeted cost center is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls. An INVESTMENT cost center works the other way around: there the villager only stands if the company invests what it planned, and stays at risk while anything is missing.';
 
   @override
   String get hudVillageFinanceBusiness =>
@@ -2796,9 +2807,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String hudVillageSpent(String actual, String planned) {
-    return '$actual of $planned spent';
+  String hudVillageEnvelopeExpense(String actual, String planned) {
+    return 'Expenses: $actual of $planned';
   }
+
+  @override
+  String hudVillageEnvelopeInvestment(String actual, String planned) {
+    return 'Investments: $actual of $planned';
+  }
+
+  @override
+  String get hudVillageAtRisk =>
+      'The village is at risk: expenses fit, but the investment is short.';
+
+  @override
+  String get hudSemanticsVillageAtRisk => 'village at risk, investment short';
 
   @override
   String get hudVillageAlive => 'The village holds: the total fits the plan.';
@@ -2817,6 +2840,21 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String hudVillagerGoal(String actual, String planned) {
+    return '$actual of $planned invested';
+  }
+
+  @override
+  String hudVillagerMissing(String actual, String planned, String missing) {
+    return '$actual of $planned invested — $missing short of standing up';
+  }
+
+  @override
+  String hudVillageAtRiskGroup(int count) {
+    return 'At risk ($count)';
+  }
+
+  @override
   String hudVillagerHp(String hp, String planned) {
     return '$hp of $planned';
   }
@@ -2824,6 +2862,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String hudVillagerOver(String amount) {
     return '$amount past the budget';
+  }
+
+  @override
+  String hudVillageAliveGroup(int count) {
+    return 'Standing ($count)';
+  }
+
+  @override
+  String hudVillageFallenGroup(int count) {
+    return 'Fallen ($count)';
+  }
+
+  @override
+  String hudVillagerSemantics(String name, String state) {
+    return '$name: $state';
   }
 
   @override
@@ -2849,18 +2902,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudEggGame =>
-      'The bills about to come due gather into an egg, and it grows with everything you\'ve spent but not paid. A big egg hatches on the next due date.';
+      'Every credit card expense strengthens a monster that hatches next month. The more you incubate, the bigger the creature that comes to collect.';
 
   @override
   String get hudEggFinance =>
-      'Finance: it\'s the sum of your upcoming card bills divided by this month\'s expected income.';
+      'Finance: it\'s the sum of your upcoming card bills divided by this month\'s expected income. A bill you expect is an expense; a bill you forget is a nasty surprise.';
 
   @override
   String get hudEggXp =>
-      'XP: none; the egg takes no XP, but card spending that wasn\'t planned is worth zero.';
+      'XP: none; the monster takes no XP, but unplanned card spending eats the money that would have become a potion — and the potion is what leads to independence.';
 
   @override
-  String get hudEggEmpty => 'No upcoming bill. There is no egg at all.';
+  String get hudEggEmpty => 'No upcoming bill. There is no monster incubating.';
+
+  @override
+  String hudCardLimitLabel(String name) {
+    return '$name limit';
+  }
+
+  @override
+  String hudCardLimitUsage(int percent) {
+    return '$percent% of the limit used';
+  }
+
+  @override
+  String hudCardLimitFree(String amount) {
+    return '$amount until the limit';
+  }
+
+  @override
+  String hudCardLimitOver(String amount) {
+    return '$amount over the limit';
+  }
+
+  @override
+  String get hudCardLimitUnknown => 'No credit limit set for this card.';
 
   @override
   String hudInvoiceOverdue(int days) {
@@ -2885,18 +2961,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudDropGame =>
-      'What you owe drips into a single drop, and it weighs more the bigger it is against what you earn. A drop worth two whole months of income is a debt that runs your year.';
+      'Debt is poison: interest corrodes your capital without pause and drags the hero\'s HP down every month.';
 
   @override
   String get hudDropFinance =>
-      'Finance: it\'s your outstanding debt divided by this month\'s expected income.';
+      'Finance: it\'s your outstanding debt divided by this month\'s expected income. Untreated, interest eats first what would have been your wealth.';
 
   @override
   String get hudDropXp =>
-      'XP: none directly; paying debt down earns XP through planned entries paid and through payoff goals.';
+      'XP: none directly; paying it off earns XP through planned entries paid and through payoff goals. Neutralizing the poison is the first step to financial independence.';
 
   @override
-  String get hudDropEmpty => 'No open debt. The drop is dry.';
+  String get hudDropEmpty =>
+      'No open debt. The poison is neutralized, and what you earn is yours.';
 
   @override
   String hudDebtInstallment(String amount, String date) {

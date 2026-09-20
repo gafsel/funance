@@ -92,8 +92,8 @@ class _ArenaHudFooterState extends ConsumerState<ArenaHudFooter> {
             // O NOME sob cada figura só onde há largura para ele. Num
             // celular quatro rótulos a mais disputam os mesmos 400 px com
             // quatro números, e é o número que perde. Do tablet para cima a
-            // faixa tem folga, e "Poção / Vila / Ovo / Gota" poupa o toque
-            // que só serve para descobrir o que aquele desenho é.
+            // faixa tem folga, e "Poção / Vila / Incubados / Veneno" poupa
+            // o toque que só serve para descobrir o que o desenho é.
             showNames: !constraints.layout.isCompact,
           ),
         ),
@@ -131,7 +131,14 @@ class _Slots extends StatelessWidget {
           child: _Slot(
             slot: HudSlot.potion,
             name: l10n.hudPotionTitle,
-            value: hudTierLabel(l10n, hud.potion.ratio),
+            // A classe quando ela existe; a RAZÃO quando não. Abaixo de
+            // meio mês de receita a poção não tem classe (o dono tirou o
+            // "gole"), e o que fica no lugar é "0,1×" — o mesmo número que
+            // os incubados e o veneno já mostram. Sem denominador nenhum
+            // dos dois existe, e aí sim vai o traço.
+            value:
+                hudTierLabel(l10n, hud.potion.ratio) ??
+                hudRatioLabel(l10n, hud.potion.ratio, locale),
             semantics: potion,
             showName: showNames,
             color: hud.potion.isFilled
@@ -263,7 +270,7 @@ class _Slot extends StatefulWidget {
 }
 
 class _SlotState extends State<_Slot> with TickerProviderStateMixin {
-  /// O ciclo contínuo: a gota que pisca e o ovo que treme.
+  /// O ciclo contínuo: o veneno que pisca e os incubados que tremem.
   late final AnimationController _loop = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
@@ -304,8 +311,8 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
   /// Liga ou desliga o movimento contínuo.
   ///
   /// "Reduzir movimento" para o ciclo no zero — e parar no zero importa: a
-  /// gota parada no meio de um piscar ficaria meio transparente para sempre,
-  /// e o ovo, torto.
+  /// figura do veneno parada no meio de um piscar ficaria meio transparente
+  /// para sempre, e a dos incubados, torta.
   void _sync() {
     final moves =
         (widget.blinking || widget.trembling) &&
@@ -378,7 +385,7 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
 
     return Semantics(
       button: true,
-      // O rótulo carrega o JULGAMENTO, e não só o número: "Ovo: 1,1× da
+      // O rótulo carrega o JULGAMENTO, e não só o número: "Incubados: 1,1× da
       // receita, faturas acima da receita, perigo". O que a cor diz sem
       // texto tem de ser dito em texto para quem não a vê.
       label: l10n.hudSlotSemantics(
@@ -399,7 +406,8 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
                   children: [
                     figuraEValor,
                     // O nome é EXCLUÍDO da semântica: ele já está no rótulo
-                    // do botão, e lido duas vezes viraria "Ovo: … Ovo".
+                    // do botão, e lido duas vezes viraria "Incubados: …
+                    // Incubados".
                     ExcludeSemantics(
                       child: Text(
                         widget.name,
@@ -431,7 +439,7 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
     }
 
     if (widget.blinking) {
-      // Piscar é OPACIDADE e não sumiço: a gota nunca desaparece, senão o
+      // Piscar é OPACIDADE e não sumiço: o veneno nunca desaparece, senão o
       // rodapé ficaria com um buraco a cada segundo.
       return Opacity(
         opacity: 0.55 + 0.45 * _pingPong(_loop.value),
@@ -440,8 +448,8 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
     }
 
     if (widget.trembling) {
-      // Um tremor de menos de um pixel e meio. Ovo que sacode a faixa inteira
-      // vira enfeite; este é um nervoso de canto de olho.
+      // Um tremor de menos de um pixel e meio. Uma casca que sacode a faixa
+      // inteira vira enfeite; este é um nervoso de canto de olho.
       final t = _loop.value;
       return Transform.translate(
         offset: Offset(1.5 * _pingPong(t) * (t < 0.5 ? 1 : -1), 0),

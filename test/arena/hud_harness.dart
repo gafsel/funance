@@ -17,7 +17,7 @@ import 'arena_harness.dart';
 /// Os números padrão são os do cofre REAL do dono em setembro de 2026
 /// (workspace 42d43a0e). Um harness com números redondos inventados esconde
 /// justamente o que este pacote precisa provar: que quatro ícones de 30 px e
-/// os rótulos deles cabem ao lado de "R$ 20.187,80" e "13/18".
+/// os rótulos deles cabem ao lado de "R$ 20.187,80" e "9/16".
 
 /// O dia em que o retrato foi tirado: 20 de setembro de 2026.
 ///
@@ -26,7 +26,13 @@ import 'arena_harness.dart';
 final DateTime hudTestToday = DateTime(2026, 9, 20);
 
 /// R$ 18.550,00 — salário de R$ 17.000 mais R$ 1.550 de benefícios,
-/// agendados no mês.
+/// agendados no mês, no retrato da manhã de 20/09.
+///
+/// DEFASADO de propósito: às 12:37 do mesmo dia o servidor republicou
+/// `expectedIncome` como R$ 18.000,00 (planned). As três razões não mudam
+/// de dígito (< 0,1× · 1,1× · 0,4×), mas o valor aparece literal nas
+/// folhas e em goldens; a atualização fica para o próximo retrato mensal
+/// (ver README, "HUD mensal da Arena").
 final ExpectedIncome hudTestIncome = ExpectedIncome(
   monthKey: '2026-09',
   amount: Money.fromCents(1855000),
@@ -37,15 +43,67 @@ final ExpectedIncome hudTestIncome = ExpectedIncome(
 ///
 /// A do Nubank de R$ 8.300,55 é a única de ciclo FECHADO: ela venceu em
 /// 17/09 e continua pendente. As outras cinco ainda estão acumulando.
+///
+/// O LIMITE e o saldo usado de cada cartão vêm junto desde que a folha dos
+/// incubados passou a desenhar a progressão de uso, e os seis são os REAIS
+/// do cofre do dono em 20/09/2026 — limite cadastrado na conta e saldo do
+/// dia em módulo. Nenhum deles está estourado, e nenhum está sem limite: o
+/// cartão sem limite e o cartão furado são casos SINTÉTICOS, e vivem em
+/// [hudInvoiceSemLimite] e [hudInvoiceEstourado], declarados como tais.
+///
+/// A razão de não inventar: um harness que se apresenta como o retrato do
+/// cofre real e serve números redondos vira a fonte de um número errado no
+/// README — foi o que aconteceu com o C6, que "tinha limite zero" aqui e
+/// tem R\$ 9.217,00 lá fora.
 List<HudInvoiceReading> hudTestInvoices() => [
-  _invoice('samsclub', 'Cartão Samsclub', 286.22, closing: 10, due: 12),
-  _invoice('nubank1', 'Cartão Nubank', 2717.10, closing: 4, due: 10),
-  _invoice('inter', 'Cartão Inter', 3634.86, closing: 4, due: 10),
-  _invoice('itau', 'Cartão Itaú', 2843.07, closing: 4, due: 10),
-  _invoice('c6', 'Cartão C6', 2406.00, closing: 4, due: 10),
+  _invoice(
+    'samsclub',
+    'Cartão Samsclub',
+    286.22,
+    closing: 10,
+    due: 12,
+    limit: 7300,
+    used: 286.26,
+  ),
+  _invoice(
+    'nubank1',
+    'Cartão Nubank G98Y',
+    2717.10,
+    closing: 4,
+    due: 10,
+    limit: 10350,
+    used: 2553.99,
+  ),
+  _invoice(
+    'inter',
+    'Cartão Inter',
+    3634.86,
+    closing: 4,
+    due: 10,
+    limit: 17900,
+    used: 1592.84,
+  ),
+  _invoice(
+    'itau',
+    'Cartão Itaú',
+    2843.07,
+    closing: 4,
+    due: 10,
+    limit: 8000,
+    used: 3114.33,
+  ),
+  _invoice(
+    'c6',
+    'Cartão C6',
+    2406.00,
+    closing: 4,
+    due: 10,
+    limit: 9217,
+    used: 3480.98,
+  ),
   HudInvoiceReading(
     accountId: 'nubank2',
-    name: 'Cartão Nubank',
+    name: 'Cartão Nubank VgIy',
     amount: 8300.55,
     closingDate: DateTime(2026, 9, 10),
     dueDate: DateTime(2026, 9, 17),
@@ -53,8 +111,38 @@ List<HudInvoiceReading> hudTestInvoices() => [
     color: '#8A05BE',
     installmentId: 'inst-nubank2',
     overdueDays: 3,
+    limit: 21000,
+    usedLimit: 4854.39,
   ),
 ];
+
+/// Um cartão SINTÉTICO sem limite cadastrado.
+///
+/// Ele não é de ninguém: `accounts.limit` nasce zero quando o usuário não o
+/// preenche, e o caso existe: é o que a folha tem de responder com "limite
+/// não informado" em vez de desenhar 0%. Fica fora de [hudTestInvoices]
+/// porque os seis de lá são reais e todos têm limite.
+HudInvoiceReading hudInvoiceSemLimite() => _invoice(
+  'sintetico-sem-limite',
+  'Cartão sem limite',
+  500,
+  closing: 4,
+  due: 10,
+);
+
+/// Um cartão SINTÉTICO já estourado: R\$ 812,00 acima do limite.
+///
+/// Também não é de ninguém — nenhum dos seis cartões do dono passou do teto
+/// em setembro —, e o caso é justamente o que o par "100% · R\$ 0,00" escondia.
+HudInvoiceReading hudInvoiceEstourado() => _invoice(
+  'sintetico-estourado',
+  'Cartão estourado',
+  1200,
+  closing: 4,
+  due: 10,
+  limit: 9000,
+  used: 9812,
+);
 
 HudInvoiceReading _invoice(
   String id,
@@ -62,6 +150,8 @@ HudInvoiceReading _invoice(
   double amount, {
   required int closing,
   required int due,
+  double limit = 0,
+  double used = 0,
 }) => HudInvoiceReading(
   accountId: id,
   name: name,
@@ -71,47 +161,71 @@ HudInvoiceReading _invoice(
   isOpenCycle: true,
   color: '#8A05BE',
   installmentId: 'inst-$id',
+  limit: limit,
+  usedLimit: used,
 );
 
-/// As categorias reais de setembro: dezoito aldeões, cinco caídos, cinco sem
-/// proteção.
+/// As categorias reais de setembro, lidas de produção em 20/09/2026: DEZESSEIS
+/// aldeões — nove de pé e sete caídos — e seis categorias sem proteção.
+///
+/// **As duas `virtual_*` NÃO estão aqui, e é o ponto.** No cofre do dono elas
+/// se chamam "Empréstimo/Dívidas" (`virtual_debt_expense`, R$ 3.800 de alvo) e
+/// "Investimentos" (`virtual_investment_expense`, R$ 200) — as duas com
+/// allocation `investment` e nenhum aporte. Elas são categorias de SISTEMA: o
+/// servidor as peneira por id, e o app passou a peneirar igual. Enquanto ele
+/// olhava só a flag `isSystem` — que em workspace legado não existe em
+/// documento nenhum —, as duas entravam como aldeãs, matavam o envelope de
+/// investimento sozinhas e o app dizia "9/18, vila em risco, +135 XP" onde o
+/// servidor pagava "9/16, vila viva, 235 XP".
+///
+/// "Taxas de Juros" é a única categoria de investimento de verdade do mês:
+/// alvo de R$ 50 com R$ 431,54 realizados — de pé, e o envelope de
+/// investimento fecha com ela.
+///
+/// As duas linhas do sumário SEM documento de categoria (R$ 3.800 e R$ 2.000,
+/// de categorias apagadas) também ficam de fora, como no app: id que o app não
+/// conhece não vira aldeão.
 List<HudCategoryReading> hudTestCategories() => [
-  _category('Supermercado', 3500, 1158.20),
+  _category('Supermercado', 3500, 2597.99),
   _category('Educação', 2770, 3301.54),
   _category('Empregada', 2650, 1728.24),
-  _category('Empréstimo/Dívidas', 3800, 0),
-  _category('Cuidados pessoais', 1500, 1171.20),
-  _category('Compras', 1300, 1993.97),
+  _category('Cuidados pessoais', 1500, 1707.18),
+  _category('Compras', 1300, 2163.89),
   _category('Lazer', 1200, 801.17),
   _category('Saúde', 1000, 1160.11),
-  _category('Alimentação', 1000, 839.40),
-  _category('Gasolina', 1000, 259.54),
+  _category('Alimentação', 1000, 1065.85),
+  _category('Gasolina', 1000, 525.54),
   _category('Moradia', 500, 106.24),
   _category('Festas', 500, 0),
   _category('Pets', 400, 284.29),
-  _category('Manutenção do carro', 350, 1462.77),
-  _category('Outros', 300, 103.87),
-  _category('Transporte', 200, 113.97),
-  _category('Investimentos', 200, 0),
-  _category('Taxas de Juros', 50, 427.69),
-  _category('Pagamento de Empréstimo', 0, 1944.54),
-  _category('Assinaturas', 0, 495.25),
+  _category('Manutenção do carro', 350, 1462.85),
+  _category('Outros', 300, 135.87),
+  _category('Transporte', 200, 293.97),
+  _category('Taxas de Juros', 50, 431.54, investimento: true),
+  _category('Pagamento de Empréstimo', 0, 1944.54, investimento: true),
+  _category('Seguros', 0, 828.11),
+  _category('Assinaturas', 0, 665.02),
   _category('Água', 0, 437.82),
   _category('Celular', 0, 435.00),
   _category('Internet/TV', 0, 167.90),
 ];
 
-HudCategoryReading _category(String name, double planned, double actual) =>
-    HudCategoryReading(
-      categoryId: 'cat-$name',
-      name: name,
-      icon: 'shopping_cart',
-      color: '#FF5722',
-      isExpense: true,
-      isSystem: false,
-      planned: planned,
-      actual: actual,
-    );
+HudCategoryReading _category(
+  String name,
+  double planned,
+  double actual, {
+  bool investimento = false,
+}) => HudCategoryReading(
+  categoryId: 'cat-$name',
+  name: name,
+  icon: 'shopping_cart',
+  color: '#FF5722',
+  isExpense: true,
+  isSystem: false,
+  planned: planned,
+  actual: actual,
+  isInvestment: investimento,
+);
 
 /// O retrato do mês fechado, como o servidor o gravou.
 const HudMonthlyReport hudTestReport = HudMonthlyReport(

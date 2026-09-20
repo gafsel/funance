@@ -24,7 +24,7 @@ import 'package:funances/features/finance/presentation/providers/period_summary_
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
-/// Até quantos dias à frente a gota procura a PRÓXIMA parcela de uma dívida.
+/// Até quantos dias à frente o veneno procura a PRÓXIMA parcela da dívida.
 ///
 /// Sessenta dias cobre a parcela deste mês e a do mês que vem, que é o que a
 /// linha precisa dizer ("próximo vencimento"). Sem janela, a consulta traria
@@ -135,34 +135,72 @@ sealed class HudViewProviders {
   /// As faturas por vir, lidas de `accounts.nextInvoice`.
   ///
   /// Cartão cujo servidor ainda não gravou o resumo fica de fora: ele é
-  /// "ainda não sei", e somar zero por ele encolheria o ovo com uma certeza
+  /// "ainda não sei", e somar zero por ele encolheria os incubados com uma
+  /// certeza
   /// que não existe.
+  ///
+  /// O SALDO de cada cartão entra junto, e não é consulta nova: é o mesmo
+  /// `latestBalanceById` que a poção e o veneno já leem, e é dele que sai o
+  /// limite comprometido (`-saldo`) que a Visão Geral desenha na barra de
+  /// uso. O dono pediu essa progressão na folha dos incubados, e pediu que
+  /// fosse a MESMA visão — então é o mesmo dado e o mesmo componente.
   static final invoices = Provider.autoDispose
       .family<AsyncValue<List<HudInvoiceReading>>, DateTime>((ref, today) {
         final byType = ref.watch(AccountViewProviders.byTypeMap);
+        if (byType.hasError) {
+          return AsyncValue<List<HudInvoiceReading>>.error(
+            byType.error!,
+            byType.stackTrace ?? StackTrace.current,
+          );
+        }
 
-        return byType.whenData((map) {
-          final cards = map[AccountType.creditCard] ?? const <AccountModel>[];
+        final cards = byType.valueOrNull?[AccountType.creditCard];
+        if (cards == null) {
+          return const AsyncValue<List<HudInvoiceReading>>.loading();
+        }
 
-          return <HudInvoiceReading>[
-            for (final card in cards)
-              if (card is CreditCardAccount && card.nextInvoice != null)
-                HudInvoiceReading(
-                  accountId: card.id,
-                  name: card.name,
-                  amount: card.nextInvoice!.amount,
-                  closingDate: card.nextInvoice!.closingDate,
-                  dueDate: card.nextInvoice!.dueDate,
-                  // O ciclo está aberto enquanto o fechamento não passou: até
-                  // lá o valor é o acumulado e ainda sobe. Depois dele é
-                  // cobrança fechada.
-                  isOpenCycle: card.nextInvoice!.closingDate.isAfter(today),
-                  color: card.color,
-                  installmentId: card.nextInvoice!.installmentId,
-                  overdueDays: _overdueDays(card.nextInvoice!.dueDate, today),
-                ),
-          ];
-        });
+        final readings = <HudInvoiceReading>[];
+        for (final card in cards) {
+          if (card is! CreditCardAccount || card.nextInvoice == null) continue;
+
+          // O saldo só é pedido para cartão que TEM fatura publicada: os
+          // outros já estavam fora da soma dos incubados, e ler o saldo seria
+          // segurar a faixa inteira por um dado que ninguém vai mostrar.
+          final balance = ref.watch(
+            AccountViewProviders.latestBalanceById(card.id),
+          );
+          if (balance.hasError) {
+            return AsyncValue<List<HudInvoiceReading>>.error(
+              balance.error!,
+              balance.stackTrace ?? StackTrace.current,
+            );
+          }
+          final value = balance.valueOrNull;
+          if (value == null) {
+            return const AsyncValue<List<HudInvoiceReading>>.loading();
+          }
+
+          readings.add(
+            HudInvoiceReading(
+              accountId: card.id,
+              name: card.name,
+              amount: card.nextInvoice!.amount,
+              closingDate: card.nextInvoice!.closingDate,
+              dueDate: card.nextInvoice!.dueDate,
+              // O ciclo está aberto enquanto o fechamento não passou: até
+              // lá o valor é o acumulado e ainda sobe. Depois dele é
+              // cobrança fechada.
+              isOpenCycle: card.nextInvoice!.closingDate.isAfter(today),
+              color: card.color,
+              installmentId: card.nextInvoice!.installmentId,
+              overdueDays: _overdueDays(card.nextInvoice!.dueDate, today),
+              limit: card.limit,
+              usedLimit: -value.balance,
+            ),
+          );
+        }
+
+        return AsyncValue<List<HudInvoiceReading>>.data(readings);
       });
 
   /// Há quantos dias a fatura venceu — zero enquanto o vencimento não passou.
@@ -271,7 +309,11 @@ sealed class HudViewProviders {
                       icon: s.category.icon,
                       color: s.category.color,
                       isExpense: s.category.type == CategoryType.expense,
-                      isSystem: s.category.isSystem,
+                      // A peneira do SERVIDOR, e não só a flag: em
+                      // workspace legado `isSystem` não existe em documento
+                      // nenhum, e as duas categorias `virtual_*` entravam
+                      // como aldeãs. Ver `CategoryModel.isSystemCategory`.
+                      isSystem: s.category.isSystemCategory,
                       // O ORÇAMENTO é o `generalPlannedAmount`, e só ele. O
                       // `specificPlannedAmount` são as parcelas agendadas do
                       // mês — dinheiro que já tem dono, não o limite da
@@ -279,6 +321,12 @@ sealed class HudViewProviders {
                       // produção, fez uma missão de margem concluir de graça.
                       planned: s.generalPlannedAmount,
                       actual: s.actualAmount,
+                      // A allocation que o 50/30/20 já usa. É ela que
+                      // inverte a leitura do aldeão: em categoria de
+                      // investimento o planejado é META, e não teto.
+                      isInvestment:
+                          s.category.allocation ==
+                          CategoryAllocation.investment,
                     ),
               ],
             );

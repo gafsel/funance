@@ -1572,9 +1572,9 @@
   "arenaAdjustPayment": "Adjust payment",
   "hudPotionTitle": "Potion",
   "hudVillageTitle": "Village",
-  "hudEggTitle": "Egg",
-  "hudDropTitle": "Drop",
-  "hudTierNone": "sip",
+  "hudEggTitle": "Incubating",
+  "hudEggSheetTitle": "Incubating monsters",
+  "hudDropTitle": "Poison",
   "hudTierSemi": "semi",
   "hudTierRegular": "regular",
   "hudTierSuper": "super",
@@ -1656,19 +1656,21 @@
   "hudSemanticsEggDanger": "invoices above income, danger",
   "hudSemanticsEggWarning": "invoices at half a month of income, caution",
   "hudSemanticsEggCalm": "invoices within income",
-  "hudSemanticsEggEmpty": "no upcoming invoice",
-  "hudSemanticsDropActive": "active debt",
-  "hudSemanticsDropClear": "no debt",
+  "hudSemanticsEggEmpty": "no monster incubating",
+  "hudSemanticsDropActive": "poison active, open debt",
+  "hudSemanticsDropClear": "no poison, no debt",
   "hudSemanticsPotionEmpty": "empty potion",
   "hudSemanticsNoIncome": "expected income not calculated yet",
-  "hudPotionGame": "Your investment accounts become potions, and the bigger the potion, the longer you survive away from battle. The tier climbs every half month of income saved.",
-  "hudPotionFinance": "Finance: it's your invested balance divided by this month's expected income — how many months you already have standing.",
-  "hudPotionXp": "XP: none; the potion follows from what you saved, not from a quest.",
-  "hudPotionEmpty": "No investment account with a balance. The potion is empty.",
-  "hudVillageGame": "Every budgeted category is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
+  "hudPotionGame": "The potion is everything you invested, together: capital that works for you and yields with no effort of yours. From half a month of income stored on it earns a class — semi, regular, super and hyper — one more for every extra half month.",
+  "hudPotionFinance": "Finance: it's your invested balance divided by this month's expected income — how many months of bills it already covers. Emergency money and goal money add up together: one is for what you did not see coming, the other for what you already planned (a trip, a purchase), and both do the same job — keeping the day-to-day bills untouched.",
+  "hudPotionXp": "XP: none; the potion follows from what you saved — and it only really grows once the poison is gone, because debt interest runs faster than any yield. When the income it generates pays your expenses, the battle is over: that is financial independence.",
+  "hudPotionMonths": "{count, plural, =1{{months} month standing} other{{months} months standing}}",
+  "@hudPotionMonths": {"placeholders": {"count": {"type": "int"}, "months": {"type": "String"}}},
+  "hudPotionEmpty": "No investment account with a balance. The potion is empty, and without it every month starts from zero.",
+  "hudVillageGame": "Every budgeted category is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls. An INVESTMENT category works the other way around: there the villager only stands if you invest what you planned, and stays at risk while anything is missing.",
   "hudVillageFinance": "Finance: it's your per-category limit against what you actually spent this month.",
-  "hudVillageXp": "XP: +15 per villager alive at month end, up to 10 categories, plus 100 if the whole village holds.",
-  "hudVillageGameBusiness": "Every budgeted cost center is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
+  "hudVillageXp": "XP: +15 per villager standing at month end, up to 10 categories, plus 100 if the whole village holds. An investment villager counts as standing once its goal is met.",
+  "hudVillageGameBusiness": "Every budgeted cost center is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls. An INVESTMENT cost center works the other way around: there the villager only stands if the company invests what it planned, and stays at risk while anything is missing.",
   "hudVillageFinanceBusiness": "Finance: it's your per-cost-center limit against what the company actually spent this month.",
   "hudVillageEmpty": "No category has a budget this month. Set a limit and the village is born.",
   "hudVillageEmptyBusiness": "No cost center has a budget this month. Set a limit and the village is born.",
@@ -1683,17 +1685,12 @@
       }
     }
   },
-  "hudVillageSpent": "{actual} of {planned} spent",
-  "@hudVillageSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
+  "hudVillageEnvelopeExpense": "Expenses: {actual} of {planned}",
+  "@hudVillageEnvelopeExpense": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageEnvelopeInvestment": "Investments: {actual} of {planned}",
+  "@hudVillageEnvelopeInvestment": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageAtRisk": "The village is at risk: expenses fit, but the investment is short.",
+  "hudSemanticsVillageAtRisk": "village at risk, investment short",
   "hudVillageAlive": "The village holds: the total fits the plan.",
   "hudVillageFallen": "The village fell: spending went past the plan.",
   "hudVillageNeedsThree": "The village only counts with three villagers or more.",
@@ -1705,6 +1702,12 @@
       }
     }
   },
+  "hudVillagerGoal": "{actual} of {planned} invested",
+  "@hudVillagerGoal": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillagerMissing": "{actual} of {planned} invested — {missing} short of standing up",
+  "@hudVillagerMissing": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}, "missing": {"type": "String"}}},
+  "hudVillageAtRiskGroup": "At risk ({count})",
+  "@hudVillageAtRiskGroup": {"placeholders": {"count": {"type": "int"}}},
   "hudVillagerHp": "{hp} of {planned}",
   "@hudVillagerHp": {
     "placeholders": {
@@ -1717,6 +1720,12 @@
     }
   },
   "hudVillagerOver": "{amount} past the budget",
+  "hudVillageAliveGroup": "Standing ({count})",
+  "@hudVillageAliveGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillageFallenGroup": "Fallen ({count})",
+  "@hudVillageFallenGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillagerSemantics": "{name}: {state}",
+  "@hudVillagerSemantics": {"placeholders": {"name": {"type": "String"}, "state": {"type": "String"}}},
   "@hudVillagerOver": {
     "placeholders": {
       "amount": {
@@ -1746,10 +1755,19 @@
     }
   },
   "hudHistoryEmpty": "No month closed yet.",
-  "hudEggGame": "The bills about to come due gather into an egg, and it grows with everything you've spent but not paid. A big egg hatches on the next due date.",
-  "hudEggFinance": "Finance: it's the sum of your upcoming card bills divided by this month's expected income.",
-  "hudEggXp": "XP: none; the egg takes no XP, but card spending that wasn't planned is worth zero.",
-  "hudEggEmpty": "No upcoming bill. There is no egg at all.",
+  "hudEggGame": "Every credit card expense strengthens a monster that hatches next month. The more you incubate, the bigger the creature that comes to collect.",
+  "hudEggFinance": "Finance: it's the sum of your upcoming card bills divided by this month's expected income. A bill you expect is an expense; a bill you forget is a nasty surprise.",
+  "hudEggXp": "XP: none; the monster takes no XP, but unplanned card spending eats the money that would have become a potion — and the potion is what leads to independence.",
+  "hudEggEmpty": "No upcoming bill. There is no monster incubating.",
+  "hudCardLimitLabel": "{name} limit",
+  "@hudCardLimitLabel": {"placeholders": {"name": {"type": "String"}}},
+  "hudCardLimitUsage": "{percent}% of the limit used",
+  "@hudCardLimitUsage": {"placeholders": {"percent": {"type": "int"}}},
+  "hudCardLimitFree": "{amount} until the limit",
+  "@hudCardLimitFree": {"placeholders": {"amount": {"type": "String"}}},
+  "hudCardLimitOver": "{amount} over the limit",
+  "@hudCardLimitOver": {"placeholders": {"amount": {"type": "String"}}},
+  "hudCardLimitUnknown": "No credit limit set for this card.",
   "hudInvoiceOverdue": "{days, plural, =1{Overdue by 1 day} other{Overdue by {days} days}}",
   "@hudInvoiceOverdue": {
     "placeholders": {
@@ -1780,10 +1798,10 @@
       }
     }
   },
-  "hudDropGame": "What you owe drips into a single drop, and it weighs more the bigger it is against what you earn. A drop worth two whole months of income is a debt that runs your year.",
-  "hudDropFinance": "Finance: it's your outstanding debt divided by this month's expected income.",
-  "hudDropXp": "XP: none directly; paying debt down earns XP through planned entries paid and through payoff goals.",
-  "hudDropEmpty": "No open debt. The drop is dry.",
+  "hudDropGame": "Debt is poison: interest corrodes your capital without pause and drags the hero's HP down every month.",
+  "hudDropFinance": "Finance: it's your outstanding debt divided by this month's expected income. Untreated, interest eats first what would have been your wealth.",
+  "hudDropXp": "XP: none directly; paying it off earns XP through planned entries paid and through payoff goals. Neutralizing the poison is the first step to financial independence.",
+  "hudDropEmpty": "No open debt. The poison is neutralized, and what you earn is yours.",
   "hudDebtInstallment": "Installment {amount} · due {date}",
   "@hudDebtInstallment": {
     "placeholders": {

@@ -1572,9 +1572,9 @@
   "arenaAdjustPayment": "Ajustar pagamento",
   "hudPotionTitle": "Poção",
   "hudVillageTitle": "Vila",
-  "hudEggTitle": "Ovo",
-  "hudDropTitle": "Gota",
-  "hudTierNone": "gole",
+  "hudEggTitle": "Incubados",
+  "hudEggSheetTitle": "Monstros incubados",
+  "hudDropTitle": "Veneno",
   "hudTierSemi": "semi",
   "hudTierRegular": "regular",
   "hudTierSuper": "super",
@@ -1656,19 +1656,21 @@
   "hudSemanticsEggDanger": "faturas acima da receita, perigo",
   "hudSemanticsEggWarning": "faturas em meio mês de receita, atenção",
   "hudSemanticsEggCalm": "faturas dentro da receita",
-  "hudSemanticsEggEmpty": "nenhuma fatura prevista",
-  "hudSemanticsDropActive": "dívida ativa",
-  "hudSemanticsDropClear": "sem dívida",
+  "hudSemanticsEggEmpty": "nenhum monstro incubado",
+  "hudSemanticsDropActive": "veneno ativo, dívida em aberto",
+  "hudSemanticsDropClear": "sem veneno, nenhuma dívida",
   "hudSemanticsPotionEmpty": "poção vazia",
   "hudSemanticsNoIncome": "receita prevista ainda não calculada",
-  "hudPotionGame": "Suas contas de investimento viram poções, e quanto maior a poção, mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de receita guardado.",
-  "hudPotionFinance": "Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses você já tem de pé.",
-  "hudPotionXp": "XP: nenhum; a poção é consequência do que você guardou, não uma missão a cumprir.",
-  "hudPotionEmpty": "Nenhuma conta de investimento com saldo. A poção está vazia.",
-  "hudVillageGame": "Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
+  "hudPotionGame": "A poção é tudo o que você investiu, junto: capital que trabalha por você e rende sem esforço seu. De meio mês de receita guardado em diante ela ganha classe — semi, regular, super e hiper —, uma a cada meio mês a mais.",
+  "hudPotionFinance": "Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses de contas ele já cobre. Reserva de emergência e dinheiro de objetivo somam juntos: um é para o que você não previu, o outro para o que você já planejou (uma viagem, uma compra), e os dois servem à mesma coisa — as contas do dia a dia não serem afetadas.",
+  "hudPotionXp": "XP: nenhum; a poção é consequência do que você guardou — e ela só cresce de verdade depois que o veneno some, porque juro de dívida corre mais rápido que rendimento. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.",
+  "hudPotionMonths": "{count, plural, =1{{months} mês de pé} other{{months} meses de pé}}",
+  "@hudPotionMonths": {"placeholders": {"count": {"type": "int"}, "months": {"type": "String"}}},
+  "hudPotionEmpty": "Nenhuma conta de investimento com saldo. A poção está vazia, e sem ela todo mês recomeça do zero.",
+  "hudVillageGame": "Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Categoria de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se você investir o que planejou, e fica em risco enquanto faltar.",
   "hudVillageFinance": "Financeiro: é o seu limite por categoria, comparado com o que você realmente gastou no mês.",
-  "hudVillageXp": "XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.",
-  "hudVillageGameBusiness": "Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
+  "hudVillageXp": "XP: +15 por aldeão de pé no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar. O aldeão de investimento conta como de pé quando a meta foi cumprida.",
+  "hudVillageGameBusiness": "Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Centro de custo de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se a empresa investir o que planejou, e fica em risco enquanto faltar.",
   "hudVillageFinanceBusiness": "Financeiro: é o seu limite por centro de custo, comparado com o que a empresa realmente gastou no mês.",
   "hudVillageEmpty": "Nenhuma categoria com orçamento neste mês. Defina um limite e a vila nasce.",
   "hudVillageEmptyBusiness": "Nenhum centro de custo com orçamento neste mês. Defina um limite e a vila nasce.",
@@ -1683,17 +1685,12 @@
       }
     }
   },
-  "hudVillageSpent": "{actual} de {planned} gastos",
-  "@hudVillageSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
+  "hudVillageEnvelopeExpense": "Despesas: {actual} de {planned}",
+  "@hudVillageEnvelopeExpense": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageEnvelopeInvestment": "Investimentos: {actual} de {planned}",
+  "@hudVillageEnvelopeInvestment": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillageAtRisk": "A vila está em risco: as despesas couberam, mas falta aporte.",
+  "hudSemanticsVillageAtRisk": "vila em risco, falta aporte",
   "hudVillageAlive": "A vila está de pé: a soma cabe no plano.",
   "hudVillageFallen": "A vila caiu: o gasto passou do plano.",
   "hudVillageNeedsThree": "A vila só conta com três aldeões ou mais.",
@@ -1705,6 +1702,12 @@
       }
     }
   },
+  "hudVillagerGoal": "{actual} de {planned} investidos",
+  "@hudVillagerGoal": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}}},
+  "hudVillagerMissing": "{actual} de {planned} investidos — faltam {missing} para o aldeão ficar de pé",
+  "@hudVillagerMissing": {"placeholders": {"actual": {"type": "String"}, "planned": {"type": "String"}, "missing": {"type": "String"}}},
+  "hudVillageAtRiskGroup": "Em risco ({count})",
+  "@hudVillageAtRiskGroup": {"placeholders": {"count": {"type": "int"}}},
   "hudVillagerHp": "{hp} de {planned}",
   "@hudVillagerHp": {
     "placeholders": {
@@ -1717,6 +1720,12 @@
     }
   },
   "hudVillagerOver": "{amount} além do orçamento",
+  "hudVillageAliveGroup": "Vivos ({count})",
+  "@hudVillageAliveGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillageFallenGroup": "Caídos ({count})",
+  "@hudVillageFallenGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillagerSemantics": "{name}: {state}",
+  "@hudVillagerSemantics": {"placeholders": {"name": {"type": "String"}, "state": {"type": "String"}}},
   "@hudVillagerOver": {
     "placeholders": {
       "amount": {
@@ -1746,10 +1755,19 @@
     }
   },
   "hudHistoryEmpty": "Nenhum mês fechado ainda.",
-  "hudEggGame": "As faturas que estão para vencer se juntam num ovo, e ele cresce com o que você já gastou sem pagar. Um ovo grande choca no próximo vencimento.",
-  "hudEggFinance": "Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês.",
-  "hudEggXp": "XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava planejado vale zero.",
-  "hudEggEmpty": "Nenhuma fatura prevista. Não há ovo nenhum.",
+  "hudEggGame": "Toda despesa no cartão fortalece um monstro que eclode no mês que vem. Quanto mais você incuba, maior a criatura que vem cobrar.",
+  "hudEggFinance": "Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês. Fatura prevista é despesa; fatura esquecida é surpresa ruim.",
+  "hudEggXp": "XP: nenhum; o monstro não tira XP, mas o gasto de cartão sem plano come o dinheiro que viraria poção — e é a poção que leva à independência.",
+  "hudEggEmpty": "Nenhuma fatura prevista. Não há monstro nenhum incubado.",
+  "hudCardLimitLabel": "Limite do {name}",
+  "@hudCardLimitLabel": {"placeholders": {"name": {"type": "String"}}},
+  "hudCardLimitUsage": "{percent}% do limite usado",
+  "@hudCardLimitUsage": {"placeholders": {"percent": {"type": "int"}}},
+  "hudCardLimitFree": "{amount} até o limite",
+  "@hudCardLimitFree": {"placeholders": {"amount": {"type": "String"}}},
+  "hudCardLimitOver": "{amount} acima do limite",
+  "@hudCardLimitOver": {"placeholders": {"amount": {"type": "String"}}},
+  "hudCardLimitUnknown": "Limite não informado neste cartão.",
   "hudInvoiceOverdue": "{days, plural, =1{Venceu há 1 dia} other{Venceu há {days} dias}}",
   "@hudInvoiceOverdue": {
     "placeholders": {
@@ -1780,10 +1798,10 @@
       }
     }
   },
-  "hudDropGame": "O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota de dois meses inteiros de receita é uma dívida que manda no seu ano.",
-  "hudDropFinance": "Financeiro: é o saldo devedor dividido pela receita prevista do mês.",
-  "hudDropXp": "XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado pago e pelas metas de quitação.",
-  "hudDropEmpty": "Nenhuma dívida em aberto. A gota está seca.",
+  "hudDropGame": "As dívidas são veneno: os juros corroem seu capital sem parar e puxam o HP do herói para baixo todo mês.",
+  "hudDropFinance": "Financeiro: é o saldo devedor dividido pela receita prevista do mês. Sem antídoto, os juros comem antes o que seria o seu patrimônio.",
+  "hudDropXp": "XP: nenhum direto; quitar rende XP pelo lançamento planejado pago e pelas metas de quitação. Neutralizar o veneno é o primeiro passo da independência financeira.",
+  "hudDropEmpty": "Nenhuma dívida em aberto. O veneno está neutralizado, e o que você ganha é seu.",
   "hudDebtInstallment": "Parcela {amount} · vence {date}",
   "@hudDebtInstallment": {
     "placeholders": {

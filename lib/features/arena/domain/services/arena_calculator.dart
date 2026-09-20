@@ -130,7 +130,7 @@ abstract final class ArenaCalculator {
   ///
   /// Ficam de fora as compras feitas NO cartão (conta de saída `creditCard`):
   /// elas não tiram nada do caixa hoje e chegam depois, somadas, como a
-  /// fatura. Elas pertencem ao "ovo" do HUD mensal.
+  /// fatura. Elas pertencem aos "incubados" do HUD mensal.
   ///
   /// ## A fatura em aberto não tem conta de saída
   ///
