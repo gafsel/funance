@@ -88,15 +88,36 @@ class _TokenSheet extends StatelessWidget {
             AppSpacing.gapLg,
 
             const _Section('Superfícies'),
-            const Wrap(
+            Wrap(
               spacing: AppSpacing.xs,
               runSpacing: AppSpacing.xs,
               children: [
-                _Swatch('deep', AppColors.surfaceDeep, onDark: true),
-                _Swatch('default', AppColors.surfaceDefault, onDark: true),
-                _Swatch('raised', AppColors.surfaceRaised, onDark: true),
-                _Swatch('paper', AppColors.paperLight),
-                _Swatch('paper-2', AppColors.paper2Light),
+                _Swatch('deep', AppColors.surfaceDeep),
+                _Swatch('default', AppColors.surfaceDefault),
+                _Swatch('raised', AppColors.surfaceRaised),
+                // Do TEMA, não fixos no claro: a folha escura mostrava as
+                // superfícies de papel claras, ou seja, mentia sobre metade
+                // do que ela existe para documentar.
+                _Swatch('paper', palette.paper),
+                _Swatch('paper-2', palette.paper2),
+                _Swatch('background', palette.background),
+              ],
+            ),
+            AppSpacing.gapMd,
+
+            const _Section('Tintas de texto (do tema)'),
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                _InkSwatch('ink', palette.ink),
+                _InkSwatch('ink-2', palette.ink2),
+                _InkSwatch('ink-3', palette.ink3),
+                _InkSwatch('successText', palette.successText),
+                _InkSwatch('warningText', palette.warningText),
+                _InkSwatch('dangerText', palette.dangerText),
+                _InkSwatch('tealText', palette.tealText),
+                _InkSwatch('rewardText', palette.rewardText),
               ],
             ),
             AppSpacing.gapMd,
@@ -108,10 +129,10 @@ class _TokenSheet extends StatelessWidget {
               children: [
                 _Swatch('gold', AppColors.gold),
                 _Swatch('teal', AppColors.teal),
-                _Swatch('violet', AppColors.violet, onDark: true),
+                _Swatch('violet', AppColors.violet),
                 _Swatch('success', AppColors.success),
                 _Swatch('warning', AppColors.warning),
-                _Swatch('danger', AppColors.danger, onDark: true),
+                _Swatch('danger', AppColors.danger),
               ],
             ),
             AppSpacing.gapMd,
@@ -120,7 +141,7 @@ class _TokenSheet extends StatelessWidget {
             const Wrap(
               spacing: AppSpacing.xs,
               children: [
-                _Swatch('pool 50', AppColors.pool50, onDark: true),
+                _Swatch('pool 50', AppColors.pool50),
                 _Swatch('pool 30', AppColors.pool30),
                 _Swatch('pool 20', AppColors.pool20),
               ],
@@ -348,12 +369,17 @@ class _Section extends StatelessWidget {
   );
 }
 
+/// Uma amostra de cor, com o nome escrito por cima.
+///
+/// A tinta do nome vem de `AppColors.inkOn`, medida por contraste. Ela era
+/// declarada à mão em cada chamada (`onDark: true`), e uma amostra nova
+/// entrava com o padrão errado sem nada avisar — que é exatamente o defeito
+/// que `inkOn` existe para não deixar acontecer no app.
 class _Swatch extends StatelessWidget {
-  const _Swatch(this.label, this.color, {this.onDark = false});
+  const _Swatch(this.label, this.color);
 
   final String label;
   final Color color;
-  final bool onDark;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -368,9 +394,39 @@ class _Swatch extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: onDark ? AppColors.inkInverse : AppColors.inkLight,
-      ),
+      style: Theme.of(
+        context,
+      ).textTheme.labelSmall?.copyWith(color: AppColors.inkOn(color)),
+    ),
+  );
+}
+
+/// Uma tinta de TEXTO, escrita sobre o papel do tema corrente.
+///
+/// As tintas semânticas só existem como texto — não há amostra de cor que
+/// mostre se `dangerText` se lê. A folha escrevia só as cores CHEIAS, que
+/// são de preenchimento, e foi por isso que o vermelho de erro no escuro
+/// (2,83:1) passou tanto tempo sem ninguém ver.
+class _InkSwatch extends StatelessWidget {
+  const _InkSwatch(this.label, this.color);
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 128,
+    height: 56,
+    alignment: Alignment.centerLeft,
+    padding: AppSpacing.allXxs,
+    decoration: BoxDecoration(
+      color: context.palette.paper,
+      borderRadius: AppRadius.brSm,
+      border: Border.all(color: context.palette.line),
+    ),
+    child: Text(
+      label,
+      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: color),
     ),
   );
 }

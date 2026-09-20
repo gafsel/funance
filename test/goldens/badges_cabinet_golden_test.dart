@@ -125,4 +125,38 @@ void main() {
       matchesGoldenFile('images/badges_cabinet_indisponivel.png'),
     );
   });
+
+  // M7 — a vitrine é a tela mais dourada do app; o ouro sobre papel escuro é
+  // outro problema que o ouro sobre papel claro.
+  testWidgets('vitrine de emblemas — catálogo completo (escuro)', (
+    tester,
+  ) async {
+    await setGoldenSurface(tester, const Size(760, 1100));
+
+    await tester.pumpWidget(
+      goldenApp(
+        brightness: Brightness.dark,
+        const Scaffold(
+          body: BadgesCabinetView(
+            catalog: _catalog,
+            isLoading: false,
+            workspaceName: 'Casa',
+            level: 2,
+            xp: 450,
+            weeklyStreaks: 3,
+            unlockedBadges: {
+              'first_step': '2026-03-01T10:00:00.000Z',
+              'poupador': '2026-03-02T10:00:00.000Z',
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(BadgesCabinetView),
+      matchesGoldenFile('images/badges_cabinet_escuro.png'),
+    );
+  });
 }

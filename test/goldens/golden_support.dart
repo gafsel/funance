@@ -160,12 +160,22 @@ List<Override> goldenOverrides({
 
 /// Host comum: mesmo tema, mesmo locale e mesmas delegates em todos os
 /// goldens, para que a única variável seja a tela.
-Widget goldenApp(Widget home, {List<Override> overrides = const []}) {
+/// Host comum dos goldens, no tema pedido.
+///
+/// O `brightness` existe porque as quatro telas grandes só tinham golden no
+/// tema CLARO: metade das superfícies do app não tinha rede nenhuma, e foi
+/// justamente no escuro que a auditoria achou o pior contraste de texto do
+/// projeto (o vermelho de erro a 2,83:1).
+Widget goldenApp(
+  Widget home, {
+  List<Override> overrides = const [],
+  Brightness brightness = Brightness.light,
+}) {
   return ProviderScope(
     overrides: overrides,
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: brightness == Brightness.dark ? AppTheme.dark : AppTheme.light,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

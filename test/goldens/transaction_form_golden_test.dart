@@ -32,10 +32,15 @@ InstallmentModel _parcelaLiquidada() => InstallmentModel(
   accounts: {'acc-1': AccountImpact.debt},
 );
 
-Future<void> _pump(WidgetTester tester, Widget tela) async {
+Future<void> _pump(
+  WidgetTester tester,
+  Widget tela, {
+  Brightness brightness = Brightness.light,
+}) async {
   await tester.pumpWidget(
     goldenApp(
       tela,
+      brightness: brightness,
       overrides: goldenOverrides(
         accounts: [_conta, _contaDestino],
         categories: [_categoria],
@@ -74,6 +79,24 @@ void main() {
     await expectLater(
       find.byType(TransactionFormScreen),
       matchesGoldenFile('images/transaction_form_liquidada.png'),
+    );
+  });
+
+  // M7 — o formulário é a tela mais densa em campo e em borda; é nela que uma
+  // tinta de contorno errada no escuro aparece primeiro.
+  testWidgets('formulário de lançamento — criação de despesa (escuro)', (
+    tester,
+  ) async {
+    await setGoldenSurface(tester, const Size(900, 1200));
+    await _pump(
+      tester,
+      TransactionFormScreen.creation(type: OrderType.expense),
+      brightness: Brightness.dark,
+    );
+
+    await expectLater(
+      find.byType(TransactionFormScreen),
+      matchesGoldenFile('images/transaction_form_criacao_escuro.png'),
     );
   });
 }
