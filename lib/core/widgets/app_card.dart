@@ -89,6 +89,21 @@ class AppCard extends StatelessWidget {
       AppCardVariant.game => AppColors.surfaceDefault,
     };
 
+    // `paper` separa por BORDA, `raised` separa por SOMBRA — e nenhum dos
+    // dois pelos dois ao mesmo tempo.
+    //
+    // As duas variantes tinham a mesma superfície, a mesma borda e diferiam
+    // só por uma sombra que no tema claro quase não existe: escolher entre
+    // elas não mudava nada que se visse, e a variante virou decoração no
+    // código. A documentação já dizia a regra ("é plana — a separação vem de
+    // uma borda de 1px" contra "pousado sobre o fundo"); agora o desenho
+    // também diz.
+    //
+    // Um `borderColor` explícito e o aro de recompensa continuam mandando:
+    // os dois são pedidos de quem chama, não o padrão da variante.
+    final bool hasBorder =
+        borderColor != null || rewarded || variant != AppCardVariant.raised;
+
     final Color line =
         borderColor ?? (isGame ? AppColors.surfaceRaised : palette.line);
 
@@ -113,10 +128,12 @@ class AppCard extends StatelessWidget {
         color: isGame ? null : surface,
         gradient: isGame ? AppGradients.game : null,
         borderRadius: AppRadius.brLg,
-        border: Border.all(
-          color: rewarded ? AppColors.gold : line,
-          width: rewarded ? 2 : 1,
-        ),
+        border: hasBorder
+            ? Border.all(
+                color: rewarded ? AppColors.gold : line,
+                width: rewarded ? 2 : 1,
+              )
+            : null,
         boxShadow: shadow,
       ),
       child: ClipRRect(
