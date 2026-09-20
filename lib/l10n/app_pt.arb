@@ -15,7 +15,6 @@
   "googleLoginButton": "Entrar com Google",
   "orDivider": "OU",
   "fieldRequired": "Este campo é obrigatório",
-  "invalidEmail": "E-mail inválido",
   "appErrorWidgetTitle": "Algo deu errado",
   "appErrorWidgetMessage": "Já fomos avisados e estamos trabalhando nisso. Tente voltar e abrir a tela de novo.",
   "errorUnknown": "Ocorreu um erro inesperado.",
@@ -300,7 +299,6 @@
   "homeOverviewTab": "Visão Geral",
   "homeHistoryTab": "Extrato",
   "homeAccountsAndCards": "Saldos e Faturas",
-  "weeklyMissions": "Missões da Semana",
   "weeklyMissionsNone": "Nenhuma missão para esta semana",
   "weeklyMissionsNoneDesc": "Configure planejamentos ou adicione transações para começar.",
   "pendingMissions": "Pendentes",
@@ -321,14 +319,6 @@
   "@xpValue": {
     "placeholders": {
       "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "percentage": "{value}%",
-  "@percentage": {
-    "placeholders": {
-      "value": {
         "type": "String"
       }
     }
@@ -549,7 +539,6 @@
   "initialBalanceDateLabel": "Data do Saldo Inicial",
   "initialBalanceInvestmentDateLabel": "Data do Investimento Inicial",
   "initialBalanceDebtDateLabel": "Data do Valor Atual",
-  "none": "Nenhum",
   "accountMethodDocument": "Por Documento",
   "accountMethodManual": "Manual",
   "accountDocumentDescription": "Anexe seu extrato bancário (PDF) ou arquivo de transações (OFX). Nossa IA analisará os dados para configurar sua conta, saldo e transações automaticamente.",
@@ -588,8 +577,8 @@
   "transactionOrderTypeLabel": "Tipo do Lançamento",
   "clear": "Limpar",
   "validationEmailMessage": "E-mail inválido",
-  "validationLengthMaxMessage": "Deve possuir no mínimo {min} caracteres.",
-  "validationLenghtMinMessage": "Deve possuir no máximo {max} caracteres.",
+  "validationLengthMaxMessage": "Deve possuir no máximo {max} caracteres.",
+  "validationLengthMinMessage": "Deve possuir no mínimo {min} caracteres.",
   "validationNotEmptyMessage": "Campo obrigatório.",
   "validationNotNullMessage": "Campo obrigatório.",
   "noRecordsFound": "Nenhum registro encontrado.",
@@ -1314,6 +1303,47 @@
         "type": "String"
       },
       "target": {
+        "type": "String"
+      }
+    }
+  },
+  "@accountDetectedTransactions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@validationLengthMaxMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "@validationLengthMinMessage": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "@installmentCountDescription": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@completedMissionsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "xp": {
         "type": "String"
       }
     }

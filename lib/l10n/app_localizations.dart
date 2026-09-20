@@ -188,12 +188,6 @@ abstract class AppLocalizations {
   /// **'Este campo é obrigatório'**
   String get fieldRequired;
 
-  /// No description provided for @invalidEmail.
-  ///
-  /// In pt, this message translates to:
-  /// **'E-mail inválido'**
-  String get invalidEmail;
-
   /// No description provided for @appErrorWidgetTitle.
   ///
   /// In pt, this message translates to:
@@ -1376,12 +1370,6 @@ abstract class AppLocalizations {
   /// **'Saldos e Faturas'**
   String get homeAccountsAndCards;
 
-  /// No description provided for @weeklyMissions.
-  ///
-  /// In pt, this message translates to:
-  /// **'Missões da Semana'**
-  String get weeklyMissions;
-
   /// No description provided for @weeklyMissionsNone.
   ///
   /// In pt, this message translates to:
@@ -1423,12 +1411,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{xp} XP'**
   String xpValue(String xp);
-
-  /// No description provided for @percentage.
-  ///
-  /// In pt, this message translates to:
-  /// **'{value}%'**
-  String percentage(String value);
 
   /// No description provided for @dateRange.
   ///
@@ -2456,12 +2438,6 @@ abstract class AppLocalizations {
   /// **'Data do Valor Atual'**
   String get initialBalanceDebtDateLabel;
 
-  /// No description provided for @none.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nenhum'**
-  String get none;
-
   /// No description provided for @accountMethodDocument.
   ///
   /// In pt, this message translates to:
@@ -2502,7 +2478,7 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{count, plural, =1{1 transação encontrada} other{{count} transações encontradas}}'**
-  String accountDetectedTransactions(num count);
+  String accountDetectedTransactions(int count);
 
   /// No description provided for @accountDetectedConfirmation.
   ///
@@ -2693,14 +2669,14 @@ abstract class AppLocalizations {
   /// No description provided for @validationLengthMaxMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Deve possuir no mínimo {min} caracteres.'**
-  String validationLengthMaxMessage(Object min);
+  /// **'Deve possuir no máximo {max} caracteres.'**
+  String validationLengthMaxMessage(int max);
 
-  /// No description provided for @validationLenghtMinMessage.
+  /// No description provided for @validationLengthMinMessage.
   ///
   /// In pt, this message translates to:
-  /// **'Deve possuir no máximo {max} caracteres.'**
-  String validationLenghtMinMessage(Object max);
+  /// **'Deve possuir no mínimo {min} caracteres.'**
+  String validationLengthMinMessage(int min);
 
   /// No description provided for @validationNotEmptyMessage.
   ///
@@ -2844,7 +2820,7 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{number} de {count}'**
-  String installmentCountDescription(Object count, Object number);
+  String installmentCountDescription(int number, int count);
 
   /// No description provided for @statusPending.
   ///
@@ -2964,7 +2940,7 @@ abstract class AppLocalizations {
   ///
   /// In pt, this message translates to:
   /// **'{count} {count, plural, =1{item} other{itens}} • {xp} XP'**
-  String completedMissionsSummary(num count, Object xp);
+  String completedMissionsSummary(int count, String xp);
 
   /// No description provided for @returnToPending.
   ///

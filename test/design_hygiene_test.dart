@@ -70,9 +70,11 @@ void main() {
   }) {
     test('$nome só em core/theme', () {
       final infratores = <String>[];
+      final varridos = <String>[];
 
       for (final file in sourceFiles()) {
         if (tokens.hasMatch(file.path)) continue;
+        varridos.add(file.path);
 
         for (final (numero, line) in codeLines(file)) {
           if (padrao.hasMatch(line)) {
@@ -80,6 +82,16 @@ void main() {
           }
         }
       }
+
+      // B3 — a guarda mais boba e a mais necessária: se `sourceFiles`
+      // devolver lista vazia — um caminho relativo que mudou, um filtro largo
+      // demais —, a varredura não acha infração NENHUMA e os quatro testes
+      // viram quatro "passou" que não olharam nada.
+      expect(
+        varridos.length,
+        greaterThan(100),
+        reason: 'a varredura viu ${varridos.length} arquivos; lib/ tem centenas',
+      );
 
       expect(
         infratores,

@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
+import 'package:funances/l10n/app_localizations.dart';
 
 void main() {
+  _mensagensDeTamanho();
   _sinalDeVariacao();
   group('NumExtensions.asCurrency', () {
     test('preserva centavos em pt_BR', () {
@@ -77,5 +79,22 @@ void _sinalDeVariacao() {
         isNot(startsWith('+')),
       );
     });
+  });
+}
+
+/// B6 — as duas mensagens de tamanho estavam TROCADAS.
+///
+/// `lengthMaxMessage` é chamada com o `max` estourado e lia a frase "deve
+/// possuir no mínimo {min} caracteres": quem escrevia demais recebia um
+/// pedido para escrever mais. O nome da outra ainda trazia o erro de
+/// digitação que escondia a troca — `validationLenghtMinMessage`.
+void _mensagensDeTamanho() {
+  test('cada mensagem de tamanho diz o que o nome dela promete', () async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('pt'));
+
+    expect(l10n.validationLengthMaxMessage(50), contains('máximo'));
+    expect(l10n.validationLengthMaxMessage(50), contains('50'));
+    expect(l10n.validationLengthMinMessage(8), contains('mínimo'));
+    expect(l10n.validationLengthMinMessage(8), contains('8'));
   });
 }

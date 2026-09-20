@@ -55,9 +55,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get fieldRequired => 'Este campo é obrigatório';
 
   @override
-  String get invalidEmail => 'E-mail inválido';
-
-  @override
   String get appErrorWidgetTitle => 'Algo deu errado';
 
   @override
@@ -725,9 +722,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get homeAccountsAndCards => 'Saldos e Faturas';
 
   @override
-  String get weeklyMissions => 'Missões da Semana';
-
-  @override
   String get weeklyMissionsNone => 'Nenhuma missão para esta semana';
 
   @override
@@ -751,11 +745,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String xpValue(String xp) {
     return '$xp XP';
-  }
-
-  @override
-  String percentage(String value) {
-    return '$value%';
   }
 
   @override
@@ -1311,9 +1300,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get initialBalanceDebtDateLabel => 'Data do Valor Atual';
 
   @override
-  String get none => 'Nenhum';
-
-  @override
   String get accountMethodDocument => 'Por Documento';
 
   @override
@@ -1334,7 +1320,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get accountDetectedDataTitle => 'Dados detectados por IA';
 
   @override
-  String accountDetectedTransactions(num count) {
+  String accountDetectedTransactions(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
@@ -1444,13 +1430,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get validationEmailMessage => 'E-mail inválido';
 
   @override
-  String validationLengthMaxMessage(Object min) {
-    return 'Deve possuir no mínimo $min caracteres.';
+  String validationLengthMaxMessage(int max) {
+    return 'Deve possuir no máximo $max caracteres.';
   }
 
   @override
-  String validationLenghtMinMessage(Object max) {
-    return 'Deve possuir no máximo $max caracteres.';
+  String validationLengthMinMessage(int min) {
+    return 'Deve possuir no mínimo $min caracteres.';
   }
 
   @override
@@ -1527,7 +1513,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get dateInputPattern => 'dd/MM/yyyy';
 
   @override
-  String installmentCountDescription(Object count, Object number) {
+  String installmentCountDescription(int number, int count) {
     return '$number de $count';
   }
 
@@ -1589,7 +1575,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get periodFilterCustom => 'Customizado';
 
   @override
-  String completedMissionsSummary(num count, Object xp) {
+  String completedMissionsSummary(int count, String xp) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,

@@ -69,6 +69,37 @@ void main() {
     expect(orphans, isEmpty, reason: 'chaves sem uso: ${orphans.join(', ')}');
   });
 
+  /// B6 — metadado é CONTRATO, não enfeite.
+  ///
+  /// Sem `@chave.placeholders`, o `gen-l10n` adivinha o tipo do argumento
+  /// (`Object`) e a chave aceita qualquer coisa: um `int` onde o texto espera
+  /// data, um `DateTime` onde espera número. E quando o metadado existe num
+  /// ARB e falta no outro — era o caso de `journeyStreakWeeks` —, as duas
+  /// traduções passam a ter ASSINATURAS diferentes, e a que não tem metadado
+  /// é a que decide, porque o template é o português.
+  test('toda chave com placeholder tem metadado nos DOIS idiomas', () {
+    final comPlaceholder = RegExp(r'\{[A-Za-z_][A-Za-z0-9_]*[,}]');
+
+    for (final entry in {'pt': pt, 'en': en}.entries) {
+      final cru =
+          jsonDecode(File('lib/l10n/app_${entry.key}.arb').readAsStringSync())
+              as Map<String, dynamic>;
+
+      final semMetadado = entry.value.entries
+          .where((e) => comPlaceholder.hasMatch(e.value))
+          .map((e) => e.key)
+          .where((k) => !cru.containsKey('@$k'))
+          .toList();
+
+      expect(
+        semMetadado,
+        isEmpty,
+        reason:
+            'sem @placeholders em ${entry.key}: ${semMetadado.join(', ')}',
+      );
+    }
+  });
+
   test('"Party" é o grupo de categorias; "Equipe" são os membros', () {
     // Decisão de produto: o vocabulário de jogo fica com as categorias.
     for (final key in [

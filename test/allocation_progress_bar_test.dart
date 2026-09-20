@@ -91,6 +91,65 @@ void main() {
     }
   });
 
+  /// B2 — o caso que dá teeth ao teste: a largura mais estreita que o app
+  /// suporta e os números mais longos que a conta produz. Um planejamento
+  /// muito acima da renda gera porcentagens de quatro dígitos, e é aí que
+  /// três rótulos num terço cada deixam de caber.
+  testWidgets('B2 — rótulos longos a 320px não se sobrepõem nem estouram', (
+    tester,
+  ) async {
+    await _pump(
+      tester,
+      planned: 12.345,
+      actual: 9.876,
+      isOver: true,
+      width: 320,
+    );
+
+    expect(
+      tester.takeException(),
+      isNull,
+      reason: 'três rótulos num terço cada não podem estourar o Row',
+    );
+
+    final caixas = _caixasDeTexto(tester);
+    expect(caixas, hasLength(3));
+
+    for (var i = 0; i < caixas.length; i++) {
+      for (var j = i + 1; j < caixas.length; j++) {
+        expect(
+          caixas[i].overlaps(caixas[j]),
+          isFalse,
+          reason: 'rótulos ${i + 1} e ${j + 1} no mesmo espaço',
+        );
+      }
+      expect(
+        caixas[i].width,
+        lessThanOrEqualTo(320 / 3 + 1),
+        reason: 'cada rótulo fica no seu terço; o que não cabe é elidido',
+      );
+    }
+  });
+
+  testWidgets('B2 — e o texto é elidido, não cortado no meio', (tester) async {
+    await _pump(
+      tester,
+      planned: 12.345,
+      actual: 9.876,
+      isOver: true,
+      width: 320,
+    );
+
+    for (final texto in tester.widgetList<Text>(find.byType(Text))) {
+      expect(texto.maxLines, 1);
+      expect(
+        texto.overflow,
+        TextOverflow.ellipsis,
+        reason: 'meio número mente mais do que reticências',
+      );
+    }
+  });
+
   testWidgets('e nem quando tudo está no zero', (tester) async {
     await _pump(tester, planned: 0, actual: 0, isOver: false);
 

@@ -15,7 +15,6 @@
   "googleLoginButton": "Sign in with Google",
   "orDivider": "OR",
   "fieldRequired": "This field is required",
-  "invalidEmail": "Invalid email",
   "appErrorWidgetTitle": "Something went wrong",
   "appErrorWidgetMessage": "We have been notified and are working on it. Try going back and opening the screen again.",
   "errorUnknown": "An unexpected error occurred.",
@@ -479,7 +478,6 @@
   "initialBalanceDateLabel": "Initial Balance Date",
   "initialBalanceInvestmentDateLabel": "Initial Investment Date",
   "initialBalanceDebtDateLabel": "Current Amount Date",
-  "none": "None",
   "accountMethodDocument": "By Document",
   "accountMethodManual": "Manual",
   "accountDocumentDescription": "Attach your bank statement (PDF) or transaction file (OFX). Our AI will analyze the data to automatically set up your account, balance, and transactions.",
@@ -518,8 +516,8 @@
   "transactionOrderTypeLabel": "Transaction Type",
   "clear": "Clear",
   "validationEmailMessage": "Invalid E-mail",
-  "validationLengthMaxMessage": "At least {min} characters.",
-  "validationLenghtMinMessage": "No more than {max} characters.",
+  "validationLengthMaxMessage": "No more than {max} characters.",
+  "validationLengthMinMessage": "At least {min} characters.",
   "validationNotEmptyMessage": "Required field.",
   "validationNotNullMessage": "Required field.",
   "noRecordsFound": "No records found.",
@@ -590,7 +588,6 @@
   "coachingTypeWarning": "Alert",
   "coachingTypeTip": "Tip",
   "coachingTypeInsight": "Insight",
-  "weeklyMissions": "Weekly Missions",
   "weeklyMissionsNone": "No missions for this week",
   "weeklyMissionsNoneDesc": "Set up plannings or add transactions to start.",
   "pendingMissions": "Pending",
@@ -611,14 +608,6 @@
   "@xpValue": {
     "placeholders": {
       "xp": {
-        "type": "String"
-      }
-    }
-  },
-  "percentage": "{value}%",
-  "@percentage": {
-    "placeholders": {
-      "value": {
         "type": "String"
       }
     }
@@ -1308,6 +1297,54 @@
       },
       "target": {
         "type": "String"
+      }
+    }
+  },
+  "@accountDetectedTransactions": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@validationLengthMaxMessage": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "@validationLengthMinMessage": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "@installmentCountDescription": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@completedMissionsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "String"
+      }
+    }
+  },
+  "@journeyStreakWeeks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }

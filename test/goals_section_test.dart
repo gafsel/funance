@@ -234,6 +234,35 @@ void main() {
       expect(find.text(l10n.goalEmptyMessage), findsOneWidget);
     });
 
+    testWidgets('B5 — mais de uma corrente: destaca a de prazo mais curto', (
+      tester,
+    ) async {
+      final maisLonga = GoalModel.saveMoney(
+        id: 'g-longa',
+        name: 'Trocar de carro',
+        targetAmount: 60000,
+        currentAmount: 1000,
+        deadline: DateTime(2030, 12, 31),
+        accountId: 'acc1',
+        startDate: DateTime(2026, 1, 1),
+      );
+
+      await tester.pumpWidget(
+        _app([maisLonga, _emAndamento()], highlightOnly: true),
+      );
+      await tester.pump();
+
+      expect(
+        find.text('Reserva de emergência'),
+        findsOneWidget,
+        reason:
+            'a meta com 90% já está resolvida; a que vence primeiro é a que '
+            'ainda depende de uma decisão desta semana',
+      );
+      expect(find.text('Trocar de carro'), findsNothing);
+      expect(find.text(l10n.journeySeeAllGoals(2)), findsOneWidget);
+    });
+
     testWidgets('uma meta só: nada de atalho para uma lista de um item', (
       tester,
     ) async {
