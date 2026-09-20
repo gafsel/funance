@@ -14,8 +14,18 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
   final UserService userService;
   final ImagePicker _picker = ImagePicker();
 
-  UserProfileNotifier({required this.userService})
-    : super(const UserProfileFormState(id: '', displayName: '', email: ''));
+  /// O usuário já entra no estado INICIAL, e não um quadro depois.
+  ///
+  /// Com o carregamento adiado para um `addPostFrameCallback` da tela, o
+  /// primeiro quadro desenhava o formulário com o padrão (nome vazio, nenhum
+  /// avatar) e o segundo corrigia: o anel do herói escolhido *pulava* para o
+  /// lugar na frente do usuário.
+  UserProfileNotifier({required this.userService, UserModel? user})
+    : super(
+        user == null
+            ? const UserProfileFormState(id: '', displayName: '', email: '')
+            : UserProfileFormState.initial(user),
+      );
 
   void load(UserModel user) {
     state = UserProfileFormState.initial(user);
@@ -24,7 +34,11 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
   void updateDisplayName(String value) =>
       state = state.copyWith(displayName: value);
 
-  void updateAvatar(HeroSkin value) => state = state.copyWith(avatar: value);
+  /// Só o TOQUE no seletor marca um avatar. É o que separa "escolheu" de
+  /// "abriu a tela", e é essa diferença que o `submit` usa para não regravar
+  /// um herói que ninguém pediu.
+  void updateAvatar(HeroSkin value) =>
+      state = state.copyWith(avatar: value, avatarUnknown: false);
 
   Future<void> pickImage(BuildContext context, ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -99,7 +113,11 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
       id: state.id,
       displayName: state.displayName,
       photoUrl: photoUrl,
-      avatar: state.avatar.name,
+      // Sem escolha, o campo NÃO vai no payload: a ausência dele em
+      // `users/{uid}` é o que mantém o boneco da ordem de entrada, e mandar
+      // `knight` aqui seria decidir pelo usuário toda vez que ele corrigisse
+      // o próprio nome.
+      avatar: state.avatar?.name,
     );
   }
 }

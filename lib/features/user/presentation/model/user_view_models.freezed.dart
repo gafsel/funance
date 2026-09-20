@@ -14,10 +14,19 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserProfileFormState {
 
- String get id; String get displayName; String get email; String? get photoUrl; PickedDocument? get newPhotoFile; UserModel? get originalUser;/// O avatar da Arena, já RESOLVIDO: quem nunca escolheu abre a tela com o
-/// cavaleiro marcado em vez de uma grade sem nada selecionado. O padrão
-/// pré-escolhido é o que permite salvar o perfil sem passar pelo seletor.
- HeroSkin get avatar;
+ String get id; String get displayName; String get email; String? get photoUrl; PickedDocument? get newPhotoFile; UserModel? get originalUser;/// O avatar da Arena — **nulo enquanto não houver escolha**.
+///
+/// Nulo cobre os dois casos em que o app não tem o que marcar: quem nunca
+/// abriu o seletor e quem tem gravado um avatar que este app não conhece.
+/// Com um padrão aqui, salvar o perfil mandava `knight` para todo mundo,
+/// e uma edição de NOME trocava o herói de quem nunca tinha tocado na
+/// grade — em um cofre de duas pessoas, isso derrubava o mago da parceira
+/// para fazer dela um segundo cavaleiro.
+ HeroSkin? get avatar;/// O documento trazia um `avatar` que não está no catálogo.
+///
+/// Vale um aviso discreto na tela: o usuário escolheu alguma coisa um dia
+/// e a grade está sem marca nenhuma, o que sem explicação parece defeito.
+ bool get avatarUnknown;
 /// Create a copy of UserProfileFormState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +37,16 @@ $UserProfileFormStateCopyWith<UserProfileFormState> get copyWith => _$UserProfil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfileFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.email, email) || other.email == email)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.newPhotoFile, newPhotoFile) || other.newPhotoFile == newPhotoFile)&&(identical(other.originalUser, originalUser) || other.originalUser == originalUser)&&(identical(other.avatar, avatar) || other.avatar == avatar));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserProfileFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.email, email) || other.email == email)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.newPhotoFile, newPhotoFile) || other.newPhotoFile == newPhotoFile)&&(identical(other.originalUser, originalUser) || other.originalUser == originalUser)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.avatarUnknown, avatarUnknown) || other.avatarUnknown == avatarUnknown));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,email,photoUrl,newPhotoFile,originalUser,avatar);
+int get hashCode => Object.hash(runtimeType,id,displayName,email,photoUrl,newPhotoFile,originalUser,avatar,avatarUnknown);
 
 @override
 String toString() {
-  return 'UserProfileFormState(id: $id, displayName: $displayName, email: $email, photoUrl: $photoUrl, newPhotoFile: $newPhotoFile, originalUser: $originalUser, avatar: $avatar)';
+  return 'UserProfileFormState(id: $id, displayName: $displayName, email: $email, photoUrl: $photoUrl, newPhotoFile: $newPhotoFile, originalUser: $originalUser, avatar: $avatar, avatarUnknown: $avatarUnknown)';
 }
 
 
@@ -48,7 +57,7 @@ abstract mixin class $UserProfileFormStateCopyWith<$Res>  {
   factory $UserProfileFormStateCopyWith(UserProfileFormState value, $Res Function(UserProfileFormState) _then) = _$UserProfileFormStateCopyWithImpl;
 @useResult
 $Res call({
- String id, String displayName, String email, String? photoUrl, PickedDocument? newPhotoFile, UserModel? originalUser, HeroSkin avatar
+ String id, String displayName, String email, String? photoUrl, PickedDocument? newPhotoFile, UserModel? originalUser, HeroSkin? avatar, bool avatarUnknown
 });
 
 
@@ -65,7 +74,7 @@ class _$UserProfileFormStateCopyWithImpl<$Res>
 
 /// Create a copy of UserProfileFormState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? photoUrl = freezed,Object? newPhotoFile = freezed,Object? originalUser = freezed,Object? avatar = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? photoUrl = freezed,Object? newPhotoFile = freezed,Object? originalUser = freezed,Object? avatar = freezed,Object? avatarUnknown = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -73,8 +82,9 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,newPhotoFile: freezed == newPhotoFile ? _self.newPhotoFile : newPhotoFile // ignore: cast_nullable_to_non_nullable
 as PickedDocument?,originalUser: freezed == originalUser ? _self.originalUser : originalUser // ignore: cast_nullable_to_non_nullable
-as UserModel?,avatar: null == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
-as HeroSkin,
+as UserModel?,avatar: freezed == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
+as HeroSkin?,avatarUnknown: null == avatarUnknown ? _self.avatarUnknown : avatarUnknown // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 /// Create a copy of UserProfileFormState
@@ -168,10 +178,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser,  HeroSkin avatar)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser,  HeroSkin? avatar,  bool avatarUnknown)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserProfileFormState() when $default != null:
-return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser,_that.avatar);case _:
+return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser,_that.avatar,_that.avatarUnknown);case _:
   return orElse();
 
 }
@@ -189,10 +199,10 @@ return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newP
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser,  HeroSkin avatar)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser,  HeroSkin? avatar,  bool avatarUnknown)  $default,) {final _that = this;
 switch (_that) {
 case _UserProfileFormState():
-return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser,_that.avatar);}
+return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser,_that.avatar,_that.avatarUnknown);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -206,10 +216,10 @@ return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newP
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser,  HeroSkin avatar)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String displayName,  String email,  String? photoUrl,  PickedDocument? newPhotoFile,  UserModel? originalUser,  HeroSkin? avatar,  bool avatarUnknown)?  $default,) {final _that = this;
 switch (_that) {
 case _UserProfileFormState() when $default != null:
-return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser,_that.avatar);case _:
+return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newPhotoFile,_that.originalUser,_that.avatar,_that.avatarUnknown);case _:
   return null;
 
 }
@@ -221,7 +231,7 @@ return $default(_that.id,_that.displayName,_that.email,_that.photoUrl,_that.newP
 
 
 class _UserProfileFormState implements UserProfileFormState {
-  const _UserProfileFormState({required this.id, required this.displayName, required this.email, this.photoUrl, this.newPhotoFile, this.originalUser, this.avatar = HeroSkin.knight});
+  const _UserProfileFormState({required this.id, required this.displayName, required this.email, this.photoUrl, this.newPhotoFile, this.originalUser, this.avatar, this.avatarUnknown = false});
   
 
 @override final  String id;
@@ -230,10 +240,20 @@ class _UserProfileFormState implements UserProfileFormState {
 @override final  String? photoUrl;
 @override final  PickedDocument? newPhotoFile;
 @override final  UserModel? originalUser;
-/// O avatar da Arena, já RESOLVIDO: quem nunca escolheu abre a tela com o
-/// cavaleiro marcado em vez de uma grade sem nada selecionado. O padrão
-/// pré-escolhido é o que permite salvar o perfil sem passar pelo seletor.
-@override@JsonKey() final  HeroSkin avatar;
+/// O avatar da Arena — **nulo enquanto não houver escolha**.
+///
+/// Nulo cobre os dois casos em que o app não tem o que marcar: quem nunca
+/// abriu o seletor e quem tem gravado um avatar que este app não conhece.
+/// Com um padrão aqui, salvar o perfil mandava `knight` para todo mundo,
+/// e uma edição de NOME trocava o herói de quem nunca tinha tocado na
+/// grade — em um cofre de duas pessoas, isso derrubava o mago da parceira
+/// para fazer dela um segundo cavaleiro.
+@override final  HeroSkin? avatar;
+/// O documento trazia um `avatar` que não está no catálogo.
+///
+/// Vale um aviso discreto na tela: o usuário escolheu alguma coisa um dia
+/// e a grade está sem marca nenhuma, o que sem explicação parece defeito.
+@override@JsonKey() final  bool avatarUnknown;
 
 /// Create a copy of UserProfileFormState
 /// with the given fields replaced by the non-null parameter values.
@@ -245,16 +265,16 @@ _$UserProfileFormStateCopyWith<_UserProfileFormState> get copyWith => __$UserPro
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfileFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.email, email) || other.email == email)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.newPhotoFile, newPhotoFile) || other.newPhotoFile == newPhotoFile)&&(identical(other.originalUser, originalUser) || other.originalUser == originalUser)&&(identical(other.avatar, avatar) || other.avatar == avatar));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserProfileFormState&&(identical(other.id, id) || other.id == id)&&(identical(other.displayName, displayName) || other.displayName == displayName)&&(identical(other.email, email) || other.email == email)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.newPhotoFile, newPhotoFile) || other.newPhotoFile == newPhotoFile)&&(identical(other.originalUser, originalUser) || other.originalUser == originalUser)&&(identical(other.avatar, avatar) || other.avatar == avatar)&&(identical(other.avatarUnknown, avatarUnknown) || other.avatarUnknown == avatarUnknown));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,displayName,email,photoUrl,newPhotoFile,originalUser,avatar);
+int get hashCode => Object.hash(runtimeType,id,displayName,email,photoUrl,newPhotoFile,originalUser,avatar,avatarUnknown);
 
 @override
 String toString() {
-  return 'UserProfileFormState(id: $id, displayName: $displayName, email: $email, photoUrl: $photoUrl, newPhotoFile: $newPhotoFile, originalUser: $originalUser, avatar: $avatar)';
+  return 'UserProfileFormState(id: $id, displayName: $displayName, email: $email, photoUrl: $photoUrl, newPhotoFile: $newPhotoFile, originalUser: $originalUser, avatar: $avatar, avatarUnknown: $avatarUnknown)';
 }
 
 
@@ -265,7 +285,7 @@ abstract mixin class _$UserProfileFormStateCopyWith<$Res> implements $UserProfil
   factory _$UserProfileFormStateCopyWith(_UserProfileFormState value, $Res Function(_UserProfileFormState) _then) = __$UserProfileFormStateCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String displayName, String email, String? photoUrl, PickedDocument? newPhotoFile, UserModel? originalUser, HeroSkin avatar
+ String id, String displayName, String email, String? photoUrl, PickedDocument? newPhotoFile, UserModel? originalUser, HeroSkin? avatar, bool avatarUnknown
 });
 
 
@@ -282,7 +302,7 @@ class __$UserProfileFormStateCopyWithImpl<$Res>
 
 /// Create a copy of UserProfileFormState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? photoUrl = freezed,Object? newPhotoFile = freezed,Object? originalUser = freezed,Object? avatar = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? displayName = null,Object? email = null,Object? photoUrl = freezed,Object? newPhotoFile = freezed,Object? originalUser = freezed,Object? avatar = freezed,Object? avatarUnknown = null,}) {
   return _then(_UserProfileFormState(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,displayName: null == displayName ? _self.displayName : displayName // ignore: cast_nullable_to_non_nullable
@@ -290,8 +310,9 @@ as String,email: null == email ? _self.email : email // ignore: cast_nullable_to
 as String,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
 as String?,newPhotoFile: freezed == newPhotoFile ? _self.newPhotoFile : newPhotoFile // ignore: cast_nullable_to_non_nullable
 as PickedDocument?,originalUser: freezed == originalUser ? _self.originalUser : originalUser // ignore: cast_nullable_to_non_nullable
-as UserModel?,avatar: null == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
-as HeroSkin,
+as UserModel?,avatar: freezed == avatar ? _self.avatar : avatar // ignore: cast_nullable_to_non_nullable
+as HeroSkin?,avatarUnknown: null == avatarUnknown ? _self.avatarUnknown : avatarUnknown // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
