@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/foundation.dart' show clampDouble;
+import 'package:flutter/foundation.dart' show clampDouble, visibleForTesting;
 import 'package:flutter/painting.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
@@ -17,7 +17,14 @@ import 'package:funances/features/arena/presentation/game/arena_theme.dart';
 /// A conversão para pixels é do `camera.viewfinder.zoom` — sem
 /// `FixedResolutionViewport`, sem tarja preta e com uma arte só do celular ao
 /// macOS.
-const double arenaPreferredHeight = 110;
+///
+/// Subiu de 110 para 200 com o full-bleed. Enquanto a cena era um bloco de
+/// 190px no topo da Home, 110 unidades de mundo eram a tela inteira dela; com
+/// a caixa passando a ter 900px de altura num monitor, o mesmo número pedia
+/// um zoom de 8× e o mago saía com duzentos pixels de altura — a luta virava
+/// um close. O celular não muda: lá quem manda é o teto de zoom da largura
+/// mínima de mundo.
+const double arenaPreferredHeight = 200;
 
 /// A cena nunca é mais estreita que isto, em unidades de mundo.
 ///
@@ -36,16 +43,20 @@ const double arenaMaxWorldWidth = 280;
 /// monstro um pouco menor.
 const double arenaCompactWidth = 165;
 
-/// Altura MÁXIMA da parede, em unidades de mundo. O resto, para baixo, é
-/// chão.
+/// A parede, em unidades de mundo: fração da altura, entre um piso e um teto.
 ///
-/// É um TETO, e não um piso do chão, e a diferença apareceu na captura: com
-/// um piso fixo de chão, a caixa larga e baixa do desktop (61 unidades de
-/// altura) gastava 58 delas em areia e deixava três unidades de tijolo — uma
-/// listra cinza no topo, que não é cenário nenhum. Com um teto de parede, as
-/// duas proporções ficam iguais: metade e metade quando a caixa é baixa,
-/// parede constante e chão crescendo quando ela é alta.
-const double arenaMaxWallBand = 38;
+/// Era um teto fixo de 38, e ele bastava enquanto a cena era um bloco baixo
+/// no topo da Home. Com o full-bleed a caixa passou a ter a altura da aba
+/// inteira — 260 unidades de mundo num celular em pé —, e 38 delas de parede
+/// viraram uma listra que o próprio véu do placar cobria: a tela ficava
+/// inteira de areia, sem horizonte e sem os braseiros.
+///
+/// A fração resolve as duas proporções de uma vez. O PISO impede que a caixa
+/// larga e baixa do desktop fique sem tijolo nenhum; o TETO impede que a
+/// caixa alta do celular vire um muro com um tapete embaixo.
+const double arenaWallFraction = 0.30;
+const double arenaMinWallBand = 24;
+const double arenaMaxWallBand = 90;
 
 /// O cenário: parede de tijolo em cima, chão de areia embaixo.
 ///
@@ -64,7 +75,7 @@ class _ArenaBackdrop extends Component {
 
   double _worldWidth = arenaMinWorldWidth;
   double _worldHeight = arenaPreferredHeight;
-  double _horizon = arenaPreferredHeight - arenaMaxWallBand;
+  double _horizon = arenaPreferredHeight * arenaWallFraction;
 
   void resize(double width, double height, double horizon) {
     _worldWidth = width;
@@ -167,6 +178,29 @@ class ArenaGame extends FlameGame {
 
   bool get isSceneReady => _monster != null;
 
+  /// O monstro, para quem precisa medir a TINTA dele.
+  ///
+  /// Existe por causa de um defeito que nenhuma captura pega: o efeito de
+  /// susto da morte engolia o filtro de cadáver e deixava o bicho deitado em
+  /// cor cheia. Isso não se prova por pixel — prova-se lendo o
+  /// `paint.colorFilter` depois de a animação assentar.
+  @visibleForTesting
+  MonsterActor? get monster => _monster;
+
+  /// A altura, em pixels da CAIXA, acima da qual não há ator nenhum.
+  ///
+  /// É a linha do chão menos o mais alto dos bonecos, convertida para pixels
+  /// pelo zoom da câmera. Quem desenha por cima da cena — a coluna de ícones,
+  /// o placar — usa isto para saber onde pode pousar sem cobrir a luta. A
+  /// rodada 1 chutou "no alto da lateral" e o QA achou o mago coberto a
+  /// 400×544: a faixa livre depende da PROPORÇÃO da caixa, e um número fixo
+  /// não tem como acertá-la.
+  double get safeTopBand {
+    if (size.y <= 0) return 0;
+    final tallest = math.max(_heroSide, _monsterSide);
+    return math.max(0, (_groundY - tallest) * _zoom);
+  }
+
   /// O zoom: a altura preferida, PRESA na faixa de largura de mundo.
   ///
   /// `clampDouble` com os dois limites vindos da largura da caixa — é a regra
@@ -186,8 +220,12 @@ class ArenaGame extends FlameGame {
   double get _worldHeight =>
       size.y <= 0 ? arenaPreferredHeight : size.y / _zoom;
 
-  /// Onde a parede termina e o chão começa: metade da caixa, com teto.
-  double get _horizon => math.min(_worldHeight * 0.5, arenaMaxWallBand);
+  /// Onde a parede termina e o chão começa.
+  double get _horizon => clampDouble(
+    _worldHeight * arenaWallFraction,
+    math.min(arenaMinWallBand, _worldHeight * 0.5),
+    arenaMaxWallBand,
+  );
 
   double get _floorBand => _worldHeight - _horizon;
 

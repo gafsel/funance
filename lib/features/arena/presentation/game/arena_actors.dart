@@ -241,7 +241,7 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
         theme.ink,
         EffectController(duration: 0.06, reverseDuration: 0.24),
         opacityTo: 0.9,
-      ),
+      )..onComplete = _restoreTint,
     );
   }
 
@@ -277,7 +277,7 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
     _fled = true;
 
     alive = false;
-    paint.colorFilter = _corpse;
+    paint.colorFilter = corpseFilter;
     opacity = 0.9;
     angle = fallenAngle;
     // A escala volta ao normal: o bicho pode ter morrido no meio de um
@@ -291,18 +291,38 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
 
   /// Cinza por LUMINÂNCIA — os coeficientes de brilho do sRGB.
   ///
+  /// Público porque o teste da morte AO VIVO o compara com o que sobrou no
+  /// `paint` depois de a animação assentar: o defeito que ele guarda não tem
+  /// como ser visto numa captura de estado parado.
+  ///
   /// Não é uma cor: é a matriz que joga os três canais para o mesmo valor. É
   /// por isso que ela não mora em `AppColors`, e é por isso que ela funciona
   /// nas cinco skins — inclusive no demônio vermelho, que qualquer filtro de
   /// tinta deixaria vermelho.
-  static const ColorFilter _corpse = ColorFilter.matrix(<double>[
+  static const ColorFilter corpseFilter = ColorFilter.matrix(<double>[
     0.2126, 0.7152, 0.0722, 0, 0, //
     0.2126, 0.7152, 0.0722, 0, 0, //
     0.2126, 0.7152, 0.0722, 0, 0, //
     0, 0, 0, 1, 0, //
   ]);
 
-  /// O golpe final: um susto branco antes de encolher.
+  /// O golpe final: um susto branco antes de tombar.
+  ///
+  /// O `onComplete` não é zelo: o `ColorEffect` do Flame **escreve** em
+  /// `paint.colorFilter` a cada quadro e, no fim, deixa lá o filtro da cor de
+  /// origem com opacidade zero — `ColorFilter.mode(transparent, srcATop)`. Ele
+  /// não restaura o que havia antes.
+  ///
+  /// Quando o monstro morre AO VIVO, os dois acontecem na mesma virada de
+  /// estado: [fall] pinta o cadáver de cinza e o susto entra por cima. Ao
+  /// terminar, o susto deixava um filtro transparente no lugar do cinza — e o
+  /// bicho ficava deitado, com o X, **em cor cheia** até a semana seguinte.
+  /// Quem abria a Home numa semana já vencida via o cadáver certo; quem
+  /// assistia à morte via o errado, que é o pior dos dois casos, porque é o
+  /// momento em que a pessoa está olhando.
+  ///
+  /// A ordem entre `fall()` e este método deixou de importar: seja qual for,
+  /// o fim do efeito repõe o estado atual do ator.
   void deathThroes() {
     if (theme.reduceMotion) return;
 
@@ -311,8 +331,13 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
         theme.ink,
         EffectController(duration: 0.08, reverseDuration: 0.12, repeatCount: 2),
         opacityTo: 1,
-      ),
+      )..onComplete = _restoreTint,
     );
+  }
+
+  /// A tinta que o ator deve ter quando nenhum efeito está por cima.
+  void _restoreTint() {
+    paint.colorFilter = _fled ? corpseFilter : null;
   }
 
   /// `true` enquanto o bicho está no chão. O `_layout` da cena pergunta isto
