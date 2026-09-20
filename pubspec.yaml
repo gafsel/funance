@@ -78,6 +78,7 @@ dependencies:
   flutter_notification_listener: ^1.4.0
   image_picker: ^1.2.2
   image_cropper: ^12.2.1
+  flame: ^1.38.2
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -121,6 +122,9 @@ flutter:
   assets:
     - assets/logo/
     - assets/logos/
+    # POC da Arena: a folha de sprites Kenney (CC0) e a procedência dela.
+    # Ver assets/arena/LICENSE.md.
+    - assets/arena/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
