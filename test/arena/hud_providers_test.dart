@@ -61,16 +61,19 @@ AccountModel _cartao(String id, String nome, {NextInvoice? fatura}) =>
       nextInvoice: fatura,
     );
 
-NextInvoice _fatura(double valor, {required DateTime fechamento}) =>
-    NextInvoice(
-      dueDate: DateTime(2026, 10, 10),
-      closingDate: fechamento,
-      cycleStart: DateTime(2026, 9, 4),
-      cycleEnd: DateTime(2026, 10, 4),
-      amount: valor,
-      orderId: 'invoice-x',
-      installmentId: 'i-1',
-    );
+NextInvoice _fatura(
+  double valor, {
+  required DateTime fechamento,
+  DateTime? vencimento,
+}) => NextInvoice(
+  dueDate: vencimento ?? DateTime(2026, 10, 10),
+  closingDate: fechamento,
+  cycleStart: DateTime(2026, 9, 4),
+  cycleEnd: DateTime(2026, 10, 4),
+  amount: valor,
+  orderId: 'invoice-x',
+  installmentId: 'i-1',
+);
 
 /// Repositório de conta com saldos escritos DIA A DIA, como no Firestore —
 /// inclusive os do futuro.
@@ -83,9 +86,6 @@ class _ContasFake implements IAccountRepository {
   /// As datas que o app pediu. É o que prova QUAL dia ele consultou.
   final List<String> asked = <String>[];
 
-  /// Quantas vezes o caminho SEM teto de data foi usado.
-  int latestCalls = 0;
-
   @override
   Stream<List<AccountModel>> getAccounts(
     String workspaceId, {
@@ -93,15 +93,6 @@ class _ContasFake implements IAccountRepository {
   }) => Stream.value(
     type == null ? accounts : accounts.where((a) => a.type == type).toList(),
   );
-
-  @override
-  Stream<AccountBalanceModel?> getLatestAccountBalance(
-    String workspaceId,
-    String accountId,
-  ) {
-    latestCalls++;
-    return Stream.value(null);
-  }
 
   @override
   Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
@@ -281,24 +272,10 @@ void main() {
 
       expect(hud.potion.total, Money.fromDouble(263.41));
       expect(contas.asked, contains('2026-09-20'));
-    });
 
-    test('o caminho SEM teto de data não é usado', () async {
-      final contas = _ContasFake(
-        [_investimento('inv', 'Cofrinho'), _divida('d', 'Empréstimo')],
-        {
-          'inv': {'2026-09-01': 100},
-          'd': {'2026-09-01': -500},
-        },
-      );
-
-      await _estado(_container(contas: contas));
-
-      expect(
-        contas.latestCalls,
-        0,
-        reason: 'ninguém pode perguntar "o último documento" sem teto',
-      );
+      // O caminho "último documento, sem teto" deixou de existir em
+      // `IAccountRepository`: hoje quem tentasse usá-lo não compila. Este
+      // teste guarda a outra metade — que o dia pedido é o de HOJE.
     });
 
     test('a dívida vem do saldo de hoje, em módulo', () async {
@@ -362,6 +339,68 @@ void main() {
         )).egg.invoices.single.isOpenCycle,
         isFalse,
       );
+    });
+  });
+
+  group('a fatura vencida', () {
+    test('a Nubank de 17/09, lida no dia 20, venceu há três dias', () async {
+      // Ela CONTINUA no ovo: o contrato é Σ nextInvoice, e uma fatura
+      // vencida e não paga é a mais devida de todas. O que ela ganha é a
+      // marca, e a marca é uma afirmação sobre HOJE — por isso ela sai do
+      // relógio do app, e não de um campo do documento.
+      final contas = _ContasFake([
+        _cartao(
+          'nubank2',
+          'Cartão Nubank',
+          fatura: _fatura(
+            8300.55,
+            fechamento: DateTime(2026, 9, 10),
+            vencimento: DateTime(2026, 9, 17),
+          ),
+        ),
+      ], const {});
+
+      final hud = await _estado(_container(contas: contas));
+      final fatura = hud.egg.invoices.single;
+
+      expect(fatura.overdueDays, 3);
+      expect(fatura.isOverdue, isTrue);
+      expect(hud.egg.total, Money.fromDouble(8300.55));
+    });
+
+    test('a que vence HOJE ainda não venceu', () async {
+      // O usuário tem o dia inteiro. Marcar como vencida a fatura que vence
+      // hoje seria o app cobrando antes do banco.
+      final contas = _ContasFake([
+        _cartao(
+          'c6',
+          'Cartão C6',
+          fatura: _fatura(
+            2406,
+            fechamento: DateTime(2026, 9, 10),
+            vencimento: DateTime(2026, 9, 20),
+          ),
+        ),
+      ], const {});
+
+      final hud = await _estado(_container(contas: contas));
+
+      expect(hud.egg.invoices.single.overdueDays, 0);
+      expect(hud.egg.invoices.single.isOverdue, isFalse);
+    });
+
+    test('a que vence adiante não tem marca nenhuma', () async {
+      final contas = _ContasFake([
+        _cartao(
+          'inter',
+          'Cartão Inter',
+          fatura: _fatura(3634.86, fechamento: DateTime(2026, 10, 4)),
+        ),
+      ], const {});
+
+      final hud = await _estado(_container(contas: contas));
+
+      expect(hud.egg.invoices.single.overdueDays, 0);
     });
   });
 
@@ -494,6 +533,34 @@ void main() {
 
       expect(hud.potion.ratio.tier, HudTier.semi);
       expect(hud.income!.source, ExpectedIncomeSource.planned);
+    });
+
+    test('receita de OUTRO mês não vale como denominador', () async {
+      // O cron do dia 1 pode não ter rodado, ou o app pode estar aberto
+      // desde ontem e ter virado o mês na mão do usuário. O documento traz
+      // `monthKey` exatamente para isto ser detectável.
+      final hud = await _estado(
+        _container(
+          contas: _ContasFake(
+            [_investimento('inv', 'Cofrinho')],
+            {
+              'inv': {'2026-09-01': 9275},
+            },
+          ),
+          hud: _HudFake(
+            income: ExpectedIncome(
+              monthKey: '2026-08',
+              amount: Money.fromCents(1855000),
+              source: ExpectedIncomeSource.planned,
+            ),
+          ),
+        ),
+      );
+
+      expect(hud.monthKey, '2026-09');
+      expect(hud.hasIncome, isFalse);
+      expect(hud.potion.ratio.tier, isNull);
+      expect(hud.potion.total, Money.fromDouble(9275));
     });
 
     test('o histórico pede só os últimos meses', () async {

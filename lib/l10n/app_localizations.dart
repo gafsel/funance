@@ -4658,12 +4658,6 @@ abstract class AppLocalizations {
   /// **'Vila'**
   String get hudVillageTitle;
 
-  /// No description provided for @hudVillageTitleBusiness.
-  ///
-  /// In pt, this message translates to:
-  /// **'Centros de custo'**
-  String get hudVillageTitleBusiness;
-
   /// No description provided for @hudEggTitle.
   ///
   /// In pt, this message translates to:
@@ -4715,7 +4709,7 @@ abstract class AppLocalizations {
   /// No description provided for @hudNoIncome.
   ///
   /// In pt, this message translates to:
-  /// **'Receita prevista ainda não calculada: agende suas receitas para ver a classe.'**
+  /// **'Receita prevista ainda não calculada: agende suas receitas para ver as razões do mês.'**
   String get hudNoIncome;
 
   /// No description provided for @hudRatioTimes.
@@ -4745,8 +4739,92 @@ abstract class AppLocalizations {
   /// No description provided for @hudSlotSemantics.
   ///
   /// In pt, this message translates to:
-  /// **'{name}: {value}. Toque para o detalhe; segure para abrir a tela.'**
-  String hudSlotSemantics(String name, String value);
+  /// **'{name}: {value}, {state}. Toque para o detalhe; segure para abrir a tela.'**
+  String hudSlotSemantics(String name, String value, String state);
+
+  /// No description provided for @hudSemanticsRatio.
+  ///
+  /// In pt, this message translates to:
+  /// **'{value}× da receita'**
+  String hudSemanticsRatio(String value);
+
+  /// No description provided for @hudSemanticsVillagers.
+  ///
+  /// In pt, this message translates to:
+  /// **'{alive} de {planned} aldeões vivos'**
+  String hudSemanticsVillagers(int alive, int planned);
+
+  /// No description provided for @hudSemanticsVillageAlive.
+  ///
+  /// In pt, this message translates to:
+  /// **'vila viva'**
+  String get hudSemanticsVillageAlive;
+
+  /// No description provided for @hudSemanticsVillageFallen.
+  ///
+  /// In pt, this message translates to:
+  /// **'vila caída'**
+  String get hudSemanticsVillageFallen;
+
+  /// No description provided for @hudSemanticsVillageNone.
+  ///
+  /// In pt, this message translates to:
+  /// **'sem vila'**
+  String get hudSemanticsVillageNone;
+
+  /// No description provided for @hudSemanticsVillageNeedsThree.
+  ///
+  /// In pt, this message translates to:
+  /// **'vila incompleta, menos de três aldeões'**
+  String get hudSemanticsVillageNeedsThree;
+
+  /// No description provided for @hudSemanticsEggDanger.
+  ///
+  /// In pt, this message translates to:
+  /// **'faturas acima da receita, perigo'**
+  String get hudSemanticsEggDanger;
+
+  /// No description provided for @hudSemanticsEggWarning.
+  ///
+  /// In pt, this message translates to:
+  /// **'faturas em meio mês de receita, atenção'**
+  String get hudSemanticsEggWarning;
+
+  /// No description provided for @hudSemanticsEggCalm.
+  ///
+  /// In pt, this message translates to:
+  /// **'faturas dentro da receita'**
+  String get hudSemanticsEggCalm;
+
+  /// No description provided for @hudSemanticsEggEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'nenhuma fatura prevista'**
+  String get hudSemanticsEggEmpty;
+
+  /// No description provided for @hudSemanticsDropActive.
+  ///
+  /// In pt, this message translates to:
+  /// **'dívida ativa'**
+  String get hudSemanticsDropActive;
+
+  /// No description provided for @hudSemanticsDropClear.
+  ///
+  /// In pt, this message translates to:
+  /// **'sem dívida'**
+  String get hudSemanticsDropClear;
+
+  /// No description provided for @hudSemanticsPotionEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'poção vazia'**
+  String get hudSemanticsPotionEmpty;
+
+  /// No description provided for @hudSemanticsNoIncome.
+  ///
+  /// In pt, this message translates to:
+  /// **'receita prevista ainda não calculada'**
+  String get hudSemanticsNoIncome;
 
   /// No description provided for @hudPotionGame.
   ///
@@ -4793,7 +4871,7 @@ abstract class AppLocalizations {
   /// No description provided for @hudVillageGameBusiness.
   ///
   /// In pt, this message translates to:
-  /// **'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.'**
+  /// **'Cada linha do plano com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.'**
   String get hudVillageGameBusiness;
 
   /// No description provided for @hudVillageFinanceBusiness.
@@ -4880,6 +4958,12 @@ abstract class AppLocalizations {
   /// **'Meses fechados'**
   String get hudHistoryTitle;
 
+  /// Padrão de DateFormat para o mês fechado no histórico da vila. O ponto das abreviações é removido no código: 'ago./2026' vira 'ago/2026'.
+  ///
+  /// In pt, this message translates to:
+  /// **'MMM/yyyy'**
+  String get hudHistoryMonthPattern;
+
   /// No description provided for @hudHistoryLine.
   ///
   /// In pt, this message translates to:
@@ -4916,6 +5000,12 @@ abstract class AppLocalizations {
   /// **'Nenhuma fatura prevista. Não há ovo nenhum.'**
   String get hudEggEmpty;
 
+  /// No description provided for @hudInvoiceOverdue.
+  ///
+  /// In pt, this message translates to:
+  /// **'{days, plural, =1{Venceu há 1 dia} other{Venceu há {days} dias}}'**
+  String hudInvoiceOverdue(int days);
+
   /// No description provided for @hudInvoiceClosed.
   ///
   /// In pt, this message translates to:
@@ -4931,7 +5021,7 @@ abstract class AppLocalizations {
   /// No description provided for @hudDropGame.
   ///
   /// In pt, this message translates to:
-  /// **'O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota hiper significa dois meses inteiros de receita comprometidos.'**
+  /// **'O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota de dois meses inteiros de receita é uma dívida que manda no seu ano.'**
   String get hudDropGame;
 
   /// No description provided for @hudDropFinance.

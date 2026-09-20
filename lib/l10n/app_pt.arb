@@ -1571,7 +1571,6 @@
   "arenaAdjustPayment": "Ajustar pagamento",
   "hudPotionTitle": "Poção",
   "hudVillageTitle": "Vila",
-  "hudVillageTitleBusiness": "Centros de custo",
   "hudEggTitle": "Ovo",
   "hudDropTitle": "Gota",
   "hudTierNone": "gole",
@@ -1580,7 +1579,7 @@
   "hudTierSuper": "super",
   "hudTierHyper": "hiper",
   "hudUnknown": "—",
-  "hudNoIncome": "Receita prevista ainda não calculada: agende suas receitas para ver a classe.",
+  "hudNoIncome": "Receita prevista ainda não calculada: agende suas receitas para ver as razões do mês.",
   "hudRatioTimes": "{value}×",
   "@hudRatioTimes": {
     "placeholders": {
@@ -1616,7 +1615,7 @@
       }
     }
   },
-  "hudSlotSemantics": "{name}: {value}. Toque para o detalhe; segure para abrir a tela.",
+  "hudSlotSemantics": "{name}: {value}, {state}. Toque para o detalhe; segure para abrir a tela.",
   "@hudSlotSemantics": {
     "placeholders": {
       "name": {
@@ -1624,9 +1623,43 @@
       },
       "value": {
         "type": "String"
+      },
+      "state": {
+        "type": "String"
       }
     }
   },
+  "hudSemanticsRatio": "{value}× da receita",
+  "@hudSemanticsRatio": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "hudSemanticsVillagers": "{alive} de {planned} aldeões vivos",
+  "@hudSemanticsVillagers": {
+    "placeholders": {
+      "alive": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
+  "hudSemanticsVillageAlive": "vila viva",
+  "hudSemanticsVillageFallen": "vila caída",
+  "hudSemanticsVillageNone": "sem vila",
+  "hudSemanticsVillageNeedsThree": "vila incompleta, menos de três aldeões",
+  "hudSemanticsEggDanger": "faturas acima da receita, perigo",
+  "hudSemanticsEggWarning": "faturas em meio mês de receita, atenção",
+  "hudSemanticsEggCalm": "faturas dentro da receita",
+  "hudSemanticsEggEmpty": "nenhuma fatura prevista",
+  "hudSemanticsDropActive": "dívida ativa",
+  "hudSemanticsDropClear": "sem dívida",
+  "hudSemanticsPotionEmpty": "poção vazia",
+  "hudSemanticsNoIncome": "receita prevista ainda não calculada",
   "hudPotionGame": "Suas contas de investimento viram poções, e quanto maior a poção, mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de receita guardado.",
   "hudPotionFinance": "Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses você já tem de pé.",
   "hudPotionXp": "XP: nenhum; a poção é consequência do que você guardou, não uma missão a cumprir.",
@@ -1634,7 +1667,7 @@
   "hudVillageGame": "Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
   "hudVillageFinance": "Financeiro: é o seu limite por categoria, comparado com o que você realmente gastou no mês.",
   "hudVillageXp": "XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.",
-  "hudVillageGameBusiness": "Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
+  "hudVillageGameBusiness": "Cada linha do plano com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
   "hudVillageFinanceBusiness": "Financeiro: é o seu limite por centro de custo, comparado com o que a empresa realmente gastou no mês.",
   "hudVillageEmpty": "Nenhuma categoria com orçamento neste mês. Defina um limite e a vila nasce.",
   "hudVillageEmptyBusiness": "Nenhum centro de custo com orçamento neste mês. Defina um limite e a vila nasce.",
@@ -1693,6 +1726,10 @@
   "hudUnprotectedTitle": "Sem proteção",
   "hudUnprotectedHint": "Gasto sem orçamento. Não perde nada, e também não rende XP.",
   "hudHistoryTitle": "Meses fechados",
+  "hudHistoryMonthPattern": "MMM/yyyy",
+  "@hudHistoryMonthPattern": {
+    "description": "Padrão de DateFormat para o mês fechado no histórico da vila. O ponto das abreviações é removido no código: 'ago./2026' vira 'ago/2026'."
+  },
   "hudHistoryLine": "{alive} de {planned} aldeões · +{xp} XP",
   "@hudHistoryLine": {
     "placeholders": {
@@ -1712,6 +1749,14 @@
   "hudEggFinance": "Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês.",
   "hudEggXp": "XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava planejado vale zero.",
   "hudEggEmpty": "Nenhuma fatura prevista. Não há ovo nenhum.",
+  "hudInvoiceOverdue": "{days, plural, =1{Venceu há 1 dia} other{Venceu há {days} dias}}",
+  "@hudInvoiceOverdue": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "hudInvoiceClosed": "Fechou {closing} · vence {due}",
   "@hudInvoiceClosed": {
     "placeholders": {
@@ -1734,7 +1779,7 @@
       }
     }
   },
-  "hudDropGame": "O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota hiper significa dois meses inteiros de receita comprometidos.",
+  "hudDropGame": "O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota de dois meses inteiros de receita é uma dívida que manda no seu ano.",
   "hudDropFinance": "Financeiro: é o saldo devedor dividido pela receita prevista do mês.",
   "hudDropXp": "XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado pago e pelas metas de quitação.",
   "hudDropEmpty": "Nenhuma dívida em aberto. A gota está seca.",

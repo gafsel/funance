@@ -159,10 +159,28 @@ sealed class HudViewProviders {
                   isOpenCycle: card.nextInvoice!.closingDate.isAfter(today),
                   color: card.color,
                   installmentId: card.nextInvoice!.installmentId,
+                  overdueDays: _overdueDays(card.nextInvoice!.dueDate, today),
                 ),
           ];
         });
       });
+
+  /// Há quantos dias a fatura venceu — zero enquanto o vencimento não passou.
+  ///
+  /// A conta é em DIAS DE CALENDÁRIO, pelas datas sem hora: a fatura que
+  /// vence hoje não está vencida (o usuário tem o dia inteiro), e a que
+  /// venceu ontem está vencida há um dia, seja qual for a hora em que o app
+  /// abriu.
+  static int _overdueDays(DateTime dueDate, DateTime today) {
+    // Em UTC de propósito: `DateTime` local, no dia em que o horário de verão
+    // vira, dá 23 h entre duas meia-noites e `inDays` devolveria zero para um
+    // dia inteiro de atraso.
+    final due = DateTime.utc(dueDate.year, dueDate.month, dueDate.day);
+    final now = DateTime.utc(today.year, today.month, today.day);
+    if (!due.isBefore(now)) return 0;
+
+    return now.difference(due).inDays;
+  }
 
   /// A próxima parcela pendente de cada conta de dívida.
   ///

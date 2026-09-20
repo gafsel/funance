@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_durations.dart';
 import 'package:funances/core/theme/app_radius.dart';
+import 'package:funances/core/observability/app_logger.dart';
 import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
@@ -21,7 +23,7 @@ import 'package:go_router/go_router.dart';
 ///
 /// Cada ícone responde a três gestos: ver (o anel e a tinta), tocar (a folha
 /// com os números) e segurar (a tela de dados de onde aqueles números saem).
-class ArenaHudFooter extends ConsumerWidget {
+class ArenaHudFooter extends ConsumerStatefulWidget {
   const ArenaHudFooter({super.key, required this.height, this.compact = false});
 
   final double height;
@@ -30,13 +32,44 @@ class ArenaHudFooter extends ConsumerWidget {
   final bool compact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ArenaHudFooter> createState() => _ArenaHudFooterState();
+}
+
+class _ArenaHudFooterState extends ConsumerState<ArenaHudFooter> {
+  /// A última falha já relatada. Existe porque `build` roda muitas vezes com
+  /// o mesmo erro — a cada quadro de animação da cena acima — e o relatório
+  /// não pode receber a mesma exceção quarenta vezes por segundo.
+  Object? _reported;
+
+  /// A faixa fica quieta, mas o erro NÃO some.
+  ///
+  /// Ela nasceu silenciosa de propósito: uma luta acontece logo acima, e um
+  /// texto de erro no pé rouba a atenção dela para dizer "não sei". O que
+  /// estava errado era o silêncio ser TOTAL — a falha não chegava a lugar
+  /// nenhum, e uma faixa vazia em produção era indistinguível de uma faixa
+  /// carregando. Quem não vê é o usuário; quem precisa ver é o relatório.
+  void _report(AsyncValue<HudState> async) {
+    final error = async.error;
+    if (error == null || identical(error, _reported)) return;
+
+    _reported = error;
+    AppLogger.error(
+      'HUD mensal: a leitura do rodapé falhou',
+      error,
+      async.stackTrace,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(HudViewProviders.state);
     final isBusiness = ref.watch(ArenaViewProviders.isBusiness);
 
+    _report(async);
+
     return Container(
       key: const ValueKey('arena-footer-slot'),
-      height: height,
+      height: widget.height,
       width: double.infinity,
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: AppColors.gameFrame, width: 0.5)),
@@ -51,8 +84,19 @@ class ArenaHudFooter extends ConsumerWidget {
       child: async.when(
         loading: () => const SizedBox.expand(),
         error: (_, _) => const SizedBox.expand(),
-        data: (hud) =>
-            _Slots(hud: hud, compact: compact, isBusiness: isBusiness),
+        data: (hud) => LayoutBuilder(
+          builder: (context, constraints) => _Slots(
+            hud: hud,
+            compact: widget.compact,
+            isBusiness: isBusiness,
+            // O NOME sob cada figura só onde há largura para ele. Num
+            // celular quatro rótulos a mais disputam os mesmos 400 px com
+            // quatro números, e é o número que perde. Do tablet para cima a
+            // faixa tem folga, e "Poção / Vila / Ovo / Gota" poupa o toque
+            // que só serve para descobrir o que aquele desenho é.
+            showNames: !constraints.layout.isCompact,
+          ),
+        ),
       ),
     );
   }
@@ -63,16 +107,23 @@ class _Slots extends StatelessWidget {
     required this.hud,
     required this.compact,
     required this.isBusiness,
+    required this.showNames,
   });
 
   final HudState hud;
   final bool compact;
   final bool isBusiness;
+  final bool showNames;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final locale = context.locale;
+
+    final potion = hudPotionSemantics(l10n, hud.potion, locale);
+    final village = hudVillageSemantics(l10n, hud.village);
+    final egg = hudEggSemantics(l10n, hud.egg, locale);
+    final drop = hudDropSemantics(l10n, hud.drop, locale);
 
     return Row(
       children: [
@@ -81,6 +132,8 @@ class _Slots extends StatelessWidget {
             slot: HudSlot.potion,
             name: l10n.hudPotionTitle,
             value: hudTierLabel(l10n, hud.potion.ratio),
+            semantics: potion,
+            showName: showNames,
             color: hud.potion.isFilled
                 ? AppColors.success
                 : AppColors.inkInverse2,
@@ -97,12 +150,17 @@ class _Slots extends StatelessWidget {
         Expanded(
           child: _Slot(
             slot: HudSlot.village,
-            name: isBusiness
-                ? l10n.hudVillageTitleBusiness
-                : l10n.hudVillageTitle,
+            // "Vila" também na empresa. O nome do ícone é o do JOGO, e o
+            // jogo é o mesmo nos dois workspaces; quem troca de vocabulário
+            // é o texto financeiro da mini explicação, que fala em centro de
+            // custo. Chamar o ícone de "Centros de custo" fazia a empresa
+            // perder a única metáfora que a faixa tem.
+            name: l10n.hudVillageTitle,
             value: hud.village.isEmpty
                 ? l10n.hudUnknown
                 : '${hud.village.aliveCount}/${hud.village.plannedCount}',
+            semantics: village,
+            showName: showNames,
             color: hudVillageColor(hud.village),
             filled: !hud.village.isEmpty,
             progress: hud.village.ring,
@@ -117,6 +175,8 @@ class _Slots extends StatelessWidget {
             slot: HudSlot.egg,
             name: l10n.hudEggTitle,
             value: hudRatioLabel(l10n, hud.egg.ratio, locale),
+            semantics: egg,
+            showName: showNames,
             color: hudEggRingColor(hud.egg),
             filled: !hud.egg.isEmpty,
             progress: hud.egg.ratio.fill,
@@ -132,6 +192,8 @@ class _Slots extends StatelessWidget {
             slot: HudSlot.drop,
             name: l10n.hudDropTitle,
             value: hudRatioLabel(l10n, hud.drop.ratio, locale),
+            semantics: drop,
+            showName: showNames,
             color: hud.drop.isBlinking
                 ? AppColors.violet
                 : AppColors.inkInverse2,
@@ -154,6 +216,8 @@ class _Slot extends StatefulWidget {
     required this.slot,
     required this.name,
     required this.value,
+    required this.semantics,
+    required this.showName,
     required this.color,
     required this.filled,
     required this.progress,
@@ -169,6 +233,14 @@ class _Slot extends StatefulWidget {
   final HudSlot slot;
   final String name;
   final String value;
+
+  /// O par que o leitor de tela recebe: o número por extenso e o ESTADO que
+  /// a cor comunica.
+  final ({String value, String state}) semantics;
+
+  /// Desenhar o nome sob a figura. Só do tablet para cima.
+  final bool showName;
+
   final Color color;
   final bool filled;
   final double progress;
@@ -264,53 +336,83 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
     final glyphSize = widget.compact ? 20.0 : 24.0;
     final ringSize = widget.compact ? 30.0 : 36.0;
 
+    final figuraEValor = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedBuilder(
+          animation: Listenable.merge([_loop, _flash]),
+          builder: (context, child) => _animated(child!),
+          child: HudRing(
+            progress: widget.progress,
+            color: widget.color,
+            size: ringSize,
+            stroke: widget.compact ? 2.5 : 3,
+            child: HudGlyph(
+              slot: widget.slot,
+              color: widget.color,
+              size: glyphSize,
+              stage: widget.stage,
+              filled: widget.filled,
+            ),
+          ),
+        ),
+        AppSpacing.gapXxs,
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              widget.value,
+              maxLines: 1,
+              style:
+                  (widget.compact
+                          ? theme.textTheme.labelSmall
+                          : theme.textTheme.labelMedium)
+                      ?.copyWith(color: AppColors.inkInverse),
+            ),
+          ),
+        ),
+      ],
+    );
+
     return Semantics(
       button: true,
-      label: l10n.hudSlotSemantics(widget.name, widget.value),
+      // O rótulo carrega o JULGAMENTO, e não só o número: "Ovo: 1,1× da
+      // receita, faturas acima da receita, perigo". O que a cor diz sem
+      // texto tem de ser dito em texto para quem não a vê.
+      label: l10n.hudSlotSemantics(
+        widget.name,
+        widget.semantics.value,
+        widget.semantics.state,
+      ),
       child: InkWell(
         borderRadius: AppRadius.brMd,
         onTap: widget.onTap,
         onLongPress: () => context.push(widget.path),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedBuilder(
-                animation: Listenable.merge([_loop, _flash]),
-                builder: (context, child) => _animated(child!),
-                child: HudRing(
-                  progress: widget.progress,
-                  color: widget.color,
-                  size: ringSize,
-                  stroke: widget.compact ? 2.5 : 3,
-                  child: HudGlyph(
-                    slot: widget.slot,
-                    color: widget.color,
-                    size: glyphSize,
-                    stage: widget.stage,
-                    filled: widget.filled,
-                  ),
-                ),
-              ),
-              AppSpacing.gapXxs,
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    widget.value,
-                    maxLines: 1,
-                    style:
-                        (widget.compact
-                                ? theme.textTheme.labelSmall
-                                : theme.textTheme.labelMedium)
-                            ?.copyWith(color: AppColors.inkInverse),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: widget.showName
+              ? Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    figuraEValor,
+                    // O nome é EXCLUÍDO da semântica: ele já está no rótulo
+                    // do botão, e lido duas vezes viraria "Ovo: … Ovo".
+                    ExcludeSemantics(
+                      child: Text(
+                        widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: AppColors.inkInverse2,
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              : Center(child: figuraEValor),
         ),
       ),
     );

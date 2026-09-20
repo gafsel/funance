@@ -99,14 +99,90 @@ String hudRatioLabel(AppLocalizations l10n, HudRatio ratio, String locale) {
 /// A frase da folha: "0,4× da receita prevista do mês (R$ 18.550,00)".
 ///
 /// `null` sem denominador — a folha troca a frase pelo aviso âmbar.
-String? hudRatioOfIncome(
-  AppLocalizations l10n,
-  HudRatio ratio,
-  String locale,
-) {
+String? hudRatioOfIncome(AppLocalizations l10n, HudRatio ratio, String locale) {
   final value = hudRatioValue(ratio, locale);
   final income = ratio.income;
   if (value == null || income == null) return null;
 
   return l10n.hudRatioOfIncome(value, income.format(locale: locale));
+}
+
+// ── A semântica: o que a COR diz, em palavras ────────────────────────────────
+//
+// Quem lê a faixa com leitor de tela recebia "Ovo: 1,1×" — o número, e nada
+// do julgamento. E o julgamento é justamente a parte que a faixa entrega sem
+// texto: o anel vermelho, o ovo rachado, a gota piscando. Um usuário cego
+// ouvia o dado e perdia a leitura.
+//
+// Cada uma destas devolve o par que o rótulo de acessibilidade usa: o VALOR
+// (o número, dito por extenso) e o ESTADO (o que a cor comunica).
+
+/// "R$ 263,41" + "gole".
+({String value, String state}) hudPotionSemantics(
+  AppLocalizations l10n,
+  HudPotion potion,
+  String locale,
+) => (
+  value: potion.total.format(locale: locale),
+  state: !potion.isFilled
+      ? l10n.hudSemanticsPotionEmpty
+      : potion.ratio.isUnknown
+      ? l10n.hudSemanticsNoIncome
+      : hudTierLabel(l10n, potion.ratio),
+);
+
+/// "13 de 18 aldeões vivos" + "vila viva".
+({String value, String state}) hudVillageSemantics(
+  AppLocalizations l10n,
+  HudVillage village,
+) => (
+  value: l10n.hudSemanticsVillagers(village.aliveCount, village.plannedCount),
+  state: village.isEmpty
+      ? l10n.hudSemanticsVillageNone
+      : village.plannedCount < hudVillageMinimum
+      ? l10n.hudSemanticsVillageNeedsThree
+      : village.isAlive
+      ? l10n.hudSemanticsVillageAlive
+      : l10n.hudSemanticsVillageFallen,
+);
+
+/// "1,1× da receita" + "faturas acima da receita, perigo".
+///
+/// Sem denominador o valor é o TOTAL em dinheiro, e não o traço: "R$
+/// 20.187,80, receita prevista ainda não calculada" diz as duas coisas que o
+/// usuário precisa ouvir; um traço não diz nenhuma.
+({String value, String state}) hudEggSemantics(
+  AppLocalizations l10n,
+  HudEgg egg,
+  String locale,
+) => (
+  value: _ratioOrTotal(l10n, egg.ratio, locale),
+  state: egg.isEmpty
+      ? l10n.hudSemanticsEggEmpty
+      : egg.ratio.isUnknown
+      ? l10n.hudSemanticsNoIncome
+      : egg.ratio.isAtLeast(1, 1)
+      ? l10n.hudSemanticsEggDanger
+      : egg.ratio.isAtLeast(1, 2)
+      ? l10n.hudSemanticsEggWarning
+      : l10n.hudSemanticsEggCalm,
+);
+
+/// "0,4× da receita" + "dívida ativa".
+({String value, String state}) hudDropSemantics(
+  AppLocalizations l10n,
+  HudDrop drop,
+  String locale,
+) => (
+  value: _ratioOrTotal(l10n, drop.ratio, locale),
+  state: drop.total.isPositive
+      ? l10n.hudSemanticsDropActive
+      : l10n.hudSemanticsDropClear,
+);
+
+String _ratioOrTotal(AppLocalizations l10n, HudRatio ratio, String locale) {
+  final value = hudRatioValue(ratio, locale);
+  if (value == null) return ratio.amount.format(locale: locale);
+
+  return l10n.hudSemanticsRatio(value);
 }

@@ -371,6 +371,107 @@ void main() {
         'Folgada',
       ]);
     });
+
+    test('risco é FRAÇÃO de HP, não folga em reais', () {
+      // O caso real do cofre do dono, e o defeito que a ordem por HP
+      // absoluto produzia: "Investimentos" tem R$ 200 de orçamento e nada
+      // gasto — está 100% vivo — e subia acima de "Cuidados pessoais", que
+      // já queimou 78% de R$ 1.500 e é quem pode cair este mês. R$ 200 de
+      // folga é menos que R$ 328,80, e a conta antiga parava aí.
+      final vila = _hud(
+        categorias: [
+          _categoria('Investimentos', planejado: 200, realizado: 0),
+          _categoria('Cuidados pessoais', planejado: 1500, realizado: 1171.20),
+        ],
+      ).village;
+
+      expect(vila.villagers.map((v) => v.name), [
+        'Cuidados pessoais',
+        'Investimentos',
+      ]);
+    });
+
+    test('os MORTOS vêm antes de todos os vivos, do mais fundo', () {
+      final vila = _hud(
+        categorias: [
+          // Vivo, mas quase caindo: 1% de HP.
+          _categoria('Quase caindo', planejado: 1000, realizado: 990),
+          // Morto raso: R$ 20 além.
+          _categoria('Raso', planejado: 100, realizado: 120),
+          // Morto fundo: R$ 1.112,77 além.
+          _categoria('Fundo', planejado: 350, realizado: 1462.77),
+          _categoria('Folgado', planejado: 1000, realizado: 100),
+        ],
+      ).village;
+
+      expect(vila.villagers.map((v) => v.name), [
+        'Fundo',
+        'Raso',
+        'Quase caindo',
+        'Folgado',
+      ]);
+    });
+
+    test('empate de fração desempata pelo nome', () {
+      final vila = _hud(
+        categorias: [
+          _categoria('Zulu', planejado: 1000, realizado: 500),
+          _categoria('Alfa', planejado: 200, realizado: 100),
+        ],
+      ).village;
+
+      expect(vila.villagers.map((v) => v.name), ['Alfa', 'Zulu']);
+    });
+  });
+
+  group('a receita prevista é a DESTE mês', () {
+    test('receita de outro mês é tratada como ausente', () {
+      // O documento do workspace guarda um `monthKey` justamente porque o
+      // campo pode ficar para trás: o cron do dia 1 não rodou, o app virou o
+      // mês aberto na mão do usuário. Dividir as faturas de setembro pela
+      // receita de agosto daria um número, e o número seria apresentado com
+      // a mesma confiança de um certo.
+      final hud = _hud(
+        renda: ExpectedIncome(
+          monthKey: '2026-08',
+          amount: Money.fromCents(_rendaCents),
+          source: ExpectedIncomeSource.planned,
+        ),
+        investimentos: [_conta('inv', 9275)],
+      );
+
+      expect(hud.income, isNull, reason: 'fora de mês é "ainda não sei"');
+      expect(hud.hasIncome, isFalse);
+      expect(hud.potion.ratio.tier, isNull);
+      expect(hud.potion.ratio.isUnknown, isTrue);
+
+      // E o numerador continua sendo o que é: o que sumiu é o denominador.
+      expect(hud.potion.total, Money.fromDouble(9275));
+    });
+
+    test('receita do mês corrente vale, e é o denominador', () {
+      final hud = _hud(renda: _renda(), investimentos: [_conta('inv', 9275)]);
+
+      expect(hud.income!.monthKey, hud.monthKey);
+      expect(hud.potion.ratio.tier, HudTier.semi);
+    });
+
+    test('a ausência de mês certo não afeta a vila', () {
+      // A vila não depende da receita: o denominador dela é o próprio plano.
+      final hud = _hud(
+        renda: ExpectedIncome(
+          monthKey: '2026-08',
+          amount: Money.fromCents(_rendaCents),
+          source: ExpectedIncomeSource.planned,
+        ),
+        categorias: [
+          _categoria('Supermercado', planejado: 3500, realizado: 1158.20),
+        ],
+      );
+
+      expect(hud.village.villagers, hasLength(1));
+      expect(hud.village.ring, closeTo(0.3309, 0.0001));
+    });
   });
 
   group('a vila: o anel e o XP', () {
@@ -471,6 +572,32 @@ void main() {
   });
 
   group('o ovo: as faturas por vir', () {
+    test('a fatura VENCIDA vai para o topo da lista', () {
+      // Ela continua entrando na soma — o contrato é Σ nextInvoice, e uma
+      // fatura vencida e não paga é a mais devida de todas. O que ela ganha
+      // é o LUGAR: a primeira linha da folha.
+      final ovo = _hud(
+        renda: _renda(),
+        faturas: [
+          _fatura('c6', 2406, nome: 'Cartão C6', diaVencimento: 10),
+          HudInvoiceReading(
+            accountId: 'nubank2',
+            name: 'Cartão Nubank',
+            amount: 8300.55,
+            closingDate: DateTime(2026, 9, 10),
+            dueDate: DateTime(2026, 9, 17),
+            isOpenCycle: false,
+            overdueDays: 3,
+          ),
+        ],
+      ).egg;
+
+      expect(ovo.invoices.first.name, 'Cartão Nubank');
+      expect(ovo.invoices.first.isOverdue, isTrue);
+      expect(ovo.invoices.first.overdueDays, 3);
+      expect(ovo.total, Money.fromDouble(10706.55));
+    });
+
     test('a razão é a soma das faturas sobre a receita prevista', () {
       // O retrato real: seis cartões somando R$ 20.187,80 contra R$ 18.550,00
       // — um mês inteiro de receita já comprometido com o cartão.

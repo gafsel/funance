@@ -305,8 +305,9 @@ class HudVillage {
     required this.history,
   });
 
-  /// Categorias de despesa com orçamento, do menor HP para o maior — quem
-  /// está pior aparece primeiro.
+  /// Categorias de despesa com orçamento: os MORTOS primeiro (do mais fundo
+  /// no vermelho) e, depois deles, os vivos do menor HP proporcional para o
+  /// maior — quem está mais perto de cair aparece antes.
   final List<HudVillager> villagers;
 
   /// Categorias de despesa COM gasto e SEM orçamento. Elas não são aldeãs e
@@ -380,6 +381,7 @@ class HudInvoice {
     this.color,
     this.isOpenCycle = false,
     this.installmentId,
+    this.overdueDays = 0,
   });
 
   final String accountId;
@@ -388,6 +390,16 @@ class HudInvoice {
   final DateTime closingDate;
   final DateTime dueDate;
   final String? color;
+
+  /// Há quantos dias a fatura VENCEU. Zero enquanto ela não venceu.
+  ///
+  /// Ela continua entrando na soma do ovo — o contrato é `Σ nextInvoice`, e
+  /// uma fatura vencida e não paga é a mais devida de todas. O que faltava
+  /// era a MARCA: a do Nubank, vencida em 17/09, aparecia na folha com a
+  /// mesma tinta discreta de uma que vence daqui a três semanas.
+  final int overdueDays;
+
+  bool get isOverdue => overdueDays > 0;
 
   /// O ciclo ainda está aberto: o valor é o acumulado até agora e ainda
   /// cresce. Fechado, ele é a cobrança definitiva.
@@ -407,7 +419,8 @@ class HudInvoice {
       other.dueDate == dueDate &&
       other.color == color &&
       other.isOpenCycle == isOpenCycle &&
-      other.installmentId == installmentId;
+      other.installmentId == installmentId &&
+      other.overdueDays == overdueDays;
 
   @override
   int get hashCode => Object.hash(
@@ -419,6 +432,7 @@ class HudInvoice {
     color,
     isOpenCycle,
     installmentId,
+    overdueDays,
   );
 }
 
@@ -427,7 +441,7 @@ class HudInvoice {
 class HudEgg {
   const HudEgg({required this.invoices, required this.ratio});
 
-  /// Faturas por vencimento, a mais próxima primeiro.
+  /// Faturas com as VENCIDAS primeiro e, depois delas, por vencimento.
   final List<HudInvoice> invoices;
 
   final HudRatio ratio;
@@ -547,8 +561,11 @@ class HudState {
   /// `YYYY-MM` do mês que o rodapé está lendo.
   final String monthKey;
 
-  /// `null` = o servidor ainda não publicou a receita prevista. Os três
-  /// ícones de razão ficam neutros; a vila não depende dela.
+  /// `null` = o servidor ainda não publicou a receita prevista **deste**
+  /// mês. Os três ícones de razão ficam neutros; a vila não depende dela.
+  ///
+  /// Quando presente, `income.monthKey == monthKey` é invariante: quem monta
+  /// o estado ([HudCalculator]) descarta a receita de outro mês.
   final ExpectedIncome? income;
 
   final HudPotion potion;

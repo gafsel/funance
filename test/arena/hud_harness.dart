@@ -19,6 +19,12 @@ import 'arena_harness.dart';
 /// justamente o que este pacote precisa provar: que quatro ícones de 30 px e
 /// os rótulos deles cabem ao lado de "R$ 20.187,80" e "13/18".
 
+/// O dia em que o retrato foi tirado: 20 de setembro de 2026.
+///
+/// Ele importa porque uma das seis faturas já VENCEU — a do Nubank, em 17/09
+/// —, e "vencida" é uma afirmação sobre hoje.
+final DateTime hudTestToday = DateTime(2026, 9, 20);
+
 /// R$ 18.550,00 — salário de R$ 17.000 mais R$ 1.550 de benefícios,
 /// agendados no mês.
 final ExpectedIncome hudTestIncome = ExpectedIncome(
@@ -46,6 +52,7 @@ List<HudInvoiceReading> hudTestInvoices() => [
     isOpenCycle: false,
     color: '#8A05BE',
     installmentId: 'inst-nubank2',
+    overdueDays: 3,
   ),
 ];
 
@@ -151,10 +158,13 @@ HudState hudTestState({
       invoices: invoices ?? hudTestInvoices(),
       categories: categories ?? hudTestCategories(),
       history: history ?? const [hudTestReport],
+      // A parcela REAL do empréstimo Itaú: R$ 3.811,78 em 22/09. O harness se
+      // apresenta como o retrato do cofre do dono, e um número inventado
+      // aqui é uma mentira que os goldens fotografam.
       debtInstallments: {
         'itau': (
-          amount: Money.fromDouble(648.18),
-          dueDate: DateTime(2026, 10, 5),
+          amount: Money.fromDouble(3811.78),
+          dueDate: DateTime(2026, 9, 22),
         ),
       },
     ),
@@ -178,6 +188,7 @@ Widget hudFooterApp(
   bool isBusiness = false,
   bool reduceMotion = false,
   AsyncValue<HudState>? asyncState,
+  Color? background,
 }) => ProviderScope(
   overrides: [
     HudViewProviders.state.overrideWith(
@@ -198,6 +209,11 @@ Widget hudFooterApp(
         GoRoute(
           path: '/',
           builder: (_, _) => Scaffold(
+            // A faixa NÃO tem fundo próprio: ela é transparente e mora sobre
+            // a superfície de jogo da cena. Quem a fotografa sozinha precisa
+            // dizer o que há atrás dela, senão o golden mostra tinta clara
+            // sobre papel branco e os rótulos somem.
+            backgroundColor: background,
             // A faixa vive no PÉ da cena, e é lá que ela precisa caber.
             body: Align(
               alignment: Alignment.bottomCenter,
@@ -256,6 +272,7 @@ Future<void> pumpHudFooter(
   bool isBusiness = false,
   bool reduceMotion = true,
   AsyncValue<HudState>? asyncState,
+  Color? background,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -269,6 +286,7 @@ Future<void> pumpHudFooter(
       isBusiness: isBusiness,
       reduceMotion: reduceMotion,
       asyncState: asyncState,
+      background: background,
     ),
   );
 

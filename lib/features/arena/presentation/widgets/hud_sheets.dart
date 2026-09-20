@@ -250,6 +250,7 @@ class _Line extends StatelessWidget {
     required this.name,
     required this.value,
     this.support,
+    this.supportColor,
     this.color,
     this.icon,
     this.onTap,
@@ -258,6 +259,10 @@ class _Line extends StatelessWidget {
   final String name;
   final Money value;
   final String? support;
+
+  /// A tinta do apoio, quando ele é um AVISO e não uma legenda.
+  final Color? supportColor;
+
   final String? color;
   final String? icon;
 
@@ -300,7 +305,10 @@ class _Line extends StatelessWidget {
                     Text(
                       support!,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: palette.ink2,
+                        color: supportColor ?? palette.ink2,
+                        fontWeight: supportColor == null
+                            ? null
+                            : FontWeight.w600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -434,7 +442,9 @@ class _VillageSheet extends StatelessWidget {
 
     return _HudSheet(
       slot: HudSlot.village,
-      title: isBusiness ? l10n.hudVillageTitleBusiness : l10n.hudVillageTitle,
+      // "Vila" nos dois workspaces: o título é o nome do JOGO. Quem fala em
+      // centro de custo é a linha financeira da mini explicação, logo abaixo.
+      title: l10n.hudVillageTitle,
       color: color,
       progress: village.ring,
       headline: Text(
@@ -579,7 +589,12 @@ class _Villager extends StatelessWidget {
                   ClipRRect(
                     borderRadius: AppRadius.brPill,
                     child: LinearProgressIndicator(
-                      value: villager.hpRatio,
+                      // O MORTO tem a barra CHEIA em vermelho, e não vazia.
+                      // Vazia, ele lia igual a um aldeão que ainda não tinha
+                      // carregado: a calha inteira à mostra é a ausência de
+                      // barra, não a presença de uma notícia ruim. Cheia de
+                      // vermelho, a linha grita o que aconteceu ali.
+                      value: alive ? villager.hpRatio : 1,
                       minHeight: 6,
                       backgroundColor: palette.line,
                       color: alive ? AppColors.success : AppColors.danger,
@@ -619,7 +634,10 @@ class _HistoryLine extends StatelessWidget {
           ),
           AppSpacing.gapXs,
           Expanded(
-            child: Text(report.monthKey, style: theme.textTheme.bodyMedium),
+            child: Text(
+              _monthLabel(context, report.monthKey),
+              style: theme.textTheme.bodyMedium,
+            ),
           ),
           Text(
             l10n.hudHistoryLine(
@@ -633,6 +651,23 @@ class _HistoryLine extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "2026-08" → "ago/2026" em português, "Aug 2026" em inglês.
+///
+/// A chave `YYYY-MM` é do BANCO. Ela é como o servidor nomeia o documento, e
+/// mostrá-la crua na lista de meses fechados era o app pedindo ao usuário que
+/// lesse o id de um registro.
+///
+/// O ponto das abreviações do português ("ago.") sai: a linha é uma etiqueta
+/// curta ao lado de um escudo, e "ago./2026" tem pontuação demais para o que
+/// ela é.
+String _monthLabel(BuildContext context, String monthKey) {
+  final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
+
+  return DateTime(year, month)
+      .formated(context.l10n.hudHistoryMonthPattern, context.locale)
+      .replaceAll('.', '');
 }
 
 // ── Ovo ─────────────────────────────────────────────────────────────────────
@@ -649,9 +684,7 @@ class _EggSheet extends StatelessWidget {
     final palette = context.palette;
     final egg = hud.egg;
 
-    final color = egg.ratio.isUnknown
-        ? palette.ink3
-        : hudEggRingColor(egg);
+    final color = egg.ratio.isUnknown ? palette.ink3 : hudEggRingColor(egg);
 
     return _HudSheet(
       slot: HudSlot.egg,
@@ -677,7 +710,13 @@ class _EggSheet extends StatelessWidget {
               value: invoice.amount,
               color: invoice.color,
               icon: 'credit_card',
-              support: invoice.isOpenCycle
+              // A vencida diz que venceu, e diz em tinta de perigo. Ela
+              // CONTINUA na soma do ovo (o contrato é Σ nextInvoice, e uma
+              // fatura vencida é a mais devida de todas); o que faltava era
+              // a linha não se parecer com a de quem vence daqui a um mês.
+              support: invoice.isOverdue
+                  ? l10n.hudInvoiceOverdue(invoice.overdueDays)
+                  : invoice.isOpenCycle
                   ? l10n.hudInvoiceOpen(
                       invoice.closingDate.formated('dd/MM', locale),
                       invoice.dueDate.formated('dd/MM', locale),
@@ -686,6 +725,7 @@ class _EggSheet extends StatelessWidget {
                       invoice.closingDate.formated('dd/MM', locale),
                       invoice.dueDate.formated('dd/MM', locale),
                     ),
+              supportColor: invoice.isOverdue ? palette.dangerText : null,
               onTap: () => context.push(
                 invoice.installmentId != null
                     ? '/invoices/${invoice.installmentId}'

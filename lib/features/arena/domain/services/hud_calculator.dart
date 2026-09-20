@@ -71,6 +71,7 @@ class HudInvoiceReading {
     required this.isOpenCycle,
     this.color,
     this.installmentId,
+    this.overdueDays = 0,
   });
 
   final String accountId;
@@ -86,6 +87,9 @@ class HudInvoiceReading {
 
   /// `nextInvoice.installmentId` — nulo enquanto a fatura não existe de fato.
   final String? installmentId;
+
+  /// Há quantos dias a fatura venceu, pelo relógio do app. Zero se não venceu.
+  final int overdueDays;
 }
 
 /// O que o HUD mensal precisa ler. Nada aqui é consulta nova por capricho:
@@ -138,11 +142,25 @@ class HudInputs {
 /// não inventa denominador.
 abstract final class HudCalculator {
   static HudState from(HudInputs inputs) {
-    final income = inputs.income?.amount;
+    // A receita prevista de OUTRO mês não é a receita deste.
+    //
+    // O documento do workspace guarda um `monthKey`, e ele existe justamente
+    // porque o campo pode ficar para trás: o cron do dia 1 pode não ter
+    // rodado, o app pode estar aberto desde ontem e virar o mês na mão do
+    // usuário, ou o gatilho de receita pode ter falhado. Sem conferir, o
+    // rodapé dividiria as faturas de outubro pela receita de setembro e
+    // apresentaria o resultado com a mesma confiança de um número certo.
+    //
+    // Fora de mês é tratado como AUSENTE, que é o estado que o contrato já
+    // define para "ainda não sei" — e não como zero, que seria um veredito.
+    final expected = inputs.income?.monthKey == inputs.monthKey
+        ? inputs.income
+        : null;
+    final income = expected?.amount;
 
     return HudState(
       monthKey: inputs.monthKey,
-      income: inputs.income,
+      income: expected,
       potion: _potion(inputs, income),
       village: _village(inputs),
       egg: _egg(inputs, income),
@@ -217,12 +235,26 @@ abstract final class HudCalculator {
       }
     }
 
-    // Quem está pior primeiro: o aldeão que estourou o orçamento é a linha
-    // que o usuário precisa ver, e ele não pode estar no rodapé de uma lista
-    // de dezoito.
+    // Quem está pior primeiro — e "pior" muda de significado conforme o
+    // aldeão está vivo ou morto.
+    //
+    // Ordenar por HP ABSOLUTO misturava as duas perguntas e respondia mal às
+    // duas: "Investimentos", com R$ 200 de orçamento e nada gasto, subia
+    // acima de "Cuidados pessoais", que tinha queimado 78% de R$ 1.500 e
+    // estava prestes a cair — porque R$ 200 de folga é menos que R$ 328,80.
+    // Folga em reais não é risco; a fração é.
+    //
+    // Então: os MORTOS primeiro, do mais fundo no vermelho (é o estrago que
+    // o usuário precisa ver), e depois os vivos por FRAÇÃO de HP crescente —
+    // quem está mais perto de morrer logo abaixo dos que já morreram.
     villagers.sort((a, b) {
-      final byHp = a.hp.cents.compareTo(b.hp.cents);
-      return byHp != 0 ? byHp : a.name.compareTo(b.name);
+      if (a.isAlive != b.isAlive) return a.isAlive ? 1 : -1;
+
+      final by = a.isAlive
+          ? a.hpRatio.compareTo(b.hpRatio)
+          : a.hp.cents.compareTo(b.hp.cents);
+
+      return by != 0 ? by : a.name.compareTo(b.name);
     });
 
     unprotected.sort((a, b) {
@@ -255,8 +287,16 @@ abstract final class HudCalculator {
               color: reading.color,
               isOpenCycle: reading.isOpenCycle,
               installmentId: reading.installmentId,
+              overdueDays: reading.overdueDays,
             ),
         ]..sort((a, b) {
+          // VENCIDA primeiro, e explicitamente — não porque a data dela é
+          // menor. Ordenar só por vencimento dá o mesmo resultado hoje e
+          // deixaria de dar no dia em que uma fatura vencida for reemitida
+          // com data futura; e é a ordem que a folha precisa garantir, não um
+          // efeito colateral de outra regra.
+          if (a.isOverdue != b.isOverdue) return a.isOverdue ? -1 : 1;
+
           final byDue = a.dueDate.compareTo(b.dueDate);
           return byDue != 0 ? byDue : a.name.compareTo(b.name);
         });

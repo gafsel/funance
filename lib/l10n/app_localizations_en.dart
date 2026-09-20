@@ -2642,9 +2642,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudVillageTitle => 'Village';
 
   @override
-  String get hudVillageTitleBusiness => 'Cost centers';
-
-  @override
   String get hudEggTitle => 'Egg';
 
   @override
@@ -2670,7 +2667,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudNoIncome =>
-      'Expected income not calculated yet: schedule your income to see the tier.';
+      'Expected income not calculated yet: schedule your income to see this month\'s ratios.';
 
   @override
   String hudRatioTimes(String value) {
@@ -2693,9 +2690,57 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String hudSlotSemantics(String name, String value) {
-    return '$name: $value. Tap for details; long press to open the screen.';
+  String hudSlotSemantics(String name, String value, String state) {
+    return '$name: $value, $state. Tap for details; long press to open the screen.';
   }
+
+  @override
+  String hudSemanticsRatio(String value) {
+    return '$value× of income';
+  }
+
+  @override
+  String hudSemanticsVillagers(int alive, int planned) {
+    return '$alive of $planned villagers alive';
+  }
+
+  @override
+  String get hudSemanticsVillageAlive => 'village standing';
+
+  @override
+  String get hudSemanticsVillageFallen => 'village fallen';
+
+  @override
+  String get hudSemanticsVillageNone => 'no village';
+
+  @override
+  String get hudSemanticsVillageNeedsThree =>
+      'village incomplete, fewer than three villagers';
+
+  @override
+  String get hudSemanticsEggDanger => 'invoices above income, danger';
+
+  @override
+  String get hudSemanticsEggWarning =>
+      'invoices at half a month of income, caution';
+
+  @override
+  String get hudSemanticsEggCalm => 'invoices within income';
+
+  @override
+  String get hudSemanticsEggEmpty => 'no upcoming invoice';
+
+  @override
+  String get hudSemanticsDropActive => 'active debt';
+
+  @override
+  String get hudSemanticsDropClear => 'no debt';
+
+  @override
+  String get hudSemanticsPotionEmpty => 'empty potion';
+
+  @override
+  String get hudSemanticsNoIncome => 'expected income not calculated yet';
 
   @override
   String get hudPotionGame =>
@@ -2727,7 +2772,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudVillageGameBusiness =>
-      'Every budgeted cost center is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
+      'Every budgeted line of your plan is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
 
   @override
   String get hudVillageFinanceBusiness =>
@@ -2788,6 +2833,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudHistoryTitle => 'Closed months';
 
   @override
+  String get hudHistoryMonthPattern => 'MMM yyyy';
+
+  @override
   String hudHistoryLine(int alive, int planned, int xp) {
     return '$alive of $planned villagers · +$xp XP';
   }
@@ -2811,6 +2859,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudEggEmpty => 'No upcoming bill. There is no egg at all.';
 
   @override
+  String hudInvoiceOverdue(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Overdue by $days days',
+      one: 'Overdue by 1 day',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String hudInvoiceClosed(String closing, String due) {
     return 'Closed $closing · due $due';
   }
@@ -2822,7 +2881,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudDropGame =>
-      'What you owe drips into a single drop, and it weighs more the bigger it is against what you earn. A hyper drop means two whole months of income already committed.';
+      'What you owe drips into a single drop, and it weighs more the bigger it is against what you earn. A drop worth two whole months of income is a debt that runs your year.';
 
   @override
   String get hudDropFinance =>
