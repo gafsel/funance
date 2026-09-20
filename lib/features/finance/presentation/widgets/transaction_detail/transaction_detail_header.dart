@@ -78,8 +78,8 @@ class TransactionDetailHeader extends StatelessWidget {
                         installment.installmentCount != null)
                       StatusPill(
                         label: l10n.installmentCountDescription(
-                          installment.installmentCount!,
                           installment.installmentNumber!,
+                          installment.installmentCount!,
                         ),
                         dense: true,
                       ),

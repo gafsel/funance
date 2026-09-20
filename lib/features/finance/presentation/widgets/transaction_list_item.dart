@@ -208,8 +208,8 @@ class TransactionListItem extends StatelessWidget {
                     installment.installmentCount! > 1)
                   Text(
                     l10n.installmentCountDescription(
-                      installment.installmentCount!,
                       installment.installmentNumber!,
+                      installment.installmentCount!,
                     ),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: palette.ink2,

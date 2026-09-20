@@ -131,8 +131,8 @@ Widget buildTransactionTableRow(
             child: installment.installmentType == InstallmentType.installment
                 ? Text(
                     l10n.installmentCountDescription(
-                      installment.installmentCount ?? 1,
                       installment.installmentNumber ?? 1,
+                      installment.installmentCount ?? 1,
                     ),
                     style: theme.textTheme.bodySmall,
                   )
