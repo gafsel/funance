@@ -449,7 +449,61 @@ describe("progresso — regras corporativas", () => {
             expect(completions).toEqual([]);
         });
 
-        it("não lê NADA além do que a avaliação já leria", async () => {
+        /**
+         * O CUSTO da regra depende da DISCIPLINA sorteada para a mesma semana,
+         * porque `readPaidInstallments` é memoizado por AVALIAÇÃO:
+         *
+         *  - `days_within_category_limit` já lê as parcelas → custo zero;
+         *  - `weekly_margin_above_plan` lê o sumário → custo de uma consulta.
+         *
+         * Os dois casos abaixo provam as duas situações. Em nenhuma delas
+         * entra fonte de dados NOVA no caminho de avaliação.
+         */
+        function repositoryWith(disciplineTemplateKey: string) {
+            return buildRepository({
+                workspaceType: "business",
+                plannings: [{
+                    amount: 700,
+                    startMonth: "2026-08",
+                    category: { id: "custos", name: "Custos", type: "expense" },
+                }],
+                paidInstallments: [
+                    { status: "paid", type: "expense", category: { id: "c1", name: "Custos" } },
+                ],
+                weeklySummary: [],
+                missions: {
+                    consistency: { status: "completed" },
+                    discipline: existingMission(disciplineTemplateKey),
+                    organization: existingMission("business_organization_categorize_week", { target: 100 }),
+                },
+            });
+        }
+
+        it("com a disciplina que JÁ lê as parcelas, não custa leitura nenhuma", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository } = repositoryWith("business_discipline_top_cost_center");
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            // UMA consulta de parcelas para as DUAS missões (memoizada).
+            expect(repository.getPaidInstallmentsInPeriod).toHaveBeenCalledTimes(1);
+        });
+
+        it("com a disciplina de MARGEM, custa UMA consulta de parcelas — e só", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository } = repositoryWith("business_discipline_margin");
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            // A margem lê o sumário; as parcelas são a consulta que a
+            // organização acrescenta. Uma, nunca duas.
+            expect(repository.getWeeklySummaryRows).toHaveBeenCalledTimes(1);
+            expect(repository.getPaidInstallmentsInPeriod).toHaveBeenCalledTimes(1);
+        });
+
+        it("não acrescenta fonte de dados nova ao caminho de avaliação", async () => {
             jest.useFakeTimers({ now: SATURDAY });
             const { repository } = organizationWeekMissions([
                 { status: "paid", type: "expense", category: { id: "c1", name: "Custos" } },
@@ -458,10 +512,7 @@ describe("progresso — regras corporativas", () => {
 
             await service.updateWeeklyMissionsProgress("w1", "transaction", {});
 
-            // A regra se apoia em `getPaidInstallmentsInPeriod`, que a semana
-            // já lê (e que é memoizado por avaliação): zero leitura nova.
             expect(repository.getPaidInstallmentsInPeriod).toHaveBeenCalledTimes(1);
-            expect(repository.getWeeklySummaryRows).not.toHaveBeenCalled();
             expect(repository.getAutomaticTransactions).not.toHaveBeenCalled();
             expect(repository.getCompletedReconciliationsInPeriod).not.toHaveBeenCalled();
         });

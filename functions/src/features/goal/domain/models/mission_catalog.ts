@@ -84,11 +84,16 @@ export interface MissionParams {
  *
  * Os totais planejados dizem se a missão tem como ser MEDIDA naquela semana;
  * estes três dizem se ela tem como ser CUMPRIDA, alguma vez. São coisas
- * diferentes, e faltava a segunda: em 2026-W38 um workspace de empresa com
- * ZERO cartões de crédito recebeu "fechar a fatura do cartão corporativo
- * pagando até o vencimento". Não é uma missão difícil — é uma missão que
- * nenhuma ação dentro do app conseguiria concluir, e que ainda impede a
- * semana perfeita e zera a streak de quem não fez nada de errado.
+ * diferentes, e faltava a segunda.
+ *
+ * O RISCO que ela fecha: um workspace sem cartão de crédito podia sortear
+ * "fechar a fatura corporativa no prazo", um sem nenhum extrato conciliado
+ * podia sortear "conciliar um extrato", e um sem captura por notificação podia
+ * sortear "triar lançamentos automáticos". Não seriam missões difíceis —
+ * seriam missões que nenhuma ação dentro do app conseguiria concluir, e que
+ * ainda impedem a semana perfeita e zeram a streak de quem não fez nada de
+ * errado. Nenhum workspace de produção chegou a passar por isso (ver o falso
+ * alarme de 2026-W38 no README); a peneira fecha o risco antes.
  *
  * São BOOLEANOS, e não contagens, porque toda pergunta aqui é "existe ao
  * menos um?": as consultas correspondentes usam `limit(1)` e devolver um
@@ -501,8 +506,8 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         actionPath: "/workspace/accounts",
         params: ["target"],
         aiRequiredTermsPt: ["fatura", "vencimento"],
-        // O DEFEITO DE 2026-W38: sem conta de cartão de crédito não existe
-        // fatura corporativa para fechar, e a missão era incumprível.
+        // Sem conta de cartão de crédito não existe fatura corporativa para
+        // fechar: a missão seria incumprível.
         isEligible: (context) => context.hasCreditCardAccount,
     },
     {
@@ -517,8 +522,10 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         //
         // Categorizar o que foi pago na semana é o trabalho de organização
         // que existe em QUALQUER workspace que movimente dinheiro, é medido
-        // com as parcelas que a avaliação já lê (zero leitura nova) e é o
-        // mesmo hábito que o `fix_empty_category` existe para reparar.
+        // com as parcelas que a avaliação já sabe ler (no máximo UMA consulta
+        // a mais, e nenhuma quando a disciplina da semana também as lê — ver
+        // `categorized_week_installments` no avaliador) e é o mesmo hábito
+        // que o `fix_empty_category` existe para reparar.
         key: "business_organization_categorize_week",
         audience: "business",
         type: "organization",

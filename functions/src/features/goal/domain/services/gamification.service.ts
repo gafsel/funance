@@ -1373,10 +1373,17 @@ export class GamificationService {
         }
 
         case "categorized_week_installments": {
-            // Mede o que a avaliação JÁ leu: as parcelas pagas da semana
-            // (`readPaidInstallments` é memoizado por avaliação). Zero leitura
-            // nova — foi o que tornou esta missão viável como a de organização
-            // que sempre dá para cumprir.
+            // Mede as parcelas pagas da semana, pela leitura MEMOIZADA da
+            // avaliação (`readPaidInstallments`). Quanto ela custa depende da
+            // missão de DISCIPLINA sorteada para a mesma semana:
+            //
+            //  - `days_within_category_limit` (27 das 53 semanas do ano) já
+            //    fez essa leitura: aqui o custo é ZERO;
+            //  - `weekly_margin_above_plan` (as outras 26) lê o sumário, não
+            //    as parcelas: aqui o custo é UMA consulta.
+            //
+            // Nunca mais de uma, e é a mesma consulta que a avaliação já sabe
+            // fazer — nenhuma fonte de dados nova entrou no caminho.
             const installments = await this.readPaidInstallments(ctx);
 
             let total = 0;
@@ -1544,8 +1551,7 @@ export class GamificationService {
         //    MEDIDO — a missão de receita numa semana sem receita prevista, a
         //    de margem sem os dois lados do plano;
         //  - a CAPACIDADE peneira o que não teria como ser CUMPRIDO — a fatura
-        //    do cartão corporativo num workspace sem cartão nenhum, que foi o
-        //    defeito de 2026-W38.
+        //    do cartão corporativo num workspace sem cartão nenhum.
         //
         // Quatro leituras, uma vez por semana por workspace de EMPRESA. Num
         // workspace pessoal nenhuma acontece: a organização pessoal tem um

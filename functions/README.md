@@ -2597,7 +2597,7 @@ O contexto só é lido em workspace `business` — num pessoal nenhum template t
 > que roda os dois caminhos de código sobre os mesmos dados, nos quatro
 > contextos, numa semana em que a peneira de fato troca o template.
 
-#### A peneira de organização e o defeito de 2026-W38
+#### A peneira de organização: um RISCO, não um defeito observado
 
 As três missões corporativas de organização são **prospectivas**: pedem algo
 que o usuário ainda vai fazer durante a semana. Peneirá-las pelo que já
@@ -2605,11 +2605,26 @@ aconteceu NAQUELA JANELA as tornaria permanentemente inelegíveis (no instante
 da geração a semana está vazia por definição) — por isso a peneira delas é de
 **capacidade**, não de janela.
 
-Enquanto ela não existiu, o defeito apareceu em produção: em **2026-W38**, o
-workspace de empresa `a70134c1`, com **zero contas de cartão de crédito**,
-recebeu `business_organization_invoice_on_time`. Não é uma missão difícil — é
-uma missão que **nenhuma ação dentro do app conseguiria concluir**, e que ainda
-impede a semana perfeita e zera a streak de quem não fez nada de errado.
+O risco que ela fecha: um workspace **sem cartão de crédito** podia sortear
+"fechar a fatura corporativa no prazo", um **sem nenhum extrato conciliado**
+podia sortear "conciliar um extrato", e um **sem captura por notificação**
+podia sortear "triar lançamentos automáticos". Não seriam missões difíceis —
+seriam missões que **nenhuma ação dentro do app conseguiria concluir**, e que
+ainda impedem a semana perfeita e zeram a streak de quem não fez nada de
+errado. Como o sorteio é por hash da semana, é questão de tempo até cair numa
+delas.
+
+> **O caso `a70134c1` foi FALSO ALARME, e vale registrar por quê.** A suspeita
+> que originou este pacote era que aquele workspace tivesse recebido
+> `business_organization_invoice_on_time` em 2026-W38 sem ter cartão. Ele
+> **tem**: um `creditCard` ("Cartão Inter", criado em 2026-06-03, com
+> `nextInvoice` vencendo em 2026-10-20), além de 2 conciliações e 3 lançamentos
+> automáticos recentes — capacidade cheia nas três perguntas. A checagem que
+> levantou o alarme leu `type` em vez de `runtimeType`, que é o discriminador
+> da union de contas (ver `getCreditCardAccountIds`). A missão daquela semana
+> era legítima, e o dry-run do retag em produção confirmou: **`reparadas=0` nos
+> cinco workspaces**. A peneira continua valendo — ela fecha o risco antes de
+> ele aparecer —, mas nenhum workspace de produção precisou de reparo em W38.
 
 **A garantia: `business_organization_categorize_week`.** Uma empresa pode não
 ter nenhuma das três capacidades, e aí a peneira derrubaria os três candidatos
@@ -2617,9 +2632,10 @@ ter nenhuma das três capacidades, e aí a peneira derrubaria os três candidato
 devolveria justamente a missão impossível que acabou de descartar. Por isso o
 catálogo ganhou uma quarta missão de organização **sem `isEligible`**:
 categorizar os lançamentos pagos da semana. Ela existe em qualquer workspace
-que movimente dinheiro, é medida com as parcelas que a avaliação **já lê**
-(zero leitura nova — ver `categorized_week_installments` nas regras de
-progresso) e é o mesmo hábito que o `fix_empty_category` existe para reparar.
+que movimente dinheiro, é medida com as parcelas que a avaliação já sabe ler
+(no máximo **uma** consulta a mais — ver `categorized_week_installments` nas
+regras de progresso) e é o mesmo hábito que o `fix_empty_category` existe para
+reparar.
 
 O teste de matriz cobre as **oito** combinações de capacidade × 53 semanas e
 exige uma invariante só: *o template devolvido passa na própria peneira* — o
@@ -2740,7 +2756,17 @@ TRANSAÇÃO (a fatura paga).
 
 `categorized_week_installments` é a missão de organização que **sempre dá para
 cumprir** (ver [Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio)).
-Duas decisões dela:
+
+**O que ela custa depende da DISCIPLINA da mesma semana.** A leitura de
+parcelas pagas é memoizada por avaliação, então:
+
+| Disciplina sorteada | Semanas do ano | Custo da organização |
+|---|---|---|
+| `days_within_category_limit` | 27 de 53 | **zero** — a leitura já foi feita |
+| `weekly_margin_above_plan` (lê o sumário) | 26 de 53 | **uma** consulta de parcelas |
+
+Nunca mais de uma, e é a mesma consulta que a avaliação já sabe fazer: nenhuma
+fonte de dados nova entrou no caminho de avaliação. Duas outras decisões dela:
 
 - **transferência fica fora do denominador.** Transferência — e fatura, que é
   gravada como transferência — não carrega categoria **por desenho** (ver
@@ -3100,7 +3126,7 @@ Independente do bloco acima, e muito menor. Três passos, nesta ordem:
 1. índices     firebase deploy --only firestore:indexes
                ⏳ ESPERAR o índice de `reconciliations` (status, createdAt) ficar READY
 2. functions   firebase deploy --only functions
-3. retag       node lib/scripts/retag_weekly_missions.js   (dry-run → --apply)
+3. retag       node lib/scripts/retag_weekly_missions.js --all-workspaces   (dry-run → --apply)
                ⏳ na MESMA semana do deploy — ver o script
 ```
 
@@ -3568,15 +3594,19 @@ o que deve medir; trocar a frase só produziria churn na tela de quem não tem
 problema nenhum.
 
 É IDEMPOTENTE (pula quem já tem `templateKey`, a não ser com `--force`),
-DRY-RUN por padrão e paginado por cursor.
+DRY-RUN por padrão e paginado por cursor. O **alcance é explícito**: sem
+`--workspace=<id>` nem `--all-workspaces` o script aborta, e um argumento
+desconhecido (um `--worskpace=` com erro de digitação, por exemplo) também —
+num script que escreve, uma flag engolida calada faz o operador achar que
+limitou o alcance quando não limitou.
 
 ```bash
 cd functions
 npm run build
 
-# 1) Simulação (padrão — não escreve nada)
+# 1) Simulação da base inteira (padrão — não escreve nada)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
-  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --all-workspaces
 
 # 2) Um workspace só, para conferir o efeito
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
@@ -3584,7 +3614,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 
 # 3) Base inteira (somente após revisar o dry-run)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
-  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --apply
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --all-workspaces --apply
 ```
 
 Flags: `--apply`, `--project=<id>`, `--workspace=<id>`, `--week=<YYYY-Www>`,

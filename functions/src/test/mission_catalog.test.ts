@@ -218,13 +218,18 @@ describe("elegibilidade por contexto", () => {
 });
 
 /**
- * PENEIRA DE CAPACIDADE — o defeito de 2026-W38.
+ * PENEIRA DE CAPACIDADE.
  *
- * O workspace de empresa a70134c1 tem ZERO contas de cartão de crédito e
- * recebeu `business_organization_invoice_on_time`: uma missão que nenhuma ação
- * dentro do app conseguiria concluir, e que ainda impede a semana perfeita e
- * zera a streak. Os totais planejados diziam se a missão tinha como ser
- * MEDIDA; faltava dizer se ela tinha como ser CUMPRIDA.
+ * Os totais planejados dizem se a missão tem como ser MEDIDA na semana;
+ * faltava dizer se ela tem como ser CUMPRIDA. Sem essa segunda peneira, um
+ * workspace sem cartão podia sortear "fechar a fatura corporativa", um sem
+ * nenhum extrato conciliado podia sortear "conciliar um extrato" e um sem
+ * captura por notificação podia sortear "triar lançamentos automáticos" —
+ * missões que nenhuma ação dentro do app conseguiria concluir, e que ainda
+ * impedem a semana perfeita e zeram a streak.
+ *
+ * (Nenhum workspace de produção chegou a receber uma: a suspeita de 2026-W38
+ * foi falso alarme — ver o README. A peneira fecha o risco antes.)
  */
 describe("elegibilidade por CAPACIDADE (organização da empresa)", () => {
     const TODAS_AS_SEMANAS = Array.from(

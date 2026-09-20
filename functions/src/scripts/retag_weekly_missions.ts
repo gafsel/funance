@@ -32,11 +32,20 @@
  *                progresso é trabalho do usuário, e um número que anda para
  *                trás é pior que uma missão difícil.
  *
- * O reparo é o que conserta o defeito de 2026-W38: um workspace de empresa
- * com ZERO contas de cartão recebeu `business_organization_invoice_on_time`,
- * incumprível. O servidor novo já não a sorteia (a peneira de CAPACIDADE
- * passou a olhar cartão, hábito de conciliação e lançamento automático), mas a
- * missão gravada continuaria na tela até a virada da semana.
+ * O reparo existe para um RISCO conhecido: um workspace sem cartão (ou sem
+ * nenhum extrato conciliado, ou sem captura por notificação) podia receber uma
+ * missão de organização que nenhuma ação dentro do app conseguiria concluir. O
+ * servidor novo já não as sorteia — a peneira de CAPACIDADE passou a olhar
+ * cartão, hábito de conciliação e lançamento automático —, mas uma missão
+ * gravada ANTES da peneira continuaria na tela até a virada da semana, e é ela
+ * que este script conserta.
+ *
+ * A suspeita que originou o pacote (o workspace a70134c1 em 2026-W38) era
+ * FALSO ALARME: aquele workspace tem cartão, 2 conciliações e 3 lançamentos
+ * automáticos recentes — a checagem que levantou o alarme leu `type` em vez de
+ * `runtimeType`, o discriminador da union de contas. O dry-run em produção
+ * confirmou: `reparadas=0` nos cinco workspaces. O reparo segue no script
+ * porque o risco é real; ele simplesmente não tinha vítima.
  *
  * **Por que a missão concluída NÃO é estornada.** O XP dela já entrou no
  * workspace, já subiu nível e já pode ter desbloqueado badge. Estornar
@@ -70,10 +79,15 @@
  *     node lib/scripts/retag_weekly_missions.js --project=<projectId> --workspace=<wid> --apply
  *   # 3) Base inteira (somente após revisar o dry-run):
  *   GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
- *     node lib/scripts/retag_weekly_missions.js --project=<projectId> --apply
+ *     node lib/scripts/retag_weekly_missions.js --project=<projectId> --all-workspaces --apply
+ *
+ * O ALCANCE É EXPLÍCITO: sem `--workspace=<id>` nem `--all-workspaces` o script
+ * aborta, e um argumento desconhecido também — num script que escreve, uma
+ * flag engolida calada faz o operador achar que limitou o alcance.
  *
  * Flags:
  *   --apply              executa as escritas (sem ela, dry-run)
+ *   --all-workspaces     percorre TODOS os workspaces (exclusiva com --workspace)
  *   --project=<id>       projectId do Firebase (default: GOOGLE_CLOUD_PROJECT)
  *   --workspace=<id>     limita a migração a um único workspace
  *   --week=<YYYY-Www>    semana a tratar (default: a semana corrente). O mês
@@ -113,6 +127,8 @@ import { CategoryPlanningModel, toPeriodSummaryDocument } from "../features/fina
 
 export interface RetagOptions {
     dryRun: boolean;
+    /** Percorre TODOS os workspaces. Exclusiva com `workspaceId` no CLI. */
+    allWorkspaces?: boolean;
     workspaceId?: string;
     weekId?: string;
     pageSize?: number;
@@ -319,8 +335,8 @@ export async function retagWeeklyMissions(
 
                     // A CAPACIDADE é lida sempre — inclusive quando não há
                     // sumário da semana. Ela não depende do que foi planejado,
-                    // e é justamente ela que diz se a missão da fatura tinha
-                    // como ser cumprida (o defeito de 2026-W38).
+                    // e é ela que diz se a missão da fatura tinha como ser
+                    // cumprida naquele workspace.
                     const capacity = await readCapacity(workspaceDoc.ref, capacitySince);
 
                     const summaryDoc = await workspaceDoc.ref
@@ -408,9 +424,8 @@ export async function retagWeeklyMissions(
                     // A missão já carimbada normalmente é pulada — o carimbo é
                     // o trabalho deste script. Uma exceção: a missão ABERTA
                     // cujo template deixou de ser ELEGÍVEL para este
-                    // workspace. Foi o que aconteceu em 2026-W38, quando
-                    // `business_organization_invoice_on_time` foi sorteada
-                    // para um workspace sem nenhuma conta de cartão: o
+                    // workspace — `business_organization_invoice_on_time` num
+                    // workspace sem nenhuma conta de cartão, por exemplo. O
                     // servidor novo já não a sortearia, mas a missão gravada
                     // continua na tela, incumprível, até a virada.
                     //
@@ -531,7 +546,23 @@ export async function retagWeeklyMissions(
     return summary;
 }
 
-export function parseArgs(argv: string[]): RetagOptions & { projectId?: string } {
+/**
+ * Flags aceitas. Um argumento fora desta lista ABORTA a execução em vez de ser
+ * ignorado: num script que ESCREVE, um `--all-workspaces` engolido calado (ou
+ * um `--worskpace=` com erro de digitação) faz o operador achar que limitou o
+ * alcance quando não limitou.
+ */
+const KNOWN_ARGS = [
+    "--apply",
+    "--force",
+    "--all-workspaces",
+    "--workspace=",
+    "--week=",
+    "--page-size=",
+    "--project=",
+];
+
+export function parseArgs(argv: string[]): RetagOptions & { projectId?: string; unknownArgs: string[] } {
     const getValue = (prefix: string) => {
         const arg = argv.find((a) => a.startsWith(prefix));
         return arg ? arg.slice(prefix.length) : undefined;
@@ -543,15 +574,34 @@ export function parseArgs(argv: string[]): RetagOptions & { projectId?: string }
         // Dry-run é o padrão: só escreve com --apply.
         dryRun: !argv.includes("--apply"),
         force: argv.includes("--force"),
+        allWorkspaces: argv.includes("--all-workspaces"),
         workspaceId: getValue("--workspace="),
         weekId: getValue("--week="),
         pageSize: Number.isFinite(pageSize) && pageSize > 0 ? pageSize : undefined,
         projectId: getValue("--project=") || process.env.GOOGLE_CLOUD_PROJECT,
+        unknownArgs: argv.filter((arg) => !KNOWN_ARGS.some((known) => arg === known || arg.startsWith(known))),
     };
 }
 
 async function main(): Promise<void> {
     const options = parseArgs(process.argv.slice(2));
+
+    if (options.unknownArgs.length > 0) {
+        console.error(`[retag_weekly_missions] argumento desconhecido: ${options.unknownArgs.join(", ")}.`);
+        console.error(`[retag_weekly_missions] flags aceitas: ${KNOWN_ARGS.join(" ")}`);
+        process.exit(1);
+    }
+
+    // O alcance é EXPLÍCITO, como em `rebuild_workspace.ts`: rodar a base
+    // inteira por omissão de flag é fácil demais de fazer sem querer.
+    if (!options.workspaceId && !options.allWorkspaces) {
+        console.error("[retag_weekly_missions] informe --workspace=<id> ou --all-workspaces.");
+        process.exit(1);
+    }
+    if (options.workspaceId && options.allWorkspaces) {
+        console.error("[retag_weekly_missions] --workspace e --all-workspaces são mutuamente exclusivas.");
+        process.exit(1);
+    }
 
     if (!admin.apps.length) {
         admin.initializeApp({
