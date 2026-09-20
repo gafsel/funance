@@ -218,6 +218,15 @@ class ArenaGame extends FlameGame {
   @visibleForTesting
   MonsterActor? get monster => _monster;
 
+  /// Os heróis NA ORDEM DA LISTA — a mesma em que o placar escreve os nomes.
+  ///
+  /// Existe pelo mesmo motivo que o `monster`: a correspondência entre o
+  /// índice do herói, o X dele na cena e o nome no placar não aparece em
+  /// captura nenhuma (dois bonecos iguais são dois bonecos iguais), e foi
+  /// exatamente onde a cena e o HUD se desencontraram.
+  @visibleForTesting
+  List<HeroActor> get heroes => List.unmodifiable(_heroes);
+
   /// A faixa de tijolo, em pixels da caixa. O que o QA mediu.
   @visibleForTesting
   double get wallPixels => math.max(0, (_horizon - _topInsetWorld) * _zoom);
@@ -525,14 +534,27 @@ class ArenaGame extends FlameGame {
     // A distância entre os dois heróis sai da LARGURA DO SPRITE, não de uma
     // fração da tela. Com fração, num celular (mundo de ~80 unidades) os dois
     // bonecos de 19 unidades caíam um em cima do outro — e os nomes também.
-    final lead = width * (_isCompact ? 0.30 : 0.26);
+    //
+    // O herói de índice 0 fica à ESQUERDA, e os seguintes crescem para a
+    // direita — a MESMA ordem em que o placar do HUD escreve os nomes. Antes
+    // era ao contrário (o 0 liderava a formação, mais perto do monstro), e o
+    // placar dizia "Bárbara · Gabriel" com a Bárbara desenhada à direita. Com
+    // dois bonecos iguais, que o seletor de avatar agora permite, isso deixa
+    // de ser detalhe: o anel do repetido passa a apontar para a pessoa
+    // errada.
+    //
+    // A formação inteira continua onde estava: `trailing` é a posição do
+    // ÚLTIMO, e é ela que vale a fração de sempre. Com um herói só nada mudou
+    // de lugar.
+    final trailing = width * (_isCompact ? 0.30 : 0.26);
+    final last = _heroes.length - 1;
 
     for (var index = 0; index < _heroes.length; index++) {
       final hero = _heroes[index];
       hero.position = Vector2(
-        lead - index * hero.size.x * 1.15,
-        // Um degrau atrás: dá profundidade e separa os dois nomes.
-        groundY - (index == 1 ? 6 : 0),
+        trailing - (last - index) * hero.size.x * 1.15,
+        // Um degrau atrás: dá profundidade e separa os dois bonecos.
+        groundY - (index == 0 && last > 0 ? 6 : 0),
       );
     }
 

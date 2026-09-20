@@ -40,6 +40,49 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('o herói 0 é o da ESQUERDA — a ordem do placar', (
+      tester,
+    ) async {
+      // O placar escreve `state.heroes` na ordem da lista, separada por
+      // ponto: "Gabriel · Ana". Enquanto a cena desenhava o índice 0 à
+      // direita, o nome e o boneco trocavam de dono — e com o seletor de
+      // avatar liberando bonecos repetidos, o anel do segundo membro passava
+      // a apontar para a pessoa errada.
+      await pumpArena(
+        tester,
+        state: arenaTestState().copyWith(
+          heroes: const [
+            ArenaHero(userId: 'u1', name: 'Gabriel', skin: HeroSkin.smith),
+            ArenaHero(
+              userId: 'u2',
+              name: 'Ana',
+              skin: HeroSkin.smith,
+              duplicate: true,
+            ),
+          ],
+        ),
+      );
+
+      final jogo = tester
+          .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
+          .game!;
+
+      expect(jogo.heroes, hasLength(2));
+      expect(
+        jogo.heroes.first.position.x,
+        lessThan(jogo.heroes.last.position.x),
+        reason: 'o primeiro nome do placar é o boneco da esquerda',
+      );
+
+      // E o distintivo continua no SEGUNDO da lista, que agora é o da
+      // direita.
+      expect(jogo.heroes.first.duplicate, isFalse);
+      expect(jogo.heroes.last.duplicate, isTrue);
+
+      // O nome do placar é o mesmo texto, na mesma ordem.
+      expect(find.text('Gabriel · Ana'), findsOneWidget);
+    });
+
     testWidgets('são DUAS barras: heróis à esquerda, monstro à direita', (
       tester,
     ) async {
