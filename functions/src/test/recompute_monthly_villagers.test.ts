@@ -432,4 +432,56 @@ describe("recompute_monthly_villagers (script)", () => {
         expect(lines.join("\n")).toContain("GRAVARIA");
         expect(lines.join("\n")).toContain("3/4 aldeões vivos");
     });
+
+    it("o dry-run DETALHA o envelope de investimento, e só quando ele existe", async () => {
+        const lines: string[] = [];
+        const log = (message: string) => {
+            lines.push(message);
+        };
+
+        await recomputeMonthlyVillagers(
+            firestoreWithWorkspaces(["w1", "w2"]),
+            makeGamificationRepository({
+                // Sem investimento: a linha é idêntica à de antes do pacote.
+                w1: ALDEIA,
+                // Com investimento: um aporte cumprido e um abaixo do alvo.
+                w2: [
+                    row("mercado", 100_000, 90_000),
+                    row("aportes", 20_000, 40_000, { allocation: "investment" }),
+                    row("previdencia", 50_000, 10_000, { allocation: "investment" }),
+                ],
+            }),
+            makeIncomeRepository(),
+            { dryRun: true, now: NOW, villagersOnly: true },
+            log
+        );
+
+        const w1Line = lines.find((l) => l.includes("w1:"))!;
+        const w2Line = lines.find((l) => l.includes("w2:"))!;
+
+        expect(w1Line).not.toContain("investimento");
+        expect(w2Line).toContain("investimento: 2 aldeão(ões)");
+        // Alvo somado R$ 700, aportado R$ 500 — um abaixo do alvo.
+        expect(w2Line).toContain("alvo=70000 aportado=50000 centavos, 1 abaixo do alvo");
+        // 2 vivos (mercado e aportes) e a vila caída pelo envelope do aporte.
+        expect(w2Line).toContain("2/3 aldeões vivos");
+        expect(w2Line).toContain("vila caída");
+    });
+
+    it("o dry-run com investimento NÃO escreve — nem retrato, nem XP", async () => {
+        const gamification = makeGamificationRepository({
+            w1: [row("previdencia", 50_000, 10_000, { allocation: "investment" })],
+        });
+
+        await recomputeMonthlyVillagers(
+            firestoreWithWorkspaces(["w1"]),
+            gamification,
+            makeIncomeRepository(),
+            { dryRun: true, now: NOW, villagersOnly: true },
+            silent
+        );
+
+        expect(gamification.saveMonthlyReport).not.toHaveBeenCalled();
+        expect(gamification.awardXpOnce).not.toHaveBeenCalled();
+    });
 });

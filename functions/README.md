@@ -60,7 +60,8 @@ apenas reage ao que o cliente gravou.
 | `workspaces/{w}.financialHealth` — `{score, tier, components, computedAt, monthKey}` | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
 | `workspaces/{w}/health_history/{YYYY-MM}` — a mesma forma | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
 | `workspaces/{w}.expectedIncome` — `{monthKey, cents, source, updatedAt}`; **ausente == "ainda não sei"**, nunca receita zero | servidor | app | wp/villagers-xp | [HUD mensal](#hud-mensal-da-arena) |
-| `workspaces/{w}/monthly_reports/{YYYY-MM}` — `{monthKey, villagersPlanned, villagersAlive, villageAlive, xpAwarded, computedAt}` | servidor | app | wp/villagers-xp | [HUD mensal](#hud-mensal-da-arena) |
+| `workspaces/{w}/monthly_reports/{YYYY-MM}` — `{monthKey, villagersPlanned, villagersAlive, villageAlive, xpAwarded, computedAt}`; **seis campos, e só eles** — o retrato conta aldeões, não guarda detalhe por categoria | servidor | app | wp/villagers-xp | [HUD mensal](#hud-mensal-da-arena) |
+| `categories/{c}.allocation` — `"essential" \| "comfort" \| "investment"`; no HUD mensal, **`investment` INVERTE a regra do aldeão** (vive com `realizado >= planejado`) | app | servidor | wp/villagers-investment | [Os aldeões](#os-aldeões-o-xp-mensal) |
 | `workspaces/{w}.streaks` — `{missions: number, plan: number}` | servidor | app | F2.3 | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
 | `workspaces/{w}.weeklyStreaks` — `number`, **invariante** `=== streaks.missions` | servidor | app (build antiga) | anterior a F2.3; **o tipo não pode mudar** | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
 | `goals/{g}` — `outcome` (`success`\|`failed`\|`null`), `completedAt`, `failedAt` | servidor | app | wp/gamification-2 | [Meta ativa e desfecho](#contrato-meta-ativa-e-desfecho) |
@@ -131,6 +132,12 @@ Três pontos em que o app ainda não está alinhado com o servidor:
    existir num workspace que ainda não passou pelo cron nem pelo script: isso
    é **"ainda não calculei"**, não "receita zero", e as três razões devem
    aparecer em carregamento. Ver [HUD mensal](#hud-mensal-da-arena).
+8. **O aldeão de investimento é AO CONTRÁRIO** (wp/villagers-investment). Uma
+   categoria com `allocation: "investment"` e orçamento no mês vive quando
+   `realizado >= planejado` — o orçamento dela é um ALVO DE APORTE, não um
+   teto —, e cai quando fica abaixo. O texto do detalhe do ícone (que o app
+   copia para os ARB) mudou junto, e o app não deve dizer "você gastou demais"
+   a quem guardou de menos. Ver [Os aldeões](#os-aldeões-o-xp-mensal).
 
 ### `undefined` não é gravado
 
@@ -2461,7 +2468,7 @@ razões.
 
 | Ícone | Dados usados | Fórmula | Escala | XP envolvido |
 |---|---|---|---|---|
-| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` com ≥ 3 aldeões | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
+| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema/**`allocation`** | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` — e **ao contrário** (`realizado ≥ planejado`) quando `allocation === "investment"` | contagem `villagersAlive`/`villagersPlanned`; vila viva com ≥ 3 aldeões quando os DOIS envelopes aguentam: `Σ realizado ≤ Σ planejado` nas comuns e `Σ realizado ≥ Σ planejado` nas de investimento | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
 | **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | gole · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
 | **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o ovo não recebe o nome da classe | nenhum |
 | **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo do ovo | nenhum |
@@ -2563,16 +2570,67 @@ sobra. Estourou o limite, o aldeão morreu. O `monthlyGamificationCron` (dia 1,
 03:00) fecha o mês anterior e paga:
 
 ```
-+15  por aldeão vivo (realizado <= planejado), teto de 10 categorias = 150 XP
-+100 pela VILA viva (soma do realizado <= soma do planejado), com >= 3 aldeões
++15  por aldeão vivo, teto de 10 categorias = 150 XP
+       categoria comum:        realizado <= planejado  (o orçamento é um TETO)
+       allocation investment:  realizado >= planejado  (o orçamento é um ALVO)
++100 pela VILA viva, com >= 3 aldeões — os DOIS envelopes juntos:
+       soma do realizado <= soma do planejado   nas categorias comuns
+       soma do realizado >= soma do planejado   nas de investimento
 ```
+
+### O investimento funciona AO CONTRÁRIO (decisão do dono, 2026-09-20)
+
+> "As categorias que estiverem como investimento funcionam ao contrário: se não
+> cumprirem o limite é que ficam em risco de morrer."
+
+Numa categoria de despesa o orçamento é um **teto**; numa categoria de
+`allocation: "investment"` o mesmo número é um **alvo de aporte**. Guardar
+menos do que se planejou guardar é o fracasso, e guardar mais é o acerto — de
+modo que a comparação vira `realizado >= planejado`. Sem a inversão, quem
+dobrasse o aporte do mês perderia o aldeão por ter investido DEMAIS, que é o
+oposto do que o jogo quer ensinar.
+
+| Tipo de categoria | Orçamento é | Vive quando | Motivo da queda |
+|---|---|---|---|
+| despesa comum (`essential`, `comfort`, sem `allocation`) | teto | `realizado ≤ planejado` | `over_budget` |
+| `allocation: "investment"` | alvo de aporte | `realizado ≥ planejado` | `under_target` |
+| qualquer uma, com `generalPlanned = 0` | — | não é aldeão ("sem proteção") | — |
+
+O `≤`/`≥` vale igual nos dois lados: **cumprir o alvo EXATO é acerto**, não
+falha por um centavo. A `allocation` sai do documento ATUAL da categoria (o
+join que o retrato já faz para descobrir tipo e sistema), e não de uma cópia
+congelada no sumário: quem reclassifica uma categoria como investimento muda o
+que ela significa, inclusive no mês que está correndo. Categoria apagada
+continua descartada — o join não a devolve.
+
+**A VILA passou a ter DOIS envelopes** por causa da inversão. Se ela
+continuasse sendo "soma do realizado ≤ soma do planejado" sobre o conjunto
+inteiro, o aporte que superasse o alvo empurraria a soma para fora e MATARIA a
+vila de quem acertou tudo — a mesma contradição, um nível acima. E somar os
+dois lados no mesmo envelope deixaria um aporte generoso PAGAR o estouro de uma
+despesa, compensação entre duas coisas que o jogo julga por critérios opostos.
+Então cada lado responde pelo seu, e a vila só aguenta quando os dois aguentam.
+
+Num workspace sem categoria de investimento orçada, os dois somatórios do
+segundo envelope são zero (`0 ≥ 0`) e a regra degenera EXATAMENTE na antiga —
+é por isso que **ninguém fora do investimento muda de estado**. A varredura de
+produção confirmou: na base inteira (5 workspaces, meses 2026-08 e 2026-09),
+um único aldeão muda, e é de `allocation: "investment"`.
+
+O motivo da queda (`over_budget` × `under_target`) existe no cálculo e aparece
+no log do cron e no dry-run do recálculo, mas **não é gravado** em
+`monthly_reports`: o retrato guarda CONTAGENS, e inventar nele um detalhe por
+aldeão que o app ainda não lê seria contrato fantasma. Quando o app quiser
+mostrar "você guardou de menos" em vez de "você gastou demais", o campo nasce
+no mesmo pacote que o consome.
 
 Três recortes que são produto, e não detalhe de implementação:
 
 - **Categoria sem orçamento NÃO é aldeão.** Ela aparece no detalhe como "sem
   proteção" e não perde nada. O jogo premia planejar de propósito: tratar o não
   planejado como morte puniria justamente quem ainda não começou, que é o
-  oposto do que o produto quer ensinar;
+  oposto do que o produto quer ensinar. Vale também para o investimento: quem
+  não declarou um alvo de aporte não falhou em alcançá-lo;
 - **o teto de 10** existe porque, sem ele, o caminho mais curto para o XP seria
   fatiar o orçamento em trinta categorias de R$ 10 e não gastar em nenhuma — o
   jogo passaria a premiar fragmentar o plano em vez de acertá-lo;
@@ -2580,9 +2638,9 @@ Três recortes que são produto, e não detalhe de implementação:
   planejado" é uma afirmação forte quando há um plano de verdade e uma
   banalidade quando há uma categoria só — que já foi paga pelos 15 do aldeão.
 
-**Dentro do limite é `<=`, não `<`**: gastar exatamente o planejado é o alvo,
-não uma falha por um centavo (mesma regra do XP semanal). A aritmética é em
-CENTAVOS INTEIROS: doze categorias de R$ 0,10 fecham em `1.2000000000000002`
+**Dentro do limite é `<=`, não `<`** (e, no investimento, `>=` e não `>`):
+fechar exatamente no planejado é o alvo, não uma falha por um centavo (mesma
+regra do XP semanal). A aritmética é em CENTAVOS INTEIROS: doze categorias de R$ 0,10 fecham em `1.2000000000000002`
 com `double`, e a vila morreria por ruído de representação.
 
 **Duas idempotências, e as duas são necessárias:**
@@ -2646,13 +2704,16 @@ não a cópia da interface.
 **Aldeões (categorias)**
 
 - **pt** — *Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra
-  do mês. Gastou além do orçamento, o aldeão cai. Financeiro: é o seu limite por
-  categoria, comparado com o que você realmente gastou no mês. XP: +15 por
-  aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira
-  aguentar.*
+  do mês. Gastou além do orçamento, o aldeão cai — e no investimento é ao
+  contrário: cai quem não alcança o aporte planejado. Financeiro: é o seu
+  limite por categoria comparado com o que você gastou no mês, e o seu alvo de
+  aporte comparado com o que você guardou. XP: +15 por aldeão vivo no fim do
+  mês, até 10 categorias, e +100 se a vila inteira aguentar.*
 - **en** — *Every budgeted category is a villager, and its HP is what's left of
-  the month. Spend past the budget and the villager falls. Finance: it's your
-  per-category limit against what you actually spent this month. XP: +15 per
+  the month. Spend past the budget and the villager falls — and investment
+  works the other way around: it falls when you miss the planned contribution.
+  Finance: it's your per-category limit against what you actually spent, and
+  your contribution target against what you actually saved. XP: +15 per
   villager alive at month end, up to 10 categories, plus 100 if the whole
   village holds.*
 
@@ -2699,15 +2760,21 @@ não a cópia da interface.
 
 - `src/test/monthly_villagers.test.ts` — a regra pura da aldeia (quem vive, o
   teto de 10, o mínimo de 3 da vila, a soma em centavos), a peneira do sumário
-  mensal (sistema, receita e "sem orçamento" não são aldeões), o fechamento
-  (XP único, retrato, barra semanal do mês avaliado) e o catálogo publicado;
+  mensal (sistema, receita e "sem orçamento" não são aldeões), a **regra
+  invertida do investimento** (aporte cumprido vive, aporte curto cai, o alvo
+  exato vive nos dois tipos, o centavo para cada lado, a mistura com os dois
+  envelopes da vila e o motivo `over_budget`/`under_target`), o fechamento
+  (XP único, retrato sem campo novo, barra semanal do mês avaliado) e o
+  catálogo publicado;
 - `src/test/expected_income.test.ts` — planejado × média, o divisor que só
   conta mês existente, o inteiro de centavos, a previsão que nunca é negativa e
   a publicação que não escreve quando nada mudou;
 - `src/test/recompute_monthly_villagers.test.ts` — dry-run × apply, mês default
-  × `--month`, isolamento de falha e `--villagers-only`;
+  × `--month`, isolamento de falha, `--villagers-only` e o detalhe do envelope
+  de investimento no log (que só aparece quando há aldeão de investimento);
 - `src/test/integration/monthly_villagers.integration.test.ts` — emulador:
-  sumário mensal real com join em `categories`, concessão única **concorrente**
+  sumário mensal real com join em `categories` (inclusive a `allocation` lida
+  do documento de verdade da categoria), concessão única **concorrente**
   (três chamadas paralelas pagam uma vez), sumário legado sem `*Cents`,
   `monthly_reports` de fato gravado e `expectedIncome` publicado no documento
   do workspace;
@@ -3529,6 +3596,109 @@ XP que ninguém ainda paga.
 > **O app não bloqueia nenhum destes passos**, e também não ganha nada com eles
 > até desenhar o HUD. O que ele precisa fazer está em
 > [O que o app ainda precisa fazer](#o-que-o-app-ainda-precisa-fazer).
+
+### Rollout de wp/villagers-investment (o aldeão de investimento, ao contrário)
+
+Menor que o anterior, e sem passo de dados. Três passos, nesta ordem — e um
+NÃO-passo que é o mais importante deles:
+
+```
+0. DONO        decidir a allocation de "Taxas de Juros" e "Pagamento de Empréstimo"
+               ⏳ ANTES de 01/10 03:00 (o fechamento de setembro)   — BLOQUEIA
+1. functions   firebase deploy --only functions
+2. catálogo    node lib/scripts/publish_badge_catalog.js                          (dry-run → real)
+
+NÃO RODAR      node lib/scripts/recompute_monthly_villagers.js --month=2026-08 --apply
+```
+
+**0. A decisão do dono, e ela BLOQUEIA o resto.** No cofre do dono duas
+categorias estão com `allocation: "investment"` sem serem aporte — são o CUSTO
+da dívida:
+
+| Categoria | Id | Alvo (setembro) | Realizado (setembro) | Com a regra nova |
+|---|---|---|---|---|
+| Taxas de Juros | `arh7nmyIn4Ky23cynfUY` | R$ 50,00 | R$ 431,54 | **VIVO** por ter pago 8× mais juros |
+| Pagamento de Empréstimo | `ILKgy3wOU23CGsntIrkg` | — (sem orçamento no mês) | — | não é aldeão hoje, mas será no mês em que ganhar orçamento |
+
+Pagar MAIS juros do que o planejado passaria a manter o aldeão vivo, e pagar
+menos passaria a matá-lo — o jogo premiando exatamente o que ele existe para
+combater. O prazo é **01/10 às 03:00**, quando o `monthlyGamificationCron`
+fecha setembro: **reclassificar para `essential` já corrige o fechamento**,
+sem nenhum passo de dados, porque o retrato resolve a `allocation` lendo a
+categoria ATUAL e não uma cópia congelada no sumário. Depois do fechamento o
+conserto exige reprocessar o mês, com o mesmo problema de XP descrito no
+NÃO-passo abaixo.
+
+**1. As functions.** Nenhuma rule muda (o retrato continua com os
+mesmos seis campos e continua negado à escrita do cliente), nenhum índice muda
+e nenhum campo novo é publicado. O que muda é a REGRA que o
+`monthlyGamificationCron` aplica no dia 1 — quer dizer, o primeiro efeito
+visível é o fechamento de **setembro**, em 01/10.
+
+**2. O catálogo, depois.** As descrições de `villager_alive` e `village_alive`
+em `config/badges.xpSources` passam a contar a inversão, e isso muda o hash do
+documento. O cron diário `publishBadgeCatalog` republicaria sozinho em até
+24 h; o script adianta para a tela "como ganhar XP" não passar um dia
+explicando um jogo que já mudou. Depois do deploy, nunca antes: publicar a
+regra antes de ela existir no servidor prometeria um XP que ninguém ainda paga.
+
+**3. NÃO reprocessar agosto.** Agosto de 2026 já foi fechado e JÁ FOI PAGO — o
+rollout de `wp/villagers-xp` rodou em 20/09/2026, e o cofre do dono tem o
+marcador `xpAwardedFor.monthlyVillagers["2026-08"]` gravado às 08:17 daquele
+dia. A regra nova vale de **setembro em diante**.
+
+O dry-run de produção mostra exatamente o que um reprocessamento faria no cofre
+do dono (`42d43a0e`):
+
+```
+retrato atual 9/17 (135 XP) -> 10/17 aldeões vivos, vila caída, 150 XP
+  [investimento: 1 aldeão(ões), alvo=5000 aportado=137917 centavos, 0 abaixo do alvo]
+```
+
+Um único aldeão muda de estado, e é o esperado: **"Taxas de Juros"**
+(`allocation: "investment"`, alvo de R$ 50,00, realizado R$ 1.379,17) estava
+MORTO pelo teto e fica VIVO pelo alvo. O reprocessamento reescreveria o retrato
+para 10/17 e **150 XP** — mas o marcador durável barraria a concessão, e o
+histórico do app passaria a afirmar um XP de 150 que o usuário nunca recebeu.
+Um retrato que mente sobre o próprio XP é pior do que um retrato feito com a
+regra antiga, que é o que de fato aconteceu naquele mês.
+
+> **E a categoria "Investimentos" de R$ 200?** Ela **não muda de estado, porque
+> nunca foi aldeão.** No cofre do dono, "Investimentos" é
+> `virtual_investment_expense` — e todo id com o prefixo `virtual_` é categoria
+> de SISTEMA (`isSystemCategory`), peneirada antes da regra, junto do saldo
+> inicial. Em agosto ela tinha alvo de R$ 200,00 e R$ 155,00 realizados: pela
+> regra nova seria um aporte abaixo do alvo, mas a peneira de sistema vem
+> antes e ela não entra na conta nem hoje nem depois. O mesmo vale para
+> `virtual_debt_expense` ("Empréstimo/Dívidas").
+
+**Decisão do dono registrada:** *não reprocessar agosto* — o mês foi jogado e
+pago com a regra antiga, e o único aldeão afetado vale 15 XP. Se o dono preferir
+o contrário, o caminho existe e é o script com `--apply`, mas ele precisa vir
+acompanhado de uma decisão sobre o XP: ou se aceita o retrato de 150 XP sem a
+concessão, ou se apaga o marcador do mês para que a diferença seja paga — e
+apagar marcador durável é justamente o que ele existe para impedir.
+
+**Pendência registrada: o XP SEMANAL não foi invertido, e não dá para invertê-lo
+sozinho.** `evaluateWeeklyPlanXp` (+20 por categoria dentro do limite) continua
+lendo `actualAmount <= generalPlannedAmount` para TODA categoria de despesa com
+orçamento, investimento incluído. A partir deste pacote as duas regras
+discordam sobre a mesma categoria: na semana, o aporte que ainda não saiu rende
++20 por "estar dentro do limite"; no mês, ele derruba o aldeão.
+
+Inverter o semanal não é trocar o sinal da comparação. O limite semanal é o
+mensal RATEADO (`amount / dias * 7`), e um alvo de aporte rateado por semana
+**pune o aporte mensal único**: quem investe R$ 800 de uma vez no dia 28 passa
+três semanas "abaixo do alvo" e perde +20 em cada uma, embora vá fechar o mês
+acertando. Um aporte não se distribui como um gasto de supermercado se
+distribui. As saídas conhecidas — não pagar XP semanal para investimento,
+acumular o alvo desde o início do mês, ou só avaliar o aporte no fechamento —
+são todas decisão do dono, e a escolha depende da **quarta `allocation`
+(`debt`, o custo de dívida)** que ele está avaliando por causa do passo 0: com
+`debt` separada, "investimento" volta a significar só aporte e a regra semanal
+tem um alvo a discutir. Resolver as duas juntas, num pacote próprio; isto aqui
+não entra de carona, porque mexe em XP de uma barra já publicada (ver também
+as pendências 1, 2 e 3 do HUD mensal).
 
 ### Rollout de wp/missions-by-type (missões por tipo de workspace)
 

@@ -41,6 +41,11 @@ function villager(categoryId: string, plannedCents: number, actualCents: number)
     return { categoryId, plannedCents, actualCents };
 }
 
+/** O mesmo aldeão, mas de uma categoria `allocation: "investment"`. */
+function investor(categoryId: string, plannedCents: number, actualCents: number) {
+    return { categoryId, plannedCents, actualCents, isInvestment: true };
+}
+
 /** Linha do sumário mensal como o repositório a devolve. */
 function row(
     categoryId: string,
@@ -60,6 +65,11 @@ function row(
         specificPlannedAmountCents: 0,
         ...extra,
     };
+}
+
+/** Linha de uma categoria de INVESTIMENTO, como o join em `categories` a traz. */
+function investmentRow(categoryId: string, plannedCents: number, actualCents: number) {
+    return row(categoryId, plannedCents, actualCents, { allocation: "investment" });
 }
 
 function makeRepository(rows: any[] = [], overrides: Record<string, any> = {}) {
@@ -445,6 +455,259 @@ describe("evaluateMonthlyVillagersXp — a janela e a idempotência do cron", ()
         expect(repository.getPeriodSummaries).not.toHaveBeenCalled();
         expect(repository.awardXpOnce).not.toHaveBeenCalled();
         expect(repository.saveMonthlyReport).not.toHaveBeenCalled();
+    });
+});
+
+describe("aldeão de INVESTIMENTO — a regra ao contrário (dono, 2026-09-20)", () => {
+    it("aportar ACIMA do alvo mantém o aldeão vivo", () => {
+        // R$ 200 de alvo, R$ 500 aportados. Na regra comum isto seria um
+        // estouro de 150%; aqui é o acerto do mês.
+        const outcome = evaluateVillagers([investor("investimentos", 20_000, 50_000)]);
+
+        expect(outcome.aliveCategoryIds).toEqual(["investimentos"]);
+        expect(outcome.deadCategoryIds).toEqual([]);
+        expect(outcome.villagersXp).toBe(VILLAGER_ALIVE_XP);
+        expect(outcome.investmentVillagers).toBe(1);
+    });
+
+    it("aportar ABAIXO do alvo derruba o aldeão, com motivo under_target", () => {
+        // R$ 200 de alvo, R$ 50 aportados. Na regra comum estaria "dentro do
+        // limite" e vivo — é exatamente o caso que este pacote inverte.
+        const outcome = evaluateVillagers([investor("investimentos", 20_000, 5_000)]);
+
+        expect(outcome.aliveCategoryIds).toEqual([]);
+        expect(outcome.deadCategoryIds).toEqual(["investimentos"]);
+        expect(outcome.deadReasons).toEqual({ investimentos: "under_target" });
+        expect(outcome.villagersXp).toBe(0);
+    });
+
+    it("o motivo distingue quem gastou demais de quem guardou de menos", () => {
+        const outcome = evaluateVillagers([
+            villager("delivery", 10_000, 25_000),
+            investor("investimentos", 20_000, 5_000),
+        ]);
+
+        expect(outcome.deadReasons).toEqual({
+            delivery: "over_budget",
+            investimentos: "under_target",
+        });
+    });
+
+    it("cumprir o alvo EXATO vive nos DOIS tipos — o centavo não decide", () => {
+        const outcome = evaluateVillagers([
+            villager("transporte", 30_000, 30_000),
+            investor("investimentos", 20_000, 20_000),
+        ]);
+
+        expect(outcome.villagersAlive).toBe(2);
+        expect(outcome.deadCategoryIds).toEqual([]);
+
+        // E um centavo para cada lado decide, e decide em sentidos opostos.
+        const umCentavoAMais = evaluateVillagers([
+            villager("transporte", 30_000, 30_001),
+            investor("investimentos", 20_000, 20_001),
+        ]);
+        expect(umCentavoAMais.aliveCategoryIds).toEqual(["investimentos"]);
+        expect(umCentavoAMais.deadReasons).toEqual({ transporte: "over_budget" });
+
+        const umCentavoAMenos = evaluateVillagers([
+            villager("transporte", 30_000, 29_999),
+            investor("investimentos", 20_000, 19_999),
+        ]);
+        expect(umCentavoAMenos.aliveCategoryIds).toEqual(["transporte"]);
+        expect(umCentavoAMenos.deadReasons).toEqual({ investimentos: "under_target" });
+    });
+
+    it("a MISTURA conta certo o total e a vila (os dois envelopes)", () => {
+        // Comuns: R$ 1.300 planejados, R$ 1.250 realizados -> envelope dentro.
+        // Investimento: R$ 200 de alvo, R$ 500 aportados -> envelope cumprido.
+        const outcome = evaluateVillagers([
+            villager("mercado", 100_000, 90_000),
+            villager("transporte", 30_000, 30_000),
+            investor("investimentos", 20_000, 50_000),
+        ]);
+
+        expect(outcome.villagersPlanned).toBe(3);
+        expect(outcome.villagersAlive).toBe(3);
+        expect(outcome.expensePlannedCents).toBe(130_000);
+        expect(outcome.expenseActualCents).toBe(120_000);
+        expect(outcome.investmentPlannedCents).toBe(20_000);
+        expect(outcome.investmentActualCents).toBe(50_000);
+        // Os totais continuam sendo a soma dos dois lados.
+        expect(outcome.plannedCents).toBe(150_000);
+        expect(outcome.actualCents).toBe(170_000);
+
+        // Na regra ANTIGA, 170.000 > 150.000 mataria a vila de quem aportou o
+        // dobro do alvo. Com os dois envelopes, ela aguenta.
+        expect(outcome.villageAlive).toBe(true);
+        expect(outcome.xpAwarded).toBe(3 * VILLAGER_ALIVE_XP + VILLAGE_ALIVE_XP);
+    });
+
+    it("o envelope de investimento SOZINHO derruba a vila", () => {
+        // As comuns fecharam dentro; o aporte ficou abaixo do alvo.
+        const outcome = evaluateVillagers([
+            villager("mercado", 100_000, 90_000),
+            villager("transporte", 30_000, 20_000),
+            investor("investimentos", 20_000, 1_000),
+        ]);
+
+        expect(outcome.expenseActualCents).toBeLessThanOrEqual(outcome.expensePlannedCents);
+        expect(outcome.villageAlive).toBe(false);
+        expect(outcome.villageXp).toBe(0);
+        expect(outcome.xpAwarded).toBe(2 * VILLAGER_ALIVE_XP);
+    });
+
+    it("um aporte generoso NÃO paga o estouro de uma despesa comum", () => {
+        // Somados, os dois lados fechariam dentro (R$ 1.500 de R$ 1.500); o
+        // envelope comum, não. Compensar seria julgar pelo mesmo critério duas
+        // coisas que o jogo julga por critérios opostos.
+        const outcome = evaluateVillagers([
+            villager("mercado", 100_000, 110_000),
+            villager("transporte", 30_000, 30_000),
+            investor("investimentos", 20_000, 10_000),
+        ]);
+
+        expect(outcome.plannedCents).toBe(150_000);
+        expect(outcome.actualCents).toBe(150_000);
+        expect(outcome.villageAlive).toBe(false);
+    });
+
+    it("sem nenhum aldeão de investimento, a vila é EXATAMENTE a regra antiga", () => {
+        const outcome = evaluateVillagers([
+            villager("mercado", 100_000, 60_000),
+            villager("transporte", 30_000, 30_000),
+            villager("delivery", 10_000, 25_000),
+        ]);
+
+        expect(outcome.investmentVillagers).toBe(0);
+        expect(outcome.investmentPlannedCents).toBe(0);
+        expect(outcome.investmentActualCents).toBe(0);
+        expect(outcome.villageAlive).toBe(true);
+        expect(outcome.expenseActualCents).toBe(outcome.actualCents);
+    });
+
+    it("CENTAVOS nos limites: a soma dos aportes não morre por ruído de double", () => {
+        // 12 × R$ 0,10 de alvo e 12 × R$ 0,10 aportados. Em `double`, os dois
+        // lados dariam 1.2000000000000002 e a comparação `>=` dependeria da
+        // ordem das parcelas.
+        const rows = [];
+        for (let i = 0; i < 12; i++) {
+            rows.push(investor(`aporte-${i}`, 10, 10));
+        }
+
+        const outcome = evaluateVillagers(rows);
+
+        expect(outcome.investmentPlannedCents).toBe(120);
+        expect(outcome.investmentActualCents).toBe(120);
+        expect(outcome.villagersAlive).toBe(12);
+        expect(outcome.villageAlive).toBe(true);
+    });
+
+    it("o teto de 10 aldeões vale igual para os de investimento", () => {
+        const rows = [];
+        for (let i = 0; i < 14; i++) {
+            rows.push(investor(`aporte-${String(i).padStart(2, "0")}`, 10_000, 20_000));
+        }
+
+        const outcome = evaluateVillagers(rows);
+
+        expect(outcome.villagersAlive).toBe(14);
+        expect(outcome.villagersXp).toBe(VILLAGER_XP_CATEGORY_CAP * VILLAGER_ALIVE_XP);
+    });
+});
+
+describe("computeMonthlyVillagers — a allocation vem da CATEGORIA", () => {
+    it("lê `allocation: investment` da linha e inverte a regra", async () => {
+        const repository = makeRepository([
+            row("mercado", 100_000, 90_000),
+            investmentRow("investimentos", 20_000, 5_000),
+        ]);
+
+        const outcome = await new GamificationService(repository)
+            .computeMonthlyVillagers("w", EVALUATED_MONTH);
+
+        expect(outcome.villagersPlanned).toBe(2);
+        expect(outcome.villagersAlive).toBe(1);
+        expect(outcome.deadReasons).toEqual({ investimentos: "under_target" });
+    });
+
+    it("essential e comfort seguem a regra comum; só investment inverte", async () => {
+        const repository = makeRepository([
+            row("aluguel", 100_000, 90_000, { allocation: "essential" }),
+            row("lazer", 20_000, 5_000, { allocation: "comfort" }),
+            row("cdb", 20_000, 5_000, { allocation: "investment" }),
+        ]);
+
+        const outcome = await new GamificationService(repository)
+            .computeMonthlyVillagers("w", EVALUATED_MONTH);
+
+        expect(outcome.aliveCategoryIds).toEqual(["aluguel", "lazer"]);
+        expect(outcome.deadCategoryIds).toEqual(["cdb"]);
+    });
+
+    it("categoria de investimento SEM orçamento continua sem proteção", async () => {
+        // Sem alvo declarado não há alvo a alcançar: ela não é aldeão, e não
+        // morre por não ter aportado nada.
+        const repository = makeRepository([
+            row("mercado", 100_000, 10_000),
+            investmentRow("investimentos", 0, 0),
+        ]);
+
+        const outcome = await new GamificationService(repository)
+            .computeMonthlyVillagers("w", EVALUATED_MONTH);
+
+        expect(outcome.villagersPlanned).toBe(1);
+        expect(outcome.aliveCategoryIds).toEqual(["mercado"]);
+    });
+
+    it("o RETRATO do mês reflete a regra nova, e não ganha campo novo", async () => {
+        const repository = makeRepository([
+            row("mercado", 100_000, 90_000),
+            row("transporte", 30_000, 30_000),
+            investmentRow("investimentos", 20_000, 50_000),
+        ]);
+        const now = new Date("2026-10-01T06:00:00.000Z");
+
+        await new GamificationService(repository)
+            .closeMonthlyVillagers("w", "2026-09", now);
+
+        // Exatamente os seis campos de sempre: o motivo por aldeão não é
+        // gravado porque o retrato guarda CONTAGENS.
+        expect(repository.saveMonthlyReport).toHaveBeenCalledWith("w", {
+            monthKey: "2026-09",
+            villagersPlanned: 3,
+            villagersAlive: 3,
+            villageAlive: true,
+            xpAwarded: 3 * VILLAGER_ALIVE_XP + VILLAGE_ALIVE_XP,
+            computedAt: now.toISOString(),
+        });
+    });
+
+    it("o RECÁLCULO do mesmo mês é idempotente: o marcador durável barra o XP", async () => {
+        const rows = [
+            row("mercado", 100_000, 90_000),
+            row("transporte", 30_000, 30_000),
+            investmentRow("investimentos", 20_000, 50_000),
+        ];
+
+        // Primeira passada: concede.
+        const first = makeRepository(rows);
+        await new GamificationService(first).closeMonthlyVillagers("w", "2026-09", MONTHLY_CRON);
+        expect(first.awardXpOnce).toHaveBeenCalledTimes(1);
+        expect(first.awardXpOnce.mock.calls[0][1]).toBe("monthlyVillagers");
+        expect(first.awardXpOnce.mock.calls[0][2]).toBe("2026-09");
+
+        // Segunda: o marcador `xpAwardedFor.monthlyVillagers.2026-09` já
+        // existe, `awardXpOnce` devolve false e nada é creditado — mas o
+        // retrato continua guardando o que o MÊS rendeu.
+        const writer = jest.fn();
+        const second = makeRepository(rows, { awardXpOnce: jest.fn().mockResolvedValue(false) });
+        const report = await new GamificationService(second, undefined, undefined, writer)
+            .closeMonthlyVillagers("w", "2026-09", MONTHLY_CRON);
+
+        expect(writer).not.toHaveBeenCalled();
+        expect(report?.xpAwarded).toBe(145);
+        expect(second.saveMonthlyReport).toHaveBeenCalled();
     });
 });
 

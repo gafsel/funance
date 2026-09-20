@@ -26,6 +26,11 @@
  *    `_idempotency`: os marcadores dele têm TTL de 30 dias e não protegeriam
  *    um recálculo tardio.
  *  - ISOLA FALHA: um workspace que lança é contado e não derruba os demais.
+ *  - APLICA A REGRA INVERTIDA DO INVESTIMENTO (decisão do dono de 2026-09-20)
+ *    porque calcula pelo MESMO `computeMonthlyVillagers` do cron. O dry-run
+ *    imprime o envelope de investimento quando ele existe, e o retrato atual
+ *    ao lado do novo: é assim que se vê, antes de aplicar, quem muda de
+ *    estado por causa dela.
  *
  * ATENÇÃO: este script NUNCA foi executado contra o projeto real
  * (`funance-cef1b`). Ele escreve com Admin SDK e ignora as security rules.
@@ -198,11 +203,24 @@ export async function recomputeMonthlyVillagers(
                     : "sem retrato";
                 const verb = options.dryRun ? "GRAVARIA" : "gravado";
 
+                // O detalhe de INVESTIMENTO só aparece quando existe: num
+                // workspace sem categoria de aporte orçada a linha do log é
+                // idêntica à de antes deste pacote, e é isso que torna o
+                // dry-run legível — o que mudou salta à vista.
+                const underTarget = Object.values(outcome.deadReasons)
+                    .filter((reason) => reason === "under_target").length;
+                const investmentDetail = outcome.investmentVillagers > 0
+                    ? ` [investimento: ${outcome.investmentVillagers} aldeão(ões), ` +
+                      `alvo=${outcome.investmentPlannedCents} aportado=${outcome.investmentActualCents} centavos, ` +
+                      `${underTarget} abaixo do alvo]`
+                    : "";
+
                 log(
                     `[recompute_monthly_villagers] ${workspaceId}: ${from} -> ` +
                     `${outcome.villagersAlive}/${outcome.villagersPlanned} aldeões vivos, ` +
                     `vila ${outcome.villageAlive ? "protegida" : "caída"}, ${outcome.xpAwarded} XP ` +
-                    `[planejado=${outcome.plannedCents} realizado=${outcome.actualCents} centavos] (${verb}).`
+                    `[planejado=${outcome.plannedCents} realizado=${outcome.actualCents} centavos]` +
+                    `${investmentDetail} (${verb}).`
                 );
 
                 if (!options.dryRun) {

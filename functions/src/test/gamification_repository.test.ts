@@ -126,6 +126,25 @@ describe("GamificationRepositoryImpl.getPeriodSummaries", () => {
         expect(rows.map((r) => r.categoryId)).toEqual(["salario"]);
     });
 
+    it("uma categoria de INVESTIMENTO apagada não vira linha (nem aldeão)", async () => {
+        // O aldeão de investimento é o único que MORRE por realizar de menos
+        // (wp/villagers-investment). Se o join deixasse passar a categoria
+        // apagada, `aportes` entraria com alvo de R$ 1.000 e o usuário
+        // perderia um aldeão por não ter aportado numa categoria que ele
+        // APAGOU. A peneira do `isDeleted` é o que impede isso, e ela está
+        // aqui — no join —, antes de a regra existir.
+        mockFirestoreState.collections["workspaces/w1/period_summaries"] = [summaryDoc];
+        mockFirestoreState.collections["workspaces/w1/categories"] = [
+            doc("lazer", { type: "expense", allocation: "comfort", isDeleted: false }),
+            doc("aportes", { name: "Aportes", type: "expense", allocation: "investment", isDeleted: true }),
+        ];
+
+        const rows = await new GamificationRepositoryImpl().getPeriodSummaries("w1", 2026, 7);
+
+        expect(rows.map((r) => r.categoryId)).toEqual(["lazer"]);
+        expect(rows.find((r) => r.allocation === "investment")).toBeUndefined();
+    });
+
     it("devolve lista vazia quando não há summary do mês", async () => {
         mockFirestoreState.collections["workspaces/w1/period_summaries"] = [];
         mockFirestoreState.collections["workspaces/w1/categories"] = [

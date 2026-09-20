@@ -22,7 +22,13 @@ export interface MonthlyVillagersReport {
     villagersPlanned: number;
     /** Quantas fecharam o mês dentro do orçamento. */
     villagersAlive: number;
-    /** A soma do realizado ficou dentro da soma do planejado (com ≥ 3 aldeões). */
+    /**
+     * A vila aguentou o mês, com ≥ 3 aldeões — e são DOIS envelopes desde
+     * wp/villagers-investment: a soma do realizado ficou dentro da soma do
+     * planejado nas categorias COMUNS **e** alcançou a soma dos alvos nas de
+     * `allocation: "investment"`. Sem aldeão de investimento no mês, o segundo
+     * envelope é `0 >= 0` e isto é exatamente a regra antiga.
+     */
     villageAlive: boolean;
     /**
      * O XP que o MÊS rendeu — e não o que esta execução concedeu.

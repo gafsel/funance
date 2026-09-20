@@ -263,6 +263,47 @@ describe("HUD mensal (integração com emulador do Firestore)", () => {
         expect((await readWorkspace(workspaceId)).xp).toBe(VILLAGER_ALIVE_XP);
     });
 
+    it("allocation INVESTMENT vem do documento da categoria e inverte a regra", async () => {
+        // O join com `categories` é o que traz a `allocation`: aqui ela está
+        // no documento de verdade, no emulador, e não num mock.
+        const workspaceId = newWorkspace("investimento");
+        await seedWorkspace(workspaceId);
+        await seedCategory(workspaceId, "mercado", "expense", { allocation: "essential" });
+        await seedCategory(workspaceId, "transporte", "expense", { allocation: "comfort" });
+        await seedCategory(workspaceId, "aportes", "expense", { allocation: "investment" });
+        await seedCategory(workspaceId, "previdencia", "expense", { allocation: "investment" });
+        // APAGADA, e de investimento: com alvo de R$ 900 e nada aportado, ela
+        // seria o pior aldeão do mês se o join a deixasse passar. Documento de
+        // verdade, `isDeleted: true` de verdade.
+        await seedCategory(workspaceId, "tesouro-antigo", "expense", {
+            allocation: "investment", isDeleted: true,
+        });
+
+        await seedMonthlySummary(workspaceId, EVALUATED_MONTH, {
+            mercado: { plannedCents: 100_000, actualCents: 90_000 },
+            transporte: { plannedCents: 30_000, actualCents: 30_000 },
+            // Aportou o DOBRO do alvo: vivo pela regra invertida.
+            aportes: { plannedCents: 20_000, actualCents: 40_000 },
+            // Não alcançou o alvo: cai, embora tenha "gastado menos".
+            previdencia: { plannedCents: 50_000, actualCents: 10_000 },
+            "tesouro-antigo": { plannedCents: 90_000, actualCents: 0 },
+        });
+
+        const service = new GamificationService(new GamificationRepositoryImpl());
+        await service.evaluateMonthlyVillagersXp(workspaceId, MONTHLY_CRON);
+
+        // 3 vivos (mercado, transporte, aportes) = 45. A vila cai: o envelope
+        // de investimento pediu R$ 700 e recebeu R$ 500. E são QUATRO aldeões,
+        // não cinco: a categoria apagada ficou de fora do join.
+        expect((await readWorkspace(workspaceId)).xp).toBe(3 * VILLAGER_ALIVE_XP);
+        expect(await readReport(workspaceId, EVALUATED_MONTH)).toMatchObject({
+            villagersPlanned: 4,
+            villagersAlive: 3,
+            villageAlive: false,
+            xpAwarded: 45,
+        });
+    });
+
     describe("receita prevista do mês", () => {
         const service = () => new ExpectedIncomeService(new ExpectedIncomeRepositoryImpl());
 
