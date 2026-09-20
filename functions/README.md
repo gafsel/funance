@@ -74,6 +74,17 @@ apenas reage ao que o cliente gravou.
 | `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
 | **Todos os `*Cents`** — `orders.amountCents`, `installments.{amount,paidAmount,referenceAmount}Cents`, `accounts.{initialBalance,limit}Cents`, `accounts.nextInvoice.amountCents`, `goals.{targetAmount,currentAmount}Cents`, `category_planning.{amount,appliedAmount}Cents`, `balance.{delta,balance}Cents`, `period_summaries.categories.{id}.{generalPlannedAmount,specificPlannedAmount,actualAmount}Cents` | servidor (rules negam ao cliente) | ninguém **ainda** — o app passa a ler na etapa C | F1.10 | [Dinheiro em centavos](#dinheiro-em-centavos-f110) |
 
+> **Quando `weekly_missions` da semana corrente EXISTE.** Os três documentos da
+> semana não nascem na virada: o cron semanal (domingo 00:05) fecha a semana
+> ANTERIOR e não cria nada da nova. A criação é preguiçosa — o **primeiro
+> evento** da semana no workspace (transação, planejamento, conciliação…) chama
+> `generateWeeklyMissions` sob idempotência `workspaceId_weekId`. Até lá a
+> consulta devolve vazio, e **o app deve mostrar o bloco de missões vazio** (ou
+> o seu estado de "ainda não há missões"), não um erro nem um esqueleto
+> infinito. Uma semana inteira sem nenhum evento fica sem missão nenhuma — o
+> que também zera a streak de missões no fechamento, porque `count === 0` não
+> conta como semana completa.
+
 ### O que o app precisa acompanhar
 
 Três pontos em que o app ainda não está alinhado com o servidor:
@@ -2428,6 +2439,23 @@ porque nada no caminho sabia o que era estar dentro dele.
 
 O objetivo passou a ser **dado**.
 
+### Quando as missões da semana existem
+
+| Momento (America/Sao_Paulo) | O que acontece |
+|---|---|
+| domingo 00:00 | vira a semana do produto (`week.utils.ts`); `weekly_missions` da semana nova ainda **não existe** |
+| domingo 00:05 | `weeklyGamificationCron` fecha a semana ANTERIOR: passada final das missões em aberto, streak, XP do plano, badges |
+| domingo 00:10 | `syncWorkspaceCurrentWeek` reafirma `currentWeekId`/`currentWeekStart` |
+| primeiro evento da semana | `updateWeeklyMissionsProgress` → `generateWeeklyMissions`: **agora** os três documentos existem |
+
+Ou seja: **as missões da semana só passam a existir depois do primeiro evento
+do workspace naquela semana** — antes disso o app mostra o bloco vazio. O cron
+de domingo 00:05 não as cria; ele fecha a semana que acabou.
+
+Gerá-las no cron significaria uma chamada de IA (e três leituras) por
+workspace, toda semana, inclusive para quem não abre o app há meses — é uma
+decisão de custo, não um bug, e está anotada aqui de propósito.
+
 ### O catálogo
 
 `features/goal/domain/models/mission_catalog.ts` guarda, por audiência e por
@@ -2818,11 +2846,62 @@ de ser obedecido, sem depender de outro print do dono.
 | `syncNextInvoices`                  | `45 3 * * *` (diário)     | `America/Sao_Paulo` |
 | `generateCategoryPlanningSummaries` | `0 0 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `syncWorkspaceCurrentWeek`          | `10 0 * * 0` (domingo)    | `America/Sao_Paulo` |
-| `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
+| `weeklyGamificationCron`            | `5 0 * * 0` (domingo, 00:05) | `America/Sao_Paulo` |
 | `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `publishBadgeCatalog`               | `0 4 * * *` (diário)      | `America/Sao_Paulo` |
 | `refreshFinancialHealth`            | `*/15 * * * *` (15 min)   | `America/Sao_Paulo` |
 | `closeFinancialHealthMonth`         | `30 4 1 * *` (dia 1)      | `America/Sao_Paulo` |
+| `closeExpiredGoals`                 | `15 3 * * *` (diário)     | `America/Sao_Paulo` |
+| `generateWeeklyCoaching`            | `0 6 * * 1` (segunda)     | `America/Sao_Paulo` |
+
+Cada agendamento acima é uma leitura do calendário do PRODUTO (semana que
+começa no domingo, mês no fuso de Brasília), não uma preferência de horário:
+
+| Cron | Por que esse dia/hora |
+|---|---|
+| `weeklyGamificationCron` | domingo 00:05 — **a virada da semana** (ver abaixo) |
+| `syncWorkspaceCurrentWeek` | domingo 00:10 — logo depois da virada; fora dele o marcador é reafirmado sob demanda por `ensureCurrentWeek` |
+| `monthlyGamificationCron` | dia 1, 03:00 — avalia o mês ANTERIOR (`getMonthRangeInTz(now, -1)`), completo à meia-noite do dia 1 |
+| `closeFinancialHealthMonth` | dia 1, 04:30 — fecha o mês anterior (`shiftMonthKey(toMonthKey(now), -1)`), depois dos crons que fecham as outras coleções |
+| `generateCategoryPlanningSummaries` | dia 1, 00:00 — aplica o mês que COMEÇA (`toMonthKey(now)`/`planningHorizon(now)`); rodar depois atrasaria o planejado do mês corrente |
+| `closeExpiredGoals` | diário, 03:15 — vencimento de meta é por DIA; compara o prazo com `now` |
+| `syncNextInvoices` | diário, 03:45 — ciclo de fatura é por DIA, depois da geração de parcelas (03:30) |
+| `generateWeeklyCoaching` | segunda, 06:00 — **horário de entrega**, não de cálculo: a janela sai de `getWeekRefBefore(now, n)` e fecha a mesma semana em qualquer dia da semana corrente |
+
+O coaching é o único cujo dia é uma escolha de produto: "o insight da semana
+chega na segunda de manhã". Mudá-lo para domingo é decisão do dono, não
+correção — a semana analisada seria a mesma.
+
+### O cron semanal roda na VIRADA da semana (domingo 00:05)
+
+A semana do produto começa no **domingo 00:00** (F1.9), e o cron semanal ficou
+para trás em `"0 3 * * 1"` — segunda, 03:00. O fechamento em si nunca esteve
+errado (a janela é `startOfWeekInTz(now) - 7 dias`, que dá a mesma semana em
+qualquer dia da semana corrente), mas a semana nova passava **27 horas** sem
+que nada do lado semanal tivesse rodado: o usuário que abria o app no domingo
+ainda via a streak e o XP da semana anterior em aberto.
+
+O agendamento saiu para a constante exportada
+`WEEKLY_GAMIFICATION_CRON_SCHEDULE`, e `src/test/cron_schedule.test.ts`
+**deriva** a expressão do dia de início da semana (`week.utils.ts`): mudar a
+definição de semana sem mexer no cron — ou o contrário — quebra o teste.
+
+Cinco minutos de folga (`WEEKLY_CRON_MINUTES_AFTER_WEEK_START`) porque as
+regras de margem e de receita recebida leem `period_summaries`, escrito por
+gatilho: uma transação feita nos últimos segundos do sábado precisa de algum
+tempo para virar sumário. Não é uma garantia — é a mesma aposta que o cron das
+03:00 fazia com folga maior. Se aparecer semana fechada com sumário atrasado,
+o número a aumentar é esse.
+
+Ordem no domingo de madrugada: `weeklyGamificationCron` (00:05) roda **antes**
+de `syncWorkspaceCurrentWeek` (00:10). Não há dependência entre os dois — o
+cron semanal calcula a semana de `now` e não lê `workspaces.currentWeekId`.
+
+> ⚠️ **O cron NÃO cria as missões da semana nova.** Ele só fecha a anterior. As
+> missões de `weekly_missions` continuam nascendo de forma preguiçosa, no
+> primeiro evento da semana (`GamificationService.updateWeeklyMissionsProgress`
+> → `generateWeeklyMissions`, sob idempotência `workspaceId_weekId`). Ver o
+> contrato de [`weekly_missions`](#contratos-com-o-app).
 
 `generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
 uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha

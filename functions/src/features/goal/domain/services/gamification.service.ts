@@ -1543,9 +1543,14 @@ export class GamificationService {
     }
 
     async evaluateWeeklyMissionsCron(workspaceId: string, now: Date = new Date()): Promise<void> {
-        // O cron roda na virada da semana (segunda de madrugada): a semana a
-        // avaliar é a ANTERIOR, já completa. Avaliar a semana corrente (recém
-        // iniciada e vazia) zeraria a streak permanentemente.
+        // O cron roda logo DEPOIS da virada da semana (domingo 00:05): a
+        // semana a avaliar é a ANTERIOR, já completa. Avaliar a semana
+        // corrente (recém iniciada e vazia) zeraria a streak permanentemente.
+        //
+        // A janela não depende do horário do cron, só de `now` cair dentro da
+        // semana nova: `startOfWeekInTz(now)` é o domingo 00:00 que acabou de
+        // passar, e menos sete dias é o domingo anterior. Domingo 00:05 e a
+        // antiga segunda 03:00 produzem o MESMO `weekId`.
         const currentWeekStart = startOfWeekInTz(now);
         const startOfWeek = addCalendarDays(currentWeekStart, -7);
         const endOfWeek = endOfWeekFromStart(startOfWeek);
@@ -1653,7 +1658,7 @@ export class GamificationService {
     /**
      * F2.3 — XP DA SEMANA QUE FECHOU DENTRO DO PLANO.
      *
-     * Roda no cron semanal (segunda de madrugada) e avalia a semana ANTERIOR,
+     * Roda no cron semanal (domingo 00:05) e avalia a semana ANTERIOR,
      * já completa, a partir do `period_summaries/{YYYY-Www}` — o mesmo
      * documento que o app mostra. Para cada categoria de DESPESA com limite
      * vigente naquela semana (`generalPlannedAmount > 0`, a proporção semanal
@@ -1957,7 +1962,8 @@ export class GamificationService {
 
     /**
      * Executa a rotina semanal para todos os workspaces (chamado pelo
-     * scheduler toda segunda-feira, 03:00 America/Sao_Paulo).
+     * scheduler todo domingo, 00:05 America/Sao_Paulo — cinco minutos depois
+     * da virada da semana do produto).
      *
      * A varredura é paginada, concorrente e com checkpoint (F5.5): antes, a
      * lista inteira de workspaces vinha para a memória e era percorrida em

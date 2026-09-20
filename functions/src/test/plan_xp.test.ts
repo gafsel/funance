@@ -29,8 +29,14 @@ import {
 import { buildBadgeCatalog } from "../features/goal/domain/services/badge_catalog.service";
 import { getWeekId } from "../core/utils/week.utils";
 
-/** Segunda-feira, 07/09/2026 03:00 em São Paulo — o horário do cron semanal. */
-const MONDAY_CRON = new Date("2026-09-07T06:00:00.000Z");
+/** Domingo, 06/09/2026 00:05 em São Paulo — o horário do cron semanal. */
+const SUNDAY_CRON = new Date("2026-09-06T03:05:00.000Z");
+/**
+ * O horário ANTIGO do cron (segunda, 07/09/2026 03:00 em São Paulo). Continua
+ * aqui para provar que a mudança de agendamento não mexeu na JANELA: os dois
+ * instantes caem na mesma semana corrente e fecham a mesma semana anterior.
+ */
+const OLD_MONDAY_CRON = new Date("2026-09-07T06:00:00.000Z");
 /** A semana AVALIADA é a anterior: domingo 30/08 a sábado 05/09. */
 const EVALUATED_WEEK = "2026-W35";
 
@@ -82,7 +88,7 @@ describe("XP semanal — categorias dentro do limite", () => {
         });
         const service = new GamificationService(repository);
 
-        await service.evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await service.evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         expect(repository.getWeeklySummaryRows).toHaveBeenCalledWith("w", EVALUATED_WEEK);
         // Duas dentro (mercado e transporte, esta gastando EXATAMENTE o limite).
@@ -91,12 +97,25 @@ describe("XP semanal — categorias dentro do limite", () => {
         expect(repository.updateWorkspaceStreaks).not.toHaveBeenCalled();
     });
 
+    it("fecha a MESMA semana no domingo 00:05 e no antigo horário de segunda 03:00", async () => {
+        // A janela sai de `startOfWeekInTz(now) - 7 dias`, não do relógio: o
+        // cron mudou de dia/hora sem mudar a semana que ele encerra.
+        const domingo = makeRepository();
+        const segunda = makeRepository();
+
+        await new GamificationService(domingo).evaluateWeeklyPlanXp("w", SUNDAY_CRON);
+        await new GamificationService(segunda).evaluateWeeklyPlanXp("w", OLD_MONDAY_CRON);
+
+        expect(domingo.getWeeklySummaryRows).toHaveBeenCalledWith("w", EVALUATED_WEEK);
+        expect(segunda.getWeeklySummaryRows).toHaveBeenCalledWith("w", EVALUATED_WEEK);
+    });
+
     it("gastar EXATAMENTE o planejado conta como dentro do limite", async () => {
         const repository = makeRepository({
             getWeeklySummaryRows: jest.fn().mockResolvedValue([row("mercado", 300, 300)]),
         });
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await new GamificationService(repository).evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         // 20 (dentro) + 50 (todas) + 10 (streak 1).
         expect(totalXp(repository)).toBe(
@@ -117,7 +136,7 @@ describe("XP semanal — categorias dentro do limite", () => {
         const weekly = makeWeeklyXp();
 
         await new GamificationService(repository, undefined, undefined, weekly.writer)
-            .evaluateWeeklyPlanXp("w", MONDAY_CRON);
+            .evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         // 2×20 + 50 + 10×4 (a streak sobe de 3 para 4).
         expect(totalXp(repository)).toBe(40 + 50 + 40);
@@ -138,7 +157,7 @@ describe("XP semanal — categorias dentro do limite", () => {
 
         const weekly = makeWeeklyXp();
         await new GamificationService(repository, undefined, undefined, weekly.writer)
-            .evaluateWeeklyPlanXp("w", MONDAY_CRON);
+            .evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         expect(totalXp(repository)).toBe(20 + 50 + XP_VALUES.weeklyPlanStreakCap);
         expect(weekly.total()).toBe(20 + 50 + XP_VALUES.weeklyPlanStreakCap);
@@ -154,7 +173,7 @@ describe("XP semanal — categorias dentro do limite", () => {
             getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 5, streaks: { missions: 5, plan: 7 } }),
         });
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await new GamificationService(repository).evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w", { plan: 0 });
         // O XP da categoria que se manteve continua sendo pago: a semana não
@@ -170,7 +189,7 @@ describe("XP semanal — categorias dentro do limite", () => {
             getWorkspaceById: jest.fn().mockResolvedValue({ weeklyStreaks: 0, streaks: { missions: 0, plan: 6 } }),
         });
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await new GamificationService(repository).evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         expect(repository.addXp).not.toHaveBeenCalled();
         expect(repository.updateWorkspaceStreaks).toHaveBeenCalledWith("w", { plan: 0 });
@@ -185,7 +204,7 @@ describe("XP semanal — categorias dentro do limite", () => {
             ]),
         });
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await new GamificationService(repository).evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         // Só `mercado` conta: 20 + 50 (todas) + 10 (streak 1).
         expect(totalXp(repository)).toBe(80);
@@ -209,8 +228,8 @@ describe("XP semanal — categorias dentro do limite", () => {
         };
 
         const service = new GamificationService(repository, undefined, idempotency as any);
-        await service.evaluateWeeklyPlanXp("w", MONDAY_CRON);
-        await service.evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await service.evaluateWeeklyPlanXp("w", SUNDAY_CRON);
+        await service.evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         expect(repository.addXp).toHaveBeenCalledTimes(1);
         expect(idempotency.runIdempotency)
@@ -223,7 +242,7 @@ describe("XP semanal — categorias dentro do limite", () => {
             getWorkspaceById: jest.fn().mockResolvedValue(null),
         });
 
-        await new GamificationService(repository).evaluateWeeklyPlanXp("w", MONDAY_CRON);
+        await new GamificationService(repository).evaluateWeeklyPlanXp("w", SUNDAY_CRON);
 
         expect(repository.addXp).not.toHaveBeenCalled();
         expect(repository.updateWorkspaceStreaks).not.toHaveBeenCalled();
@@ -255,14 +274,14 @@ describe("XP único por categoria", () => {
         const weekly = makeWeeklyXp();
         const service = new GamificationService(repository, undefined, undefined, weekly.writer);
 
-        await service.awardPlanningCreationXp("w", { amount: 500, category: { id: "mercado" } }, MONDAY_CRON);
+        await service.awardPlanningCreationXp("w", { amount: 500, category: { id: "mercado" } }, SUNDAY_CRON);
 
         expect(repository.awardXpOnce).toHaveBeenCalledWith(
             "w", "planning", "mercado", XP_VALUES.planningCreated, expect.any(String)
         );
         // Também na barra da semana CORRENTE — o limite foi criado agora.
         expect(weekly.total()).toBe(XP_VALUES.planningCreated);
-        expect(getWeekId(weekly.calls[0].date)).toBe(getWeekId(MONDAY_CRON));
+        expect(getWeekId(weekly.calls[0].date)).toBe(getWeekId(SUNDAY_CRON));
     });
 
     it("a barra semanal NÃO é creditada quando o XP único não saiu", async () => {

@@ -478,6 +478,77 @@ describe("Weekly cron — evaluates the PREVIOUS full week", () => {
     });
 });
 
+/**
+ * O cron semanal passou de segunda 03:00 para DOMINGO 00:05 (cinco minutos
+ * depois da virada da semana do produto). A janela que ele fecha não pode
+ * mudar com isso: ela sai de `startOfWeekInTz(now) - 7 dias`, e os dois
+ * instantes caem na MESMA semana corrente.
+ */
+describe("Weekly cron — domingo 00:05 fecha a mesma semana que a antiga segunda 03:00", () => {
+    let service: GamificationService;
+
+    /** Domingo 13/09/2026, 00:05 em São Paulo — o horário atual do cron. */
+    const SUNDAY_CRON = new Date("2026-09-13T03:05:00.000Z");
+    /** Segunda 14/09/2026, 03:00 em São Paulo — o horário antigo. */
+    const OLD_MONDAY_CRON = new Date("2026-09-14T06:00:00.000Z");
+    /** A semana fechada nos dois casos: domingo 06/09 a sábado 12/09. */
+    const CLOSED_WEEK = "2026-W36";
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        mockRepository.getWeeklyMissionsByWeek.mockResolvedValue([
+            { status: "completed" },
+            { status: "completed" },
+            { status: "completed" },
+        ]);
+        mockRepository.getWorkspaceById.mockResolvedValue({ streaks: { missions: 1 }, members: [] });
+        mockRepository.getCompletedMissionsCount.mockResolvedValue(3);
+        mockRepository.unlockBadge.mockResolvedValue(true);
+    });
+
+    it.each([
+        ["domingo 00:05", SUNDAY_CRON],
+        ["segunda 03:00 (horário antigo)", OLD_MONDAY_CRON],
+    ])("%s avalia a semana %s", async (_label, now) => {
+        await service.evaluateWeeklyMissionsCron("w1", now as Date);
+
+        expect(mockRepository.getWeeklyMissionsByWeek).toHaveBeenCalledWith("w1", CLOSED_WEEK);
+        // A semana CORRENTE (2026-W37) não é tocada: avaliá-la recém-iniciada
+        // e vazia zeraria a streak de quem não fez nada de errado.
+        expect(mockRepository.getWeeklyMissionsByWeek).not.toHaveBeenCalledWith("w1", "2026-W37");
+        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 2 });
+    });
+
+    it("cinco minutos depois da virada, a semana fechada já terminou por inteiro", async () => {
+        // A missão em aberto força a passada FINAL (`weekly_close`), que é a
+        // que lê as parcelas pagas da semana: a janela tem de ser a semana
+        // toda, domingo 00:00 a sábado 23:59:59.999 — nada do dia corrente.
+        mockRepository.getWeeklyMissionsByWeek.mockResolvedValue([
+            { type: "discipline", status: "pending", target: 5, templateKey: "personal_discipline_top_category" },
+        ]);
+        mockRepository.getCategoryPlannings.mockResolvedValue([
+            {
+                amount: 700,
+                startMonth: "2026-09",
+                category: { id: "mercado", name: "Mercado", type: "expense" },
+            },
+        ]);
+        mockRepository.getPaidInstallmentsInPeriod.mockResolvedValue([]);
+
+        await service.evaluateWeeklyMissionsCron("w1", SUNDAY_CRON);
+
+        const [, start, end] = mockRepository.getPaidInstallmentsInPeriod.mock.calls[0];
+        expect(getWeekId(start)).toBe(CLOSED_WEEK);
+        expect(start.getTime()).toBe(startOfWeekInTz(start).getTime());
+        expect(end.getTime()).toBe(endOfWeekFromStart(start).getTime());
+        // O fim da semana fechada é ANTERIOR ao disparo do cron.
+        expect(end.getTime()).toBeLessThan(SUNDAY_CRON.getTime());
+        // E o mês do planejamento é o do DOMINGO que iniciou a semana fechada.
+        expect(getMonthKeyInTz(start)).toBe("2026-09");
+    });
+});
+
 describe("no_credit_debt badge (monthly cron)", () => {
     let service: GamificationService;
 

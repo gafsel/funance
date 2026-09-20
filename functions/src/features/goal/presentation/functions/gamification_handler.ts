@@ -503,14 +503,50 @@ export const onGoalWritten = onDocumentWritten(
 // Antes eram onCall ("cron simulation triggers") que nenhum código chamava —
 // streaks e missões semanais/mensais nunca eram avaliadas.
 
+/**
+ * Minutos de folga entre a VIRADA da semana e a passada de fechamento.
+ *
+ * A semana do produto termina no sábado 23:59:59.999 local (`week.utils.ts`);
+ * o cron precisa rodar DEPOIS disso, senão fecharia uma semana ainda em curso.
+ * Cinco minutos é o que dá para os gatilhos de uma escrita feita nos últimos
+ * segundos do sábado terminarem de atualizar `period_summaries` — as regras de
+ * margem e de receita recebida leem esse documento.
+ */
+export const WEEKLY_CRON_MINUTES_AFTER_WEEK_START = 5;
+
+/**
+ * Agendamento do cron semanal — DERIVADO da definição de semana do produto.
+ *
+ * A semana começa no **domingo 00:00** no fuso do produto (ver
+ * `core/utils/week.utils.ts`): daí o `0` no campo de dia da semana, e a hora
+ * `00:05` — `WEEKLY_CRON_MINUTES_AFTER_WEEK_START` depois da virada.
+ *
+ * Ficava em `"0 3 * * 1"` (segunda, 03:00): a passada de fechamento continuava
+ * correta, mas a semana nova passava 27 horas sem que NADA do lado semanal
+ * tivesse rodado. Como a Home só mostra missão que existe no Firestore e a
+ * geração é preguiçosa (disparada por evento, ver
+ * `GamificationService.updateWeeklyMissionsProgress`), quem abria o app no
+ * domingo via o bloco de missões vazio.
+ *
+ * `src/test/cron_schedule.test.ts` deriva esta expressão do dia de início da
+ * semana e falha se um dos dois mudar sem o outro.
+ */
+export const WEEKLY_GAMIFICATION_CRON_SCHEDULE = "5 0 * * 0";
+
 export const weeklyGamificationCron = onSchedule(
     {
-        // Toda segunda-feira às 03:00, horário de São Paulo — avalia a semana
-        // anterior (domingo a sábado) já encerrada.
-        schedule: "0 3 * * 1",
+        // Todo domingo às 00:05, horário de São Paulo — cinco minutos depois
+        // da virada, avalia a semana anterior (domingo a sábado) recém
+        // encerrada. O que ela fecha NÃO muda com o horário: a janela é
+        // `startOfWeekInTz(now) - 7 dias`, e tanto no domingo 00:05 quanto na
+        // antiga segunda 03:00 isso é a mesma semana.
+        schedule: WEEKLY_GAMIFICATION_CRON_SCHEDULE,
         timeZone: GAMIFICATION_TIME_ZONE,
-        // Varre todos os workspaces e gera missões semanais via IA: precisa de
-        // mais memória/timeout do que o padrão global de 256MiB/60s.
+        // Varre a base INTEIRA de workspaces (missões da semana fechada, XP do
+        // plano, badges): precisa de mais memória/timeout do que o padrão
+        // global de 256MiB/60s. Ele NÃO gera as missões da semana nova nem
+        // chama a IA — a geração é preguiçosa, no primeiro evento da semana
+        // (ver `updateWeeklyMissionsProgress`).
         ...AI_SCHEDULE_OPTIONS,
     },
     async () => {
@@ -555,10 +591,11 @@ export const monthlyGamificationCron = onSchedule(
  * para disparar um gatilho. O mesmo vale para a meta de acúmulo que vence sem
  * alcançar o alvo: alguém precisa carimbar a derrota.
  *
- * 03:15 (America/Sao_Paulo), quinze minutos depois dos crons semanais/mensais,
- * para não disputar leitura com eles no mesmo minuto. A varredura é a paginada
- * com checkpoint (`forEachWorkspacePaged`), então um timeout retoma do ponto
- * exato na execução seguinte.
+ * 03:15 (America/Sao_Paulo), quinze minutos depois do cron MENSAL (o semanal
+ * passou para domingo 00:05), para não disputar leitura com ele no mesmo
+ * minuto no dia 1. A varredura é a paginada com checkpoint
+ * (`forEachWorkspacePaged`), então um timeout retoma do ponto exato na
+ * execução seguinte.
  *
  * Idempotente: só toca metas com `outcome == null` e prazo vencido — na segunda
  * passada elas já têm desfecho e são puladas.
