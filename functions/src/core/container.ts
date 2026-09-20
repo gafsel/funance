@@ -39,6 +39,9 @@ import { IBadgeCatalogRepository } from "../features/goal/domain/repositories/ba
 import { BadgeCatalogRepositoryImpl } from "../features/goal/data/repositories/badge_catalog.repository.impl";
 import { BadgeCatalogService } from "../features/goal/domain/services/badge_catalog.service";
 import { GamificationRepositoryImpl } from "../features/goal/data/repositories/gamification.repository.impl";
+import { IExpectedIncomeRepository } from "../features/finance/domain/repositories/expected_income.repository";
+import { ExpectedIncomeRepositoryImpl } from "../features/finance/data/repositories/expected_income.repository.impl";
+import { ExpectedIncomeService } from "../features/finance/domain/services/expected_income.service";
 import { IHealthRepository } from "../features/health/domain/repositories/health.repository";
 import { HealthRepositoryImpl } from "../features/health/data/repositories/health.repository.impl";
 import { FinancialHealthService } from "../features/health/domain/services/financial_health.service";
@@ -74,6 +77,8 @@ class Container {
     private static _badgeCatalogService: BadgeCatalogService;
     private static _healthRepository: IHealthRepository;
     private static _financialHealthService: FinancialHealthService;
+    private static _expectedIncomeRepository: IExpectedIncomeRepository;
+    private static _expectedIncomeService: ExpectedIncomeService;
 
     static get idempotencyService(): IIdempotencyService {
         if (!this._idempotencyService) {
@@ -299,6 +304,22 @@ class Container {
             this._financialHealthService = new FinancialHealthService(this.healthRepository);
         }
         return this._financialHealthService;
+    }
+
+    /** HUD mensal — leitura dos sumários e publicação de `expectedIncome`. */
+    static get expectedIncomeRepository(): IExpectedIncomeRepository {
+        if (!this._expectedIncomeRepository) {
+            this._expectedIncomeRepository = new ExpectedIncomeRepositoryImpl();
+        }
+        return this._expectedIncomeRepository;
+    }
+
+    /** HUD mensal — a receita prevista do mês (função de domínio ÚNICA). */
+    static get expectedIncomeService(): ExpectedIncomeService {
+        if (!this._expectedIncomeService) {
+            this._expectedIncomeService = new ExpectedIncomeService(this.expectedIncomeRepository);
+        }
+        return this._expectedIncomeService;
     }
 
     static get goalFeasibilityService(): GoalFeasibilityService {

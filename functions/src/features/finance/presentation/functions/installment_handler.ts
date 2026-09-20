@@ -3,7 +3,12 @@ import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import * as logger from "firebase-functions/logger";
 import { container } from "../../../../core/container";
 import { getChangedFields } from "../../../../core/utils/diff.utils";
-import { INSTALLMENT_DERIVED_FIELDS, InstallmentModel, MONEY_CENTS_FIELDS } from "../../domain/models/finance.models";
+import {
+    INSTALLMENT_DERIVED_FIELDS,
+    InstallmentModel,
+    MONEY_CENTS_FIELDS,
+    OrderType,
+} from "../../domain/models/finance.models";
 import { applyCentsPatch, withFreshCents } from "../../../../core/utils/money_cents";
 
 // Reexportado por compatibilidade: a definição vive no modelo da parcela,
@@ -144,6 +149,25 @@ export async function handleInstallmentWritten(
     // carimbo é inofensivo, e o índice não pode ficar desatualizado porque o
     // marcador daquele evento já estava gravado.
     await container.financialHealthService.markHealthDirty(workspaceId);
+
+    // HUD MENSAL — a receita prevista do mês (`workspaces/{w}.expectedIncome`).
+    //
+    // ESTE é o gatilho de sumário que a move: a previsão sai de
+    // `specificPlannedAmount` das categorias de receita (parcelas de receita
+    // agendadas) e, na falta dele, da média do realizado — e as duas coisas
+    // são justamente o que uma parcela de RECEITA acabou de mexer.
+    //
+    // O gatilho de PLANEJAMENTO não entra aqui de propósito:
+    // `category_planning` alimenta o `generalPlannedAmount`, que é um teto de
+    // DESPESA e não tem parte nenhuma nesta conta. Chamá-lo de lá seria
+    // trabalho morto com um comentário de "por via das dúvidas".
+    //
+    // Fora da idempotência, como o carimbo da Bússola: é um recálculo a partir
+    // do estado, idempotente por construção, e a publicação só escreve quando
+    // o valor muda (a comparação está em `publishExpectedIncome`).
+    if (before?.type === OrderType.income || after?.type === OrderType.income) {
+        await container.expectedIncomeService.publishCurrentMonth(workspaceId);
+    }
 
     // Processar cascata se necessário
     if (before && after) {

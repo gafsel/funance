@@ -45,6 +45,10 @@ const GAMIFICATION_ONLY_FIELDS = new Set([
     // de streaks semanais (escrito junto do `weeklyStreaks` numérico).
     "xpAwardedFor",
     "streaks",
+    // HUD mensal — a receita prevista do mês, republicada pelo gatilho de
+    // parcela de receita e pelo cron mensal. Sem ela aqui, toda nota a receber
+    // lançada acordaria a bateria inteira de checagens de badge do workspace.
+    "expectedIncome",
 ]);
 
 /**

@@ -78,7 +78,11 @@ service cloud.firestore {
         // F2.2/F2.3: a Bússola da Liberdade, os marcadores de XP único e o mapa
         // de streaks são exclusivos do servidor — o cliente não os semeia na
         // criação (nem uma sequência já pronta).
-        && !request.resource.data.keys().hasAny(['financialHealth', 'healthDirtyAt', 'xpAwardedFor', 'streaks']);
+        // HUD mensal: `expectedIncome` é a receita prevista do mês calculada
+        // pelo servidor — o denominador das razões de poção/ovo/gota. Semeá-la
+        // na criação seria escolher o próprio denominador e nascer com a
+        // poção hiper.
+        && !request.resource.data.keys().hasAny(['financialHealth', 'healthDirtyAt', 'xpAwardedFor', 'streaks', 'expectedIncome']);
 
       // Update: membros só podem alterar campos de apresentação/onboarding.
       // 'members' é imutável pelo cliente (o aceite de convite adiciona membros
@@ -95,6 +99,8 @@ service cloud.firestore {
       // contabilidade de XP: escrevê-los no cliente seria escolher a própria
       // patente e conceder o próprio XP. Como a lista de affectedKeys abaixo é
       // fechada (hasOnly), todos já estão negados por construção.
+      // HUD mensal: 'expectedIncome' (receita prevista do mês) entra na mesma
+      // categoria — o app LÊ o denominador das razões do HUD, nunca o escreve.
       // 'createdAt' permitido apenas porque o fluxo de onboarding reescreve o doc
       // inteiro com um timestamp gerado no cliente logo após a criação.
       allow update: if request.auth != null
