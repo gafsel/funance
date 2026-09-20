@@ -1,0 +1,67 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/widgets/app_scaffold.dart';
+import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
+
+import 'support/home_harness.dart';
+
+/// D2 — a Home tem de caber.
+///
+/// "A Home está longa demais" foi a segunda coisa que o dono disse sobre o
+/// APK, e a primeira rodada tratou isso como uma questão de ORDEM. Não é:
+/// reordenar o que não cabe só muda o que se perde primeiro. Com dados
+/// típicos — três missões, o checklist da semana, uma meta, o coaching e um
+/// mês com renda cadastrada — a tela media 1613px (3,0 telas) a 400px e
+/// 1429px (2,6) a 800px.
+///
+/// O teto é DOIS viewports. Não é um número bonito: é a distância a partir da
+/// qual o que está no fim da tela deixa de existir para quem abre o app e
+/// olha. Ele é medido aqui, e não conferido no olho, porque a altura cresce
+/// por acúmulo — cada bloco parece razoável sozinho.
+
+/// A altura real do conteúdo da Jornada, em pixels.
+double _alturaDoConteudo(WidgetTester tester) {
+  final coluna = find
+      .descendant(of: find.byType(AppContentWidth), matching: find.byType(Column))
+      .first;
+  return tester.getSize(coluna).height;
+}
+
+void main() {
+  for (final largura in <double>[400, 800]) {
+    testWidgets('D2 — a Home cabe em duas rolagens a ${largura.toInt()}px', (
+      tester,
+    ) async {
+      const altura = 544.0;
+
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(
+          missions: homeTypicalMissions(),
+          installments: homeTypicalInstallments(),
+          goals: homeTypicalGoals(),
+          categories: homeTypicalCategories,
+          summary: homeTypicalSummary(),
+        ),
+        size: Size(largura, altura),
+      );
+
+      final medida = _alturaDoConteudo(tester);
+
+      debugPrint(
+        'ALTURA ${largura.toInt()}px: ${medida.toStringAsFixed(0)}px — '
+        '${(medida / altura).toStringAsFixed(1)} telas',
+      );
+
+      expect(
+        medida,
+        lessThanOrEqualTo(altura * 2),
+        reason:
+            'a Home mede ${medida.toStringAsFixed(0)}px em ${largura.toInt()}'
+            '×${altura.toInt()} — '
+            '${(medida / altura).toStringAsFixed(1)} telas; o teto é 2',
+      );
+    });
+  }
+}

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/widgets/level_badge.dart';
 import 'package:funances/features/finance/presentation/widgets/automatic_transaction_consolidation_widget.dart';
@@ -116,6 +117,66 @@ void main() {
       await pumpHome(tester, const JourneyTab(), overrides: homeOverrides());
 
       expect(find.byType(TeamStatusView), findsNothing);
+    });
+
+    testWidgets('D2 — o checklist da semana saiu para /missions', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(missions: homeTypicalMissions()),
+      );
+
+      expect(
+        find.byType(WeekChecklist),
+        findsNothing,
+        reason:
+            'são 516px de LISTA: quem abre o app para saber o que fazer hoje '
+            'precisa saber que ela existe, não precisa dela aberta',
+      );
+      expect(find.byType(MissionCard), findsNothing);
+      expect(
+        find.byType(MissionSummary),
+        findsOneWidget,
+        reason: 'no lugar ficou o resumo de uma linha por missão',
+      );
+    });
+
+    testWidgets('D2 — o resumo tem UM botão, o da missão em foco', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(missions: homeTypicalMissions()),
+      );
+
+      expect(
+        find.descendant(
+          of: find.byType(MissionSummary),
+          matching: find.byType(TextButton),
+        ),
+        findsOneWidget,
+        reason:
+            'três botões empilhados é a mesma pergunta feita três vezes, e '
+            'nenhuma delas é "o que eu faço agora"',
+      );
+      // A missão em foco é a primeira AINDA ABERTA com destino — não a
+      // primeira da lista, que está cumprida.
+      expect(find.text('Abrir o 50-30-20'), findsOneWidget);
+    });
+
+    testWidgets('D2 — o cabeçalho conta quantas foram e abre a semana', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(missions: homeTypicalMissions()),
+      );
+
+      expect(find.text('1 de 3 completadas'), findsOneWidget);
     });
 
     testWidgets('D2 — o coaching ocupa UMA linha, não um cartão', (

@@ -28,6 +28,7 @@ import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/goal/presentation/screen/goal_form_screen.dart';
 import 'package:funances/features/goal/presentation/screen/goals_screen.dart';
+import 'package:funances/features/home/presentation/screens/missions_screen.dart';
 import 'package:funances/features/goal/presentation/screen/goal_detail_screen.dart';
 import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/onboarding/presentation/screens/onboarding_screen.dart';
@@ -383,6 +384,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
           return CategoryReportDetailScreen(type: type);
         },
+      ),
+      GoRoute(
+        path: '/missions',
+        builder: (context, state) => const MissionsScreen(),
       ),
       GoRoute(path: '/goals', builder: (context, state) => const GoalsScreen()),
       GoRoute(

@@ -29,7 +29,9 @@ import 'package:funances/features/home/presentation/widgets/weekly_missions_view
 /// 3. **o que vence hoje e amanhã** — o que ainda dá tempo de resolver;
 /// 4. **as pendências do leitor de notificação**, quando existem. Mesma
 ///    família do 3: coisas que expiram;
-/// 5. **as missões da semana**, com o que fazer;
+/// 5. **as missões da semana**, em resumo e com UM botão — o da missão em
+///    foco. O detalhe da semana (cartões, XP e checklist) abre em
+///    `/missions`;
 /// 6. **o empurrão** — o coaching, em UMA linha;
 /// 7. **a linha da Bússola** — número, patente e variação;
 /// 8. **uma meta em destaque**, a de prazo mais curto.
@@ -56,7 +58,7 @@ class JourneyTab extends ConsumerWidget {
               JourneyHeader(),
               DueSoonStrip(),
               AutomaticTransactionConsolidationWidget(),
-              WeeklyMissionsView(),
+              WeeklyMissionsView(compact: true),
               AppSpacing.gapLg,
               CoachingInsightCard(compact: true),
               CompassStripView(),
