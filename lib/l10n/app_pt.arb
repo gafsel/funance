@@ -1298,5 +1298,13 @@
         "type": "String"
       }
     }
+  },
+  "automaticTransactionSeeAll": "Ver as {count} pendências",
+  "@automaticTransactionSeeAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -2474,4 +2474,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String planning503020ActualPercent(String percent) {
     return 'Real: $percent';
   }
+
+  @override
+  String automaticTransactionSeeAll(int count) {
+    return 'Ver as $count pendências';
+  }
 }

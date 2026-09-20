@@ -19,8 +19,22 @@ import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
+/// As notificações de banco esperando virar lançamento.
+///
+/// [maxItems] existe porque este bloco NÃO tem tamanho: o leitor grava uma
+/// pendência por notificação e ninguém consolida todo dia, então a lista
+/// cresce sozinha. Medido no aparelho do dono, 35 pendências davam 3.050px —
+/// a Home inteira ia a 7,1 rolagens. O defeito estava lá desde sempre e ficou
+/// invisível por um tempo porque o parse derrubava a lista antes de ela
+/// desenhar; o parse tolerante da rodada anterior a ressuscitou inteira.
+///
+/// Na Home o bloco mostra três e oferece a tela cheia. `null` mostra tudo, e
+/// é o que a tela `/automatic-transactions` usa.
 class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
-  const AutomaticTransactionConsolidationWidget({super.key});
+  const AutomaticTransactionConsolidationWidget({super.key, this.maxItems});
+
+  /// Teto de pendências mostradas. `null` = todas.
+  final int? maxItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -53,13 +67,23 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
       );
     }
 
+    final all = state.pendingTransactions;
+    final shown = maxItems == null || all.length <= maxItems!
+        ? all
+        : all.take(maxItems!).toList(growable: false);
+    final hidden = all.length - shown.length;
+
+    final dense = maxItems != null;
+
     return Card(
-      margin: AppSpacing.allMd,
+      // Na Home a margem do cartão soma com o respiro que a coluna já dá, e
+      // 32px de espaço duplicado num bloco com teto de altura é caro.
+      margin: dense ? EdgeInsets.zero : AppSpacing.allMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: AppSpacing.allMd,
+            padding: dense ? AppSpacing.allSm : AppSpacing.allMd,
             child: Row(
               children: [
                 Icon(Icons.auto_awesome, color: palette.tealText),
@@ -72,10 +96,14 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
                         l10n.automaticTransactionTitle,
                         style: theme.textTheme.titleMedium,
                       ),
-                      Text(
-                        l10n.automaticTransactionSubtitle,
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      // O subtítulo explica o que o bloco É. Na Home, onde
+                      // ele reaparece todo dia, isso é uma linha gasta com
+                      // algo que já se sabe.
+                      if (!dense)
+                        Text(
+                          l10n.automaticTransactionSubtitle,
+                          style: theme.textTheme.bodySmall,
+                        ),
                     ],
                   ),
                 ),
@@ -95,11 +123,12 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: state.pendingTransactions.length,
+            itemCount: shown.length,
             separatorBuilder: (context, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              final transaction = state.pendingTransactions[index];
+              final transaction = shown[index];
               return _TransactionItem(
+                dense: maxItems != null,
                 transaction: transaction,
                 onConsolidate: () =>
                     _handleConsolidate(context, ref, transaction),
@@ -109,6 +138,24 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
               );
             },
           ),
+          if (hidden > 0) ...[
+            const Divider(height: 1),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: TextButton.icon(
+                  onPressed: () => context.push('/automatic-transactions'),
+                  icon: const Icon(Icons.inbox_outlined, size: 18),
+                  label: Text(
+                    l10n.automaticTransactionSeeAll(
+                      state.pendingTransactions.length,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -223,11 +270,22 @@ class _TransactionItem extends ConsumerWidget {
   final VoidCallback onIgnore;
   final Function(String) onMove;
 
+  /// Uma LINHA em vez do item inteiro, para a Home.
+  ///
+  /// O item completo tem descrição, data, valor, pílulas de sugestão e três
+  /// ações — 200px cada. Três deles enchiam 600px de uma Home cujo teto é
+  /// 1088. Aqui ele é o que a Home precisa dizer: o que chegou, quanto foi, e
+  /// um toque para aceitar a sugestão. Ignorar e mover para outro cofre são
+  /// decisões com consequência e ficam na tela cheia, onde há espaço para
+  /// conferir antes.
+  final bool dense;
+
   const _TransactionItem({
     required this.transaction,
     required this.onConsolidate,
     required this.onIgnore,
     required this.onMove,
+    this.dense = false,
   });
 
   @override
@@ -235,6 +293,9 @@ class _TransactionItem extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final palette = context.palette;
+
+    if (dense) return _dense(context, l10n, theme, palette);
+
     final workspaceState = ref.watch(WorkspaceViewProviders.workspace);
     final currentWorkspace = workspaceState.currentWorkspace;
     final otherWorkspaces = workspaceState.availableWorkspaces
@@ -353,6 +414,70 @@ class _TransactionItem extends ConsumerWidget {
                 ],
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// A linha da Home.
+  Widget _dense(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    AppPalette palette,
+  ) {
+    final accent = transaction.type == OrderType.expense
+        ? palette.dangerText
+        : palette.successText;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            transaction.type == OrderType.expense
+                ? Icons.arrow_circle_down
+                : Icons.arrow_circle_up,
+            size: 16,
+            color: accent,
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  transaction.description,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: palette.ink,
+                  ),
+                ),
+                Text(
+                  transaction.date.formated('dd/MM HH:mm', context.locale),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.ink2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          MoneyText(
+            transaction.amount,
+            style: theme.textTheme.bodySmall?.copyWith(color: accent),
+          ),
+          IconButton(
+            onPressed: onConsolidate,
+            icon: const Icon(Icons.check_circle_outline, size: 20),
+            tooltip: l10n.automaticTransactionConsolidate,
+            visualDensity: VisualDensity.compact,
           ),
         ],
       ),

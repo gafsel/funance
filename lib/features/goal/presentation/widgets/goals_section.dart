@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_breakpoints.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_radius.dart';
 import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
@@ -178,7 +179,7 @@ class GoalsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildGoalCard(context, ordered.first),
+        _buildGoalLine(context, ordered.first),
         // O contador é do que a tela `/goals` LISTA — correntes e encerradas
         // —, não do que corre. Com uma meta corrente e quatro encerradas o
         // atalho sumia, e "Ver as N metas" prometia um número que não era o
@@ -258,6 +259,80 @@ class GoalsSection extends ConsumerWidget {
               .toList(),
         );
       },
+    );
+  }
+
+  /// A meta em destaque na Home, em UMA linha.
+  ///
+  /// O cartão tem ícone em cápsula, nome, alvo, prazo, barra, dois valores e
+  /// um selo de desfecho: 192px. É o desenho certo numa LISTA de metas, onde
+  /// a pergunta é comparativa — e é caro numa Home cujo teto inteiro é 1088.
+  ///
+  /// Meta é o compromisso mais longo que o app guarda; na Home ela é a linha
+  /// que diz que existe e quanto falta, no mesmo formato da Bússola, do
+  /// coaching e das missões. O cartão continua sendo o desenho de `/goals`.
+  Widget _buildGoalLine(BuildContext context, GoalModel goal) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    final progress = goal.calculateProgress();
+
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        borderRadius: AppRadius.brMd,
+        onTap: () => context.push('/goals/${goal.id}'),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: AppRadius.brMd,
+            border: Border.all(color: palette.line),
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          child: Row(
+            children: [
+              Icon(
+                goal.type == GoalType.saveMoney
+                    ? Icons.savings
+                    : goal.type == GoalType.payDebt
+                    ? Icons.handshake
+                    : Icons.trending_down,
+                size: 18,
+                color: palette.ink2,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  goal.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: palette.ink,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              SizedBox(
+                width: 64,
+                child: AppProgressBar(
+                  value: progress.percent,
+                  size: AppProgressSize.thin,
+                  semanticLabel: goal.name,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                progress.percent.asPercent(locale: context.locale),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: palette.ink2,
+                ),
+              ),
+              Icon(Icons.chevron_right, size: 18, color: palette.ink2),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

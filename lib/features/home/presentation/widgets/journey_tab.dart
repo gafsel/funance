@@ -39,7 +39,9 @@ import 'package:funances/features/home/presentation/widgets/weekly_missions_view
 ///    ele pode virar correção; repetido aqui no dia seguinte, vira boletim
 ///    sobre algo que já passou. Ver README, "Decisões de produto da Home";
 /// 7. **a linha da Bússola** — número, patente e variação;
-/// 8. **uma meta em destaque**, a de prazo mais curto.
+/// 8. **uma meta em destaque**, a de prazo mais curto — em uma linha, com o
+///    nome do bloco dispensado: a linha já diz que é uma meta, e `/goals`
+///    tem o cartão completo.
 ///
 /// O que saiu: o cabeçalho duplicado do cofre (a identidade mora na `AppBar`),
 /// a lista inteira de metas (foi para `/goals`) e a Party (foi para a Visão
@@ -62,13 +64,13 @@ class JourneyTab extends ConsumerWidget {
             children: const [
               JourneyHeader(),
               DueSoonStrip(),
-              AutomaticTransactionConsolidationWidget(),
+              AutomaticTransactionConsolidationWidget(maxItems: 3),
               WeeklyMissionsView(compact: true),
               AppSpacing.gapLg,
               CoachingInsightCard(compact: true),
               CompassStripView(),
               AppSpacing.gapLg,
-              GoalsSection(highlightOnly: true),
+              GoalsSection(highlightOnly: true, showTitle: false),
               AppSpacing.gapXl,
             ],
           ),

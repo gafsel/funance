@@ -189,6 +189,41 @@ void main() {
       expect(find.text('1 de 3 completadas'), findsOneWidget);
     });
 
+    /// A1 — o bloco de pendências não tinha tamanho. O leitor grava uma por
+    /// notificação de banco e ninguém consolida todo dia: medido no aparelho
+    /// do dono, 35 pendências davam 3.050px e a Home inteira ia a 7,1
+    /// rolagens. O defeito estava lá desde sempre e ficou invisível enquanto
+    /// o parse derrubava a lista antes de ela desenhar.
+    testWidgets('A1 — a Home mostra no máximo 3 pendências', (tester) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(pendingAutomatic: homeTypicalPending()),
+      );
+
+      expect(
+        find.textContaining('COMPRA CARTAO'),
+        findsNWidgets(3),
+        reason: '35 pendências desenhadas eram 3.050px de Home',
+      );
+      expect(find.text('Ver as 35 pendências'), findsOneWidget);
+    });
+
+    testWidgets('A1 — com poucas, não oferece uma tela cheia de nada', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(
+          pendingAutomatic: homeTypicalPending(count: 2),
+        ),
+      );
+
+      expect(find.textContaining('COMPRA CARTAO'), findsNWidgets(2));
+      expect(find.textContaining('Ver as'), findsNothing);
+    });
+
     testWidgets('D2 — o coaching ocupa UMA linha, não um cartão', (
       tester,
     ) async {

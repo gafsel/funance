@@ -4411,6 +4411,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Real: {percent}'**
   String planning503020ActualPercent(String percent);
+
+  /// No description provided for @automaticTransactionSeeAll.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver as {count} pendências'**
+  String automaticTransactionSeeAll(int count);
 }
 
 class _AppLocalizationsDelegate

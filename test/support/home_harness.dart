@@ -236,16 +236,33 @@ List<InstallmentModel> homeTypicalInstallments() => [
   ),
 ];
 
-/// Uma pendência do leitor de notificação, esperando consolidação.
-List<AutomaticTransactionModel> homeTypicalPending() => [
-  AutomaticTransactionModel(
-    id: 'auto-1',
-    description: 'COMPRA CARTAO 4412',
-    amount: 89.9,
-    date: homeToday,
-    type: OrderType.expense,
-  ),
+/// Pendências do leitor de notificação esperando consolidação.
+///
+/// O padrão é 35 porque é a CONTAGEM REAL medida no aparelho do dono — o
+/// leitor grava uma por notificação de banco e ninguém consolida todo dia. A
+/// fixture de "dados típicos" tinha uma só, e foi por isso que a Home mediu
+/// 1,5 telas no teste e 7,1 no aparelho.
+List<AutomaticTransactionModel> homeTypicalPending({int count = 35}) => [
+  for (var i = 0; i < count; i++)
+    AutomaticTransactionModel(
+      id: 'auto-$i',
+      description: 'COMPRA CARTAO ${4000 + i}',
+      amount: 89.9 + i,
+      date: homeToday,
+      type: OrderType.expense,
+    ),
 ];
+
+/// Uma análise de coaching RECENTE, que é o estado em que a linha mostra o
+/// texto em vez do convite.
+CoachingModel homeTypicalInsight() => CoachingModel(
+  id: 'c1',
+  message:
+      'Seu gasto com delivery subiu 40% em relação ao mês passado. Um teto '
+      'de R\$ 400 até o dia 30 recolocaria o Conforto dentro do plano.',
+  date: DateTime.now(),
+  type: CoachingType.warning,
+);
 
 /// Um mês típico: renda prevista, despesas planejadas e o que já saiu. É o
 /// que faz o cabeçalho "quanto sobra" mostrar o NÚMERO em vez do convite para

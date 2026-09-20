@@ -2456,4 +2456,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String planning503020ActualPercent(String percent) {
     return 'Actual: $percent';
   }
+
+  @override
+  String automaticTransactionSeeAll(int count) {
+    return 'See all $count pending';
+  }
 }

@@ -1291,5 +1291,13 @@
         "type": "String"
       }
     }
+  },
+  "automaticTransactionSeeAll": "See all {count} pending",
+  "@automaticTransactionSeeAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

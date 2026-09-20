@@ -43,6 +43,12 @@ void main() {
           goals: homeTypicalGoals(),
           categories: homeTypicalCategories,
           summary: homeTypicalSummary(),
+          // A CONTAGEM REAL do aparelho: 35 pendências do leitor de
+          // notificação e uma análise de coaching recente. A fixture antiga
+          // tinha uma pendência e nenhuma análise — media 1,5 telas aqui
+          // enquanto o app media 7,1.
+          pendingAutomatic: homeTypicalPending(),
+          lastInsight: homeTypicalInsight(),
         ),
         size: Size(largura, altura),
       );
