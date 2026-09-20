@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/platform/app_platform.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
@@ -114,6 +115,10 @@ class AccountDomainProviders {
       workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
+      // O "saldo atual" é o último saldo ATÉ HOJE, e por isso o serviço
+      // precisa do relógio do app — inclusive para o teste poder mentir a
+      // data.
+      now: ref.watch(clockProvider),
     ),
   );
 }

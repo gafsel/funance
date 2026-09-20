@@ -109,9 +109,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      final notifier = container.read(
-        ArenaViewProviders.pendingEvent.notifier,
-      );
+      final notifier = container.read(ArenaViewProviders.pendingEvent.notifier);
 
       notifier.push(const ArenaPendingEvent(damage: 89.9));
 

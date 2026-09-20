@@ -92,6 +92,22 @@ sealed class ArenaViewProviders {
             );
       });
 
+  /// O tipo de cada conta do workspace, por id.
+  ///
+  /// É o que a calculadora usa para separar "comprei no cartão" de "paguei a
+  /// fatura" — as duas são parcela de despesa, e só o TIPO da conta de saída
+  /// diz qual delas tira dinheiro do caixa hoje.
+  static final accountTypes =
+      Provider.autoDispose<AsyncValue<Map<String, AccountType>>>((ref) {
+        return ref
+            .watch(AccountViewProviders.all)
+            .whenData(
+              (accounts) => {
+                for (final account in accounts) account.id: account.type,
+              },
+            );
+      });
+
   /// As contas líquidas, na ordem em que o app as devolve.
   static final liquidAccounts =
       Provider.autoDispose<AsyncValue<List<AccountModel>>>((ref) {
@@ -213,6 +229,7 @@ sealed class ArenaViewProviders {
     final lives = ref.watch(accountLives);
     final week = ref.watch(weekInstallments);
     final overdue = ref.watch(overdueInstallments);
+    final types = ref.watch(accountTypes);
     final members = ref.watch(WorkspaceViewProviders.members);
     final xp = ref.watch(JourneyViewProviders.weeklyXp);
 
@@ -220,6 +237,7 @@ sealed class ArenaViewProviders {
       lives,
       week,
       overdue,
+      types,
       members,
     ].where((async) => async.hasError).firstOrNull;
 
@@ -233,7 +251,14 @@ sealed class ArenaViewProviders {
     final accounts = lives.valueOrNull;
     final weekData = week.valueOrNull;
     final overdueData = overdue.valueOrNull;
-    if (accounts == null || weekData == null || overdueData == null) {
+    final typeData = types.valueOrNull;
+    if (accounts == null ||
+        weekData == null ||
+        overdueData == null ||
+        // Sem os tipos de conta o monstro nasceria VAZIO — nenhuma parcela
+        // passaria no filtro de "sai do caixa" — e a barra piscaria em zero
+        // antes do número certo.
+        typeData == null) {
       return const AsyncValue<ArenaState>.loading();
     }
 
@@ -245,6 +270,7 @@ sealed class ArenaViewProviders {
           accounts: accounts,
           weekInstallments: weekData,
           overdueInstallments: overdueData,
+          accountTypes: typeData,
           // O XP é do servidor e pode ainda não existir; a cena fica de pé
           // sem ele (zero moeda).
           weeklyXp: xp.valueOrNull ?? 0,

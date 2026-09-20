@@ -110,9 +110,22 @@ void main() {
       await pumpArena(
         tester,
         state: arenaTestState(
-          overdueAmount: 640,
-          commitmentsInitial: 2020,
-          commitmentsRemaining: 2020,
+          commitments: [
+            arenaTestCommitment(
+              id: 'cartao',
+              description: 'Cartão',
+              amount: 640,
+              dayOffset: -9,
+              overdue: true,
+            ),
+            arenaTestCommitment(),
+            arenaTestCommitment(
+              id: 'luz',
+              description: 'Luz',
+              amount: 180,
+              dayOffset: 2,
+            ),
+          ],
         ),
       );
 
@@ -121,7 +134,10 @@ void main() {
     });
 
     testWidgets('monstro sem vida vira "Derrotado"', (tester) async {
-      await pumpArena(tester, state: arenaTestState(commitmentsRemaining: 0));
+      await pumpArena(
+        tester,
+        state: arenaTestState(commitments: [arenaTestCommitment(paid: true)]),
+      );
 
       expect(find.text('Derrotado'), findsOneWidget);
     });
@@ -150,7 +166,6 @@ void main() {
       await pumpArena(
         tester,
         state: arenaTestState(
-          commitmentsRemaining: 180,
           commitments: [
             arenaTestCommitment(
               id: 'luz',
@@ -182,6 +197,90 @@ void main() {
         pago.style?.decoration,
         TextDecoration.lineThrough,
         reason: 'o texto riscado é a outra metade da marca',
+      );
+    });
+
+    testWidgets('golpe agendado tem relógio, data e nenhum botão', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'seguro',
+              description: 'Segurança C6',
+              amount: 29.90,
+              dayOffset: 2,
+              scheduled: true,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      expect(find.byIcon(Icons.schedule), findsOneWidget);
+      expect(find.textContaining('Agendado'), findsOneWidget);
+      expect(
+        find.byType(SwordMark),
+        findsNothing,
+        reason: 'o golpe está marcado, não dado — a espada mentiria',
+      );
+      expect(
+        find.text('Confirmar pago'),
+        findsNothing,
+        reason: 'já está pago; não há o que confirmar',
+      );
+    });
+
+    testWidgets('o agendado NÃO desconta do monstro hoje', (tester) async {
+      final state = arenaTestState(
+        commitments: [
+          arenaTestCommitment(
+            id: 'seguro',
+            description: 'Segurança C6',
+            amount: 29.90,
+            dayOffset: 2,
+            scheduled: true,
+          ),
+        ],
+      );
+
+      expect(state.monsterHp, 29.90);
+      expect(state.monsterMaxHp, 29.90);
+      expect(state.struckCount, 0);
+    });
+
+    testWidgets('vencida DENTRO da semana e pendente vai para o topo', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(id: 'hoje', description: 'Aluguel'),
+            arenaTestCommitment(
+              id: 'segunda',
+              description: 'Luz',
+              amount: 180,
+              dayOffset: -2,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      // A lista já vem ordenada pela calculadora; aqui o que se guarda é o
+      // DESTAQUE: atraso da semana lê igual a atraso antigo.
+      expect(find.textContaining('Atrasado'), findsOneWidget);
+      expect(
+        find.textContaining('Enfurecido'),
+        findsNothing,
+        reason: 'enfurecer é privilégio do atraso de semanas anteriores',
       );
     });
 
@@ -380,8 +479,6 @@ void main() {
         state: arenaTestState(
           initialBalance: 0,
           currentBalance: 0,
-          commitmentsInitial: 0,
-          commitmentsRemaining: 0,
           commitments: const [],
           accounts: const [],
         ),

@@ -175,9 +175,14 @@ class _CommitmentRow extends StatelessWidget {
     final palette = context.palette;
     final l10n = context.l10n;
     final installment = commitment.installment;
-    final paid = commitment.isPaid;
 
-    final ink = paid ? palette.ink3 : palette.ink;
+    // TRÊS estados, não dois. O golpe agendado — pago, mas com data no futuro
+    // — não é nem "resolvido" nem "a resolver": ele está marcado. Tratá-lo
+    // como pago riscava hoje uma linha que só sai do caixa na sexta.
+    final struck = commitment.isStruck;
+    final scheduled = commitment.isScheduledStrike;
+
+    final ink = struck ? palette.ink3 : palette.ink;
 
     final row = Padding(
       padding: AppSpacing.vXs,
@@ -185,28 +190,33 @@ class _CommitmentRow extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: paid
+            backgroundColor: struck || scheduled
                 ? palette.line
                 : installment.category?.color.asColor().withValues(
                         alpha: 0.16,
                       ) ??
                       palette.line,
-            // A espada é a marca do golpe dado. Ela substitui o ícone da
+            // A espada é a marca do golpe DADO. Ela substitui o ícone da
             // categoria de propósito: a linha paga deixou de ser um assunto
             // de orçamento e virou um placar.
             //
             // Desenhada, e não escolhida do Material: o conjunto não tem
             // espada nenhuma, e a alternativa mais próxima (o martelo do
             // juiz) diz outra coisa.
-            child: paid
+            //
+            // O golpe AGENDADO leva relógio: ele está marcado, não dado.
+            child: struck
                 ? SwordMark(color: palette.ink3, size: 16)
                 : Icon(
-                    installment.isInvoice
+                    scheduled
+                        ? Icons.schedule
+                        : installment.isInvoice
                         ? Icons.credit_card
                         : installment.category?.icon.asIcon() ?? Icons.category,
                     size: 16,
-                    color:
-                        installment.category?.color.asColor() ?? palette.ink2,
+                    color: scheduled
+                        ? palette.ink2
+                        : installment.category?.color.asColor() ?? palette.ink2,
                   ),
           ),
           AppSpacing.gapSm,
@@ -218,7 +228,7 @@ class _CommitmentRow extends StatelessWidget {
                   displayOr(installment.description, l10n.noDescription),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: ink,
-                    decoration: paid ? TextDecoration.lineThrough : null,
+                    decoration: struck ? TextDecoration.lineThrough : null,
                     decorationColor: palette.ink3,
                   ),
                   maxLines: 1,
@@ -227,7 +237,7 @@ class _CommitmentRow extends StatelessWidget {
                 Text(
                   _when(context),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: commitment.isOverdue
+                    color: commitment.isBehind
                         ? palette.dangerText
                         : commitment.isDueToday
                         ? palette.warningText
@@ -245,7 +255,7 @@ class _CommitmentRow extends StatelessWidget {
                 commitment.amount,
                 style: theme.textTheme.titleSmall?.copyWith(color: ink),
               ),
-              if (!paid)
+              if (!commitment.isPaid)
                 TextButton(
                   onPressed: () async {
                     final navigator = Navigator.of(context);
@@ -269,8 +279,12 @@ class _CommitmentRow extends StatelessWidget {
       ),
     );
 
-    if (!paid) {
-      return commitment.isOverdue
+    if (!struck) {
+      // Atrasado é atrasado: o que venceu na quarta e continua pendente pesa
+      // igual ao que ficou da semana passada. O que a semana passada tem de
+      // diferente é o direito de enfurecer o monstro, não o destaque na
+      // lista.
+      return commitment.isBehind
           ? ColoredBox(
               color: palette.dangerText.withValues(alpha: 0.08),
               child: row,
@@ -289,10 +303,19 @@ class _CommitmentRow extends StatelessWidget {
   String _when(BuildContext context) {
     final l10n = context.l10n;
     final locale = context.locale;
-    final due = DateFormat.MMMEd(locale).format(commitment.installment.dueDate);
+    final installment = commitment.installment;
+    final due = DateFormat.MMMEd(locale).format(installment.dueDate);
 
+    if (commitment.isScheduledStrike) {
+      // A data que importa aqui é a do PAGAMENTO, não a do vencimento: é ela
+      // que diz quando o dinheiro sai.
+      final when = installment.paidDate;
+      return l10n.arenaScheduledOn(
+        when == null ? due : DateFormat.MMMEd(locale).format(when),
+      );
+    }
     if (commitment.isPaid) return l10n.arenaPaidOn(due);
-    if (commitment.isOverdue) {
+    if (commitment.isBehind) {
       return l10n.arenaOverdueSince(due, -commitment.daysUntilDue);
     }
     if (commitment.isDueToday) return l10n.dueSoonToday;

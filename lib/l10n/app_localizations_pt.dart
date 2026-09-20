@@ -2624,4 +2624,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get arenaError => 'Não foi possível montar a arena desta semana.';
+
+  @override
+  String arenaScheduledOn(String date) {
+    return 'Agendado · $date';
+  }
 }

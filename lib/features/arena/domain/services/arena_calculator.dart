@@ -1,6 +1,7 @@
 import 'package:funances/core/money/money.dart';
 import 'package:funances/core/time/product_week.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
@@ -37,6 +38,7 @@ class ArenaInputs {
     required this.weekInstallments,
     required this.overdueInstallments,
     required this.members,
+    this.accountTypes = const <String, AccountType>{},
     this.weeklyXp = 0,
     this.maxHeroes = 2,
   });
@@ -65,6 +67,13 @@ class ArenaInputs {
   /// Membros do workspace, na ordem de entrada (o primeiro é o dono).
   final List<UserModel> members;
 
+  /// O tipo de CADA conta do workspace — inclusive as que não são caixa.
+  ///
+  /// É o que decide o que entra no monstro: sem saber que `acc-c6` é cartão e
+  /// `acc-nubank` é corrente, não há como separar "comprei no cartão" (que
+  /// não tira nada do caixa hoje) de "paguei a fatura" (que tira).
+  final Map<String, AccountType> accountTypes;
+
   final double weeklyXp;
 
   /// Quantos membros viram herói de verdade. O resto vira contador.
@@ -79,22 +88,59 @@ class ArenaInputs {
 ///
 /// ## A mecânica, em quatro linhas
 ///
-/// 1. **monstro** = compromissos agendados da semana + atraso. Nada de
-///    orçamento por categoria — o rateio contava o mesmo dinheiro duas vezes,
-///    e categoria vai ter tela própria;
+/// 1. **monstro** = o que SAI DAS CONTAS LÍQUIDAS na semana, mais o atraso.
+///    Ver [_leavesCash]. Nada de orçamento por categoria — o rateio contava o
+///    mesmo dinheiro duas vezes, e categoria vai ter tela própria;
 /// 2. **heróis** = saldo das contas líquidas, do domingo até agora. O saldo
 ///    **é** o HP: não há uma segunda régua;
 /// 3. **cura** = receita recebida na semana;
 /// 4. **dano** = qualquer saída de caixa. Ela aparece sozinha, porque a barra
 ///    dos heróis é o saldo.
 abstract final class ArenaCalculator {
-  /// Só despesa alimenta o monstro. Receita cura, transferência não é nem uma
-  /// coisa nem outra (o dinheiro continua no workspace).
-  static bool _isExpense(InstallmentModel i) => i.type == OrderType.expense;
-
   static bool _isSettled(InstallmentModel i) =>
       i.status == InstallmentStatus.paid ||
       i.status == InstallmentStatus.settled;
+
+  static bool _isLiquid(AccountType? type) =>
+      type == AccountType.checking || type == AccountType.investment;
+
+  /// Este lançamento tira dinheiro das CONTAS LÍQUIDAS nesta semana?
+  ///
+  /// É a pergunta inteira do monstro, e ela veio do retrato real do dono. Na
+  /// rodada 1 o monstro era "toda parcela de despesa da semana", e com isso
+  /// quatro compras no cartão (mercado, farmácia, aplicativo) entravam na
+  /// barra. O efeito era o oposto do pretendido: pagar um compromisso
+  /// derrubava o monstro **sem** derrubar a vida dos heróis, porque uma
+  /// compra no cartão não move o caixa. "Pagar custa vida" deixava de ser
+  /// verdade justamente nas linhas mais numerosas da semana.
+  ///
+  /// Entram:
+  ///
+  /// - **despesa cuja conta de saída é líquida** (corrente ou investimento):
+  ///   o boleto, a conta de luz, o débito automático — "Segurança C6";
+  /// - **transferência de conta líquida para CARTÃO ou DÍVIDA**: é assim que
+  ///   o app registra o pagamento da fatura e a parcela do empréstimo, e são
+  ///   os dois maiores golpes da semana real (R$ 8.300 e R$ 3.811).
+  ///
+  /// Ficam de fora as compras feitas NO cartão (conta de saída `creditCard`):
+  /// elas não tiram nada do caixa hoje e chegam depois, somadas, como a
+  /// fatura. Elas pertencem ao "ovo" do HUD mensal.
+  static bool _leavesCash(InstallmentModel i, Map<String, AccountType> types) {
+    final source = i.accountIdSource;
+    if (source == null) return false;
+    if (!_isLiquid(types[source])) return false;
+
+    return switch (i.type) {
+      OrderType.expense => true,
+      OrderType.transfer => _isDebtLike(types[i.accountIdTarget]),
+      // Receita cura; ela nunca é monstro.
+      OrderType.income => false,
+    };
+  }
+
+  /// O destino de uma transferência que conta como pagamento de dívida.
+  static bool _isDebtLike(AccountType? type) =>
+      type == AccountType.creditCard || type == AccountType.debt;
 
   /// A skin de um herói pela ORDEM de entrada no workspace.
   static HeroSkin skinForIndex(int index) =>
@@ -132,15 +178,17 @@ abstract final class ArenaCalculator {
   static ArenaState from(ArenaInputs inputs) {
     final weekStart = ProductWeek.startOf(inputs.today);
 
-    // ── Monstro: SÓ compromisso agendado ───────────────────────────────────
+    // ── Monstro: o que sai do caixa na semana ──────────────────────────────
     //
     // A soma é em CENTAVOS (`Money`) e não em `double`: uma semana de doze
     // parcelas somada em ponto flutuante já diverge da soma das linhas que a
     // folha do monstro mostra, e aí o golpe tira um valor e a barra anda
     // outro.
+    final types = inputs.accountTypes;
+
     final overdueRaw = inputs.overdueInstallments
-        .where(_isExpense)
         .where((i) => !_isSettled(i))
+        .where((i) => _leavesCash(i, types))
         .toList();
 
     final commitments = <ArenaCommitment>[
@@ -149,29 +197,45 @@ abstract final class ArenaCalculator {
           installment: i,
           isPaid: false,
           isOverdue: true,
+          isScheduledStrike: false,
           daysUntilDue: daysBetween(inputs.today, i.dueDate),
         ),
-      for (final i in inputs.weekInstallments.where(_isExpense))
+      for (final i in inputs.weekInstallments.where(
+        (i) => _leavesCash(i, types),
+      ))
         ArenaCommitment(
           installment: i,
           isPaid: _isSettled(i),
           isOverdue: false,
+          // Pago com data no futuro: o dinheiro ainda não saiu.
+          isScheduledStrike:
+              _isSettled(i) &&
+              i.paidDate != null &&
+              daysBetween(inputs.today, i.paidDate!) > 0,
           daysUntilDue: daysBetween(inputs.today, i.dueDate),
         ),
     ]..sort(_commitmentOrder);
 
-    final overdue = Money.sumOf(overdueRaw, (i) => i.amount);
+    final overdue = Money.sumOf(overdueRaw, (i) => i.referenceAmount);
 
-    // HP inicial: tudo o que a semana tinha para pagar, mais o que ficou de
-    // trás. O que já foi pago continua contando no INICIAL — é dano já
-    // causado, e tirá-lo do total faria a barra encolher por baixo em vez de
-    // esvaziar.
+    // HP inicial: tudo o que a semana tem para tirar do caixa, mais o que
+    // ficou de trás. O que já foi pago continua contando no INICIAL — é dano
+    // já causado, e tirá-lo do total faria a barra encolher por baixo em vez
+    // de esvaziar.
+    //
+    // O que DESCONTA é `isStruck`, e não `isPaid`: um débito automático
+    // marcado para sexta é golpe agendado, e descontá-lo hoje faria o monstro
+    // nascer abatido no domingo com a semana inteira já cobrada.
+    //
+    // A subtração não precisa de piso: os dois lados somam o MESMO campo
+    // (`referenceAmount`) sobre um subconjunto da mesma lista, então o
+    // descontado nunca passa do inicial.
     final commitmentsInitial = Money.sumOf(commitments, (c) => c.amount);
-    final paid = Money.sumOf(
-      commitments.where((c) => c.isPaid),
+    final struck = Money.sumOf(
+      commitments.where((c) => c.isStruck),
       (c) => c.amount,
     );
-    final commitmentsRemaining = commitmentsInitial - paid;
+    final commitmentsRemaining = commitmentsInitial - struck;
 
     // ── Heróis ─────────────────────────────────────────────────────────────
     final healed = Money.sumOf(
@@ -217,11 +281,7 @@ abstract final class ArenaCalculator {
       healedThisWeek: healed.toDouble(),
       commitments: commitments,
       commitmentsInitial: commitmentsInitial.toDouble(),
-      // Um pagamento a mais do que o previsto (parcela paga com valor maior)
-      // não deixa o restante negativo: a barra para no zero.
-      commitmentsRemaining: commitmentsRemaining < Money.zero
-          ? 0
-          : commitmentsRemaining.toDouble(),
+      commitmentsRemaining: commitmentsRemaining.toDouble(),
       overdueAmount: overdue.toDouble(),
       monsterSkin: skinForWeek(inputs.weekId, enraged: overdue > Money.zero),
       heroes: heroes,
@@ -236,10 +296,15 @@ abstract final class ArenaCalculator {
   /// Não é a ordem de vencimento pura. O que está atrasado não tem mais
   /// "dia"; o que vence hoje ainda dá para resolver; o que já foi pago é
   /// histórico e não disputa atenção com nada.
+  ///
+  /// "Atrasado" inclui o que venceu DENTRO desta semana e continua pendente:
+  /// a quarta-feira que passou sem a conta paga é tão atraso quanto a da
+  /// semana anterior. O que a semana anterior tem de diferente é o direito de
+  /// enfurecer o monstro — não o lugar na lista.
   static int _commitmentOrder(ArenaCommitment a, ArenaCommitment b) {
     int rank(ArenaCommitment c) {
       if (c.isPaid) return 3;
-      if (c.isOverdue) return 0;
+      if (c.isBehind) return 0;
       if (c.daysUntilDue <= 0) return 1;
       return 2;
     }

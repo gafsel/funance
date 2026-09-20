@@ -53,6 +53,9 @@ class _BalanceFake implements IAccountRepository {
   /// As datas que o provider pediu, para provar QUAL dia ele consultou.
   final List<String> asked = <String>[];
 
+  /// Quantas vezes o caminho SEM filtro de data foi usado.
+  int latestCalls = 0;
+
   @override
   Stream<List<AccountModel>> getAccounts(
     String workspaceId, {
@@ -61,11 +64,16 @@ class _BalanceFake implements IAccountRepository {
     type == null ? accounts : accounts.where((a) => a.type == type).toList(),
   );
 
+  /// O "último documento", sem filtro de data. O serviço NÃO deve chamar
+  /// isto para responder "saldo atual" — é justamente o caminho que devolvia
+  /// o saldo projetado de sexta-feira.
   @override
   Stream<AccountBalanceModel?> getLatestAccountBalance(
     String workspaceId,
     String accountId,
   ) {
+    latestCalls++;
+
     final days = (balances[accountId] ?? const <String, double>{}).keys.toList()
       ..sort();
     if (days.isEmpty) return Stream.value(null);
@@ -171,6 +179,55 @@ void main() {
     expect(fake.asked, contains(_saturdayBefore));
     expect(lives.single.initial, 5200);
     expect(lives.single.current, 3980);
+  });
+
+  test('o saldo ATUAL ignora documento com data no futuro', () async {
+    // O servidor grava o saldo PROJETADO do dia de um agendamento. Um
+    // pagamento marcado para sexta cria `2026-09-25`, que ordena depois do
+    // documento de hoje: "o último" devolvia um dinheiro que ainda não saiu.
+    //
+    // Na Arena isso aparecia como o herói já ferido no domingo; na tela de
+    // contas, como um saldo que o extrato não explica.
+    final fake = _BalanceFake(
+      [_checking('c1', 'Nubank')],
+      {
+        'c1': {
+          _saturdayBefore: 5200,
+          '2026-09-23': 3980,
+          // Sexta-feira: o aluguel agendado.
+          '2026-09-25': 2780,
+        },
+      },
+    );
+
+    final lives = await _lives(_container(fake));
+
+    expect(lives.single.current, 3980);
+    expect(
+      fake.latestCalls,
+      0,
+      reason:
+          'o "saldo atual" passa pela consulta COM teto de data; o caminho '
+          'sem filtro é o que devolvia o futuro',
+    );
+    expect(fake.asked, contains('2026-09-23'));
+  });
+
+  test('sem documento no sábado, vale o último ANTES dele', () async {
+    // O servidor só grava saldo em dia com movimento. Numa conta parada desde
+    // agosto não existe documento do sábado, e exigir um faria a barra nascer
+    // em zero com dinheiro na conta.
+    final fake = _BalanceFake(
+      [_checking('parada', 'Poupança')],
+      {
+        'parada': {'2026-08-11': 1500},
+      },
+    );
+
+    final lives = await _lives(_container(fake));
+
+    expect(lives.single.initial, 1500);
+    expect(lives.single.current, 1500);
   });
 
   test('conta sem documento antes do domingo começa em zero', () async {

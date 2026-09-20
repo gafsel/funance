@@ -69,17 +69,43 @@ sealed class ArenaCommitment with _$ArenaCommitment {
     /// Pendente com vencimento ANTERIOR ao domingo desta semana.
     required bool isOverdue,
 
+    /// Pago, mas com `paidDate` no FUTURO — um débito automático já marcado
+    /// para sexta, por exemplo. O golpe está agendado; ele ainda não caiu.
+    required bool isScheduledStrike,
+
     /// Dias de calendário até o vencimento, a partir de hoje. Negativo =
     /// venceu.
     required int daysUntilDue,
   }) = _ArenaCommitment;
 
-  /// O que este compromisso pesa. O valor pago manda quando existe — uma
-  /// conta de luz de R$ 180 quitada por R$ 183 tirou R$ 183 do caixa.
+  /// O que este compromisso pesa.
+  ///
+  /// `referenceAmount` (`paidAmount ?? amount`) e não `amount`: na quitação o
+  /// app zera o `amount` e move o valor para o `paidAmount`, então uma linha
+  /// paga somada por `amount` valeria ZERO — a barra do monstro encolheria
+  /// pelo total e a folha mostraria zeros. É o mesmo campo que a consulta da
+  /// semana usa para decidir se a parcela é desta semana (`referenceDate`),
+  /// e por isso as duas leituras não podem divergir.
   double get amount => installment.referenceAmount;
 
-  bool get isDueToday => !isPaid && !isOverdue && daysUntilDue == 0;
-  bool get isDueTomorrow => !isPaid && !isOverdue && daysUntilDue == 1;
+  /// O golpe já caiu: pago, e a data do pagamento já chegou.
+  ///
+  /// É o que desconta do HP do monstro. Um pagamento marcado para sexta não
+  /// desconta hoje — senão o monstro nasceria abatido no domingo, com a
+  /// semana inteira de débitos automáticos já descontada antes de qualquer um
+  /// deles sair da conta.
+  bool get isStruck => isPaid && !isScheduledStrike;
+
+  /// Pendente e já vencida DENTRO desta semana. Não enfurece o monstro (isso
+  /// é privilégio do atraso de semanas anteriores), mas sobe para o topo da
+  /// folha com o mesmo destaque: é o que já devia ter sido resolvido.
+  bool get isLate => !isPaid && !isOverdue && daysUntilDue < 0;
+
+  /// Atrasado de qualquer origem — de semanas passadas ou desta.
+  bool get isBehind => isOverdue || isLate;
+
+  bool get isDueToday => !isPaid && !isBehind && daysUntilDue == 0;
+  bool get isDueTomorrow => !isPaid && !isBehind && daysUntilDue == 1;
 
   /// O "próximo golpe": o que vence hoje ou amanhã. É a `DueSoonStrip` da
   /// Home antiga, agora dentro do monstro.
@@ -209,7 +235,7 @@ sealed class ArenaState with _$ArenaState {
 
   // ── Monstro ──────────────────────────────────────────────────────────────
 
-  /// Vida do monstro agora: o que ainda falta pagar.
+  /// Vida do monstro agora: o que ainda falta sair do caixa.
   double get monsterHp => commitmentsRemaining;
 
   /// Vida do monstro no início da semana.
@@ -233,6 +259,16 @@ sealed class ArenaState with _$ArenaState {
 
   List<ArenaCommitment> get paidCommitments =>
       commitments.where((c) => c.isPaid).toList();
+
+  /// Golpes marcados para um dia que ainda não chegou.
+  List<ArenaCommitment> get scheduledStrikes =>
+      commitments.where((c) => c.isScheduledStrike).toList();
+
+  /// Quantos compromissos já foram resolvidos, de quantos. É o placar da
+  /// semana — e o que o fechamento mostra na virada.
+  int get struckCount => commitments.where((c) => c.isStruck).length;
+
+  int get commitmentsCount => commitments.length;
 
   /// O que vence hoje ou amanhã. Era a `DueSoonStrip` da Home.
   List<ArenaCommitment> get nextBlow =>

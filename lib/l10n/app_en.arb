@@ -1493,5 +1493,13 @@
         "type": "String"
       }
     }
+  },
+  "arenaScheduledOn": "Scheduled · {date}",
+  "@arenaScheduledOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
   }
 }

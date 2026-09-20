@@ -38,9 +38,13 @@ InstallmentModel arenaTestInstallment({
 }) => InstallmentModel(
   id: id,
   orderId: 'o-$id',
-  amount: amount,
   description: description,
   dueDate: arenaTestDay.add(Duration(days: dayOffset)),
+  // O app ZERA o `amount` na quitação e move o valor para `paidAmount`. O
+  // dublê imita isso: sem essa fidelidade, um teste que somasse `amount`
+  // passaria aqui e falharia no aparelho.
+  amount: status == InstallmentStatus.pending ? amount : 0,
+  paidAmount: status == InstallmentStatus.pending ? null : amount,
   paidDate: paidDate,
   status: status,
   type: OrderType.expense,
@@ -54,65 +58,46 @@ ArenaCommitment arenaTestCommitment({
   int dayOffset = 0,
   bool paid = false,
   bool overdue = false,
+  bool scheduled = false,
 }) => ArenaCommitment(
   installment: arenaTestInstallment(
     id: id,
     description: description,
     amount: amount,
     dayOffset: dayOffset,
-    status: paid ? InstallmentStatus.paid : InstallmentStatus.pending,
-    paidDate: paid ? arenaTestDay : null,
+    status: paid || scheduled
+        ? InstallmentStatus.paid
+        : InstallmentStatus.pending,
+    paidDate: scheduled
+        ? arenaTestDay.add(const Duration(days: 2))
+        : paid
+        ? arenaTestDay
+        : null,
   ),
-  isPaid: paid,
+  isPaid: paid || scheduled,
   isOverdue: overdue,
+  isScheduledStrike: scheduled,
   daysUntilDue: dayOffset,
 );
 
 /// Uma semana típica: dois heróis, caixa que começou em R$ 5.200 e está em
 /// R$ 3.980, e R$ 1.380 de compromisso ainda de pé.
+///
+/// Os totais do monstro são DERIVADOS da lista de compromissos, e não
+/// passados à parte. O QA pegou o harness antigo montando estados
+/// impossíveis — cabeçalho dizendo "R$ 1.320 pagos de R$ 2.140" com uma lista
+/// que somava outra coisa —, e um golden desses fotografa uma tela que o app
+/// nunca mostra. Aqui, mentir exige mexer na lista.
 ArenaState arenaTestState({
   double initialBalance = 5200,
   double currentBalance = 3980,
-  double commitmentsInitial = 1380,
-  double commitmentsRemaining = 1380,
-  double overdueAmount = 0,
   double healedThisWeek = 0,
   int extraMembers = 0,
   ArenaDay day = ArenaDay.wednesday,
   List<ArenaCommitment>? commitments,
   List<ArenaAccountLife>? accounts,
-}) => ArenaState(
-  weekId: '2026-W38',
-  day: day,
-  initialBalance: initialBalance,
-  currentBalance: currentBalance,
-  healedThisWeek: healedThisWeek,
-  commitmentsInitial: commitmentsInitial,
-  commitmentsRemaining: commitmentsRemaining,
-  overdueAmount: overdueAmount,
-  monsterSkin: MonsterSkin.spider,
-  extraMembers: extraMembers,
-  heroes: const [
-    ArenaHero(userId: 'u1', name: 'Gabriel', skin: HeroSkin.knight),
-    ArenaHero(userId: 'u2', name: 'Ana', skin: HeroSkin.mage),
-  ],
-  accounts:
-      accounts ??
-      const [
-        ArenaAccountLife(
-          accountId: 'c1',
-          name: 'Nubank',
-          initial: 4200,
-          current: 3100,
-        ),
-        ArenaAccountLife(
-          accountId: 'inv',
-          name: 'Tesouro',
-          initial: 1000,
-          current: 880,
-        ),
-      ],
-  commitments:
+}) {
+  final lista =
       commitments ??
       [
         arenaTestCommitment(),
@@ -122,8 +107,47 @@ ArenaState arenaTestState({
           amount: 180,
           dayOffset: 2,
         ),
-      ],
-);
+      ];
+
+  double soma(bool Function(ArenaCommitment) onde) =>
+      lista.where(onde).fold<double>(0, (total, c) => total + c.amount);
+
+  return ArenaState(
+    weekId: '2026-W38',
+    day: day,
+    initialBalance: initialBalance,
+    currentBalance: currentBalance,
+    healedThisWeek: healedThisWeek,
+    commitments: lista,
+    commitmentsInitial: soma((_) => true),
+    commitmentsRemaining: soma((c) => !c.isStruck),
+    overdueAmount: soma((c) => c.isOverdue),
+    monsterSkin: lista.any((c) => c.isOverdue)
+        ? MonsterSkin.demon
+        : MonsterSkin.spider,
+    extraMembers: extraMembers,
+    heroes: const [
+      ArenaHero(userId: 'u1', name: 'Gabriel', skin: HeroSkin.knight),
+      ArenaHero(userId: 'u2', name: 'Ana', skin: HeroSkin.mage),
+    ],
+    accounts:
+        accounts ??
+        const [
+          ArenaAccountLife(
+            accountId: 'c1',
+            name: 'Nubank',
+            initial: 4200,
+            current: 3100,
+          ),
+          ArenaAccountLife(
+            accountId: 'inv',
+            name: 'Tesouro',
+            initial: 1000,
+            current: 880,
+          ),
+        ],
+  );
+}
 
 /// A Arena dentro de um router de verdade, para os toques terem para onde ir.
 Widget arenaApp(

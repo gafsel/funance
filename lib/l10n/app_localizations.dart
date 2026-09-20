@@ -4615,6 +4615,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Não foi possível montar a arena desta semana.'**
   String get arenaError;
+
+  /// No description provided for @arenaScheduledOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Agendado · {date}'**
+  String arenaScheduledOn(String date);
 }
 
 class _AppLocalizationsDelegate

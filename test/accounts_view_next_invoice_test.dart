@@ -28,18 +28,19 @@ mixin _Unimplemented {
   );
 }
 
-class _FakeWorkspaceRepository with _Unimplemented
+class _FakeWorkspaceRepository
+    with _Unimplemented
     implements IWorkspaceRepository {}
 
-class _FakeCategoryRepository with _Unimplemented
+class _FakeCategoryRepository
+    with _Unimplemented
     implements ICategoryRepository {
   @override
   Stream<List<CategoryModel>> getCategories(String workspaceId) =>
       const Stream.empty();
 }
 
-class _FakeAccountRepository with _Unimplemented
-    implements IAccountRepository {
+class _FakeAccountRepository with _Unimplemented implements IAccountRepository {
   _FakeAccountRepository(this.accounts);
 
   final List<AccountModel> accounts;
@@ -50,12 +51,20 @@ class _FakeAccountRepository with _Unimplemented
     AccountType? type,
   }) => Stream.value(accounts);
 
+  /// O "saldo atual" passa por aqui desde que ele virou "o último saldo ATÉ
+  /// HOJE": sem o teto de data, um saldo projetado de um agendamento futuro
+  /// entrava como se fosse o de agora.
   @override
-  Stream<AccountBalanceModel?> getLatestAccountBalance(
+  Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
     String workspaceId,
     String accountId,
+    DateTime date,
   ) => Stream.value(
-    AccountBalanceModel(id: '2025-03-10', balance: -800, updatedAt: DateTime(2025, 3, 10)),
+    AccountBalanceModel(
+      id: '2025-03-10',
+      balance: -800,
+      updatedAt: DateTime(2025, 3, 10),
+    ),
   );
 }
 
@@ -184,11 +193,9 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    final financeRepository = await _pump(
-      tester,
-      [_card(nextInvoice: _next)],
-      invoice: _invoiceInstallment(),
-    );
+    final financeRepository = await _pump(tester, [
+      _card(nextInvoice: _next),
+    ], invoice: _invoiceInstallment());
 
     // O grupo "Cartão de Crédito" começa recolhido: abre para ver a conta.
     await _expandCards(tester);
@@ -226,10 +233,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    await _pump(tester, [
-      _card(nextInvoice: _next),
-      _card(id: 'card-2'),
-    ]);
+    await _pump(tester, [_card(nextInvoice: _next), _card(id: 'card-2')]);
 
     // Um cartão sem resumo deixa o total do grupo incompleto: o indicador de
     // carregamento é o que evita mostrar uma soma parcial como se fosse a

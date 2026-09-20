@@ -30,10 +30,9 @@ Future<void> _pumpSheet(
     tester,
     size: const Size(400, 800),
     theme: brightness == Brightness.dark ? AppTheme.dark : null,
+    // Os totais do cabeçalho saem da LISTA (ver `arenaTestState`): o golden
+    // antigo fotografava um cabeçalho que não batia com as linhas embaixo.
     state: arenaTestState(
-      commitmentsInitial: 2140,
-      commitmentsRemaining: 820,
-      overdueAmount: 640,
       commitments: [
         arenaTestCommitment(
           id: 'cartao',
@@ -55,6 +54,14 @@ Future<void> _pumpSheet(
           amount: 120,
           dayOffset: -1,
           paid: true,
+        ),
+        // Débito automático já marcado para sexta: golpe agendado.
+        arenaTestCommitment(
+          id: 'seguro',
+          description: 'Segurança C6',
+          amount: 29.90,
+          dayOffset: 2,
+          scheduled: true,
         ),
       ],
     ),

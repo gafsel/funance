@@ -276,7 +276,9 @@ mixin _$ArenaCommitment {
 
  InstallmentModel get installment;/// Já quitado (`paid` ou `settled`).
  bool get isPaid;/// Pendente com vencimento ANTERIOR ao domingo desta semana.
- bool get isOverdue;/// Dias de calendário até o vencimento, a partir de hoje. Negativo =
+ bool get isOverdue;/// Pago, mas com `paidDate` no FUTURO — um débito automático já marcado
+/// para sexta, por exemplo. O golpe está agendado; ele ainda não caiu.
+ bool get isScheduledStrike;/// Dias de calendário até o vencimento, a partir de hoje. Negativo =
 /// venceu.
  int get daysUntilDue;
 /// Create a copy of ArenaCommitment
@@ -289,16 +291,16 @@ $ArenaCommitmentCopyWith<ArenaCommitment> get copyWith => _$ArenaCommitmentCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ArenaCommitment&&(identical(other.installment, installment) || other.installment == installment)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.isOverdue, isOverdue) || other.isOverdue == isOverdue)&&(identical(other.daysUntilDue, daysUntilDue) || other.daysUntilDue == daysUntilDue));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ArenaCommitment&&(identical(other.installment, installment) || other.installment == installment)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.isOverdue, isOverdue) || other.isOverdue == isOverdue)&&(identical(other.isScheduledStrike, isScheduledStrike) || other.isScheduledStrike == isScheduledStrike)&&(identical(other.daysUntilDue, daysUntilDue) || other.daysUntilDue == daysUntilDue));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,installment,isPaid,isOverdue,daysUntilDue);
+int get hashCode => Object.hash(runtimeType,installment,isPaid,isOverdue,isScheduledStrike,daysUntilDue);
 
 @override
 String toString() {
-  return 'ArenaCommitment(installment: $installment, isPaid: $isPaid, isOverdue: $isOverdue, daysUntilDue: $daysUntilDue)';
+  return 'ArenaCommitment(installment: $installment, isPaid: $isPaid, isOverdue: $isOverdue, isScheduledStrike: $isScheduledStrike, daysUntilDue: $daysUntilDue)';
 }
 
 
@@ -309,7 +311,7 @@ abstract mixin class $ArenaCommitmentCopyWith<$Res>  {
   factory $ArenaCommitmentCopyWith(ArenaCommitment value, $Res Function(ArenaCommitment) _then) = _$ArenaCommitmentCopyWithImpl;
 @useResult
 $Res call({
- InstallmentModel installment, bool isPaid, bool isOverdue, int daysUntilDue
+ InstallmentModel installment, bool isPaid, bool isOverdue, bool isScheduledStrike, int daysUntilDue
 });
 
 
@@ -326,11 +328,12 @@ class _$ArenaCommitmentCopyWithImpl<$Res>
 
 /// Create a copy of ArenaCommitment
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? installment = null,Object? isPaid = null,Object? isOverdue = null,Object? daysUntilDue = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? installment = null,Object? isPaid = null,Object? isOverdue = null,Object? isScheduledStrike = null,Object? daysUntilDue = null,}) {
   return _then(_self.copyWith(
 installment: null == installment ? _self.installment : installment // ignore: cast_nullable_to_non_nullable
 as InstallmentModel,isPaid: null == isPaid ? _self.isPaid : isPaid // ignore: cast_nullable_to_non_nullable
 as bool,isOverdue: null == isOverdue ? _self.isOverdue : isOverdue // ignore: cast_nullable_to_non_nullable
+as bool,isScheduledStrike: null == isScheduledStrike ? _self.isScheduledStrike : isScheduledStrike // ignore: cast_nullable_to_non_nullable
 as bool,daysUntilDue: null == daysUntilDue ? _self.daysUntilDue : daysUntilDue // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -423,10 +426,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( InstallmentModel installment,  bool isPaid,  bool isOverdue,  int daysUntilDue)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( InstallmentModel installment,  bool isPaid,  bool isOverdue,  bool isScheduledStrike,  int daysUntilDue)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ArenaCommitment() when $default != null:
-return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.daysUntilDue);case _:
+return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.isScheduledStrike,_that.daysUntilDue);case _:
   return orElse();
 
 }
@@ -444,10 +447,10 @@ return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.daysUntilDu
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( InstallmentModel installment,  bool isPaid,  bool isOverdue,  int daysUntilDue)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( InstallmentModel installment,  bool isPaid,  bool isOverdue,  bool isScheduledStrike,  int daysUntilDue)  $default,) {final _that = this;
 switch (_that) {
 case _ArenaCommitment():
-return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.daysUntilDue);}
+return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.isScheduledStrike,_that.daysUntilDue);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -461,10 +464,10 @@ return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.daysUntilDu
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( InstallmentModel installment,  bool isPaid,  bool isOverdue,  int daysUntilDue)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( InstallmentModel installment,  bool isPaid,  bool isOverdue,  bool isScheduledStrike,  int daysUntilDue)?  $default,) {final _that = this;
 switch (_that) {
 case _ArenaCommitment() when $default != null:
-return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.daysUntilDue);case _:
+return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.isScheduledStrike,_that.daysUntilDue);case _:
   return null;
 
 }
@@ -476,7 +479,7 @@ return $default(_that.installment,_that.isPaid,_that.isOverdue,_that.daysUntilDu
 
 
 class _ArenaCommitment extends ArenaCommitment {
-  const _ArenaCommitment({required this.installment, required this.isPaid, required this.isOverdue, required this.daysUntilDue}): super._();
+  const _ArenaCommitment({required this.installment, required this.isPaid, required this.isOverdue, required this.isScheduledStrike, required this.daysUntilDue}): super._();
   
 
 @override final  InstallmentModel installment;
@@ -484,6 +487,9 @@ class _ArenaCommitment extends ArenaCommitment {
 @override final  bool isPaid;
 /// Pendente com vencimento ANTERIOR ao domingo desta semana.
 @override final  bool isOverdue;
+/// Pago, mas com `paidDate` no FUTURO — um débito automático já marcado
+/// para sexta, por exemplo. O golpe está agendado; ele ainda não caiu.
+@override final  bool isScheduledStrike;
 /// Dias de calendário até o vencimento, a partir de hoje. Negativo =
 /// venceu.
 @override final  int daysUntilDue;
@@ -498,16 +504,16 @@ _$ArenaCommitmentCopyWith<_ArenaCommitment> get copyWith => __$ArenaCommitmentCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ArenaCommitment&&(identical(other.installment, installment) || other.installment == installment)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.isOverdue, isOverdue) || other.isOverdue == isOverdue)&&(identical(other.daysUntilDue, daysUntilDue) || other.daysUntilDue == daysUntilDue));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ArenaCommitment&&(identical(other.installment, installment) || other.installment == installment)&&(identical(other.isPaid, isPaid) || other.isPaid == isPaid)&&(identical(other.isOverdue, isOverdue) || other.isOverdue == isOverdue)&&(identical(other.isScheduledStrike, isScheduledStrike) || other.isScheduledStrike == isScheduledStrike)&&(identical(other.daysUntilDue, daysUntilDue) || other.daysUntilDue == daysUntilDue));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,installment,isPaid,isOverdue,daysUntilDue);
+int get hashCode => Object.hash(runtimeType,installment,isPaid,isOverdue,isScheduledStrike,daysUntilDue);
 
 @override
 String toString() {
-  return 'ArenaCommitment(installment: $installment, isPaid: $isPaid, isOverdue: $isOverdue, daysUntilDue: $daysUntilDue)';
+  return 'ArenaCommitment(installment: $installment, isPaid: $isPaid, isOverdue: $isOverdue, isScheduledStrike: $isScheduledStrike, daysUntilDue: $daysUntilDue)';
 }
 
 
@@ -518,7 +524,7 @@ abstract mixin class _$ArenaCommitmentCopyWith<$Res> implements $ArenaCommitment
   factory _$ArenaCommitmentCopyWith(_ArenaCommitment value, $Res Function(_ArenaCommitment) _then) = __$ArenaCommitmentCopyWithImpl;
 @override @useResult
 $Res call({
- InstallmentModel installment, bool isPaid, bool isOverdue, int daysUntilDue
+ InstallmentModel installment, bool isPaid, bool isOverdue, bool isScheduledStrike, int daysUntilDue
 });
 
 
@@ -535,11 +541,12 @@ class __$ArenaCommitmentCopyWithImpl<$Res>
 
 /// Create a copy of ArenaCommitment
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? installment = null,Object? isPaid = null,Object? isOverdue = null,Object? daysUntilDue = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? installment = null,Object? isPaid = null,Object? isOverdue = null,Object? isScheduledStrike = null,Object? daysUntilDue = null,}) {
   return _then(_ArenaCommitment(
 installment: null == installment ? _self.installment : installment // ignore: cast_nullable_to_non_nullable
 as InstallmentModel,isPaid: null == isPaid ? _self.isPaid : isPaid // ignore: cast_nullable_to_non_nullable
 as bool,isOverdue: null == isOverdue ? _self.isOverdue : isOverdue // ignore: cast_nullable_to_non_nullable
+as bool,isScheduledStrike: null == isScheduledStrike ? _self.isScheduledStrike : isScheduledStrike // ignore: cast_nullable_to_non_nullable
 as bool,daysUntilDue: null == daysUntilDue ? _self.daysUntilDue : daysUntilDue // ignore: cast_nullable_to_non_nullable
 as int,
   ));

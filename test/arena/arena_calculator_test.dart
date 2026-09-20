@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/domain/services/arena_calculator.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
@@ -12,9 +13,9 @@ import 'package:funances/features/user/domain/models/user_model.dart';
 ///
 /// A mecânica que estes testes guardam:
 ///
-/// - o monstro é feito **só** de compromisso agendado (mais o atraso). Não há
-///   mais rateio de orçamento no HP dele — era a dupla contagem que fazia o
-///   mesmo dinheiro aparecer no monstro e no comprometido do herói;
+/// - o monstro é feito do que **sai das contas líquidas** na semana, mais o
+///   atraso. Não é "toda parcela de despesa": compra no cartão não move o
+///   caixa, e incluí-la fazia "pagar custa vida" virar mentira;
 /// - os heróis têm o SALDO como vida, medido do domingo até agora. HP máximo
 ///   é o saldo do começo da semana; HP atual é o de agora;
 /// - pagar um compromisso tira vida dos DOIS: do monstro porque a dívida
@@ -47,6 +48,7 @@ InstallmentModel _expense({
   status: status,
   type: OrderType.expense,
   installmentType: InstallmentType.single,
+  accounts: const {'corrente': AccountImpact.debt},
 );
 
 InstallmentModel _income({
@@ -63,6 +65,58 @@ InstallmentModel _income({
   status: status,
   type: OrderType.income,
   installmentType: InstallmentType.single,
+  accounts: const {'corrente': AccountImpact.credit},
+);
+
+/// O retrato real do cofre do dono: uma corrente, um investimento, um cartão
+/// e um empréstimo.
+const Map<String, AccountType> _contas = <String, AccountType>{
+  'corrente': AccountType.checking,
+  'investimento': AccountType.investment,
+  'cartao': AccountType.creditCard,
+  'emprestimo': AccountType.debt,
+};
+
+/// Uma parcela de despesa saindo de [from].
+InstallmentModel _expenseFrom(
+  String from, {
+  required String id,
+  required double amount,
+  int dayOffset = 0,
+  InstallmentStatus status = InstallmentStatus.pending,
+  DateTime? paidDate,
+}) => InstallmentModel(
+  id: id,
+  orderId: 'order-$id',
+  amount: amount,
+  description: id,
+  dueDate: _sunday.add(Duration(days: dayOffset)),
+  paidDate: paidDate,
+  status: status,
+  type: OrderType.expense,
+  installmentType: InstallmentType.single,
+  accounts: {from: AccountImpact.debt},
+);
+
+/// Uma transferência de [from] para [to] — é assim que o app registra o
+/// pagamento de fatura e a parcela de empréstimo.
+InstallmentModel _transfer({
+  required String id,
+  required String from,
+  required String to,
+  required double amount,
+  int dayOffset = 0,
+  InstallmentStatus status = InstallmentStatus.pending,
+}) => InstallmentModel(
+  id: id,
+  orderId: 'order-$id',
+  amount: amount,
+  description: id,
+  dueDate: _sunday.add(Duration(days: dayOffset)),
+  status: status,
+  type: OrderType.transfer,
+  installmentType: InstallmentType.single,
+  accounts: {from: AccountImpact.debt, to: AccountImpact.credit},
 );
 
 ArenaAccountReading _account(
@@ -91,6 +145,7 @@ ArenaInputs _inputs({
   List<UserModel> members = const [],
   DateTime? today,
   double weeklyXp = 0,
+  Map<String, AccountType> types = _contas,
 }) => ArenaInputs(
   weekId: _week,
   today: today ?? _wednesday,
@@ -98,6 +153,7 @@ ArenaInputs _inputs({
   weekInstallments: week,
   overdueInstallments: overdue,
   members: members,
+  accountTypes: types,
   weeklyXp: weeklyXp,
 );
 
@@ -170,25 +226,6 @@ void main() {
       expect(state.isDefeated, isTrue);
     });
 
-    test('pagar mais do que o previsto não leva a barra abaixo de zero', () {
-      final state = ArenaCalculator.from(
-        _inputs(
-          week: [
-            _expense(
-              id: 'luz',
-              amount: 180,
-              paidAmount: 300,
-              status: InstallmentStatus.settled,
-              paidDate: _sunday.add(const Duration(days: 1)),
-            ),
-          ],
-        ),
-      );
-
-      expect(state.monsterHp, 0);
-      expect(state.monsterHpRatio, 0);
-    });
-
     test('receita não alimenta o monstro', () {
       final state = ArenaCalculator.from(
         _inputs(
@@ -202,20 +239,22 @@ void main() {
       expect(state.monsterMaxHp, 180);
     });
 
-    test('transferência não é compromisso', () {
-      final transfer = InstallmentModel(
-        id: 'transf',
-        orderId: 'order-transf',
-        amount: 900,
-        description: 'transf',
-        dueDate: _sunday,
-        status: InstallmentStatus.paid,
-        paidDate: _sunday,
-        type: OrderType.transfer,
-        installmentType: InstallmentType.single,
+    test('transferência entre contas líquidas não é compromisso', () {
+      // Tirar da corrente e pôr no investimento não é dívida paga: o dinheiro
+      // continua no caixa, e a soma das contas líquidas nem muda.
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            _transfer(
+              id: 'aporte',
+              from: 'corrente',
+              to: 'investimento',
+              amount: 900,
+              status: InstallmentStatus.paid,
+            ),
+          ],
+        ),
       );
-
-      final state = ArenaCalculator.from(_inputs(week: [transfer]));
 
       expect(state.monsterMaxHp, 0);
       expect(state.healedThisWeek, 0);
@@ -240,6 +279,243 @@ void main() {
 
       expect(state.monsterMaxHp, 0);
       expect(state.isDefeated, isFalse);
+    });
+  });
+
+  group('o que SAI DO CAIXA — o retrato real do cofre', () {
+    /// A semana que o QA leu no aparelho do dono, com as contas de verdade.
+    ///
+    /// Quatro compras no cartão, a fatura, a parcela do empréstimo e um
+    /// débito automático. Na rodada 1 as sete linhas entravam no monstro e a
+    /// barra dizia um número que o caixa não ia pagar; aqui só as três que
+    /// tiram dinheiro da conta entram.
+    List<InstallmentModel> retratoReal() => [
+      _expenseFrom('cartao', id: 'mercado', amount: 412.90, dayOffset: 1),
+      _expenseFrom('cartao', id: 'farmacia', amount: 87.40, dayOffset: 2),
+      _expenseFrom('cartao', id: 'aplicativo', amount: 39.90, dayOffset: 3),
+      _expenseFrom('cartao', id: 'restaurante', amount: 156.00, dayOffset: 3),
+      _transfer(
+        id: 'fatura',
+        from: 'corrente',
+        to: 'cartao',
+        amount: 8300,
+        dayOffset: 4,
+      ),
+      _transfer(
+        id: 'emprestimo',
+        from: 'corrente',
+        to: 'emprestimo',
+        amount: 3811,
+        dayOffset: 5,
+      ),
+      _expenseFrom('corrente', id: 'Segurança C6', amount: 29.90, dayOffset: 2),
+    ];
+
+    test('compra NO cartão fica de fora: ela não move o caixa hoje', () {
+      final state = ArenaCalculator.from(_inputs(week: retratoReal()));
+
+      final ids = state.commitments.map((c) => c.installment.id).toSet();
+
+      expect(ids, isNot(contains('mercado')));
+      expect(ids, isNot(contains('farmacia')));
+      expect(ids, isNot(contains('aplicativo')));
+      expect(ids, isNot(contains('restaurante')));
+    });
+
+    test('a fatura e o empréstimo SÃO os golpes da semana', () {
+      final state = ArenaCalculator.from(_inputs(week: retratoReal()));
+
+      final ids = state.commitments.map((c) => c.installment.id).toList();
+
+      expect(ids, containsAll(<String>['fatura', 'emprestimo']));
+      // 8.300 + 3.811 + 29,90 — e não os 12.827,20 das sete linhas.
+      expect(state.monsterMaxHp, 12140.90);
+    });
+
+    test('débito automático em conta corrente entra', () {
+      final state = ArenaCalculator.from(_inputs(week: retratoReal()));
+
+      expect(
+        state.commitments.map((c) => c.installment.id),
+        contains('Segurança C6'),
+      );
+    });
+
+    test('pagar a fatura custa vida: o golpe tira dos DOIS', () {
+      // É a propriedade que a rodada 1 perdeu. Com compra de cartão no
+      // monstro, quitar uma delas derrubava a barra do bicho sem mexer no
+      // caixa — e a leitura "pagar custa vida" virava mentira.
+      final antes = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('corrente', initial: 20000, current: 20000)],
+          week: retratoReal(),
+        ),
+      );
+
+      final depois = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('corrente', initial: 20000, current: 11700)],
+          week: [
+            for (final i in retratoReal())
+              if (i.id == 'fatura')
+                _transfer(
+                  id: 'fatura',
+                  from: 'corrente',
+                  to: 'cartao',
+                  amount: 8300,
+                  dayOffset: 4,
+                  status: InstallmentStatus.paid,
+                )
+              else
+                i,
+          ],
+        ),
+      );
+
+      expect(antes.monsterHp - depois.monsterHp, 8300);
+      expect(antes.currentBalance - depois.currentBalance, 8300);
+    });
+
+    test('conta de origem desconhecida não entra: o app não adivinha', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [_expenseFrom('conta-que-nao-existe', id: 'x', amount: 100)],
+        ),
+      );
+
+      expect(state.monsterMaxHp, 0);
+    });
+
+    test('parcela sem conta nenhuma não entra', () {
+      final semConta = InstallmentModel(
+        id: 'orfa',
+        orderId: 'order-orfa',
+        amount: 100,
+        description: 'orfa',
+        dueDate: _sunday,
+        status: InstallmentStatus.pending,
+        type: OrderType.expense,
+        installmentType: InstallmentType.single,
+      );
+
+      expect(ArenaCalculator.from(_inputs(week: [semConta])).monsterMaxHp, 0);
+    });
+  });
+
+  group('golpe agendado', () {
+    test('pago com data FUTURA não desconta hoje', () {
+      // O monstro não pode nascer abatido no domingo com a semana inteira de
+      // débito automático já cobrada.
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            _expense(
+              id: 'aluguel',
+              amount: 1200,
+              dayOffset: 5,
+              status: InstallmentStatus.paid,
+              paidDate: _sunday.add(const Duration(days: 5)),
+            ),
+            _expense(id: 'luz', amount: 180, dayOffset: 2),
+          ],
+        ),
+      );
+
+      expect(state.monsterMaxHp, 1380);
+      expect(state.monsterHp, 1380, reason: 'nada saiu do caixa ainda');
+      expect(state.scheduledStrikes.single.installment.id, 'aluguel');
+      expect(state.struckCount, 0);
+    });
+
+    test('quando o dia chega, o golpe desconta', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          today: _sunday.add(const Duration(days: 5)),
+          week: [
+            _expense(
+              id: 'aluguel',
+              amount: 1200,
+              dayOffset: 5,
+              status: InstallmentStatus.paid,
+              paidDate: _sunday.add(const Duration(days: 5)),
+            ),
+          ],
+        ),
+      );
+
+      expect(state.monsterHp, 0);
+      expect(state.isDefeated, isTrue);
+      expect(state.scheduledStrikes, isEmpty);
+    });
+
+    test('pago SEM data de pagamento conta como golpe dado', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            _expense(
+              id: 'aluguel',
+              amount: 1200,
+              status: InstallmentStatus.settled,
+            ),
+          ],
+        ),
+      );
+
+      expect(state.monsterHp, 0);
+    });
+  });
+
+  group('atrasado dentro da semana', () {
+    test('pendente com vencimento antes de hoje é atraso — sem enfurecer', () {
+      final state = ArenaCalculator.from(
+        _inputs(week: [_expense(id: 'luz', amount: 180, dayOffset: 1)]),
+      );
+
+      final luz = state.commitments.single;
+      expect(luz.isLate, isTrue);
+      expect(luz.isOverdue, isFalse);
+      expect(luz.isBehind, isTrue);
+      expect(
+        state.isEnraged,
+        isFalse,
+        reason: 'enfurecer é privilégio do atraso de semanas anteriores',
+      );
+    });
+
+    test('ele sobe para o topo da folha, junto com o atraso antigo', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            _expense(id: 'hoje', amount: 30, dayOffset: 3),
+            _expense(id: 'atrasada-na-semana', amount: 40, dayOffset: 1),
+          ],
+          overdue: [_expense(id: 'atrasada-antes', amount: 10, dayOffset: -4)],
+        ),
+      );
+
+      expect(state.commitments.map((c) => c.installment.id).toList(), [
+        'atrasada-antes',
+        'atrasada-na-semana',
+        'hoje',
+      ]);
+    });
+
+    test('o que venceu e foi PAGO não é atraso', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            _expense(
+              id: 'luz',
+              amount: 180,
+              dayOffset: 1,
+              status: InstallmentStatus.paid,
+              paidDate: _sunday.add(const Duration(days: 1)),
+            ),
+          ],
+        ),
+      );
+
+      expect(state.commitments.single.isLate, isFalse);
     });
   });
 
