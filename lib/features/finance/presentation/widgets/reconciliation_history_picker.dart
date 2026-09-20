@@ -219,12 +219,16 @@ class ReconciliationHistoryPicker extends ConsumerWidget {
             if (item.status == InstallmentStatus.settled)
               const Padding(
                 padding: EdgeInsets.only(top: AppSpacing.xxs),
-                // A pílula lê `context.palette`, que nesta folha escura é a do
-                // tema de papel: a cor vai explícita para continuar legível.
+                // A folha é escura e a pílula lê `context.palette`, que aqui
+                // é a do tema de papel. `onGame` resolve os dois lados de uma
+                // vez: o tom fica no fundo e o texto vira tinta clara, em vez
+                // de uma cor explícita que precisa ser reconferida a cada
+                // mudança de paleta.
                 child: StatusPill(
                   label: 'CONCILIADO',
                   dense: true,
-                  color: AppColors.teal,
+                  onGame: true,
+                  tone: StatusTone.info,
                 ),
               ),
           ],

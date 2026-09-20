@@ -79,6 +79,9 @@ class LevelHeaderCard extends StatelessWidget {
             StatusPill(
               icon: Icons.military_tech,
               tone: StatusTone.reward,
+              // O cartão é `AppCard.game`: a pílula está sobre superfície de
+              // jogo, e ali a tinta do tom não alcança o piso de texto.
+              onGame: true,
               label: l10n.badgeCatalogTotal(unlockedCount, totalCount),
             ),
           ],

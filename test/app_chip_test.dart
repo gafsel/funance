@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_theme.dart';
+import 'package:funances/core/widgets/app_card.dart';
 import 'package:funances/core/widgets/app_chip.dart';
 
 /// A4 — a pílula dourada era a única ilegível.
@@ -190,6 +191,28 @@ void main() {
             'virar pêssego e o laranja virar amarelo; o tom fica no fundo',
       );
       expect(_tinta(tester, 'Atrasado'), AppColors.inkInverse);
+    });
+
+    testWidgets('B2 — quem está sobre jogo de fato declara isso', (
+      tester,
+    ) async {
+      // Uma pílula dentro de um `AppCard.game` sem `onGame` é o defeito que o
+      // M1 descreveu, só que num arquivo diferente. As duas que existiam
+      // estão cobertas em `badges_cabinet_test` e
+      // `reconciliation_display_test`; aqui fica a regra.
+      await _pump(
+        tester,
+        const AppCard.game(
+          child: StatusPill(
+            label: '3 / 12',
+            tone: StatusTone.reward,
+            onGame: true,
+          ),
+        ),
+        theme: AppTheme.light,
+      );
+
+      expect(_tinta(tester, '3 / 12'), AppColors.inkInverse);
     });
 
     testWidgets('M1 — sobre papel nada muda', (tester) async {
