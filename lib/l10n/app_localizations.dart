@@ -4334,6 +4334,30 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Último dia da semana} other{Faltam {count} dias na semana}}'**
   String arenaDaysLeft(int count);
 
+  /// No description provided for @arenaIconMissions.
+  ///
+  /// In pt, this message translates to:
+  /// **'Missões'**
+  String get arenaIconMissions;
+
+  /// No description provided for @arenaIconCompass.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bússola'**
+  String get arenaIconCompass;
+
+  /// No description provided for @arenaIconCoach.
+  ///
+  /// In pt, this message translates to:
+  /// **'Coach'**
+  String get arenaIconCoach;
+
+  /// No description provided for @arenaIconPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pendentes'**
+  String get arenaIconPending;
+
   /// No description provided for @arenaHeroesDepleted.
   ///
   /// In pt, this message translates to:

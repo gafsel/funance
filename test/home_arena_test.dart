@@ -220,6 +220,64 @@ void main() {
       expect(find.byType(ArenaIconRing), findsNWidgets(4));
     });
 
+    /// E — o dono: *"os ícones da parte superior, troca pra um formato
+    /// parecido com o dos ícones da parte de baixo (com o número do lado e o
+    /// texto em baixo em telas grandes o suficiente)"*.
+    ///
+    /// Os dois grupos moram sobre a MESMA cena. Com duas montagens — número
+    /// embaixo em cima, número ao lado embaixo — a tela lia como dois HUDs
+    /// sobrepostos.
+    testWidgets('no celular o número fica AO LADO da figura, e sem nome', (
+      tester,
+    ) async {
+      await _pump(tester, comMissoes: true, size: const Size(400, 800));
+
+      final anel = tester.getRect(
+        find.descendant(
+          of: porGlifo(ArenaGlyph.scroll),
+          matching: find.byType(ArenaIconRing),
+        ),
+      );
+      final numero = tester.getRect(find.text('1/3'));
+
+      // Ao lado: o número começa DEPOIS da figura e divide a mesma linha.
+      expect(numero.left, greaterThanOrEqualTo(anel.right));
+      expect(numero.center.dy, closeTo(anel.center.dy, 4));
+
+      // Num celular, quatro rótulos a mais disputam os mesmos 400 px com
+      // quatro números, e é o número que perde.
+      expect(find.text('Missões'), findsNothing);
+      expect(find.text('Bússola'), findsNothing);
+    });
+
+    testWidgets('do tablet para cima os quatro se apresentam', (tester) async {
+      await _pump(tester, comMissoes: true, size: const Size(1300, 900));
+
+      expect(find.text('Missões'), findsOneWidget);
+      expect(find.text('Bússola'), findsOneWidget);
+      expect(find.text('Coach'), findsOneWidget);
+      expect(find.text('Pendentes'), findsOneWidget);
+
+      // O nome curto é do DESENHO; a semântica continua com o nome inteiro.
+      expect(
+        find.bySemanticsLabel('Bússola da Liberdade'),
+        findsOneWidget,
+        reason: 'a semântica não encolheu junto com a tela',
+      );
+    });
+
+    testWidgets('o coach não inventa número onde não há contagem', (
+      tester,
+    ) async {
+      await _pump(tester, comMissoes: true, size: const Size(1300, 900));
+
+      final coach = tester.widget<ArenaSceneIcon>(porGlifo(ArenaGlyph.coach));
+
+      expect(coach.value, isNull);
+      // E o nome dele continua lá: quem diz o estado é o anel.
+      expect(find.text('Coach'), findsOneWidget);
+    });
+
     /// As seis geometrias em que a aba tem de se comportar: do celular mais
     /// baixo que o app suporta ao monitor.
     const geometrias = <Size>[

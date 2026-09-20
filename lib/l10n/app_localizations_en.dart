@@ -2423,6 +2423,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get arenaIconMissions => 'Missions';
+
+  @override
+  String get arenaIconCompass => 'Compass';
+
+  @override
+  String get arenaIconCoach => 'Coach';
+
+  @override
+  String get arenaIconPending => 'Pending';
+
+  @override
   String get arenaHeroesDepleted => 'Heroes\' life is gone, danger.';
 
   @override

@@ -2439,6 +2439,18 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get arenaIconMissions => 'Missões';
+
+  @override
+  String get arenaIconCompass => 'Bússola';
+
+  @override
+  String get arenaIconCoach => 'Coach';
+
+  @override
+  String get arenaIconPending => 'Pendentes';
+
+  @override
   String get arenaHeroesDepleted => 'Vida dos heróis esgotada, perigo.';
 
   @override
