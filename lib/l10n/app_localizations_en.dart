@@ -2158,6 +2158,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get writeFailedReasonUnknown => 'the server rejected the change';
 
   @override
+  String get writeFailedReasonSerialization =>
+      'the app could not prepare the data; try again';
+
+  @override
   String get transactionSavePendingSync =>
       'Saved on this device. Instalments appear when the connection is back.';
 

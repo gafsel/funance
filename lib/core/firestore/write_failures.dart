@@ -14,6 +14,15 @@ enum WriteFailureReason {
   /// Estávamos online e o servidor não confirmou dentro do prazo longo.
   tookTooLong,
 
+  /// O app não conseguiu montar o que ia gravar. A escrita NUNCA saiu do
+  /// aparelho.
+  ///
+  /// É defeito do app, não do servidor nem da rede, e dizer "o servidor
+  /// recusou" seria mentir — inclusive para quem for investigar. Foi o que
+  /// aconteceu com as pendências que não sumiam: o codec do Firestore
+  /// recusava um modelo aninhado cru, e o erro nem chegava perto da rede.
+  serializationFailed,
+
   /// Qualquer outra recusa do servidor.
   unknown,
 }
@@ -85,6 +94,13 @@ WriteFailureReason writeFailureReasonOf(Object error) {
     return WriteFailureReason.permissionDenied;
   }
   if (text.contains('not-found')) return WriteFailureReason.notFound;
+
+  // Antes do servidor: o codec do Firestore recusa um valor que não sabe
+  // serializar com `ArgumentError`, e um campo com o tipo errado estoura como
+  // `TypeError`. Nos dois casos nada trafegou, e o aviso precisa dizer isso.
+  if (error is ArgumentError || error is TypeError) {
+    return WriteFailureReason.serializationFailed;
+  }
 
   return WriteFailureReason.unknown;
 }

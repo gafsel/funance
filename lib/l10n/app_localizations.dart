@@ -3938,6 +3938,12 @@ abstract class AppLocalizations {
   /// **'o servidor recusou a alteração'**
   String get writeFailedReasonUnknown;
 
+  /// No description provided for @writeFailedReasonSerialization.
+  ///
+  /// In pt, this message translates to:
+  /// **'o app não conseguiu preparar os dados; tente de novo'**
+  String get writeFailedReasonSerialization;
+
   /// No description provided for @transactionSavePendingSync.
   ///
   /// In pt, this message translates to:

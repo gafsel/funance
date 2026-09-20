@@ -240,6 +240,8 @@ String writeFailureText(AppLocalizations l10n, WriteFailureReason reason) {
     WriteFailureReason.permissionDenied => l10n.writeFailedReasonPermission,
     WriteFailureReason.notFound => l10n.writeFailedReasonNotFound,
     WriteFailureReason.tookTooLong => l10n.writeFailedReasonTimeout,
+    WriteFailureReason.serializationFailed =>
+      l10n.writeFailedReasonSerialization,
     WriteFailureReason.unknown => l10n.writeFailedReasonUnknown,
   };
 }
