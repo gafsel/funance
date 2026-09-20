@@ -470,6 +470,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profilePhotoGallery => 'Gallery';
 
   @override
+  String get profileAvatarLabel => 'Your Arena hero';
+
+  @override
+  String get profileAvatarHint =>
+      'This is the character who fights for you all week.';
+
+  @override
+  String get avatarKnight => 'Knight';
+
+  @override
+  String get avatarMage => 'Mage';
+
+  @override
+  String get avatarRanger => 'Ranger';
+
+  @override
+  String get avatarWarrior => 'Warrior';
+
+  @override
+  String get avatarHealer => 'Healer';
+
+  @override
+  String get avatarBarbarian => 'Barbarian';
+
+  @override
+  String get avatarMonk => 'Monk';
+
+  @override
+  String get avatarSmith => 'Blacksmith';
+
+  @override
   String get planning503020Title => '50-30-20 Planning';
 
   @override

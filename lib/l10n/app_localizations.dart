@@ -932,6 +932,66 @@ abstract class AppLocalizations {
   /// **'Galeria'**
   String get profilePhotoGallery;
 
+  /// No description provided for @profileAvatarLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Seu herói na Arena'**
+  String get profileAvatarLabel;
+
+  /// No description provided for @profileAvatarHint.
+  ///
+  /// In pt, this message translates to:
+  /// **'É este boneco que luta por você na semana.'**
+  String get profileAvatarHint;
+
+  /// No description provided for @avatarKnight.
+  ///
+  /// In pt, this message translates to:
+  /// **'Cavaleiro'**
+  String get avatarKnight;
+
+  /// No description provided for @avatarMage.
+  ///
+  /// In pt, this message translates to:
+  /// **'Mago'**
+  String get avatarMage;
+
+  /// No description provided for @avatarRanger.
+  ///
+  /// In pt, this message translates to:
+  /// **'Batedor'**
+  String get avatarRanger;
+
+  /// No description provided for @avatarWarrior.
+  ///
+  /// In pt, this message translates to:
+  /// **'Guerreira'**
+  String get avatarWarrior;
+
+  /// No description provided for @avatarHealer.
+  ///
+  /// In pt, this message translates to:
+  /// **'Curandeira'**
+  String get avatarHealer;
+
+  /// No description provided for @avatarBarbarian.
+  ///
+  /// In pt, this message translates to:
+  /// **'Bárbaro'**
+  String get avatarBarbarian;
+
+  /// No description provided for @avatarMonk.
+  ///
+  /// In pt, this message translates to:
+  /// **'Monge'**
+  String get avatarMonk;
+
+  /// No description provided for @avatarSmith.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ferreiro'**
+  String get avatarSmith;
+
   /// No description provided for @planning503020Title.
   ///
   /// In pt, this message translates to:
