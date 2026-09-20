@@ -58,10 +58,11 @@ Future<UnplannedNudge?> evaluateUnplannedNudge(
 /// 1. só lançamento **REALIZADO**: um agendamento não tira dinheiro do caixa
 ///    hoje, ele vira compromisso (e, portanto, vida do monstro);
 /// 2. só **criação**: editar uma order antiga não é uma saída nova;
-/// 3. só saída de conta **LÍQUIDA**. Uma compra no cartão não move o caixa, e
+/// 3. só saída da conta **CORRENTE**. Uma compra no cartão não move o caixa, e
 ///    a barra dos heróis É o caixa: animar dano ali faria o número descer e a
 ///    barra não andar, que é a pior combinação possível. Ela chega depois,
-///    somada, como a fatura.
+///    somada, como a fatura. O investimento saiu desta lista com o HUD
+///    mensal: ele deixou de ser vida dos heróis e virou a poção do rodapé.
 ///
 /// O valor é o da **parcela**, não o da compra. O formulário guarda o total
 /// quando `amountType` é `total`, e um sofá de R$ 3.600 em 12× tirou R$ 300
@@ -79,10 +80,7 @@ ArenaPendingEvent? arenaEventFor(
       before.status != InstallmentStatus.settled) {
     return null;
   }
-  if (sourceType != AccountType.checking &&
-      sourceType != AccountType.investment) {
-    return null;
-  }
+  if (sourceType != AccountType.checking) return null;
 
   final amount = arenaInstallmentAmount(before);
   if (amount <= 0) return null;

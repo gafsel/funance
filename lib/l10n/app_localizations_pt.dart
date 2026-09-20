@@ -2560,8 +2560,7 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get arenaNoAccounts =>
-      'Nenhuma conta corrente ou de investimento cadastrada.';
+  String get arenaNoAccounts => 'Nenhuma conta corrente cadastrada.';
 
   @override
   String get arenaMonsterSpider => 'Aranha';

@@ -2543,7 +2543,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get arenaNoAccounts => 'No checking or investment account registered.';
+  String get arenaNoAccounts => 'No checking account registered.';
 
   @override
   String get arenaMonsterSpider => 'Spider';

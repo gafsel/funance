@@ -1345,7 +1345,7 @@
   "arenaOverdueSince": "{days, plural, =1{Atrasado 1 dia · {date}} other{Atrasado {days} dias · {date}}}",
   "arenaHeroesSheetTitle": "Suas contas nesta semana",
   "arenaHeroesSheetSubtitle": "A semana começou com {initial} em caixa.",
-  "arenaNoAccounts": "Nenhuma conta corrente ou de investimento cadastrada.",
+  "arenaNoAccounts": "Nenhuma conta corrente cadastrada.",
   "arenaMonsterSpider": "Aranha",
   "arenaMonsterBat": "Morcego",
   "arenaMonsterGhost": "Fantasma",

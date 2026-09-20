@@ -305,7 +305,7 @@ void main() {
     expect(lives.single.current, 0);
   });
 
-  test('investimento entra no caixa; cartão e dívida não', () async {
+  test('só a corrente é vida; investimento, cartão e dívida ficam de fora', () async {
     final fake = _BalanceFake(
       [
         _checking('c1', 'Nubank'),
@@ -346,7 +346,8 @@ void main() {
 
     final lives = await _lives(_container(fake));
 
-    expect(lives.map((l) => l.accountId).toList(), ['c1', 'inv']);
+    // O investimento saiu com o HUD mensal: ele é a poção, não a vida.
+    expect(lives.map((l) => l.accountId).toList(), ['c1']);
 
     final state = ArenaCalculator.from(
       ArenaInputs(
@@ -359,7 +360,7 @@ void main() {
       ),
     );
 
-    expect(state.initialBalance, 5200);
-    expect(state.currentBalance, 3980);
+    expect(state.initialBalance, 4200);
+    expect(state.currentBalance, 3100);
   });
 }

@@ -50,9 +50,11 @@ class ArenaInputs {
   /// da folha do monstro ("hoje", "amanhã", "resto").
   final DateTime today;
 
-  /// As contas LÍQUIDAS (corrente + investimento), cada uma com o saldo de
-  /// domingo e o de agora. Cartão e dívida ficam de fora: o que está no
-  /// cartão ainda não saiu, e dívida não é caixa.
+  /// As contas CORRENTES, cada uma com o saldo de domingo e o de agora.
+  ///
+  /// Cartão e dívida ficam de fora: o que está no cartão ainda não saiu, e
+  /// dívida não é caixa. O investimento também — ele é a poção do HUD
+  /// mensal.
   final List<ArenaAccountReading> accounts;
 
   /// Parcelas cuja `referenceDate` cai na semana. `referenceDate` é
@@ -101,8 +103,12 @@ abstract final class ArenaCalculator {
       i.status == InstallmentStatus.paid ||
       i.status == InstallmentStatus.settled;
 
-  static bool _isLiquid(AccountType? type) =>
-      type == AccountType.checking || type == AccountType.investment;
+  /// Conta que é CAIXA. Só a corrente.
+  ///
+  /// O investimento saiu daqui junto com o HUD mensal — ele é a POÇÃO do
+  /// rodapé, e o mesmo saldo não pode ser vida dos heróis e reserva ao mesmo
+  /// tempo. Ver [arenaLiquidTypes].
+  static bool _isLiquid(AccountType? type) => type == AccountType.checking;
 
   /// Este lançamento tira dinheiro das CONTAS LÍQUIDAS nesta semana?
   ///
@@ -116,8 +122,8 @@ abstract final class ArenaCalculator {
   ///
   /// Entram:
   ///
-  /// - **despesa cuja conta de saída é líquida** (corrente ou investimento):
-  ///   o boleto, a conta de luz, o débito automático — "Segurança C6";
+  /// - **despesa cuja conta de saída é a CORRENTE**: o boleto, a conta de
+  ///   luz, o débito automático — "Segurança C6";
   /// - **transferência de conta líquida para CARTÃO ou DÍVIDA**: é assim que
   ///   o app registra o pagamento da fatura e a parcela do empréstimo;
   /// - **compromisso de dívida SEM conta de saída** — ver abaixo.

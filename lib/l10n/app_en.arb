@@ -1345,7 +1345,7 @@
   "arenaOverdueSince": "{days, plural, =1{1 day overdue · {date}} other{{days} days overdue · {date}}}",
   "arenaHeroesSheetTitle": "Your accounts this week",
   "arenaHeroesSheetSubtitle": "The week started with {initial} in cash.",
-  "arenaNoAccounts": "No checking or investment account registered.",
+  "arenaNoAccounts": "No checking account registered.",
   "arenaMonsterSpider": "Spider",
   "arenaMonsterBat": "Bat",
   "arenaMonsterGhost": "Ghost",

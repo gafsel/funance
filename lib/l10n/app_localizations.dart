@@ -4523,7 +4523,7 @@ abstract class AppLocalizations {
   /// No description provided for @arenaNoAccounts.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhuma conta corrente ou de investimento cadastrada.'**
+  /// **'Nenhuma conta corrente cadastrada.'**
   String get arenaNoAccounts;
 
   /// No description provided for @arenaMonsterSpider.

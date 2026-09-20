@@ -268,9 +268,10 @@ void main() {
       expect(state.monsterMaxHp, 180);
     });
 
-    test('transferência entre contas líquidas não é compromisso', () {
-      // Tirar da corrente e pôr no investimento não é dívida paga: o dinheiro
-      // continua no caixa, e a soma das contas líquidas nem muda.
+    test('aporte da corrente para o investimento não é compromisso', () {
+      // Tirar da corrente e pôr no investimento não é dívida paga. O saldo da
+      // corrente cai — e é por isso que o dano aparece na barra dos heróis —,
+      // mas não há compromisso nenhum a golpear: ninguém cobrou nada.
       final state = ArenaCalculator.from(
         _inputs(
           week: [

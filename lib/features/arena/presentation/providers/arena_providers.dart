@@ -20,14 +20,19 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 /// parcela esquecida ainda é uma dívida viva, e não arqueologia.
 const int arenaOverdueLookbackDays = 180;
 
-/// As contas que contam como CAIXA: corrente e investimento.
+/// As contas que contam como CAIXA: só a CORRENTE.
 ///
-/// Cartão e dívida ficam de fora — o que está no cartão ainda não saiu da
-/// conta, e dívida não é caixa.
-const List<AccountType> arenaLiquidTypes = <AccountType>[
-  AccountType.checking,
-  AccountType.investment,
-];
+/// Cartão e dívida nunca entraram — o que está no cartão ainda não saiu da
+/// conta, e dívida não é caixa. O **investimento** entrava, e saiu com o HUD
+/// mensal: ele virou a POÇÃO do rodapé. O mesmo dinheiro contado como vida
+/// dos heróis e como poção seria contado duas vezes, e as duas leituras
+/// diriam coisas opostas — "seu caixa está alto" e "você tem reserva" — sobre
+/// o mesmo saldo.
+///
+/// A escolha de ficar com a corrente, e não com a soma, é a do produto: a
+/// vida da semana é o dinheiro que a semana pode gastar, e resgatar um
+/// investimento é uma decisão, não um saldo disponível.
+const List<AccountType> arenaLiquidTypes = <AccountType>[AccountType.checking];
 
 /// O evento que a cena ainda não mostrou.
 ///
