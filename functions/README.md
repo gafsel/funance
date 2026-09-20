@@ -3669,6 +3669,16 @@ categoria. As duas saídas são do dono: reclassificar essas categorias (o app j
 edita a `allocation`) ou criar uma quarta classe para o custo de dívida. Fica
 escrito para não virar descoberta de novo.
 
+**Também é decisão do dono: o XP SEMANAL não foi invertido.**
+`evaluateWeeklyPlanXp` (+20 por categoria dentro do limite) continua lendo
+`actualAmount <= generalPlannedAmount` para TODA categoria de despesa com
+orçamento, investimento incluído. A partir deste pacote as duas regras
+discordam sobre a mesma categoria: na semana, o aporte que não saiu ainda
+rende +20 por "estar dentro do limite"; no mês, ele derruba o aldeão. É a
+terceira divergência da mesma lista (ver as pendências 2 e 3 do HUD mensal), e
+inverter o semanal muda quem ganha XP numa barra que já está publicada — não
+entra de carona aqui.
+
 ### Rollout de wp/missions-by-type (missões por tipo de workspace)
 
 Independente do bloco acima, e muito menor. Três passos, nesta ordem:
