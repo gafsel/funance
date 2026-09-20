@@ -24,6 +24,7 @@ class ArenaTheme {
     required this.exhaustion,
     required this.wallShadeTop,
     required this.wallShadeBottom,
+    required this.floorShade,
     required this.numberStyle,
     required this.labelStyle,
     required this.reduceMotion,
@@ -46,6 +47,11 @@ class ArenaTheme {
       exhaustion: AppColors.surfaceDeep.withValues(alpha: 0.45),
       wallShadeTop: AppColors.surfaceDeep.withValues(alpha: 0.92),
       wallShadeBottom: AppColors.surfaceDeep.withValues(alpha: 0.05),
+      // O chão escurece na direção de quem olha. Com o full-bleed o desktop
+      // ganhou quatrocentos pixels de areia lisa, e areia lisa não tem
+      // profundidade nenhuma: a mesma sombra da parede, mais fraca e do
+      // outro lado, dá o chão descendo em vez de um tapete.
+      floorShade: AppColors.surfaceDeep.withValues(alpha: 0.38),
       numberStyle: AppTypography.counter(palette.onGame),
       labelStyle: AppTypography.body14(palette.onGame2),
       reduceMotion: AppDurations.reduceMotion(context),
@@ -63,6 +69,9 @@ class ArenaTheme {
   /// Degradê da parede: escuro em cima, quase limpo na altura dos braseiros.
   final Color wallShadeTop;
   final Color wallShadeBottom;
+
+  /// Degradê do chão: limpo no horizonte, escuro na borda de baixo.
+  final Color floorShade;
 
   /// Base dos números flutuantes (+R$ / −R$). O tamanho é reescrito para
   /// unidades de mundo por quem desenha.
@@ -87,6 +96,7 @@ class ArenaTheme {
       other.exhaustion == exhaustion &&
       other.wallShadeTop == wallShadeTop &&
       other.wallShadeBottom == wallShadeBottom &&
+      other.floorShade == floorShade &&
       other.numberStyle == numberStyle &&
       other.labelStyle == labelStyle &&
       other.reduceMotion == reduceMotion;
@@ -102,6 +112,7 @@ class ArenaTheme {
     exhaustion,
     wallShadeTop,
     wallShadeBottom,
+    floorShade,
     numberStyle,
     labelStyle,
     reduceMotion,

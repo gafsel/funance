@@ -97,6 +97,32 @@ class _ArenaViewState extends ConsumerState<ArenaView>
   /// rodando atrás de uma folha modal é bateria gasta em pixel que ninguém vê.
   bool _suspended = false;
 
+  /// A altura do véu do topo, medida na tela.
+  ///
+  /// A cena usa este número para empurrar o cenário INTEIRO para baixo do
+  /// HUD — horizonte, braseiros e bonecos. Sem ele, a não-sobreposição era
+  /// só uma conta que o teste conferia: a cena não sabia que havia um
+  /// overlay em cima dela, e com o banner de fechamento ligado (que só
+  /// aparece uma vez por semana, e nunca num golden) o placar crescia e
+  /// passava por cima do mago.
+  double _topInset = 0;
+
+  final GlobalKey _topKey = GlobalKey();
+
+  /// Lê a altura do véu e avisa a cena quando ela muda.
+  void _measureTop() {
+    if (!mounted) return;
+    final box = _topKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return;
+
+    final medida = box.size.height;
+    if ((medida - _topInset).abs() < 0.5) return;
+
+    // Converge em um passo: a altura do véu não depende do recuo que ela
+    // produz.
+    setState(() => _topInset = medida);
+  }
+
   /// Um pagamento confirmado AQUI está a caminho.
   ///
   /// É o que decide se a queda de saldo é golpe ou dano. A rodada 1 decidia
@@ -292,6 +318,7 @@ class _ArenaViewState extends ConsumerState<ArenaView>
       // A volta do formulário reacende o `TickerMode`, o que reconstrói este
       // widget: é aqui que o golpe guardado encontra a cena na frente de novo.
       _drainPendingIfVisible();
+      _measureTop();
     });
 
     final state = async.valueOrNull;
@@ -314,6 +341,7 @@ class _ArenaViewState extends ConsumerState<ArenaView>
       // `applyState` sai cedo quando o estado é igual, então repetir isto a
       // cada build não custa nada.
       game.applyState(state, animate: false);
+      game.topInset = _topInset;
       game.overdueLabel = (value) =>
           '+${value.overdueAmount.asCompactCurrency(locale: context.locale)}';
 
@@ -353,6 +381,7 @@ class _ArenaViewState extends ConsumerState<ArenaView>
           left: 0,
           right: 0,
           child: ArenaScrim.top(
+            key: _topKey,
             child: SafeArea(
               // Só em cima: embaixo quem reserva a área segura do aparelho é
               // a barra inferior da Home.
