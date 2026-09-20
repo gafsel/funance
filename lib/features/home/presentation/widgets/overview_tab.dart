@@ -22,6 +22,14 @@ export 'package:funances/features/home/presentation/widgets/overview/category_su
 
 /// A aba Visão Geral: contas, distribuição 50-30-20 e "onde está o dinheiro".
 ///
+/// A **Party saiu daqui** (decisão 9 do dono: "essa visão não faz mais
+/// sentido com a nova visão de jogo"). Ela tinha vindo da Home por um bom
+/// motivo — falava de planejamento por categoria, que é o assunto desta aba
+/// —, mas era um segundo jogo dentro do app, com uma vida, um status e um
+/// emoji próprios, competindo com a luta da semana que agora abre a primeira
+/// aba. O anel dela sobreviveu genérico em
+/// `core/widgets/progress_ring_icon.dart`.
+///
 /// A mesma sequência de blocos em duas montagens — duas colunas acima de 900px,
 /// empilhada abaixo. É repetição literal de propósito: tentar unificar as duas
 /// com widgets condicionais custa mais do que a duplicação de uma lista de
