@@ -448,15 +448,24 @@ void main() {
       expect(find.byType(ArenaHpBar), findsNWidgets(2));
     });
 
+    testWidgets('o botão do bloco abre a Arena em tela cheia', (tester) async {
+      // A porta para `/arena` mora no bloco da Home. Aqui ela é TOCADA: uma
+      // varredura de texto diria "o endereço aparece no arquivo", que é
+      // outra coisa.
+      await pumpArenaHome(tester);
+
+      await tester.tap(find.byKey(const ValueKey('arena-open-full')));
+      await arenaFrames(tester, count: 20);
+
+      expect(find.text('arena em tela cheia'), findsOneWidget);
+    });
+
     testWidgets('a cena tem semântica: a luta não é um retângulo mudo', (
       tester,
     ) async {
       await pumpArena(tester);
 
-      expect(
-        find.bySemanticsLabel(RegExp('A luta da semana')),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel(RegExp('A luta da semana')), findsOneWidget);
     });
 
     testWidgets('no desktop a cena tem largura máxima e fica centrada', (

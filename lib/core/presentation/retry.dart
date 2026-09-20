@@ -76,12 +76,6 @@ class Retry {
     ref.invalidate(PeriodSummaryViewProviders.monthSummary(monthKey));
   }
 
-  /// "Quanto sobra no mês" é o resumo do mês somado às parcelas pendentes.
-  static void monthlyAvailable(WidgetRef ref, String monthKey) {
-    monthSummary(ref, monthKey);
-    ref.invalidate(JourneyViewProviders.monthlyAvailable);
-  }
-
   /// Gráfico da fatura: as parcelas do ciclo são a fonte.
   static void invoiceChart(WidgetRef ref, InvoiceKey invoice) {
     ref.invalidate(FinanceViewProviders.invoiceInstallments(invoice));

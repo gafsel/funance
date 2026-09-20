@@ -2037,31 +2037,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get journeyChecklistTitle => 'Checklist da semana';
 
   @override
-  String get journeyAvailableTitle => 'Disponível até o fim do mês';
-
-  @override
-  String journeyAvailableSpent(String actual, String planned) {
-    return 'Realizado $actual de $planned previstos';
-  }
-
-  @override
-  String journeyAvailablePending(String pending) {
-    return 'Ainda por pagar: $pending';
-  }
-
-  @override
-  String get journeyAvailableNoIncome =>
-      'Sem expectativa de receita não dá para dizer quanto sobra.';
-
-  @override
-  String get journeyAvailableNoIncomeAction =>
-      'Defina sua expectativa de receita';
-
-  @override
-  String get journeyAvailableError =>
-      'Não consegui calcular o disponível agora.';
-
-  @override
   String get compassTitle => 'Bússola da Liberdade';
 
   @override
@@ -2409,29 +2384,10 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get dueSoonTitle => 'Vence hoje e amanhã';
-
-  @override
   String get dueSoonToday => 'Hoje';
 
   @override
   String get dueSoonTomorrow => 'Amanhã';
-
-  @override
-  String dueSoonInvoiceClosing(String card) {
-    return 'Fatura de $card fecha';
-  }
-
-  @override
-  String dueSoonSemantics(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count compromissos vencendo hoje ou amanhã',
-      one: '1 compromisso vencendo hoje ou amanhã',
-    );
-    return '$_temp0';
-  }
 
   @override
   String journeySeeAllGoals(int count) {

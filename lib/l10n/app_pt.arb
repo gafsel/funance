@@ -931,29 +931,6 @@
   "journeyMissionOrganization": "Organização",
   "journeyMissionOther": "Missão",
   "journeyChecklistTitle": "Checklist da semana",
-  "journeyAvailableTitle": "Disponível até o fim do mês",
-  "journeyAvailableSpent": "Realizado {actual} de {planned} previstos",
-  "@journeyAvailableSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
-  "journeyAvailablePending": "Ainda por pagar: {pending}",
-  "@journeyAvailablePending": {
-    "placeholders": {
-      "pending": {
-        "type": "String"
-      }
-    }
-  },
-  "journeyAvailableNoIncome": "Sem expectativa de receita não dá para dizer quanto sobra.",
-  "journeyAvailableNoIncomeAction": "Defina sua expectativa de receita",
-  "journeyAvailableError": "Não consegui calcular o disponível agora.",
   "compassTitle": "Bússola da Liberdade",
   "compassScoreOf": "{score} de 100 • {tier}",
   "@compassScoreOf": {
@@ -1241,25 +1218,8 @@
       }
     }
   },
-  "dueSoonTitle": "Vence hoje e amanhã",
   "dueSoonToday": "Hoje",
   "dueSoonTomorrow": "Amanhã",
-  "dueSoonInvoiceClosing": "Fatura de {card} fecha",
-  "dueSoonSemantics": "{count, plural, =1{1 compromisso vencendo hoje ou amanhã} other{{count} compromissos vencendo hoje ou amanhã}}",
-  "@dueSoonInvoiceClosing": {
-    "placeholders": {
-      "card": {
-        "type": "String"
-      }
-    }
-  },
-  "@dueSoonSemantics": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "journeySeeAllGoals": "Ver as {count} metas",
   "@journeySeeAllGoals": {
     "placeholders": {

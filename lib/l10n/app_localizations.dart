@@ -3716,42 +3716,6 @@ abstract class AppLocalizations {
   /// **'Checklist da semana'**
   String get journeyChecklistTitle;
 
-  /// No description provided for @journeyAvailableTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Disponível até o fim do mês'**
-  String get journeyAvailableTitle;
-
-  /// No description provided for @journeyAvailableSpent.
-  ///
-  /// In pt, this message translates to:
-  /// **'Realizado {actual} de {planned} previstos'**
-  String journeyAvailableSpent(String actual, String planned);
-
-  /// No description provided for @journeyAvailablePending.
-  ///
-  /// In pt, this message translates to:
-  /// **'Ainda por pagar: {pending}'**
-  String journeyAvailablePending(String pending);
-
-  /// No description provided for @journeyAvailableNoIncome.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sem expectativa de receita não dá para dizer quanto sobra.'**
-  String get journeyAvailableNoIncome;
-
-  /// No description provided for @journeyAvailableNoIncomeAction.
-  ///
-  /// In pt, this message translates to:
-  /// **'Defina sua expectativa de receita'**
-  String get journeyAvailableNoIncomeAction;
-
-  /// No description provided for @journeyAvailableError.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não consegui calcular o disponível agora.'**
-  String get journeyAvailableError;
-
   /// No description provided for @compassTitle.
   ///
   /// In pt, this message translates to:
@@ -4316,12 +4280,6 @@ abstract class AppLocalizations {
   /// **'{points} desde o mês passado'**
   String compassStripDelta(String points);
 
-  /// No description provided for @dueSoonTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Vence hoje e amanhã'**
-  String get dueSoonTitle;
-
   /// No description provided for @dueSoonToday.
   ///
   /// In pt, this message translates to:
@@ -4333,18 +4291,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Amanhã'**
   String get dueSoonTomorrow;
-
-  /// No description provided for @dueSoonInvoiceClosing.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fatura de {card} fecha'**
-  String dueSoonInvoiceClosing(String card);
-
-  /// No description provided for @dueSoonSemantics.
-  ///
-  /// In pt, this message translates to:
-  /// **'{count, plural, =1{1 compromisso vencendo hoje ou amanhã} other{{count} compromissos vencendo hoje ou amanhã}}'**
-  String dueSoonSemantics(int count);
 
   /// No description provided for @journeySeeAllGoals.
   ///

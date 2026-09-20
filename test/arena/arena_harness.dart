@@ -6,6 +6,7 @@ import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/screens/arena_screen.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_home_block.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -236,6 +237,57 @@ Future<void> pumpArena(
         theme: theme,
         reduceMotion: reduceMotion,
         isBusiness: isBusiness,
+      ),
+    );
+
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+  });
+
+  await arenaFrames(tester);
+}
+
+/// Monta o BLOCO da Arena como ele vive na Home, com a rota de tela cheia do
+/// outro lado da porta.
+Future<void> pumpArenaHome(
+  WidgetTester tester, {
+  ArenaState? state,
+  Size size = const Size(400, 800),
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          ArenaViewProviders.state.overrideWith(
+            (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
+          ),
+          ArenaViewProviders.isBusiness.overrideWith((ref) => false),
+        ],
+        child: MaterialApp.router(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          routerConfig: GoRouter(
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (_, _) => const Scaffold(body: ArenaHomeBlock()),
+              ),
+              GoRoute(
+                path: arenaRoutePath,
+                builder: (_, _) => const _Marker('arena em tela cheia'),
+              ),
+            ],
+          ),
+          localizationsDelegates: arenaLocalizationDelegates,
+          supportedLocales: arenaSupportedLocales,
+          locale: const Locale('pt'),
+        ),
       ),
     );
 

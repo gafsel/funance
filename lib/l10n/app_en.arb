@@ -924,29 +924,6 @@
   "journeyMissionOrganization": "Organization",
   "journeyMissionOther": "Mission",
   "journeyChecklistTitle": "This week's checklist",
-  "journeyAvailableTitle": "Available until the end of the month",
-  "journeyAvailableSpent": "{actual} spent of {planned} planned",
-  "@journeyAvailableSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
-  "journeyAvailablePending": "Still to pay: {pending}",
-  "@journeyAvailablePending": {
-    "placeholders": {
-      "pending": {
-        "type": "String"
-      }
-    }
-  },
-  "journeyAvailableNoIncome": "Without an income expectation we cannot tell what is left.",
-  "journeyAvailableNoIncomeAction": "Set your income expectation",
-  "journeyAvailableError": "We could not work out what is available right now.",
   "compassTitle": "Freedom Compass",
   "compassScoreOf": "{score} of 100 • {tier}",
   "@compassScoreOf": {
@@ -1234,25 +1211,8 @@
       }
     }
   },
-  "dueSoonTitle": "Due today and tomorrow",
   "dueSoonToday": "Today",
   "dueSoonTomorrow": "Tomorrow",
-  "dueSoonInvoiceClosing": "{card} statement closes",
-  "dueSoonSemantics": "{count, plural, =1{1 item due today or tomorrow} other{{count} items due today or tomorrow}}",
-  "@dueSoonInvoiceClosing": {
-    "placeholders": {
-      "card": {
-        "type": "String"
-      }
-    }
-  },
-  "@dueSoonSemantics": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "journeySeeAllGoals": "See all {count} goals",
   "@journeySeeAllGoals": {
     "placeholders": {
