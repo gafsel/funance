@@ -2456,4 +2456,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String journeySeeAllGoals(int count) {
     return 'Ver as $count metas';
   }
+
+  @override
+  String get journeyNoRunningGoals => 'Nenhuma meta em andamento';
+
+  @override
+  String journeySeeClosedGoals(int count) {
+    return 'Ver $count encerradas';
+  }
 }

@@ -25,7 +25,18 @@ import 'package:funances/core/widgets/empty_state.dart';
 /// widget: o resto da aba puxa coaching, missões e Party, cada um com os seus
 /// providers e o seu Firebase, e nada disso tem a ver com a lista de metas.
 class GoalsSection extends ConsumerWidget {
-  const GoalsSection({super.key, this.highlightOnly = false});
+  const GoalsSection({
+    super.key,
+    this.highlightOnly = false,
+    this.showTitle = true,
+  });
+
+  /// `false` na tela `/goals`, onde a `AppBar` já diz "Metas".
+  ///
+  /// A seção desenhava o próprio título, e a tela desenhava outro igual logo
+  /// acima: "Metas" duas vezes, uma abaixo da outra, com dois botões de
+  /// adicionar. Quem titula é quem contém.
+  final bool showTitle;
 
   /// Mostra UMA meta — a mais próxima do fim — em vez da lista inteira.
   ///
@@ -46,25 +57,26 @@ class GoalsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Listagem de Metas
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                l10n.onboardingGoalsTitle,
-                style: theme.textTheme.titleLarge,
-                overflow: TextOverflow.ellipsis,
+        if (showTitle) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.onboardingGoalsTitle,
+                  style: theme.textTheme.titleLarge,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(Icons.add_circle, color: context.palette.tealText),
-              tooltip: l10n.journeyAddGoalTooltip,
-              onPressed: () => _showAddGoalDialog(context),
-            ),
-          ],
-        ),
-        AppSpacing.gapMd,
+              IconButton(
+                icon: Icon(Icons.add_circle, color: context.palette.tealText),
+                tooltip: l10n.journeyAddGoalTooltip,
+                onPressed: () => _showAddGoalDialog(context),
+              ),
+            ],
+          ),
+          AppSpacing.gapMd,
+        ],
         goalsAsync.when(
           data: (goals) {
             if (goals.isEmpty) {
@@ -86,7 +98,13 @@ class GoalsSection extends ConsumerWidget {
             ];
 
             if (highlightOnly) {
-              return _buildHighlight(context, l10n, theme, running);
+              return _buildHighlight(
+                context,
+                l10n,
+                theme,
+                running: running,
+                total: goals.length,
+              );
             }
 
             return Column(
@@ -123,10 +141,36 @@ class GoalsSection extends ConsumerWidget {
   Widget _buildHighlight(
     BuildContext context,
     AppLocalizations l10n,
-    ThemeData theme,
-    List<GoalModel> running,
-  ) {
-    if (running.isEmpty) return _buildEmptyGoals(context, l10n, theme);
+    ThemeData theme, {
+    required List<GoalModel> running,
+    required int total,
+  }) {
+    // Só metas ENCERRADAS é um estado real e comum — quem cumpriu tudo, quem
+    // perdeu o prazo de todas. Dizer "você não tem metas" ali é falso, e
+    // escondia a única porta para `/goals`: sem uma segunda meta CORRENTE o
+    // atalho não aparecia, e as encerradas ficavam inalcançáveis.
+    if (running.isEmpty) {
+      if (total == 0) return _buildEmptyGoals(context, l10n, theme);
+
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l10n.journeyNoRunningGoals,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: context.palette.ink2,
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.push('/goals'),
+              child: Text(l10n.journeySeeClosedGoals(total)),
+            ),
+          ],
+        ),
+      );
+    }
 
     final ordered = [...running]
       ..sort((a, b) => a.deadline.compareTo(b.deadline));
@@ -135,13 +179,17 @@ class GoalsSection extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildGoalCard(context, ordered.first),
-        if (running.length > 1) ...[
+        // O contador é do que a tela `/goals` LISTA — correntes e encerradas
+        // —, não do que corre. Com uma meta corrente e quatro encerradas o
+        // atalho sumia, e "Ver as N metas" prometia um número que não era o
+        // que a tela mostrava.
+        if (total > 1) ...[
           AppSpacing.gapXs,
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
               onPressed: () => context.push('/goals'),
-              child: Text(l10n.journeySeeAllGoals(running.length)),
+              child: Text(l10n.journeySeeAllGoals(total)),
             ),
           ),
         ],

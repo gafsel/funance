@@ -3,6 +3,7 @@ import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/app_scaffold.dart';
 import 'package:funances/features/goal/presentation/widgets/goals_section.dart';
+import 'package:go_router/go_router.dart';
 
 /// A tela das metas.
 ///
@@ -17,10 +18,27 @@ class GoalsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: Text(context.l10n.onboardingGoalsTitle)),
+      appBar: AppBar(
+        title: Text(context.l10n.onboardingGoalsTitle),
+        // A tela abre empilhada pela Home, mas também por link direto. Sem a
+        // saída explícita, chegar por fora deixava a pessoa numa tela sem
+        // botão de voltar — o mesmo padrão de `EntityRoute`.
+        leading: BackButton(
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle),
+            tooltip: context.l10n.journeyAddGoalTooltip,
+            onPressed: () => context.push('/goals/form'),
+          ),
+        ],
+      ),
+      // `showTitle: false`: a `AppBar` já diz "Metas", e a seção desenhava
+      // outro título igual logo abaixo, com um segundo botão de adicionar.
       body: const SingleChildScrollView(
         padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: SafeArea(child: GoalsSection()),
+        child: SafeArea(child: GoalsSection(showTitle: false)),
       ),
     );
   }

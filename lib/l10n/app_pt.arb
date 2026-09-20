@@ -1273,5 +1273,14 @@
         "type": "int"
       }
     }
+  },
+  "journeyNoRunningGoals": "Nenhuma meta em andamento",
+  "journeySeeClosedGoals": "Ver {count} encerradas",
+  "@journeySeeClosedGoals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

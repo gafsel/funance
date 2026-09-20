@@ -4387,6 +4387,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver as {count} metas'**
   String journeySeeAllGoals(int count);
+
+  /// No description provided for @journeyNoRunningGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma meta em andamento'**
+  String get journeyNoRunningGoals;
+
+  /// No description provided for @journeySeeClosedGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver {count} encerradas'**
+  String journeySeeClosedGoals(int count);
 }
 
 class _AppLocalizationsDelegate

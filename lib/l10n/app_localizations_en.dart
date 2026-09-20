@@ -2438,4 +2438,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String journeySeeAllGoals(int count) {
     return 'See all $count goals';
   }
+
+  @override
+  String get journeyNoRunningGoals => 'No goals in progress';
+
+  @override
+  String journeySeeClosedGoals(int count) {
+    return 'See $count closed';
+  }
 }

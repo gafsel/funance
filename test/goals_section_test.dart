@@ -64,22 +64,31 @@ GoalModel _vencedora() => GoalModel.payDebt(
   completedAt: DateTime(2026, 6, 10),
 );
 
-Widget _app(List<GoalModel> goals) {
+Widget _app(
+  List<GoalModel> goals, {
+  bool highlightOnly = false,
+  bool showTitle = true,
+}) {
   return ProviderScope(
     overrides: [
       GoalViewProvider.goalsStream.overrideWith((ref) => Stream.value(goals)),
     ],
-    child: const MaterialApp(
-      localizationsDelegates: [
+    child: MaterialApp(
+      localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [Locale('pt', 'BR')],
-      locale: Locale('pt', 'BR'),
+      supportedLocales: const [Locale('pt', 'BR')],
+      locale: const Locale('pt', 'BR'),
       home: Scaffold(
-        body: SingleChildScrollView(child: GoalsSection()),
+        body: SingleChildScrollView(
+          child: GoalsSection(
+            highlightOnly: highlightOnly,
+            showTitle: showTitle,
+          ),
+        ),
       ),
     ),
   );
@@ -168,5 +177,82 @@ void main() {
     expect(find.byIcon(Icons.report_gmailerrorred), findsNothing);
     expect(find.byIcon(Icons.hourglass_bottom), findsNothing);
     expect(find.text(l10n.goalAwaitingOutcome), findsNothing);
+  });
+
+  /// `/goals` era inalcançável em dois dos três cenários da Home.
+  ///
+  /// O atalho só aparecia com MAIS DE UMA meta corrente: uma meta correndo e
+  /// quatro encerradas não mostrava porta nenhuma, e só encerradas dizia
+  /// "você não tem metas" — o que é falso e esconde a tela inteira.
+  group('destaque da Home — a porta para /goals', () {
+    testWidgets('uma corrente e quatro encerradas: o atalho aparece', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app([
+          _emAndamento(),
+          _estourada(),
+          _vencedora(),
+          _aguardandoApuracao(),
+        ], highlightOnly: true),
+      );
+      await tester.pump();
+
+      expect(find.text('Reserva de emergência'), findsOneWidget);
+      expect(
+        find.text(l10n.journeySeeAllGoals(4)),
+        findsOneWidget,
+        reason:
+            'o contador é do que a tela /goals LISTA, não do que corre — com '
+            '`running.length` o atalho sumia e o número mentia',
+      );
+    });
+
+    testWidgets('só encerradas: diz a verdade e abre as encerradas', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _app([_estourada(), _vencedora()], highlightOnly: true),
+      );
+      await tester.pump();
+
+      expect(find.text(l10n.journeyNoRunningGoals), findsOneWidget);
+      expect(find.text(l10n.journeySeeClosedGoals(2)), findsOneWidget);
+      expect(
+        find.text(l10n.goalEmptyMessage),
+        findsNothing,
+        reason: '"você não tem metas" é falso quando existem duas encerradas',
+      );
+    });
+
+    testWidgets('nenhuma meta: aí sim o estado vazio de verdade', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app(const [], highlightOnly: true));
+      await tester.pump();
+
+      expect(find.text(l10n.goalEmptyMessage), findsOneWidget);
+    });
+
+    testWidgets('uma meta só: nada de atalho para uma lista de um item', (
+      tester,
+    ) async {
+      await tester.pumpWidget(_app([_emAndamento()], highlightOnly: true));
+      await tester.pump();
+
+      expect(find.text('Reserva de emergência'), findsOneWidget);
+      expect(find.textContaining('Ver as'), findsNothing);
+    });
+  });
+
+  testWidgets('na tela /goals o título não vem em dobro', (tester) async {
+    await tester.pumpWidget(_app([_emAndamento()], showTitle: false));
+    await tester.pump();
+
+    expect(
+      find.text(l10n.onboardingGoalsTitle),
+      findsNothing,
+      reason: 'quem titula é quem contém: a AppBar da tela já diz "Metas"',
+    );
   });
 }

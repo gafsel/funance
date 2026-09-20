@@ -1266,5 +1266,14 @@
         "type": "int"
       }
     }
+  },
+  "journeyNoRunningGoals": "No goals in progress",
+  "journeySeeClosedGoals": "See {count} closed",
+  "@journeySeeClosedGoals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }
