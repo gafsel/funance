@@ -23,12 +23,20 @@ const LAST_MONTH = "2026-08";
 
 const silent = () => undefined;
 
+/**
+ * Firestore de mentira: a varredura devolve `ids`, e `doc(id).get()` responde
+ * `exists` conforme o id esteja na lista — é o que o script consulta quando
+ * recebe `--workspace`.
+ */
 function firestoreWithWorkspaces(ids: string[]) {
     return {
         collection: jest.fn().mockReturnValue({
             select: jest.fn().mockReturnValue({
                 get: jest.fn().mockResolvedValue({ docs: ids.map((id) => ({ id })) }),
             }),
+            doc: jest.fn((id: string) => ({
+                get: jest.fn().mockResolvedValue({ id, exists: ids.includes(id) }),
+            })),
         }),
     } as any;
 }
@@ -80,6 +88,7 @@ function makeIncomeRepository(plannedCents = 0, published: any = null) {
         ),
         getPublishedExpectedIncome: jest.fn().mockResolvedValue(published),
         publishExpectedIncome: jest.fn().mockResolvedValue(undefined),
+        clearExpectedIncome: jest.fn().mockResolvedValue(undefined),
     } as any;
 }
 
@@ -217,9 +226,30 @@ describe("recompute_monthly_villagers (script)", () => {
             silent
         );
 
-        expect(firestore.collection).not.toHaveBeenCalled();
+        // A coleção é tocada UMA vez, e só para confirmar que o workspace
+        // existe — `select().get()` (a varredura) não roda.
+        expect(firestore.collection().select).not.toHaveBeenCalled();
         expect(summary.scanned).toBe(1);
         expect(summary.withVillagers).toBe(1);
+    });
+
+    it("--workspace inexistente PARA com erro claro, em vez de relatar 'sem aldeia'", async () => {
+        // Um dígito trocado no id produziria "nenhuma categoria orçada — sem
+        // aldeia", que é um relatório plausível e uma conclusão errada.
+        const gamification = makeGamificationRepository({ w1: ALDEIA });
+
+        await expect(
+            recomputeMonthlyVillagers(
+                firestoreWithWorkspaces(["w1"]),
+                gamification,
+                makeIncomeRepository(),
+                { dryRun: true, now: NOW, workspaceId: "w7", villagersOnly: true },
+                silent
+            )
+        ).rejects.toThrow(/workspace w7 não existe/);
+
+        expect(gamification.getPeriodSummaries).not.toHaveBeenCalled();
+        expect(gamification.saveMonthlyReport).not.toHaveBeenCalled();
     });
 
     it("workspace sem aldeia é contado e não gera retrato", async () => {
@@ -290,6 +320,57 @@ describe("recompute_monthly_villagers (script)", () => {
 
         expect(income.publishExpectedIncome).not.toHaveBeenCalled();
         expect(summary.incomePublished).toBe(0);
+    });
+
+    it("sem planejado nem histórico, não publica um zero", async () => {
+        // Campo ausente é como o servidor diz "não sei quanto este workspace
+        // ganha"; um zero publicado viraria poção vazia na tela.
+        const income = makeIncomeRepository(0);
+
+        const summary = await recomputeMonthlyVillagers(
+            firestoreWithWorkspaces(["w1"]),
+            makeGamificationRepository({ w1: ALDEIA }),
+            income,
+            { dryRun: false, now: NOW },
+            silent
+        );
+
+        expect(income.publishExpectedIncome).not.toHaveBeenCalled();
+        expect(income.clearExpectedIncome).not.toHaveBeenCalled();
+        expect(summary.incomePublished).toBe(0);
+    });
+
+    it("REMOVE a previsão antiga que deixou de valer, e o dry-run avisa", async () => {
+        const stale = {
+            monthKey: "2026-08", cents: 500_000, source: "average", updatedAt: "2026-08-01T00:00:00.000Z",
+        };
+        const lines: string[] = [];
+
+        const dry = await recomputeMonthlyVillagers(
+            firestoreWithWorkspaces(["w1"]),
+            makeGamificationRepository({ w1: ALDEIA }),
+            makeIncomeRepository(0, stale),
+            { dryRun: true, now: NOW },
+            (message) => {
+                lines.push(message);
+            }
+        );
+
+        expect(dry.incomePublished).toBe(1);
+        expect(lines.join("\n")).toContain("REMOVERIA");
+
+        const income = makeIncomeRepository(0, stale);
+        const applied = await recomputeMonthlyVillagers(
+            firestoreWithWorkspaces(["w1"]),
+            makeGamificationRepository({ w1: ALDEIA }),
+            income,
+            { dryRun: false, now: NOW },
+            silent
+        );
+
+        expect(income.clearExpectedIncome).toHaveBeenCalledWith("w1");
+        expect(income.publishExpectedIncome).not.toHaveBeenCalled();
+        expect(applied.incomePublished).toBe(1);
     });
 
     it("a receita publicada é a do mês CORRENTE, não a do mês recalculado", async () => {

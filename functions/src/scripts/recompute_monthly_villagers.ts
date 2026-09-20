@@ -61,6 +61,7 @@ import { GamificationService, WeeklyXpWriter } from "../features/goal/domain/ser
 import { ExpectedIncomeRepositoryImpl } from "../features/finance/data/repositories/expected_income.repository.impl";
 import { IExpectedIncomeRepository } from "../features/finance/domain/repositories/expected_income.repository";
 import { ExpectedIncomeService } from "../features/finance/domain/services/expected_income.service";
+import { isUnknownIncome, sameExpectedIncome } from "../features/finance/domain/models/expected_income.model";
 import { FinanceRepositoryImpl } from "../features/finance/data/repositories/finance.repository.impl";
 import { FinanceService } from "../features/finance/domain/services/finance.service";
 import { isMonthKey, shiftMonthKey, toMonthKey } from "../core/utils/month_key";
@@ -147,6 +148,19 @@ export async function recomputeMonthlyVillagers(
 
     const workspaceIds: string[] = [];
     if (options.workspaceId) {
+        // UMA leitura, e ela vale a pena. Um `--workspace` com id errado (um
+        // dígito trocado, o id de outro ambiente) produziria um relatório
+        // PLAUSÍVEL — "nenhuma categoria orçada, sem aldeia" — e quem rodou
+        // concluiria que o workspace não tinha o que recalcular, em vez de
+        // descobrir o erro de digitação. Um script de operação não pode ter
+        // uma saída de sucesso que significa "não achei nada".
+        const doc = await firestore.collection("workspaces").doc(options.workspaceId).get();
+        if (!doc.exists) {
+            throw new Error(
+                `[recompute_monthly_villagers] workspace ${options.workspaceId} não existe ` +
+                "(confira o id e o --project). Nada foi lido nem escrito."
+            );
+        }
         workspaceIds.push(options.workspaceId);
     }
     else {
@@ -200,23 +214,37 @@ export async function recomputeMonthlyVillagers(
 
             if (!options.villagersOnly) {
                 const currentMonth = toMonthKey(now);
+
+                // O APPLY chama o serviço — a regra de publicar (e de REMOVER
+                // quando o servidor não sabe a receita) mora lá, e um script
+                // com a sua própria cópia dela divergiria no primeiro ajuste.
+                // O dry-run não pode escrever, então ele PREVÊ a decisão com
+                // os mesmos dois predicados do domínio, e não com uma
+                // comparação escrita à mão aqui.
                 const computed = await expectedIncome.expectedMonthlyIncomeCents(workspaceId, currentMonth, now);
-                const published = await expectedIncomeRepository.getPublishedExpectedIncome(workspaceId);
-                const changed = !published ||
-                    published.monthKey !== computed.monthKey ||
-                    published.cents !== computed.cents ||
-                    published.source !== computed.source;
+                const unknown = isUnknownIncome(computed);
 
-                if (changed) {
-                    summary.incomePublished++;
-                    const verb = options.dryRun ? "PUBLICARIA" : "publicado";
-                    log(
-                        `[recompute_monthly_villagers] ${workspaceId}: receita prevista de ${currentMonth} = ` +
-                        `${computed.cents} centavos (${computed.source}) (${verb}).`
-                    );
+                const describe = (verb: string) => unknown
+                    ? `[recompute_monthly_villagers] ${workspaceId}: sem planejado nem histórico de receita — ` +
+                      `previsão de ${currentMonth} ${verb}.`
+                    : `[recompute_monthly_villagers] ${workspaceId}: receita prevista de ${currentMonth} = ` +
+                      `${computed.cents} centavos (${computed.source}) (${verb}).`;
 
-                    if (!options.dryRun) {
-                        await expectedIncomeRepository.publishExpectedIncome(workspaceId, computed);
+                if (options.dryRun) {
+                    const current = await expectedIncomeRepository.getPublishedExpectedIncome(workspaceId);
+                    const wouldWrite = unknown ? current !== null : !sameExpectedIncome(current, computed);
+
+                    if (wouldWrite) {
+                        summary.incomePublished++;
+                        log(describe(unknown ? "REMOVERIA" : "PUBLICARIA"));
+                    }
+                }
+                else {
+                    const { published } = await expectedIncome.publishExpectedIncome(workspaceId, currentMonth, now);
+
+                    if (published) {
+                        summary.incomePublished++;
+                        log(describe(unknown ? "removida" : "publicado"));
                     }
                 }
             }

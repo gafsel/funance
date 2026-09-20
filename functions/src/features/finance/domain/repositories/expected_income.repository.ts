@@ -54,4 +54,15 @@ export interface IExpectedIncomeRepository {
 
     /** Grava `workspaces/{w}.expectedIncome` (merge) — nunca cria o workspace. */
     publishExpectedIncome(workspaceId: string, value: ExpectedIncome): Promise<void>;
+
+    /**
+     * REMOVE `workspaces/{w}.expectedIncome`.
+     *
+     * Campo ausente é o jeito de o servidor dizer "não sei quanto este
+     * workspace ganha". Quando a previsão cai para zero e nem o planejado nem
+     * o histórico têm o que dizer, deixar o número ANTIGO publicado seria pior
+     * que não publicar nada: o app desenharia as três razões sobre um
+     * denominador que já não vale.
+     */
+    clearExpectedIncome(workspaceId: string): Promise<void>;
 }

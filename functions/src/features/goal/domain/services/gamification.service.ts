@@ -2431,8 +2431,26 @@ export class GamificationService {
             },
             async (workspaceId) => {
                 await this.evaluateMonthlyMissionsCron(workspaceId);
+
                 // HUD mensal: fecha a ALDEIA do mês anterior (XP + retrato).
-                await this.evaluateMonthlyVillagersXp(workspaceId, now);
+                //
+                // Com try/catch PRÓPRIO, como o publisher lá embaixo. O
+                // `forEachWorkspacePaged` já isola a falha de um workspace dos
+                // demais, mas não isola os passos DENTRO de um workspace: um
+                // sumário mensal corrompido derrubaria, junto com a aldeia, os
+                // dois badges que vêm depois — e eles não têm nada a ver com o
+                // HUD. Quem não tem retrato de agosto não pode ficar sem
+                // `no_credit_debt` por causa disso.
+                try {
+                    await this.evaluateMonthlyVillagersXp(workspaceId, now);
+                }
+                catch (e) {
+                    logger.error(
+                        `[GamificationService] Falha ao fechar a aldeia de ${workspaceId}:`,
+                        e
+                    );
+                }
+
                 await this.checkFinancialHealthBadges(workspaceId);
                 await this.checkNoCreditDebtBadge(workspaceId);
 

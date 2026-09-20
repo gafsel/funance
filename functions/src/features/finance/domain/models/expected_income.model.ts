@@ -51,6 +51,22 @@ export interface ExpectedIncome {
  */
 export const EXPECTED_INCOME_FALLBACK_MONTHS = 3;
 
+/**
+ * O servidor NÃO SABE quanto este workspace ganha.
+ *
+ * Só acontece com `source: "average"`: o caminho `planned` exige planejado
+ * maior que zero para ser escolhido. É o workspace que não agendou receita
+ * nenhuma E não tem histórico de receita realizada — um workspace novo, ou um
+ * que só registra despesa.
+ *
+ * Esse estado se escreve com o campo AUSENTE, não com `cents: 0`. Um zero
+ * publicado seria lido como "sua receita é zero" e viraria uma poção vazia na
+ * tela; a ausência é lida como "ainda não sei" e vira um traço.
+ */
+export function isUnknownIncome(value: ExpectedIncome): boolean {
+    return value.cents === 0 && value.source === "average";
+}
+
 /** As duas previsões são a MESMA? (o `updatedAt` não entra na comparação) */
 export function sameExpectedIncome(
     a: ExpectedIncome | null | undefined,

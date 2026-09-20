@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import {
     EXPECTED_INCOME_FALLBACK_MONTHS,
     ExpectedIncome,
+    isUnknownIncome,
     sameExpectedIncome,
 } from "../models/expected_income.model";
 import {
@@ -114,6 +115,15 @@ export class ExpectedIncomeService {
      * de graça. (O campo também está em `GAMIFICATION_ONLY_FIELDS`, que é a
      * segunda linha de defesa — esta é a primeira.)
      *
+     * **Previsão ZERO não é publicada.** Quando nem o planejado nem o
+     * histórico têm o que dizer, o servidor não sabe quanto o workspace ganha
+     * — e "não sei" se escreve com o campo AUSENTE, não com um zero. Publicar
+     * `cents: 0` convidaria o app a dividir por ele e a desenhar uma poção
+     * vazia, que é um veredito ("você não investiu nada") e não um estado de
+     * espera. Se havia um número publicado, ele é REMOVIDO: deixar o valor
+     * antigo seria pior que não ter nenhum, porque o app desenharia as três
+     * razões sobre um denominador que já não vale.
+     *
      * Devolve o valor vigente e se houve escrita.
      */
     async publishExpectedIncome(
@@ -125,6 +135,16 @@ export class ExpectedIncomeService {
             this.expectedMonthlyIncomeCents(workspaceId, monthKey, now),
             this.repository.getPublishedExpectedIncome(workspaceId),
         ]);
+
+        if (isUnknownIncome(computed)) {
+            if (!published) {
+                return { value: computed, published: false };
+            }
+
+            await this.repository.clearExpectedIncome(workspaceId);
+            logger.debug(`[ExpectedIncome] ${workspaceId} ${monthKey}: previsão removida (sem planejado nem histórico).`);
+            return { value: computed, published: true };
+        }
 
         if (sameExpectedIncome(published, computed)) {
             return { value: computed, published: false };

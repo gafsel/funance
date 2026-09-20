@@ -59,7 +59,7 @@ apenas reage ao que o cliente gravou.
 | `installments.unplannedReason` — `"born_paid"` \| ausente | servidor | app | F2.3 | [XP que premia planejar (F2.3)](#xp-que-premia-planejar-f23) |
 | `workspaces/{w}.financialHealth` — `{score, tier, components, computedAt, monthKey}` | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
 | `workspaces/{w}/health_history/{YYYY-MM}` — a mesma forma | servidor | app | F2.2 | [Bússola da Liberdade (F2.2)](#bússola-da-liberdade-f22) |
-| `workspaces/{w}.expectedIncome` — `{monthKey, cents, source, updatedAt}` | servidor | app | wp/villagers-xp | [HUD mensal](#hud-mensal-da-arena) |
+| `workspaces/{w}.expectedIncome` — `{monthKey, cents, source, updatedAt}`; **ausente == "ainda não sei"**, nunca receita zero | servidor | app | wp/villagers-xp | [HUD mensal](#hud-mensal-da-arena) |
 | `workspaces/{w}/monthly_reports/{YYYY-MM}` — `{monthKey, villagersPlanned, villagersAlive, villageAlive, xpAwarded, computedAt}` | servidor | app | wp/villagers-xp | [HUD mensal](#hud-mensal-da-arena) |
 | `workspaces/{w}.streaks` — `{missions: number, plan: number}` | servidor | app | F2.3 | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
 | `workspaces/{w}.weeklyStreaks` — `number`, **invariante** `=== streaks.missions` | servidor | app (build antiga) | anterior a F2.3; **o tipo não pode mudar** | [Os streaks (F2.3)](#os-streaks-um-campo-novo-e-o-antigo-intacto) |
@@ -2464,7 +2464,7 @@ razões.
 | **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` com ≥ 3 aldeões | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
 | **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
 | **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
-| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` | `r = saldoDevedorCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
+| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
 
 **A escala é UMA só, e mede TAMANHO — não mede virtude.** Os quatro cortes
 (0,5/1/1,5/2) valem igual nos três ícones de razão, e o nome da classe diz o
@@ -2487,11 +2487,16 @@ explicação, não o nome da classe.
 > muda com a resposta: ele entrega o denominador, e quem nomeia as faixas é o
 > app.
 
-**Denominador zero não é razão zero.** Quando `expectedIncome.cents == 0` (ou o
-campo ainda não existe), a razão não está definida: o app mostra o ícone em
-estado neutro com um traço, e não uma poção vazia. Uma poção vazia é um
-veredito — "você não investiu nada" —, e ele não pode ser dado a quem o
-servidor ainda não sabe quanto ganha.
+**Denominador desconhecido não é denominador zero.** Quando o servidor não
+tem como saber a receita — nem planejado, nem histórico —, ele **não publica o
+campo**; e se havia um número publicado que deixou de valer, ele o **remove**.
+Ausência é como se escreve "ainda não sei": o app mostra o ícone em estado
+neutro com um traço, e não uma poção vazia. Uma poção vazia é um veredito —
+"você não investiu nada" —, e ele não pode ser dado a quem o servidor ainda não
+sabe quanto ganha. (Deixar o número antigo publicado seria pior ainda: o app
+desenharia as três razões sobre um denominador que já não vale.) Consequência
+para o app: **`expectedIncome` ausente é estado de carregamento**, nunca
+receita zero.
 
 ### A receita prevista do mês
 
@@ -2588,6 +2593,12 @@ com `double`, e a vila morreria por ruído de representação.
   marcadores de `_idempotency` têm TTL de 30 dias, e o script de recálculo
   retroativo roda depois disso.
 
+No cron, o fechamento da aldeia tem **try/catch próprio**: o
+`forEachWorkspacePaged` já isola a falha de um workspace dos demais, mas não
+isola os passos DENTRO de um workspace, e um sumário mensal corrompido levaria
+junto os dois badges que vêm depois (`checkFinancialHealthBadges`,
+`checkNoCreditDebtBadge`) — que não têm nada a ver com o HUD.
+
 O XP entra na barra da semana em que o **mês terminou**, e não na semana
 corrente — mesma decisão do XP semanal, que credita a semana AVALIADA: o mérito
 é daquele período e é nele que o histórico precisa mostrá-lo. A data sai do
@@ -2673,13 +2684,13 @@ não a cópia da interface.
 
 - **pt** — *O que você deve pinga numa gota, e ela pesa mais quanto maior for
   diante do que você ganha. Uma gota hiper significa dois meses inteiros de
-  receita comprometidos. Financeiro: é o saldo devedor dividido pela sua renda
-  mensal. XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado
+  receita comprometidos. Financeiro: é o saldo devedor dividido pela receita
+  prevista do mês. XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado
   pago e pelas metas de quitação.*
 - **en** — *What you owe drips into a single drop, and it weighs more the bigger
   it is against what you earn. A hyper drop means two whole months of income
-  already committed. Finance: it's your outstanding debt divided by your monthly
-  income. XP: none directly; paying debt down earns XP through planned entries
+  already committed. Finance: it's your outstanding debt divided by this month's
+  expected income. XP: none directly; paying debt down earns XP through planned entries
   paid and through payoff goals.*
 
 ### Testes
@@ -2701,6 +2712,51 @@ não a cópia da interface.
 - `src/test/rules/firestore_rules.test.ts` — `monthly_reports` legível pelo
   membro e fechado para escrita, e `expectedIncome` negado ao cliente na
   criação e no update.
+
+### Pendências conhecidas (levantadas no QA deste pacote)
+
+Nada aqui foi implementado: são quatro assimetrias reais que o QA registrou ao
+aprovar o HUD mensal, e que mexem em regra de jogo já publicada ou em
+procedimento de operação. Ficam escritas para não virarem descoberta de novo.
+
+**1. O XP semanal de plano não tem teto por categoria.** O fechamento MENSAL
+paga no máximo 10 aldeões (150 XP) porque, sem teto, fatiar o orçamento em
+trinta categorias de R$ 10 seria o caminho mais curto para o XP. O fechamento
+SEMANAL (`evaluateWeeklyPlanXp`, +20 por categoria dentro do limite) não tem
+esse teto: trinta categorias rendem 600 XP por semana. O mesmo incentivo
+perverso está lá, e maior. Mudar isso é mexer num número já publicado em
+`config/badges.xpSources` e na expectativa de quem joga há meses — é decisão do
+dono, não correção.
+
+**2. O XP semanal compara em `double`; o mensal, em centavos.**
+`evaluateWeeklyPlanXp` lê `row.actualAmount <= row.generalPlannedAmount`, e a
+proporção semanal do limite mensal (`amount / dias * 7`) é uma dízima. O caso
+mensal já compara inteiros (`*Cents`), e as linhas semanais já CARREGAM os
+inteiros (`WeeklySummaryRow.actualAmountCents`) — falta só trocar a comparação.
+É um conserto pequeno e de baixo risco, mas muda quem ganha XP na semana em que
+a diferença cai no último centavo, então não entra de carona num pacote de HUD.
+
+**3. `under_control` pune quem tem categoria SEM orçamento.** O badge
+(`evaluateMonthlyMissionsCron`) zera `underControl` quando `actual > planned`
+para qualquer categoria de despesa — inclusive as que têm `planned = 0`, isto
+é, as que o usuário nunca orçou. Qualquer gasto numa categoria sem limite tira
+o badge do mês. É exatamente a regra que os ALDEÕES recusaram ("categoria sem
+orçamento não é aldeão, e não perde nada"): as duas regras leem o mesmo
+documento e discordam sobre o que significa não planejar. Alinhá-las é mudar
+quem ganha um badge que já existe.
+
+**4. Cron mensal interrompido: o procedimento é o script.** A varredura do
+`monthlyGamificationCron` guarda checkpoint em `config/cron_checkpoints`
+(`gamification_monthly`) e para antes do deadline, retomando na execução
+SEGUINTE — que é no mês seguinte. Se o dia 1 estourar o tempo, os workspaces
+depois do checkpoint ficam sem o fechamento da aldeia daquele mês, e ninguém
+percebe até o usuário abrir o histórico do HUD. O conserto é operacional e já
+existe: rodar
+`node lib/scripts/recompute_monthly_villagers.js --month=<o mês que ficou> --apply`.
+É seguro em cima de quem já foi processado — o marcador durável
+`xpAwardedFor.monthlyVillagers.<monthKey>` impede o pagamento duplo e o retrato
+é reescrito idêntico. Sinal para procurar: o log do cron termina com
+`varredura interrompida em <workspaceId>`.
 
 ### O que o app ainda precisa fazer
 
@@ -4045,6 +4101,11 @@ até o cron do dia 1 — até quarenta dias de HUD pela metade.
 - **Isola falha**: um workspace que lança é contado e não derruba os demais.
 - **A semana creditada sai do `monthKey`**, não do relógio: o cron do dia 1 e um
   recálculo feito em dezembro creditam a mesma semana na barra.
+- **`--workspace` com id inexistente PARA com erro**, e custa uma leitura para
+  isso. Um dígito trocado produziria um relatório plausível — "nenhuma
+  categoria orçada, sem aldeia" — e quem rodou concluiria que não havia o que
+  recalcular. Um script de operação não pode ter uma saída de sucesso que
+  significa "não achei nada".
 
 ```bash
 cd functions
@@ -4075,7 +4136,8 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 | `--villagers-only` | não publica `expectedIncome`                                    |
 
 Resumo final: `workspaces`, `com aldeia`, `sem aldeia`, `XP do mês`,
-`receita publicada` e `falhas`. **O "XP do mês" é o que o mês RENDE**, não o que
+`receita publicada` e `falhas`. Um `--workspace` inexistente **não** gera
+relatório: o script para com erro antes de ler qualquer coisa. **O "XP do mês" é o que o mês RENDE**, não o que
 a execução pagou: quem já tinha o marcador do mês não recebe nada de novo.
 Saída de código: `0` se não houve falhas, `1` caso contrário.
 

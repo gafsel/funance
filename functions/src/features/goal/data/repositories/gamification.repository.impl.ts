@@ -527,7 +527,12 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         await admin.firestore()
             .collection(`workspaces/${workspaceId}/${MONTHLY_REPORTS_COLLECTION}`)
             .doc(report.monthKey)
-            .set({ ...report });
+            // `stripUndefined` porque `ignoreUndefinedProperties` está
+            // DESLIGADO (F1.11): um campo opcional que chegue `undefined` —
+            // hoje não existe nenhum, amanhã pode existir — derrubaria a
+            // escrita inteira do retrato em vez de simplesmente não existir no
+            // documento.
+            .set(stripUndefined({ ...report }));
     }
 
     async getMonthlyReport(workspaceId: string, monthKey: string): Promise<MonthlyVillagersReport | null> {

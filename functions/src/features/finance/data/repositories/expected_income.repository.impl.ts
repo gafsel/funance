@@ -103,12 +103,22 @@ export class ExpectedIncomeRepositoryImpl implements IExpectedIncomeRepository {
     }
 
     async publishExpectedIncome(workspaceId: string, value: ExpectedIncome): Promise<void> {
-        // `update` (e não `set(..., {merge: true})`): a previsão nunca pode
-        // CRIAR um documento de workspace. Um workspace apagado entre a leitura
-        // e a escrita voltaria à vida com um único campo — a mesma postura de
-        // `HealthRepository.saveCurrent`.
+        await this.writeField(workspaceId, { ...value });
+    }
+
+    async clearExpectedIncome(workspaceId: string): Promise<void> {
+        await this.writeField(workspaceId, admin.firestore.FieldValue.delete());
+    }
+
+    /**
+     * `update` (e não `set(..., {merge: true})`): a previsão nunca pode CRIAR
+     * um documento de workspace. Um workspace apagado entre a leitura e a
+     * escrita voltaria à vida com um único campo — a mesma postura de
+     * `HealthRepository.saveCurrent`.
+     */
+    private async writeField(workspaceId: string, value: unknown): Promise<void> {
         try {
-            await this.workspaceRef(workspaceId).update({ [EXPECTED_INCOME_FIELD]: { ...value } });
+            await this.workspaceRef(workspaceId).update({ [EXPECTED_INCOME_FIELD]: value });
         }
         catch (error: unknown) {
             // gRPC 5 = NOT_FOUND

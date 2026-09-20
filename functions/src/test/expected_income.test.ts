@@ -15,6 +15,7 @@
 import { ExpectedIncomeService } from "../features/finance/domain/services/expected_income.service";
 import {
     EXPECTED_INCOME_FALLBACK_MONTHS,
+    isUnknownIncome,
     sameExpectedIncome,
 } from "../features/finance/domain/models/expected_income.model";
 import { MonthlyIncomeTotals } from "../features/finance/domain/repositories/expected_income.repository";
@@ -43,6 +44,7 @@ function makeRepository(months: Totals[], published: any = null) {
         ),
         getPublishedExpectedIncome: jest.fn(async () => published),
         publishExpectedIncome: jest.fn(async () => undefined),
+        clearExpectedIncome: jest.fn(async () => undefined),
     };
 }
 
@@ -268,6 +270,64 @@ describe("publicação em workspaces/{w}.expectedIncome", () => {
             .publishCurrentMonth("w", new Date("2026-09-01T02:30:00.000Z"));
 
         expect(repository.getMonthlyIncomeTotals.mock.calls[0][1][0]).toBe("2026-08");
+    });
+});
+
+describe("previsão desconhecida: o campo AUSENTE é a resposta", () => {
+    /** Nem planejado nem histórico: o servidor não sabe a receita. */
+    const semNada = [{ monthKey: MONTH, exists: true, plannedCents: 0, actualCents: 0 }];
+
+    it("não escreve um zero num workspace que nunca teve previsão", async () => {
+        // Publicar `cents: 0` convidaria o app a dividir por ele e a desenhar
+        // uma poção VAZIA — um veredito ("você não investiu nada") em vez de
+        // um estado de espera.
+        const repository = makeRepository(semNada);
+
+        const result = await new ExpectedIncomeService(repository as any)
+            .publishExpectedIncome("w", MONTH, NOW);
+
+        expect(result.published).toBe(false);
+        expect(repository.publishExpectedIncome).not.toHaveBeenCalled();
+        expect(repository.clearExpectedIncome).not.toHaveBeenCalled();
+        // O valor calculado continua sendo devolvido a quem chamou.
+        expect(result.value).toMatchObject({ cents: 0, source: "average" });
+    });
+
+    it("REMOVE a previsão antiga quando ela deixa de existir", async () => {
+        // A janela de três meses rolou e o histórico de receita saiu dela.
+        // Deixar o número velho publicado é pior que não ter nenhum: o app
+        // desenharia as três razões sobre um denominador que já não vale.
+        const repository = makeRepository(semNada, {
+            monthKey: "2026-08", cents: 500_000, source: "average", updatedAt: "2026-08-01T00:00:00.000Z",
+        });
+
+        const result = await new ExpectedIncomeService(repository as any)
+            .publishExpectedIncome("w", MONTH, NOW);
+
+        expect(result.published).toBe(true);
+        expect(repository.clearExpectedIncome).toHaveBeenCalledWith("w");
+        expect(repository.publishExpectedIncome).not.toHaveBeenCalled();
+    });
+
+    it("um planejado de verdade sobrescreve a previsão (não remove)", async () => {
+        const repository = makeRepository(
+            [{ monthKey: MONTH, exists: true, plannedCents: 700_000 }],
+            { monthKey: MONTH, cents: 0, source: "average", updatedAt: "x" }
+        );
+
+        await new ExpectedIncomeService(repository as any).publishExpectedIncome("w", MONTH, NOW);
+
+        expect(repository.publishExpectedIncome).toHaveBeenCalled();
+        expect(repository.clearExpectedIncome).not.toHaveBeenCalled();
+    });
+
+    it("isUnknownIncome só vale para a média zerada", () => {
+        const base = { monthKey: MONTH, updatedAt: "x" };
+        expect(isUnknownIncome({ ...base, cents: 0, source: "average" })).toBe(true);
+        expect(isUnknownIncome({ ...base, cents: 1, source: "average" })).toBe(false);
+        // `planned` com zero é inalcançável (o caminho exige > 0), mas se
+        // chegasse aqui NÃO seria "não sei": alguém planejou zero de propósito.
+        expect(isUnknownIncome({ ...base, cents: 0, source: "planned" })).toBe(false);
     });
 });
 
