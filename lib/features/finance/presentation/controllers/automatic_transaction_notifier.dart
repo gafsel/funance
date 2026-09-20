@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/firestore/write_failures.dart';
+import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/finance/domain/services/automatic_transaction_service.dart';
 import 'package:funances/features/finance/domain/services/finance_service.dart';
@@ -94,31 +96,57 @@ class AutomaticTransactionNotifier
     return transactions;
   }
 
+  /// Executa uma escrita de triagem e RECARREGA a lista, dê no que der.
+  ///
+  /// Cada uma destas ações era um `await` cru dentro de um `VoidCallback`: a
+  /// exceção virava erro assíncrono não tratado, o `loadTransactions()` seguinte
+  /// nunca rodava e a pendência ficava na tela sem explicação nenhuma. Era
+  /// exatamente assim que "apagar" não apagava — a escrita morria antes de sair
+  /// do aparelho e ninguém ficava sabendo.
+  ///
+  /// A falha vai para a tarja de sincronização, que vive acima de todas as
+  /// rotas, com o mesmo `WriteEntity` do repositório. E a lista é recarregada
+  /// do servidor mesmo no erro: o item VOLTA, que é a verdade — nada mudou — e
+  /// dá para tentar de novo.
+  Future<bool> _triage(Future<void> Function() write) async {
+    try {
+      await write();
+      return true;
+    } catch (error, stack) {
+      WriteFailures.report(
+        WriteEntity.automaticTransaction,
+        writeFailureReasonOf(error),
+      );
+      CrashReporter.recordError(error, stack);
+      return false;
+    } finally {
+      await loadTransactions();
+    }
+  }
+
   Future<void> consolidate(
     AutomaticTransactionModel transaction,
     OrderModel order,
   ) async {
-    await _financeService.addOrder(order);
-
-    final updated = transaction.copyWith(isConsolidated: true);
-    await _service.updateTransaction(updated);
-
-    await loadTransactions();
+    await _triage(() async {
+      await _financeService.addOrder(order);
+      await _service.updateTransaction(
+        transaction.copyWith(isConsolidated: true),
+      );
+    });
   }
 
   Future<void> ignore(AutomaticTransactionModel transaction) async {
-    final updated = transaction.copyWith(isIgnored: true);
-    await _service.updateTransaction(updated);
-
-    await loadTransactions();
+    await _triage(
+      () => _service.updateTransaction(transaction.copyWith(isIgnored: true)),
+    );
   }
 
   Future<void> moveToWorkspace(
     AutomaticTransactionModel transaction,
     String toWorkspaceId,
   ) async {
-    await _service.moveTransaction(toWorkspaceId, transaction);
-    await loadTransactions();
+    await _triage(() => _service.moveTransaction(toWorkspaceId, transaction));
   }
 
   Future<void> simulateNotification() async {
