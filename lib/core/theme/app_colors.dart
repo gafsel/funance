@@ -88,15 +88,46 @@ abstract final class AppColors {
 
   // --- Semânticas ---
 
+  // Cada semântica tem TRÊS tokens: a cor cheia (fundo de pílula, barra,
+  // ícone grande), a tinta de texto sobre papel CLARO e a tinta de texto
+  // sobre papel ESCURO. Faltava a terceira: no tema escuro o app escrevia
+  // com a cor cheia, e a cor cheia foi escolhida para preencher, não para
+  // ler. `danger` sobre `paperDark` dava 2,83:1 em 103 lugares — o vermelho
+  // que avisa que algo deu errado era o texto menos legível do app.
+
   static const Color success = Color(0xFF3FB950);
+
+  /// Verde legível sobre papel claro.
   static const Color successInk = Color(0xFF1B6B32);
+
+  /// Verde legível sobre papel escuro. A cor cheia dava 4,36:1, logo abaixo
+  /// do piso; esta dá 5,75:1.
+  static const Color successInkDark = Color(0xFF56D364);
+
   static const Color warning = Color(0xFFFF8A3D);
+
+  /// Laranja legível sobre papel claro.
   static const Color warningInk = Color(0xFF8A4B00);
+
+  /// Laranja legível sobre papel escuro.
+  ///
+  /// É a própria cor cheia: medida, ela já dá 4,73:1 sobre `paperDark` e
+  /// 5,65:1 sobre `surfaceDeep`. Existe como token separado para que o papel
+  /// "tinta de texto no escuro" seja explícito nos três casos — e para que
+  /// mudar o laranja de preenchimento um dia não mude, em silêncio, a
+  /// legibilidade do texto.
+  static const Color warningInkDark = warning;
 
   /// Erro **e** destrutivo: um token só. Antes eram quatro vermelhos
   /// concorrentes (e um roxo no `ColorScheme.error`).
   static const Color danger = Color(0xFFE5484D);
+
+  /// Vermelho legível sobre papel claro.
   static const Color dangerInk = Color(0xFF7A1418);
+
+  /// Vermelho legível sobre papel escuro. A cor cheia dava 2,83:1 — o pior
+  /// contraste de texto do app, e justamente no aviso de erro.
+  static const Color dangerInkDark = Color(0xFFFF9A9D);
 
   // --- Pools do 50/30/20 ---
 

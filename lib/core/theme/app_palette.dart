@@ -83,11 +83,20 @@ class AppPalette extends ThemeExtension<AppPalette> {
   /// legível sobre escuro; no claro ele precisa do parente escuro.
   Color get tealText => isDark ? AppColors.teal : AppColors.tealInk;
 
-  /// Verde, laranja e vermelho já ajustados para virar texto sobre a
+  /// Verde, laranja e vermelho já ajustados para virar TEXTO sobre a
   /// superfície corrente.
-  Color get successText => isDark ? AppColors.success : AppColors.successInk;
-  Color get warningText => isDark ? AppColors.warning : AppColors.warningInk;
-  Color get dangerText => isDark ? AppColors.danger : AppColors.dangerInk;
+  ///
+  /// No escuro estes getters devolviam a cor CHEIA — a mesma que preenche
+  /// pílula, barra e ícone grande. Cor de preenchimento não é cor de texto:
+  /// `danger` sobre `paperDark` dá 2,83:1, e era assim que os 103 avisos de
+  /// erro do app apareciam no tema escuro. Agora cada semântica tem a sua
+  /// tinta escura, medida sobre `paper` e sobre `surfaceDeep`.
+  Color get successText =>
+      isDark ? AppColors.successInkDark : AppColors.successInk;
+  Color get warningText =>
+      isDark ? AppColors.warningInkDark : AppColors.warningInk;
+  Color get dangerText =>
+      isDark ? AppColors.dangerInkDark : AppColors.dangerInk;
 
   /// Cor de um valor monetário pelo sinal. Zero é neutro de propósito: um
   /// saldo zerado não é uma boa nem uma má notícia.

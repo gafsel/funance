@@ -91,6 +91,33 @@ void main() {
         );
       });
 
+      /// A3 — as semânticas de TEXTO. No escuro elas devolviam a cor CHEIA,
+      /// a mesma que preenche pílula e barra: `danger` dava 2,83:1 sobre
+      /// `paperDark`, em 103 lugares.
+      for (final semantica in ['sucesso', 'aviso', 'erro']) {
+          test('A3 — a tinta de $semantica se lê no papel do tema', () {
+          final tinta = switch (semantica) {
+            'sucesso' => palette.successText,
+            'aviso' => palette.warningText,
+            _ => palette.dangerText,
+          };
+
+          _exige('$semantica sobre paper', tinta, palette.paper);
+          _exige('$semantica sobre paper2', tinta, palette.paper2);
+          _exige('$semantica sobre background', tinta, palette.background);
+        });
+      }
+
+      test('A3 — a tinta de dinheiro segue a mesma regra', () {
+        _exige('valor positivo', palette.moneyInk(10), palette.paper);
+        _exige('valor negativo', palette.moneyInk(-10), palette.paper);
+        _exige('valor zerado', palette.moneyInk(0), palette.paper);
+      });
+
+      test('A3 — o teal de texto se lê no papel do tema', () {
+        _exige('tealText sobre paper', palette.tealText, palette.paper);
+      });
+
       test('a aba aberta continua mais forte que a fechada', () {
         final aberta = AppColors.contrastRatio(
           tema.tabBarTheme.labelColor!,
@@ -108,4 +135,28 @@ void main() {
       });
     });
   }
+
+  /// A superfície de jogo é escura nos DOIS temas, e quem escreve sobre ela
+  /// entra em `AppTheme.onGame` — que é a paleta escura. Portanto é a paleta
+  /// escura, e não a do tema corrente, que precisa se ler sobre `surfaceDeep`
+  /// e suas irmãs.
+  group('superfície de jogo', () {
+    const superficies = {
+      'surfaceDeep': AppColors.surfaceDeep,
+      'surfaceDefault': AppColors.surfaceDefault,
+    };
+
+    superficies.forEach((nome, fundo) {
+      test('A3 — as três semânticas se leem sobre $nome', () {
+        _exige('sucesso sobre $nome', AppPalette.dark.successText, fundo);
+        _exige('aviso sobre $nome', AppPalette.dark.warningText, fundo);
+        _exige('erro sobre $nome', AppPalette.dark.dangerText, fundo);
+      });
+
+      test('a tinta e a tinta secundária se leem sobre $nome', () {
+        _exige('onGame sobre $nome', AppPalette.dark.onGame, fundo);
+        _exige('onGame2 sobre $nome', AppPalette.dark.onGame2, fundo);
+      });
+    });
+  });
 }
