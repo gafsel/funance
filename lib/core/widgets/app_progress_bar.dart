@@ -191,10 +191,10 @@ class PoolSegment {
 
   /// O que escrever DENTRO do segmento — na prática, a porcentagem real.
   ///
-  /// Só aparece quando o segmento é largo o bastante para caber
-  /// ([AppPoolBar.labelThreshold]); abaixo disso vira um "3%" cortado ao
-  /// meio, que é pior do que não ter rótulo. Independente disso, o rótulo
-  /// entra sempre na descrição para leitor de tela.
+  /// Só aparece quando o segmento é largo o bastante para o texto caber
+  /// INTEIRO (ver [AppPoolBar.minLabelWidth]); abaixo disso vira um "3%"
+  /// cortado ao meio, que é pior do que não ter rótulo. Independente disso, o
+  /// rótulo entra sempre na descrição para leitor de tela.
   final String? label;
 }
 
@@ -236,7 +236,7 @@ class AppPoolBar extends StatelessWidget {
   final double gap;
   final String? semanticLabel;
 
-  /// A partir de quanto do trilho um segmento carrega o próprio rótulo.
+  /// Largura mínima, EM PIXELS, para um segmento carregar o próprio rótulo.
   ///
   /// A barra antiga do 50/30/20 escrevia a porcentagem real dentro de cada
   /// faixa, e era a única forma de ler "gastei 62% no essencial" sem abrir a
@@ -244,12 +244,19 @@ class AppPoolBar extends StatelessWidget {
   /// aconteceu. A migração para este componente perdeu esse rótulo, e com ele
   /// o sentido do cartão.
   ///
-  /// Ele volta com um piso: a 15% do trilho, numa barra de 16px de altura, um
-  /// rótulo de 11px cabe com folga em qualquer largura de celular. Abaixo
-  /// disso ele seria elidido ou vazaria para o segmento vizinho, e um número
-  /// pela metade mente mais do que a ausência dele. O dado nunca se perde:
-  /// quem usa leitor de tela ouve todas as faixas, largas ou não.
-  static const double labelThreshold = 0.15;
+  /// O piso era uma FRAÇÃO do trilho (15%), e fração não é largura: 15% de
+  /// uma barra de 200px são 30 pixels, onde "62%" não cabe, e 8% de uma barra
+  /// de 900px são 72 pixels, onde caberia com folga. O mesmo número dizia sim
+  /// e não para a mesma situação dependendo do tamanho da tela.
+  ///
+  /// Agora valem duas condições, as duas medidas: o segmento tem de ter pelo
+  /// menos estes 40px — espaço para "100%" em 11px com margem — e o TEXTO
+  /// tem de caber de fato nele. A segunda existe porque o rótulo nem sempre é
+  /// uma porcentagem: "Essenciais 62%" precisa de muito mais do que 40px, e
+  /// antes ele era cortado em silêncio por um `TextOverflow.clip`. O dado
+  /// nunca se perde: quem usa leitor de tela ouve todas as faixas, largas ou
+  /// não.
+  static const double minLabelWidth = 40;
 
   @override
   Widget build(BuildContext context) {
@@ -334,25 +341,43 @@ class AppPoolBar extends StatelessWidget {
   static int _flex(double fraction) =>
       (fraction.clamp(0.0, 1.0) * 1000).round().clamp(1, 1000);
 
-  /// O rótulo dentro do segmento, quando ele couber.
+  /// O rótulo dentro do segmento, quando ele couber DE FATO.
   ///
   /// A tinta sai da luminância da própria faixa: `pool30` é um âmbar claro e
   /// `pool50` um teal escuro, e uma cor fixa deixaria uma das duas ilegível.
   Widget _label(BuildContext context, PoolSegment segment) {
     final label = segment.label;
-    if (label == null || segment.fraction < labelThreshold) {
-      return const SizedBox.shrink();
-    }
+    if (label == null) return const SizedBox.shrink();
 
-    return Center(
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.clip,
-        style: Theme.of(
-          context,
-        ).textTheme.labelSmall?.copyWith(color: AppColors.inkOn(segment.color)),
-      ),
+    final style = Theme.of(
+      context,
+    ).textTheme.labelSmall?.copyWith(color: AppColors.inkOn(segment.color));
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final available = constraints.maxWidth;
+        if (!available.isFinite || available < minLabelWidth) {
+          return const SizedBox.shrink();
+        }
+
+        // Mede o texto de verdade em vez de confiar num piso. Sem isto,
+        // "Essenciais 62%" numa faixa de 60px virava "Essenc" — e um rótulo
+        // pela metade mente mais do que a ausência dele.
+        final painter = TextPainter(
+          text: TextSpan(text: label, style: style),
+          maxLines: 1,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout();
+        final fits = painter.width <= available;
+        painter.dispose();
+
+        if (!fits) return const SizedBox.shrink();
+
+        return Center(
+          child: Text(label, maxLines: 1, style: style),
+        );
+      },
     );
   }
 }

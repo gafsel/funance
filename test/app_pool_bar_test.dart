@@ -12,18 +12,32 @@ import 'package:funances/core/widgets/app_progress_bar.dart';
 /// Ao virar componente compartilhado o rótulo sumiu, e o cartão passou a
 /// mostrar três cores sem número nenhum.
 ///
-/// O rótulo voltou com um piso de 15% do trilho. O piso é o ponto delicado:
-/// se ele valesse para qualquer faixa, um pool de 3% renderia um "3%" cortado
-/// ao meio — um número pela metade mente mais do que a ausência dele. Estes
-/// testes prendem as duas metades da regra: o que aparece na tela tem piso, o
-/// que o leitor de tela ouve não tem.
+/// O rótulo voltou com um piso, e o piso é o ponto delicado: se ele valesse
+/// para qualquer faixa, um pool de 3% renderia um "3%" cortado ao meio — um
+/// número pela metade mente mais do que a ausência dele.
+///
+/// M5: o piso era uma FRAÇÃO do trilho (15%), e fração não é largura. 15% de
+/// uma barra de 200px são 30 pixels, onde "62%" não cabe; 8% de uma barra de
+/// 900px são 72, onde caberia com folga. O mesmo número dizia sim e não para
+/// a mesma situação dependendo do tamanho da tela. Agora o piso é a largura
+/// medida do segmento, e o texto também é medido — um rótulo longo não é mais
+/// cortado em silêncio por um `TextOverflow.clip`.
+///
+/// Estes testes prendem as duas metades da regra: o que aparece na tela tem
+/// piso, o que o leitor de tela ouve não tem.
 
-Future<void> _pump(WidgetTester tester, Widget bar) async {
+Future<void> _pump(
+  WidgetTester tester,
+  Widget bar, {
+  double width = 400,
+}) async {
   await tester.pumpWidget(
     MaterialApp(
       theme: AppTheme.light,
       home: Scaffold(
-        body: Center(child: SizedBox(width: 400, child: bar)),
+        body: Center(
+          child: SizedBox(width: width, child: bar),
+        ),
       ),
     ),
   );
@@ -68,49 +82,74 @@ void main() {
       expect(find.text('25%'), findsOneWidget);
     });
 
-    testWidgets('abaixo de 15% o número não entra cortado', (tester) async {
+    testWidgets('faixa estreita DEMAIS não entra cortada', (tester) async {
+      // 6% de 400px são 24 pixels: abaixo do piso de 40.
       await _pump(
         tester,
         const AppPoolBar(
           height: 16,
           segments: [
             PoolSegment(fraction: 0.62, color: AppColors.pool50, label: '62%'),
-            PoolSegment(fraction: 0.25, color: AppColors.pool30, label: '25%'),
-            PoolSegment(fraction: 0.13, color: AppColors.pool20, label: '13%'),
+            PoolSegment(fraction: 0.32, color: AppColors.pool30, label: '32%'),
+            PoolSegment(fraction: 0.06, color: AppColors.pool20, label: '6%'),
           ],
         ),
       );
 
       expect(
-        find.text('13%'),
+        find.text('6%'),
         findsNothing,
-        reason:
-            '13% do trilho não comporta o rótulo; meio número é pior do que '
-            'nenhum',
+        reason: 'meio número é pior do que nenhum',
       );
     });
 
-    testWidgets('exatamente no piso o rótulo já aparece', (tester) async {
+    testWidgets('M5 — a MESMA fração cabe numa barra larga e não numa curta', (
+      tester,
+    ) async {
+      const barra = AppPoolBar(
+        height: 16,
+        segments: [
+          PoolSegment(fraction: 0.88, color: AppColors.pool50, label: '88%'),
+          PoolSegment(fraction: 0.12, color: AppColors.pool20, label: '12%'),
+        ],
+      );
+
+      // 12% de 200px = 24 pixels: não cabe.
+      await _pump(tester, barra, width: 200);
+      expect(find.text('12%'), findsNothing);
+
+      // 12% de 900px = 108 pixels: cabe com folga. Com o piso em fração, os
+      // dois casos respondiam a mesma coisa.
+      await _pump(tester, barra, width: 900);
+      expect(find.text('12%'), findsOneWidget);
+    });
+
+    testWidgets('M5 — rótulo longo não é cortado em silêncio', (tester) async {
       await _pump(
         tester,
-        AppPoolBar(
+        const AppPoolBar(
           height: 16,
           segments: [
-            const PoolSegment(
-              fraction: 0.85,
-              color: AppColors.pool50,
-              label: '85%',
-            ),
+            // 20% de 400px são 80 pixels: passa do piso de 40, mas não
+            // comporta "Essenciais 62%".
             PoolSegment(
-              fraction: AppPoolBar.labelThreshold,
-              color: AppColors.pool20,
-              label: '15%',
+              fraction: 0.2,
+              color: AppColors.pool50,
+              label: 'Essenciais 62%',
             ),
+            PoolSegment(fraction: 0.8, color: AppColors.pool30, label: '80%'),
           ],
         ),
       );
 
-      expect(find.text('15%'), findsOneWidget);
+      expect(
+        find.text('Essenciais 62%'),
+        findsNothing,
+        reason:
+            'o piso de largura sozinho deixava passar; o `TextOverflow.clip` '
+            'transformava o rótulo em "Essencia"',
+      );
+      expect(find.text('80%'), findsOneWidget);
     });
 
     testWidgets('a tinta do rótulo segue a luminância da faixa', (
