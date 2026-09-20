@@ -50,6 +50,8 @@ String? _fromKey(AppLocalizations l10n, WeeklyMissionModel mission) {
       l10n.missionBusinessOrganizationCategorizeAuto(target),
     'missionBusinessOrganizationInvoiceOnTime' =>
       l10n.missionBusinessOrganizationInvoiceOnTime(target),
+    'missionBusinessOrganizationCategorizeWeek' =>
+      l10n.missionBusinessOrganizationCategorizeWeek(target),
     _ => null,
   };
 }

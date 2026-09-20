@@ -2348,6 +2348,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String missionBusinessOrganizationCategorizeWeek(String target) {
+    return 'Categorizar $target% dos lançamentos pagos na semana.';
+  }
+
+  @override
   String missionBusinessOrganizationInvoiceOnTime(String target) {
     return 'Fechar $target fatura do cartão corporativo pagando até o vencimento.';
   }

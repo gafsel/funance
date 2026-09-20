@@ -1179,6 +1179,14 @@
       }
     }
   },
+  "missionBusinessOrganizationCategorizeWeek": "Categorise {target}% of the entries paid this week.",
+  "@missionBusinessOrganizationCategorizeWeek": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "missionBusinessOrganizationInvoiceOnTime": "Close {target} corporate card invoice by paying before the due date.",
   "@missionBusinessOrganizationInvoiceOnTime": {
     "placeholders": {

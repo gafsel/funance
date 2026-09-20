@@ -2330,6 +2330,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String missionBusinessOrganizationCategorizeWeek(String target) {
+    return 'Categorise $target% of the entries paid this week.';
+  }
+
+  @override
   String missionBusinessOrganizationInvoiceOnTime(String target) {
     return 'Close $target corporate card invoice by paying before the due date.';
   }

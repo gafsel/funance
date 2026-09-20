@@ -4214,6 +4214,12 @@ abstract class AppLocalizations {
   /// **'Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.'**
   String missionBusinessOrganizationCategorizeAuto(String target);
 
+  /// No description provided for @missionBusinessOrganizationCategorizeWeek.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorizar {target}% dos lançamentos pagos na semana.'**
+  String missionBusinessOrganizationCategorizeWeek(String target);
+
   /// No description provided for @missionBusinessOrganizationInvoiceOnTime.
   ///
   /// In pt, this message translates to:
