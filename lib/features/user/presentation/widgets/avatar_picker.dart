@@ -161,11 +161,13 @@ class _AvatarTileState extends State<_AvatarTile> {
           decoration: _focused
               ? BoxDecoration(
                   borderRadius: AppRadius.brLg,
-                  // A tinta principal do tema contra o fundo da tela: 14,9:1
-                  // no claro e 13,4:1 no escuro. O ouro do ESCOLHIDO não
-                  // serve de realce de foco — ele já significa outra coisa,
-                  // e sobre o cartão escuro dá 1,3:1 contra o próprio anel
-                  // de seleção.
+                  // A tinta principal do tema contra o fundo da tela, que é
+                  // o que o respiro de 4 px deixa aparecer dos dois lados do
+                  // anel: **15,02:1 no claro e 14,35:1 no escuro** (medidos
+                  // com `AppColors.contrastRatio`). O ouro do ESCOLHIDO não
+                  // serve de realce de foco: ele já significa outra coisa, e
+                  // um anel de foco dourado encostado no anel de seleção
+                  // dourado não se distingue dele.
                   border: Border.all(color: palette.ink, width: 2),
                 )
               : null,
