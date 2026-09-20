@@ -153,7 +153,12 @@ abstract final class AppTheme {
       ),
       tabBarTheme: TabBarThemeData(
         labelColor: palette.ink,
-        unselectedLabelColor: palette.ink3,
+        // `ink3` é tinta de coisa DESLIGADA — placeholder, ícone apagado,
+        // texto desabilitado —, e uma aba fechada continua sendo um destino
+        // clicável. Em `ink3` ela dava 2,66:1 sobre papel claro; em `ink2`,
+        // 5,70:1. A hierarquia entre aberta e fechada continua existindo,
+        // agora pelo peso da fonte.
+        unselectedLabelColor: palette.ink2,
         labelStyle: text.labelLarge,
         unselectedLabelStyle: text.labelLarge?.copyWith(
           fontWeight: FontWeight.w500,
@@ -197,7 +202,9 @@ abstract final class AppTheme {
         elevation: 0,
         modalElevation: 0,
         showDragHandle: true,
-        dragHandleColor: palette.ink3,
+        // O puxador é o que avisa que a folha se arrasta; some em `ink3`
+        // (2,66:1 sobre papel claro).
+        dragHandleColor: palette.ink2,
         clipBehavior: Clip.antiAlias,
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brSheet),
         constraints: const BoxConstraints(maxWidth: AppBreakpoints.wide),
@@ -400,14 +407,19 @@ abstract final class AppTheme {
               : Colors.transparent,
         ),
         checkColor: const WidgetStatePropertyAll(AppColors.goldInk),
-        side: BorderSide(color: palette.ink3, width: 1.5),
+        // A borda de uma caixa VAZIA é a única coisa que revela que existe um
+        // controle ali: é elemento gráfico essencial, piso de 3:1. `ink3`
+        // dava 2,66:1 sobre papel claro.
+        side: BorderSide(color: palette.ink2, width: 1.5),
         shape: const RoundedRectangleBorder(borderRadius: AppRadius.brXs),
       ),
       radioTheme: RadioThemeData(
+        // Mesma regra do checkbox: o aro do rádio não marcado é o que mostra
+        // que há uma escolha a fazer.
         fillColor: WidgetStateProperty.resolveWith(
           (states) => states.contains(WidgetState.selected)
               ? AppColors.gold
-              : palette.ink3,
+              : palette.ink2,
         ),
       ),
       sliderTheme: SliderThemeData(
@@ -439,7 +451,10 @@ abstract final class AppTheme {
         disabledBorder: _inputBorder(palette.line),
         labelStyle: text.bodyMedium?.copyWith(color: palette.ink2),
         floatingLabelStyle: text.labelMedium?.copyWith(color: palette.ink2),
-        hintStyle: text.bodyMedium?.copyWith(color: palette.ink3),
+        // O placeholder é conteúdo — diz o formato esperado do campo — e não
+        // um estado desabilitado. Em `ink3` ele dava 2,49:1 sobre o papel do
+        // campo; em `ink2`, 5,34:1.
+        hintStyle: text.bodyMedium?.copyWith(color: palette.ink2),
         helperStyle: text.bodySmall?.copyWith(color: palette.ink2),
         errorStyle: text.bodySmall?.copyWith(color: palette.dangerText),
         prefixIconColor: palette.ink2,
