@@ -148,6 +148,64 @@ void main() {
       expect(find.text('Derrotado'), findsOneWidget);
     });
 
+    testWidgets('o rombo tem selo, do lado dos heróis', (tester) async {
+      // O retrato real do domingo: R\$ 3.115,02 em caixa contra R\$ 12.122,33
+      // de compromisso. A barra está CHEIA — nada saiu ainda — e sem o selo a
+      // cena dizia "tudo bem" com nove mil reais de rombo na frente.
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          initialBalance: 3115.02,
+          currentBalance: 3115.02,
+          commitments: [
+            arenaTestCommitment(
+              id: 'fatura',
+              description: 'Fatura Cartão Nubank',
+              amount: 8300.55,
+              dayOffset: -3,
+              overdue: true,
+            ),
+            arenaTestCommitment(
+              id: 'emprestimo',
+              description: 'Pagamento de empréstimo',
+              amount: 3811.78,
+              dayOffset: 2,
+            ),
+            arenaTestCommitment(
+              id: 'c6',
+              description: 'Segurança C6',
+              amount: 10,
+              dayOffset: -4,
+              overdue: true,
+            ),
+          ],
+        ),
+      );
+
+      // Sem o "R\$" na busca: o formatador usa espaço não separável entre o
+      // símbolo e o número, e um teste que casa com o espaço comum falha por
+      // um caractere invisível.
+      expect(find.textContaining('9.007,31'), findsWidgets);
+      expect(find.textContaining('em caixa'), findsOneWidget);
+
+      final barra = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
+      expect(barra.ratio, 1, reason: 'a barra está cheia');
+      expect(barra.pressed, isTrue, reason: 'e mesmo assim é o pior estado');
+      expect(barra.committedRatio, 1, reason: 'a hachura satura');
+    });
+
+    testWidgets('caixa que cobre os compromissos não tem selo de rombo', (
+      tester,
+    ) async {
+      await pumpArena(tester);
+
+      expect(find.textContaining('em caixa'), findsNothing);
+      expect(
+        tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first).pressed,
+        isFalse,
+      );
+    });
+
     testWidgets('saldo negativo deixa os heróis exaustos', (tester) async {
       await pumpArena(tester, state: arenaTestState(currentBalance: -120));
 
@@ -203,6 +261,77 @@ void main() {
         pago.style?.decoration,
         TextDecoration.lineThrough,
         reason: 'o texto riscado é a outra metade da marca',
+      );
+    });
+
+    testWidgets('a fatura paga pela metade mostra quanto falta', (
+      tester,
+    ) async {
+      // O caso real: Cartão Inter, R\$ 12.130,09 cobrados, R\$ 1.000 pagos.
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'inter',
+              description: 'Fatura do Cartão Inter',
+              amount: 12130.09,
+              partial: 1000,
+              dayOffset: 2,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      // Sem o "R\$" nas buscas: o formatador usa espaço não separável entre o
+      // símbolo e o número, e um teste que casa com o espaço comum falha por
+      // um caractere invisível.
+      expect(find.textContaining('1.000,00 de'), findsOneWidget);
+      expect(find.textContaining('12.130,09'), findsWidgets);
+      expect(find.textContaining('11.130,09'), findsWidgets);
+
+      // Meia espada: houve golpe, e o bicho continua de pé. A inteira ali
+      // contaria a mesma mentira que a barra contava.
+      final marcas = tester.widgetList<SwordMark>(find.byType(SwordMark));
+      expect(marcas.length, 1);
+      expect(marcas.single.half, isTrue);
+
+      // NÃO há botão. A parcela está com status `paid` na base, e o caminho
+      // de quitação do app (`TransactionPaymentSheet`) é para quitar o que
+      // está pendente — reabri-lo sobre uma parcela já paga é um fluxo que
+      // esta POC não verificou e não vai fingir que existe. O que a folha
+      // promete aqui é a LEITURA correta; pagar o resto continua sendo pela
+      // edição do lançamento.
+      expect(find.text('Confirmar pago'), findsNothing);
+    });
+
+    testWidgets('pagar a mais aparece na linha, não na barra', (tester) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'f',
+              description: 'Fatura',
+              amount: 286.21,
+              partial: 296.61,
+              dayOffset: 2,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      expect(find.textContaining('acima do previsto'), findsOneWidget);
+      expect(
+        tester.widgetList<SwordMark>(find.byType(SwordMark)).single.half,
+        isFalse,
+        reason: 'o compromisso caiu: a espada é inteira',
       );
     });
 
@@ -421,6 +550,50 @@ void main() {
       // Nubank caiu R$ 1.100; Tesouro caiu R$ 120.
       expect(find.textContaining('1.100'), findsOneWidget);
       expect(find.textContaining('120'), findsWidgets);
+    });
+
+    testWidgets('no rombo o rodapé diz "falta em caixa", e explica', (
+      tester,
+    ) async {
+      // "Livre −R\$ 9.007,31" é uma contradição em dois caracteres. E um
+      // rombo sem culpado manda a pessoa procurar sozinha em quatro telas.
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          initialBalance: 3115.02,
+          currentBalance: 3115.02,
+          commitments: [
+            arenaTestCommitment(
+              id: 'fatura',
+              description: 'Fatura Cartão Nubank',
+              amount: 8300.55,
+              dayOffset: -3,
+              overdue: true,
+            ),
+            arenaTestCommitment(
+              id: 'emprestimo',
+              description: 'Pagamento de empréstimo',
+              amount: 3811.78,
+              dayOffset: 2,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).first);
+      await arenaFrames(tester);
+
+      expect(find.text('Falta em caixa'), findsOneWidget);
+      expect(find.text('Livre'), findsNothing);
+      // O número é positivo: falta se mede para cima. (8.300,55 + 3.811,78
+      // de compromisso contra 3.115,02 em caixa.)
+      expect(find.textContaining('8.997,31'), findsWidgets);
+      expect(find.textContaining('-8.997,31'), findsNothing);
+
+      final causa = find.byKey(const ValueKey('arena-shortfall-cause'));
+      expect(causa, findsOneWidget);
+      expect(find.textContaining('Fatura Cartão Nubank'), findsWidgets);
+      expect(find.textContaining('vencido há 3 dias'), findsOneWidget);
     });
 
     testWidgets('o rodapé fecha a conta: vida, comprometido e livre', (

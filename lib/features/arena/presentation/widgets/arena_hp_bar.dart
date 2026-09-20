@@ -32,6 +32,7 @@ class ArenaHpBar extends StatelessWidget {
     this.committedRatio = 0,
     this.mirrored = false,
     this.overflowing = false,
+    this.pressed = false,
     this.height = _height,
   });
 
@@ -50,6 +51,14 @@ class ArenaHpBar extends StatelessWidget {
   /// A vida passou do máximo (receita acima do que saiu). A barra fica cheia
   /// e troca de cor — "overheal", o verde que diz que a semana está no azul.
   final bool overflowing;
+
+  /// O comprometido passou do que existe em caixa.
+  ///
+  /// A hachura fica mais DENSA. É o único sinal possível quando a faixa já
+  /// cobre a barra inteira: saturada em 100%, ela não tem mais para onde
+  /// crescer, e uma barra cheia de hachura normal lê igual a "exatamente
+  /// comprometido" — que é outra situação.
+  final bool pressed;
 
   final double height;
 
@@ -120,7 +129,8 @@ class ArenaHpBar extends StatelessWidget {
                 if (committedRatio > 0)
                   _CommittedBand(
                     extent: committedRatio,
-                    color: palette.onGame2,
+                    color: pressed ? palette.dangerText : palette.onGame2,
+                    dense: pressed,
                     duration: AppDurations.respectingMotion(
                       context,
                       AppDurations.celebrate,
@@ -214,11 +224,13 @@ class _CommittedBand extends StatelessWidget {
     required this.extent,
     required this.color,
     required this.duration,
+    this.dense = false,
   });
 
   final double extent;
   final Color color;
   final Duration duration;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +248,7 @@ class _CommittedBand extends StatelessWidget {
           widthFactor: value,
           heightFactor: 1,
           child: CustomPaint(
-            painter: _HatchPainter(color),
+            painter: _HatchPainter(color, dense: dense),
             // Um `CustomPaint` sem filho prefere `Size.zero`; o filho
             // expandido é o que o faz ocupar a faixa inteira.
             child: const SizedBox.expand(),
@@ -248,14 +260,19 @@ class _CommittedBand extends StatelessWidget {
 }
 
 class _HatchPainter extends CustomPainter {
-  const _HatchPainter(this.color);
+  const _HatchPainter(this.color, {required this.dense});
 
   final Color color;
 
+  /// Rombo: traços mais juntos. Aqui a densidade É informação, e é a única
+  /// que sobra quando a faixa já ocupa a barra inteira.
+  final bool dense;
+
   /// Distância entre traços. Fixa em pontos lógicos de propósito: uma hachura
   /// proporcional à largura muda de densidade conforme o valor, e aí ela
-  /// passa a parecer uma informação — que não é.
+  /// passaria a parecer uma informação onde não é.
   static const double step = 6;
+  static const double denseStep = 3;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -268,7 +285,9 @@ class _HatchPainter extends CustomPainter {
       Paint()..color = AppColors.gameTrough.withValues(alpha: 0.5),
     );
 
-    for (var x = -size.height; x < size.width; x += step) {
+    final passo = dense ? denseStep : step;
+
+    for (var x = -size.height; x < size.width; x += passo) {
       canvas.drawLine(
         Offset(x, size.height),
         Offset(x + size.height, 0),
@@ -278,7 +297,8 @@ class _HatchPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HatchPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(_HatchPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.dense != dense;
 }
 
 /// O marcador redondo do centro: o relógio da luta.

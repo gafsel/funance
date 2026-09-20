@@ -105,6 +105,8 @@ class HeroActor extends _BreathingActor with TapCallbacks {
     if (_mood == value) return;
     _mood = value;
 
+    // Pressionado também curva o boneco: o rombo não aparece na barra (ela
+    // pode estar cheia), então ele tem de aparecer na POSE.
     setSlouching(value != HeroMood.healthy);
 
     // Exausto = filtro escuro leve, e só. Vermelho aqui competiria com o

@@ -5,6 +5,7 @@ import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/core/widgets/money_text.dart';
+import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:go_router/go_router.dart';
 
@@ -79,13 +80,32 @@ class ArenaHeroesSheet extends StatelessWidget {
               strong: true,
             ),
             _Total(label: l10n.arenaCommitted, value: -state.committed),
-            _Total(
-              label: l10n.arenaFree,
-              value: state.freeBalance,
-              strong: true,
-            ),
+            // "Livre −R\$ 9.007,31" é uma contradição em dois caracteres: o
+            // que é livre não é negativo. Quando o caixa não cobre os
+            // compromissos, o rótulo muda de nome e o número vira positivo —
+            // é uma FALTA, e falta se mede para cima.
+            if (state.freeBalance < 0)
+              _Total(
+                label: l10n.arenaShortfallLabel,
+                value: -state.freeBalance,
+                strong: true,
+                tone: palette.dangerText,
+              )
+            else
+              _Total(
+                label: l10n.arenaFree,
+                value: state.freeBalance,
+                strong: true,
+              ),
             if (state.healedThisWeek > 0)
               _Total(label: l10n.arenaHealed, value: state.healedThisWeek),
+            // A CAUSA. Um rombo sem culpado manda a pessoa procurar sozinha
+            // em quatro telas; a linha abaixo já entrega o nome, o valor e o
+            // atraso do compromisso que mais pesa.
+            if (state.freeBalance < 0) ...[
+              AppSpacing.gapXs,
+              _Cause(state: state),
+            ],
           ],
         ),
       ),
@@ -153,21 +173,71 @@ class _AccountRow extends StatelessWidget {
   }
 }
 
+/// A frase que explica o rombo.
+class _Cause extends StatelessWidget {
+  const _Cause({required this.state});
+
+  final ArenaState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    final l10n = context.l10n;
+    final locale = context.locale;
+
+    final maior = state.largestPending;
+    if (maior == null) return const SizedBox.shrink();
+
+    final nome = displayOr(maior.installment.description, l10n.noDescription);
+    final valor = maior.remaining.asCurrency(locale: locale);
+    final atraso = -maior.daysUntilDue;
+
+    return Container(
+      key: const ValueKey('arena-shortfall-cause'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: palette.dangerText.withValues(alpha: 0.08),
+        borderRadius: AppRadius.brMd,
+      ),
+      child: Text(
+        maior.isBehind && atraso > 0
+            ? l10n.arenaShortfallCauseOverdue(nome, valor, atraso)
+            : l10n.arenaShortfallCause(nome, valor),
+        style: theme.textTheme.bodySmall?.copyWith(color: palette.ink),
+      ),
+    );
+  }
+}
+
 class _Total extends StatelessWidget {
-  const _Total({required this.label, required this.value, this.strong = false});
+  const _Total({
+    required this.label,
+    required this.value,
+    this.strong = false,
+    this.tone,
+  });
 
   final String label;
   final double value;
   final bool strong;
+
+  /// Cor explícita, para quando o assunto da linha é o problema.
+  final Color? tone;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final palette = context.palette;
 
-    final style = strong
+    final base = strong
         ? theme.textTheme.titleSmall
         : theme.textTheme.bodySmall?.copyWith(color: palette.ink2);
+    final style = tone == null ? base : base?.copyWith(color: tone);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),

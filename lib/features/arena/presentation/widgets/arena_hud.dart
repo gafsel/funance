@@ -66,6 +66,7 @@ class ArenaHud extends StatelessWidget {
               ratio: state.heroHpRatio,
               committedRatio: state.committedRatio,
               overflowing: state.isOverhealed,
+              pressed: state.isPressed,
               color: state.heroMood == HeroMood.exhausted
                   ? context.palette.dangerText
                   : AppColors.teal,
@@ -132,6 +133,24 @@ class ArenaHud extends StatelessWidget {
     if (state.heroMood == HeroMood.exhausted) {
       return StatusPill(
         label: l10n.arenaExhausted,
+        tone: StatusTone.danger,
+        dense: true,
+        onGame: true,
+      );
+    }
+
+    // O ROMBO, espelho EXATO do "enfurecido" do outro lado — inclusive no
+    // comprimento: "+R$ 8.310,55 atrasado" de um lado, "−R$ 9.007,31 em
+    // caixa" do outro. A primeira redação ("Falta R$ … em caixa") saía
+    // cortada em "em …" a 400px, e um selo cortado não informa nada. Sem ele, o retrato real
+    // do dono — R$ 3.115,02 em caixa contra R$ 12.122,33 de compromisso, no
+    // domingo — mostrava a barra CHEIA e nenhum sinal de que a semana está
+    // perdida antes de começar.
+    if (state.isPressed) {
+      return StatusPill(
+        label: l10n.arenaShortfall(
+          state.shortfall.asCurrency(locale: context.locale),
+        ),
         tone: StatusTone.danger,
         dense: true,
         onGame: true,

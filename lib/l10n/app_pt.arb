@@ -1526,7 +1526,7 @@
       }
     }
   },
-  "arenaShortfall": "Falta {amount} em caixa",
+  "arenaShortfall": "−{amount} em caixa",
   "@arenaShortfall": {
     "placeholders": {
       "amount": {
