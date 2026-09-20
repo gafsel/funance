@@ -54,6 +54,12 @@ class LevelBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = context.palette;
     final ink = onGame ? palette.onGame : palette.ink;
+    // O escudo e a barra de XP são OURO sobre um fundo de ouro a 14%. Sobre
+    // papel claro isso dá 1,52:1 — o emblema do nível desaparecia na própria
+    // pílula, e a barrinha de XP (1,22:1 contra o trilho) não existia de
+    // fato. Sobre superfície de jogo o ouro vivo continua certo, com 5,83:1;
+    // sobre papel, quem escreve "é jogo" é `rewardText`.
+    final reward = onGame ? AppColors.gold : palette.rewardText;
 
     final content = Container(
       padding: const EdgeInsets.symmetric(
@@ -76,11 +82,7 @@ class LevelBadge extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
-                Icons.shield_moon_outlined,
-                size: 14,
-                color: AppColors.gold,
-              ),
+              Icon(Icons.shield_moon_outlined, size: 14, color: reward),
               const SizedBox(width: AppSpacing.xxs),
               Text(
                 label,
@@ -94,9 +96,11 @@ class LevelBadge extends StatelessWidget {
             const SizedBox(height: 3),
             SizedBox(
               width: 56,
-              child: AppProgressBar.reward(
+              child: AppProgressBar(
                 value: progress,
                 size: AppProgressSize.thin,
+                color: reward,
+                trackColor: reward.withValues(alpha: 0.24),
               ),
             ),
           ],
