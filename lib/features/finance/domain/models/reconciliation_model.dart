@@ -9,6 +9,13 @@ part 'reconciliation_model.g.dart';
 
 @freezed
 sealed class ReconciliationTransaction with _$ReconciliationTransaction {
+  /// `explicitToJson` pelo mesmo motivo de `AutomaticTransactionModel`: sem
+  /// ela o `toJson` devolve o OBJETO `CategoryModel` dentro do mapa, e
+  /// qualquer caminho que leve isto ao Firestore ou a uma callable morre com
+  /// `Invalid argument: Instance of '_CategoryModel'`. Hoje este modelo só é
+  /// LIDO (resposta da análise de extrato), então o defeito estava dormindo —
+  /// e o gêmeo que acordou custou 18 pendências que não sumiam.
+  @JsonSerializable(explicitToJson: true)
   const factory ReconciliationTransaction({
     required String description,
     required double amount,

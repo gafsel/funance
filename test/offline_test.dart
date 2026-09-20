@@ -210,6 +210,21 @@ void main() {
         WriteFailureReason.notFound,
       );
     });
+
+    test('o que nem chegou a sair do aparelho não é culpa do servidor', () {
+      // O codec do Firestore recusa um valor que não sabe serializar antes
+      // de qualquer rede acontecer. Chamar isso de "o servidor recusou"
+      // manda quem for investigar para o lugar errado — foi o que escondeu
+      // as pendências que não sumiam.
+      expect(
+        writeFailureReasonOf(ArgumentError.value('Instance of _CategoryModel')),
+        WriteFailureReason.serializationFailed,
+      );
+      expect(
+        writeFailureReasonOf(TypeError()),
+        WriteFailureReason.serializationFailed,
+      );
+    });
   });
 
   group('estado que a tarja mostra', () {

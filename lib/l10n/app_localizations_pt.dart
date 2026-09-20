@@ -2174,6 +2174,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get writeFailedReasonUnknown => 'o servidor recusou a alteração';
 
   @override
+  String get writeFailedReasonSerialization =>
+      'o app não conseguiu preparar os dados; tente de novo';
+
+  @override
   String get transactionSavePendingSync =>
       'Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.';
 

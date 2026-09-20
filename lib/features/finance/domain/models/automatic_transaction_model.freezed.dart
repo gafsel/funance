@@ -17,7 +17,15 @@ mixin _$AutomaticTransactionModel {
 
  String get id; String get description; double get amount; DateTime get date; OrderType get type; String? get originNotificationId;// Para evitar duplicidade
  String? get packageName;// App que originou a notificação
- String? get accountId; String? get categoryId; CategoryModel? get suggestedCategory; AccountModel? get suggestedAccount; bool get isConsolidated; bool get isIgnored; Map<String, dynamic>? get metadata;
+ String? get accountId; String? get categoryId; CategoryModel? get suggestedCategory;/// Cópia da conta que o leitor de notificação achou provável.
+///
+/// É uma FOTOGRAFIA, e de propósito aparada: `nextInvoice` tem
+/// `includeToJson: false` na conta, então a primeira vez que o app
+/// regrava esta pendência a cópia da fatura some — e é assim que deve
+/// ser. A fonte da verdade da próxima fatura é `accounts/{id}`, que o
+/// servidor mantém; uma segunda cópia aqui só pode envelhecer e mentir.
+/// A tela lê a conta, nunca este resumo.
+ AccountModel? get suggestedAccount; bool get isConsolidated; bool get isIgnored; Map<String, dynamic>? get metadata;
 /// Create a copy of AutomaticTransactionModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -239,8 +247,8 @@ return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_t
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _AutomaticTransactionModel implements AutomaticTransactionModel {
   const _AutomaticTransactionModel({required this.id, required this.description, required this.amount, required this.date, required this.type, this.originNotificationId, this.packageName, this.accountId, this.categoryId, this.suggestedCategory, this.suggestedAccount, this.isConsolidated = false, this.isIgnored = false, final  Map<String, dynamic>? metadata}): _metadata = metadata;
   factory _AutomaticTransactionModel.fromJson(Map<String, dynamic> json) => _$AutomaticTransactionModelFromJson(json);
@@ -257,6 +265,14 @@ class _AutomaticTransactionModel implements AutomaticTransactionModel {
 @override final  String? accountId;
 @override final  String? categoryId;
 @override final  CategoryModel? suggestedCategory;
+/// Cópia da conta que o leitor de notificação achou provável.
+///
+/// É uma FOTOGRAFIA, e de propósito aparada: `nextInvoice` tem
+/// `includeToJson: false` na conta, então a primeira vez que o app
+/// regrava esta pendência a cópia da fatura some — e é assim que deve
+/// ser. A fonte da verdade da próxima fatura é `accounts/{id}`, que o
+/// servidor mantém; uma segunda cópia aqui só pode envelhecer e mentir.
+/// A tela lê a conta, nunca este resumo.
 @override final  AccountModel? suggestedAccount;
 @override@JsonKey() final  bool isConsolidated;
 @override@JsonKey() final  bool isIgnored;

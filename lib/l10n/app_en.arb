@@ -1036,6 +1036,7 @@
   "writeFailedReasonNotFound": "the item no longer exists",
   "writeFailedReasonTimeout": "the server did not respond",
   "writeFailedReasonUnknown": "the server rejected the change",
+  "writeFailedReasonSerialization": "the app could not prepare the data; try again",
   "transactionSavePendingSync": "Saved on this device. Instalments appear when the connection is back.",
   "uploadFolderNotSupported": "Drop a file, not a folder.",
   "writeFailedEntity": "Could not save {entity}: {reason}",

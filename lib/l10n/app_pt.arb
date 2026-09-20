@@ -1043,6 +1043,7 @@
   "writeFailedReasonNotFound": "o item não existe mais",
   "writeFailedReasonTimeout": "o servidor não respondeu",
   "writeFailedReasonUnknown": "o servidor recusou a alteração",
+  "writeFailedReasonSerialization": "o app não conseguiu preparar os dados; tente de novo",
   "transactionSavePendingSync": "Salvo neste dispositivo. As parcelas aparecem quando a conexão voltar.",
   "uploadFolderNotSupported": "Arraste um arquivo, não uma pasta.",
   "writeFailedEntity": "Não foi possível salvar {entity}: {reason}",

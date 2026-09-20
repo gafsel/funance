@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:funances/core/platform/app_platform.dart';
 
 import 'package:flutter/foundation.dart';
@@ -147,9 +149,15 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
                 transaction: transaction,
                 onConsolidate: () =>
                     _handleConsolidate(context, ref, transaction),
-                onIgnore: () => notifier.ignore(transaction),
-                onMove: (workspaceId) =>
-                    notifier.moveToWorkspace(transaction, workspaceId),
+                // `unawaited`, e não um `Future` devolvido a um
+                // `VoidCallback`: o notifier já não lança, e explicitar isso
+                // aqui impede que uma mudança futura lá dentro volte a virar
+                // erro assíncrono sem dono — que foi exatamente como o bug
+                // das pendências presas ficou invisível.
+                onIgnore: () => unawaited(notifier.ignore(transaction)),
+                onMove: (workspaceId) => unawaited(
+                  notifier.moveToWorkspace(transaction, workspaceId),
+                ),
               );
             },
           ),
@@ -214,13 +222,15 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
         )
         .then((result) {
           if (result == true) {
-            ref
-                .read(
-                  AutomaticTransactionViewProviders
-                      .automaticTransactions
-                      .notifier,
-                )
-                .loadTransactions();
+            unawaited(
+              ref
+                  .read(
+                    AutomaticTransactionViewProviders
+                        .automaticTransactions
+                        .notifier,
+                  )
+                  .loadTransactions(),
+            );
           }
         });
   }
