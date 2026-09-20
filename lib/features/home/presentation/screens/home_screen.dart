@@ -122,7 +122,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   // tipo e nível. O corpo da Jornada repetia os três num
                   // cabeçalho próprio, e o nível ainda aparecia duas vezes —
                   // uma no anel da barra, outra no selo do corpo.
-                  actions: const [WorkspaceLevelBadge()],
+                  actions: [
+                    // Entrada da POC da Arena. Uma linha, de propósito.
+                    IconButton(
+                      tooltip: AppLocalizations.of(context)!.arenaTitle,
+                      icon: const Icon(Icons.shield_outlined),
+                      onPressed: () => context.push('/arena'),
+                    ),
+                    const WorkspaceLevelBadge(),
+                  ],
                 ),
           rail: _buildNavigationRail(context, authUser),
           bottomBar: _buildBottomBar(context),

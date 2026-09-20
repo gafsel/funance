@@ -1347,5 +1347,32 @@
         "type": "int"
       }
     }
+  },
+  "arenaTitle": "Arena",
+  "arenaWeekMonster": "Monster of the week",
+  "arenaHeroLife": "Health",
+  "arenaCommitted": "Committed",
+  "arenaConfirmPaid": "Confirm payment",
+  "arenaMonsterFled": "Fled wounded",
+  "arenaEnraged": "Enraged: +{amount} overdue",
+  "arenaWeekInstallments": "This week's bills",
+  "arenaNoPending": "No bills left this week.",
+  "arenaEmpty": "No bills and no plan this week — the arena is empty. Set a category limit and the monster shows up.",
+  "arenaTeamExtra": "+{count} on the team",
+  "arenaExhausted": "Exhausted",
+  "arenaInvoiceCocoon": "Card statement",
+  "@arenaEnraged": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaTeamExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

@@ -2448,4 +2448,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String missionProgressShort(String progress, String target) {
     return '$progress/$target';
   }
+
+  @override
+  String get arenaTitle => 'Arena';
+
+  @override
+  String get arenaWeekMonster => 'Monster of the week';
+
+  @override
+  String get arenaHeroLife => 'Health';
+
+  @override
+  String get arenaCommitted => 'Committed';
+
+  @override
+  String get arenaConfirmPaid => 'Confirm payment';
+
+  @override
+  String get arenaMonsterFled => 'Fled wounded';
+
+  @override
+  String arenaEnraged(String amount) {
+    return 'Enraged: +$amount overdue';
+  }
+
+  @override
+  String get arenaWeekInstallments => 'This week\'s bills';
+
+  @override
+  String get arenaNoPending => 'No bills left this week.';
+
+  @override
+  String get arenaEmpty =>
+      'No bills and no plan this week — the arena is empty. Set a category limit and the monster shows up.';
+
+  @override
+  String arenaTeamExtra(int count) {
+    return '+$count on the team';
+  }
+
+  @override
+  String get arenaExhausted => 'Exhausted';
+
+  @override
+  String get arenaInvoiceCocoon => 'Card statement';
 }

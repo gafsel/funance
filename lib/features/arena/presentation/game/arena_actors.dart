@@ -1,0 +1,313 @@
+import 'dart:math' as math;
+
+import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
+import 'package:flame/events.dart';
+import 'package:flutter/animation.dart';
+import 'package:flutter/painting.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/arena/presentation/game/arena_sprites.dart';
+import 'package:funances/features/arena/presentation/game/arena_theme.dart';
+
+/// Base dos bonecos: respiração e sombra.
+///
+/// A respiração é um seno na escala vertical — três linhas que separam "um
+/// PNG parado na tela" de "uma criatura esperando". É a diferença que faz a
+/// cena parecer viva antes de qualquer arte boa existir.
+abstract class _BreathingActor extends SpriteComponent {
+  _BreathingActor({
+    required super.sprite,
+    required super.position,
+    required super.size,
+    required this.theme,
+    required this.breathPeriod,
+    required this.breathDepth,
+    super.priority,
+  }) : super(anchor: Anchor.bottomCenter, paint: ArenaSprites.pixelPaint);
+
+  final ArenaTheme theme;
+  final double breathPeriod;
+  final double breathDepth;
+
+  double _clock = 0;
+
+  /// Escala base — o tremor e o avanço multiplicam-se sobre ela.
+  double _baseScale = 1;
+
+  /// `true` enquanto a pose de "machucado" está ligada.
+  bool _slouching = false;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (theme.reduceMotion) return;
+
+    _clock += dt;
+    final breath = math.sin(_clock * math.pi * 2 / breathPeriod) * breathDepth;
+
+    // Só o Y respira. Escalar os dois eixos faz o boneco "pular" no lugar;
+    // esticar só a altura é o agachamento que o olho lê como fôlego.
+    scale.setValues(_baseScale, _baseScale * (1 + breath));
+  }
+
+  /// Sombra elíptica no chão. Sem ela, o boneco flutua.
+  @override
+  void render(Canvas canvas) {
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.x / 2, size.y - size.y * 0.06),
+        width: size.x * 0.62,
+        height: size.y * 0.12,
+      ),
+      Paint()..color = theme.shadow,
+    );
+    super.render(canvas);
+  }
+
+  void setSlouching(bool value) {
+    if (_slouching == value) return;
+    _slouching = value;
+    // Machucado NÃO é só cor: o boneco encolhe e inclina. Um tint vermelho
+    // sozinho some contra um sprite que já tem vermelho.
+    angle = value ? 0.12 : 0;
+    _baseScale = value ? 0.92 : 1;
+    scale.setValues(_baseScale, _baseScale);
+  }
+}
+
+/// O herói de um membro do workspace.
+class HeroActor extends _BreathingActor {
+  HeroActor({
+    required super.sprite,
+    required super.position,
+    required super.size,
+    required super.theme,
+    required this.label,
+  }) : super(breathPeriod: 2.6, breathDepth: 0.035, priority: 300);
+
+  final String label;
+
+  late final TextComponent _name = TextComponent(
+    text: label,
+    anchor: Anchor.bottomCenter,
+    position: Vector2(size.x / 2, -1),
+    textRenderer: TextPaint(
+      style: theme.labelStyle.copyWith(fontSize: 5, color: theme.ink2),
+    ),
+  );
+
+  HeroMood _mood = HeroMood.healthy;
+
+  @override
+  Future<void> onLoad() async {
+    add(_name);
+  }
+
+  set mood(HeroMood value) {
+    if (_mood == value) return;
+    _mood = value;
+
+    setSlouching(value != HeroMood.healthy);
+
+    // Exausto = filtro escuro leve, e só. Vermelho aqui competiria com o
+    // vermelho do DANO, que é um evento e precisa se destacar de um estado.
+    paint.colorFilter = value == HeroMood.exhausted
+        ? ColorFilter.mode(theme.exhaustion, BlendMode.srcATop)
+        : null;
+  }
+
+  /// O avanço e o retorno do golpe.
+  ///
+  /// `easeOutBack` na volta é o que dá o "peso": o herói passa do ponto e
+  /// assenta. Com uma curva simétrica o movimento fica de metrônomo.
+  void strike({required double towards}) {
+    if (theme.reduceMotion) return;
+
+    final direction = towards > position.x ? 1.0 : -1.0;
+
+    add(
+      MoveByEffect(
+        Vector2(size.x * 0.75 * direction, 0),
+        EffectController(
+          duration: 0.12,
+          curve: Curves.easeOutQuad,
+          reverseDuration: 0.34,
+          reverseCurve: Curves.easeOutBack,
+        ),
+      ),
+    );
+  }
+
+  /// O herói apanhou: tremor curto e clarão vermelho.
+  void flinch() {
+    if (theme.reduceMotion) return;
+
+    add(
+      MoveByEffect(
+        Vector2(-size.x * 0.12, 0),
+        EffectController(
+          duration: 0.05,
+          reverseDuration: 0.05,
+          repeatCount: 3,
+        ),
+      ),
+    );
+    add(
+      ColorEffect(
+        theme.damage,
+        EffectController(duration: 0.12, reverseDuration: 0.2),
+        opacityTo: 0.75,
+      ),
+    );
+  }
+
+  /// O herói foi curado: pulso verde.
+  void glow() {
+    if (theme.reduceMotion) return;
+
+    add(
+      ColorEffect(
+        theme.heal,
+        EffectController(duration: 0.2, reverseDuration: 0.35),
+        opacityTo: 0.6,
+      ),
+    );
+  }
+}
+
+/// O monstro da semana.
+class MonsterActor extends _BreathingActor with TapCallbacks {
+  MonsterActor({
+    required super.sprite,
+    required super.position,
+    required super.size,
+    required super.theme,
+    this.onTap,
+    this.onLongPress,
+  }) : super(breathPeriod: 1.9, breathDepth: 0.06, priority: 400);
+
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  /// A cicatriz do atraso: "+R$ 640,00 atrasado", pendurada no bicho.
+  TextComponent? _scar;
+
+  bool _fled = false;
+
+  @override
+  void onTapDown(TapDownEvent event) => onTap?.call();
+
+  @override
+  void onLongTapDown(TapDownEvent event) => onLongPress?.call();
+
+  /// Leva o golpe: tremor, clarão e — quem chama — moedas.
+  void takeHit() {
+    if (theme.reduceMotion) return;
+
+    add(
+      MoveByEffect(
+        Vector2(size.x * 0.14, 0),
+        EffectController(
+          duration: 0.04,
+          reverseDuration: 0.04,
+          repeatCount: 4,
+        ),
+      ),
+    );
+    add(
+      ColorEffect(
+        theme.ink,
+        EffectController(duration: 0.06, reverseDuration: 0.24),
+        opacityTo: 0.9,
+      ),
+    );
+  }
+
+  /// A fuga: o bicho encolhe e some. Não é morte — ele volta na semana que
+  /// vem, e o fechamento chama isso de "fugiu ferido".
+  void flee() {
+    if (_fled) return;
+    _fled = true;
+
+    if (theme.reduceMotion) {
+      opacity = 0.25;
+      return;
+    }
+
+    add(
+      ScaleEffect.to(
+        Vector2.all(0.15),
+        EffectController(duration: 0.55, curve: Curves.easeInBack),
+      ),
+    );
+    add(OpacityEffect.fadeOut(EffectController(duration: 0.55)));
+  }
+
+  /// Desfaz a fuga — o estado voltou a ter parcela pendente (uma parcela
+  /// desfeita, um lançamento novo). Sem isto o monstro ficaria invisível para
+  /// sempre depois do primeiro fechamento da semana.
+  void revive() {
+    if (!_fled) return;
+    _fled = false;
+    scale.setValues(1, 1);
+    opacity = 1;
+  }
+
+  set scarText(String? text) {
+    if (text == null) {
+      _scar?.removeFromParent();
+      _scar = null;
+      return;
+    }
+
+    if (_scar != null) {
+      _scar!.text = text;
+      return;
+    }
+
+    _scar = TextComponent(
+      text: text,
+      anchor: Anchor.bottomCenter,
+      position: Vector2(size.x / 2, -1),
+      textRenderer: TextPaint(
+        style: theme.labelStyle.copyWith(fontSize: 5, color: theme.damage),
+      ),
+    );
+    add(_scar!);
+  }
+}
+
+/// O casulo do cartão: a fatura aberta, do tamanho do que ela é.
+class CocoonActor extends SpriteComponent with TapCallbacks {
+  CocoonActor({
+    required super.sprite,
+    required super.position,
+    required super.size,
+    required this.theme,
+    this.onTap,
+  }) : super(
+         anchor: Anchor.bottomCenter,
+         priority: 200,
+         paint: ArenaSprites.pixelPaint,
+       );
+
+  final ArenaTheme theme;
+  final VoidCallback? onTap;
+
+  double _clock = 0;
+
+  @override
+  void onTapDown(TapDownEvent event) => onTap?.call();
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (theme.reduceMotion) return;
+
+    // Pulsação lenta: o casulo está VIVO, e o que está dentro dele cresce
+    // sozinho até o dia do vencimento.
+    _clock += dt;
+    final pulse = 1 + math.sin(_clock * math.pi * 2 / 3.4) * 0.05;
+    scale.setValues(pulse, pulse);
+  }
+}

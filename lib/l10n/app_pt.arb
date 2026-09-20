@@ -1347,5 +1347,32 @@
         "type": "String"
       }
     }
+  },
+  "arenaTitle": "Arena",
+  "arenaWeekMonster": "Monstro da semana",
+  "arenaHeroLife": "Vida",
+  "arenaCommitted": "Comprometido",
+  "arenaConfirmPaid": "Confirmar pago",
+  "arenaMonsterFled": "Fugiu ferido",
+  "arenaEnraged": "Enfurecido: +{amount} atrasado",
+  "arenaWeekInstallments": "Parcelas da semana",
+  "arenaNoPending": "Nenhuma parcela pendente nesta semana.",
+  "arenaEmpty": "Sem parcelas e sem planejamento nesta semana — a arena está vazia. Defina um limite por categoria e o monstro aparece.",
+  "arenaTeamExtra": "+{count} na equipe",
+  "arenaExhausted": "Exausto",
+  "arenaInvoiceCocoon": "Fatura do cartão",
+  "@arenaEnraged": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaTeamExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   }
 }

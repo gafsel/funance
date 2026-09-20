@@ -4393,6 +4393,84 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{progress}/{target}'**
   String missionProgressShort(String progress, String target);
+
+  /// No description provided for @arenaTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Arena'**
+  String get arenaTitle;
+
+  /// No description provided for @arenaWeekMonster.
+  ///
+  /// In pt, this message translates to:
+  /// **'Monstro da semana'**
+  String get arenaWeekMonster;
+
+  /// No description provided for @arenaHeroLife.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vida'**
+  String get arenaHeroLife;
+
+  /// No description provided for @arenaCommitted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Comprometido'**
+  String get arenaCommitted;
+
+  /// No description provided for @arenaConfirmPaid.
+  ///
+  /// In pt, this message translates to:
+  /// **'Confirmar pago'**
+  String get arenaConfirmPaid;
+
+  /// No description provided for @arenaMonsterFled.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fugiu ferido'**
+  String get arenaMonsterFled;
+
+  /// No description provided for @arenaEnraged.
+  ///
+  /// In pt, this message translates to:
+  /// **'Enfurecido: +{amount} atrasado'**
+  String arenaEnraged(String amount);
+
+  /// No description provided for @arenaWeekInstallments.
+  ///
+  /// In pt, this message translates to:
+  /// **'Parcelas da semana'**
+  String get arenaWeekInstallments;
+
+  /// No description provided for @arenaNoPending.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma parcela pendente nesta semana.'**
+  String get arenaNoPending;
+
+  /// No description provided for @arenaEmpty.
+  ///
+  /// In pt, this message translates to:
+  /// **'Sem parcelas e sem planejamento nesta semana — a arena está vazia. Defina um limite por categoria e o monstro aparece.'**
+  String get arenaEmpty;
+
+  /// No description provided for @arenaTeamExtra.
+  ///
+  /// In pt, this message translates to:
+  /// **'+{count} na equipe'**
+  String arenaTeamExtra(int count);
+
+  /// No description provided for @arenaExhausted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Exausto'**
+  String get arenaExhausted;
+
+  /// No description provided for @arenaInvoiceCocoon.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fatura do cartão'**
+  String get arenaInvoiceCocoon;
 }
 
 class _AppLocalizationsDelegate

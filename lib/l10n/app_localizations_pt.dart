@@ -2466,4 +2466,48 @@ class AppLocalizationsPt extends AppLocalizations {
   String missionProgressShort(String progress, String target) {
     return '$progress/$target';
   }
+
+  @override
+  String get arenaTitle => 'Arena';
+
+  @override
+  String get arenaWeekMonster => 'Monstro da semana';
+
+  @override
+  String get arenaHeroLife => 'Vida';
+
+  @override
+  String get arenaCommitted => 'Comprometido';
+
+  @override
+  String get arenaConfirmPaid => 'Confirmar pago';
+
+  @override
+  String get arenaMonsterFled => 'Fugiu ferido';
+
+  @override
+  String arenaEnraged(String amount) {
+    return 'Enfurecido: +$amount atrasado';
+  }
+
+  @override
+  String get arenaWeekInstallments => 'Parcelas da semana';
+
+  @override
+  String get arenaNoPending => 'Nenhuma parcela pendente nesta semana.';
+
+  @override
+  String get arenaEmpty =>
+      'Sem parcelas e sem planejamento nesta semana — a arena está vazia. Defina um limite por categoria e o monstro aparece.';
+
+  @override
+  String arenaTeamExtra(int count) {
+    return '+$count na equipe';
+  }
+
+  @override
+  String get arenaExhausted => 'Exausto';
+
+  @override
+  String get arenaInvoiceCocoon => 'Fatura do cartão';
 }
