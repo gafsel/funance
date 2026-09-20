@@ -44,6 +44,18 @@ class AppearanceSection extends ConsumerWidget {
   /// não fica mais legível por ser largo — fica mais difícil de mirar.
   static const double selectorMaxWidth = 420;
 
+  /// Largura máxima de um item com CONTROLE à direita — hoje, o do som.
+  ///
+  /// Pelo mesmo motivo do teto do seletor, e com o mesmo número: num desktop
+  /// de 1300 px o `SwitchListTile` atravessava a tela inteira e jogava a
+  /// chavinha a mais de mil pixels do texto que ela liga, obrigando o olho a
+  /// cruzar a tela vazia para ligar o som. O teto é o do seletor MAIS o
+  /// recuo do texto, para os dois controles da seção terminarem na mesma
+  /// coluna — dois tetos de 420 em recuos diferentes dariam duas bordas
+  /// direitas desalinhadas em 72 px, que é justamente o "bloco solto" que
+  /// este pacote veio desfazer.
+  static const double controlMaxWidth = tileTextInset + selectorMaxWidth;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
@@ -100,13 +112,20 @@ class AppearanceSection extends ConsumerWidget {
             ),
           ),
         ),
-        SwitchListTile(
-          secondary: const Icon(Icons.volume_up_outlined),
-          title: Text(l10n.settingsCelebrationSound),
-          subtitle: Text(l10n.settingsCelebrationSoundDesc),
-          value: celebration.sound,
-          onChanged: (value) =>
-              ref.read(CelebrationProviders.settings.notifier).setSound(value),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: controlMaxWidth),
+            child: SwitchListTile(
+              secondary: const Icon(Icons.volume_up_outlined),
+              title: Text(l10n.settingsCelebrationSound),
+              subtitle: Text(l10n.settingsCelebrationSoundDesc),
+              value: celebration.sound,
+              onChanged: (value) => ref
+                  .read(CelebrationProviders.settings.notifier)
+                  .setSound(value),
+            ),
+          ),
         ),
       ],
     );

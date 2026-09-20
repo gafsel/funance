@@ -30,7 +30,11 @@ import 'support/journey_fakes.dart';
 /// A altura do recanto de um celular com notch.
 const double _notch = 47;
 
-Widget _app({Brightness brightness = Brightness.light, double topPadding = 0}) {
+Widget _app({
+  Brightness brightness = Brightness.light,
+  double topPadding = 0,
+  bool comAppBar = false,
+}) {
   return ProviderScope(
     overrides: [
       WorkspaceViewProviders.workspace.overrideWith(
@@ -55,8 +59,15 @@ Widget _app({Brightness brightness = Brightness.light, double topPadding = 0}) {
           ).copyWith(padding: EdgeInsets.only(top: topPadding)),
           // Sem `Scaffold` e sem `AppBar`: é assim que a Home monta a tela
           // como ABA, e é o caso em que o recorte do topo não tem quem o
-          // resolva.
-          child: const Material(child: WorkspaceSettingsScreen()),
+          // resolva. COM `AppBar` é a outra montagem — a tela aberta por
+          // rota —, e é ela que prova que o recorte não é somado duas vezes:
+          // o `Scaffold` já o consumiu, e `paddingOf` devolve zero no corpo.
+          child: comAppBar
+              ? Scaffold(
+                  appBar: AppBar(title: const Text('Configurações')),
+                  body: const WorkspaceSettingsScreen(),
+                )
+              : const Material(child: WorkspaceSettingsScreen()),
         ),
       ),
     ),
@@ -68,12 +79,15 @@ Future<void> _pump(
   Size size = const Size(400, 900),
   Brightness brightness = Brightness.light,
   double topPadding = 0,
+  bool comAppBar = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  await tester.pumpWidget(_app(brightness: brightness, topPadding: topPadding));
+  await tester.pumpWidget(
+    _app(brightness: brightness, topPadding: topPadding, comAppBar: comAppBar),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -123,12 +137,29 @@ void main() {
       );
     });
 
+    testWidgets('com AppBar, o recorte não é somado duas vezes', (
+      tester,
+    ) async {
+      // A outra metade, agora com uma `AppBar` DE VERDADE: a tela aberta por
+      // rota vive dentro de um `Scaffold`, que já consumiu o recanto — e
+      // `paddingOf` devolve zero no corpo. Somar o recorte outra vez
+      // deixaria uma faixa vazia de 47 px debaixo da barra.
+      await _pump(tester, topPadding: _notch, comAppBar: true);
+
+      final barra = tester.getBottomLeft(find.byType(AppBar)).dy;
+      final cabecalho = _topo(tester, find.text('APARÊNCIA'));
+
+      // Abaixo da barra, e sem o recorte somado de novo. O `SectionHeader`
+      // traz um respiro próprio, e é ele a folga que sobra.
+      expect(cabecalho, greaterThanOrEqualTo(barra));
+      expect(cabecalho, lessThan(barra + _notch));
+    });
+
     testWidgets('sem recorte, nada de espaço morto no topo', (tester) async {
       await _pump(tester);
 
-      // A outra metade: a tela aberta por ROTA tem `AppBar`, o `Scaffold` já
-      // consumiu o recanto e `paddingOf` devolve zero. Somar o recorte duas
-      // vezes deixaria uma faixa vazia no topo.
+      // Recorte zero (desktop, janela sem notch): o padding da lista some e
+      // o primeiro cabeçalho nasce no alto.
       expect(_topo(tester, find.text('APARÊNCIA')), lessThan(_notch));
     });
   });
@@ -168,6 +199,35 @@ void main() {
       );
 
       expect(seletor.dx, AppearanceSection.tileTextInset);
+    });
+
+    testWidgets('o item do som não atravessa a tela num desktop', (
+      tester,
+    ) async {
+      // Sem teto, num desktop de 1300 px a chavinha do som ia parar a mais
+      // de mil pixels do texto que ela liga. O teto é o mesmo do seletor de
+      // tema, somado ao recuo do texto, para os dois controles da seção
+      // terminarem na MESMA coluna.
+      await _pump(tester, size: const Size(1300, 900));
+
+      final som = find.byType(SwitchListTile);
+      expect(som, findsOneWidget);
+
+      expect(
+        tester.getSize(som).width,
+        lessThanOrEqualTo(AppearanceSection.controlMaxWidth),
+      );
+
+      // E termina na mesma coluna do seletor de tema — a menos da folga do
+      // próprio `SegmentedButton`, que para de crescer na largura de que
+      // precisa (418 px) antes de encostar no teto de 420.
+      expect(
+        tester.getBottomRight(som).dx,
+        closeTo(
+          tester.getBottomRight(find.byType(SegmentedButton<ThemeMode>)).dx,
+          4,
+        ),
+      );
     });
   });
 
