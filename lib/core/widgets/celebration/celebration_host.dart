@@ -20,6 +20,13 @@ import 'package:funances/l10n/app_localizations.dart';
 
 /// Quem escuta as conquistas e as coloca na tela, de qualquer tela.
 ///
+/// Mora em `core/widgets/` e não em `features/home/`. Ele ficava dentro da
+/// Home por herança do tempo em que o feedback de jogo nascia de um
+/// `ref.listen` da `HomeScreen` — mas hoje ele é pendurado no `builder` do
+/// `MaterialApp`, vale para o app inteiro e observa providers de três
+/// features. Um widget que todas as telas usam morando dentro de uma delas é
+/// um convite a dependências que andam para o lado errado.
+///
 /// Fica pendurado no `builder` do `MaterialApp`, ao lado da tarja de
 /// sincronização. Antes, **todo** o feedback de jogo nascia de um único
 /// `ref.listen` dentro da `HomeScreen`: quem ganhava XP dentro da Conciliação,

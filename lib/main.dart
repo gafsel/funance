@@ -12,7 +12,7 @@ import 'package:funances/core/router/app_router.dart';
 import 'package:funances/core/router/url_strategy.dart';
 import 'package:funances/core/widgets/app_error_widget.dart';
 import 'package:funances/core/widgets/sync_status_banner.dart';
-import 'package:funances/features/home/presentation/widgets/celebration/celebration_host.dart';
+import 'package:funances/core/widgets/celebration/celebration_host.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import 'core/theme/app_theme.dart';

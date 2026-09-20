@@ -13,7 +13,7 @@ import 'package:funances/core/widgets/reward_toast.dart';
 import 'package:funances/features/home/domain/models/financial_health_model.dart';
 import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
-import 'package:funances/features/home/presentation/widgets/celebration/celebration_host.dart';
+import 'package:funances/core/widgets/celebration/celebration_host.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
