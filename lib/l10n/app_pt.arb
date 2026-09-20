@@ -1282,5 +1282,21 @@
         "type": "int"
       }
     }
+  },
+  "planning503020PlannedPercent": "Planejado: {percent}",
+  "@planning503020PlannedPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "planning503020ActualPercent": "Real: {percent}",
+  "@planning503020ActualPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
   }
 }

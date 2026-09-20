@@ -2446,4 +2446,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String journeySeeClosedGoals(int count) {
     return 'See $count closed';
   }
+
+  @override
+  String planning503020PlannedPercent(String percent) {
+    return 'Planned: $percent';
+  }
+
+  @override
+  String planning503020ActualPercent(String percent) {
+    return 'Actual: $percent';
+  }
 }

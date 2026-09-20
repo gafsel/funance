@@ -4399,6 +4399,18 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver {count} encerradas'**
   String journeySeeClosedGoals(int count);
+
+  /// No description provided for @planning503020PlannedPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Planejado: {percent}'**
+  String planning503020PlannedPercent(String percent);
+
+  /// No description provided for @planning503020ActualPercent.
+  ///
+  /// In pt, this message translates to:
+  /// **'Real: {percent}'**
+  String planning503020ActualPercent(String percent);
 }
 
 class _AppLocalizationsDelegate
