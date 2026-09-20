@@ -14,7 +14,19 @@ import '../arena/hud_harness.dart';
 import '../support/home_harness.dart';
 import 'golden_support.dart';
 
-/// A Home, que agora É a Arena — claro e escuro, celular e desktop.
+/// A Home, que agora É a Arena — celular e desktop.
+///
+/// **Sem par claro/escuro.** Esta aba não tem tema: a cena tem PALETA
+/// PRÓPRIA. O fundo é `surfaceDeep` nos dois modos, a tinta do HUD é
+/// `inkInverse`/`inkInverse2` nos dois, os sprites são pixel art com as cores
+/// do Kenney, e o véu é a mesma chapa de `surfaceDeep`. O QA comparou os
+/// PNGs: os pares `_escuro` diferiam em 26 pixels do total — o cursor do
+/// carregamento de um deles —, ou seja, eram cópias caras de manter e de
+/// revisar.
+///
+/// Onde o tema AINDA muda alguma coisa é nas FOLHAS que a cena abre — contas,
+/// compromissos, missões, Bússola —, e essas têm os goldens delas
+/// (`arena_sheets_golden_test`, `hud_sheets_golden_test`), nos dois temas.
 ///
 /// O que está na tela tem teste de estrutura (`home_arena_test`) e a altura
 /// tem teste de medida (`home_height_test`). O que nenhum dos dois vê é a
@@ -97,11 +109,6 @@ void main() {
       tamanho: const Size(400, 800),
       tema: Brightness.light,
     ),
-    (
-      nome: 'home_arena_celular_escuro',
-      tamanho: const Size(400, 800),
-      tema: Brightness.dark,
-    ),
     // A tela BAIXA, que é onde o QA achou a coluna de ícones por cima do
     // mago. Aqui ela prova o contrário: a faixa de ícones fica no véu do
     // topo, e os bonecos continuam inteiros embaixo dela.
@@ -114,11 +121,6 @@ void main() {
       nome: 'home_arena_desktop',
       tamanho: const Size(1300, 900),
       tema: Brightness.light,
-    ),
-    (
-      nome: 'home_arena_desktop_escuro',
-      tamanho: const Size(1300, 900),
-      tema: Brightness.dark,
     ),
   ];
 
@@ -289,48 +291,22 @@ void main() {
     );
   });
 
-  for (final tema in Brightness.values) {
-    final sufixo = tema == Brightness.dark ? '_escuro' : '';
-
-    testWidgets('golden — o monstro morto$sufixo', (tester) async {
+  for (final caso in <({String nome, ArenaState Function() estado})>[
+    (nome: 'home_arena_derrotado', estado: derrotado),
+    (nome: 'home_arena_rombo', estado: oRombo),
+    (nome: 'home_arena_monstro_30', estado: quaseVencida),
+  ]) {
+    testWidgets('golden — ${caso.nome}', (tester) async {
       await _pump(
         tester,
         size: const Size(400, 800),
-        brightness: tema,
-        state: derrotado(),
+        brightness: Brightness.light,
+        state: caso.estado(),
       );
 
       await expectLater(
         find.byType(ArenaTab),
-        matchesGoldenFile('images/home_arena_derrotado$sufixo.png'),
-      );
-    });
-
-    testWidgets('golden — o rombo real$sufixo', (tester) async {
-      await _pump(
-        tester,
-        size: const Size(400, 800),
-        brightness: tema,
-        state: oRombo(),
-      );
-
-      await expectLater(
-        find.byType(ArenaTab),
-        matchesGoldenFile('images/home_arena_rombo$sufixo.png'),
-      );
-    });
-
-    testWidgets('golden — monstro a 30% de vida$sufixo', (tester) async {
-      await _pump(
-        tester,
-        size: const Size(400, 800),
-        brightness: tema,
-        state: quaseVencida(),
-      );
-
-      await expectLater(
-        find.byType(ArenaTab),
-        matchesGoldenFile('images/home_arena_monstro_30$sufixo.png'),
+        matchesGoldenFile('images/${caso.nome}.png'),
       );
     });
   }

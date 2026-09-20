@@ -1,8 +1,11 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/widgets/level_badge.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/game/arena_game.dart';
+import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hp_bar.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_missions_sheet.dart';
@@ -33,6 +36,7 @@ Future<void> _pump(
   bool comMissoes = false,
   int pendentes = 0,
   FinancialHealth? health,
+  bool comBanner = false,
   Size size = const Size(400, 800),
 }) => pumpArena(
   tester,
@@ -42,6 +46,17 @@ Future<void> _pump(
     pendingAutomatic: homeTypicalPending(count: pendentes),
     health: health,
     lastInsight: homeTypicalInsight(),
+    extra: [
+      // O placar da semana que fechou aparece UMA vez por semana, e nunca
+      // num golden. Ele é a altura extra que o véu do topo ganha no pior
+      // caso — e é por isso que o teste de não-sobreposição o liga.
+      if (comBanner)
+        ArenaViewProviders.lastWeekState.overrideWith(
+          (ref) => AsyncValue<ArenaState>.data(
+            arenaTestState(commitments: [arenaTestCommitment(paid: true)]),
+          ),
+        ),
+    ],
   ),
 );
 
@@ -205,25 +220,49 @@ void main() {
       expect(find.byType(ArenaIconRing), findsNWidgets(4));
     });
 
-    /// A2 — o achado ALTO do QA: a coluna da rodada 1 cobria o mago a
-    /// 400×544. A faixa livre acima dos bonecos depende da PROPORÇÃO da
-    /// caixa, e um "no alto da lateral" não tem como acertá-la em toda
-    /// altura. Agora a medida vem da própria cena.
-    for (final tamanho in const <Size>[
+    /// As seis geometrias em que a aba tem de se comportar: do celular mais
+    /// baixo que o app suporta ao monitor.
+    const geometrias = <Size>[
+      Size(400, 420),
+      Size(360, 480),
       Size(400, 544),
       Size(400, 800),
       Size(800, 600),
       Size(1300, 900),
-    ]) {
+    ];
+
+    /// A2 — o achado ALTO do QA: a coluna da rodada 1 cobria o mago a
+    /// 400×544. A faixa livre acima dos bonecos depende da PROPORÇÃO da
+    /// caixa, e um "no alto da lateral" não tem como acertá-la em toda
+    /// altura.
+    ///
+    /// A rodada 3 mudou de mecanismo: a cena passou a RECEBER a altura do véu
+    /// e a empurrar o cenário inteiro para baixo dele. Deixou de ser uma
+    /// conta que o teste confere e virou uma regra que o layout impõe — e por
+    /// isso o teste agora liga o banner de fechamento, que é a altura extra
+    /// do pior caso.
+    for (final tamanho in geometrias) {
       final nome = '${tamanho.width.toInt()}×${tamanho.height.toInt()}';
 
       testWidgets('a $nome nenhum ícone cobre um ator', (tester) async {
-        await _pump(tester, comMissoes: true, pendentes: 4, size: tamanho);
+        await _pump(
+          tester,
+          comMissoes: true,
+          pendentes: 4,
+          comBanner: true,
+          size: tamanho,
+        );
 
         final cena = tester.getRect(find.byType(GameWidget<ArenaGame>));
         final jogo = tester
             .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
             .game!;
+
+        expect(
+          find.byKey(const ValueKey('arena-week-closing')),
+          findsOneWidget,
+          reason: 'o pior caso é com o placar da semana passada na tela',
+        );
 
         final faixaLivre = cena.top + jogo.safeTopBand;
         final icones = tester.getRect(find.byType(ArenaSceneIcons));
@@ -241,6 +280,42 @@ void main() {
         expect(
           tester.getRect(find.byType(ArenaHud)).bottom,
           lessThanOrEqualTo(faixaLivre),
+        );
+      });
+
+      /// N2 — proporção. O QA mediu 108px de parede contra 115px de monstro
+      /// num celular e 123 contra 206 num monitor: uma aranha maior que a
+      /// muralha atrás dela. Quem dá escala a uma cena é o boneco, e a parede
+      /// tem de crescer com ele.
+      testWidgets('a $nome a parede é maior que o bicho', (tester) async {
+        await _pump(tester, comMissoes: true, size: tamanho);
+
+        final jogo = tester
+            .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
+            .game!;
+
+        final parede = jogo.wallPixels;
+        final ator = jogo.tallestActorPixels;
+
+        expect(
+          parede,
+          greaterThanOrEqualTo(ator * arenaWallToActor - 0.5),
+          reason:
+              'parede de ${parede.toStringAsFixed(0)}px contra um ator de '
+              '${ator.toStringAsFixed(0)}px — a razão é '
+              '${(parede / ator).toStringAsFixed(2)}, e o mínimo é '
+              '$arenaWallToActor',
+        );
+
+        // E ela aparece INTEIRA abaixo do véu: os braseiros moram no pé da
+        // parede, e na rodada 2 a banda de desvanecimento os comia.
+        final cena = tester.getRect(find.byType(GameWidget<ArenaGame>));
+        final veu = tester.getRect(find.byType(ArenaScrim).first);
+
+        expect(
+          cena.top + jogo.topInset,
+          greaterThanOrEqualTo(veu.bottom - 0.5),
+          reason: 'a cena não sabe onde o véu termina',
         );
       });
     }
