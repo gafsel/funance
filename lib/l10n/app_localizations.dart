@@ -4334,6 +4334,12 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{Último dia da semana} other{Faltam {count} dias na semana}}'**
   String arenaDaysLeft(int count);
 
+  /// No description provided for @arenaHeroesDepleted.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vida dos heróis esgotada, perigo.'**
+  String get arenaHeroesDepleted;
+
   /// No description provided for @arenaHeroesSemantics.
   ///
   /// In pt, this message translates to:

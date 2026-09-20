@@ -1315,6 +1315,7 @@
   "arenaHeroesFallback": "You",
   "arenaDayOfWeek": "{day}/{total}",
   "arenaDaysLeft": "{count, plural, =1{Last day of the week} other{{count} days left this week}}",
+  "arenaHeroesDepleted": "Heroes' life is gone, danger.",
   "arenaHeroesSemantics": "Heroes' life: {balance}, of which {committed} is committed. Tap to see the accounts.",
   "arenaMonsterSemantics": "Monster of the week: {remaining} left of {total}. Tap to see the commitments.",
   "arenaMonsterSheetTitle": "This week's commitments",

@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
-import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 
 import '../arena/hud_harness.dart';
 import 'golden_support.dart';

@@ -56,10 +56,17 @@ class ArenaHud extends StatelessWidget {
         Expanded(
           child: _Side(
             onTap: onTapHeroes,
-            semanticsLabel: l10n.arenaHeroesSemantics(
-              state.currentBalance.asCurrency(locale: context.locale),
-              state.committed.asCurrency(locale: context.locale),
-            ),
+            // O perigo vem PRIMEIRO no rótulo. Quem usa leitor de tela não
+            // vê a barra pulsar; se a frase do alarme viesse depois do saldo
+            // e do comprometido, ela chegaria como um detalhe no fim de uma
+            // leitura longa — e ela é a manchete.
+            semanticsLabel: [
+              if (_esgotado) l10n.arenaHeroesDepleted,
+              l10n.arenaHeroesSemantics(
+                state.currentBalance.asCurrency(locale: context.locale),
+                state.committed.asCurrency(locale: context.locale),
+              ),
+            ].join(' '),
             title: _heroNames(context),
             badge: _heroBadge(context),
             bar: ArenaHpBar(
@@ -67,6 +74,7 @@ class ArenaHud extends StatelessWidget {
               committedRatio: state.committedRatio,
               overflowing: state.isOverhealed,
               pressed: state.isPressed,
+              depleted: _esgotado,
               color: state.heroMood == HeroMood.exhausted
                   ? context.palette.dangerText
                   : AppColors.teal,
@@ -111,6 +119,13 @@ class ArenaHud extends StatelessWidget {
       ],
     );
   }
+
+  /// A barra dos heróis chegou a zero.
+  ///
+  /// É a condição do alarme vermelho, e ela é do LADO DOS HERÓIS só. Do
+  /// outro lado a mesma barra a zero quer dizer que o monstro morreu, e o
+  /// selo de lá já diz isso em verde.
+  bool get _esgotado => state.heroHpRatio <= 0;
 
   /// Os nomes dos membros, separados por ponto. É quem está lutando.
   Widget _heroNames(BuildContext context) {

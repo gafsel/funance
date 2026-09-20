@@ -2423,6 +2423,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get arenaHeroesDepleted => 'Heroes\' life is gone, danger.';
+
+  @override
   String arenaHeroesSemantics(String balance, String committed) {
     return 'Heroes\' life: $balance, of which $committed is committed. Tap to see the accounts.';
   }

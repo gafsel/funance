@@ -45,6 +45,7 @@ Future<void> _pump(
   required Size size,
   required Brightness brightness,
   ArenaState? state,
+  bool reduceMotion = false,
 }) async {
   await loadAppFonts();
 
@@ -57,6 +58,7 @@ Future<void> _pump(
       homeApp(
         const ArenaTab(),
         brightness: brightness,
+        reduceMotion: reduceMotion,
         overrides: [
           ...homeOverrides(
             missions: homeTypicalMissions(),
@@ -204,6 +206,24 @@ void main() {
     ],
   );
 
+  /// A barra dos HERÓIS vazia: o caixa chegou a zero no meio da semana.
+  ///
+  /// É o estado que o alarme existe para mostrar, e ele não é o do rombo —
+  /// no rombo a barra está CHEIA e coberta de hachura densa. Aqui não há o
+  /// que hachurar: a vida acabou, e uma barra vazia parada é indistinguível
+  /// de uma barra que ninguém desenhou.
+  ///
+  /// A captura é com "reduzir movimento" LIGADO, e isso é sobre o PNG e não
+  /// sobre o produto: o pulso é um ciclo por segundo, e fotografá-lo em
+  /// movimento daria uma opacidade diferente a cada execução. Com o pulso
+  /// parado sobra o que ele tem de dizer quando o usuário pediu menos
+  /// movimento — calha vermelha cheia e contorno mais grosso.
+  ArenaState semCaixa() => arenaTestState(
+    initialBalance: 5200,
+    currentBalance: 0,
+    day: ArenaDay.friday,
+  );
+
   /// A semana VENCIDA: o monstro no chão.
   ///
   /// Decisão 2 do dono. Até aqui o bicho encolhia e sumia, e a captura da
@@ -291,17 +311,20 @@ void main() {
     );
   });
 
-  for (final caso in <({String nome, ArenaState Function() estado})>[
-    (nome: 'home_arena_derrotado', estado: derrotado),
-    (nome: 'home_arena_rombo', estado: oRombo),
-    (nome: 'home_arena_monstro_30', estado: quaseVencida),
-  ]) {
+  for (final caso
+      in <({String nome, ArenaState Function() estado, bool parado})>[
+        (nome: 'home_arena_derrotado', estado: derrotado, parado: false),
+        (nome: 'home_arena_rombo', estado: oRombo, parado: false),
+        (nome: 'home_arena_monstro_30', estado: quaseVencida, parado: false),
+        (nome: 'home_arena_sem_caixa', estado: semCaixa, parado: true),
+      ]) {
     testWidgets('golden — ${caso.nome}', (tester) async {
       await _pump(
         tester,
         size: const Size(400, 800),
         brightness: Brightness.light,
         state: caso.estado(),
+        reduceMotion: caso.parado,
       );
 
       await expectLater(
