@@ -173,9 +173,16 @@ void main() {
   /// escura, e não a do tema corrente, que precisa se ler sobre `surfaceDeep`
   /// e suas irmãs.
   group('superfície de jogo', () {
+    // As TRÊS, e não só as duas escuras. `surfaceRaised` é a mais clara das
+    // superfícies de jogo — é o cartão dentro de um bloco, e é onde
+    // `AppTheme.onGame` coloca o `paper2`. Ela estava de fora, e as três
+    // tintas semânticas reprovavam nela (4,08 a 4,29) enquanto passavam nas
+    // outras: o teste dizia sim para a superfície em que a tinta menos
+    // aparece.
     const superficies = {
       'surfaceDeep': AppColors.surfaceDeep,
       'surfaceDefault': AppColors.surfaceDefault,
+      'surfaceRaised': AppColors.surfaceRaised,
     };
 
     superficies.forEach((nome, fundo) {
@@ -183,6 +190,23 @@ void main() {
         _exige('sucesso sobre $nome', AppPalette.dark.successText, fundo);
         _exige('aviso sobre $nome', AppPalette.dark.warningText, fundo);
         _exige('erro sobre $nome', AppPalette.dark.dangerText, fundo);
+      });
+
+      test('A3 — e a pílula de cada uma se lê sobre $nome', () {
+        // A superfície real de um aviso não é o papel liso: é a pílula, o
+        // próprio tom a 12% sobre o papel, que clareia o fundo.
+        for (final entry in {
+          'sucesso': AppPalette.dark.successText,
+          'aviso': AppPalette.dark.warningText,
+          'erro': AppPalette.dark.dangerText,
+        }.entries) {
+          _exige(
+            '${entry.key} sobre a própria pílula em $nome',
+            entry.value,
+            Color.alphaBlend(entry.value.withValues(alpha: 0.12), fundo),
+            piso: grafico,
+          );
+        }
       });
 
       test('a tinta e a tinta secundária se leem sobre $nome', () {

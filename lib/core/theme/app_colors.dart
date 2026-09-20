@@ -100,9 +100,15 @@ abstract final class AppColors {
   /// Verde legível sobre papel claro.
   static const Color successInk = Color(0xFF1B6B32);
 
-  /// Verde legível sobre papel escuro. A cor cheia dava 4,36:1, logo abaixo
-  /// do piso; esta dá 5,75:1.
-  static const Color successInkDark = Color(0xFF56D364);
+  /// Verde legível sobre papel escuro.
+  ///
+  /// "Papel escuro" são SEIS superfícies, e a mais clara delas é a que manda:
+  /// `surfaceRaised`, o cartão dentro de um bloco de jogo — onde o
+  /// `AppTheme.onGame` coloca o `paper2`. Contra ela a cor cheia dava 4,36:1
+  /// e o primeiro ajuste, 4,29:1: os dois passavam no papel liso e reprovavam
+  /// justamente onde a tinta mais aparece. Esta dá 4,57:1 na pior superfície
+  /// e 6,13:1 no papel.
+  static const Color successInkDark = Color(0xFF56DA64);
 
   static const Color warning = Color(0xFFFF8A3D);
 
@@ -111,11 +117,13 @@ abstract final class AppColors {
 
   /// Laranja legível sobre papel escuro.
   ///
-  /// A cor cheia dá 4,73:1 sobre `paperDark` e passaria no papel liso, mas a
-  /// superfície real de um aviso é a PÍLULA — o próprio laranja a 12% sobre o
-  /// papel —, e lá ela caía para 4,07:1. Este tom sobe para 4,61:1 na pílula
-  /// e 5,52:1 no papel.
-  static const Color warningInkDark = Color(0xFFFFA061);
+  /// Dois pisos o derrubaram, um por rodada. A cor cheia passava no papel
+  /// liso (4,73:1) e caía para 4,07:1 na PÍLULA — o próprio laranja a 12%
+  /// sobre o papel. O ajuste seguinte resolveu a pílula e reprovou em
+  /// `surfaceRaised` (4,12:1), a mais clara das seis superfícies escuras.
+  /// Este tom mantém o matiz (24°) e dá 4,56:1 na pior superfície, 4,96:1 na
+  /// pílula e 6,11:1 no papel.
+  static const Color warningInkDark = Color(0xFFFFAE78);
 
   /// Erro **e** destrutivo: um token só. Antes eram quatro vermelhos
   /// concorrentes (e um roxo no `ColorScheme.error`).
@@ -124,9 +132,14 @@ abstract final class AppColors {
   /// Vermelho legível sobre papel claro.
   static const Color dangerInk = Color(0xFF7A1418);
 
-  /// Vermelho legível sobre papel escuro. A cor cheia dava 2,83:1 — o pior
-  /// contraste de texto do app, e justamente no aviso de erro.
-  static const Color dangerInkDark = Color(0xFFFF9A9D);
+  /// Vermelho legível sobre papel escuro.
+  ///
+  /// A cor cheia dava 2,83:1, o pior contraste de texto do app e justamente
+  /// no aviso de erro. O primeiro ajuste subiu o papel liso e parou em 4,08:1
+  /// contra `surfaceRaised`, a mais clara das seis superfícies escuras. Este
+  /// tom mantém o matiz (358°, vermelho e não laranja) e dá 4,57:1 na pior
+  /// superfície e 6,12:1 no papel.
+  static const Color dangerInkDark = Color(0xFFFFAAAC);
 
   // --- Pools do 50/30/20 ---
 
