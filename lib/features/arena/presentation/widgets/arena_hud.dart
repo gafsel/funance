@@ -120,12 +120,16 @@ class ArenaHud extends StatelessWidget {
     );
   }
 
-  /// A barra dos heróis chegou a zero.
+  /// Não há dinheiro POSITIVO em conta.
   ///
   /// É a condição do alarme vermelho, e ela é do LADO DOS HERÓIS só. Do
   /// outro lado a mesma barra a zero quer dizer que o monstro morreu, e o
   /// selo de lá já diz isso em verde.
-  bool get _esgotado => state.heroHpRatio <= 0;
+  ///
+  /// A pergunta é sobre o HP, e não sobre a fração: os dois dizem a mesma
+  /// coisa hoje, mas o HP é o fato — "o caixa acabou" — e a fração é o
+  /// desenho dele.
+  bool get _esgotado => state.heroHp <= 0;
 
   /// Os nomes dos membros, separados por ponto. É quem está lutando.
   Widget _heroNames(BuildContext context) {

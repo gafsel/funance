@@ -171,7 +171,113 @@ void main() {
     });
   });
 
+  group('HP é dinheiro POSITIVO em conta', () {
+    /// A regra do dono: *"HP do herói = dinheiro positivo em conta; barra =
+    /// saldo início da semana (max) / saldo atual"*.
+    ///
+    /// A conta antiga (`atual / inicial`) tinha um buraco que o QA da Home
+    /// já tinha visto: com os DOIS negativos ela dá 1, e a barra aparecia
+    /// CHEIA para quem está no vermelho — dois negativos se cancelando numa
+    /// boa notícia.
+    for (final caso
+        in <({
+          String nome,
+          double inicial,
+          double atual,
+          double ratio,
+          bool pisca,
+        })>[
+          // O rombo REAL do cofre no dia do QA.
+          (
+            nome: 'rombo: começou e continua devendo',
+            inicial: -6361.92,
+            atual: -6361.92,
+            ratio: 0,
+            pisca: true,
+          ),
+          (
+            nome: 'sem caixa: zerou no meio da semana',
+            inicial: 5200,
+            atual: 0,
+            ratio: 0,
+            pisca: true,
+          ),
+          (
+            nome: 'começou com caixa e furou',
+            inicial: 5200,
+            atual: -1200,
+            ratio: 0,
+            pisca: true,
+          ),
+          // Régua zero: 50 sobre 0 não é infinito — é cheio.
+          (
+            nome: 'começou devendo e virou o caixa',
+            inicial: -900,
+            atual: 50,
+            ratio: 1,
+            pisca: false,
+          ),
+          (
+            nome: 'semana comum',
+            inicial: 5200,
+            atual: 2600,
+            ratio: 0.5,
+            pisca: false,
+          ),
+        ]) {
+      test(caso.nome, () {
+        final state = arenaTestState(
+          initialBalance: caso.inicial,
+          currentBalance: caso.atual,
+        );
+
+        expect(state.heroHpRatio, closeTo(caso.ratio, 0.001));
+        expect(state.heroHp <= 0, caso.pisca, reason: 'pisca?');
+        // A barra NUNCA passa de 100%.
+        expect(state.heroHpRatio, lessThanOrEqualTo(1));
+      });
+    }
+
+    test('sem vida não há o que reservar: a hachura some', () {
+      final rombo = arenaTestState(
+        initialBalance: -6361.92,
+        currentBalance: -6361.92,
+      );
+
+      expect(rombo.committed, greaterThan(0), reason: 'há compromisso');
+      expect(rombo.committedRatio, 0);
+    });
+
+    test('o selo do rombo continua com o número', () {
+      final rombo = arenaTestState(
+        initialBalance: -6361.92,
+        currentBalance: -6361.92,
+      );
+
+      expect(rombo.isPressed, isTrue);
+      expect(rombo.shortfall, greaterThan(0));
+    });
+  });
+
   group('de que lado o alarme toca', () {
+    testWidgets('o ROMBO acende, e a barra dele está vazia', (tester) async {
+      // O retrato real do cofre no dia do QA: começou a semana devendo e
+      // continua devendo. Era aqui que a barra aparecia CHEIA.
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          initialBalance: -6361.92,
+          currentBalance: -6361.92,
+        ),
+      );
+
+      final herois = tester.widgetList<ArenaHpBar>(find.byType(ArenaHpBar)).first;
+
+      expect(herois.depleted, isTrue);
+      expect(herois.ratio, 0);
+      expect(herois.committedRatio, 0, reason: 'sem vida, sem hachura');
+    });
+
     testWidgets('herói sem caixa acende; monstro derrotado, não', (
       tester,
     ) async {

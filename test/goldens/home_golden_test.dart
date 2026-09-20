@@ -178,14 +178,16 @@ void main() {
   );
 
   /// O RETRATO REAL do cofre do dono, lido da base em 2026-09-20 (domingo):
-  /// R\$ 3.115,02 em caixa contra R\$ 12.122,33 de compromisso, sendo
-  /// R\$ 8.310,55 já vencidos. A barra dos heróis está CHEIA — a semana acabou
-  /// de começar e nada saiu — e é exatamente por isso que esta captura
-  /// existe: sem o selo do rombo e sem a hachura densa, ela mostra uma
-  /// situação tranquila.
+  /// o caixa em R\$ −6.361,92 contra R\$ 12.122,33 de compromisso, sendo
+  /// R\$ 8.310,55 já vencidos.
+  ///
+  /// É o caso que deu nome à regra nova do HP. Com `atual / inicial`, os dois
+  /// saldos negativos se cancelavam e a barra aparecia CHEIA — a Arena dizia
+  /// que estava tudo no lugar para quem está no vermelho. Agora HP é dinheiro
+  /// POSITIVO em conta: não há nenhum, a barra fica vazia e ela ALARMA.
   ArenaState oRombo() => arenaTestState(
-    initialBalance: 3115.02,
-    currentBalance: 3115.02,
+    initialBalance: -6361.92,
+    currentBalance: -6361.92,
     day: ArenaDay.sunday,
     commitments: [
       arenaTestCommitment(
@@ -367,7 +369,11 @@ void main() {
   for (final caso
       in <({String nome, ArenaState Function() estado, bool parado})>[
         (nome: 'home_arena_derrotado', estado: derrotado, parado: false),
-        (nome: 'home_arena_rombo', estado: oRombo, parado: false),
+        // O rombo PISCA desde que o HP virou "dinheiro positivo em conta":
+        // com os dois saldos negativos ele não tem vida nenhuma. A captura é
+        // com movimento reduzido, senão o PNG fotografa a opacidade do
+        // instante em que ela caiu.
+        (nome: 'home_arena_rombo', estado: oRombo, parado: true),
         (nome: 'home_arena_monstro_30', estado: quaseVencida, parado: false),
         (nome: 'home_arena_sem_caixa', estado: semCaixa, parado: true),
       ]) {

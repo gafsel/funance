@@ -382,14 +382,40 @@ sealed class ArenaState with _$ArenaState {
   /// "quanto sobra" do cabeçalho da Jornada.
   double get freeBalance => currentBalance - committed;
 
-  /// Fração cheia da barra dos heróis, medida contra o saldo de DOMINGO.
+  /// A vida dos heróis: **dinheiro POSITIVO em conta**.
+  ///
+  /// Decisão do dono, e ela resolve um defeito que o QA já tinha visto sem
+  /// saber nomear: *"HP do herói = dinheiro positivo em conta; barra = saldo
+  /// início da semana (max) / saldo atual"*.
+  ///
+  /// A conta antiga era `atual / inicial`, e ela tem um buraco: com os DOIS
+  /// negativos — o rombo real do cofre, R\$ −6.361,92 no domingo e os mesmos
+  /// R\$ −6.361,92 hoje — a divisão dá **1**, e a tela mostrava a barra
+  /// CHEIA para quem está no vermelho. Dois números negativos se cancelavam
+  /// numa boa notícia.
+  ///
+  /// Devendo não se tem vida: abaixo de zero o HP é zero, e não um número
+  /// negativo que a divisão pudesse "consertar" com outro negativo.
+  double get heroHp => math.max(0.0, currentBalance);
+
+  /// A régua da barra: o caixa de DOMINGO, também sem parte negativa.
+  ///
+  /// `math.max` com o HP de hoje no fim é o que impede a barra de passar de
+  /// 100%: quem começou a semana devendo e virou o caixa tem régua zero, e
+  /// uma barra de 50 sobre 0 não é infinita — é cheia.
+  double get heroMaxHp => math.max(math.max(0.0, initialBalance), heroHp);
+
+  /// Fração cheia da barra dos heróis.
   ///
   /// A régua é o início da semana, e não o saldo de hoje: é o que faz a barra
   /// **encolher** quando se gasta, em vez de continuar cheia com um número
   /// menor ao lado.
-  double get heroHpRatio => initialBalance <= 0
-      ? (currentBalance > 0 ? 1 : 0)
-      : (currentBalance / initialBalance).clamp(0.0, 1.0).toDouble();
+  ///
+  /// Sem régua (semana que começou em zero ou no vermelho) e sem caixa hoje,
+  /// a barra fica VAZIA. É a resposta honesta: não há vida para medir, e quem
+  /// diz o tamanho do buraco é o selo, que traz o número.
+  double get heroHpRatio =>
+      heroMaxHp <= 0 ? 0 : (heroHp / heroMaxHp).clamp(0.0, 1.0).toDouble();
 
   /// Passou do saldo de domingo: entrou mais dinheiro do que saiu.
   bool get isOverhealed => currentBalance > initialBalance;
@@ -408,6 +434,10 @@ sealed class ArenaState with _$ArenaState {
   /// em zero — e a Arena dizia que estava tudo no lugar. Uma barra vazia é
   /// uma barra vazia; quem conta o tamanho do buraco é o selo, que traz o
   /// número.
+  ///
+  /// O `min` com [heroHpRatio] no fim é o que faz a hachura SUMIR quando o
+  /// HP é zero: hachura é a parte do que se TEM que já tem dono, e quem não
+  /// tem nada não tem o que reservar.
   double get committedRatio {
     final bruta = initialBalance <= 0
         ? (committed > 0 ? 1.0 : 0.0)
