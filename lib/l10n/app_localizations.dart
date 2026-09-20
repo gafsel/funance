@@ -3788,18 +3788,6 @@ abstract class AppLocalizations {
   /// **'Bússola da Liberdade'**
   String get compassTitle;
 
-  /// No description provided for @compassCalibratingTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sua bússola está sendo calibrada'**
-  String get compassCalibratingTitle;
-
-  /// No description provided for @compassCalibratingMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Assim que houver um mês fechado, seu índice aparece aqui.'**
-  String get compassCalibratingMessage;
-
   /// No description provided for @compassScoreOf.
   ///
   /// In pt, this message translates to:

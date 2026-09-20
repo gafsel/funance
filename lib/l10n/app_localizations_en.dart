@@ -2065,13 +2065,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get compassTitle => 'Freedom Compass';
 
   @override
-  String get compassCalibratingTitle => 'Your compass is being calibrated';
-
-  @override
-  String get compassCalibratingMessage =>
-      'As soon as a month closes, your score shows up here.';
-
-  @override
   String compassScoreOf(String score, String tier) {
     return '$score of 100 • $tier';
   }

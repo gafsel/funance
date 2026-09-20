@@ -960,8 +960,6 @@
   "journeyAvailableNoIncomeAction": "Set your income expectation",
   "journeyAvailableError": "We could not work out what is available right now.",
   "compassTitle": "Freedom Compass",
-  "compassCalibratingTitle": "Your compass is being calibrated",
-  "compassCalibratingMessage": "As soon as a month closes, your score shows up here.",
   "compassScoreOf": "{score} of 100 • {tier}",
   "@compassScoreOf": {
     "placeholders": {

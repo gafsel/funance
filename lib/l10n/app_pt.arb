@@ -967,8 +967,6 @@
   "journeyAvailableNoIncomeAction": "Defina sua expectativa de receita",
   "journeyAvailableError": "Não consegui calcular o disponível agora.",
   "compassTitle": "Bússola da Liberdade",
-  "compassCalibratingTitle": "Sua bússola está sendo calibrada",
-  "compassCalibratingMessage": "Assim que houver um mês fechado, seu índice aparece aqui.",
   "compassScoreOf": "{score} de 100 • {tier}",
   "@compassScoreOf": {
     "placeholders": {

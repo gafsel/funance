@@ -2082,13 +2082,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get compassTitle => 'Bússola da Liberdade';
 
   @override
-  String get compassCalibratingTitle => 'Sua bússola está sendo calibrada';
-
-  @override
-  String get compassCalibratingMessage =>
-      'Assim que houver um mês fechado, seu índice aparece aqui.';
-
-  @override
   String compassScoreOf(String score, String tier) {
     return '$score de 100 • $tier';
   }
