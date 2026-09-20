@@ -2439,7 +2439,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String arenaEnraged(String amount) {
-    return 'Enfurecido: +$amount atrasado';
+    return '+$amount atrasado';
   }
 
   @override

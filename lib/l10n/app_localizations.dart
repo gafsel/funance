@@ -4367,7 +4367,7 @@ abstract class AppLocalizations {
   /// No description provided for @arenaEnraged.
   ///
   /// In pt, this message translates to:
-  /// **'Enfurecido: +{amount} atrasado'**
+  /// **'+{amount} atrasado'**
   String arenaEnraged(String amount);
 
   /// No description provided for @arenaEmpty.

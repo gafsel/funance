@@ -74,10 +74,14 @@ SummaryState _buildSummary(
       valA = a.actualAmount;
       valB = b.actualAmount;
     } else {
-      valA = a.plannedAmount > a.actualAmount ? a.plannedAmount : a.actualAmount;
-      valB = b.plannedAmount > b.actualAmount ? b.plannedAmount : b.actualAmount;
+      valA = a.plannedAmount > a.actualAmount
+          ? a.plannedAmount
+          : a.actualAmount;
+      valB = b.plannedAmount > b.actualAmount
+          ? b.plannedAmount
+          : b.actualAmount;
     }
-    
+
     return valB.compareTo(valA);
   });
 
@@ -133,25 +137,25 @@ class BalanceSummaryNotifier extends Notifier<AsyncValue<BalanceState>> {
 }
 
 BalanceState _balanceOf(List<OverviewCategorySummary> summaries) {
-    var totalPlannedIncomes = Money.zero;
-    var totalActualIncomes = Money.zero;
-    var totalPlannedExpenses = Money.zero;
-    var totalActualExpenses = Money.zero;
+  var totalPlannedIncomes = Money.zero;
+  var totalActualIncomes = Money.zero;
+  var totalPlannedExpenses = Money.zero;
+  var totalActualExpenses = Money.zero;
 
-    for (var s in summaries) {
-      if (s.category.type == CategoryType.income) {
-        totalPlannedIncomes += s.plannedAmount.asMoney;
-        totalActualIncomes += s.actualAmount.asMoney;
-      } else if (s.category.type == CategoryType.expense) {
-        totalPlannedExpenses += s.plannedAmount.asMoney;
-        totalActualExpenses += s.actualAmount.asMoney;
-      }
+  for (var s in summaries) {
+    if (s.category.type == CategoryType.income) {
+      totalPlannedIncomes += s.plannedAmount.asMoney;
+      totalActualIncomes += s.actualAmount.asMoney;
+    } else if (s.category.type == CategoryType.expense) {
+      totalPlannedExpenses += s.plannedAmount.asMoney;
+      totalActualExpenses += s.actualAmount.asMoney;
     }
+  }
 
-    // O saldo é a subtração de duas somas. Em double, "sobrou zero" podia
-    // aparecer como -0,000000001 e a tela pintava de vermelho um mês fechado.
-    return BalanceState(
-      totalPlanned: (totalPlannedIncomes - totalPlannedExpenses).toDouble(),
-      totalActual: (totalActualIncomes - totalActualExpenses).toDouble(),
-    );
+  // O saldo é a subtração de duas somas. Em double, "sobrou zero" podia
+  // aparecer como -0,000000001 e a tela pintava de vermelho um mês fechado.
+  return BalanceState(
+    totalPlanned: (totalPlannedIncomes - totalPlannedExpenses).toDouble(),
+    totalActual: (totalActualIncomes - totalActualExpenses).toDouble(),
+  );
 }

@@ -41,11 +41,7 @@ class _MembersStepState extends ConsumerState<MembersStep> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(
-            Icons.group_add_outlined,
-            size: 64,
-            color: AppColors.teal,
-          ),
+          const Icon(Icons.group_add_outlined, size: 64, color: AppColors.teal),
           AppSpacing.gapLg,
           Text(
             l10n.onboardingMembersTitle,

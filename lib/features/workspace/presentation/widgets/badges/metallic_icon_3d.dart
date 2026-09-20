@@ -41,18 +41,18 @@ Gradient makeGrayscale(Gradient gradient) {
 
 Gradient metallicGradientForColor(Color baseColor) {
   final hsl = HSLColor.fromColor(baseColor);
-  final lightColor = hsl.withLightness((hsl.lightness + 0.35).clamp(0.0, 1.0)).toColor();
+  final lightColor = hsl
+      .withLightness((hsl.lightness + 0.35).clamp(0.0, 1.0))
+      .toColor();
   final midColor = baseColor;
-  final shadowColor = hsl.withLightness((hsl.lightness - 0.20).clamp(0.0, 1.0)).toColor();
+  final shadowColor = hsl
+      .withLightness((hsl.lightness - 0.20).clamp(0.0, 1.0))
+      .toColor();
 
   return LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [
-      lightColor,
-      midColor,
-      shadowColor,
-    ],
+    colors: [lightColor, midColor, shadowColor],
   );
 }
 
@@ -141,18 +141,19 @@ class MetallicIcon3D extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: plateGradient,
-        border: Border.all(
-          color: plateBorderColor,
-          width: 1.5,
-        ),
+        border: Border.all(color: plateBorderColor, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: AppBadgePalette.shadow.withValues(alpha: isUnlocked ? 0.35 : 0.20),
+            color: AppBadgePalette.shadow.withValues(
+              alpha: isUnlocked ? 0.35 : 0.20,
+            ),
             offset: const Offset(1, 1.5),
             blurRadius: 1.5,
           ),
           BoxShadow(
-            color: AppBadgePalette.specular.withValues(alpha: isUnlocked ? 0.45 : 0.20),
+            color: AppBadgePalette.specular.withValues(
+              alpha: isUnlocked ? 0.45 : 0.20,
+            ),
             offset: const Offset(-0.75, -0.75),
             blurRadius: 0.5,
           ),
@@ -178,7 +179,9 @@ class MetallicIcon3D extends StatelessWidget {
               child: Icon(
                 icon,
                 size: size,
-                color: AppBadgePalette.shadow.withValues(alpha: isUnlocked ? 0.45 : 0.50),
+                color: AppBadgePalette.shadow.withValues(
+                  alpha: isUnlocked ? 0.45 : 0.50,
+                ),
               ),
             ),
             // Metal icon stamp
@@ -210,7 +213,14 @@ class _CrescentClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
-    path.addOval(Rect.fromLTWH(-size.width * 0.15, -size.height * 0.15, size.width * 1.3, size.height * 0.7));
+    path.addOval(
+      Rect.fromLTWH(
+        -size.width * 0.15,
+        -size.height * 0.15,
+        size.width * 1.3,
+        size.height * 0.7,
+      ),
+    );
     return path;
   }
 

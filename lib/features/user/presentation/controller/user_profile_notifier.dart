@@ -13,15 +13,15 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
   final UserService userService;
   final ImagePicker _picker = ImagePicker();
 
-  UserProfileNotifier({
-    required this.userService,
-  }) : super(const UserProfileFormState(id: '', displayName: '', email: ''));
+  UserProfileNotifier({required this.userService})
+    : super(const UserProfileFormState(id: '', displayName: '', email: ''));
 
   void load(UserModel user) {
     state = UserProfileFormState.initial(user);
   }
 
-  void updateDisplayName(String value) => state = state.copyWith(displayName: value);
+  void updateDisplayName(String value) =>
+      state = state.copyWith(displayName: value);
 
   Future<void> pickImage(BuildContext context, ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -53,17 +53,11 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
               initAspectRatio: CropAspectRatioPreset.square,
               lockAspectRatio: true,
             ),
-            IOSUiSettings(
-              title: 'Ajustar Foto',
-              aspectRatioLockEnabled: true,
-            ),
+            IOSUiSettings(title: 'Ajustar Foto', aspectRatioLockEnabled: true),
             WebUiSettings(
               context: context,
               presentStyle: WebPresentStyle.dialog,
-              size: const CropperSize(
-                width: 520,
-                height: 520,
-              ),
+              size: const CropperSize(width: 520, height: 520),
             ),
           ],
         );

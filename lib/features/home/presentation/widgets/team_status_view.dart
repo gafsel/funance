@@ -137,7 +137,11 @@ class TeamStatusView extends ConsumerWidget {
           AppSpacing.gapMd,
           Row(
             children: [
-              _buildValueInfo(context, l10n.planned, mission.totalPlannedAmount),
+              _buildValueInfo(
+                context,
+                l10n.planned,
+                mission.totalPlannedAmount,
+              ),
               AppSpacing.gapMd,
               _buildValueInfo(
                 context,

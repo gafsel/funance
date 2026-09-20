@@ -338,7 +338,10 @@ class _CoachingSlidesScreenState extends ConsumerState<CoachingSlidesScreen>
   }
 
   /// O botão claro que pousa sobre a cor do slide: a inversão é o destaque.
-  ButtonStyle _onSlideButtonStyle(Color slideColor, {required double vertical}) {
+  ButtonStyle _onSlideButtonStyle(
+    Color slideColor, {
+    required double vertical,
+  }) {
     return ElevatedButton.styleFrom(
       backgroundColor: _onSlide,
       foregroundColor: slideColor,

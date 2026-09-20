@@ -6,9 +6,6 @@ extension CategoryFirestoreX on DocumentSnapshot {
     final data = this.data() as Map<String, dynamic>?;
     if (data == null) throw Exception('Category data is null');
 
-    return CategoryModel.fromJson({
-      ...data,
-      'id': id,
-    });
+    return CategoryModel.fromJson({...data, 'id': id});
   }
 }

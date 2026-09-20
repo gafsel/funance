@@ -25,6 +25,7 @@ Future<void> _pump(
   WidgetTester tester, {
   required Size size,
   required Brightness brightness,
+  ArenaState? state,
 }) async {
   await loadAppFonts();
 
@@ -48,7 +49,7 @@ Future<void> _pump(
             lastInsight: homeTypicalInsight(),
           ),
           ArenaViewProviders.state.overrideWith(
-            (ref) => AsyncValue<ArenaState>.data(arenaTestState()),
+            (ref) => AsyncValue<ArenaState>.data(state ?? arenaTestState()),
           ),
           ArenaViewProviders.isBusiness.overrideWith((ref) => false),
         ],
@@ -100,6 +101,59 @@ void main() {
       await expectLater(
         find.byType(JourneyTab),
         matchesGoldenFile('images/${caso.nome}.png'),
+      );
+    });
+  }
+
+  /// A semana quase vencida: o monstro com ~30% do HP.
+  ///
+  /// É o único estado em que a barra do MONSTRO mostra calha — cheia ou
+  /// vazia, ela não prova nada sobre a moldura e sobre a cor do vazio. E é a
+  /// barra espelhada: o bico do chanfro e o dano-fantasma correm para o outro
+  /// lado, e nenhum dos dois tinha captura até agora.
+  ///
+  /// R$ 640 de R$ 2.140 — 29,9%.
+  ArenaState quaseVencida() => arenaTestState(
+    commitments: [
+      arenaTestCommitment(
+        id: 'cartao',
+        description: 'Fatura do cartão',
+        amount: 640,
+        dayOffset: -9,
+        overdue: true,
+      ),
+      arenaTestCommitment(paid: true),
+      arenaTestCommitment(
+        id: 'internet',
+        description: 'Internet',
+        amount: 180,
+        dayOffset: 2,
+        paid: true,
+      ),
+      arenaTestCommitment(
+        id: 'academia',
+        description: 'Academia',
+        amount: 120,
+        dayOffset: -1,
+        paid: true,
+      ),
+    ],
+  );
+
+  for (final tema in Brightness.values) {
+    final sufixo = tema == Brightness.dark ? '_escuro' : '';
+
+    testWidgets('golden — monstro a 30% de vida$sufixo', (tester) async {
+      await _pump(
+        tester,
+        size: const Size(400, 800),
+        brightness: tema,
+        state: quaseVencida(),
+      );
+
+      await expectLater(
+        find.byType(JourneyTab),
+        matchesGoldenFile('images/home_arena_monstro_30$sufixo.png'),
       );
     });
   }

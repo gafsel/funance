@@ -15,6 +15,10 @@ abstract class IAuthRepository {
 
   Future<UserModel> signInWithGoogle();
   Future<UserModel> signInWithEmailAndPassword(String email, String password);
-  Future<UserModel> signUpWithEmailAndPassword(String email, String password, String displayName);
+  Future<UserModel> signUpWithEmailAndPassword(
+    String email,
+    String password,
+    String displayName,
+  );
   Future<void> signOut();
 }

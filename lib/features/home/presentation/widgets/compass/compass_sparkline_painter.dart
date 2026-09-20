@@ -15,8 +15,7 @@ class SparklinePainter extends CustomPainter {
     // mínimo e máximo dos pontos transformaria uma oscilação de dois pontos
     // num gráfico dramático.
     double x(int i) => size.width * (i / (scores.length - 1));
-    double y(double score) =>
-        size.height * (1 - (score / 100).clamp(0.0, 1.0));
+    double y(double score) => size.height * (1 - (score / 100).clamp(0.0, 1.0));
 
     final path = Path()..moveTo(x(0), y(scores.first));
     for (var i = 1; i < scores.length; i++) {
@@ -28,10 +27,7 @@ class SparklinePainter extends CustomPainter {
       ..lineTo(x(0), size.height)
       ..close();
 
-    canvas.drawPath(
-      fill,
-      Paint()..color = color.withValues(alpha: 0.12),
-    );
+    canvas.drawPath(fill, Paint()..color = color.withValues(alpha: 0.12));
     canvas.drawPath(
       path,
       Paint()

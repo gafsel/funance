@@ -192,7 +192,9 @@ class _ArenaViewState extends ConsumerState<ArenaView>
     final striking = _strikeInFlight;
     _strikeInFlight = false;
 
-    if (next.isDefeated && !previous.isDefeated) game.playVictory();
+    if (next.isDefeated && !previous.isDefeated) {
+      game.playVictory(totalLabel: _money(next.monsterMaxHp));
+    }
 
     final delta = next.currentBalance - previous.currentBalance;
 

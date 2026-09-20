@@ -12,9 +12,13 @@ extension WorkspaceFirestoreX on DocumentSnapshot {
       ...data,
       'id': id,
       if (data['createdAt'] is Timestamp)
-        'createdAt': (data['createdAt'] as Timestamp).toDate().toIso8601String(),
+        'createdAt': (data['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
       if (data['lastLevelUpAt'] is Timestamp)
-        'lastLevelUpAt': (data['lastLevelUpAt'] as Timestamp).toDate().toIso8601String(),
+        'lastLevelUpAt': (data['lastLevelUpAt'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
     });
   }
 }

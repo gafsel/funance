@@ -1,9 +1,7 @@
-
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 
 part 'workspace_view_model.freezed.dart';
-
 
 @freezed
 sealed class WorkspaceState with _$WorkspaceState {
@@ -28,6 +26,7 @@ sealed class WorkspaceGamification with _$WorkspaceGamification {
     String? workspaceId,
     @Default(0) int xp,
     @Default(1) int level,
+
     /// Semanas seguidas com as três missões da semana concluídas. É o que o
     /// fogo ao lado do título conta.
     @Default(0) int weeklyStreaks,

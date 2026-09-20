@@ -25,8 +25,7 @@ class MissionsScreen extends StatelessWidget {
         // notificação, um deep link). Sem a saída explícita, chegar por fora
         // deixava a pessoa numa tela sem botão de voltar.
         leading: BackButton(
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go('/'),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/'),
         ),
       ),
       body: const SingleChildScrollView(

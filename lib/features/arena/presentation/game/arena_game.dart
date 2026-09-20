@@ -458,12 +458,18 @@ class ArenaGame extends FlameGame {
     );
   }
 
-  /// O monstro morreu: susto, explosão de moedas e a equipe comemorando.
+  /// O monstro morreu: susto, explosão de moedas, o TOTAL subindo e a equipe
+  /// comemorando.
   ///
   /// Só toca quando a morte acontece COM a cena aberta — abrir a Home numa
   /// semana já vencida não comemora nada, porque não houve golpe. Quem sabe
   /// a diferença é a tela, que compara o estado novo com o anterior.
-  void playVictory() {
+  ///
+  /// [totalLabel] é quanto a semana inteira custou. Ele sobe junto com as
+  /// moedas porque é a única vez em que o número faz sentido: durante a
+  /// semana o que interessa é o que FALTA, e no fim é o que foi feito. Sem
+  /// ele a comemoração seria bonita e muda.
+  void playVictory({required String totalLabel}) {
     final monster = _monster;
     if (monster == null) return;
 
@@ -472,6 +478,16 @@ class ArenaGame extends FlameGame {
     for (final hero in _heroes) {
       hero.cheer();
     }
+
+    world.add(
+      FloatingNumber(
+        text: totalLabel,
+        color: theme.gold,
+        baseStyle: theme.numberStyle,
+        at: monster.position - Vector2(0, monster.size.y * 1.1),
+        reduceMotion: theme.reduceMotion,
+      ),
+    );
 
     if (theme.reduceMotion) return;
 

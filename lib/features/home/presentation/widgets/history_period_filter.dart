@@ -49,9 +49,9 @@ enum HistoryPeriodType {
     return switch (this) {
       HistoryPeriodType.day => (
         currentStart.addCalendarDays(1),
-        currentStart.addCalendarDays(1).add(
-          const Duration(hours: 23, minutes: 59, seconds: 59),
-        ),
+        currentStart
+            .addCalendarDays(1)
+            .add(const Duration(hours: 23, minutes: 59, seconds: 59)),
       ),
       HistoryPeriodType.month => (
         DateTime(currentStart.year, currentStart.month + 1, 1),
@@ -212,14 +212,14 @@ class HistoryPeriodFilter extends StatelessWidget {
               itemBuilder: (context) => HistoryPeriodType.values
                   .map(
                     (type) => PopupMenuItem(
-                  value: type,
-                  child: Text(type.label(l10n)),
-                ),
-              )
+                      value: type,
+                      child: Text(type.label(l10n)),
+                    ),
+                  )
                   .toList(),
               child: Container(
                 decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest
+                  color: theme.colorScheme.surfaceContainerHighest,
                 ),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,

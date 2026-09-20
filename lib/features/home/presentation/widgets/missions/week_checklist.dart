@@ -148,10 +148,7 @@ class WeekChecklist extends ConsumerWidget {
       data: theme.copyWith(dividerColor: AppColors.transparent),
       child: ExpansionTile(
         tilePadding: EdgeInsets.zero,
-        title: Text(
-          l10n.completedMissions,
-          style: theme.textTheme.titleMedium,
-        ),
+        title: Text(l10n.completedMissions, style: theme.textTheme.titleMedium),
         subtitle: Text(
           l10n.completedMissionsSummary(
             mission.completedInstallments.length,

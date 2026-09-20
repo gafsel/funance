@@ -86,23 +86,24 @@ sealed class WorkspaceViewProviders {
   ///
   /// `autoDispose` de propósito: o stream de convites só precisa existir
   /// enquanto a tela está aberta.
-  static final membersManagement = StateNotifierProvider.autoDispose<
-    WorkspaceMembersNotifier,
-    WorkspaceMembersState
-  >((ref) {
-    final state = ref.watch(workspace);
+  static final membersManagement =
+      StateNotifierProvider.autoDispose<
+        WorkspaceMembersNotifier,
+        WorkspaceMembersState
+      >((ref) {
+        final state = ref.watch(workspace);
 
-    return WorkspaceMembersNotifier(
-      workspaceService: ref.watch(WorkspaceDomainProviders.service),
-      inviteRepository: ref.watch(inviteRepositoryProvider),
-      analytics: ref.watch(analyticsServiceProvider),
-      workspaceId: state.currentWorkspace?.id ?? "",
-      // O dono é o criador, que é members[0] — mesma definição do
-      // `assertWorkspaceOwner` no backend.
-      ownerId: state.currentWorkspace?.members.firstOrNull,
-      currentUserId: ref.watch(AuthDomainProviders.currentUser)?.id,
-    );
-  });
+        return WorkspaceMembersNotifier(
+          workspaceService: ref.watch(WorkspaceDomainProviders.service),
+          inviteRepository: ref.watch(inviteRepositoryProvider),
+          analytics: ref.watch(analyticsServiceProvider),
+          workspaceId: state.currentWorkspace?.id ?? "",
+          // O dono é o criador, que é members[0] — mesma definição do
+          // `assertWorkspaceOwner` no backend.
+          ownerId: state.currentWorkspace?.members.firstOrNull,
+          currentUserId: ref.watch(AuthDomainProviders.currentUser)?.id,
+        );
+      });
 
   static final members = FutureProvider<List<UserModel>>((ref) async {
     final workspaceId = ref.watch(currentWorkspaceId);
@@ -130,18 +131,19 @@ sealed class CategoryViewProviders {
     return service.getCategories();
   });
 
-  static final byId = StreamProvider.autoDispose
-      .family<CategoryModel?, String>((ref, categoryId) {
-        final categories = ref.watch(allStream);
+  static final byId = StreamProvider.autoDispose.family<CategoryModel?, String>(
+    (ref, categoryId) {
+      final categories = ref.watch(allStream);
 
-        return categories.when(
-          data: (data) => Stream.value(
-            data.where((category) => category.id == categoryId).firstOrNull,
-          ),
-          error: (error, stack) => Stream.error(error, stack),
-          loading: () => Stream.empty(),
-        );
-      });
+      return categories.when(
+        data: (data) => Stream.value(
+          data.where((category) => category.id == categoryId).firstOrNull,
+        ),
+        error: (error, stack) => Stream.error(error, stack),
+        loading: () => Stream.empty(),
+      );
+    },
+  );
 
   static final form = StateNotifierProvider.autoDispose
       .family<CategoryFormNotifier, CategoryFormState, CategoryModel?>((

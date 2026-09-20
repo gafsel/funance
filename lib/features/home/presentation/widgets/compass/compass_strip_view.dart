@@ -27,9 +27,7 @@ class CompassStripView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final health = ref.watch(JourneyViewProviders.financialHealth).valueOrNull;
-    final history = ref
-        .watch(JourneyViewProviders.healthHistory)
-        .valueOrNull;
+    final history = ref.watch(JourneyViewProviders.healthHistory).valueOrNull;
 
     final delta = _delta(health, history);
 
@@ -38,9 +36,7 @@ class CompassStripView extends ConsumerWidget {
       score: health?.score,
       tierLabel: compassTierLabel(l10n, health?.tier ?? FreedomTier.unknown),
       delta: delta,
-      deltaLabel: delta == null
-          ? null
-          : l10n.compassStripDelta(_signed(delta)),
+      deltaLabel: delta == null ? null : l10n.compassStripDelta(_signed(delta)),
       onGame: onGame,
       components: [
         for (final component

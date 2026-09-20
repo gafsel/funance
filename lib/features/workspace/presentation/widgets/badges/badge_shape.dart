@@ -79,7 +79,12 @@ double getOffsetY(BadgeTier tier, SimpleBadgeGroup? group, double size) {
   return -size * 0.015;
 }
 
-Path getShapePath(Size size, BadgeTier tier, SimpleBadgeGroup? group, double margin) {
+Path getShapePath(
+  Size size,
+  BadgeTier tier,
+  SimpleBadgeGroup? group,
+  double margin,
+) {
   final path = Path();
   final w = size.width;
   final h = size.height;
@@ -94,10 +99,30 @@ Path getShapePath(Size size, BadgeTier tier, SimpleBadgeGroup? group, double mar
 
     // Shield path with margin inset
     path.moveTo(left + width * 0.5, top);
-    path.quadraticBezierTo(left + width * 0.8, top + height * 0.05, right, top + height * 0.15);
-    path.quadraticBezierTo(left + width * 0.95, top + height * 0.6, left + width * 0.5, bottom);
-    path.quadraticBezierTo(left + width * 0.05, top + height * 0.6, left, top + height * 0.15);
-    path.quadraticBezierTo(left + width * 0.2, top + height * 0.05, left + width * 0.5, top);
+    path.quadraticBezierTo(
+      left + width * 0.8,
+      top + height * 0.05,
+      right,
+      top + height * 0.15,
+    );
+    path.quadraticBezierTo(
+      left + width * 0.95,
+      top + height * 0.6,
+      left + width * 0.5,
+      bottom,
+    );
+    path.quadraticBezierTo(
+      left + width * 0.05,
+      top + height * 0.6,
+      left,
+      top + height * 0.15,
+    );
+    path.quadraticBezierTo(
+      left + width * 0.2,
+      top + height * 0.05,
+      left + width * 0.5,
+      top,
+    );
     path.close();
     return path;
   }
@@ -105,7 +130,9 @@ Path getShapePath(Size size, BadgeTier tier, SimpleBadgeGroup? group, double mar
   switch (group) {
     case SimpleBadgeGroup.firstSteps:
       // Circle
-      path.addOval(Rect.fromLTWH(margin, margin, w - 2 * margin, h - 2 * margin));
+      path.addOval(
+        Rect.fromLTWH(margin, margin, w - 2 * margin, h - 2 * margin),
+      );
       break;
     case SimpleBadgeGroup.consistency:
       // Octagon
@@ -186,7 +213,9 @@ Path getShapePath(Size size, BadgeTier tier, SimpleBadgeGroup? group, double mar
       path.close();
       break;
     default:
-      path.addOval(Rect.fromLTWH(margin, margin, w - 2 * margin, h - 2 * margin));
+      path.addOval(
+        Rect.fromLTWH(margin, margin, w - 2 * margin, h - 2 * margin),
+      );
   }
 
   return path;

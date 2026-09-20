@@ -4,7 +4,6 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 
 part 'onboarding_view_models.freezed.dart';
 
-
 @freezed
 sealed class OnboardingState with _$OnboardingState {
   const OnboardingState._();

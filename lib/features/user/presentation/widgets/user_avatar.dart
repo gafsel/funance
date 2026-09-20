@@ -33,10 +33,7 @@ class UserAvatar extends StatelessWidget {
 
     Widget avatar;
     if (imageProvider != null) {
-      avatar = CircleAvatar(
-        radius: radius,
-        backgroundImage: imageProvider,
-      );
+      avatar = CircleAvatar(radius: radius, backgroundImage: imageProvider);
     } else {
       final String initials = _getInitials(displayName);
       final Color backgroundColor = _getColorFromName(displayName);

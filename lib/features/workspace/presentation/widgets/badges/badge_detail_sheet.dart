@@ -79,7 +79,9 @@ void showBadgeDetail(
             ),
             AppSpacing.gapXxs,
             StatusPill(
-              label: isUnlocked ? l10n.badgeUnlockedLabel : l10n.badgeLockedLabel,
+              label: isUnlocked
+                  ? l10n.badgeUnlockedLabel
+                  : l10n.badgeLockedLabel,
               tone: isUnlocked ? StatusTone.ok : StatusTone.warning,
             ),
             AppSpacing.gapMd,

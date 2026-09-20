@@ -12,7 +12,11 @@ import 'package:image_picker/image_picker.dart';
 class UserProfileScreen extends ConsumerWidget {
   const UserProfileScreen({super.key});
 
-  void _showPhotoSourceDialog(BuildContext context, UserProfileNotifier notifier, AppLocalizations l10n) {
+  void _showPhotoSourceDialog(
+    BuildContext context,
+    UserProfileNotifier notifier,
+    AppLocalizations l10n,
+  ) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -47,9 +51,7 @@ class UserProfileScreen extends ConsumerWidget {
     final user = ref.watch(AuthDomainProviders.currentUser);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileTitle),
-      ),
+      appBar: AppBar(title: Text(l10n.profileTitle)),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
           : ResponsiveForm<UserProfileFormState, void, UserProfileNotifier>(
@@ -78,7 +80,8 @@ class UserProfileScreen extends ConsumerWidget {
                         photoUrl: state.photoUrl,
                         imageFile: state.newPhotoFile,
                         radius: 50,
-                        onEdit: () => _showPhotoSourceDialog(context, notifier, l10n),
+                        onEdit: () =>
+                            _showPhotoSourceDialog(context, notifier, l10n),
                       ),
                     ),
                   ),

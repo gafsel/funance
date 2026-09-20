@@ -174,6 +174,10 @@ class ArenaHud extends StatelessWidget {
     }
 
     if (state.isEnraged) {
+      // Só o VALOR, sem a palavra "enfurecido": a 400px o selo completo
+      // saía cortado em "Enfureci…", que não informa nada. Quem diz que o
+      // bicho está enfurecido é a cara dele — a skin de demônio — e a cor de
+      // perigo do selo; o que o texto tem de carregar é o número.
       return StatusPill(
         label: l10n.arenaEnraged(
           state.overdueAmount.asCurrency(locale: context.locale),

@@ -2422,7 +2422,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String arenaEnraged(String amount) {
-    return 'Enraged: +$amount overdue';
+    return '+$amount overdue';
   }
 
   @override

@@ -1319,7 +1319,7 @@
   "arenaHeroLife": "Vida",
   "arenaCommitted": "Comprometido",
   "arenaConfirmPaid": "Confirmar pago",
-  "arenaEnraged": "Enfurecido: +{amount} atrasado",
+  "arenaEnraged": "+{amount} atrasado",
   "arenaEmpty": "Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.",
   "arenaTeamExtra": "+{count} na equipe",
   "arenaExhausted": "Exausto",

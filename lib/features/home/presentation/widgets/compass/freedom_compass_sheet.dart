@@ -153,15 +153,11 @@ class _ComponentExplanation extends StatelessWidget {
       FreedomComponent.folego =>
         value.months == null
             ? null
-            : l10n.compassFolegoDetail(
-                value.months!.toStringAsFixed(1),
-              ),
+            : l10n.compassFolegoDetail(value.months!.toStringAsFixed(1)),
       FreedomComponent.poupanca =>
         value.rate == null
             ? null
-            : l10n.compassPoupancaDetail(
-                value.rate!.asPercent(locale: locale),
-              ),
+            : l10n.compassPoupancaDetail(value.rate!.asPercent(locale: locale)),
       FreedomComponent.disciplina =>
         value.within == null || value.total == null
             ? null

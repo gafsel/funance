@@ -1,6 +1,7 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/game/arena_game.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_heroes_sheet.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hp_bar.dart';
@@ -108,30 +109,34 @@ void main() {
     });
 
     testWidgets('atraso enfurece e o selo diz quanto', (tester) async {
-      await pumpArena(
-        tester,
-        state: arenaTestState(
-          commitments: [
-            arenaTestCommitment(
-              id: 'cartao',
-              description: 'Cartão',
-              amount: 640,
-              dayOffset: -9,
-              overdue: true,
-            ),
-            arenaTestCommitment(),
-            arenaTestCommitment(
-              id: 'luz',
-              description: 'Luz',
-              amount: 180,
-              dayOffset: 2,
-            ),
-          ],
-        ),
+      final state = arenaTestState(
+        commitments: [
+          arenaTestCommitment(
+            id: 'cartao',
+            description: 'Cartão',
+            amount: 640,
+            dayOffset: -9,
+            overdue: true,
+          ),
+          arenaTestCommitment(),
+          arenaTestCommitment(
+            id: 'luz',
+            description: 'Luz',
+            amount: 180,
+            dayOffset: 2,
+          ),
+        ],
       );
 
-      expect(find.textContaining('Enfurecido'), findsOneWidget);
+      await pumpArena(tester, state: state);
+
+      // O selo carrega o NÚMERO, não a palavra: a 400px o texto completo
+      // saía cortado em "Enfureci…", que não informa nada. Quem diz
+      // que o bicho está enfurecido é a cara dele — a skin de demônio — e a
+      // cor de perigo do selo.
+      expect(find.textContaining('atrasado'), findsOneWidget);
       expect(find.textContaining('640'), findsWidgets);
+      expect(state.monsterSkin, MonsterSkin.demon);
     });
 
     testWidgets('monstro sem vida vira "Derrotado"', (tester) async {

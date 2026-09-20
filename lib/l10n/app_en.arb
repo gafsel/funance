@@ -1319,7 +1319,7 @@
   "arenaHeroLife": "Life",
   "arenaCommitted": "Committed",
   "arenaConfirmPaid": "Confirm paid",
-  "arenaEnraged": "Enraged: +{amount} overdue",
+  "arenaEnraged": "+{amount} overdue",
   "arenaEmpty": "No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.",
   "arenaTeamExtra": "+{count} on the team",
   "arenaExhausted": "Exhausted",
