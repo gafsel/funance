@@ -71,7 +71,7 @@ extension NumExtensions on num {
   /// **As folhas de detalhe continuam em [asCurrency].** Este formatador é
   /// para o relance; quando o usuário toca para ver o que compõe o número,
   /// ele tem direito aos centavos.
-  String asCompactCurrency({String? locale}) {
+  String asCompactCurrency({String? locale, bool symbol = true}) {
     final value = toDouble();
     final abs = value.abs();
 
@@ -90,10 +90,20 @@ extension NumExtensions on num {
         : (scaled * 10).roundToDouble() / 10;
     final decimals = rounded == rounded.roundToDouble() ? 0 : 1;
 
-    final text = NumberFormat.simpleCurrency(
-      locale: locale,
-      decimalDigits: decimals,
-    ).format(rounded);
+    // Sem símbolo é o MESMO número, para quem já diz "R$" num rótulo ao lado
+    // — eixo de gráfico, cabeçalho de coluna. Existir como parâmetro, e não
+    // como um segundo formatador, é o que impede as duas formas de
+    // divergirem: era exatamente o defeito que o QA achou entre
+    // `asCompactCurrency` ("R$ 12,1k") e `MoneyText(compact:)` ("12,1 mil").
+    final text = symbol
+        ? NumberFormat.simpleCurrency(
+            locale: locale,
+            decimalDigits: decimals,
+          ).format(rounded)
+        : NumberFormat.decimalPatternDigits(
+            locale: locale,
+            decimalDigits: decimals,
+          ).format(rounded);
 
     return '${value < 0 && rounded != 0 ? '−' : ''}$text$suffix';
   }

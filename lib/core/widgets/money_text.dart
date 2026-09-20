@@ -67,8 +67,14 @@ class MoneyText extends StatelessWidget {
   final bool colorBySign;
   final bool showSign;
 
-  /// Forma curta ("R$ 4,3 mil"). Só para gráfico e rótulo de eixo — nunca
-  /// para um valor que o usuário precise conferir.
+  /// Forma curta ("R$ 4,3k"). Só para gráfico e rótulo de eixo — nunca para
+  /// um valor que o usuário precise conferir.
+  ///
+  /// Chama [NumExtensions.asCompactCurrency], que é o MESMO formatador do
+  /// placar da Arena. Ele tinha uma segunda implementação aqui
+  /// (`NumberFormat.compact`, que escreve "4,3 mil"), e as duas formas
+  /// apareciam no mesmo app para o mesmo número — o dono pediu "R$ 12,1k", e
+  /// era o gráfico que discordava.
   final bool compact;
 
   final TextAlign? textAlign;
@@ -84,7 +90,7 @@ class MoneyText extends StatelessWidget {
     final locale = context.locale;
 
     final text = compact
-        ? value.asCompact(locale: locale)
+        ? value.asCompactCurrency(locale: locale)
         : (showSign
               ? value.asSignedCurrency(locale: locale)
               : value.asCurrency(locale: locale));

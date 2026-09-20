@@ -88,6 +88,22 @@ void main() {
     });
   });
 
+  group('sem o símbolo', () {
+    test('é o MESMO número, só sem o "R\$"', () {
+      // Para quem já diz "R\$" num rótulo ao lado — eixo de gráfico,
+      // cabeçalho de coluna. Existir como parâmetro, e não como um segundo
+      // formatador, é o que impede as duas formas de divergirem.
+      expect(12122.33.asCompactCurrency(locale: 'pt', symbol: false), '12,1k');
+      expect(980.asCompactCurrency(locale: 'pt', symbol: false), '980');
+      expect(12000.asCompactCurrency(locale: 'pt', symbol: false), '12k');
+      expect(
+        (-1200000).asCompactCurrency(locale: 'pt', symbol: false),
+        '\u22121,2M',
+      );
+      expect(12122.33.asCompactCurrency(locale: 'en', symbol: false), '12.1k');
+    });
+  });
+
   test('o detalhe continua exato', () {
     // A regra de produto inteira: o compacto é do relance, o exato é de quem
     // tocou para ver o que compõe o número.

@@ -16,6 +16,12 @@ import 'package:funances/features/arena/presentation/providers/arena_week_closin
 /// quantos compromissos de quantos, e com quanto os heróis chegaram no
 /// sábado.
 ///
+/// Os valores são COMPACTOS, como os do placar logo abaixo. O QA pegou o
+/// banner escrevendo "-R\$ 6.361,92" — com hífen ASCII — dois centímetros
+/// acima de um placar que dizia "−R\$ 6,4k" com o menos tipográfico: o mesmo
+/// número, na mesma tela, em duas línguas. O banner é visão de JOGO; quem
+/// guarda os centavos é a folha de detalhe.
+///
 /// Aparece **uma vez** e é dispensável. Um aviso que volta todo dia deixa de
 /// ser aviso no terceiro dia, e é por isso que ele grava o que já foi visto.
 class ArenaWeekClosingBanner extends ConsumerWidget {
@@ -79,7 +85,7 @@ class ArenaWeekClosingBanner extends ConsumerWidget {
                     venceu
                         ? l10n.arenaClosingWon
                         : l10n.arenaClosingLost(
-                            state.monsterHp.asCurrency(locale: locale),
+                            state.monsterHp.asCompactCurrency(locale: locale),
                           ),
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: venceu ? AppColors.gold : AppColors.inkInverse,
@@ -89,7 +95,7 @@ class ArenaWeekClosingBanner extends ConsumerWidget {
                     l10n.arenaClosingScore(
                       state.struckCount,
                       state.commitmentsCount,
-                      state.currentBalance.asCurrency(locale: locale),
+                      state.currentBalance.asCompactCurrency(locale: locale),
                     ),
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: AppColors.inkInverse2,

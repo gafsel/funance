@@ -100,7 +100,11 @@ void main() {
     expect(find.byKey(const ValueKey('arena-week-closing')), findsOneWidget);
     expect(find.text('Semana passada: monstro derrotado'), findsOneWidget);
     expect(find.textContaining('2 de 2 compromissos pagos'), findsOneWidget);
-    expect(find.textContaining('3.115,02'), findsOneWidget);
+    // M7 do QA: o banner é visão de JOGO e fala a mesma língua do placar
+    // logo abaixo. Ele escrevia "-R\$ 6.361,92", com hífen ASCII, dois
+    // centímetros acima de um "−R\$ 6,4k" com o menos tipográfico.
+    expect(find.textContaining('3,1k'), findsOneWidget);
+    expect(find.textContaining('3.115,02'), findsNothing);
 
     container.dispose();
   });
