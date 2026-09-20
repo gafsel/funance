@@ -249,7 +249,35 @@ void main() {
             'a tarja de sync já ensinou que uma camada colada embaixo cobre a '
             'barra e o botão de lançar',
       );
-      expect(toastTop, lessThan(200));
+      expect(toastTop, lessThan(260));
+    });
+
+    /// M4 — colado no topo, o toast cobria a `AppBar`: o nome do cofre, o
+    /// selo de nível e — o que dói — o botão de voltar. Ganhar uma badge no
+    /// meio de um formulário tampava a saída da tela.
+    testWidgets('M4 — os toasts ficam ABAIXO da AppBar', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: CelebrationOverlay(
+            toasts: const [RewardToast(icon: Icons.bolt, title: 'um')],
+            child: Scaffold(
+              appBar: AppBar(title: const Text('uma tela')),
+              body: const SizedBox.expand(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final barraBottom = tester.getBottomLeft(find.byType(AppBar)).dy;
+      final toastTop = tester.getTopLeft(find.byType(RewardToast)).dy;
+
+      expect(
+        toastTop,
+        greaterThanOrEqualTo(barraBottom),
+        reason: 'o toast tampava o botão de voltar',
+      );
     });
   });
 

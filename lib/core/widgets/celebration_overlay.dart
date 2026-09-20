@@ -14,10 +14,13 @@ import '../theme/app_spacing.dart';
 ///
 /// Duas regras de posição, ambas aprendidas na tarja:
 ///
-/// * **Alinhamento ao topo.** Uma camada colada embaixo cobriria a barra
-///   inferior e o botão de lançar; foi por isso que a tarja de sync empurra o
-///   conteúdo em vez de sobrepor. O toast é efêmero e não pode empurrar nada,
-///   então sobe.
+/// * **Alinhamento ao topo, abaixo da barra superior.** Uma camada colada
+///   embaixo cobriria a barra inferior e o botão de lançar; foi por isso que
+///   a tarja de sync empurra o conteúdo em vez de sobrepor. O toast é efêmero
+///   e não pode empurrar nada, então sobe — mas colado no topo ele cobria a
+///   `AppBar`, e com ela o nome do cofre, o selo de nível e o botão de voltar.
+///   Ganhar uma badge no meio de um formulário tampava a saída da tela. Ele
+///   desce [_appBarClearance] para ficar logo ABAIXO da barra.
 /// * **Nada de `Tooltip` nem `ScaffoldMessenger` aqui dentro.** Os dois
 ///   precisam de um `Overlay`, que só existe abaixo do `Navigator`; usar um
 ///   derruba a tela inteira.
@@ -39,6 +42,15 @@ class CelebrationOverlay extends StatelessWidget {
   /// Confete das conquistas de peso. Antes existia em um lugar só — subir de
   /// nível, dentro da Home — e não acompanhava badge, missão nem patente.
   final ConfettiController? confetti;
+
+  /// Altura de uma `AppBar` padrão.
+  ///
+  /// A camada mora acima do `Navigator` e não tem como perguntar se a rota
+  /// corrente tem barra, nem qual a altura dela. `kToolbarHeight` é o valor
+  /// que o `appBarTheme` do app usa em todas as telas; numa tela sem barra o
+  /// toast apenas começa um pouco mais abaixo, que é um custo pequeno perto
+  /// de tampar o botão de voltar.
+  static const double _appBarClearance = kToolbarHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -74,9 +86,11 @@ class CelebrationOverlay extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.gutter,
-                vertical: AppSpacing.xs,
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                _appBarClearance + AppSpacing.xs,
+                AppSpacing.gutter,
+                AppSpacing.xs,
               ),
               child: Align(
                 alignment: Alignment.topCenter,
