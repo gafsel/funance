@@ -99,6 +99,7 @@ class HeroActor extends _BreathingActor with TapCallbacks {
     required super.size,
     required super.theme,
     required this.skin,
+    this.duplicate = false,
     this.onTap,
   }) : super(breathPeriod: 2.6, breathDepth: 0.035, priority: 300);
 
@@ -106,11 +107,44 @@ class HeroActor extends _BreathingActor with TapCallbacks {
   /// o nome mora no placar, não na cena.
   final HeroSkin skin;
 
+  /// O membro da frente já usa este mesmo avatar.
+  ///
+  /// Quando dois heróis são o MESMO sprite, a cena perde a única pista de
+  /// quem é quem — e ela não pode recuperá-la com texto, porque o nome subiu
+  /// para o placar de propósito. O distintivo é um anel dourado no chão, sob
+  /// os pés do segundo: ele não altera o boneco (que é a escolha do usuário)
+  /// e é visível na cena inteira, inclusive em 400 px.
+  final bool duplicate;
+
   /// Tocar no herói abre o detalhe das contas — o mesmo destino da barra.
   final VoidCallback? onTap;
 
   @override
   void onTapDown(TapDownEvent event) => onTap?.call();
+
+  /// O anel do distintivo vai por baixo do boneco, junto da sombra.
+  @override
+  void render(Canvas canvas) {
+    if (duplicate && alive) {
+      // MAIS LARGO que o boneco, de propósito. Todo sprite desta folha traz
+      // um cartão escuro embutido que ocupa quase o tile inteiro e é
+      // desenhado POR CIMA deste anel; um anel do tamanho da sombra sumia
+      // atrás dele e só aparecia como um risco debaixo dos pés.
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(size.x / 2, size.y - size.y * 0.05),
+          width: size.x * 1.04,
+          height: size.y * 0.22,
+        ),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = size.y * 0.035
+          ..color = theme.gold.withValues(alpha: theme.gold.a * opacity),
+      );
+    }
+
+    super.render(canvas);
+  }
 
   HeroMood _mood = HeroMood.healthy;
 

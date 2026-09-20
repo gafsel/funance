@@ -418,7 +418,12 @@ class ArenaGame extends FlameGame {
     for (var index = 0; index < wanted.length; index++) {
       final hero = wanted[index];
 
-      if (index < _heroes.length && _heroes[index].skin == hero.skin) {
+      // O distintivo entra na identidade junto com a skin: trocar o avatar do
+      // PRIMEIRO membro para o mesmo do segundo não muda sprite nenhum, só
+      // quem leva o anel — e um ator reaproveitado ficaria com o anel errado.
+      if (index < _heroes.length &&
+          _heroes[index].skin == hero.skin &&
+          _heroes[index].duplicate == hero.duplicate) {
         _heroes[index].mood = next.heroMood;
         _heroes[index].size = Vector2.all(_heroSide);
         continue;
@@ -430,6 +435,7 @@ class ArenaGame extends FlameGame {
 
       final actor = HeroActor(
         skin: hero.skin,
+        duplicate: hero.duplicate,
         sprite: sprites.hero(hero.skin),
         position: Vector2.zero(),
         size: Vector2.all(_heroSide),

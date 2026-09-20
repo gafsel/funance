@@ -153,10 +153,16 @@ ArenaAccountReading _account(
   current: current,
 );
 
-UserModel _member(String id, {String? name, String email = ''}) => UserModel(
+UserModel _member(
+  String id, {
+  String? name,
+  String email = '',
+  String? avatar,
+}) => UserModel(
   id: id,
   email: email.isEmpty ? '$id@funances.test' : email,
   displayName: name,
+  avatar: avatar,
   createdAt: _sunday,
 );
 
@@ -1304,6 +1310,67 @@ void main() {
       expect(state.heroes.map((h) => h.name).toList(), ['Gabriel', 'Ana']);
       expect(state.heroes.first.skin, isNot(state.heroes.last.skin));
       expect(state.extraMembers, 1);
+    });
+
+    test('o herói usa o avatar ESCOLHIDO pelo membro', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', name: 'Gabriel', avatar: 'smith'),
+            _member('u2', name: 'Ana', avatar: 'healer'),
+          ],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.smith,
+        HeroSkin.healer,
+      ]);
+      expect(state.heroes.every((h) => !h.duplicate), isTrue);
+    });
+
+    test('sem avatar, vale a ordem de entrada — como antes do seletor', () {
+      final state = ArenaCalculator.from(
+        _inputs(members: [_member('u1'), _member('u2')]),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.knight,
+        HeroSkin.mage,
+      ]);
+    });
+
+    test('um avatar desconhecido cai no boneco da ordem de entrada', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', avatar: 'necromante'),
+            _member('u2', avatar: ''),
+          ],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.knight,
+        HeroSkin.mage,
+      ]);
+    });
+
+    test('avatares iguais: só o SEGUNDO ganha o distintivo', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          members: [
+            _member('u1', avatar: 'mage'),
+            _member('u2', avatar: 'mage'),
+          ],
+        ),
+      );
+
+      expect(state.heroes.map((h) => h.skin).toList(), [
+        HeroSkin.mage,
+        HeroSkin.mage,
+      ]);
+      expect(state.heroes.map((h) => h.duplicate).toList(), [false, true]);
     });
 
     test('sem nome, o herói usa o começo do e-mail', () {

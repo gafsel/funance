@@ -190,8 +190,35 @@ abstract final class ArenaCalculator {
       type == AccountType.creditCard || type == AccountType.debt;
 
   /// A skin de um herói pela ORDEM de entrada no workspace.
+  ///
+  /// É o que vale para quem ainda não escolheu avatar nenhum — e por isso ela
+  /// cicla só pelos QUATRO da POC, e não por `HeroSkin.values`: o catálogo
+  /// cresceu para oito, e ciclar por todos trocaria o boneco de quem nunca
+  /// mexeu em nada só porque o seletor ganhou opções novas.
+  static const List<HeroSkin> _legacyRotation = [
+    HeroSkin.knight,
+    HeroSkin.mage,
+    HeroSkin.ranger,
+    HeroSkin.warrior,
+  ];
+
   static HeroSkin skinForIndex(int index) =>
-      HeroSkin.values[index % HeroSkin.values.length];
+      _legacyRotation[index % _legacyRotation.length];
+
+  /// O avatar ESCOLHIDO pelo membro; a ordem de entrada quando não há
+  /// escolha.
+  ///
+  /// Um `avatar` gravado com nome desconhecido não cai no cavaleiro fixo (que
+  /// é o que `HeroSkin.fromName` faria): ele cai no mesmo boneco que o membro
+  /// teria sem campo nenhum, que é a resposta menos surpreendente para quem
+  /// olha a cena.
+  static HeroSkin skinForMember(UserModel member, int index) {
+    final escolhido = member.avatar;
+    if (escolhido == null || escolhido.isEmpty) return skinForIndex(index);
+
+    return HeroSkin.values.where((s) => s.name == escolhido).firstOrNull ??
+        skinForIndex(index);
+  }
 
   /// O monstro da semana, sorteado pelo ID da semana.
   ///
@@ -313,13 +340,20 @@ abstract final class ArenaCalculator {
 
     // ── Elenco ─────────────────────────────────────────────────────────────
     final cast = inputs.members.take(inputs.maxHeroes).toList();
+    final skins = [
+      for (var index = 0; index < cast.length; index++)
+        skinForMember(cast[index], index),
+    ];
     final heroes = <ArenaHero>[
       for (var index = 0; index < cast.length; index++)
         ArenaHero(
           userId: cast[index].id,
           name: _firstName(cast[index]),
-          skin: skinForIndex(index),
+          skin: skins[index],
           photoUrl: cast[index].photoUrl,
+          // Repetido só a partir do SEGUNDO: quem chegou primeiro fica com o
+          // boneco limpo, e o distintivo marca a diferença, não a escolha.
+          duplicate: skins.take(index).contains(skins[index]),
         ),
     ];
 
