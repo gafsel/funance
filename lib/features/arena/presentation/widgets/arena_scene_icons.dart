@@ -229,17 +229,33 @@ class ArenaSceneIcon extends StatelessWidget {
                         filled: filled,
                       ),
                     ),
-                    Text(
-                      // Um traço, e não vazio: sem ele a faixa muda de ALTURA
-                      // quando o último número some, e a cena inteira sobe.
-                      value ?? '—',
-                      maxLines: 1,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: value == null
-                            ? AppColors.inkInverse2
-                            : AppColors.inkInverse,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
+                    // A linha do valor existe SEMPRE, com ou sem número: é
+                    // ela que impede a faixa de mudar de altura quando o
+                    // último contador some.
+                    //
+                    // Mas ela fica VAZIA quando não há o que contar. O traço
+                    // que morava aqui era uma legenda de ausência colada
+                    // debaixo de um anel cheio: no aparelho do dono a faixa
+                    // lia "1/3 · 37 · — · —", e dois traços seguidos parecem
+                    // um erro de carregamento, não um estado. O coach não tem
+                    // contagem; quem diz o estado dele é o anel.
+                    SizedBox(
+                      height: compact ? 14 : 16,
+                      child: value == null
+                          ? null
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                value!,
+                                maxLines: 1,
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: AppColors.inkInverse,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                            ),
                     ),
                   ],
                 ),
