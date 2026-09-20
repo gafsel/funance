@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/widgets/app_scaffold.dart';
+import 'package:funances/features/home/presentation/screens/home_screen.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 
 import 'support/home_harness.dart';
@@ -67,6 +68,53 @@ void main() {
             'a Home mede ${medida.toStringAsFixed(0)}px em ${largura.toInt()}'
             '×${altura.toInt()} — '
             '${(medida / altura).toStringAsFixed(1)} telas; o teto é 2',
+      );
+    });
+  }
+
+  /// A mesma medida na tela REAL, e não só na aba.
+  ///
+  /// `JourneyTab` é o conteúdo; `HomeScreen` é o que o app monta — com
+  /// `AppBar`, barra inferior, `TabBarView` e o botão de lançar disputando o
+  /// mesmo espaço. Medir só a aba deixaria de fora justamente o que encolhe o
+  /// viewport, e foi assim que a Home mediu 1,5 telas aqui enquanto o
+  /// aparelho mostrava 7,1.
+  for (final largura in <double>[400, 800]) {
+    testWidgets('D2 — e a Home REAL cabe a ${largura.toInt()}px', (
+      tester,
+    ) async {
+      const altura = 544.0;
+
+      await pumpHome(
+        tester,
+        const HomeScreen(),
+        overrides: homeOverrides(
+          missions: homeTypicalMissions(),
+          installments: homeTypicalInstallments(),
+          goals: homeTypicalGoals(),
+          categories: homeTypicalCategories,
+          summary: homeTypicalSummary(),
+          pendingAutomatic: homeTypicalPending(),
+          lastInsight: homeTypicalInsight(),
+        ),
+        size: Size(largura, altura),
+      );
+
+      final medida = _alturaDoConteudo(tester);
+      final visivel = tester.getSize(find.byType(TabBarView)).height;
+
+      debugPrint(
+        'ALTURA REAL ${largura.toInt()}px: ${medida.toStringAsFixed(0)}px em '
+        'viewport de ${visivel.toStringAsFixed(0)}px — '
+        '${(medida / visivel).toStringAsFixed(1)} telas',
+      );
+
+      expect(
+        medida,
+        lessThanOrEqualTo(visivel * 2),
+        reason:
+            '${medida.toStringAsFixed(0)}px em ${visivel.toStringAsFixed(0)}'
+            'px de viewport — ${(medida / visivel).toStringAsFixed(1)} telas',
       );
     });
   }
