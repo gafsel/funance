@@ -20,13 +20,31 @@ import 'package:funances/core/utils/error_messages.dart';
 import 'package:funances/core/presentation/retry.dart';
 
 class CoachingInsightCard extends ConsumerWidget {
-  const CoachingInsightCard({super.key});
+  const CoachingInsightCard({super.key, this.compact = false});
+
+  /// Uma LINHA em vez do cartão inteiro.
+  ///
+  /// Na Home o coaching custava 120px fixos de altura — e o dobro disso
+  /// quando não havia análise recente, porque o cartão de convite tem título,
+  /// parágrafo e botão. Análise de IA não é informação diária: ela é lida uma
+  /// vez e vale por semanas. A linha diz que existe algo a ler (ou a pedir) e
+  /// leva à tela onde isso acontece; o cartão inteiro continua existindo para
+  /// onde ele é o assunto.
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final lastInsightAsync = ref.watch(CoachingViewProviders.lastInsight);
     final theme = Theme.of(context);
     final l10n = context.l10n;
+
+    if (compact) {
+      // A linha não mostra carregamento nem erro: sem análise ela já é o
+      // convite para pedir uma, que é a mesma coisa que o usuário faria
+      // depois de ver um erro.
+      return _CoachingLine(insight: lastInsightAsync.valueOrNull);
+    }
+
     return lastInsightAsync.when(
       data: (lastInsight) {
         return Column(
@@ -167,47 +185,7 @@ class CoachingInsightCard extends ConsumerWidget {
                   child: Consumer(
                     builder: (context, ref, _) {
                       return ElevatedButton(
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          try {
-                            final coaching = await showLoadingModal(
-                              context,
-                              ref
-                                  .read(CoachingDomainProviders.service)
-                                  .generateCoaching(),
-                              child: AnalysisLoadingView(
-                                title: l10n.coachingConsulting,
-                                description: l10n.coachingConsultingDesc,
-                              ),
-                            );
-
-                            ref.invalidate(CoachingViewProviders.lastInsight);
-                            ref.invalidate(
-                              CoachingViewProviders.insightsHistory,
-                            );
-
-                            if (context.mounted) {
-                              _logCoachingOpened(ref);
-                              unawaited(
-                                context.push('/coaching?id=${coaching.id}'),
-                              );
-                            }
-                          } catch (e) {
-                            // Sem isso a falha era silenciosa: o modal fechava
-                            // e nada acontecia após minutos de espera.
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  callableErrorMessage(
-                                    e,
-                                    l10n.coachingError,
-                                    offlineMessage: l10n.errorOfflineCallable,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                        },
+                        onPressed: () => generateAndOpen(context, ref),
                         child: Text(l10n.coachingConsultAction.toUpperCase()),
                       );
                     },
@@ -299,11 +277,127 @@ class CoachingInsightCard extends ConsumerWidget {
     );
   }
 
+  /// Gera uma análise nova e abre, com o modal de espera e o tratamento de
+  /// falha. Extraído para que a LINHA compacta da Home ofereça exatamente a
+  /// mesma ação que o botão do cartão — e não uma segunda cópia dela.
+  static Future<void> generateAndOpen(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final l10n = context.l10n;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final coaching = await showLoadingModal(
+        context,
+        ref.read(CoachingDomainProviders.service).generateCoaching(),
+        child: AnalysisLoadingView(
+          title: l10n.coachingConsulting,
+          description: l10n.coachingConsultingDesc,
+        ),
+      );
+
+      ref.invalidate(CoachingViewProviders.lastInsight);
+      ref.invalidate(CoachingViewProviders.insightsHistory);
+
+      if (context.mounted) {
+        _logCoachingOpened(ref);
+        unawaited(context.push('/coaching?id=${coaching.id}'));
+      }
+    } catch (e) {
+      // Sem isso a falha era silenciosa: o modal fechava e nada acontecia
+      // após minutos de espera.
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            callableErrorMessage(
+              e,
+              l10n.coachingError,
+              offlineMessage: l10n.errorOfflineCallable,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
   /// Dispara o evento de funil sem bloquear a navegação nem deixar uma falha
   /// de analytics impedir o usuário de abrir o coaching.
   static void _logCoachingOpened(WidgetRef ref) {
     unawaited(
       ref.read(analyticsServiceProvider).logCoachingOpened().catchError((_) {}),
+    );
+  }
+}
+
+/// O coaching em uma linha, para a Home.
+class _CoachingLine extends ConsumerWidget {
+  const _CoachingLine({required this.insight});
+
+  final CoachingModel? insight;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    final l10n = context.l10n;
+
+    final fresh = insight != null && !insight!.isDeprecated;
+    final texto = fresh ? insight!.message : l10n.coachingConsultingDesc;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          borderRadius: AppRadius.brMd,
+          onTap: () {
+            if (fresh) {
+              CoachingInsightCard._logCoachingOpened(ref);
+              context.push('/coaching?id=${insight!.id}');
+            } else {
+              CoachingInsightCard.generateAndOpen(context, ref);
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: AppRadius.brMd,
+              border: Border.all(color: palette.line),
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.psychology_outlined,
+                  size: 18,
+                  color: palette.tealText,
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    texto,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: palette.ink,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  fresh ? l10n.coachingViewLast : l10n.coachingConsultAction,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.tealText,
+                  ),
+                ),
+                Icon(Icons.chevron_right, size: 18, color: palette.ink2),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

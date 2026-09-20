@@ -16,7 +16,7 @@ import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
-import 'package:funances/features/workspace/presentation/widgets/workspace_level_indicator.dart';
+import 'package:funances/features/workspace/presentation/widgets/workspace_level_badge.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -107,7 +107,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                   title: const WorkspaceSelector(isNavigationRail: false),
                   centerTitle: true,
-                  actions: const [WorkspaceLevelIndicator()],
+                  // A identidade do cofre mora AQUI e só aqui: nome, selo de
+                  // tipo e nível. O corpo da Jornada repetia os três num
+                  // cabeçalho próprio, e o nível ainda aparecia duas vezes —
+                  // uma no anel da barra, outra no selo do corpo.
+                  actions: const [WorkspaceLevelBadge()],
                 ),
           body: Row(
             children: [
@@ -175,7 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ),
             ),
           AppSpacing.gapLg,
-          const WorkspaceLevelIndicator(),
+          const WorkspaceLevelBadge(onGame: true),
           AppSpacing.gapMd,
         ],
       ),

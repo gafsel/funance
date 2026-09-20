@@ -10,6 +10,7 @@ import 'package:funances/features/home/presentation/widgets/overview/balance_sum
 import 'package:funances/features/home/presentation/widgets/overview/category_summary_view.dart';
 import 'package:funances/features/home/presentation/widgets/period_selection.dart';
 import 'package:funances/features/home/presentation/widgets/summary_type_selection.dart';
+import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -63,6 +64,12 @@ class OverviewTab extends ConsumerWidget {
                             const AccountsView(),
                             AppSpacing.gapXl,
                             const Planning503020DistributionCard(),
+                            AppSpacing.gapXl,
+                            // A Party veio da Home: ela fala dos desafios de
+                            // planejamento por categoria, que é o assunto
+                            // desta aba e não do que precisa ser decidido
+                            // hoje.
+                            const TeamStatusView(),
                             const SizedBox(height: 1),
                           ],
                         ),
@@ -93,6 +100,8 @@ class OverviewTab extends ConsumerWidget {
                   AppSpacing.gapXl,
                   // Distribuição 50-30-20
                   const Planning503020DistributionCard(),
+                  AppSpacing.gapXl,
+                  const TeamStatusView(),
                   AppSpacing.gapXl,
                   // Onde está o dinheiro?
                   _buildWhereIsMoneyHeader(l10n, theme),

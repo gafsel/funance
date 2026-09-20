@@ -3284,12 +3284,6 @@ abstract class AppLocalizations {
   /// **'Conquistado em'**
   String get badgeUnlockedAtLabel;
 
-  /// No description provided for @levelIndicatorSemantics.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nível do Workspace: {level}, Badges desbloqueados: {count}'**
-  String levelIndicatorSemantics(int level, int count);
-
   /// No description provided for @statementDragOverTitle.
   ///
   /// In pt, this message translates to:
@@ -4357,6 +4351,42 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{points} desde o mês passado'**
   String compassStripDelta(String points);
+
+  /// No description provided for @dueSoonTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vence hoje e amanhã'**
+  String get dueSoonTitle;
+
+  /// No description provided for @dueSoonToday.
+  ///
+  /// In pt, this message translates to:
+  /// **'Hoje'**
+  String get dueSoonToday;
+
+  /// No description provided for @dueSoonTomorrow.
+  ///
+  /// In pt, this message translates to:
+  /// **'Amanhã'**
+  String get dueSoonTomorrow;
+
+  /// No description provided for @dueSoonInvoiceClosing.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fatura de {card} fecha'**
+  String dueSoonInvoiceClosing(String card);
+
+  /// No description provided for @dueSoonSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{1 compromisso vencendo hoje ou amanhã} other{{count} compromissos vencendo hoje ou amanhã}}'**
+  String dueSoonSemantics(int count);
+
+  /// No description provided for @journeySeeAllGoals.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver as {count} metas'**
+  String journeySeeAllGoals(int count);
 }
 
 class _AppLocalizationsDelegate

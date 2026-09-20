@@ -710,17 +710,6 @@
   "badgeLockedLabel": "Locked",
   "badgeRewardLabel": "Reward",
   "badgeUnlockedAtLabel": "Earned on",
-  "levelIndicatorSemantics": "Workspace Level: {level}, Badges unlocked: {count}",
-  "@levelIndicatorSemantics": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "statementDragOverTitle": "Drop the statement file here",
   "reconciliationBulkConfirmSuggestions": "Confirm all suggested matches ({amount})",
   "@reconciliationBulkConfirmSuggestions": {
@@ -1248,6 +1237,33 @@
     "placeholders": {
       "points": {
         "type": "String"
+      }
+    }
+  },
+  "dueSoonTitle": "Due today and tomorrow",
+  "dueSoonToday": "Today",
+  "dueSoonTomorrow": "Tomorrow",
+  "dueSoonInvoiceClosing": "{card} statement closes",
+  "dueSoonSemantics": "{count, plural, =1{1 item due today or tomorrow} other{{count} items due today or tomorrow}}",
+  "@dueSoonInvoiceClosing": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "@dueSoonSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "journeySeeAllGoals": "See all {count} goals",
+  "@journeySeeAllGoals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }

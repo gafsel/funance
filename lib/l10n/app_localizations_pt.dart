@@ -1774,11 +1774,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get badgeUnlockedAtLabel => 'Conquistado em';
 
   @override
-  String levelIndicatorSemantics(int level, int count) {
-    return 'Nível do Workspace: $level, Badges desbloqueados: $count';
-  }
-
-  @override
   String get statementDragOverTitle => 'Solte o arquivo do extrato aqui';
 
   @override
@@ -2430,5 +2425,35 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String compassStripDelta(String points) {
     return '$points desde o mês passado';
+  }
+
+  @override
+  String get dueSoonTitle => 'Vence hoje e amanhã';
+
+  @override
+  String get dueSoonToday => 'Hoje';
+
+  @override
+  String get dueSoonTomorrow => 'Amanhã';
+
+  @override
+  String dueSoonInvoiceClosing(String card) {
+    return 'Fatura de $card fecha';
+  }
+
+  @override
+  String dueSoonSemantics(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count compromissos vencendo hoje ou amanhã',
+      one: '1 compromisso vencendo hoje ou amanhã',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String journeySeeAllGoals(int count) {
+    return 'Ver as $count metas';
   }
 }

@@ -25,7 +25,17 @@ import 'package:funances/core/widgets/empty_state.dart';
 /// widget: o resto da aba puxa coaching, missões e Party, cada um com os seus
 /// providers e o seu Firebase, e nada disso tem a ver com a lista de metas.
 class GoalsSection extends ConsumerWidget {
-  const GoalsSection({super.key});
+  const GoalsSection({super.key, this.highlightOnly = false});
+
+  /// Mostra UMA meta — a mais próxima do fim — em vez da lista inteira.
+  ///
+  /// A Home listava todas as metas ativas E todas as encerradas, cada uma num
+  /// cartão com barra, valores e prazo. Meta é um compromisso de meses: a
+  /// lista inteira não muda de um dia para o outro, e mesmo assim era o bloco
+  /// mais alto da tela. Aqui fica a que está mais perto de fechar — a única
+  /// em que um gesto de hoje ainda faz diferença — e um atalho para as
+  /// outras.
+  final bool highlightOnly;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -75,6 +85,10 @@ class GoalsSection extends ConsumerWidget {
                 if (goal.isClosed) goal,
             ];
 
+            if (highlightOnly) {
+              return _buildHighlight(context, l10n, theme, running);
+            }
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -97,6 +111,40 @@ class GoalsSection extends ConsumerWidget {
           error: (e, _) =>
               ErrorView.forError(context, e, onRetry: () => Retry.goals(ref)),
         ),
+      ],
+    );
+  }
+
+  /// A meta em destaque: a de prazo mais curto entre as que ainda correm.
+  ///
+  /// Ordenar por prazo e não por progresso é de propósito. A meta com 90% já
+  /// está resolvida; a que vence em duas semanas é a que ainda depende de uma
+  /// decisão desta semana.
+  Widget _buildHighlight(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+    List<GoalModel> running,
+  ) {
+    if (running.isEmpty) return _buildEmptyGoals(context, l10n, theme);
+
+    final ordered = [...running]
+      ..sort((a, b) => a.deadline.compareTo(b.deadline));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildGoalCard(context, ordered.first),
+        if (running.length > 1) ...[
+          AppSpacing.gapXs,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () => context.push('/goals'),
+              child: Text(l10n.journeySeeAllGoals(running.length)),
+            ),
+          ),
+        ],
       ],
     );
   }

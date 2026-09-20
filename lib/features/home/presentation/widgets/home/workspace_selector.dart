@@ -7,6 +7,7 @@ import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/features/workspace/presentation/widgets/workspace_type_badge.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -35,14 +36,6 @@ class WorkspaceSelector extends ConsumerWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            currentWorkspace?.type == WorkspaceType.business
-                ? Icons.business
-                : Icons.home_outlined,
-            size: 20,
-            color: color,
-          ),
-          AppSpacing.gapXs,
           Flexible(
             child: Text(
               currentWorkspace == null
@@ -54,6 +47,17 @@ class WorkspaceSelector extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          // O tipo do cofre decide missão, badge, coaching e vocabulário, e
+          // aparecia só como a diferença entre dois pictogramas de 20px. O
+          // selo diz a palavra — e é aqui, ao lado do nome, que ele mora: o
+          // corpo da Home tinha uma segunda cópia do mesmo cabeçalho.
+          if (currentWorkspace != null) ...[
+            AppSpacing.gapXs,
+            WorkspaceTypeBadge(
+              type: currentWorkspace.type,
+              onGame: isNavigationRail,
+            ),
+          ],
           Icon(Icons.arrow_drop_down, color: color),
         ],
       ),

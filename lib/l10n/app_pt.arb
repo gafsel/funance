@@ -729,17 +729,6 @@
   "badgeLockedLabel": "Bloqueado",
   "badgeRewardLabel": "Recompensa",
   "badgeUnlockedAtLabel": "Conquistado em",
-  "levelIndicatorSemantics": "Nível do Workspace: {level}, Badges desbloqueados: {count}",
-  "@levelIndicatorSemantics": {
-    "placeholders": {
-      "level": {
-        "type": "int"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "statementDragOverTitle": "Solte o arquivo do extrato aqui",
   "reconciliationBulkConfirmSuggestions": "Confirmar todos os matches sugeridos ({amount})",
   "@reconciliationBulkConfirmSuggestions": {
@@ -1255,6 +1244,33 @@
     "placeholders": {
       "points": {
         "type": "String"
+      }
+    }
+  },
+  "dueSoonTitle": "Vence hoje e amanhã",
+  "dueSoonToday": "Hoje",
+  "dueSoonTomorrow": "Amanhã",
+  "dueSoonInvoiceClosing": "Fatura de {card} fecha",
+  "dueSoonSemantics": "{count, plural, =1{1 compromisso vencendo hoje ou amanhã} other{{count} compromissos vencendo hoje ou amanhã}}",
+  "@dueSoonInvoiceClosing": {
+    "placeholders": {
+      "card": {
+        "type": "String"
+      }
+    }
+  },
+  "@dueSoonSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "journeySeeAllGoals": "Ver as {count} metas",
+  "@journeySeeAllGoals": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   }
