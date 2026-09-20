@@ -134,15 +134,6 @@ class _ContasEspia with _NaoUsado implements IAccountRepository {
   }
 
   @override
-  Stream<AccountBalanceModel?> getLatestAccountBalance(
-    String workspaceId,
-    String accountId,
-  ) {
-    escopos.add(workspaceId);
-    return Stream.value(null);
-  }
-
-  @override
   Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
     String workspaceId,
     String accountId,

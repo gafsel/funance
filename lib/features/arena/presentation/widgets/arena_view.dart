@@ -10,24 +10,18 @@ import 'package:funances/features/arena/presentation/game/arena_game.dart';
 import 'package:funances/features/arena/presentation/game/arena_theme.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_heroes_sheet.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
-/// Altura da faixa reservada no PÉ da cena, em pixels lógicos.
+/// Altura da faixa do HUD MENSAL no pé da cena, em pixels lógicos.
 ///
-/// Ela está vazia de propósito. O próximo pacote põe aí um HUD de escopo
-/// MENSAL — quatro ícones com anel de progresso (poção = investimentos,
-/// vila = categorias, ovo = cartões, gota = dívidas) —, e reservar a altura
-/// agora é o que evita que a chegada dele reorganize a cena, a altura da
-/// Home e os quatro goldens de uma vez.
-///
-/// Os dados que esse HUD vai querer já saem calculados daqui: `state.accounts`
-/// traz saldo de partida e saldo atual por conta, e `ArenaViewProviders`
-/// expõe as contas líquidas separadas por tipo. O que falta para ele — cartão,
-/// dívida e a receita prevista do mês — é consulta nova, e não recorte do que
-/// já existe.
+/// Ela nasceu reservada e vazia, um pacote antes de ter conteúdo, justamente
+/// para que a chegada dos quatro ícones não reorganizasse a cena, a altura da
+/// Home e os goldens de uma vez. A altura é a MESMA em carregamento, em erro
+/// e com os quatro ícones desenhados — ver [ArenaHudFooter].
 double arenaFooterSlotHeight({required bool compact}) => compact ? 56 : 64;
 
 /// Largura máxima da CENA, em pixels lógicos.
@@ -332,19 +326,12 @@ class _ArenaViewState extends ConsumerState<ArenaView>
               Expanded(child: boxed)
             else
               SizedBox(height: widget.sceneHeight, child: boxed),
-            // A faixa do HUD mensal, ainda vazia. Ver
-            // [arenaFooterSlotHeight]. O filete em cima dela é o que separa
+            // A faixa do HUD mensal. O filete em cima dela é o que separa
             // "espaço reservado" de "cena cortada": sem a linha, a tarja
             // escura no pé parecia a cena terminando no meio.
-            Container(
-              key: const ValueKey('arena-footer-slot'),
+            ArenaHudFooter(
               height: arenaFooterSlotHeight(compact: widget.compact),
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: AppColors.gameFrame, width: 0.5),
-                ),
-              ),
+              compact: widget.compact,
             ),
           ],
         );

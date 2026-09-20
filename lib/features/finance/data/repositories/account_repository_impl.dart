@@ -114,23 +114,6 @@ class AccountRepositoryImpl implements IAccountRepository {
   }
 
   @override
-  Stream<AccountBalanceModel?> getLatestAccountBalance(
-    String workspaceId,
-    String accountId,
-  ) {
-    return _getCollection(workspaceId)
-        .doc(accountId)
-        .collection('balance')
-        .orderBy(FieldPath.documentId, descending: true)
-        .limit(1)
-        .snapshots()
-        .map((snapshot) {
-          if (snapshot.docs.isEmpty) return null;
-          return snapshot.docs.first.toAccountBalanceModel();
-        });
-  }
-
-  @override
   Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
     String workspaceId,
     String accountId,

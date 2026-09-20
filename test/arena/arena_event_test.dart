@@ -115,13 +115,16 @@ void main() {
       );
     });
 
-    test('gasto de conta de investimento fere: é caixa', () {
+    test('gasto de conta de investimento NÃO fere: ele é a poção', () {
+      // Mudou com o HUD mensal. O investimento saiu da vida dos heróis e
+      // virou a poção do rodapé: animar dano aqui faria o número descer sem
+      // a barra andar — o mesmo defeito da compra no cartão.
       expect(
         _evento(
           _form(type: OrderType.expense, status: InstallmentStatus.paid),
           conta: AccountType.investment,
-        )?.damage,
-        120,
+        ),
+        isNull,
       );
     });
 

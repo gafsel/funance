@@ -2462,30 +2462,32 @@ razões.
 | Ícone | Dados usados | Fórmula | Escala | XP envolvido |
 |---|---|---|---|---|
 | **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` com ≥ 3 aldeões | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
-| **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
-| **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
-| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
+| **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | gole · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
+| **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o ovo não recebe o nome da classe | nenhum |
+| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo do ovo | nenhum |
 
 **A escala é UMA só, e mede TAMANHO — não mede virtude.** Os quatro cortes
-(0,5/1/1,5/2) valem igual nos três ícones de razão, e o nome da classe diz o
-tamanho do objeto, não se ele é bom: uma poção hiper é ótima, um ovo hiper é
-assustador e uma gota hiper é grave. Quem carrega o julgamento é a mini
-explicação, não o nome da classe.
+(0,5/1/1,5/2) valem igual nos três ícones de razão: eles medem "quantos meses
+de receita isto vale", e nada mais.
 
-| Classe | Faixa da razão |
+**As PALAVRAS da escala, porém, são só da poção.** O dono nomeou as faixas
+falando do que se GUARDA, e é lá que os nomes ficam:
+
+| Classe (só a poção) | Faixa da razão |
 |---|---|
-| nenhuma | `r < 0,5` |
+| gole | `r < 0,5` |
 | semi | `0,5 ≤ r < 1` |
 | regular | `1 ≤ r < 1,5` |
 | super | `1,5 ≤ r < 2` |
 | hiper | `r ≥ 2` |
 
-> **Pendência consciente.** O dono definiu os quatro cortes falando da POÇÃO. A
-> leitura adotada aqui — a mesma escala e os mesmos nomes nos três ícones,
-> porque os três medem "quantos meses de receita isto vale" — é uma decisão de
-> apresentação que ainda passa pelo crivo dele. O que o servidor publica não
-> muda com a resposta: ele entrega o denominador, e quem nomeia as faixas é o
-> app.
+O **ovo** e a **gota** mostram a razão crua — "1,1× da receita prevista do mês
+(R$ 18.550,00)" — e o julgamento deles sai da COR do anel e da mini explicação.
+A rodada anterior os nomeava com as mesmas palavras, e o resultado era a folha
+do ovo abrindo com "gole" sobre R$ 20.187,80 de faturas: um vocabulário de
+poção elogiando o tamanho de uma dívida. Os cortes continuam existindo para os
+três (são eles que decidem a casca do ovo e a tinta do anel); o que não se
+repete é o NOME.
 
 **Denominador desconhecido não é denominador zero.** Quando o servidor não
 tem como saber a receita — nem planejado, nem histórico —, ele **não publica o
@@ -2683,13 +2685,13 @@ não a cópia da interface.
 **Gota (dívidas)**
 
 - **pt** — *O que você deve pinga numa gota, e ela pesa mais quanto maior for
-  diante do que você ganha. Uma gota hiper significa dois meses inteiros de
-  receita comprometidos. Financeiro: é o saldo devedor dividido pela receita
+  diante do que você ganha. Uma gota de dois meses inteiros de receita é uma
+  dívida que manda no seu ano. Financeiro: é o saldo devedor dividido pela receita
   prevista do mês. XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado
   pago e pelas metas de quitação.*
 - **en** — *What you owe drips into a single drop, and it weighs more the bigger
-  it is against what you earn. A hyper drop means two whole months of income
-  already committed. Finance: it's your outstanding debt divided by this month's
+  it is against what you earn. A drop worth two whole months of income is a
+  debt that runs your year. Finance: it's your outstanding debt divided by this month's
   expected income. XP: none directly; paying debt down earns XP through planned entries
   paid and through payoff goals.*
 
@@ -2715,9 +2717,20 @@ não a cópia da interface.
 
 ### Pendências conhecidas (levantadas no QA deste pacote)
 
-Nada aqui foi implementado: são quatro assimetrias reais que o QA registrou ao
-aprovar o HUD mensal, e que mexem em regra de jogo já publicada ou em
-procedimento de operação. Ficam escritas para não virarem descoberta de novo.
+Nada aqui foi implementado: são cinco pontos reais que o QA registrou ao
+aprovar o HUD mensal, e que mexem em regra de jogo já publicada, em
+procedimento de operação ou em decisão que ainda é do dono. Ficam escritas para
+não virarem descoberta de novo.
+
+**0. Os nomes de classe só na poção são decisão provisória de dev+QA, não do
+dono.** O dono nomeou as faixas (gole/semi/regular/super/hiper) falando da
+poção; para o ovo e a gota ele ainda não opinou. Na dúvida, o app mostra a
+razão CRUA nos dois ("1,1×", "0,4×") e reserva as palavras para a poção — a
+tabela "Classe (só a poção)" acima descreve o que está no ar, não o que foi
+decidido. O QA sugeriu, se o dono quiser nomes no ovo e na gota, nomes de
+TAMANHO ("um mês", "mês e meio", "dois meses") e não de qualidade, porque
+"regular" ao lado de um anel vermelho contradiz o anel. Quando o dono decidir,
+esta pendência sai e a tabela vira contrato.
 
 **1. O XP semanal de plano não tem teto por categoria.** O fechamento MENSAL
 paga no máximo 10 aldeões (150 XP) porque, sem teto, fatiar o orçamento em
