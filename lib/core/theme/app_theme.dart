@@ -446,8 +446,12 @@ abstract final class AppTheme {
         border: _inputBorder(palette.line),
         enabledBorder: _inputBorder(palette.line),
         focusedBorder: _inputBorder(AppColors.gold, width: 2),
-        errorBorder: _inputBorder(AppColors.danger),
-        focusedErrorBorder: _inputBorder(AppColors.danger, width: 2),
+        // A borda de erro é tinta de erro DO TEMA, não o vermelho cheio: no
+        // escuro o cheio dava 2,91:1 contra o papel do campo, abaixo do piso
+        // de 3:1 de elemento de interface — a borda que avisa do erro era a
+        // que menos se via.
+        errorBorder: _inputBorder(palette.dangerText),
+        focusedErrorBorder: _inputBorder(palette.dangerText, width: 2),
         disabledBorder: _inputBorder(palette.line),
         labelStyle: text.bodyMedium?.copyWith(color: palette.ink2),
         floatingLabelStyle: text.labelMedium?.copyWith(color: palette.ink2),
@@ -494,7 +498,14 @@ abstract final class AppTheme {
     // O erro do app era roxo (um roxo) enquanto o código
     // chamava três vermelhos diferentes. Agora erro e destrutivo são o mesmo
     // token, e ele é o do `ColorScheme`.
-    error: AppColors.danger,
+    //
+    // `error` é a TINTA de erro do tema, não o vermelho de preenchimento. O
+    // Flutter usa este papel dos dois jeitos — texto de erro, ícone de erro,
+    // e fundo de botão destrutivo com `onError` por cima — e o vermelho cheio
+    // não serve para nenhum dos dois no claro: dá 3,91:1 sobre papel como
+    // tinta, e 3,91:1 contra o branco como fundo. O vermelho cheio continua
+    // sendo o da borda de campo e o dos ícones grandes, onde 3:1 basta.
+    error: AppColors.dangerInk,
     onError: AppColors.paperLight,
     errorContainer: Color(0xFFFBDCDD),
     onErrorContainer: AppColors.dangerInk,
@@ -531,8 +542,11 @@ abstract final class AppTheme {
     onTertiary: AppColors.goldInk,
     tertiaryContainer: Color(0xFF5A4600),
     onTertiaryContainer: Color(0xFFFFF0BF),
-    error: AppColors.danger,
-    onError: AppColors.paperLight,
+    // No escuro a tinta de erro é clara e quem escreve por cima dela é a
+    // tinta escura — a convenção do Material 3, e a única forma de o par
+    // fechar 4,5:1 nos dois sentidos.
+    error: AppColors.dangerInkDark,
+    onError: AppColors.dangerInk,
     errorContainer: Color(0xFF5E1417),
     onErrorContainer: Color(0xFFFFDAD9),
     surface: AppColors.paperDark,

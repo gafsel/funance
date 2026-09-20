@@ -118,6 +118,38 @@ void main() {
         _exige('tealText sobre paper', palette.tealText, palette.paper);
       });
 
+      /// A8 — `error` e `onError` formam um PAR: o Flutter usa a primeira
+      /// como tinta sobre o papel e como fundo do botão destrutivo, com a
+      /// segunda escrita por cima. O vermelho cheio não servia para nenhum
+      /// dos dois no claro — 3,91:1 nos dois sentidos.
+      test('A8 — o par error/onError fecha nos dois sentidos', () {
+        final scheme = tema.colorScheme;
+        _exige('onError sobre error', scheme.onError, scheme.error);
+        _exige('error como tinta sobre papel', scheme.error, palette.paper);
+        _exige(
+          'onErrorContainer sobre errorContainer',
+          scheme.onErrorContainer,
+          scheme.errorContainer,
+        );
+      });
+
+      test('A8 — a borda de campo em erro se enxerga', () {
+        _exige(
+          'errorBorder sobre o papel do campo',
+          tema.inputDecorationTheme.errorBorder!.borderSide.color,
+          palette.paper2,
+          piso: grafico,
+        );
+      });
+
+      test('A8 — o texto de erro do campo se lê', () {
+        _exige(
+          'errorStyle sobre o papel do campo',
+          tema.inputDecorationTheme.errorStyle!.color!,
+          palette.paper2,
+        );
+      });
+
       test('a aba aberta continua mais forte que a fechada', () {
         final aberta = AppColors.contrastRatio(
           tema.tabBarTheme.labelColor!,
