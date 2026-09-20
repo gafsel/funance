@@ -2842,6 +2842,21 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String hudVillageAliveGroup(int count) {
+    return 'Vivos ($count)';
+  }
+
+  @override
+  String hudVillageFallenGroup(int count) {
+    return 'Caídos ($count)';
+  }
+
+  @override
+  String hudVillagerSemantics(String name, String state) {
+    return '$name: $state';
+  }
+
+  @override
   String get hudUnprotectedTitle => 'Sem proteção';
 
   @override
@@ -2887,8 +2902,8 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String hudCardLimitFigures(String used, String available) {
-    return '$used usados · $available livres';
+  String hudCardLimitFree(String amount) {
+    return '$amount livres';
   }
 
   @override

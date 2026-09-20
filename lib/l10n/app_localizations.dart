@@ -4946,6 +4946,24 @@ abstract class AppLocalizations {
   /// **'{amount} além do orçamento'**
   String hudVillagerOver(String amount);
 
+  /// No description provided for @hudVillageAliveGroup.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vivos ({count})'**
+  String hudVillageAliveGroup(int count);
+
+  /// No description provided for @hudVillageFallenGroup.
+  ///
+  /// In pt, this message translates to:
+  /// **'Caídos ({count})'**
+  String hudVillageFallenGroup(int count);
+
+  /// No description provided for @hudVillagerSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'{name}: {state}'**
+  String hudVillagerSemantics(String name, String state);
+
   /// No description provided for @hudUnprotectedTitle.
   ///
   /// In pt, this message translates to:
@@ -5018,11 +5036,11 @@ abstract class AppLocalizations {
   /// **'{percent}% do limite usado'**
   String hudCardLimitUsage(int percent);
 
-  /// No description provided for @hudCardLimitFigures.
+  /// No description provided for @hudCardLimitFree.
   ///
   /// In pt, this message translates to:
-  /// **'{used} usados · {available} livres'**
-  String hudCardLimitFigures(String used, String available);
+  /// **'{amount} livres'**
+  String hudCardLimitFree(String amount);
 
   /// No description provided for @hudCardLimitUnknown.
   ///

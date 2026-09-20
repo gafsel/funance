@@ -2733,6 +2733,27 @@ A metáfora é lúdica; o destino que ela aponta, não.
 
 A mini explicação abre toda folha; abaixo dela vem o que compõe o número.
 
+- **Vila** — uma GRADE de aldeões, e não uma lista: cada um é um anel
+  circular (HP restante ÷ orçamento) com o ícone e a cor da categoria no
+  miolo, o nome e o valor compacto ("R$ 1,1 mil"). Dois grupos com título e
+  contagem — **"Caídos (5)"** e **"Vivos (13)"** —, e as categorias com gasto
+  e SEM orçamento continuam à parte, em "Sem proteção", porque elas não são
+  aldeãs e não perdem nada.
+
+  A ordem dentro de cada grupo: os caídos do estouro mais fundo para o mais
+  raso, os vivos por FRAÇÃO de HP crescente — quem está mais perto de cair
+  aparece antes. Folga em reais não é risco.
+
+  Os **caídos vêm primeiro**, embora o dono tenha citado os títulos na ordem
+  inversa: com treze vivos, quatro tiles por linha empurram os caídos para
+  baixo da dobra de um celular de 400 px, e é o caído que o usuário precisa
+  ver para fazer alguma coisa. É também a ordem da Party — a visão que ele
+  pediu para imitar — e a da lista que esta grade substituiu.
+
+  O anel é o [`AppRing`] de `lib/core/widgets/app_ring.dart`, genérico e
+  compartilhado. O aldeão caído fica com o anel CHEIO em vermelho, e não
+  vazio: vazio ele lia como um aldeão que ainda não tinha carregado.
+
 - **Incubados** — uma linha por cartão (valor, ciclo e vencimento, e a marca
   de vencida em tinta de perigo) e, sob cada uma, a **progressão de uso do
   limite**: a mesma barra da Visão Geral (`AppProgressBar` fina, na cor da

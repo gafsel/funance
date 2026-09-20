@@ -9,6 +9,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:funances/core/money/money.dart';
 import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/l10n/app_localizations.dart';
@@ -106,6 +108,21 @@ String? hudRatioOfIncome(AppLocalizations l10n, HudRatio ratio, String locale) {
 
   return l10n.hudRatioOfIncome(value, income.format(locale: locale));
 }
+
+/// O valor COMPACTO de um aldeão: "R$ 1,5 mil" em vez de "R$ 1.462,77".
+///
+/// A grade da vila põe dezoito valores lado a lado em tiles de setenta e
+/// poucos pixels, e "R$ 1.462,77" em `labelSmall` não cabe em nenhum deles —
+/// ou sai cortado no meio ("R$ 1.46…"), que é pior do que arredondar: um
+/// número truncado parece um número. A pergunta que a grade responde é
+/// "quanto falta?", e para ela a ordem de grandeza basta; os centavos exatos
+/// estão a um toque, na tela de planejamento.
+///
+/// `compactSimpleCurrency` e não um `toStringAsFixed` com sufixo à mão: "mil"
+/// em português e "K" em inglês são decisão de LOCALE, e escrevê-la no código
+/// seria traduzir na mão o que o `intl` já traduz.
+String hudCompactMoney(Money value, String locale) =>
+    NumberFormat.compactSimpleCurrency(locale: locale).format(value.toDouble());
 
 // ── A semântica: o que a COR diz, em palavras ────────────────────────────────
 //

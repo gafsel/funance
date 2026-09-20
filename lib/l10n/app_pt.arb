@@ -1717,6 +1717,12 @@
     }
   },
   "hudVillagerOver": "{amount} além do orçamento",
+  "hudVillageAliveGroup": "Vivos ({count})",
+  "@hudVillageAliveGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillageFallenGroup": "Caídos ({count})",
+  "@hudVillageFallenGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillagerSemantics": "{name}: {state}",
+  "@hudVillagerSemantics": {"placeholders": {"name": {"type": "String"}, "state": {"type": "String"}}},
   "@hudVillagerOver": {
     "placeholders": {
       "amount": {
@@ -1753,8 +1759,8 @@
   "hudCardLimitLabel": "Limite do cartão",
   "hudCardLimitUsage": "{percent}% do limite usado",
   "@hudCardLimitUsage": {"placeholders": {"percent": {"type": "int"}}},
-  "hudCardLimitFigures": "{used} usados · {available} livres",
-  "@hudCardLimitFigures": {"placeholders": {"used": {"type": "String"}, "available": {"type": "String"}}},
+  "hudCardLimitFree": "{amount} livres",
+  "@hudCardLimitFree": {"placeholders": {"amount": {"type": "String"}}},
   "hudCardLimitUnknown": "Limite não informado neste cartão.",
   "hudInvoiceOverdue": "{days, plural, =1{Venceu há 1 dia} other{Venceu há {days} dias}}",
   "@hudInvoiceOverdue": {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/domain/services/hud_calculator.dart';
@@ -523,23 +524,82 @@ void main() {
     });
   });
 
-  group('a folha da vila', () {
-    testWidgets('o aldeão morto tem a barra CHEIA de vermelho', (tester) async {
+  group('a folha da vila é uma grade, e não uma lista', () {
+    testWidgets('os dois grupos se apresentam com a contagem', (tester) async {
       await pumpHudFooter(tester, size: const Size(400, 900));
 
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
 
-      final barras = tester
-          .widgetList<LinearProgressIndicator>(
-            find.byType(LinearProgressIndicator),
+      // Treze de dezoito de pé no cofre do dono: cinco caíram.
+      expect(find.text('Vivos (13)'), findsOneWidget);
+      expect(find.text('Caídos (5)'), findsOneWidget);
+    });
+
+    testWidgets('o aldeão caído tem o anel CHEIO de vermelho', (tester) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      // Vazio, o caído lia como um aldeão que ainda não tinha carregado: a
+      // calha inteira à mostra é a ausência de anel, não a presença de uma
+      // notícia ruim.
+      final caido = tester.widget<AppRing>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('hud-villager-cat-Manutenção do carro'),
+          ),
+          matching: find.byType(AppRing),
+        ),
+      );
+
+      expect(caido.value, 1);
+      expect(caido.color, AppColors.danger);
+    });
+
+    testWidgets('os vivos vêm por proximidade da morte', (tester) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      final vivos = tester
+          .widgetList<AppRing>(
+            find.descendant(
+              of: find.byKey(const ValueKey('hud-village-alive')),
+              matching: find.byType(AppRing),
+            ),
           )
+          .map((ring) => ring.value)
           .toList();
 
-      // A primeira linha é a de "Manutenção do carro": R$ 350 de orçamento
-      // contra R$ 1.462,77 gastos — o morto mais fundo da vila.
-      expect(barras.first.value, 1);
-      expect(barras.first.color, isNot(AppColors.success));
+      // Fração de HP CRESCENTE: quem está mais perto de cair aparece antes.
+      // Folga em reais não é risco — "Investimentos", com R$ 200 de
+      // orçamento e nada gasto, não pode subir acima de "Cuidados pessoais",
+      // que já queimou 78% de R$ 1.500.
+      expect(vivos, isNotEmpty);
+      expect(vivos, orderedEquals(<double>[...vivos]..sort()));
+      expect(vivos.first, lessThan(vivos.last));
+    });
+
+    testWidgets('o valor do aldeão é compacto, e a semântica é exata', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      // "Manutenção do carro": R$ 350 de orçamento contra R$ 1.462,77 —
+      // R$ 1.112,77 além do plano. Sob um anel de 44 px cabe "R$ 1,1 mil";
+      // quem ouve a tela recebe o número inteiro.
+      expect(
+        find.bySemanticsLabel(
+          RegExp('^Manutenção do carro: R.*1[.]112,77 além do orçamento'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('o mês fechado aparece por extenso, não como chave', (
@@ -635,6 +695,54 @@ void main() {
     testWidgets('"reduzir movimento" para tudo', (tester) async {
       await pumpHudFooter(tester, reduceMotion: true);
 
+      expect(tester.binding.hasScheduledFrame, isFalse);
+    });
+  });
+
+  group('as quatro folhas cabem', () {
+    for (final caso in <({String nome, Size tamanho, bool compact})>[
+      (nome: 'celular, 400 px', tamanho: Size(400, 900), compact: true),
+      (nome: 'desktop, 1300 px', tamanho: Size(1300, 900), compact: false),
+    ]) {
+      for (final tema in Brightness.values) {
+        testWidgets('${caso.nome}, tema ${tema.name}', (tester) async {
+          for (var indice = 0; indice < 4; indice++) {
+            await pumpHudFooter(
+              tester,
+              size: caso.tamanho,
+              compact: caso.compact,
+              theme: tema == Brightness.dark ? AppTheme.dark : AppTheme.light,
+            );
+
+            await tester.tap(find.byType(HudGlyph).at(indice));
+            await tester.pumpAndSettle();
+
+            // A grade da vila é a que corre mais risco: dezoito tiles num
+            // `Wrap` dentro de um `ListView` dentro de uma folha modal.
+            expect(
+              tester.takeException(),
+              isNull,
+              reason: 'a folha $indice estourou em ${caso.nome}',
+            );
+          }
+        });
+      }
+    }
+
+    testWidgets('a folha da vila respeita "reduzir movimento"', (tester) async {
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        reduceMotion: true,
+      );
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      // Dezoito anéis de aldeão são dezoito `CustomPaint` parados. Se algum
+      // deles tivesse ficado com um `Ticker` vivo — que é o que o
+      // `CircularProgressIndicator` da Party faz mesmo com `value` fixo — a
+      // folha pediria quadro para sempre.
       expect(tester.binding.hasScheduledFrame, isFalse);
     });
   });

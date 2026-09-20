@@ -9,6 +9,7 @@ import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/widgets/app_progress_bar.dart';
+import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
@@ -502,11 +503,35 @@ class _VillageSheet extends StatelessWidget {
               context,
             ).textTheme.labelSmall?.copyWith(color: palette.rewardText),
           ),
-          for (final villager in village.villagers)
-            _Villager(
-              key: ValueKey('hud-villager-${villager.categoryId}'),
-              villager: villager,
+          // A vila é uma GRADE, e não uma lista. O dono pediu "uma visão
+          // semelhante à da Party": dezoito linhas empilhadas obrigam a
+          // rolar para saber quantos caíram, e a resposta a essa pergunta
+          // é o que a folha existe para dar. Numa grade de anéis ela se lê
+          // de relance — e os dois grupos a dizem sem contar nada.
+          _VillagerGroup(
+            key: const ValueKey('hud-village-fallen'),
+            title: l10n.hudVillageFallenGroup(
+              village.plannedCount - village.aliveCount,
             ),
+            // Os CAÍDOS primeiro, do estouro mais fundo para o mais raso.
+            //
+            // O dono citou os dois títulos na ordem "Vivos" e "Caídos", e a
+            // grade os inverte por uma razão de tela: com treze vivos, dois
+            // grupos de quatro por linha põem os caídos abaixo da dobra de
+            // um celular de 400 px — e é o caído que o usuário precisa ver
+            // para fazer alguma coisa a respeito. É também a ordem da Party,
+            // que foi a visão que ele pediu para imitar (crítico, atenção,
+            // estável), e a da lista que esta grade substituiu.
+            villagers: village.villagers.where((v) => !v.isAlive),
+          ),
+          _VillagerGroup(
+            key: const ValueKey('hud-village-alive'),
+            title: l10n.hudVillageAliveGroup(village.aliveCount),
+            // Os vivos vêm do calculador já ordenados por FRAÇÃO de HP
+            // crescente: quem está mais perto de cair aparece primeiro, e
+            // folga em reais não é risco.
+            villagers: village.villagers.where((v) => v.isAlive),
+          ),
         ],
         if (village.unprotected.isNotEmpty) ...[
           _SectionTitle(
@@ -537,11 +562,70 @@ class _VillageSheet extends StatelessWidget {
   }
 }
 
-/// Um aldeão: nome, barra de HP e o que sobra do orçamento.
+/// Um GRUPO de aldeões: o título com a contagem e a grade de anéis.
+///
+/// Grupo vazio não desenha nada — nem o título. "Caídos (0)" numa vila
+/// inteira de pé é um título procurando conteúdo, e ele empurraria o
+/// histórico para baixo sem dizer nada que o número grande já não diga.
+class _VillagerGroup extends StatelessWidget {
+  const _VillagerGroup({
+    super.key,
+    required this.title,
+    required this.villagers,
+  });
+
+  final String title;
+  final Iterable<HudVillager> villagers;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = villagers.toList(growable: false);
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionTitle(text: title),
+        Wrap(
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final villager in items)
+              _Villager(
+                key: ValueKey('hud-villager-${villager.categoryId}'),
+                villager: villager,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Um ALDEÃO na grade: o anel de HP, o ícone da categoria, o nome e o que
+/// sobra — ou o que estourou.
+///
+/// O ANEL é o mesmo componente da Party ([AppRing]) e mede a mesma coisa que
+/// a barra que ele substituiu: a fração de HP que resta. O caído fica com o
+/// anel CHEIO em vermelho, e não vazio: vazio ele lia como um aldeão que
+/// ainda não tinha carregado — a calha inteira à mostra é a ausência de
+/// barra, não a presença de uma notícia ruim.
+///
+/// A cor do MIOLO é a da categoria, e não a do estado. Se as duas fossem a
+/// mesma, a grade inteira ficaria verde ou vermelha e o usuário perderia a
+/// única pista de qual aldeão é qual antes de ler o nome.
 class _Villager extends StatelessWidget {
   const _Villager({super.key, required this.villager});
 
   final HudVillager villager;
+
+  /// A largura de um aldeão na grade.
+  ///
+  /// Setenta e seis pixels dão cinco por linha num celular de 400 px (quatro
+  /// com a margem da folha) e não quebram o nome de "Cuidados pessoais" em
+  /// mais de duas linhas. Abaixo disso o nome vira reticências em quase toda
+  /// categoria, e um aldeão sem nome é um ponto colorido.
+  static const double largura = 76;
 
   @override
   Widget build(BuildContext context) {
@@ -552,76 +636,55 @@ class _Villager extends StatelessWidget {
 
     final color = villager.color.asColor(orElse: palette.ink3);
     final alive = villager.isAlive;
+    final estado = alive
+        ? l10n.hudVillagerHp(
+            villager.hp.format(locale: locale),
+            villager.planned.format(locale: locale),
+          )
+        : l10n.hudVillagerOver((-villager.hp).format(locale: locale));
 
-    return InkWell(
-      onTap: () => context.push('/planning'),
-      child: Padding(
-        padding: AppSpacing.vXs,
-        child: Row(
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.16),
-                borderRadius: AppRadius.brSm,
-              ),
-              child: Icon(villager.icon.asIcon(), size: 16, color: color),
-            ),
-            AppSpacing.gapXs,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          villager.name,
-                          style: theme.textTheme.bodyMedium,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Text(
-                        alive
-                            ? l10n.hudVillagerHp(
-                                villager.hp.format(locale: locale),
-                                villager.planned.format(locale: locale),
-                              )
-                            : l10n.hudVillagerOver(
-                                (-villager.hp).format(locale: locale),
-                              ),
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: alive
-                              ? palette.successText
-                              : palette.dangerText,
-                        ),
-                      ),
-                    ],
+    return Semantics(
+      button: true,
+      // A semântica diz o valor EXATO, e não o compacto: "R$ 1,5 mil" é uma
+      // concessão à largura do tile, e quem ouve a tela não tem largura
+      // nenhuma para economizar.
+      label: l10n.hudVillagerSemantics(villager.name, estado),
+      child: InkWell(
+        borderRadius: AppRadius.brMd,
+        onTap: () => context.push('/planning'),
+        child: ExcludeSemantics(
+          child: SizedBox(
+            width: largura,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppRing.icon(
+                  value: alive ? villager.hpRatio : 1,
+                  color: alive ? AppColors.success : AppColors.danger,
+                  icon: villager.icon.asIcon(),
+                  iconColor: color,
+                  size: 44,
+                ),
+                AppSpacing.gapXxs,
+                Text(
+                  villager.name,
+                  style: theme.textTheme.labelSmall,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  hudCompactMoney(alive ? villager.hp : -villager.hp, locale),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: alive ? palette.successText : palette.dangerText,
+                    fontWeight: FontWeight.w600,
                   ),
-                  AppSpacing.gapXxs,
-                  // A barra de HP: o que SOBRA do orçamento. Um aldeão morto
-                  // fica com a calha inteira à mostra, e é assim que a lista
-                  // mostra a queda sem precisar de um rótulo "morto".
-                  ClipRRect(
-                    borderRadius: AppRadius.brPill,
-                    child: LinearProgressIndicator(
-                      // O MORTO tem a barra CHEIA em vermelho, e não vazia.
-                      // Vazia, ele lia igual a um aldeão que ainda não tinha
-                      // carregado: a calha inteira à mostra é a ausência de
-                      // barra, não a presença de uma notícia ruim. Cheia de
-                      // vermelho, a linha grita o que aconteceu ali.
-                      value: alive ? villager.hpRatio : 1,
-                      minHeight: 6,
-                      backgroundColor: palette.line,
-                      color: alive ? AppColors.success : AppColors.danger,
-                    ),
-                  ),
-                ],
-              ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -776,7 +839,9 @@ class _EggSheet extends StatelessWidget {
 /// O que a folha acrescenta é o que a Visão Geral não tinha espaço para
 /// dizer: a PORCENTAGEM por extenso. Ela é a resposta à pergunta que faz o
 /// usuário abrir esta folha — "quanto do cartão eu já comprometi?" — e ler
-/// isso de uma barra a olho é adivinhar.
+/// isso de uma barra a olho é adivinhar. Em troca sai o valor USADO, que a
+/// porcentagem e a barra já dizem duas vezes: os dois pares não cabiam em
+/// 400 px e o segundo saía cortado no meio.
 ///
 /// Cartão sem limite cadastrado não ganha barra nenhuma, e essa é a decisão
 /// que importa: uma barra a 0% diria "o cartão está inteiro livre" onde o
@@ -840,10 +905,12 @@ class _CardLimit extends StatelessWidget {
               AppSpacing.gapXs,
               Flexible(
                 child: Text(
-                  l10n.hudCardLimitFigures(
-                    invoice.used.format(locale: locale),
-                    available.format(locale: locale),
-                  ),
+                  // O que sobra, e não o que já foi: o "usado" já está dito
+                  // duas vezes — pela barra e pela porcentagem —, e o par
+                  // completo não cabia em 400 px sem cortar o número ao meio
+                  // ("R$ 6…"), que mente mais do que não mostrar. O livre é
+                  // o número que decide a próxima compra.
+                  l10n.hudCardLimitFree(available.format(locale: locale)),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: palette.ink3,
                   ),

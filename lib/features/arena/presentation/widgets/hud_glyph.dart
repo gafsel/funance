@@ -1,16 +1,16 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 
 /// O anel de progresso dos ícones do rodapé.
 ///
-/// Não é o `CircularProgressIndicator` do Material por três razões, e nenhuma
-/// delas é gosto: ele não aceita cor de CALHA (o trilho vazio é sempre uma
-/// versão translúcida da tinta, e sobre a superfície de jogo isso some), ele
-/// desenha o traço com ponta reta e, com `value` fixo, ainda mantém um
-/// `Ticker` vivo. Aqui o anel é um arco e nada mais.
+/// É o [AppRing] do app com a CALHA da superfície de jogo: sobre o fundo
+/// escuro da cena, um trilho feito da própria tinta translúcida — que é o
+/// padrão do anel genérico — simplesmente some. O arco, a ponta arredondada
+/// e o começo no topo são os mesmos, e é de propósito: o anel do rodapé e o
+/// da grade de aldeões medem a mesma espécie de coisa e não podem ser dois
+/// desenhos diferentes.
 class HudRing extends StatelessWidget {
   const HudRing({
     super.key,
@@ -31,68 +31,15 @@ class HudRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _RingPainter(
-          progress: progress.clamp(0.0, 1.0),
-          color: color,
-          stroke: stroke,
-        ),
-        child: Center(child: child),
-      ),
+    return AppRing(
+      value: progress,
+      color: color,
+      size: size,
+      stroke: stroke,
+      trackColor: AppColors.gameTrough,
+      child: child,
     );
   }
-}
-
-class _RingPainter extends CustomPainter {
-  const _RingPainter({
-    required this.progress,
-    required this.color,
-    required this.stroke,
-  });
-
-  final double progress;
-  final Color color;
-  final double stroke;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final center = rect.center;
-    final radius = (math.min(size.width, size.height) - stroke) / 2;
-
-    final trough = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..color = AppColors.gameTrough;
-
-    canvas.drawCircle(center, radius, trough);
-
-    if (progress <= 0) return;
-
-    final arc = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.round
-      ..color = color;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      // Começa no topo e anda no sentido do relógio: é como um mostrador se
-      // lê, e o rodapé inteiro depende de o usuário entender o anel sem
-      // legenda.
-      -math.pi / 2,
-      2 * math.pi * progress,
-      false,
-      arc,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.color != color || old.stroke != stroke;
 }
 
 /// As quatro figuras do rodapé, desenhadas em código.

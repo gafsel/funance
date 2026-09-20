@@ -1717,6 +1717,12 @@
     }
   },
   "hudVillagerOver": "{amount} past the budget",
+  "hudVillageAliveGroup": "Standing ({count})",
+  "@hudVillageAliveGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillageFallenGroup": "Fallen ({count})",
+  "@hudVillageFallenGroup": {"placeholders": {"count": {"type": "int"}}},
+  "hudVillagerSemantics": "{name}: {state}",
+  "@hudVillagerSemantics": {"placeholders": {"name": {"type": "String"}, "state": {"type": "String"}}},
   "@hudVillagerOver": {
     "placeholders": {
       "amount": {
@@ -1753,8 +1759,8 @@
   "hudCardLimitLabel": "Card limit",
   "hudCardLimitUsage": "{percent}% of the limit used",
   "@hudCardLimitUsage": {"placeholders": {"percent": {"type": "int"}}},
-  "hudCardLimitFigures": "{used} used · {available} free",
-  "@hudCardLimitFigures": {"placeholders": {"used": {"type": "String"}, "available": {"type": "String"}}},
+  "hudCardLimitFree": "{amount} free",
+  "@hudCardLimitFree": {"placeholders": {"amount": {"type": "String"}}},
   "hudCardLimitUnknown": "No credit limit set for this card.",
   "hudInvoiceOverdue": "{days, plural, =1{Overdue by 1 day} other{Overdue by {days} days}}",
   "@hudInvoiceOverdue": {
