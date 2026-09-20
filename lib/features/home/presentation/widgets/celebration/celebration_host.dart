@@ -81,24 +81,57 @@ class _CelebrationHostState extends ConsumerState<CelebrationHost> {
   void _emit(Iterable<CelebrationEvent> events) {
     if (events.isEmpty) return;
     final settings = ref.read(CelebrationProviders.settings);
+
+    // A ordem de ENFILEIRAMENTO é da menor para a maior conquista, e não a
+    // ordem em que os eventos foram descobertos.
+    //
+    // Duas coisas dependem dela, e antes as duas saíam erradas numa rajada.
+    // A fila tem teto e descarta pela frente: com o nível entrando antes das
+    // badges, era o nível — a conquista mais forte — que caía fora quando a
+    // rajada passava do teto. E a pilha na tela é desenhada nesta ordem, com
+    // a última por cima, então subir de nível aparecia ABAIXO do XP que veio
+    // junto.
+    //
+    // É a mesma regra de `celebrateAll`, e é dele que ela sai agora: havia
+    // duas cópias, e só uma estava certa.
+    final ordered = events.toList()
+      ..sort((a, b) => a.kind.index.compareTo(b.kind.index));
+
     final accepted = <CelebrationEvent>[];
-    for (final event in events) {
+    for (final event in ordered) {
       if (_service.celebrate(event)) accepted.add(event);
     }
     if (accepted.isEmpty) return;
-    // Uma háptica por rajada, na maior das conquistas: três vibrações
-    // seguidas viram ruído.
-    accepted.sort((a, b) => b.kind.index.compareTo(a.kind.index));
-    unawaited(playCelebrationFeedback(accepted.first, settings));
 
-    if (accepted.first.kind.isMajor && !AppDurations.reduceMotion(context)) {
+    // Uma háptica por rajada, na maior das conquistas: três vibrações
+    // seguidas viram ruído. A maior é a ÚLTIMA da lista ordenada.
+    final strongest = accepted.last;
+    unawaited(playCelebrationFeedback(strongest, settings));
+
+    if (strongest.kind.isMajor && !AppDurations.reduceMotion(context)) {
       _confetti.play();
     }
   }
 
   void _onWorkspaceChanged(String? id) {
+    // Um `null` NÃO é troca de cofre.
+    //
+    // O `workspaceId` some por instantes sempre que o stream do workspace
+    // reconecta — voltar do background, recuperar a rede, trocar de conta no
+    // Firestore. O esquecimento era disparado nesse null e DE NOVO quando o
+    // mesmo id voltava: tudo que já tinha sido celebrado na sessão voltava a
+    // ser celebrável, e a badge de ontem piscava outra vez. A idempotência
+    // que o serviço garante era desfeita por fora.
+    if (id == null) return;
     if (_workspaceId == id) return;
+
+    final previous = _workspaceId;
     _workspaceId = id;
+
+    // Primeira carga: não há o que esquecer, e resetar aqui só descartaria a
+    // fila que outra parte do app talvez já tenha enfileirado.
+    if (previous == null) return;
+
     _missionStatus.clear();
     _tier = null;
     // As chaves são por cofre: o nível 7 da casa não é o nível 7 da empresa.
@@ -209,8 +242,13 @@ class _CelebrationHostState extends ConsumerState<CelebrationHost> {
 
     return CelebrationOverlay(
       confetti: _confetti,
+      // `reversed`: a fila guarda da menor para a maior conquista — é assim
+      // que o teto descarta a menor primeiro —, e a pilha na tela cresce para
+      // BAIXO a partir do topo. Sem inverter, subir de nível ficava embaixo
+      // do XP que veio junto, que é o contrário do que a ordem da fila
+      // promete.
       toasts: [
-        for (final event in events)
+        for (final event in events.reversed)
           RewardToast(
             key: ValueKey(event.key),
             icon: _iconOf(event.kind),

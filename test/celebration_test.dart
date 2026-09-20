@@ -598,6 +598,133 @@ void main() {
 
       expect(find.text('Conquista desbloqueada'), findsNothing);
     });
+
+    /// M2 — o `workspaceId` some por instantes sempre que o stream do
+    /// workspace reconecta: voltar do background, recuperar a rede, trocar de
+    /// conta no Firestore. O esquecimento era disparado nesse null e DE NOVO
+    /// quando o mesmo id voltava, desfazendo por fora a idempotência que o
+    /// serviço garante.
+    testWidgets('M2 — um null transitório não esquece o que já foi celebrado', (
+      tester,
+    ) async {
+      // Sem `addTearDown`: com o cofre nulo, `currentWeekId` cai no
+      // `todayProvider`, que agenda um timer de meia-noite — e o framework
+      // confere timers pendentes ANTES de rodar os tear downs.
+      final container = build();
+
+      await tester.pumpWidget(_Harness(container: container));
+      await tester.pump();
+
+      const badges = {'primeiro_passo': '2026-09-17T10:00:00.000Z'};
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(badges: badges),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Conquista desbloqueada'), findsOneWidget);
+
+      container.read(CelebrationProviders.queue.notifier).dismissAll();
+      await tester.pump();
+
+      // O stream pisca: cofre nulo e, logo depois, o MESMO cofre de volta.
+      notifier.state = const WorkspaceState();
+      await tester.pump();
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(badges: badges),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(
+        find.text('Conquista desbloqueada'),
+        findsNothing,
+        reason: 'reconectar não é trocar de cofre',
+      );
+      expect(
+        container.read(CelebrationProviders.queue.notifier).hasSeen(
+          'badge:primeiro_passo',
+        ),
+        isTrue,
+      );
+
+      container.dispose();
+    });
+
+    testWidgets('M2 — trocar de cofre DE VERDADE ainda esquece', (
+      tester,
+    ) async {
+      final container = build();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(_Harness(container: container));
+      await tester.pump();
+
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(level: 7),
+      );
+      await tester.pump();
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(id: 'w2', level: 7),
+      );
+      await tester.pump();
+
+      expect(
+        container.read(CelebrationProviders.queue.notifier).hasSeen('level:7'),
+        isFalse,
+        reason: 'o nível 7 da casa não é o nível 7 da empresa',
+      );
+    });
+
+    /// M3 — a fila guarda da menor para a maior conquista (é assim que o teto
+    /// descarta a menor primeiro) e a pilha cresce para BAIXO a partir do
+    /// topo. Sem inverter na hora de desenhar, subir de nível aparecia abaixo
+    /// do XP que veio junto.
+    testWidgets('M3 — a conquista mais forte fica POR CIMA', (tester) async {
+      final container = build();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(_Harness(container: container));
+      await tester.pump();
+
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(
+          level: 2,
+          xp: 500,
+          badges: const {'primeiro_passo': '2026-09-17T10:00:00.000Z'},
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final nivel = tester.getTopLeft(find.text('Nível 2')).dy;
+      final badge = tester.getTopLeft(find.text('Conquista desbloqueada')).dy;
+
+      expect(
+        nivel,
+        lessThan(badge),
+        reason: 'subir de nível é a conquista maior da rajada',
+      );
+    });
+
+    testWidgets('M3 — e a rajada não descarta justamente a maior', (
+      tester,
+    ) async {
+      final service = CelebrationService()
+        ..celebrateAll([
+          CelebrationEvent.xp(10, sequence: 1),
+          CelebrationEvent.xp(20, sequence: 2),
+          CelebrationEvent.badge('b'),
+          CelebrationEvent.level(3),
+        ]);
+
+      expect(
+        service.state.map((e) => e.key),
+        ['xp:2', 'badge:b', 'level:3'],
+        reason:
+            'o teto corta PELA FRENTE: com a ordem invertida era o nível — a '
+            'maior conquista da rajada — que caía fora',
+      );
+    });
   });
 
   /// B2 — tocar no toast derrubava o app.
