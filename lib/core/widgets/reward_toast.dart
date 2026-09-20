@@ -64,6 +64,25 @@ class _RewardToastState extends State<RewardToast>
     reverseDuration: AppDurations.normal,
   );
 
+  /// As duas curvas do toast, criadas UMA vez.
+  ///
+  /// Elas nasciam dentro do `builder` do `AnimatedBuilder` — ou seja, um
+  /// `CurvedAnimation` novo por frame, cada um se inscrevendo no controller e
+  /// nenhum sendo descartado. Numa rajada de três toasts de 700ms isso são
+  /// centenas de objetos e centenas de listeners vivos até o controller
+  /// morrer; o `flutter_test` reclama de `CurvedAnimation` não descartado
+  /// desde que passou a rastreá-los.
+  late final CurvedAnimation _motion = CurvedAnimation(
+    parent: _controller,
+    curve: AppDurations.curveReward,
+    reverseCurve: AppDurations.curveExit,
+  );
+
+  late final CurvedAnimation _fade = CurvedAnimation(
+    parent: _controller,
+    curve: Curves.easeOut,
+  );
+
   Timer? _exitTimer;
   bool _leaving = false;
 
@@ -108,6 +127,8 @@ class _RewardToastState extends State<RewardToast>
   void dispose() {
     _exitTimer?.cancel();
     _controller.removeStatusListener(_onStatus);
+    _motion.dispose();
+    _fade.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -213,20 +234,16 @@ class _RewardToastState extends State<RewardToast>
     if (reduce) {
       // Sem movimento: o toast aparece e desaparece com um fade curto, que é
       // o mínimo para não piscar na tela.
-      return FadeTransition(
-        opacity: CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-        child: tappable,
-      );
+      return FadeTransition(opacity: _fade, child: tappable);
     }
 
+    // Escuta a CURVA, não o controller: é o valor que o builder lê, e assim a
+    // animação usada fica observável de fora (um teste consegue afirmar que
+    // ela é a MESMA a cada frame).
     return AnimatedBuilder(
-      animation: _controller,
+      animation: _motion,
       builder: (context, child) {
-        final t = CurvedAnimation(
-          parent: _controller,
-          curve: AppDurations.curveReward,
-          reverseCurve: AppDurations.curveExit,
-        ).value;
+        final t = _motion.value;
         return Opacity(
           opacity: _controller.value.clamp(0.0, 1.0),
           child: Transform.translate(

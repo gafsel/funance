@@ -312,6 +312,69 @@ void main() {
       expect(dismissed, isTrue);
     });
 
+    /// M1 — as curvas nasciam dentro do `builder`, ou seja um
+    /// `CurvedAnimation` NOVO por frame, cada um se inscrevendo no controller
+    /// e nenhum sendo descartado. Numa rajada de três toasts de 700ms são
+    /// centenas de objetos e centenas de listeners vivos.
+    testWidgets('M1 — a curva é a MESMA em todos os frames', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const Scaffold(
+            body: RewardToast(icon: Icons.bolt, title: 'XP ganho'),
+          ),
+        ),
+      );
+
+      Listenable curvaAtual() => tester
+          .widget<AnimatedBuilder>(
+            find.descendant(
+              of: find.byType(RewardToast),
+              matching: find.byType(AnimatedBuilder),
+            ),
+          )
+          .animation;
+
+      final primeira = curvaAtual();
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 30));
+        expect(
+          identical(curvaAtual(), primeira),
+          isTrue,
+          reason: 'frame $i criou uma curva nova',
+        );
+      }
+    });
+
+    testWidgets('M1 — a curva do fade também é criada uma vez', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: const MediaQuery(
+            data: MediaQueryData(disableAnimations: true),
+            child: Scaffold(
+              body: RewardToast(icon: Icons.bolt, title: 'XP ganho'),
+            ),
+          ),
+        ),
+      );
+
+      Animation<double> fade() => tester
+          .widget<FadeTransition>(
+            find.descendant(
+              of: find.byType(RewardToast),
+              matching: find.byType(FadeTransition),
+            ),
+          )
+          .opacity;
+
+      final primeira = fade();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(identical(fade(), primeira), isTrue);
+    });
+
     testWidgets('com "reduzir movimento" não escala nem desloca', (
       tester,
     ) async {
