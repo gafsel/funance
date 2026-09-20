@@ -120,10 +120,14 @@ class _SummaryFake with _NaoUsado implements IPeriodSummaryRepository {
 }
 
 class _AutomaticFake implements IAutomaticTransactionRepository {
+  _AutomaticFake(this.pending);
+
+  final List<AutomaticTransactionModel> pending;
+
   @override
   Future<List<AutomaticTransactionModel>> getPendingTransactions(
     String workspaceId,
-  ) async => const [];
+  ) async => pending;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => Future<void>.value();
@@ -232,6 +236,17 @@ List<InstallmentModel> homeTypicalInstallments() => [
   ),
 ];
 
+/// Uma pendência do leitor de notificação, esperando consolidação.
+List<AutomaticTransactionModel> homeTypicalPending() => [
+  AutomaticTransactionModel(
+    id: 'auto-1',
+    description: 'COMPRA CARTAO 4412',
+    amount: 89.9,
+    date: homeToday,
+    type: OrderType.expense,
+  ),
+];
+
 /// Um mês típico: renda prevista, despesas planejadas e o que já saiu. É o
 /// que faz o cabeçalho "quanto sobra" mostrar o NÚMERO em vez do convite para
 /// cadastrar renda — e é o estado em que a Home passa a maior parte da vida.
@@ -279,14 +294,20 @@ PeriodSummaryModel homeTypicalSummary() => PeriodSummaryModel.month(
   lastUpdate: homeToday,
 );
 
-/// Uma meta em andamento.
+/// Uma meta EM ANDAMENTO.
+///
+/// O prazo é relativo ao relógio de verdade, e não ao [homeToday]: quem
+/// decide se a meta ainda corre é `GoalProgressUi.isAwaitingOutcome`, que lê
+/// `DateTime.now()` direto. Com um prazo fixo no calendário a meta virava
+/// "aguardando apuração" assim que a data passasse, e a fixture de "uma meta
+/// em andamento" passaria a medir o estado vazio sem ninguém notar.
 List<GoalModel> homeTypicalGoals() => [
   GoalModel.saveMoney(
     id: 'g1',
     name: 'Reserva de emergência',
     targetAmount: 12000,
     currentAmount: 4200,
-    deadline: homeToday.add(const Duration(days: 120)),
+    deadline: DateTime.now().add(const Duration(days: 120)),
     accountId: 'acc-1',
     startDate: DateTime(2026, 1, 1),
   ),
@@ -316,6 +337,7 @@ List<Override> homeOverrides({
   List<AccountModel> accounts = const [],
   List<GoalModel> goals = const [],
   List<CategoryModel> categories = const [],
+  List<AutomaticTransactionModel> pendingAutomatic = const [],
   PeriodSummaryModel? summary,
   CoachingModel? lastInsight,
   List<Override> extra = const [],
@@ -343,7 +365,7 @@ List<Override> homeOverrides({
     _SummaryFake(summary),
   ),
   AutomaticTransactionDomainProviders.repository.overrideWithValue(
-    _AutomaticFake(),
+    _AutomaticFake(pendingAutomatic),
   ),
   GoalDomainProvider.repository.overrideWithValue(_GoalsFake(goals)),
   CoachingDomainProviders.repository.overrideWithValue(

@@ -40,6 +40,11 @@ void main() {
         const JourneyTab(),
         overrides: homeOverrides(
           installments: [homeInstallment(dueDate: homeToday)],
+          missions: homeTypicalMissions(),
+          goals: homeTypicalGoals(),
+          // Todos os blocos presentes: a ordem só se afirma entre coisas que
+          // existem, e um bloco ausente tem altura zero.
+          pendingAutomatic: homeTypicalPending(),
         ),
       );
 
@@ -65,12 +70,17 @@ void main() {
         for (final tipo in esperada) (tipo, _topo(tester, tipo)),
       ];
 
+      // `greaterThan` ESTRITO, e não `greaterThanOrEqualTo`: com o
+      // "ou igual", dois blocos de altura zero — ou um bloco que sumiu —
+      // passavam empatados, e o teste dizia sim para uma Home sem eles. Cada
+      // bloco tem de estar ABAIXO do anterior, o que só é verdade se os dois
+      // existirem e ocuparem espaço.
       for (var i = 1; i < posicoes.length; i++) {
         expect(
           posicoes[i].$2,
-          greaterThanOrEqualTo(posicoes[i - 1].$2),
+          greaterThan(posicoes[i - 1].$2),
           reason:
-              '${posicoes[i].$1} apareceu ACIMA de ${posicoes[i - 1].$1}; a '
+              '${posicoes[i].$1} não está abaixo de ${posicoes[i - 1].$1}; a '
               'ordem é: ${esperada.join(' → ')}',
         );
       }
@@ -90,7 +100,7 @@ void main() {
       ]) {
         expect(
           topo,
-          lessThanOrEqualTo(_topo(tester, outro)),
+          lessThan(_topo(tester, outro)),
           reason:
               'a Home abria pelo cabeçalho do cofre, que não muda de um dia '
               'para o outro',

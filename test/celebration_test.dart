@@ -282,6 +282,38 @@ void main() {
       );
     });
 
+    testWidgets('M4 — e abaixo também de uma AppBar com abas', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: DefaultTabController(
+            length: 2,
+            child: CelebrationOverlay(
+              toasts: const [RewardToast(icon: Icons.bolt, title: 'um')],
+              child: Scaffold(
+                appBar: AppBar(
+                  title: const Text('uma tela'),
+                  bottom: const TabBar(
+                    tabs: [Tab(text: 'Despesas'), Tab(text: 'Receitas')],
+                  ),
+                ),
+                body: const SizedBox.expand(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+
+      expect(
+        tester.getTopLeft(find.byType(RewardToast)).dy,
+        greaterThanOrEqualTo(tester.getBottomLeft(find.byType(AppBar)).dy),
+        reason:
+            'a camada não sabe qual rota está aberta, então o vão é o da '
+            'MAIOR barra do app — `/workspace/categories` tem abas',
+      );
+    });
+
     /// baixo — a camada inteira era montada por `toasts.isNotEmpty`, então
     /// dispensar o último toast (tocando nele, que é o que se faz quando a
     /// conquista leva a algum lugar) arrancava o `ConfettiWidget` da árvore

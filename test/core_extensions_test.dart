@@ -58,6 +58,18 @@ void _sinalDeVariacao() {
       );
     });
 
+    test('o sinal sai do valor arredondado, não do double cru', () {
+      // Uma soma de frações devolve 0,004 o tempo todo. Os dois escrevem
+      // "R$ 0,00": dar `+` a um e `−` a outro é dizer coisas opostas sobre a
+      // mesma frase.
+      expect(0.004.asSignedCurrency(locale: 'pt_BR'), isNot(startsWith('+')));
+      expect(
+        (-0.004).asSignedCurrency(locale: 'pt_BR'),
+        0.004.asSignedCurrency(locale: 'pt_BR'),
+      );
+      expect(0.005.asSignedCurrency(locale: 'pt_BR'), startsWith('+'));
+    });
+
     test('positivo leva, negativo já vem com o dele', () {
       expect(12.5.asSignedCurrency(locale: 'pt_BR'), startsWith('+'));
       expect(

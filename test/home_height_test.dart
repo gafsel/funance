@@ -10,9 +10,9 @@ import 'support/home_harness.dart';
 /// "A Home está longa demais" foi a segunda coisa que o dono disse sobre o
 /// APK, e a primeira rodada tratou isso como uma questão de ORDEM. Não é:
 /// reordenar o que não cabe só muda o que se perde primeiro. Com dados
-/// típicos — três missões, o checklist da semana, uma meta, o coaching e um
-/// mês com renda cadastrada — a tela media 1613px (3,0 telas) a 400px e
-/// 1429px (2,6) a 800px.
+/// típicos — três missões, o checklist da semana, uma meta em andamento, o
+/// coaching e um mês com renda cadastrada — a tela media 1477px (2,7 telas) a
+/// 400px e 1283px (2,4) a 800px.
 ///
 /// O teto é DOIS viewports. Não é um número bonito: é a distância a partir da
 /// qual o que está no fim da tela deixa de existir para quem abre o app e

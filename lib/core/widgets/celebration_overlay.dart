@@ -50,14 +50,18 @@ class CelebrationOverlay extends StatefulWidget {
   @override
   State<CelebrationOverlay> createState() => _CelebrationOverlayState();
 
-  /// Altura de uma `AppBar` padrão.
+  /// Altura da MAIOR barra superior do app.
   ///
   /// A camada mora acima do `Navigator` e não tem como perguntar se a rota
-  /// corrente tem barra, nem qual a altura dela. `kToolbarHeight` é o valor
-  /// que o `appBarTheme` do app usa em todas as telas; numa tela sem barra o
-  /// toast apenas começa um pouco mais abaixo, que é um custo pequeno perto
-  /// de tampar o botão de voltar.
-  static const double _appBarClearance = kToolbarHeight;
+  /// corrente tem barra, nem qual a altura dela. Por isso o valor é o do pior
+  /// caso, e não o da barra comum: `/workspace/categories` tem uma `AppBar`
+  /// com `TabBar` embaixo, e com o vão de uma barra simples o toast cobria as
+  /// abas — o mesmo defeito de cobrir o botão de voltar, uma linha abaixo.
+  ///
+  /// Errar para baixo é barato: numa tela sem barra o toast apenas começa um
+  /// pouco mais adiante, e ele é transitório. Errar para cima tampa um
+  /// controle.
+  static const double _appBarClearance = kToolbarHeight + kTextTabBarHeight;
 }
 
 class _CelebrationOverlayState extends State<CelebrationOverlay> {
