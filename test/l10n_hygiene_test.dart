@@ -106,20 +106,39 @@ void main() {
     }
   });
 
-  test('"Party" saiu do ARB junto com o bloco', () {
+  test('"Party" saiu do ARB junto com o bloco — chave E texto', () {
     // Decisão 9 do dono: *"na aba de visão geral, pode retirar a
     // visualização de Party — essa visão não faz mais sentido com a nova
     // visão de jogo"*. O bloco saiu da Visão Geral, e com ele as chaves que
     // só ele usava.
     //
-    // O que este teste guarda não é a ausência em si — disso já cuida a
-    // varredura de órfãs acima —, é a DIREÇÃO: o vocabulário de party era
-    // uma decisão de produto ("party é o grupo de categorias, equipe são os
-    // membros"), e uma chave nova com esse nome significa que o bloco
-    // voltou por uma porta lateral, sem a decisão ter sido revista.
-    final voltaram = pt.keys.where((k) => k.startsWith('party')).toList();
+    // A primeira versão desta varredura olhava só o PREFIXO da chave, e foi
+    // assim que "Ver a Party" sobreviveu dentro de `missionCtaCategories`:
+    // uma missão ainda mandava o usuário para uma tela que não existe mais,
+    // com o nome de um bloco aposentado. Chave e TEXTO, nos dois idiomas.
+    for (final entry in {'pt': pt, 'en': en}.entries) {
+      final chaves = entry.value.keys
+          .where((k) => k.toLowerCase().contains('party'))
+          .toList();
+      expect(
+        chaves,
+        isEmpty,
+        reason: 'a Party voltou em ${entry.key}: ${chaves.join(', ')}',
+      );
 
-    expect(voltaram, isEmpty, reason: 'a Party voltou: ${voltaram.join(', ')}');
+      final textos = entry.value.entries
+          .where((e) => e.value.toLowerCase().contains('party'))
+          .map((e) => e.key)
+          .toList();
+      expect(
+        textos,
+        isEmpty,
+        reason:
+            'texto falando em Party em ${entry.key}: ${textos.join(', ')} — '
+            'o vocabulário do bloco aposentado não pode sobreviver dentro '
+            'de uma frase',
+      );
+    }
 
     // E os membros do workspace continuam sendo a equipe.
     expect(pt['workspaceSettingsTeamSection'], 'Equipe');
