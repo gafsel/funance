@@ -9,6 +9,13 @@ import 'package:funances/features/home/presentation/widgets/missions/mission_lab
 import 'package:funances/features/workspace/domain/models/badge_catalog_model.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/l10n/app_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/router/app_router.dart';
+import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:go_router/go_router.dart';
+
+import 'support/journey_fakes.dart';
 
 /// F-design/6 — o contrato novo das missões e das badges, que o servidor já
 /// publica em produção e o app ignorava: `templateKey`, `workspaceType`,
@@ -39,7 +46,86 @@ Future<void> _pump(
   await tester.pump();
 }
 
+/// Todos os caminhos de rota que o app declara, do router de verdade.
+List<String> _rotasDoApp(ProviderContainer container) {
+  final paths = <String>[];
+
+  void visit(List<RouteBase> routes) {
+    for (final route in routes) {
+      if (route is GoRoute) paths.add(route.path);
+      visit(route.routes);
+    }
+  }
+
+  visit(container.read(routerProvider).configuration.routes);
+  return paths;
+}
+
 void main() {
+  /// A allowlist de `actionPath` decide o que vira BOTÃO num cartão de
+  /// missão. Ela era uma lista escrita à mão, conferida contra um catálogo
+  /// que vive no backend — ou seja, contra nada, deste lado. Um caminho com
+  /// um erro de digitação não quebrava nada: a missão simplesmente perdia o
+  /// botão, em silêncio, e ninguém descobria até alguém reclamar que a
+  /// missão "não leva a lugar nenhum".
+  ///
+  /// O que DÁ para afirmar aqui é o mais importante dos dois lados: toda rota
+  /// da allowlist existe no router do app. O outro lado — que o servidor só
+  /// emite caminhos desta lista — mora no `functions/`, que não faz parte
+  /// deste worktree.
+  group('allowlist de actionPath', () {
+    late ProviderContainer container;
+
+    setUp(() {
+      container = ProviderContainer(
+        overrides: [
+          AuthDomainProviders.user.overrideWith((ref) => const Stream.empty()),
+          WorkspaceViewProviders.workspace.overrideWith(
+            (ref) => TestWorkspaceNotifier(workspaceStateFor()),
+          ),
+        ],
+      );
+    });
+
+    tearDown(() => container.dispose());
+
+    test('toda rota permitida existe no router', () {
+      final rotas = _rotasDoApp(container);
+
+      for (final path in missionActionPaths) {
+        expect(
+          rotas,
+          contains(path),
+          reason:
+              '`$path` está na allowlist e não é rota do app: a missão que '
+              'apontar para lá perde o botão em silêncio',
+        );
+      }
+    });
+
+    test('e toda rota permitida tem rótulo e ícone', () async {
+      final l10n = await _l10n('pt');
+
+      for (final path in missionActionPaths) {
+        expect(
+          missionActionLabel(l10n, path),
+          isNotNull,
+          reason: '`$path` viraria um botão sem texto',
+        );
+      }
+    });
+
+    test('a query não muda a permissão, mas o destino continua inteiro', () {
+      expect(
+        missionActionPathIsAllowed('/transactions/form?status=pending'),
+        isTrue,
+      );
+      expect(missionActionPathIsAllowed('/rota/inventada'), isFalse);
+      expect(missionActionPathIsAllowed(''), isFalse);
+      expect(missionActionPathIsAllowed(null), isFalse);
+    });
+  });
+
   group('mapper', () {
     test('lê os campos novos do documento', () {
       final mission = weeklyMissionFromMap('2026-W37_consistency', {
