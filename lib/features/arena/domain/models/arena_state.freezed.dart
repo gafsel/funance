@@ -14,7 +14,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ArenaHero {
 
- String get userId; String get name; HeroSkin get skin; String? get photoUrl;
+ String get userId; String get name; HeroSkin get skin; String? get photoUrl;/// Alguém ANTES dele na fila já usa este mesmo avatar.
+///
+/// Nada impede um casal de escolher o mesmo boneco, e não deveria
+/// impedir: o avatar é de quem escolhe. Mas dois sprites idênticos lado a
+/// lado apagam a única informação que a cena tem sobre quem é quem — daí
+/// o distintivo do segundo ([HeroActor] desenha um anel no chão).
+ bool get duplicate;
 /// Create a copy of ArenaHero
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +31,16 @@ $ArenaHeroCopyWith<ArenaHero> get copyWith => _$ArenaHeroCopyWithImpl<ArenaHero>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ArenaHero&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.name, name) || other.name == name)&&(identical(other.skin, skin) || other.skin == skin)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ArenaHero&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.name, name) || other.name == name)&&(identical(other.skin, skin) || other.skin == skin)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.duplicate, duplicate) || other.duplicate == duplicate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,userId,name,skin,photoUrl);
+int get hashCode => Object.hash(runtimeType,userId,name,skin,photoUrl,duplicate);
 
 @override
 String toString() {
-  return 'ArenaHero(userId: $userId, name: $name, skin: $skin, photoUrl: $photoUrl)';
+  return 'ArenaHero(userId: $userId, name: $name, skin: $skin, photoUrl: $photoUrl, duplicate: $duplicate)';
 }
 
 
@@ -45,7 +51,7 @@ abstract mixin class $ArenaHeroCopyWith<$Res>  {
   factory $ArenaHeroCopyWith(ArenaHero value, $Res Function(ArenaHero) _then) = _$ArenaHeroCopyWithImpl;
 @useResult
 $Res call({
- String userId, String name, HeroSkin skin, String? photoUrl
+ String userId, String name, HeroSkin skin, String? photoUrl, bool duplicate
 });
 
 
@@ -62,13 +68,14 @@ class _$ArenaHeroCopyWithImpl<$Res>
 
 /// Create a copy of ArenaHero
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? name = null,Object? skin = null,Object? photoUrl = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? name = null,Object? skin = null,Object? photoUrl = freezed,Object? duplicate = null,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,skin: null == skin ? _self.skin : skin // ignore: cast_nullable_to_non_nullable
 as HeroSkin,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,duplicate: null == duplicate ? _self.duplicate : duplicate // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -150,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  String name,  HeroSkin skin,  String? photoUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  String name,  HeroSkin skin,  String? photoUrl,  bool duplicate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ArenaHero() when $default != null:
-return $default(_that.userId,_that.name,_that.skin,_that.photoUrl);case _:
+return $default(_that.userId,_that.name,_that.skin,_that.photoUrl,_that.duplicate);case _:
   return orElse();
 
 }
@@ -171,10 +178,10 @@ return $default(_that.userId,_that.name,_that.skin,_that.photoUrl);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  String name,  HeroSkin skin,  String? photoUrl)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  String name,  HeroSkin skin,  String? photoUrl,  bool duplicate)  $default,) {final _that = this;
 switch (_that) {
 case _ArenaHero():
-return $default(_that.userId,_that.name,_that.skin,_that.photoUrl);}
+return $default(_that.userId,_that.name,_that.skin,_that.photoUrl,_that.duplicate);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -188,10 +195,10 @@ return $default(_that.userId,_that.name,_that.skin,_that.photoUrl);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  String name,  HeroSkin skin,  String? photoUrl)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  String name,  HeroSkin skin,  String? photoUrl,  bool duplicate)?  $default,) {final _that = this;
 switch (_that) {
 case _ArenaHero() when $default != null:
-return $default(_that.userId,_that.name,_that.skin,_that.photoUrl);case _:
+return $default(_that.userId,_that.name,_that.skin,_that.photoUrl,_that.duplicate);case _:
   return null;
 
 }
@@ -203,13 +210,20 @@ return $default(_that.userId,_that.name,_that.skin,_that.photoUrl);case _:
 
 
 class _ArenaHero implements ArenaHero {
-  const _ArenaHero({required this.userId, required this.name, required this.skin, this.photoUrl});
+  const _ArenaHero({required this.userId, required this.name, required this.skin, this.photoUrl, this.duplicate = false});
   
 
 @override final  String userId;
 @override final  String name;
 @override final  HeroSkin skin;
 @override final  String? photoUrl;
+/// Alguém ANTES dele na fila já usa este mesmo avatar.
+///
+/// Nada impede um casal de escolher o mesmo boneco, e não deveria
+/// impedir: o avatar é de quem escolhe. Mas dois sprites idênticos lado a
+/// lado apagam a única informação que a cena tem sobre quem é quem — daí
+/// o distintivo do segundo ([HeroActor] desenha um anel no chão).
+@override@JsonKey() final  bool duplicate;
 
 /// Create a copy of ArenaHero
 /// with the given fields replaced by the non-null parameter values.
@@ -221,16 +235,16 @@ _$ArenaHeroCopyWith<_ArenaHero> get copyWith => __$ArenaHeroCopyWithImpl<_ArenaH
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ArenaHero&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.name, name) || other.name == name)&&(identical(other.skin, skin) || other.skin == skin)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ArenaHero&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.name, name) || other.name == name)&&(identical(other.skin, skin) || other.skin == skin)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.duplicate, duplicate) || other.duplicate == duplicate));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,userId,name,skin,photoUrl);
+int get hashCode => Object.hash(runtimeType,userId,name,skin,photoUrl,duplicate);
 
 @override
 String toString() {
-  return 'ArenaHero(userId: $userId, name: $name, skin: $skin, photoUrl: $photoUrl)';
+  return 'ArenaHero(userId: $userId, name: $name, skin: $skin, photoUrl: $photoUrl, duplicate: $duplicate)';
 }
 
 
@@ -241,7 +255,7 @@ abstract mixin class _$ArenaHeroCopyWith<$Res> implements $ArenaHeroCopyWith<$Re
   factory _$ArenaHeroCopyWith(_ArenaHero value, $Res Function(_ArenaHero) _then) = __$ArenaHeroCopyWithImpl;
 @override @useResult
 $Res call({
- String userId, String name, HeroSkin skin, String? photoUrl
+ String userId, String name, HeroSkin skin, String? photoUrl, bool duplicate
 });
 
 
@@ -258,13 +272,14 @@ class __$ArenaHeroCopyWithImpl<$Res>
 
 /// Create a copy of ArenaHero
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? name = null,Object? skin = null,Object? photoUrl = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? name = null,Object? skin = null,Object? photoUrl = freezed,Object? duplicate = null,}) {
   return _then(_ArenaHero(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,skin: null == skin ? _self.skin : skin // ignore: cast_nullable_to_non_nullable
 as HeroSkin,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,duplicate: null == duplicate ? _self.duplicate : duplicate // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

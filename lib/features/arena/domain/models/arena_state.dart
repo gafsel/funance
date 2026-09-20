@@ -5,19 +5,33 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 
 part 'arena_state.freezed.dart';
 
-/// Aparência do herói de um membro.
+/// Aparência do herói de um membro — o AVATAR que o usuário escolhe.
 ///
-/// Existe como enum — e não como índice de sprite — porque a customização por
-/// usuário já tem lugar guardado: `users/{uid}.avatar`. Nesta POC o app **não
-/// grava** nada lá; a skin é escolhida pela ordem de entrada no workspace
-/// ([ArenaCalculator.skinForIndex]), e o dia em que o campo existir só o
-/// `fromName` muda.
+/// Existe como enum — e não como índice de sprite — porque o índice é
+/// coordenada de folha e muda quando a arte mudar; o `name` de cada valor é o
+/// que vai para o Firestore em `users/{uid}.avatar` e precisa sobreviver a
+/// isso. Quem traduz enum → tile é `ArenaSprites.hero`, e é o único lugar do
+/// app que sabe de números.
+///
+/// **A ordem importa.** Os quatro primeiros são os da POC, quando a skin
+/// saía da ordem de entrada no workspace ([ArenaCalculator.skinForIndex]):
+/// mantê-los na frente é o que faz quem nunca escolheu nada continuar com o
+/// mesmo boneco de sempre.
 enum HeroSkin {
   knight,
   mage,
   ranger,
-  warrior;
+  warrior,
+  healer,
+  barbarian,
+  monk,
+  smith;
 
+  /// O valor guardado no documento do usuário → a skin.
+  ///
+  /// Nome desconhecido (um avatar que saiu do catálogo, um documento de uma
+  /// versão futura) cai no cavaleiro em vez de estourar: a Arena não é lugar
+  /// de erro de leitura.
   static HeroSkin fromName(String? name) =>
       HeroSkin.values.where((skin) => skin.name == name).firstOrNull ??
       HeroSkin.knight;
@@ -59,6 +73,14 @@ sealed class ArenaHero with _$ArenaHero {
     required String name,
     required HeroSkin skin,
     String? photoUrl,
+
+    /// Alguém ANTES dele na fila já usa este mesmo avatar.
+    ///
+    /// Nada impede um casal de escolher o mesmo boneco, e não deveria
+    /// impedir: o avatar é de quem escolhe. Mas dois sprites idênticos lado a
+    /// lado apagam a única informação que a cena tem sobre quem é quem — daí
+    /// o distintivo do segundo ([HeroActor] desenha um anel no chão).
+    @Default(false) bool duplicate,
   }) = _ArenaHero;
 }
 

@@ -22,10 +22,14 @@ encomendar arte de verdade.
 
   | Índice | O que é          | Onde aparece                       |
   |-------:|------------------|------------------------------------|
-  |     96 | cavaleiro        | herói, skin `knight`               |
-  |     84 | mago             | herói, skin `mage`                 |
-  |    112 | elfa             | herói, skin `ranger` (reserva)     |
-  |    100 | guerreira        | herói, skin `warrior` (reserva)    |
+  |     96 | cavaleiro de elmo fechado | avatar `knight` (padrão)  |
+  |     84 | mago de manto roxo        | avatar `mage`             |
+  |    112 | batedor de faixa verde    | avatar `ranger`           |
+  |    100 | guerreira de cabelo prateado | avatar `warrior`       |
+  |     99 | curandeira de vestido roxo | avatar `healer`          |
+  |     87 | bárbaro de elmo com pelos | avatar `barbarian`        |
+  |     88 | monge de colete marrom    | avatar `monk`             |
+  |     86 | ferreiro de avental       | avatar `smith`            |
   |    122 | aranha           | monstro da semana                  |
   |    110 | demônio vermelho | monstro da semana (enfurecido)     |
   |    120 | morcego          | monstro da semana                  |
@@ -50,3 +54,8 @@ Esta pasta inteira é descartável. Quando a arte definitiva chegar, o contrato
 que ela precisa cumprir é o de `ArenaSprites`: um sprite por `HeroSkin`, um por
 `MonsterSkin`, mais chão/parede. Ver a seção "custo de arte" no relatório da
 POC.
+
+Os oito avatares são o contrato mais rígido dos três: o `name` de cada
+`HeroSkin` está gravado em `users/{uid}.avatar` no Firestore de quem já
+escolheu. A arte nova pode desenhar outro cavaleiro; ela não pode deixar de
+ter um.

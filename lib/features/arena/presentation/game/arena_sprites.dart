@@ -45,11 +45,24 @@ class ArenaSprites {
     srcSize: Vector2.all(tile),
   );
 
+  /// O boneco de um avatar.
+  ///
+  /// Os oito são os humanoides da folha que se separam de LONGE: numa cena de
+  /// 16 px por 16 px esticados, o que identifica um personagem é a silhueta e
+  /// a mancha de cor — elmo fechado, chapéu pontudo, cabelo comprido —, não o
+  /// rosto. Dois que só diferem pelo tom do cabelo (o 85 e o 97 da folha)
+  /// ficaram de fora por isso: na Arena eles seriam o mesmo boneco.
+  ///
+  /// A tabela legível está em `assets/arena/LICENSE.md`.
   Sprite hero(HeroSkin skin) => byIndex(switch (skin) {
     HeroSkin.knight => 96,
     HeroSkin.mage => 84,
     HeroSkin.ranger => 112,
     HeroSkin.warrior => 100,
+    HeroSkin.healer => 99,
+    HeroSkin.barbarian => 87,
+    HeroSkin.monk => 88,
+    HeroSkin.smith => 86,
   });
 
   Sprite monster(MonsterSkin skin) => byIndex(switch (skin) {
