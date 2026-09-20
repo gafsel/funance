@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/widgets/app_ring.dart';
 
 /// As quatro figuras dos ícones da CENA, desenhadas em código.
 ///
@@ -12,10 +13,15 @@ import 'package:funances/core/theme/app_colors.dart';
 /// isso para poção, vila, ovo e gota — este arquivo é a mesma decisão para
 /// pergaminho, bússola, coach e faísca.
 ///
-/// **Por que não reusar `hud_glyph.dart`.** O vocabulário é copiado de lá de
-/// propósito, e não importado: aquele arquivo é de outro pacote em voo, e uma
-/// dependência nova entre os dois viraria conflito no merge. O que se copia é
-/// pequeno e estável — traço proporcional ao lado, junta redonda, calha em
+/// **O que se compartilha com `hud_glyph.dart` e o que não.** O ANEL é o
+/// mesmo objeto dos dois lados — [AppRing], com a calha da superfície de
+/// jogo. Já foi copiado daqui de lá, enquanto os dois pacotes estavam em voo
+/// e uma dependência cruzada viraria conflito de merge; os pacotes
+/// aterrissaram e a cópia saiu.
+///
+/// As FIGURAS continuam separadas, e de propósito: são oito desenhos
+/// diferentes, não um desenho parametrizado. O que os dois arquivos têm em
+/// comum é a gramática — traço proporcional ao lado, junta redonda, calha em
 /// [AppColors.gameTrough], moldura em [AppColors.gameFrame], e nenhuma
 /// decisão de tinta tomada aqui dentro.
 enum ArenaGlyph {
@@ -282,10 +288,17 @@ class _ArenaGlyphPainter extends CustomPainter {
 
 /// O anel de progresso dos ícones da cena.
 ///
-/// Mesmo desenho do anel do rodapé mensal — arco do topo no sentido do
-/// relógio, calha em [AppColors.gameTrough], ponta redonda —, escrito aqui
-/// porque o arquivo de lá é de outro pacote em voo. São trinta linhas; uma
-/// dependência cruzada entre dois pacotes abertos custa mais.
+/// É o [AppRing] do app com a calha da superfície de jogo, exatamente como
+/// [HudRing] faz no rodapé mensal. Ele já foi uma cópia da pintura de lá —
+/// trinta linhas de `CustomPainter` idênticas —, escritas à mão porque os
+/// dois pacotes estavam em voo ao mesmo tempo e uma dependência cruzada
+/// viraria conflito de merge. Os pacotes aterrissaram; a cópia perdeu a
+/// razão de existir e virou a terceira implementação do mesmo arco, que é
+/// justamente o que [AppRing] foi criado para acabar.
+///
+/// A aparência não muda em pixel nenhum: mesmo raio, mesma espessura, mesma
+/// calha em [AppColors.gameTrough], mesma ponta redonda, mesmo arco do topo
+/// no sentido do relógio.
 class ArenaIconRing extends StatelessWidget {
   const ArenaIconRing({
     super.key,
@@ -307,63 +320,13 @@ class ArenaIconRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _RingPainter(
-          progress: progress.clamp(0.0, 1.0),
-          color: color,
-          stroke: stroke,
-        ),
-        child: Center(child: child),
-      ),
+    return AppRing(
+      value: progress,
+      color: color,
+      size: size,
+      stroke: stroke,
+      trackColor: AppColors.gameTrough,
+      child: child,
     );
   }
-}
-
-class _RingPainter extends CustomPainter {
-  const _RingPainter({
-    required this.progress,
-    required this.color,
-    required this.stroke,
-  });
-
-  final double progress;
-  final Color color;
-  final double stroke;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final center = rect.center;
-    final radius = (math.min(size.width, size.height) - stroke) / 2;
-
-    canvas.drawCircle(
-      center,
-      radius,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..color = AppColors.gameTrough,
-    );
-
-    if (progress <= 0) return;
-
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
-      2 * math.pi * progress,
-      false,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = stroke
-        ..strokeCap = StrokeCap.round
-        ..color = color,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_RingPainter old) =>
-      old.progress != progress || old.color != color || old.stroke != stroke;
 }
