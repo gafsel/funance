@@ -359,10 +359,31 @@ class ArenaGame extends FlameGame {
     _monster!.scarText = next.isEnraged ? _overdueLabel?.call(next) : null;
 
     if (next.isDefeated) {
-      _monster!.flee();
+      _monster!.fall();
+      _showDeathMark();
     } else {
       _monster!.revive();
+      _hideDeathMark();
     }
+  }
+
+  /// O X sobre o corpo. Ele é do MUNDO e não do monstro — ver [DeathMark].
+  DeathMark? _deathMark;
+
+  void _showDeathMark() {
+    if (_deathMark != null) return;
+
+    final mark = DeathMark(
+      color: theme.ink,
+      size: Vector2.all(_monsterSide * 0.34),
+    );
+    _deathMark = mark;
+    world.add(mark);
+  }
+
+  void _hideDeathMark() {
+    _deathMark?.removeFromParent();
+    _deathMark = null;
   }
 
   /// Como escrever a cicatriz. Vem da tela porque o texto é traduzido e
@@ -405,7 +426,27 @@ class ArenaGame extends FlameGame {
       );
     }
 
-    _monster?.position = Vector2(width * (_isCompact ? 0.72 : 0.74), groundY);
+    final monster = _monster;
+    if (monster != null) {
+      final x = width * (_isCompact ? 0.72 : 0.74);
+
+      // Deitado, o bicho gira em torno do PÉ (o `anchor` é `bottomCenter`), e
+      // o que era a base vira o meio do corpo: sem subir meia largura, metade
+      // dele fica enterrada na areia.
+      monster.position = Vector2(
+        x,
+        groundY - (monster.isFallen ? monster.size.x * 0.5 : 0),
+      );
+
+      // O X fica sobre o corpo caído, que se estende para a DIREITA do ponto
+      // de apoio — é para lá que a rotação o deitou.
+      _deathMark
+        ?..size = Vector2.all(_monsterSide * 0.34)
+        ..position = Vector2(
+          x + monster.size.y * 0.45,
+          groundY - monster.size.x * 0.9,
+        );
+    }
   }
 
   // ── Eventos ──────────────────────────────────────────────────────────────
