@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -160,14 +159,14 @@ void main() {
       );
       expect(find.bySemanticsLabel('Curandeira'), findsOneWidget);
 
-      final mago = tester.getSemantics(find.bySemanticsLabel('Mago'));
-      expect(mago.hasFlag(SemanticsFlag.isSelected), isTrue);
-      expect(mago.hasFlag(SemanticsFlag.isButton), isTrue);
-
-      final curandeira = tester.getSemantics(
-        find.bySemanticsLabel('Curandeira'),
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Mago')),
+        isSemantics(isButton: true, isSelected: true),
       );
-      expect(curandeira.hasFlag(SemanticsFlag.isSelected), isFalse);
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Curandeira')),
+        isSemantics(isButton: true, isSelected: false),
+      );
 
       handle.dispose();
     });
