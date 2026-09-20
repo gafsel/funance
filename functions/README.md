@@ -3550,7 +3550,7 @@ vendo "Reduzir gastos com alimentação" até o domingo seguinte ao deploy.
 
 #### O reparo da missão impossível
 
-É o que conserta 2026-W38 no que já está gravado. O servidor novo não sorteia
+É o que conserta, no que já está gravado, uma semana em que o sorteio tenha entregue missão inelegível (em 2026-W38 o dry-run deu `reparadas=0` nos cinco workspaces: não havia o que consertar). O servidor novo não sorteia
 mais `business_organization_invoice_on_time` para um workspace sem cartão (ver
 [Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio)), mas a missão
 gravada continuaria na tela, incumprível, até a virada da semana.
@@ -3571,7 +3571,7 @@ planejamento e a janela de capacidade são os **daquela semana**, não os de
 hoje: rodar na terça seguinte tem de reproduzir o sorteio de domingo.
 
 ```bash
-# O caso de 2026-W38, um workspace só:
+# Exemplo: uma semana e um workspace só (simule antes; em 2026-W38 foi no-op):
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
   node lib/scripts/retag_weekly_missions.js --project=funance-cef1b \
     --week=2026-W38 --workspace=a70134c1... --apply
