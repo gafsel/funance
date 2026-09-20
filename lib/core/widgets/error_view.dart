@@ -45,12 +45,16 @@ class ErrorView extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: AppSpacing.allMd,
+      // Fundo e borda saem da TINTA de erro do tema, nas mesmas frações que
+      // a `StatusPill` usa (12% e 28%). Antes vinham de `errorContainer` e
+      // `error` com opacidades próprias (35% e 25%): três fontes de vermelho
+      // para o mesmo bloco, e nenhuma delas comparável às outras superfícies
+      // de aviso do app. O resultado era um cartão de erro que não parecia da
+      // mesma família das pílulas de "atrasado" e "acima do plano".
       decoration: BoxDecoration(
-        color: theme.colorScheme.errorContainer.withValues(alpha: 0.35),
+        color: palette.dangerText.withValues(alpha: 0.12),
         borderRadius: AppRadius.brLg,
-        border: Border.all(
-          color: theme.colorScheme.error.withValues(alpha: 0.25),
-        ),
+        border: Border.all(color: palette.dangerText.withValues(alpha: 0.28)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
