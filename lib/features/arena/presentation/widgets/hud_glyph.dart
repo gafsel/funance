@@ -100,9 +100,10 @@ class _RingPainter extends CustomPainter {
 /// Elas não saem da folha do Kenney, e a razão é de leitura e não de
 /// licença: os tiles são de 16 px com um cartão escuro embutido no próprio
 /// sprite, e dentro de um anel de 30 px esse cartão vira um quadrado que
-/// briga com o círculo. Poção, vila, ovo e gota são quatro formas simples —
-/// desenhá-las custa menos que recortar um atlas e dá o que o atlas não dá:
-/// a tinta muda com a classe, e a casca do ovo muda com a razão.
+/// briga com o círculo. Poção, vila, monstro e veneno são quatro formas
+/// simples — desenhá-las custa menos que recortar um atlas e dá o que o
+/// atlas não dá: a tinta muda com a classe, e a casca do monstro muda com a
+/// razão.
 ///
 /// Toda cor vem de `AppColors` / `context.palette`; nenhuma decisão de tinta
 /// é tomada aqui dentro.
@@ -120,11 +121,11 @@ class HudGlyph extends StatelessWidget {
   final Color color;
   final double size;
 
-  /// Só o ovo usa: 0 liso, 1 rachado, 2 prestes a eclodir.
+  /// Só o monstro incubado usa: 0 liso, 1 rachado, 2 prestes a eclodir.
   final int stage;
 
-  /// Figura cheia ou só contorno. A poção vazia e a gota sem dívida são
-  /// contorno: elas existem, mas não têm o que mostrar.
+  /// Figura cheia ou só contorno. A poção vazia e o veneno sem dívida são
+  /// contorno: eles existem, mas não têm o que mostrar.
   final bool filled;
 
   @override
@@ -229,7 +230,7 @@ class _GlyphPainter extends CustomPainter {
     canvas.drawPath(tower, paint);
   }
 
-  /// O OVO das faturas: oval, verde e medonho.
+  /// Os MONSTROS INCUBADOS: a casca oval, verde e medonha.
   ///
   /// Ele nasceu com a MESMA silhueta da gota — bico em cima, barriga embaixo
   /// — e a 30 px os dois ícones eram a mesma figura em duas cores. A gota
@@ -243,9 +244,15 @@ class _GlyphPainter extends CustomPainter {
   /// importa, a única coisa que o identifica de relance.
   ///
   /// O que muda com o estágio é a CASCA, e a progressão é uma história:
-  /// liso (0), rachado (1), rachado com um olho entreaberto olhando de volta
-  /// (2). As manchas existem nos três — elas são o que faz o verde parecer
-  /// doente em vez de saudável.
+  /// liso (0), rachado (1), rachado com a SILHUETA DO MONSTRO aparecendo por
+  /// dentro (2). As manchas existem nos três — elas são o que faz o verde
+  /// parecer doente em vez de saudável.
+  ///
+  /// O estágio 2 era um olho entreaberto, e um olho não é um bicho: o dono
+  /// pediu que o cartão mostrasse o MONSTRO que está sendo fortalecido, e a
+  /// figura tinha de dizer isso sem legenda. Agora são dois chifres, um
+  /// corpo escuro e dois olhos — tudo recortado pela casca, que continua
+  /// sendo a silhueta do ícone.
   void _egg(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
@@ -324,34 +331,45 @@ class _GlyphPainter extends CustomPainter {
       }
     }
 
-    // O olho só no último estágio: as faturas já valem um mês inteiro de
-    // receita, e é quando o ovo deixa de ser um objeto e passa a ser alguém.
-    if (stage >= 2) _eggEye(canvas, size);
+    // O monstro só no último estágio: as faturas já valem um mês inteiro de
+    // receita, e é quando aquilo deixa de ser um objeto e passa a ser alguém.
+    if (stage >= 2) _eggMonster(canvas, size);
 
     canvas.restore();
   }
 
-  /// Um olho entreaberto: a fenda escura e, dentro dela, a pupila.
-  void _eggEye(Canvas canvas, Size size) {
+  /// A silhueta do MONSTRO dentro da casca: chifres, corpo e dois olhos.
+  ///
+  /// Ela é desenhada com a cor da CALHA — a mesma das barras de vida — e não
+  /// com uma tinta nova: o bicho tem de ler como o escuro que se vê através
+  /// da casca rachada, e não como um segundo objeto colado por cima dela. O
+  /// corpo transborda a casca de propósito; quem o corta é o `clipPath` do
+  /// desenho do ovo, e é esse corte que faz o monstro parecer estar DENTRO.
+  ///
+  /// Os olhos são a única coisa vermelha da figura. A 20 px eles são dois
+  /// pontos, e dois pontos vermelhos num verde doente é o que separa um
+  /// bicho de mais uma mancha.
+  void _eggMonster(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
 
-    final fenda = Path()
-      ..moveTo(w * 0.30, h * 0.645)
-      ..quadraticBezierTo(w * 0.50, h * 0.53, w * 0.70, h * 0.645)
-      ..quadraticBezierTo(w * 0.50, h * 0.735, w * 0.30, h * 0.645)
+    final corpo = Path()
+      ..moveTo(w * 0.24, h * 0.74)
+      ..lineTo(w * 0.27, h * 0.55)
+      ..lineTo(w * 0.38, h * 0.66)
+      ..lineTo(w * 0.50, h * 0.60)
+      ..lineTo(w * 0.62, h * 0.66)
+      ..lineTo(w * 0.73, h * 0.55)
+      ..lineTo(w * 0.76, h * 0.74)
+      ..cubicTo(w * 0.76, h * 0.98, w * 0.63, h * 1.06, w * 0.50, h * 1.06)
+      ..cubicTo(w * 0.37, h * 1.06, w * 0.24, h * 0.98, w * 0.24, h * 0.74)
       ..close();
 
-    canvas.drawPath(fenda, Paint()..color = AppColors.gameTrough);
+    canvas.drawPath(corpo, Paint()..color = AppColors.gameTrough);
 
-    // A pupila é vermelha, e é a única coisa vermelha do ovo: a 20 px ela é
-    // um ponto, e um ponto vermelho dentro de um verde doente é o que faz o
-    // olho ser um OLHO e não mais uma mancha.
-    canvas.drawCircle(
-      Offset(w * 0.50, h * 0.638),
-      w * 0.058,
-      Paint()..color = AppColors.danger,
-    );
+    final olhos = Paint()..color = AppColors.danger;
+    canvas.drawCircle(Offset(w * 0.40, h * 0.79), w * 0.055, olhos);
+    canvas.drawCircle(Offset(w * 0.60, h * 0.79), w * 0.055, olhos);
   }
 
   /// Uma mancha irregular. Não é um círculo nem uma elipse de propósito: três
@@ -381,7 +399,19 @@ class _GlyphPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
-  /// Uma gota: bico em cima, barriga embaixo.
+  /// O VENENO: a gota com o que a faz ser veneno e não água.
+  ///
+  /// A SILHUETA continua a mesma — bico em cima, barriga embaixo —, e ela
+  /// fica porque é o que separa esta figura das outras três a 30 px (o
+  /// ovo e a gota já nasceram sendo a mesma forma uma vez; ver
+  /// `hud_glyph_pixels_test.dart`). O que mudou foi o MIOLO: o dono disse
+  /// que dívida é veneno corroendo o capital com juros, e uma gota lisa
+  /// dizia "água". Dentro dela há agora uma caveira: duas órbitas
+  /// inclinadas, a cavidade nasal no eixo e três dentes.
+  ///
+  /// Tudo isso é pintado com a cor da CALHA, e recortado pela própria gota:
+  /// são BURACOS no líquido, não um desenho colado em cima. Veneno sem
+  /// dívida é contorno, e contorno não tem miolo para escavar.
   void _drop(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
@@ -395,6 +425,48 @@ class _GlyphPainter extends CustomPainter {
       ..close();
 
     canvas.drawPath(drop, paint);
+
+    if (paint.style != PaintingStyle.fill) return;
+
+    canvas.save();
+    canvas.clipPath(drop);
+
+    final vazio = Paint()
+      ..color = AppColors.gameTrough
+      ..isAntiAlias = true;
+
+    // As órbitas: ovais e inclinadas para dentro, que é o que faz duas
+    // manchas escuras virarem um par de olhos.
+    for (final (dx, giro) in [(0.385, -0.25), (0.615, 0.25)]) {
+      canvas.save();
+      canvas.translate(w * dx, h * 0.585);
+      canvas.rotate(giro);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset.zero, width: w * 0.20, height: h * 0.21),
+        vazio,
+      );
+      canvas.restore();
+    }
+
+    // Os dentes: três riscos curtos, e não uma boca desenhada. A 20 px uma
+    // boca inteira vira uma tarja preta atravessando a gota.
+    for (final dx in [0.415, 0.50, 0.585]) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(w * dx - w * 0.028, h * 0.79, w * 0.056, h * 0.082),
+          Radius.circular(w * 0.02),
+        ),
+        vazio,
+      );
+    }
+
+    // A cavidade nasal, no eixo e ENTRE as órbitas e os dentes. Ela é o que
+    // fecha a leitura: dois buracos e três riscos ainda podiam passar por
+    // manchas, e o buraco do meio é o que faz o conjunto virar uma caveira de
+    // relance — que é o ponto todo de a dívida se chamar veneno.
+    canvas.drawCircle(Offset(w * 0.50, h * 0.705), w * 0.042, vazio);
+
+    canvas.restore();
   }
 
   @override
