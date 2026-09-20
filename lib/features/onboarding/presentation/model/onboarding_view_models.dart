@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 
@@ -23,5 +24,12 @@ sealed class OnboardingState with _$OnboardingState {
     /// usuário digitou —, tentar atualizar antes disso seria um `update()`
     /// num documento que não existe.
     @Default(false) bool workspaceCreated,
+
+    /// O herói que o usuário escolheu para si na Arena.
+    ///
+    /// Nasce PRÉ-SELECIONADO (o cavaleiro, ou o que ele já tinha escolhido
+    /// antes) porque o onboarding não pode ganhar mais um passo obrigatório:
+    /// quem passar direto sai com um boneco, e não com um lugar vazio.
+    @Default(HeroSkin.knight) HeroSkin avatar,
   }) = _OnboardingState;
 }

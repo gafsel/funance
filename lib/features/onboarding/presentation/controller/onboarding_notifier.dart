@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/analytics/analytics_service.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/finance/domain/models/category_planning_model.dart';
 import 'package:funances/features/finance/domain/repositories/account_repository.dart';
 import 'package:funances/features/onboarding/domain/models/onboarding_models.dart';
 import 'package:funances/features/onboarding/presentation/model/onboarding_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
+import 'package:funances/features/user/domain/services/user_service.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 import 'package:funances/features/workspace/presentation/controller/workspace_notifier.dart';
 import 'package:uuid/uuid.dart';
@@ -18,6 +20,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   final IAccountRepository accountRepository;
   final WorkspaceNotifier workspaceNotifier;
   final CategoryService categoryService;
+
+  /// Só para gravar o avatar: o documento do usuário é dele, não do
+  /// workspace, e o onboarding é o primeiro lugar onde ele escolhe um herói.
+  final UserService userService;
+
   final AnalyticsService analytics;
 
   /// Dia corrente, do relógio injetado. Os planejamentos sugeridos valem a
@@ -29,9 +36,15 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     required this.accountRepository,
     required this.workspaceNotifier,
     required this.categoryService,
+    required this.userService,
     required this.analytics,
     required this.today,
-  }) : super(OnboardingState(workspace: WorkspaceModel.empty()));
+  }) : super(
+         OnboardingState(
+           workspace: WorkspaceModel.empty(),
+           avatar: HeroSkin.fromName(onboardingService.user.avatar),
+         ),
+       );
 
   void load(WorkspaceModel workspace) {
     if (state.workspace.id != workspace.id) {
@@ -48,7 +61,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   /// descartando o estado de um onboarding anterior (que pode já estar
   /// em `done` e deixaria a tela inerte).
   void startNew() {
-    state = OnboardingState(workspace: WorkspaceModel.empty());
+    state = OnboardingState(
+      workspace: WorkspaceModel.empty(),
+      // O avatar NÃO é do workspace: quem cria o segundo cofre continua sendo
+      // o mesmo herói do primeiro.
+      avatar: HeroSkin.fromName(onboardingService.user.avatar),
+    );
   }
 
   Future<void> nextStep() async {
@@ -70,6 +88,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
           await _savePlanning();
           break;
         case OnboardingSteps.accounts:
+          // O passo que fica para trás aqui é o do PERFIL — nome do cofre e
+          // herói do usuário —, e é ao sair dele que a escolha do boneco vai
+          // para `users/{uid}`.
+          await _saveAvatar();
+
           // O workspace nasce ao SAIR do passo do nome, não ao entrar nele:
           // criado na entrada, ele ia para o Firestore com o nome VAZIO (o
           // usuário ainda não tinha digitado) e só era corrigido um passo
@@ -124,6 +147,26 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   void setWorkspaceName(String name) {
     state = state.copyWith(workspace: state.workspace.copyWith(name: name));
+  }
+
+  void setAvatar(HeroSkin avatar) => state = state.copyWith(avatar: avatar);
+
+  /// Grava o avatar escolhido em `users/{uid}`.
+  ///
+  /// Roda ao SAIR do passo do perfil, junto com a criação do workspace, e
+  /// não a cada toque na grade: o usuário experimenta os oito bonecos antes
+  /// de decidir, e cada experimentação seria uma escrita no Firestore.
+  ///
+  /// Uma falha aqui não derruba o onboarding. O avatar é enfeite; perder o
+  /// cofre inteiro porque o boneco não salvou seria a troca errada — e a
+  /// Arena tem um padrão para quem não escolheu nada.
+  Future<void> _saveAvatar() async {
+    try {
+      await userService.updateAvatar(
+        id: onboardingService.user.id,
+        avatar: state.avatar.name,
+      );
+    } catch (_) {}
   }
 
   Future<void> _analyzePlanning() async {

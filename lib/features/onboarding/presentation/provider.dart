@@ -7,6 +7,7 @@ import 'package:funances/features/goal/presentation/provider.dart';
 import 'package:funances/features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import 'package:funances/features/onboarding/domain/services/onboarding_service.dart';
 import 'package:funances/features/onboarding/presentation/controller/onboarding_notifier.dart';
+import 'package:funances/features/user/presentation/providers/user_providers.dart';
 import 'package:funances/features/workspace/presentation/controller/invite_providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
@@ -35,6 +36,7 @@ class OnboardingViewProviders {
       accountRepository: ref.read(AccountDomainProviders.repository),
       workspaceNotifier: ref.read(WorkspaceViewProviders.workspace.notifier),
       categoryService: ref.read(CategoryDomainProviders.service),
+      userService: ref.read(UserDomainProviders.service),
       analytics: ref.read(analyticsServiceProvider),
       today: ref.watch(todayProvider),
     );
