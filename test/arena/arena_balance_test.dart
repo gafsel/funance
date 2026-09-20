@@ -53,9 +53,6 @@ class _BalanceFake implements IAccountRepository {
   /// As datas que o provider pediu, para provar QUAL dia ele consultou.
   final List<String> asked = <String>[];
 
-  /// Quantas vezes o caminho SEM filtro de data foi usado.
-  int latestCalls = 0;
-
   @override
   Stream<List<AccountModel>> getAccounts(
     String workspaceId, {
@@ -63,29 +60,6 @@ class _BalanceFake implements IAccountRepository {
   }) => Stream.value(
     type == null ? accounts : accounts.where((a) => a.type == type).toList(),
   );
-
-  /// O "último documento", sem filtro de data. O serviço NÃO deve chamar
-  /// isto para responder "saldo atual" — é justamente o caminho que devolvia
-  /// o saldo projetado de sexta-feira.
-  @override
-  Stream<AccountBalanceModel?> getLatestAccountBalance(
-    String workspaceId,
-    String accountId,
-  ) {
-    latestCalls++;
-
-    final days = (balances[accountId] ?? const <String, double>{}).keys.toList()
-      ..sort();
-    if (days.isEmpty) return Stream.value(null);
-
-    return Stream.value(
-      AccountBalanceModel(
-        id: days.last,
-        balance: balances[accountId]![days.last]!,
-        updatedAt: _wednesday,
-      ),
-    );
-  }
 
   @override
   Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
@@ -213,13 +187,10 @@ void main() {
     final lives = await _lives(_container(fake));
 
     expect(lives.single.current, 3980);
-    expect(
-      fake.latestCalls,
-      0,
-      reason:
-          'o "saldo atual" passa pela consulta COM teto de data; o caminho '
-          'sem filtro é o que devolvia o futuro',
-    );
+
+    // O caminho SEM teto de data não existe mais no repositório: ele foi
+    // apagado depois que esta prova passou a ser possível no compilador.
+    // O que resta provar é qual DIA o app consultou.
     expect(fake.asked, contains('2026-09-23'));
   });
 

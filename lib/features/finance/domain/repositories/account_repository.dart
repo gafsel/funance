@@ -21,11 +21,14 @@ abstract class IAccountRepository {
 
   Future<void> deleteAccount(String workspaceId, String accountId);
 
-  Stream<AccountBalanceModel?> getLatestAccountBalance(
-    String workspaceId,
-    String accountId,
-  );
-
+  /// O último documento de `balance` com data até [date].
+  ///
+  /// Não existe a versão SEM teto de data, e é de propósito: ela existiu, e
+  /// o que ela devolvia era o saldo de 2036. Um lançamento agendado faz o
+  /// servidor gravar o saldo projetado daquela data, e "o último documento"
+  /// passa a ser o do futuro — os cartões deste cofre têm documento até
+  /// 2036. "Quanto eu tenho" é sempre uma pergunta sobre um DIA, e quem não
+  /// informa o dia não está perguntando o que pensa que está.
   Stream<AccountBalanceModel?> getLatestAccountBalanceBeforeDate(
     String workspaceId,
     String accountId,
