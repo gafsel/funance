@@ -155,6 +155,21 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
         return snapshot.size >= 1;
     }
 
+    async hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean> {
+        // MESMA consulta do coaching proativo
+        // (`FinanceRepositoryImpl.hasPaidInstallmentSince`): só a faixa de
+        // `paidDate`, sem filtro de status, e `limit(1)`. Uma parcela pendente
+        // tem `paidDate: null`, e null fica fora de uma faixa de Timestamp —
+        // a consulta não precisa do `status in [...]`, que exigiria índice
+        // composto para devolver a MESMA resposta.
+        const snapshot = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/installments`)
+            .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))
+            .limit(1)
+            .get();
+        return !snapshot.empty;
+    }
+
     async getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]> {
         // A coleção real é `category_planning` (singular) — é o nome usado pelo
         // cliente, pelo category_planning_handler, pelas rules e pelos índices.
