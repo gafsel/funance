@@ -6,15 +6,20 @@ import 'package:funances/features/finance/domain/services/planning_50_30_20_serv
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
-class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, void> {
+class Planning503020Notifier
+    extends FormNotifier<CategoryPlanning503020State, void> {
   final Planning503020Service planning503020Service;
 
   // Só usamos a assinatura para cancelar, então o tipo do elemento é irrelevante.
   StreamSubscription<void>? _subscription;
 
-  Planning503020Notifier({
-    required this.planning503020Service,
-  }) : super(CategoryPlanning503020State(isLoading: true, date: DateTime(DateTime.now().year, DateTime.now().month))) {
+  Planning503020Notifier({required this.planning503020Service})
+    : super(
+        CategoryPlanning503020State(
+          isLoading: true,
+          date: DateTime(DateTime.now().year, DateTime.now().month),
+        ),
+      ) {
     _init();
   }
 
@@ -41,7 +46,11 @@ class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, v
           // pools vazias e o usuário lia "nenhuma categoria nesta pool" — uma
           // afirmação sobre o planejamento dele que nunca foi verdade.
           onError: (Object error, StackTrace stack) {
-            AppLogger.error('Falha ao ler o planejamento 50-30-20', error, stack);
+            AppLogger.error(
+              'Falha ao ler o planejamento 50-30-20',
+              error,
+              stack,
+            );
             state = state.copyWith(isLoading: false, error: error);
           },
         );
@@ -56,7 +65,8 @@ class Planning503020Notifier extends FormNotifier<CategoryPlanning503020State, v
   }
 
   void _changeMonth(DateTime newDate) {
-    if (state.date.year == newDate.year && state.date.month == newDate.month) return;
+    if (state.date.year == newDate.year && state.date.month == newDate.month)
+      return;
     state = state.copyWith(date: newDate);
     _init();
   }

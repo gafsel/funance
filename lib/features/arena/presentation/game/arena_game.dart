@@ -458,6 +458,35 @@ class ArenaGame extends FlameGame {
     );
   }
 
+  /// O monstro morreu: susto, explosão de moedas e a equipe comemorando.
+  ///
+  /// Só toca quando a morte acontece COM a cena aberta — abrir a Home numa
+  /// semana já vencida não comemora nada, porque não houve golpe. Quem sabe
+  /// a diferença é a tela, que compara o estado novo com o anterior.
+  void playVictory() {
+    final monster = _monster;
+    if (monster == null) return;
+
+    monster.deathThroes();
+
+    for (final hero in _heroes) {
+      hero.cheer();
+    }
+
+    if (theme.reduceMotion) return;
+
+    // Três vezes mais moedas que um golpe comum, e mais espalhadas: é o fim
+    // da semana, e o exagero é o prêmio.
+    world.add(
+      CoinBurst(
+        at: monster.position - Vector2(0, monster.size.y * 0.5),
+        theme: theme,
+        count: 36,
+        spread: 44,
+      ),
+    );
+  }
+
   /// Receita recebida: número verde sobre o herói e pulso de cura.
   void playHeal(String amountLabel) {
     final target = _heroes.firstOrNull;

@@ -26,7 +26,8 @@ class AutomaticTransactionState {
   }
 }
 
-class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionState> {
+class AutomaticTransactionNotifier
+    extends StateNotifier<AutomaticTransactionState> {
   final AutomaticTransactionService _service;
   final FinanceService _financeService;
   final INotificationListenerService _notificationService;
@@ -48,17 +49,22 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
 
   void _listenToNotifications() {
     _notificationSubscription?.cancel();
-    _notificationSubscription = NotificationListenerService.notificationStream.listen((event) {
-      if (_notificationService is NotificationListenerService) {
-        (_notificationService).onNotificationReceived(
-          notificationId: event.id?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-          title: event.title ?? "",
-          body: event.text ?? "",
-          timestamp: DateTime.now(),
-          packageName: event.packageName,
-        ).then((_) => loadTransactions());
-      }
-    });
+    _notificationSubscription = NotificationListenerService.notificationStream
+        .listen((event) {
+          if (_notificationService is NotificationListenerService) {
+            (_notificationService)
+                .onNotificationReceived(
+                  notificationId:
+                      event.id?.toString() ??
+                      DateTime.now().millisecondsSinceEpoch.toString(),
+                  title: event.title ?? "",
+                  body: event.text ?? "",
+                  timestamp: DateTime.now(),
+                  packageName: event.packageName,
+                )
+                .then((_) => loadTransactions());
+          }
+        });
   }
 
   @override
@@ -71,10 +77,10 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
     if (!mounted) return;
     state = state.copyWith(isLoading: true);
     final transactions = await _service.getPendingTransactions();
-    
+
     // Tenta enriquecer as transações com sugestões se houver conexão
     final enrichedTransactions = await _enrichWithSuggestions(transactions);
-    
+
     if (!mounted) return;
     state = state.copyWith(
       pendingTransactions: enrichedTransactions,
@@ -88,23 +94,29 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
     return transactions;
   }
 
-  Future<void> consolidate(AutomaticTransactionModel transaction, OrderModel order) async {
+  Future<void> consolidate(
+    AutomaticTransactionModel transaction,
+    OrderModel order,
+  ) async {
     await _financeService.addOrder(order);
-    
+
     final updated = transaction.copyWith(isConsolidated: true);
     await _service.updateTransaction(updated);
-    
+
     await loadTransactions();
   }
 
   Future<void> ignore(AutomaticTransactionModel transaction) async {
     final updated = transaction.copyWith(isIgnored: true);
     await _service.updateTransaction(updated);
-    
+
     await loadTransactions();
   }
 
-  Future<void> moveToWorkspace(AutomaticTransactionModel transaction, String toWorkspaceId) async {
+  Future<void> moveToWorkspace(
+    AutomaticTransactionModel transaction,
+    String toWorkspaceId,
+  ) async {
     await _service.moveTransaction(toWorkspaceId, transaction);
     await loadTransactions();
   }
@@ -114,8 +126,8 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
     final isIncome = now.second % 2 == 0;
     final newTransaction = AutomaticTransactionModel(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      description: isIncome 
-          ? "Pix recebido de João Silva R\$ 50,00" 
+      description: isIncome
+          ? "Pix recebido de João Silva R\$ 50,00"
           : "Pagamento de R\$ 120,50 no Posto Shell",
       amount: isIncome ? 50.0 : 120.50,
       date: now,
@@ -123,7 +135,7 @@ class AutomaticTransactionNotifier extends StateNotifier<AutomaticTransactionSta
       packageName: "com.android.vending",
       originNotificationId: "sim-${now.millisecondsSinceEpoch}",
     );
-    
+
     await _service.saveTransaction(newTransaction);
     await loadTransactions();
   }

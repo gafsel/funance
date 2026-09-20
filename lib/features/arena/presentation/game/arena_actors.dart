@@ -155,6 +155,28 @@ class HeroActor extends _BreathingActor with TapCallbacks {
     );
   }
 
+  /// A pose de vitória: o herói dá um pulo e assenta.
+  ///
+  /// Um pulo, e não uma animação de sprite: a folha do Kenney tem um quadro
+  /// por personagem. O que dá a leitura de comemoração é o TEMPO — subir
+  /// rápido, cair devagar —, e isso não precisa de arte nova.
+  void cheer() {
+    if (theme.reduceMotion) return;
+
+    add(
+      MoveByEffect(
+        Vector2(0, -size.y * 0.35),
+        EffectController(
+          duration: 0.18,
+          curve: Curves.easeOutQuad,
+          reverseDuration: 0.30,
+          reverseCurve: Curves.bounceOut,
+          repeatCount: 2,
+        ),
+      ),
+    );
+  }
+
   /// O herói foi curado: pulso verde.
   void glow() {
     if (theme.reduceMotion) return;
@@ -210,6 +232,11 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
 
   /// A derrota: o bicho encolhe e some. Ele volta na semana que vem com os
   /// compromissos dela — o que acabou foi ESTA semana.
+  ///
+  /// Quando a morte acontece NA TELA (o último compromisso foi quitado
+  /// agora), quem chama acrescenta o susto e as moedas; aqui fica só o
+  /// encolher, porque este mesmo método roda quando a cena ABRE com a semana
+  /// já vencida, e nesse caso não houve golpe nenhum para comemorar.
   void flee() {
     if (_fled) return;
     _fled = true;
@@ -226,6 +253,19 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
       ),
     );
     add(OpacityEffect.fadeOut(EffectController(duration: 0.55)));
+  }
+
+  /// O golpe final: um susto branco antes de encolher.
+  void deathThroes() {
+    if (theme.reduceMotion) return;
+
+    add(
+      ColorEffect(
+        theme.ink,
+        EffectController(duration: 0.08, reverseDuration: 0.12, repeatCount: 2),
+        opacityTo: 1,
+      ),
+    );
   }
 
   /// Desfaz a derrota — o estado voltou a ter compromisso pendente (uma

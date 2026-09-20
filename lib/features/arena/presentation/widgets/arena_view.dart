@@ -66,8 +66,14 @@ class _ArenaViewState extends ConsumerState<ArenaView>
   /// rodando atrás de uma folha modal é bateria gasta em pixel que ninguém vê.
   bool _suspended = false;
 
-  /// O evento guardado já foi consumido nesta montagem?
-  bool _drainedPending = false;
+  /// Um pagamento confirmado AQUI está a caminho.
+  ///
+  /// É o que decide se a queda de saldo é golpe ou dano. A rodada 1 decidia
+  /// isso comparando dois instantâneos — "o monstro caiu junto?" —, e a
+  /// coincidência mente: dois membros mexendo na mesma semana, ou um
+  /// reagregar do servidor, produziam a mesma coincidência sem que ninguém
+  /// tivesse golpeado. Quem sabe que houve um golpe é quem o deu.
+  bool _strikeInFlight = false;
 
   @override
   void initState() {
@@ -136,6 +142,8 @@ class _ArenaViewState extends ConsumerState<ArenaView>
 
     if (paid == null || !mounted) return;
 
+    _strikeInFlight = true;
+
     // O golpe é de quem pagou. `currentUser` é o dado que existe hoje; o dia
     // em que a parcela guardar quem a quitou, é só trocar a origem.
     //
@@ -170,7 +178,14 @@ class _ArenaViewState extends ConsumerState<ArenaView>
 
     if (previous == null) return;
 
-    final monsterFell = next.monsterHp < previous.monsterHp;
+    // O golpe em voo é consumido por ESTE estado, seja ele qual for: se o
+    // pagamento não chegar (offline), a bandeira não pode ficar de pé
+    // esperando para engolir o tremor de um dano que não tem nada com ela.
+    final striking = _strikeInFlight;
+    _strikeInFlight = false;
+
+    if (next.isDefeated && !previous.isDefeated) game.playVictory();
+
     final delta = next.currentBalance - previous.currentBalance;
 
     if (delta > 0) {
@@ -179,22 +194,33 @@ class _ArenaViewState extends ConsumerState<ArenaView>
     }
 
     if (delta < 0) {
-      // Quando o saldo cai JUNTO com a dívida, o que houve foi um pagamento
-      // planejado — o golpe já está sendo animado por `playStrike`, e o
-      // tremor de dano por cima dele leria como "levei um golpe ao dar um
-      // golpe". Só o número desce.
-      game.playDamage('−${_money(-delta)}', flinch: !monsterFell);
+      // Quando a queda é o pagamento que o usuário acabou de confirmar, o
+      // tremor de dano por cima do golpe leria como "levei um golpe ao dar um
+      // golpe". Só o número desce — que é o custo do golpe.
+      game.playDamage('−${_money(-delta)}', flinch: !striking);
     }
   }
 
-  /// O evento que ficou guardado enquanto a Arena não estava na tela.
+  /// O evento que ficou guardado enquanto a Arena não estava VISÍVEL.
   ///
-  /// O gasto acontece no formulário de lançamento; a cena que deveria reagir
-  /// a ele está desmontada. `pendingEvent` guarda o fato, e é aqui que ele
-  /// vira animação — no primeiro quadro em que a cena existe de novo.
-  void _drainPending() {
-    if (_drainedPending) return;
-    _drainedPending = true;
+  /// O gasto acontece no formulário de lançamento, que é uma rota empilhada
+  /// POR CIMA da Home: a Arena continua montada o tempo todo. A rodada 1
+  /// drenava uma vez por montagem, com uma bandeira que nunca voltava a
+  /// falso — e por isso o segundo lançamento da sessão, e todos os
+  /// seguintes, nunca animavam.
+  ///
+  /// Agora a condição é a certa: existe evento **e** a cena está na frente.
+  /// Duas coisas chamam isto — o `ref.listen` (o evento chegou com a Arena
+  /// visível) e o `build` disparado quando a rota volta a ser a de cima.
+  void _drainPendingIfVisible() {
+    if (!mounted || _suspended) return;
+    if (ref.read(ArenaViewProviders.pendingEvent) == null) return;
+
+    // `isCurrent` é a pergunta exata: "a Home é a rota de cima?". Enquanto o
+    // formulário estiver empilhado, ela é falsa, e o golpe espera.
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
+    if (!TickerMode.valuesOf(context).enabled) return;
 
     final event = ref.read(ArenaViewProviders.pendingEvent.notifier).take();
     if (event == null) return;
@@ -215,12 +241,19 @@ class _ArenaViewState extends ConsumerState<ArenaView>
       if (value != null) _onStateChanged(previous?.valueOrNull, value);
     });
 
+    ref.listen(ArenaViewProviders.pendingEvent, (_, event) {
+      if (event != null) _drainPendingIfVisible();
+    });
+
     // O `TickerMode` é `false` para a rota que não está no topo da pilha.
     // É o sinal mais barato de "esta tela não está visível".
     final visible = TickerMode.valuesOf(context).enabled;
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _setRunning(visible && !_suspended),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setRunning(visible && !_suspended);
+      // A volta do formulário reacende o `TickerMode`, o que reconstrói este
+      // widget: é aqui que o golpe guardado encontra a cena na frente de novo.
+      _drainPendingIfVisible();
+    });
 
     return async.when(
       loading: () => SizedBox(
@@ -242,8 +275,6 @@ class _ArenaViewState extends ConsumerState<ArenaView>
         game.applyState(state, animate: false);
         game.overdueLabel = (value) =>
             '+${value.overdueAmount.asCurrency(locale: context.locale)}';
-
-        _drainPending();
 
         final scene = ClipRect(child: GameWidget(game: game));
 

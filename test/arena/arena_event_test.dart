@@ -5,6 +5,7 @@ import 'package:funances/features/arena/presentation/providers/arena_providers.d
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_submit_flow.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
 
 /// O golpe que chega atrasado.
@@ -24,20 +25,31 @@ TransactionFormState _form({
   required InstallmentStatus status,
   double amount = 120,
   String? orderId,
+  InstallmentType installmentType = InstallmentType.single,
+  TransactionAmountType amountType = TransactionAmountType.total,
+  int? installmentCount,
 }) => TransactionFormState(
   formType: TransactionFormType.order,
   orderId: orderId,
   type: type,
-  installmentType: InstallmentType.single,
+  installmentType: installmentType,
+  amountType: amountType,
+  installmentCount: installmentCount,
   amount: amount,
   dueDate: DateTime(2026, 9, 23),
   status: status,
 );
 
+/// O caminho normal: gasto saindo da conta corrente.
+ArenaPendingEvent? _evento(
+  TransactionFormState form, {
+  AccountType? conta = AccountType.checking,
+}) => arenaEventFor(form, conta);
+
 void main() {
   group('o que vira evento', () {
     test('despesa realizada fere os heróis', () {
-      final event = arenaEventFor(
+      final event = _evento(
         _form(type: OrderType.expense, status: InstallmentStatus.paid),
       );
 
@@ -46,7 +58,7 @@ void main() {
     });
 
     test('receita recebida cura', () {
-      final event = arenaEventFor(
+      final event = _evento(
         _form(type: OrderType.income, status: InstallmentStatus.settled),
       );
 
@@ -59,7 +71,7 @@ void main() {
       // monstro pela via normal (a consulta da semana) e é lá que ele tem de
       // aparecer — animar dano aqui cobraria duas vezes pelo mesmo real.
       expect(
-        arenaEventFor(
+        _evento(
           _form(type: OrderType.expense, status: InstallmentStatus.pending),
         ),
         isNull,
@@ -70,7 +82,7 @@ void main() {
       // O dinheiro continua no workspace: a soma das contas líquidas não
       // muda, e uma barra que tremesse sem mudar de tamanho mentiria.
       expect(
-        arenaEventFor(
+        _evento(
           _form(type: OrderType.transfer, status: InstallmentStatus.paid),
         ),
         isNull,
@@ -79,7 +91,7 @@ void main() {
 
     test('edição de lançamento antigo não é saída nova', () {
       expect(
-        arenaEventFor(
+        _evento(
           _form(
             type: OrderType.expense,
             status: InstallmentStatus.paid,
@@ -90,9 +102,76 @@ void main() {
       );
     });
 
+    test('compra NO CARTÃO não fere os heróis', () {
+      // A barra dos heróis É o caixa. Animar dano numa compra de cartão faria
+      // o número descer e a barra não andar — a pior combinação possível.
+      // Ela chega depois, somada, como a fatura.
+      expect(
+        _evento(
+          _form(type: OrderType.expense, status: InstallmentStatus.paid),
+          conta: AccountType.creditCard,
+        ),
+        isNull,
+      );
+    });
+
+    test('gasto de conta de investimento fere: é caixa', () {
+      expect(
+        _evento(
+          _form(type: OrderType.expense, status: InstallmentStatus.paid),
+          conta: AccountType.investment,
+        )?.damage,
+        120,
+      );
+    });
+
+    test('sem saber a conta, não anima nada', () {
+      // Melhor não animar do que animar errado: a lista de contas ainda pode
+      // estar carregando quando o save acontece.
+      expect(
+        _evento(
+          _form(type: OrderType.expense, status: InstallmentStatus.paid),
+          conta: null,
+        ),
+        isNull,
+      );
+    });
+
+    test('parcelado: o golpe é o valor da PARCELA, não o da compra', () {
+      // Um sofá de R$ 3.600 em 12× tirou R$ 300 do caixa neste mês.
+      // Anunciar R$ 3.600 seria um número que a barra nunca vai andar.
+      final event = _evento(
+        _form(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          amount: 3600,
+          installmentType: InstallmentType.installment,
+          amountType: TransactionAmountType.total,
+          installmentCount: 12,
+        ),
+      );
+
+      expect(event?.damage, 300);
+    });
+
+    test('quando o usuário digita o valor da parcela, ele já é o golpe', () {
+      final event = _evento(
+        _form(
+          type: OrderType.expense,
+          status: InstallmentStatus.paid,
+          amount: 300,
+          installmentType: InstallmentType.installment,
+          amountType: TransactionAmountType.installment,
+          installmentCount: 12,
+        ),
+      );
+
+      expect(event?.damage, 300);
+    });
+
     test('valor zero não gera evento', () {
       expect(
-        arenaEventFor(
+        _evento(
           _form(
             type: OrderType.expense,
             status: InstallmentStatus.paid,

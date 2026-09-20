@@ -149,6 +149,17 @@ ArenaState arenaTestState({
   );
 }
 
+/// As delegates e locales que todo host de teste da Arena usa.
+const List<LocalizationsDelegate<Object>> arenaLocalizationDelegates =
+    <LocalizationsDelegate<Object>>[
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ];
+
+List<Locale> get arenaSupportedLocales => AppLocalizations.supportedLocales;
+
 /// A Arena dentro de um router de verdade, para os toques terem para onde ir.
 Widget arenaApp(
   ArenaState state, {
@@ -184,13 +195,8 @@ Widget arenaApp(
         ),
       ],
     ),
-    localizationsDelegates: const [
-      AppLocalizations.delegate,
-      GlobalMaterialLocalizations.delegate,
-      GlobalWidgetsLocalizations.delegate,
-      GlobalCupertinoLocalizations.delegate,
-    ],
-    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: arenaLocalizationDelegates,
+    supportedLocales: arenaSupportedLocales,
     locale: const Locale('pt'),
   ),
 );
