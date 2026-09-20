@@ -137,32 +137,69 @@ sealed class HudViewProviders {
   /// Cartão cujo servidor ainda não gravou o resumo fica de fora: ele é
   /// "ainda não sei", e somar zero por ele encolheria o ovo com uma certeza
   /// que não existe.
+  ///
+  /// O SALDO de cada cartão entra junto, e não é consulta nova: é o mesmo
+  /// `latestBalanceById` que a poção e o veneno já leem, e é dele que sai o
+  /// limite comprometido (`-saldo`) que a Visão Geral desenha na barra de
+  /// uso. O dono pediu essa progressão na folha dos incubados, e pediu que
+  /// fosse a MESMA visão — então é o mesmo dado e o mesmo componente.
   static final invoices = Provider.autoDispose
       .family<AsyncValue<List<HudInvoiceReading>>, DateTime>((ref, today) {
         final byType = ref.watch(AccountViewProviders.byTypeMap);
+        if (byType.hasError) {
+          return AsyncValue<List<HudInvoiceReading>>.error(
+            byType.error!,
+            byType.stackTrace ?? StackTrace.current,
+          );
+        }
 
-        return byType.whenData((map) {
-          final cards = map[AccountType.creditCard] ?? const <AccountModel>[];
+        final cards = byType.valueOrNull?[AccountType.creditCard];
+        if (cards == null) {
+          return const AsyncValue<List<HudInvoiceReading>>.loading();
+        }
 
-          return <HudInvoiceReading>[
-            for (final card in cards)
-              if (card is CreditCardAccount && card.nextInvoice != null)
-                HudInvoiceReading(
-                  accountId: card.id,
-                  name: card.name,
-                  amount: card.nextInvoice!.amount,
-                  closingDate: card.nextInvoice!.closingDate,
-                  dueDate: card.nextInvoice!.dueDate,
-                  // O ciclo está aberto enquanto o fechamento não passou: até
-                  // lá o valor é o acumulado e ainda sobe. Depois dele é
-                  // cobrança fechada.
-                  isOpenCycle: card.nextInvoice!.closingDate.isAfter(today),
-                  color: card.color,
-                  installmentId: card.nextInvoice!.installmentId,
-                  overdueDays: _overdueDays(card.nextInvoice!.dueDate, today),
-                ),
-          ];
-        });
+        final readings = <HudInvoiceReading>[];
+        for (final card in cards) {
+          if (card is! CreditCardAccount || card.nextInvoice == null) continue;
+
+          // O saldo só é pedido para cartão que TEM fatura publicada: os
+          // outros já estavam fora da soma do ovo, e ler o saldo deles seria
+          // segurar a faixa inteira por um dado que ninguém vai mostrar.
+          final balance = ref.watch(
+            AccountViewProviders.latestBalanceById(card.id),
+          );
+          if (balance.hasError) {
+            return AsyncValue<List<HudInvoiceReading>>.error(
+              balance.error!,
+              balance.stackTrace ?? StackTrace.current,
+            );
+          }
+          final value = balance.valueOrNull;
+          if (value == null) {
+            return const AsyncValue<List<HudInvoiceReading>>.loading();
+          }
+
+          readings.add(
+            HudInvoiceReading(
+              accountId: card.id,
+              name: card.name,
+              amount: card.nextInvoice!.amount,
+              closingDate: card.nextInvoice!.closingDate,
+              dueDate: card.nextInvoice!.dueDate,
+              // O ciclo está aberto enquanto o fechamento não passou: até
+              // lá o valor é o acumulado e ainda sobe. Depois dele é
+              // cobrança fechada.
+              isOpenCycle: card.nextInvoice!.closingDate.isAfter(today),
+              color: card.color,
+              installmentId: card.nextInvoice!.installmentId,
+              overdueDays: _overdueDays(card.nextInvoice!.dueDate, today),
+              limit: card.limit,
+              usedLimit: -value.balance,
+            ),
+          );
+        }
+
+        return AsyncValue<List<HudInvoiceReading>>.data(readings);
       });
 
   /// Há quantos dias a fatura venceu — zero enquanto o vencimento não passou.

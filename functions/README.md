@@ -2729,6 +2729,24 @@ A metáfora é lúdica; o destino que ela aponta, não.
   through planned entries paid and through payoff goals. Neutralizing the
   poison is the first step to financial independence.*
 
+### O que cada folha mostra além da explicação
+
+A mini explicação abre toda folha; abaixo dela vem o que compõe o número.
+
+- **Incubados** — uma linha por cartão (valor, ciclo e vencimento, e a marca
+  de vencida em tinta de perigo) e, sob cada uma, a **progressão de uso do
+  limite**: a mesma barra da Visão Geral (`AppProgressBar` fina, na cor da
+  conta), a porcentagem por extenso e o par "usados · livres". O uso é
+  `−saldo ÷ accounts.limit`, exatamente a conta que a Visão Geral faz — o
+  dado é `latestBalanceById`, que a faixa já lia para a poção e o veneno, e
+  não uma consulta nova.
+
+  **Cartão sem limite cadastrado não ganha barra.** `accounts.limit` nasce
+  zero quando o usuário não o preenche, e uma barra sobre zero desenharia 0%
+  — "o cartão está inteiro livre" — justo onde o app não sabe de nada. No
+  lugar dela vai a frase "limite não informado neste cartão". É a mesma
+  regra do denominador das três razões: ausência não é zero.
+
 ### Testes
 
 - `src/test/monthly_villagers.test.ts` — a regra pura da aldeia (quem vive, o

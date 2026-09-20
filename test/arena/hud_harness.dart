@@ -37,11 +37,48 @@ final ExpectedIncome hudTestIncome = ExpectedIncome(
 ///
 /// A do Nubank de R$ 8.300,55 é a única de ciclo FECHADO: ela venceu em
 /// 17/09 e continua pendente. As outras cinco ainda estão acumulando.
+///
+/// O LIMITE e o usado de cada cartão vêm junto desde que a folha dos
+/// incubados passou a desenhar a progressão de uso. O C6 entra com limite
+/// ZERO de propósito: é o cartão sem limite cadastrado, e é ele que prova
+/// que a folha diz "limite não informado" em vez de desenhar 0%.
 List<HudInvoiceReading> hudTestInvoices() => [
-  _invoice('samsclub', 'Cartão Samsclub', 286.22, closing: 10, due: 12),
-  _invoice('nubank1', 'Cartão Nubank', 2717.10, closing: 4, due: 10),
-  _invoice('inter', 'Cartão Inter', 3634.86, closing: 4, due: 10),
-  _invoice('itau', 'Cartão Itaú', 2843.07, closing: 4, due: 10),
+  _invoice(
+    'samsclub',
+    'Cartão Samsclub',
+    286.22,
+    closing: 10,
+    due: 12,
+    limit: 1000,
+    used: 286.22,
+  ),
+  _invoice(
+    'nubank1',
+    'Cartão Nubank',
+    2717.10,
+    closing: 4,
+    due: 10,
+    limit: 12000,
+    used: 2717.10,
+  ),
+  _invoice(
+    'inter',
+    'Cartão Inter',
+    3634.86,
+    closing: 4,
+    due: 10,
+    limit: 8000,
+    used: 3634.86,
+  ),
+  _invoice(
+    'itau',
+    'Cartão Itaú',
+    2843.07,
+    closing: 4,
+    due: 10,
+    limit: 3000,
+    used: 2843.07,
+  ),
   _invoice('c6', 'Cartão C6', 2406.00, closing: 4, due: 10),
   HudInvoiceReading(
     accountId: 'nubank2',
@@ -53,6 +90,8 @@ List<HudInvoiceReading> hudTestInvoices() => [
     color: '#8A05BE',
     installmentId: 'inst-nubank2',
     overdueDays: 3,
+    limit: 15000,
+    usedLimit: 8300.55,
   ),
 ];
 
@@ -62,6 +101,8 @@ HudInvoiceReading _invoice(
   double amount, {
   required int closing,
   required int due,
+  double limit = 0,
+  double used = 0,
 }) => HudInvoiceReading(
   accountId: id,
   name: name,
@@ -71,6 +112,8 @@ HudInvoiceReading _invoice(
   isOpenCycle: true,
   color: '#8A05BE',
   installmentId: 'inst-$id',
+  limit: limit,
+  usedLimit: used,
 );
 
 /// As categorias reais de setembro: dezoito aldeões, cinco caídos, cinco sem

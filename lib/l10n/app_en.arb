@@ -1750,6 +1750,12 @@
   "hudEggFinance": "Finance: it's the sum of your upcoming card bills divided by this month's expected income. A bill you expect is an expense; a bill you forget is a nasty surprise.",
   "hudEggXp": "XP: none; the monster takes no XP, but unplanned card spending eats the money that would have become a potion — and the potion is what leads to independence.",
   "hudEggEmpty": "No upcoming bill. There is no monster incubating.",
+  "hudCardLimitLabel": "Card limit",
+  "hudCardLimitUsage": "{percent}% of the limit used",
+  "@hudCardLimitUsage": {"placeholders": {"percent": {"type": "int"}}},
+  "hudCardLimitFigures": "{used} used · {available} free",
+  "@hudCardLimitFigures": {"placeholders": {"used": {"type": "String"}, "available": {"type": "String"}}},
+  "hudCardLimitUnknown": "No credit limit set for this card.",
   "hudInvoiceOverdue": "{days, plural, =1{Overdue by 1 day} other{Overdue by {days} days}}",
   "@hudInvoiceOverdue": {
     "placeholders": {

@@ -8,6 +8,7 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
@@ -254,11 +255,18 @@ class _Line extends StatelessWidget {
     this.color,
     this.icon,
     this.onTap,
+    this.footer,
   });
 
   final String name;
   final Money value;
   final String? support;
+
+  /// O que vem ABAIXO da linha inteira, ocupando a largura toda: hoje, a
+  /// barra de uso do limite do cartão. Fica fora da coluna do nome de
+  /// propósito — uma barra espremida entre o nome e o valor mediria uns
+  /// noventa pixels e não daria para ler onde ela termina.
+  final Widget? footer;
 
   /// A tinta do apoio, quando ele é um AVISO e não uma legenda.
   final Color? supportColor;
@@ -279,45 +287,55 @@ class _Line extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: AppSpacing.vXs,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: dot.withValues(alpha: 0.16),
-                borderRadius: AppRadius.brSm,
-              ),
-              child: Icon(icon?.asIcon() ?? Icons.circle, size: 16, color: dot),
-            ),
-            AppSpacing.gapXs,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: dot.withValues(alpha: 0.16),
+                    borderRadius: AppRadius.brSm,
                   ),
-                  if (support != null)
-                    Text(
-                      support!,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: supportColor ?? palette.ink2,
-                        fontWeight: supportColor == null
-                            ? null
-                            : FontWeight.w600,
+                  child: Icon(
+                    icon?.asIcon() ?? Icons.circle,
+                    size: 16,
+                    color: dot,
+                  ),
+                ),
+                AppSpacing.gapXs,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: theme.textTheme.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
+                      if (support != null)
+                        Text(
+                          support!,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: supportColor ?? palette.ink2,
+                            fontWeight: supportColor == null
+                                ? null
+                                : FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                AppSpacing.gapXs,
+                MoneyText(value.toDouble(), style: theme.textTheme.titleSmall),
+              ],
             ),
-            AppSpacing.gapXs,
-            MoneyText(value.toDouble(), style: theme.textTheme.titleSmall),
+            if (footer != null) ...[AppSpacing.gapXxs, footer!],
           ],
         ),
       ),
@@ -730,6 +748,11 @@ class _EggSheet extends StatelessWidget {
                       invoice.dueDate.formated('dd/MM', locale),
                     ),
               supportColor: invoice.isOverdue ? palette.dangerText : null,
+              // A progressão de uso do limite, cartão a cartão — o dono
+              // pediu "uma visão semelhante à da Visão Geral", e é a mesma
+              // barra ([AppProgressBar] fina, na cor do cartão), não uma
+              // cópia parecida.
+              footer: _CardLimit(invoice: invoice),
               onTap: () => context.push(
                 invoice.installmentId != null
                     ? '/invoices/${invoice.installmentId}'
@@ -737,6 +760,102 @@ class _EggSheet extends StatelessWidget {
               ),
             ),
       ],
+    );
+  }
+}
+
+/// A barra de uso do limite de UM cartão.
+///
+/// É o mesmo componente e o mesmo desenho da Visão Geral — [AppProgressBar]
+/// fina, na cor da conta, com o usado à esquerda e o livre à direita. Não é
+/// uma barra parecida: o dono pediu "uma visão semelhante à usada na Visão
+/// Geral", e duas barras que medem o MESMO dado com dois componentes
+/// divergem — foi assim que este app chegou a ter catorze barras de
+/// progresso diferentes.
+///
+/// O que a folha acrescenta é o que a Visão Geral não tinha espaço para
+/// dizer: a PORCENTAGEM por extenso. Ela é a resposta à pergunta que faz o
+/// usuário abrir esta folha — "quanto do cartão eu já comprometi?" — e ler
+/// isso de uma barra a olho é adivinhar.
+///
+/// Cartão sem limite cadastrado não ganha barra nenhuma, e essa é a decisão
+/// que importa: uma barra a 0% diria "o cartão está inteiro livre" onde o
+/// app não sabe de nada. A frase honesta cabe no mesmo lugar.
+class _CardLimit extends StatelessWidget {
+  const _CardLimit({required this.invoice});
+
+  final HudInvoice invoice;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = context.palette;
+    final l10n = context.l10n;
+    final locale = context.locale;
+
+    final usage = invoice.limitUsage;
+    final available = invoice.availableLimit;
+
+    if (usage == null || available == null) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 36),
+        child: Text(
+          l10n.hudCardLimitUnknown,
+          key: ValueKey('hud-limit-unknown-${invoice.accountId}'),
+          style: theme.textTheme.labelSmall?.copyWith(color: palette.ink3),
+        ),
+      );
+    }
+
+    final color = invoice.color?.asColor(orElse: palette.ink3) ?? palette.ink3;
+
+    return Padding(
+      // Alinhado com o NOME do cartão, e não com o ícone: a barra fala
+      // daquela conta, e começar embaixo do quadradinho colorido a faria
+      // parecer uma segunda linha da lista.
+      padding: const EdgeInsets.only(left: 36),
+      child: Column(
+        key: ValueKey('hud-limit-${invoice.accountId}'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppProgressBar(
+            value: usage,
+            size: AppProgressSize.thin,
+            color: color,
+            semanticLabel: l10n.hudCardLimitLabel,
+          ),
+          AppSpacing.gapXxs,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.hudCardLimitUsage((usage * 100).round()),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.ink2,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              AppSpacing.gapXs,
+              Flexible(
+                child: Text(
+                  l10n.hudCardLimitFigures(
+                    invoice.used.format(locale: locale),
+                    available.format(locale: locale),
+                  ),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.ink3,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

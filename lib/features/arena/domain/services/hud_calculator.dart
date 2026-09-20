@@ -72,6 +72,8 @@ class HudInvoiceReading {
     this.color,
     this.installmentId,
     this.overdueDays = 0,
+    this.limit = 0,
+    this.usedLimit = 0,
   });
 
   final String accountId;
@@ -90,6 +92,15 @@ class HudInvoiceReading {
 
   /// Há quantos dias a fatura venceu, pelo relógio do app. Zero se não venceu.
   final int overdueDays;
+
+  /// `accounts.limit` do cartão. Zero é "não informado" — é como o campo
+  /// nasce quando o usuário não preenche, e é assim que a Visão Geral já o
+  /// trata ao decidir se desenha a barra de uso.
+  final double limit;
+
+  /// O limite comprometido: o saldo do cartão em módulo (`-balance`), a
+  /// mesma conta que a Visão Geral faz.
+  final double usedLimit;
 }
 
 /// O que o HUD mensal precisa ler. Nada aqui é consulta nova por capricho:
@@ -288,6 +299,14 @@ abstract final class HudCalculator {
               isOpenCycle: reading.isOpenCycle,
               installmentId: reading.installmentId,
               overdueDays: reading.overdueDays,
+              // Limite ZERO vira ausência, e não um limite de R$ 0,00: o
+              // campo nasce zerado quando o usuário não o preenche, e uma
+              // barra de uso sobre zero mostraria 0% — "seu cartão está
+              // inteiro livre" — justo para quem o app não sabe medir.
+              limit: reading.limit > 0 ? Money.fromDouble(reading.limit) : null,
+              used: reading.usedLimit > 0
+                  ? Money.fromDouble(reading.usedLimit)
+                  : Money.zero,
             ),
         ]..sort((a, b) {
           // VENCIDA primeiro, e explicitamente — não porque a data dela é

@@ -2879,6 +2879,22 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhuma fatura prevista. Não há monstro nenhum incubado.';
 
   @override
+  String get hudCardLimitLabel => 'Limite do cartão';
+
+  @override
+  String hudCardLimitUsage(int percent) {
+    return '$percent% do limite usado';
+  }
+
+  @override
+  String hudCardLimitFigures(String used, String available) {
+    return '$used usados · $available livres';
+  }
+
+  @override
+  String get hudCardLimitUnknown => 'Limite não informado neste cartão.';
+
+  @override
   String hudInvoiceOverdue(int days) {
     String _temp0 = intl.Intl.pluralLogic(
       days,

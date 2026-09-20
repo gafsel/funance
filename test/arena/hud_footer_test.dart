@@ -468,6 +468,61 @@ void main() {
     });
   });
 
+  group('a folha dos incubados mostra o limite de cada cartão', () {
+    testWidgets('a barra de uso aparece por cartão, como na Visão Geral', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(2));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('hud-limit-nubank2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('hud-limit-itau')), findsOneWidget);
+
+      // Nubank vencida: R$ 8.300,55 de R$ 15.000 = 55%.
+      expect(find.text('55% do limite usado'), findsOneWidget);
+      // Itaú: R$ 2.843,07 de R$ 3.000 = 95%. É o cartão prestes a estourar,
+      // e é exatamente o que a progressão existe para mostrar antes da
+      // próxima compra.
+      expect(find.text('95% do limite usado'), findsOneWidget);
+    });
+
+    testWidgets('cartão sem limite cadastrado diz isso, e não 0%', (
+      tester,
+    ) async {
+      // O defeito que esta asserção impede: `limit` nasce ZERO quando o
+      // usuário não o preenche, e uma barra sobre zero desenha 0% — "seu
+      // cartão está inteiro livre" — justamente onde o app não sabe de nada.
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(2));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('hud-limit-unknown-c6')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('hud-limit-c6')), findsNothing);
+      expect(find.text('0% do limite usado'), findsNothing);
+      expect(find.text('Limite não informado neste cartão.'), findsOneWidget);
+    });
+
+    testWidgets('o usado e o livre saem do mesmo saldo da Visão Geral', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(2));
+      await tester.pumpAndSettle();
+
+      // Itaú: R$ 2.843,07 usados de R$ 3.000 deixam R$ 156,93. O "livre" é
+      // conta do app e não campo do banco — se ele sair errado, o usuário
+      // decide uma compra por um número inventado.
+      expect(find.textContaining('156,93 livres'), findsOneWidget);
+    });
+  });
+
   group('a folha da vila', () {
     testWidgets('o aldeão morto tem a barra CHEIA de vermelho', (tester) async {
       await pumpHudFooter(tester, size: const Size(400, 900));

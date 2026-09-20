@@ -382,6 +382,8 @@ class HudInvoice {
     this.isOpenCycle = false,
     this.installmentId,
     this.overdueDays = 0,
+    this.limit,
+    this.used = Money.zero,
   });
 
   final String accountId;
@@ -390,6 +392,39 @@ class HudInvoice {
   final DateTime closingDate;
   final DateTime dueDate;
   final String? color;
+
+  /// O limite do cartão (`accounts.limit`). `null` quando o usuário não
+  /// informou nenhum.
+  ///
+  /// A ausência não vira zero, e a razão é a mesma do denominador das três
+  /// razões: zero é um VEREDITO ("você não tem limite nenhum") e a ausência é
+  /// "ainda não sei". Um cartão sem limite cadastrado desenhando 0% de uso
+  /// diria ao usuário que ele tem o cartão inteiro livre justamente quando o
+  /// app não faz ideia.
+  final Money? limit;
+
+  /// O limite JÁ COMPROMETIDO: o saldo do cartão em módulo, que é como a
+  /// Visão Geral o calcula (`-balance`). Nunca negativo — um cartão pago
+  /// adiantado não tem limite negativo em uso.
+  final Money used;
+
+  /// Quanto do limite já foi usado, de 0 a 1. `null` sem limite informado.
+  double? get limitUsage {
+    final total = limit;
+    if (total == null || total.cents <= 0) return null;
+
+    final usado = used.cents < 0 ? 0 : used.cents;
+    return (usado / total.cents).clamp(0.0, 1.0);
+  }
+
+  /// O que ainda dá para gastar. `null` sem limite informado.
+  Money? get availableLimit {
+    final total = limit;
+    if (total == null || total.cents <= 0) return null;
+
+    final livre = total.cents - (used.cents < 0 ? 0 : used.cents);
+    return Money.fromCents(livre < 0 ? 0 : livre);
+  }
 
   /// Há quantos dias a fatura VENCEU. Zero enquanto ela não venceu.
   ///
@@ -420,7 +455,9 @@ class HudInvoice {
       other.color == color &&
       other.isOpenCycle == isOpenCycle &&
       other.installmentId == installmentId &&
-      other.overdueDays == overdueDays;
+      other.overdueDays == overdueDays &&
+      other.limit == limit &&
+      other.used == used;
 
   @override
   int get hashCode => Object.hash(
@@ -433,6 +470,8 @@ class HudInvoice {
     isOpenCycle,
     installmentId,
     overdueDays,
+    limit,
+    used,
   );
 }
 

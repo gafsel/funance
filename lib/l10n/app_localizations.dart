@@ -5006,6 +5006,30 @@ abstract class AppLocalizations {
   /// **'Nenhuma fatura prevista. Não há monstro nenhum incubado.'**
   String get hudEggEmpty;
 
+  /// No description provided for @hudCardLimitLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite do cartão'**
+  String get hudCardLimitLabel;
+
+  /// No description provided for @hudCardLimitUsage.
+  ///
+  /// In pt, this message translates to:
+  /// **'{percent}% do limite usado'**
+  String hudCardLimitUsage(int percent);
+
+  /// No description provided for @hudCardLimitFigures.
+  ///
+  /// In pt, this message translates to:
+  /// **'{used} usados · {available} livres'**
+  String hudCardLimitFigures(String used, String available);
+
+  /// No description provided for @hudCardLimitUnknown.
+  ///
+  /// In pt, this message translates to:
+  /// **'Limite não informado neste cartão.'**
+  String get hudCardLimitUnknown;
+
   /// No description provided for @hudInvoiceOverdue.
   ///
   /// In pt, this message translates to:

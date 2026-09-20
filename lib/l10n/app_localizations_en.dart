@@ -2862,6 +2862,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudEggEmpty => 'No upcoming bill. There is no monster incubating.';
 
   @override
+  String get hudCardLimitLabel => 'Card limit';
+
+  @override
+  String hudCardLimitUsage(int percent) {
+    return '$percent% of the limit used';
+  }
+
+  @override
+  String hudCardLimitFigures(String used, String available) {
+    return '$used used · $available free';
+  }
+
+  @override
+  String get hudCardLimitUnknown => 'No credit limit set for this card.';
+
+  @override
   String hudInvoiceOverdue(int days) {
     String _temp0 = intl.Intl.pluralLogic(
       days,
