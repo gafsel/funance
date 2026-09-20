@@ -2463,8 +2463,8 @@ razões.
 |---|---|---|---|---|
 | **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` com ≥ 3 aldeões | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
 | **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | gole · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
-| **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o ovo não recebe o nome da classe | nenhum |
-| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo do ovo | nenhum |
+| **Incubados** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o monstro não recebe o nome da classe | nenhum |
+| **Veneno** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo dos incubados | nenhum |
 
 **A escala é UMA só, e mede TAMANHO — não mede virtude.** Os quatro cortes
 (0,5/1/1,5/2) valem igual nos três ícones de razão: eles medem "quantos meses
@@ -2481,12 +2481,12 @@ falando do que se GUARDA, e é lá que os nomes ficam:
 | super | `1,5 ≤ r < 2` |
 | hiper | `r ≥ 2` |
 
-O **ovo** e a **gota** mostram a razão crua — "1,1× da receita prevista do mês
+Os **incubados** e o **veneno** mostram a razão crua — "1,1× da receita prevista do mês
 (R$ 18.550,00)" — e o julgamento deles sai da COR do anel e da mini explicação.
 A rodada anterior os nomeava com as mesmas palavras, e o resultado era a folha
-do ovo abrindo com "gole" sobre R$ 20.187,80 de faturas: um vocabulário de
+dos incubados abrindo com "gole" sobre R$ 20.187,80 de faturas: um vocabulário de
 poção elogiando o tamanho de uma dívida. Os cortes continuam existindo para os
-três (são eles que decidem a casca do ovo e a tinta do anel); o que não se
+três (são eles que decidem a casca do monstro e a tinta do anel); o que não se
 repete é o NOME.
 
 **Denominador desconhecido não é denominador zero.** Quando o servidor não
@@ -2635,13 +2635,40 @@ teria como mostrar no detalhe do ícone o que aconteceu em agosto.
 **Rules:** leitura pelo membro, escrita negada — ressuscitar os próprios aldeões
 depois do fim do mês seria reescrever a própria história.
 
+### Os nomes dos quatro ícones
+
+O dono nomeou os quatro em 2026-09-20, e os nomes carregam a leitura: o que se
+guarda é uma **poção**, o que se deve é **veneno**, e o que se gastou no cartão
+são **monstros incubados**. Nenhum deles é decoração — cada nome já diz o que
+aquele número faz com a sua independência financeira.
+
+| Slot (código) | Faixa | Folha | Antes |
+|---|---|---|---|
+| `potion` | Poção | Poção | — |
+| `village` | Vila | Vila | — |
+| `egg` | **Incubados** | **Monstros incubados** | "Ovo" |
+| `drop` | **Veneno** | **Veneno** | "Gota" |
+
+O ovo é o único com DOIS rótulos, e a diferença é de largura e não de
+conteúdo: sob uma figura de 30 px no rodapé cabe "Incubados"; quem abriu a
+folha tem espaço para o nome inteiro do que está chocando ali. Os nomes de
+`HudSlot` continuam `egg` e `drop` — eles são o identificador do código e das
+chaves de golden, não o que o usuário lê.
+
 ### Os textos da mini explicação
 
-Todo detalhe de ícone traz uma mini explicação em três partes: **duas frases de
+Todo detalhe de ícone traz uma mini explicação em três partes: **uma frase de
 jogo**, **uma financeira** e **uma de XP**. Os textos abaixo são a fonte: o app
 os copia para os ARB (`app_pt.arb` / `app_en.arb`). Eles não são publicados em
 `config/badges` — aquele documento é o catálogo de badges e de fontes de XP, e
 não a cópia da interface.
+
+**As três frases apontam para o mesmo lugar.** O objetivo central do app é
+levar o usuário à independência financeira, e é isso que cada mini explicação
+tem de guiar: a poção termina dizendo que a batalha acaba quando a renda dela
+paga as despesas; o veneno, que neutralizá-lo é o primeiro passo; os
+incubados, que o gasto sem plano come justamente o dinheiro que viraria poção.
+A metáfora é lúdica; o destino que ela aponta, não.
 
 **Aldeões (categorias)**
 
@@ -2658,42 +2685,49 @@ não a cópia da interface.
 
 **Poções (investimentos)**
 
-- **pt** — *Suas contas de investimento viram poções, e quanto maior a poção,
-  mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de
-  receita guardado. Financeiro: é o saldo investido dividido pela receita
-  prevista do mês — quantos meses você já tem de pé. XP: nenhum; a poção é
-  consequência do que você guardou, não uma missão a cumprir.*
-- **en** — *Your investment accounts become potions, and the bigger the potion,
-  the longer you survive away from battle. The tier climbs every half month of
-  income saved. Finance: it's your invested balance divided by this month's
-  expected income — how many months you already have standing. XP: none; the
-  potion follows from what you saved, not from a quest.*
+- **pt** — *A poção é o que você investiu: capital que trabalha por você e
+  rende sem esforço seu. Financeiro: é o saldo investido dividido pela receita
+  prevista do mês. Dá para beber numa emergência ou num objetivo — viagem,
+  compra — sem tocar no dinheiro do dia a dia. XP: nenhum; a poção é
+  consequência do que você guardou. Quando a renda que ela gera paga suas
+  despesas, a batalha acabou: isso é independência financeira.*
+- **en** — *The potion is what you invested: capital that works for you and
+  yields with no effort of yours. Finance: it's your invested balance divided
+  by this month's expected income. You can drink it in an emergency or for a
+  goal — a trip, a purchase — without touching day-to-day money. XP: none; the
+  potion follows from what you saved. When the income it generates pays your
+  expenses, the battle is over: that is financial independence.*
 
-**Ovo (cartões)**
+**Incubados (cartões)**
 
-- **pt** — *As faturas que estão para vencer se juntam num ovo, e ele cresce com
-  o que você já gastou sem pagar. Um ovo grande choca no próximo vencimento.
-  Financeiro: é a soma das próximas faturas dividida pela receita prevista do
-  mês. XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava
-  planejado vale zero.*
-- **en** — *The bills about to come due gather into an egg, and it grows with
-  everything you've spent but not paid. A big egg hatches on the next due date.
+- **pt** — *Toda despesa no cartão fortalece um monstro que eclode no mês que
+  vem. Quanto mais você incuba, maior a criatura que vem cobrar. Financeiro: é
+  a soma das próximas faturas dividida pela receita prevista do mês. Fatura
+  prevista é despesa; fatura esquecida é surpresa ruim. XP: nenhum; o monstro
+  não tira XP, mas o gasto de cartão sem plano come o dinheiro que viraria
+  poção — e é a poção que leva à independência.*
+- **en** — *Every credit card expense strengthens a monster that hatches next
+  month. The more you incubate, the bigger the creature that comes to collect.
   Finance: it's the sum of your upcoming card bills divided by this month's
-  expected income. XP: none; the egg takes no XP, but card spending that wasn't
-  planned is worth zero.*
+  expected income. A bill you expect is an expense; a bill you forget is a
+  nasty surprise. XP: none; the monster takes no XP, but unplanned card
+  spending eats the money that would have become a potion — and the potion is
+  what leads to independence.*
 
-**Gota (dívidas)**
+**Veneno (dívidas)**
 
-- **pt** — *O que você deve pinga numa gota, e ela pesa mais quanto maior for
-  diante do que você ganha. Uma gota de dois meses inteiros de receita é uma
-  dívida que manda no seu ano. Financeiro: é o saldo devedor dividido pela receita
-  prevista do mês. XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado
-  pago e pelas metas de quitação.*
-- **en** — *What you owe drips into a single drop, and it weighs more the bigger
-  it is against what you earn. A drop worth two whole months of income is a
-  debt that runs your year. Finance: it's your outstanding debt divided by this month's
-  expected income. XP: none directly; paying debt down earns XP through planned entries
-  paid and through payoff goals.*
+- **pt** — *As dívidas são veneno: os juros corroem seu capital sem parar e
+  puxam o HP do herói para baixo todo mês. Financeiro: é o saldo devedor
+  dividido pela receita prevista do mês. Sem antídoto, os juros comem antes o
+  que seria o seu patrimônio. XP: nenhum direto; quitar rende XP pelo lançamento
+  planejado pago e pelas metas de quitação. Neutralizar o veneno é o primeiro
+  passo da independência financeira.*
+- **en** — *Debt is poison: interest corrodes your capital without pause and
+  drags the hero's HP down every month. Finance: it's your outstanding debt
+  divided by this month's expected income. Untreated, interest eats first what
+  would have been your wealth. XP: none directly; paying it off earns XP
+  through planned entries paid and through payoff goals. Neutralizing the
+  poison is the first step to financial independence.*
 
 ### Testes
 
@@ -2724,10 +2758,12 @@ não virarem descoberta de novo.
 
 **0. Os nomes de classe só na poção são decisão provisória de dev+QA, não do
 dono.** O dono nomeou as faixas (gole/semi/regular/super/hiper) falando da
-poção; para o ovo e a gota ele ainda não opinou. Na dúvida, o app mostra a
+poção; para os incubados e o veneno ele ainda não opinou. (Em 2026-09-20 ele
+nomeou os ÍCONES — "Veneno", "Incubados", "Poção" —, e isso já está no ar; o
+que continua sem decisão são as palavras da ESCALA nos dois ícones de dívida.) Na dúvida, o app mostra a
 razão CRUA nos dois ("1,1×", "0,4×") e reserva as palavras para a poção — a
 tabela "Classe (só a poção)" acima descreve o que está no ar, não o que foi
-decidido. O QA sugeriu, se o dono quiser nomes no ovo e na gota, nomes de
+decidido. O QA sugeriu, se o dono quiser nomes nos dois, nomes de
 TAMANHO ("um mês", "mês e meio", "dois meses") e não de qualidade, porque
 "regular" ao lado de um anel vermelho contradiz o anel. Quando o dono decidir,
 esta pendência sai e a tabela vira contrato.

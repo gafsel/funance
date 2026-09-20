@@ -4661,13 +4661,19 @@ abstract class AppLocalizations {
   /// No description provided for @hudEggTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Ovo'**
+  /// **'Incubados'**
   String get hudEggTitle;
+
+  /// No description provided for @hudEggSheetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Monstros incubados'**
+  String get hudEggSheetTitle;
 
   /// No description provided for @hudDropTitle.
   ///
   /// In pt, this message translates to:
-  /// **'Gota'**
+  /// **'Veneno'**
   String get hudDropTitle;
 
   /// No description provided for @hudTierNone.
@@ -4799,19 +4805,19 @@ abstract class AppLocalizations {
   /// No description provided for @hudSemanticsEggEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'nenhuma fatura prevista'**
+  /// **'nenhum monstro incubado'**
   String get hudSemanticsEggEmpty;
 
   /// No description provided for @hudSemanticsDropActive.
   ///
   /// In pt, this message translates to:
-  /// **'dívida ativa'**
+  /// **'veneno ativo, dívida em aberto'**
   String get hudSemanticsDropActive;
 
   /// No description provided for @hudSemanticsDropClear.
   ///
   /// In pt, this message translates to:
-  /// **'sem dívida'**
+  /// **'sem veneno, nenhuma dívida'**
   String get hudSemanticsDropClear;
 
   /// No description provided for @hudSemanticsPotionEmpty.
@@ -4829,25 +4835,25 @@ abstract class AppLocalizations {
   /// No description provided for @hudPotionGame.
   ///
   /// In pt, this message translates to:
-  /// **'Suas contas de investimento viram poções, e quanto maior a poção, mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de receita guardado.'**
+  /// **'A poção é o que você investiu: capital que trabalha por você e rende sem esforço seu.'**
   String get hudPotionGame;
 
   /// No description provided for @hudPotionFinance.
   ///
   /// In pt, this message translates to:
-  /// **'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses você já tem de pé.'**
+  /// **'Financeiro: é o saldo investido dividido pela receita prevista do mês. Dá para beber numa emergência ou num objetivo — viagem, compra — sem tocar no dinheiro do dia a dia.'**
   String get hudPotionFinance;
 
   /// No description provided for @hudPotionXp.
   ///
   /// In pt, this message translates to:
-  /// **'XP: nenhum; a poção é consequência do que você guardou, não uma missão a cumprir.'**
+  /// **'XP: nenhum; a poção é consequência do que você guardou. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.'**
   String get hudPotionXp;
 
   /// No description provided for @hudPotionEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhuma conta de investimento com saldo. A poção está vazia.'**
+  /// **'Nenhuma conta de investimento com saldo. A poção está vazia, e sem ela todo mês recomeça do zero.'**
   String get hudPotionEmpty;
 
   /// No description provided for @hudVillageGame.
@@ -4979,25 +4985,25 @@ abstract class AppLocalizations {
   /// No description provided for @hudEggGame.
   ///
   /// In pt, this message translates to:
-  /// **'As faturas que estão para vencer se juntam num ovo, e ele cresce com o que você já gastou sem pagar. Um ovo grande choca no próximo vencimento.'**
+  /// **'Toda despesa no cartão fortalece um monstro que eclode no mês que vem. Quanto mais você incuba, maior a criatura que vem cobrar.'**
   String get hudEggGame;
 
   /// No description provided for @hudEggFinance.
   ///
   /// In pt, this message translates to:
-  /// **'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês.'**
+  /// **'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês. Fatura prevista é despesa; fatura esquecida é surpresa ruim.'**
   String get hudEggFinance;
 
   /// No description provided for @hudEggXp.
   ///
   /// In pt, this message translates to:
-  /// **'XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava planejado vale zero.'**
+  /// **'XP: nenhum; o monstro não tira XP, mas o gasto de cartão sem plano come o dinheiro que viraria poção — e é a poção que leva à independência.'**
   String get hudEggXp;
 
   /// No description provided for @hudEggEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhuma fatura prevista. Não há ovo nenhum.'**
+  /// **'Nenhuma fatura prevista. Não há monstro nenhum incubado.'**
   String get hudEggEmpty;
 
   /// No description provided for @hudInvoiceOverdue.
@@ -5021,25 +5027,25 @@ abstract class AppLocalizations {
   /// No description provided for @hudDropGame.
   ///
   /// In pt, this message translates to:
-  /// **'O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota de dois meses inteiros de receita é uma dívida que manda no seu ano.'**
+  /// **'As dívidas são veneno: os juros corroem seu capital sem parar e puxam o HP do herói para baixo todo mês.'**
   String get hudDropGame;
 
   /// No description provided for @hudDropFinance.
   ///
   /// In pt, this message translates to:
-  /// **'Financeiro: é o saldo devedor dividido pela receita prevista do mês.'**
+  /// **'Financeiro: é o saldo devedor dividido pela receita prevista do mês. Sem antídoto, os juros comem antes o que seria o seu patrimônio.'**
   String get hudDropFinance;
 
   /// No description provided for @hudDropXp.
   ///
   /// In pt, this message translates to:
-  /// **'XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado pago e pelas metas de quitação.'**
+  /// **'XP: nenhum direto; quitar rende XP pelo lançamento planejado pago e pelas metas de quitação. Neutralizar o veneno é o primeiro passo da independência financeira.'**
   String get hudDropXp;
 
   /// No description provided for @hudDropEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'Nenhuma dívida em aberto. A gota está seca.'**
+  /// **'Nenhuma dívida em aberto. O veneno está neutralizado, e o que você ganha é seu.'**
   String get hudDropEmpty;
 
   /// No description provided for @hudDebtInstallment.

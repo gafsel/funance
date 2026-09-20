@@ -2659,10 +2659,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hudVillageTitle => 'Vila';
 
   @override
-  String get hudEggTitle => 'Ovo';
+  String get hudEggTitle => 'Incubados';
 
   @override
-  String get hudDropTitle => 'Gota';
+  String get hudEggSheetTitle => 'Monstros incubados';
+
+  @override
+  String get hudDropTitle => 'Veneno';
 
   @override
   String get hudTierNone => 'gole';
@@ -2745,13 +2748,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hudSemanticsEggCalm => 'faturas dentro da receita';
 
   @override
-  String get hudSemanticsEggEmpty => 'nenhuma fatura prevista';
+  String get hudSemanticsEggEmpty => 'nenhum monstro incubado';
 
   @override
-  String get hudSemanticsDropActive => 'dívida ativa';
+  String get hudSemanticsDropActive => 'veneno ativo, dívida em aberto';
 
   @override
-  String get hudSemanticsDropClear => 'sem dívida';
+  String get hudSemanticsDropClear => 'sem veneno, nenhuma dívida';
 
   @override
   String get hudSemanticsPotionEmpty => 'poção vazia';
@@ -2761,19 +2764,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudPotionGame =>
-      'Suas contas de investimento viram poções, e quanto maior a poção, mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de receita guardado.';
+      'A poção é o que você investiu: capital que trabalha por você e rende sem esforço seu.';
 
   @override
   String get hudPotionFinance =>
-      'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses você já tem de pé.';
+      'Financeiro: é o saldo investido dividido pela receita prevista do mês. Dá para beber numa emergência ou num objetivo — viagem, compra — sem tocar no dinheiro do dia a dia.';
 
   @override
   String get hudPotionXp =>
-      'XP: nenhum; a poção é consequência do que você guardou, não uma missão a cumprir.';
+      'XP: nenhum; a poção é consequência do que você guardou. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.';
 
   @override
   String get hudPotionEmpty =>
-      'Nenhuma conta de investimento com saldo. A poção está vazia.';
+      'Nenhuma conta de investimento com saldo. A poção está vazia, e sem ela todo mês recomeça do zero.';
 
   @override
   String get hudVillageGame =>
@@ -2861,18 +2864,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudEggGame =>
-      'As faturas que estão para vencer se juntam num ovo, e ele cresce com o que você já gastou sem pagar. Um ovo grande choca no próximo vencimento.';
+      'Toda despesa no cartão fortalece um monstro que eclode no mês que vem. Quanto mais você incuba, maior a criatura que vem cobrar.';
 
   @override
   String get hudEggFinance =>
-      'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês.';
+      'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês. Fatura prevista é despesa; fatura esquecida é surpresa ruim.';
 
   @override
   String get hudEggXp =>
-      'XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava planejado vale zero.';
+      'XP: nenhum; o monstro não tira XP, mas o gasto de cartão sem plano come o dinheiro que viraria poção — e é a poção que leva à independência.';
 
   @override
-  String get hudEggEmpty => 'Nenhuma fatura prevista. Não há ovo nenhum.';
+  String get hudEggEmpty =>
+      'Nenhuma fatura prevista. Não há monstro nenhum incubado.';
 
   @override
   String hudInvoiceOverdue(int days) {
@@ -2897,18 +2901,19 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudDropGame =>
-      'O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota de dois meses inteiros de receita é uma dívida que manda no seu ano.';
+      'As dívidas são veneno: os juros corroem seu capital sem parar e puxam o HP do herói para baixo todo mês.';
 
   @override
   String get hudDropFinance =>
-      'Financeiro: é o saldo devedor dividido pela receita prevista do mês.';
+      'Financeiro: é o saldo devedor dividido pela receita prevista do mês. Sem antídoto, os juros comem antes o que seria o seu patrimônio.';
 
   @override
   String get hudDropXp =>
-      'XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado pago e pelas metas de quitação.';
+      'XP: nenhum direto; quitar rende XP pelo lançamento planejado pago e pelas metas de quitação. Neutralizar o veneno é o primeiro passo da independência financeira.';
 
   @override
-  String get hudDropEmpty => 'Nenhuma dívida em aberto. A gota está seca.';
+  String get hudDropEmpty =>
+      'Nenhuma dívida em aberto. O veneno está neutralizado, e o que você ganha é seu.';
 
   @override
   String hudDebtInstallment(String amount, String date) {

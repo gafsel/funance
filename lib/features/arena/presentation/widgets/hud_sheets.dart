@@ -670,7 +670,7 @@ String _monthLabel(BuildContext context, String monthKey) {
       .replaceAll('.', '');
 }
 
-// ── Ovo ─────────────────────────────────────────────────────────────────────
+// ── Incubados ───────────────────────────────────────────────────────────────
 
 class _EggSheet extends StatelessWidget {
   const _EggSheet({required this.hud});
@@ -688,14 +688,18 @@ class _EggSheet extends StatelessWidget {
 
     return _HudSheet(
       slot: HudSlot.egg,
-      title: l10n.hudEggTitle,
+      // A FAIXA diz "Incubados", que é o que cabe embaixo de uma figura de
+      // 30 px; a folha diz "Monstros incubados", que é a frase inteira. O
+      // rótulo curto existe por largura, e não por conteúdo: quem abriu a
+      // folha tem espaço para ouvir o nome completo do que está chocando ali.
+      title: l10n.hudEggSheetTitle,
       color: color,
       stage: egg.stage,
       progress: egg.ratio.fill,
       headline: Text(egg.total.format(locale: locale)),
-      // Sem classe: o ovo mostra a razão, e quem diz se ela é boa ou ruim é a
-      // cor do anel e a mini explicação. "Gole" num ovo de R$ 20.187,80 em
-      // faturas elogiava o usuário pelo tamanho da dívida.
+      // Sem classe: os incubados mostram a razão, e quem diz se ela é boa ou
+      // ruim é a cor do anel e a mini explicação. "Gole" sobre R$ 20.187,80
+      // em faturas elogiava o usuário pelo tamanho da dívida.
       subtitle: hudRatioOfIncome(l10n, egg.ratio, locale),
       explanation: [l10n.hudEggGame, l10n.hudEggFinance, l10n.hudEggXp],
       children: [
@@ -737,7 +741,7 @@ class _EggSheet extends StatelessWidget {
   }
 }
 
-// ── Gota ────────────────────────────────────────────────────────────────────
+// ── Veneno ──────────────────────────────────────────────────────────────────
 
 class _DropSheet extends StatelessWidget {
   const _DropSheet({required this.hud});
@@ -756,8 +760,8 @@ class _DropSheet extends StatelessWidget {
       color: drop.isBlinking ? AppColors.violet : context.palette.ink3,
       progress: drop.ratio.fill,
       headline: Text(drop.total.format(locale: locale)),
-      // Sem classe, pela mesma razão do ovo: o que se DEVE não se mede na
-      // escala do que se guarda.
+      // Sem classe, pela mesma razão dos incubados: o que se DEVE não se
+      // mede na escala do que se guarda.
       subtitle: hudRatioOfIncome(l10n, drop.ratio, locale),
       explanation: [l10n.hudDropGame, l10n.hudDropFinance, l10n.hudDropXp],
       children: [

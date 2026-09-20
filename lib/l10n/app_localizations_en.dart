@@ -2642,10 +2642,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudVillageTitle => 'Village';
 
   @override
-  String get hudEggTitle => 'Egg';
+  String get hudEggTitle => 'Incubating';
 
   @override
-  String get hudDropTitle => 'Drop';
+  String get hudEggSheetTitle => 'Incubating monsters';
+
+  @override
+  String get hudDropTitle => 'Poison';
 
   @override
   String get hudTierNone => 'sip';
@@ -2728,13 +2731,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudSemanticsEggCalm => 'invoices within income';
 
   @override
-  String get hudSemanticsEggEmpty => 'no upcoming invoice';
+  String get hudSemanticsEggEmpty => 'no monster incubating';
 
   @override
-  String get hudSemanticsDropActive => 'active debt';
+  String get hudSemanticsDropActive => 'poison active, open debt';
 
   @override
-  String get hudSemanticsDropClear => 'no debt';
+  String get hudSemanticsDropClear => 'no poison, no debt';
 
   @override
   String get hudSemanticsPotionEmpty => 'empty potion';
@@ -2744,19 +2747,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudPotionGame =>
-      'Your investment accounts become potions, and the bigger the potion, the longer you survive away from battle. The tier climbs every half month of income saved.';
+      'The potion is what you invested: capital that works for you and yields with no effort of yours.';
 
   @override
   String get hudPotionFinance =>
-      'Finance: it\'s your invested balance divided by this month\'s expected income — how many months you already have standing.';
+      'Finance: it\'s your invested balance divided by this month\'s expected income. You can drink it in an emergency or for a goal — a trip, a purchase — without touching day-to-day money.';
 
   @override
   String get hudPotionXp =>
-      'XP: none; the potion follows from what you saved, not from a quest.';
+      'XP: none; the potion follows from what you saved. When the income it generates pays your expenses, the battle is over: that is financial independence.';
 
   @override
   String get hudPotionEmpty =>
-      'No investment account with a balance. The potion is empty.';
+      'No investment account with a balance. The potion is empty, and without it every month starts from zero.';
 
   @override
   String get hudVillageGame =>
@@ -2845,18 +2848,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudEggGame =>
-      'The bills about to come due gather into an egg, and it grows with everything you\'ve spent but not paid. A big egg hatches on the next due date.';
+      'Every credit card expense strengthens a monster that hatches next month. The more you incubate, the bigger the creature that comes to collect.';
 
   @override
   String get hudEggFinance =>
-      'Finance: it\'s the sum of your upcoming card bills divided by this month\'s expected income.';
+      'Finance: it\'s the sum of your upcoming card bills divided by this month\'s expected income. A bill you expect is an expense; a bill you forget is a nasty surprise.';
 
   @override
   String get hudEggXp =>
-      'XP: none; the egg takes no XP, but card spending that wasn\'t planned is worth zero.';
+      'XP: none; the monster takes no XP, but unplanned card spending eats the money that would have become a potion — and the potion is what leads to independence.';
 
   @override
-  String get hudEggEmpty => 'No upcoming bill. There is no egg at all.';
+  String get hudEggEmpty => 'No upcoming bill. There is no monster incubating.';
 
   @override
   String hudInvoiceOverdue(int days) {
@@ -2881,18 +2884,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudDropGame =>
-      'What you owe drips into a single drop, and it weighs more the bigger it is against what you earn. A drop worth two whole months of income is a debt that runs your year.';
+      'Debt is poison: interest corrodes your capital without pause and drags the hero\'s HP down every month.';
 
   @override
   String get hudDropFinance =>
-      'Finance: it\'s your outstanding debt divided by this month\'s expected income.';
+      'Finance: it\'s your outstanding debt divided by this month\'s expected income. Untreated, interest eats first what would have been your wealth.';
 
   @override
   String get hudDropXp =>
-      'XP: none directly; paying debt down earns XP through planned entries paid and through payoff goals.';
+      'XP: none directly; paying it off earns XP through planned entries paid and through payoff goals. Neutralizing the poison is the first step to financial independence.';
 
   @override
-  String get hudDropEmpty => 'No open debt. The drop is dry.';
+  String get hudDropEmpty =>
+      'No open debt. The poison is neutralized, and what you earn is yours.';
 
   @override
   String hudDebtInstallment(String amount, String date) {

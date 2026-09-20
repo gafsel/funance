@@ -138,10 +138,10 @@ void main() {
       // Vila: treze de dezoito aldeões de pé.
       expect(find.text('13/18'), findsOneWidget);
 
-      // Ovo: R$ 20.187,80 ÷ R$ 18.550,00 = 1,1×.
+      // Incubados: R$ 20.187,80 ÷ R$ 18.550,00 = 1,1×.
       expect(find.text('1,1×'), findsOneWidget);
 
-      // Gota: R$ 7.623,68 ÷ R$ 18.550,00 = 0,4×.
+      // Veneno: R$ 7.623,68 ÷ R$ 18.550,00 = 0,4×.
       expect(find.text('0,4×'), findsOneWidget);
     });
 
@@ -150,7 +150,8 @@ void main() {
     ) async {
       await pumpHudFooter(tester, hud: hudTestState(income: null));
 
-      // Três traços: poção, ovo e gota. A vila continua contando, porque o
+      // Três traços: poção, incubados e veneno. A vila continua contando,
+      // porque o
       // denominador dela é o próprio plano.
       expect(find.text('—'), findsNWidgets(3));
       expect(find.text('13/18'), findsOneWidget);
@@ -322,12 +323,16 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          RegExp('^Ovo: 1,1× da receita, faturas acima da receita, perigo'),
+          RegExp(
+            '^Incubados: 1,1× da receita, faturas acima da receita, perigo',
+          ),
         ),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel(RegExp('^Gota: 0,4× da receita, dívida ativa')),
+        find.bySemanticsLabel(
+          RegExp('^Veneno: 0,4× da receita, veneno ativo, dívida em aberto'),
+        ),
         findsOneWidget,
       );
     });
@@ -340,14 +345,17 @@ void main() {
       expect(
         find.bySemanticsLabel(
           RegExp(
-            '^Ovo: R\\\$\u{00A0}20[.]187,80, receita prevista ainda não calculada',
+            '^Incubados: R\\\$\u{00A0}20[.]187,80, receita prevista ainda não '
+            'calculada',
           ),
         ),
         findsOneWidget,
       );
     });
 
-    testWidgets('cofre vazio: vila sem vila, gota sem dívida', (tester) async {
+    testWidgets('cofre vazio: vila sem vila, veneno sem dívida', (
+      tester,
+    ) async {
       await pumpHudFooter(
         tester,
         hud: hudTestState(
@@ -363,10 +371,13 @@ void main() {
         find.bySemanticsLabel(RegExp('^Vila: 0 de 0 aldeões vivos, sem vila')),
         findsOneWidget,
       );
-      expect(find.bySemanticsLabel(RegExp('sem dívida')), findsOneWidget);
+      expect(
+        find.bySemanticsLabel(RegExp('sem veneno, nenhuma dívida')),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel(RegExp('poção vazia')), findsOneWidget);
       expect(
-        find.bySemanticsLabel(RegExp('nenhuma fatura prevista')),
+        find.bySemanticsLabel(RegExp('nenhum monstro incubado')),
         findsOneWidget,
       );
     });
@@ -380,8 +391,8 @@ void main() {
 
       expect(find.text('Poção'), findsNothing);
       expect(find.text('Vila'), findsNothing);
-      expect(find.text('Ovo'), findsNothing);
-      expect(find.text('Gota'), findsNothing);
+      expect(find.text('Incubados'), findsNothing);
+      expect(find.text('Veneno'), findsNothing);
     });
 
     for (final largura in <double>[600, 900, 1300]) {
@@ -396,11 +407,65 @@ void main() {
 
         expect(find.text('Poção'), findsOneWidget);
         expect(find.text('Vila'), findsOneWidget);
-        expect(find.text('Ovo'), findsOneWidget);
-        expect(find.text('Gota'), findsOneWidget);
+        expect(find.text('Incubados'), findsOneWidget);
+        expect(find.text('Veneno'), findsOneWidget);
         expect(tester.takeException(), isNull);
       });
     }
+  });
+
+  group('os nomes que o dono deu', () {
+    testWidgets('a faixa diz "Incubados"; a folha, "Monstros incubados"', (
+      tester,
+    ) async {
+      // O ovo é o único com DOIS rótulos, e a diferença é de LARGURA. Sob uma
+      // figura de 30 px no rodapé cabe a palavra curta; quem abriu a folha
+      // tem espaço para o nome inteiro do que está chocando ali.
+      await pumpHudFooter(tester, size: const Size(900, 900), compact: false);
+
+      expect(find.text('Incubados'), findsOneWidget);
+      expect(find.text('Monstros incubados'), findsNothing);
+
+      await tester.tap(find.byType(HudGlyph).at(2));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Monstros incubados'), findsOneWidget);
+    });
+
+    testWidgets('as três frases do veneno apontam para a independência', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(3));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Veneno'), findsOneWidget);
+      expect(
+        find.textContaining('os juros corroem seu capital'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('primeiro passo da independência financeira'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a poção termina no fim da batalha', (tester) async {
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(0));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.textContaining('capital que trabalha por você'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('isso é independência financeira'),
+        findsOneWidget,
+      );
+    });
   });
 
   group('a folha da vila', () {
