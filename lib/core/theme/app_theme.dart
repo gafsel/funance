@@ -70,6 +70,18 @@ abstract final class AppTheme {
       canvasColor: palette.background,
       splashFactory: InkSparkle.splashFactory,
       textTheme: text,
+      // O `primaryTextTheme` PRECISA vir explícito. `ThemeData` aplica o
+      // `fontFamily` abaixo sobre a tipografia padrão do Material e só depois
+      // faz `merge` com o que recebe; sem este parâmetro os quinze slots do
+      // primário saíam todos em Inter — `displayLarge` inclusive —, e
+      // qualquer componente que leia o primário (`AppBar` sobre a cor
+      // primária, indicadores, tooltips de tema invertido) desenhava com a
+      // fonte errada. A tinta é a de superfície de jogo: o primário é escuro
+      // nos dois temas.
+      primaryTextTheme: AppTypography.textTheme(AppColors.inkInverse),
+      // Estes dois só têm efeito sobre os slots que NÃO definimos — na
+      // prática, o fundo de segurança para qualquer `TextTheme` que o
+      // Material crie por conta própria.
       fontFamily: AppTypography.body,
       fontFamilyFallback: AppTypography.bodyFallback,
       extensions: <ThemeExtension<dynamic>>[palette],
