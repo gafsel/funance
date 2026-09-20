@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/features/finance/data/models/automatic_transaction_mapper.dart';
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
@@ -32,6 +33,35 @@ Map<String, dynamic> _pendenteComCategoriaIncompleta() => {
     'color': '#FF5722',
     'type': 'expense',
   },
+};
+
+/// Uma conta sugerida QUEBRADA: sem `initialBalanceDate`, que a união exige.
+/// É a mesma exposição da categoria, num campo que ninguém tinha olhado.
+Map<String, dynamic> _pendenteComContaQuebrada() => {
+  'id': 'auto-9a1b',
+  'description': 'PIX ENVIADO',
+  'amount': 250.0,
+  'date': '2026-03-15T12:00:00.000Z',
+  'type': 'expense',
+  'isConsolidated': false,
+  'isIgnored': false,
+  'suggestedAccount': {
+    'runtimeType': 'checking',
+    'id': 'acc-1',
+    'name': 'Conta',
+    'icon': 'account_balance',
+    'color': '#1565C0',
+  },
+};
+
+Map<String, dynamic> _pendenteIntegro() => {
+  'id': 'auto-ok',
+  'description': 'MERCADO CENTRAL',
+  'amount': 132.4,
+  'date': '2026-03-15T12:00:00.000Z',
+  'type': 'expense',
+  'isConsolidated': false,
+  'isIgnored': false,
 };
 
 void main() {
@@ -130,6 +160,67 @@ void main() {
             'o mapa vem do snapshot do Firestore; consertá-lo no lugar '
             'mudaria o que outra leitura enxerga',
       );
+    });
+  });
+
+  /// Item 4 — a fronteira é a LEITURA da coleção, não cada modelo.
+  ///
+  /// A rodada anterior tolerou a categoria sem nome e parou aí. O mesmo
+  /// documento carrega `suggestedAccount` (uma união com `runtimeType`,
+  /// datas obrigatórias e campos por tipo de conta), e o leitor de
+  /// notificação é um processo fora do controle do app: a lista continuava
+  /// caindo inteira por causa de um documento.
+  group('parsePendingTransactions', () {
+    test('um documento ilegível não derruba os outros', () {
+      final ignorados = <String>[];
+
+      final itens = parsePendingTransactions(
+        [
+          (id: 'auto-1', data: _pendenteComCategoriaIncompleta()),
+          (id: 'auto-quebrado', data: _pendenteComContaQuebrada()),
+          (id: 'auto-3', data: _pendenteIntegro()),
+        ],
+        onInvalid: (id, error, stack) => ignorados.add(id),
+      );
+
+      expect(itens.map((t) => t.id), ['auto-8f2c', 'auto-ok']);
+      expect(
+        ignorados,
+        ['auto-quebrado'],
+        reason:
+            'o id entra no registro para que dê para achar o documento; o '
+            'conteúdo dele, não',
+      );
+    });
+
+    test('documento sem dados também é pulado, não explodido', () {
+      final ignorados = <String>[];
+
+      final itens = parsePendingTransactions(
+        [
+          (id: 'vazio', data: null),
+          (id: 'auto-3', data: _pendenteIntegro()),
+        ],
+        onInvalid: (id, error, stack) => ignorados.add(id),
+      );
+
+      expect(itens, hasLength(1));
+      expect(ignorados, ['vazio']);
+    });
+
+    test('coleção inteira íntegra não registra nada', () {
+      final ignorados = <String>[];
+
+      final itens = parsePendingTransactions(
+        [
+          (id: 'a', data: _pendenteIntegro()),
+          (id: 'b', data: _pendenteIntegro()),
+        ],
+        onInvalid: (id, error, stack) => ignorados.add(id),
+      );
+
+      expect(itens, hasLength(2));
+      expect(ignorados, isEmpty);
     });
   });
 }

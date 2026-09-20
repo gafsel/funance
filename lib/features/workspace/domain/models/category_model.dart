@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/core/observability/app_logger.dart';
 import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 
 part 'category_model.freezed.dart';
@@ -70,8 +71,17 @@ sealed class CategoryModel with _$CategoryModel {
 
     // Só copia o mapa se houver algo a consertar: o caminho normal é o de
     // todo lançamento da lista e não deve pagar uma alocação por categoria.
-    final broken = textFields.where((f) => json[f] is! String);
+    final broken = textFields.where((f) => json[f] is! String).toList();
     if (broken.isEmpty) return json;
+
+    // O fallback é registrado. Ele é silencioso por desenho — a tela continua
+    // funcionando —, e silêncio por desenho é exatamente o que faz um
+    // documento malformado virar normal sem ninguém notar. Os NOMES dos
+    // campos entram; o conteúdo, não.
+    AppLogger.info(
+      'CategoryModel: campos sem texto, usando vazio — ${broken.join(', ')}',
+      name: 'parse',
+    );
 
     return {...json, for (final field in broken) field: ''};
   }
