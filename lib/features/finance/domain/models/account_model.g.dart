@@ -7,37 +7,35 @@ part of 'account_model.dart';
 // **************************************************************************
 
 _NextInvoice _$NextInvoiceFromJson(Map<String, dynamic> json) => _NextInvoice(
-  dueDate: const DateTimeIsoConverter().fromJson(json['dueDate'] as String),
-  closingDate: const DateTimeIsoConverter().fromJson(
-    json['closingDate'] as String,
-  ),
-  cycleStart: const DateTimeIsoConverter().fromJson(
-    json['cycleStart'] as String,
-  ),
-  cycleEnd: const DateTimeIsoConverter().fromJson(json['cycleEnd'] as String),
+  dueDate: const TimestampOrIsoConverter().fromJson(json['dueDate']),
+  closingDate: const TimestampOrIsoConverter().fromJson(json['closingDate']),
+  cycleStart: const TimestampOrIsoConverter().fromJson(json['cycleStart']),
+  cycleEnd: const TimestampOrIsoConverter().fromJson(json['cycleEnd']),
   amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
   orderId: json['orderId'] as String? ?? '',
   installmentId: json['installmentId'] as String?,
   status:
       $enumDecodeNullable(_$InstallmentStatusEnumMap, json['status']) ??
       InstallmentStatus.pending,
-  updatedAt: const DateTimeIsoNullableConverter().fromJson(
-    json['updatedAt'] as String?,
+  updatedAt: const TimestampOrIsoNullableConverter().fromJson(
+    json['updatedAt'],
   ),
 );
 
 Map<String, dynamic> _$NextInvoiceToJson(
   _NextInvoice instance,
 ) => <String, dynamic>{
-  'dueDate': const DateTimeIsoConverter().toJson(instance.dueDate),
-  'closingDate': const DateTimeIsoConverter().toJson(instance.closingDate),
-  'cycleStart': const DateTimeIsoConverter().toJson(instance.cycleStart),
-  'cycleEnd': const DateTimeIsoConverter().toJson(instance.cycleEnd),
+  'dueDate': const TimestampOrIsoConverter().toJson(instance.dueDate),
+  'closingDate': const TimestampOrIsoConverter().toJson(instance.closingDate),
+  'cycleStart': const TimestampOrIsoConverter().toJson(instance.cycleStart),
+  'cycleEnd': const TimestampOrIsoConverter().toJson(instance.cycleEnd),
   'amount': instance.amount,
   'orderId': instance.orderId,
   'installmentId': instance.installmentId,
   'status': _$InstallmentStatusEnumMap[instance.status]!,
-  'updatedAt': const DateTimeIsoNullableConverter().toJson(instance.updatedAt),
+  'updatedAt': const TimestampOrIsoNullableConverter().toJson(
+    instance.updatedAt,
+  ),
 };
 
 const _$InstallmentStatusEnumMap = {

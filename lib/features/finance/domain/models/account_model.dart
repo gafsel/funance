@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:funances/core/firestore/timestamp_or_iso_converter.dart';
 import 'package:funances/core/utils/date_time_converter.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
@@ -84,22 +85,27 @@ extension BankLogoExtension on BankLogo {
 ///
 /// `includeToJson: false` no campo da conta: as security rules negam o envio
 /// deste objeto, e um formulário que serialize a conta inteira seria rejeitado.
+///
+/// As datas entram por [TimestampOrIsoConverter] porque o mesmo objeto chega
+/// de dois lugares: normalizado por `accountJsonFromFirestore` (texto ISO) e
+/// copiado CRU para dentro de `automatic_transactions.suggestedAccount`, com
+/// os `Timestamp` do servidor. A saída continua sendo ISO.
 @freezed
 sealed class NextInvoice with _$NextInvoice {
   const NextInvoice._();
 
   const factory NextInvoice({
     /// Vencimento da fatura.
-    @DateTimeIsoConverter() required DateTime dueDate,
+    @TimestampOrIsoConverter() required DateTime dueDate,
 
     /// Fechamento que gerou esta fatura.
-    @DateTimeIsoConverter() required DateTime closingDate,
+    @TimestampOrIsoConverter() required DateTime closingDate,
 
     /// Primeira compra que pertence a esta fatura (inclusive).
-    @DateTimeIsoConverter() required DateTime cycleStart,
+    @TimestampOrIsoConverter() required DateTime cycleStart,
 
     /// Última compra que pertence a esta fatura (inclusive).
-    @DateTimeIsoConverter() required DateTime cycleEnd,
+    @TimestampOrIsoConverter() required DateTime cycleEnd,
 
     /// Valor em aberto. Zero quando o ciclo ainda não tem compra nenhuma.
     @Default(0.0) double amount,
@@ -112,7 +118,7 @@ sealed class NextInvoice with _$NextInvoice {
 
     @Default(InstallmentStatus.pending) InstallmentStatus status,
 
-    @DateTimeIsoNullableConverter() DateTime? updatedAt,
+    @TimestampOrIsoNullableConverter() DateTime? updatedAt,
   }) = _NextInvoice;
 
   /// `true` enquanto o ciclo está aberto e ainda não acumulou nada — o app
