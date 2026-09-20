@@ -523,10 +523,8 @@ export const WEEKLY_CRON_MINUTES_AFTER_WEEK_START = 5;
  *
  * Ficava em `"0 3 * * 1"` (segunda, 03:00): a passada de fechamento continuava
  * correta, mas a semana nova passava 27 horas sem que NADA do lado semanal
- * tivesse rodado. Como a Home só mostra missão que existe no Firestore e a
- * geração é preguiçosa (disparada por evento, ver
- * `GamificationService.updateWeeklyMissionsProgress`), quem abria o app no
- * domingo via o bloco de missões vazio.
+ * tivesse rodado — e como a Home só mostra missão que existe no Firestore,
+ * quem abria o app no domingo via o bloco de missões vazio.
  *
  * `src/test/cron_schedule.test.ts` deriva esta expressão do dia de início da
  * semana e falha se um dos dois mudar sem o outro.
@@ -542,11 +540,11 @@ export const weeklyGamificationCron = onSchedule(
         // antiga segunda 03:00 isso é a mesma semana.
         schedule: WEEKLY_GAMIFICATION_CRON_SCHEDULE,
         timeZone: GAMIFICATION_TIME_ZONE,
-        // Varre a base INTEIRA de workspaces (missões da semana fechada, XP do
-        // plano, badges): precisa de mais memória/timeout do que o padrão
-        // global de 256MiB/60s. Ele NÃO gera as missões da semana nova nem
-        // chama a IA — a geração é preguiçosa, no primeiro evento da semana
-        // (ver `updateWeeklyMissionsProgress`).
+        // Varre a base INTEIRA de workspaces (fecha a semana anterior e abre a
+        // nova): precisa de mais memória/timeout do que o padrão global de
+        // 256MiB/60s. Ele NÃO chama a IA — as missões que ele cria saem do
+        // catálogo determinístico (`aiGarnish: false`), porque uma chamada
+        // paga por workspace ativo, toda semana, seria um custo novo.
         ...AI_SCHEDULE_OPTIONS,
     },
     async () => {

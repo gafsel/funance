@@ -74,16 +74,15 @@ apenas reage ao que o cliente gravou.
 | `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
 | **Todos os `*Cents`** — `orders.amountCents`, `installments.{amount,paidAmount,referenceAmount}Cents`, `accounts.{initialBalance,limit}Cents`, `accounts.nextInvoice.amountCents`, `goals.{targetAmount,currentAmount}Cents`, `category_planning.{amount,appliedAmount}Cents`, `balance.{delta,balance}Cents`, `period_summaries.categories.{id}.{generalPlannedAmount,specificPlannedAmount,actualAmount}Cents` | servidor (rules negam ao cliente) | ninguém **ainda** — o app passa a ler na etapa C | F1.10 | [Dinheiro em centavos](#dinheiro-em-centavos-f110) |
 
-> **Quando `weekly_missions` da semana corrente EXISTE.** Os três documentos da
-> semana não nascem na virada: o cron semanal (domingo 00:05) fecha a semana
-> ANTERIOR e não cria nada da nova. A criação é preguiçosa — o **primeiro
-> evento** da semana no workspace (transação, planejamento, conciliação…) chama
-> `generateWeeklyMissions` sob idempotência `workspaceId_weekId`. Até lá a
-> consulta devolve vazio, e **o app deve mostrar o bloco de missões vazio** (ou
-> o seu estado de "ainda não há missões"), não um erro nem um esqueleto
-> infinito. Uma semana inteira sem nenhum evento fica sem missão nenhuma — o
-> que também zera a streak de missões no fechamento, porque `count === 0` não
-> conta como semana completa.
+> **Quando `weekly_missions` da semana corrente EXISTE.** As missões da semana
+> existem **a partir de domingo 00:05 (Brasília) para workspaces ATIVOS** — o
+> cron semanal fecha a semana anterior e, em seguida, cria as três da nova.
+> **Workspace dormente** (nenhuma parcela paga nos últimos 30 dias) **recebe as
+> suas no primeiro evento** da semana, pelo caminho preguiçoso de sempre. Entre
+> a virada (domingo 00:00) e o cron, e em qualquer workspace dormente antes do
+> primeiro evento, a consulta devolve vazio: **o app deve mostrar o bloco de
+> missões vazio** (ou o seu estado de "ainda não há missões"), não um erro nem
+> um esqueleto infinito.
 
 ### O que o app precisa acompanhar
 
@@ -2444,17 +2443,48 @@ O objetivo passou a ser **dado**.
 | Momento (America/Sao_Paulo) | O que acontece |
 |---|---|
 | domingo 00:00 | vira a semana do produto (`week.utils.ts`); `weekly_missions` da semana nova ainda **não existe** |
-| domingo 00:05 | `weeklyGamificationCron` fecha a semana ANTERIOR: passada final das missões em aberto, streak, XP do plano, badges |
+| domingo 00:05 | `weeklyGamificationCron`: **fecha** a semana anterior (passada final das missões em aberto, streak, XP do plano, badges) e **abre** a nova, criando as três missões de cada workspace ATIVO |
 | domingo 00:10 | `syncWorkspaceCurrentWeek` reafirma `currentWeekId`/`currentWeekStart` |
-| primeiro evento da semana | `updateWeeklyMissionsProgress` → `generateWeeklyMissions`: **agora** os três documentos existem |
+| primeiro evento da semana | fallback: num workspace DORMENTE, `updateWeeklyMissionsProgress` → `generateWeeklyMissions` cria as três ali |
 
-Ou seja: **as missões da semana só passam a existir depois do primeiro evento
-do workspace naquela semana** — antes disso o app mostra o bloco vazio. O cron
-de domingo 00:05 não as cria; ele fecha a semana que acabou.
+**Ativo** é o mesmo sinal do coaching proativo — alguma parcela **paga** nos
+últimos `ACTIVE_WORKSPACE_WINDOW_DAYS` = **30 dias** —, com a janela contada a
+partir do **domingo que inicia a semana**, não do instante do disparo, para o
+resultado não depender do minuto em que o cron rodou. A janela é mais larga que
+os 14 dias do coaching porque aqui o passo é semanal, não diário: quem lançou
+algo no último mês volta. Gerar para a base inteira criaria três documentos por
+semana em cada workspace abandonado.
 
-Gerá-las no cron significaria uma chamada de IA (e três leituras) por
-workspace, toda semana, inclusive para quem não abre o app há meses — é uma
-decisão de custo, não um bug, e está anotada aqui de propósito.
+**O cron não chama a IA** (`aiGarnish: false`). O texto sai do catálogo
+determinístico — que é exatamente o que a IA teria de referenciar para passar
+na validação (ver [O que a IA ainda faz](#o-que-a-ia-ainda-faz)). Consequência
+a conhecer: **o workspace ativo passa a receber o nome do catálogo**, e não o
+temperado pelo Gemini, porque quando o primeiro evento chega as missões já
+existem. Reaplicar o tempero depois é possível (só quando o nome ainda for o do
+catálogo, pela validação existente) e ficou de fora deste pacote.
+
+**Custo por workspace, por semana** — leituras, não escritas:
+
+| Caso | Leituras |
+|---|---|
+| já tem as missões (reexecução do cron, ou geração preguiçosa que chegou antes) | **1** (a missão de consistência) |
+| dormente | **2** (missão + atividade) |
+| ativo, `personal` | **4** (missão, atividade, workspace, planejamentos) |
+| ativo, `business` | **5** (as quatro + o sumário da semana, para a peneira de elegibilidade) |
+
+A leitura de METAS saiu do caminho do cron: ela só alimentava o prompt do
+Gemini. As escritas são três `create` por workspace gerado — e `create` não
+sobrescreve missão existente.
+
+**Idempotência em duas camadas**: a checagem de existência (que é também o
+caminho de 1 leitura de uma reexecução) e a MESMA chave da geração preguiçosa
+(`${workspaceId}_${weekId}` + `generateWeeklyMissions`), de modo que cron e
+evento nunca gerem a mesma semana duas vezes.
+
+> **Efeito colateral de propósito.** Um workspace ativo que passa a semana
+> inteira sem nenhum evento agora **tem** as três missões, nenhuma concluída, e
+> a streak zera por isso — em vez de zerar por `count === 0`, sem nada na tela
+> que explicasse o zero.
 
 ### O catálogo
 
@@ -2859,7 +2889,7 @@ começa no domingo, mês no fuso de Brasília), não uma preferência de horári
 
 | Cron | Por que esse dia/hora |
 |---|---|
-| `weeklyGamificationCron` | domingo 00:05 — **a virada da semana** (ver abaixo) |
+| `weeklyGamificationCron` | domingo 00:05 — **a virada da semana**: fecha a anterior e abre a nova (ver abaixo) |
 | `syncWorkspaceCurrentWeek` | domingo 00:10 — logo depois da virada; fora dele o marcador é reafirmado sob demanda por `ensureCurrentWeek` |
 | `monthlyGamificationCron` | dia 1, 03:00 — avalia o mês ANTERIOR (`getMonthRangeInTz(now, -1)`), completo à meia-noite do dia 1 |
 | `closeFinancialHealthMonth` | dia 1, 04:30 — fecha o mês anterior (`shiftMonthKey(toMonthKey(now), -1)`), depois dos crons que fecham as outras coleções |
@@ -2897,11 +2927,11 @@ Ordem no domingo de madrugada: `weeklyGamificationCron` (00:05) roda **antes**
 de `syncWorkspaceCurrentWeek` (00:10). Não há dependência entre os dois — o
 cron semanal calcula a semana de `now` e não lê `workspaces.currentWeekId`.
 
-> ⚠️ **O cron NÃO cria as missões da semana nova.** Ele só fecha a anterior. As
-> missões de `weekly_missions` continuam nascendo de forma preguiçosa, no
-> primeiro evento da semana (`GamificationService.updateWeeklyMissionsProgress`
-> → `generateWeeklyMissions`, sob idempotência `workspaceId_weekId`). Ver o
-> contrato de [`weekly_missions`](#contratos-com-o-app).
+O cron tem **duas metades**: fecha a semana anterior e **abre a nova**, criando
+as missões dos workspaces ativos (`ensureWeeklyMissionsForActiveWorkspace`,
+sem chamada de IA). O dormente continua recebendo as suas no primeiro evento.
+Critério de atividade, custo de leitura e idempotência estão em
+[Quando as missões da semana existem](#quando-as-missões-da-semana-existem).
 
 `generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
 uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha

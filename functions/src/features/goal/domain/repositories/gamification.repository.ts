@@ -296,6 +296,12 @@ export interface IGamificationRepository {
     ): Promise<boolean>;
     getAccountsCount(workspaceId: string): Promise<number>;
     hasPaidTransaction(workspaceId: string): Promise<boolean>;
+    /**
+     * `true` se houve alguma parcela PAGA de `since` para cá — o sinal de
+     * workspace ativo usado pelo cron semanal (mesma consulta do coaching).
+     * `limit(1)`: uma leitura, não uma varredura.
+     */
+    hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean>;
     /** Planejamentos por categoria do workspace (documento cru + id). */
     getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]>;
     getCompletedReconciliationsCount(workspaceId: string, limit?: number): Promise<number>;
