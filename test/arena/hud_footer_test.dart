@@ -874,8 +874,16 @@ void main() {
       await tester.pumpAndSettle();
 
       // "Manutenção do carro": R$ 350 de orçamento contra R$ 1.462,85 —
-      // R$ 1.112,85 além do plano. Sob um anel de 44 px cabe "R$ 1,1 mil";
+      // R$ 1.112,85 além do plano. Sob um anel de 44 px cabe "R$ 1,1k";
       // quem ouve a tela recebe o número inteiro.
+      //
+      // E a grafia é a DO JOGO — `asCompactCurrency`, o mesmo "k" da barra de
+      // vida e do placar —, não o "R$ 1,1 mil" do `compactSimpleCurrency`: a
+      // folha da vila abre por cima da cena, e as duas formas do mesmo número
+      // ficavam visíveis na mesma tela.
+      expect(find.text('R\$ 1,1k'), findsOneWidget);
+      expect(find.textContaining('mil'), findsNothing);
+
       expect(
         find.bySemanticsLabel(
           RegExp('^Manutenção do carro: R.*1[.]112,85 além do orçamento'),

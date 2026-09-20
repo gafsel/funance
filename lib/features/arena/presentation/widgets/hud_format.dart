@@ -10,9 +10,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:funances/core/money/money.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -140,7 +140,7 @@ String? hudRatioOfIncome(AppLocalizations l10n, HudRatio ratio, String locale) {
   return l10n.hudRatioOfIncome(value, income.format(locale: locale));
 }
 
-/// O valor COMPACTO de um aldeão: "R$ 1,5 mil" em vez de "R$ 1.462,77".
+/// O valor COMPACTO de um aldeão: "R$ 1,1k" em vez de "R$ 1.112,85".
 ///
 /// A grade da vila põe dezoito valores lado a lado em tiles de setenta e
 /// poucos pixels, e "R$ 1.462,77" em `labelSmall` não cabe em nenhum deles —
@@ -149,11 +149,20 @@ String? hudRatioOfIncome(AppLocalizations l10n, HudRatio ratio, String locale) {
 /// "quanto falta?", e para ela a ordem de grandeza basta; os centavos exatos
 /// estão a um toque, na tela de planejamento.
 ///
-/// `compactSimpleCurrency` e não um `toStringAsFixed` com sufixo à mão: "mil"
-/// em português e "K" em inglês são decisão de LOCALE, e escrevê-la no código
-/// seria traduzir na mão o que o `intl` já traduz.
+/// **É o MESMO formatador do resto do jogo**, e não o `compactSimpleCurrency`
+/// do `intl` que morava aqui. Aquele escreve "R$ 1,1 mil" em português e
+/// "$1.1K" em inglês; a barra de vida, o placar e o rodapé da cena — tudo o
+/// que já passa por [NumExtensions.asCompactCurrency] — escrevem "R$ 1,1k".
+/// Duas grafias do mesmo número na mesma tela é o defeito que este arquivo
+/// existe para não ter: a folha da vila abre POR CIMA da cena, e o usuário
+/// lia as duas formas lado a lado. A escolha do dono é "R$ 12,1k".
+///
+/// O símbolo FICA. A forma nova é mais curta que a que saiu ("R$ 1,1k" contra
+/// "R$ 1,1 mil"), então o tile de 84 px que já cabia continua cabendo — não há
+/// motivo para tirar o "R$" de um número de dinheiro solto debaixo de um anel,
+/// sem nenhum rótulo por perto que diga a moeda.
 String hudCompactMoney(Money value, String locale) =>
-    NumberFormat.compactSimpleCurrency(locale: locale).format(value.toDouble());
+    value.toDouble().asCompactCurrency(locale: locale);
 
 // ── A semântica: o que a COR diz, em palavras ────────────────────────────────
 //
