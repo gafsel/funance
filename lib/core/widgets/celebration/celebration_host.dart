@@ -89,25 +89,10 @@ class _CelebrationHostState extends ConsumerState<CelebrationHost> {
     if (events.isEmpty) return;
     final settings = ref.read(CelebrationProviders.settings);
 
-    // A ordem de ENFILEIRAMENTO é da menor para a maior conquista, e não a
-    // ordem em que os eventos foram descobertos.
-    //
-    // Duas coisas dependem dela, e antes as duas saíam erradas numa rajada.
-    // A fila tem teto e descarta pela frente: com o nível entrando antes das
-    // badges, era o nível — a conquista mais forte — que caía fora quando a
-    // rajada passava do teto. E a pilha na tela é desenhada nesta ordem, com
-    // a última por cima, então subir de nível aparecia ABAIXO do XP que veio
-    // junto.
-    //
-    // É a mesma regra de `celebrateAll`, e é dele que ela sai agora: havia
-    // duas cópias, e só uma estava certa.
-    final ordered = events.toList()
-      ..sort((a, b) => a.kind.index.compareTo(b.kind.index));
-
-    final accepted = <CelebrationEvent>[];
-    for (final event in ordered) {
-      if (_service.celebrate(event)) accepted.add(event);
-    }
+    // Quem ordena a rajada é o SERVIÇO, e só ele. Aqui havia uma segunda
+    // cópia da regra — e duas cópias de uma regra de ordenação é uma que
+    // está errada. Ver `CelebrationService.celebrateAll`.
+    final accepted = _service.celebrateAll(events);
     if (accepted.isEmpty) return;
 
     // Uma háptica por rajada, na maior das conquistas: três vibrações

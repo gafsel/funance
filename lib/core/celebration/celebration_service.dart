@@ -41,14 +41,34 @@ class CelebrationService extends StateNotifier<List<CelebrationEvent>> {
     return true;
   }
 
-  /// Enfileira várias de uma vez, da menor para a maior importância — assim a
-  /// conquista mais forte fica por cima da pilha.
-  void celebrateAll(Iterable<CelebrationEvent> events) {
-    final sorted = events.toList()
-      ..sort((a, b) => a.kind.index.compareTo(b.kind.index));
-    for (final event in sorted) {
-      celebrate(event);
-    }
+  /// Enfileira uma RAJADA, da menor para a maior importância, e devolve o
+  /// que de fato entrou.
+  ///
+  /// Este é o único lugar que ordena uma rajada. O host tinha uma segunda
+  /// cópia da regra, e duas cópias de uma regra de ordenação é uma que está
+  /// errada: era a do host, que enfileirava na ordem em que os eventos foram
+  /// descobertos e fazia o teto descartar justamente a maior conquista.
+  ///
+  /// A ordem importa duas vezes. A fila tem teto e descarta PELA FRENTE, então
+  /// quem entra primeiro é quem cai fora primeiro — e o que deve cair fora é o
+  /// XP, nunca a subida de nível. E a pilha na tela é desenhada a partir desta
+  /// ordem.
+  ///
+  /// O desempate é o índice de CHEGADA. `List.sort` não é estável em Dart:
+  /// duas badges desbloqueadas na mesma rajada podiam trocar de lugar entre
+  /// duas execuções, e a fila (que é idempotente por chave) guardaria uma
+  /// ordem diferente a cada vez.
+  List<CelebrationEvent> celebrateAll(Iterable<CelebrationEvent> events) {
+    final indexed = events.toList().indexed.toList()
+      ..sort((a, b) {
+        final byStrength = a.$2.kind.index.compareTo(b.$2.kind.index);
+        return byStrength != 0 ? byStrength : a.$1.compareTo(b.$1);
+      });
+
+    return [
+      for (final (_, event) in indexed)
+        if (celebrate(event)) event,
+    ];
   }
 
   void dismiss(String key) {

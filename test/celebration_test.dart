@@ -838,23 +838,84 @@ void main() {
       );
     });
 
-    testWidgets('M3 — e a rajada não descarta justamente a maior', (
+    /// M3 pelo caminho de PRODUÇÃO: a rajada nasce do `ref.listen` do host,
+    /// não de uma chamada direta ao serviço. O teste anterior exercitava
+    /// `celebrateAll`, que nenhuma tela chamava — provava a regra no lugar
+    /// onde ela já estava certa, e não no host, onde estava errada.
+    testWidgets('M3 — a rajada real não descarta a maior conquista', (
+      tester,
+    ) async {
+      final container = build();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(_Harness(container: container));
+      await tester.pump();
+
+      // Uma rajada de QUATRO, acima do teto de três: duas badges, o XP e a
+      // subida de nível, tudo na mesma emissão do Firestore.
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(
+          level: 2,
+          xp: 500,
+          badges: const {
+            'primeiro_passo': '2026-09-17T10:00:00.000Z',
+            'poupador': '2026-09-17T10:00:01.000Z',
+            'organizado': '2026-09-17T10:00:02.000Z',
+          },
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final fila = container.read(CelebrationProviders.queue);
+
+      expect(fila, hasLength(CelebrationService.maxVisible));
+      expect(
+        fila.last.kind,
+        CelebrationKind.level,
+        reason:
+            'o teto corta PELA FRENTE; com a ordem em que os eventos são '
+            'descobertos, era o nível que caía fora',
+      );
+      expect(find.text('Nível 2'), findsOneWidget);
+    });
+
+    testWidgets('M3 — e desempata pela ordem de chegada, sempre igual', (
+      tester,
+    ) async {
+      // `List.sort` não é estável em Dart: três badges na mesma rajada
+      // podiam trocar de lugar entre duas execuções.
+      List<String> ordemDaFila() {
+        final service = CelebrationService();
+        service.celebrateAll([
+          CelebrationEvent.badge('a'),
+          CelebrationEvent.badge('b'),
+          CelebrationEvent.badge('c'),
+        ]);
+        return service.state.map((e) => e.key).toList();
+      }
+
+      expect(ordemDaFila(), ['badge:a', 'badge:b', 'badge:c']);
+      expect(ordemDaFila(), ordemDaFila());
+    });
+
+    testWidgets('M3 — celebrateAll devolve só o que entrou de fato', (
       tester,
     ) async {
       final service = CelebrationService()
-        ..celebrateAll([
-          CelebrationEvent.xp(10, sequence: 1),
-          CelebrationEvent.xp(20, sequence: 2),
-          CelebrationEvent.badge('b'),
-          CelebrationEvent.level(3),
-        ]);
+        ..celebrate(CelebrationEvent.badge('b'));
+
+      final aceitos = service.celebrateAll([
+        CelebrationEvent.badge('b'),
+        CelebrationEvent.level(3),
+      ]);
 
       expect(
-        service.state.map((e) => e.key),
-        ['xp:2', 'badge:b', 'level:3'],
+        aceitos.map((e) => e.key),
+        ['level:3'],
         reason:
-            'o teto corta PELA FRENTE: com a ordem invertida era o nível — a '
-            'maior conquista da rajada — que caía fora',
+            'é dessa lista que sai a háptica e o confete: celebrar de novo '
+            'uma badge já vista não pode disparar nada',
       );
     });
   });
