@@ -140,8 +140,56 @@ void main() {
     ],
   );
 
+  /// O RETRATO REAL do cofre do dono, lido da base em 2026-09-20 (domingo):
+  /// R\$ 3.115,02 em caixa contra R\$ 12.122,33 de compromisso, sendo
+  /// R\$ 8.310,55 já vencidos. A barra dos heróis está CHEIA — a semana acabou
+  /// de começar e nada saiu — e é exatamente por isso que esta captura
+  /// existe: sem o selo do rombo e sem a hachura densa, ela mostra uma
+  /// situação tranquila.
+  ArenaState oRombo() => arenaTestState(
+    initialBalance: 3115.02,
+    currentBalance: 3115.02,
+    day: ArenaDay.sunday,
+    commitments: [
+      arenaTestCommitment(
+        id: 'fatura',
+        description: 'Fatura [Bárbara] Cartão Nubank',
+        amount: 8300.55,
+        dayOffset: -3,
+        overdue: true,
+      ),
+      arenaTestCommitment(
+        id: 'c6',
+        description: 'Seguranca Conta C6',
+        amount: 10,
+        dayOffset: -4,
+        overdue: true,
+      ),
+      arenaTestCommitment(
+        id: 'emprestimo',
+        description: 'Pagamento de empréstimo itaú',
+        amount: 3811.78,
+        dayOffset: 2,
+      ),
+    ],
+  );
+
   for (final tema in Brightness.values) {
     final sufixo = tema == Brightness.dark ? '_escuro' : '';
+
+    testWidgets('golden — o rombo real$sufixo', (tester) async {
+      await _pump(
+        tester,
+        size: const Size(400, 800),
+        brightness: tema,
+        state: oRombo(),
+      );
+
+      await expectLater(
+        find.byType(JourneyTab),
+        matchesGoldenFile('images/home_arena_rombo$sufixo.png'),
+      );
+    });
 
     testWidgets('golden — monstro a 30% de vida$sufixo', (tester) async {
       await _pump(
