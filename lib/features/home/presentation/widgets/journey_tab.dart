@@ -32,7 +32,12 @@ import 'package:funances/features/home/presentation/widgets/weekly_missions_view
 /// 5. **as missões da semana**, em resumo e com UM botão — o da missão em
 ///    foco. O detalhe da semana (cartões, XP e checklist) abre em
 ///    `/missions`;
-/// 6. **o empurrão** — o coaching, em UMA linha;
+/// 6. **o empurrão** — o coaching, em UMA linha. Decisão de produto: o nudge
+///    de "gasto fora do plano" NÃO vira bloco de Home. Ele é reação a uma
+///    decisão que a pessoa acabou de tomar, e fica na folha que aparece
+///    depois do lançamento — ali, com o valor na tela e o dedo no aparelho,
+///    ele pode virar correção; repetido aqui no dia seguinte, vira boletim
+///    sobre algo que já passou. Ver README, "Decisões de produto da Home";
 /// 7. **a linha da Bússola** — número, patente e variação;
 /// 8. **uma meta em destaque**, a de prazo mais curto.
 ///

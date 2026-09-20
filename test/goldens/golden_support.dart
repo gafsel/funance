@@ -43,6 +43,16 @@ import 'package:funances/l10n/app_localizations.dart';
 ///
 /// Lê do disco em vez de `rootBundle` porque o bundle de asset do `flutter
 /// test` não inclui as fontes declaradas no `pubspec`.
+///
+/// O `MaterialIcons-Regular.otf` fica DE FORA de propósito, e é por isso que
+/// os ícones saem como quadrados vazios nos goldens. Ele não é do
+/// repositório: mora no cache de artefatos do SDK, muda junto com a versão do
+/// Flutter instalada e nem sempre está lá. Carregá-lo faria o golden comparar
+/// duas coisas diferentes em duas máquinas — que é exatamente o que a fonte
+/// de teste existe para evitar. Quadrado no lugar de um pictograma é um
+/// prejuízo pequeno perto de um golden que quebra sozinho quando alguém
+/// atualiza o Flutter; o que estes goldens guardam é layout, tinta e
+/// tipografia, e os três continuam visíveis.
 Future<void> loadAppFonts() async {
   if (_fontsLoaded) return;
   _fontsLoaded = true;

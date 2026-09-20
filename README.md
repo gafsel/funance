@@ -242,3 +242,40 @@ Para rodar no **macOS/iOS** e evitar erros de Keychain:
 1. Abra o projeto no Xcode.
 2. Em **Signing & Capabilities**, selecione um **Development Team**.
 3. Adicione a capability **Keychain Sharing**.
+
+---
+
+## 🏠 Decisões de produto da Home
+
+A Home é a tela que se abre todo dia, e a decisão principal dela é a ORDEM.
+Ela responde a uma pergunta só — "o que eu preciso saber agora?" — e o teto
+de altura é de **duas rolagens com dados típicos**, medido em
+`test/home_height_test.dart`.
+
+1. a conquista do momento (chega por cima, no `CelebrationHost`);
+2. quanto sobra no mês;
+3. o que vence hoje e amanhã;
+4. as pendências do leitor de notificação;
+5. as missões da semana, em resumo e com um botão só;
+6. **o empurrão: o coaching, em uma linha**;
+7. a linha da Bússola;
+8. uma meta em destaque.
+
+### "Gasto fora do plano" NÃO é bloco de Home
+
+O nudge de gasto fora do plano fica onde já está: na **folha que aparece
+depois do lançamento**. Ele é uma reação a uma decisão que a pessoa acabou de
+tomar, e é ali — com o valor ainda na tela e o dedo ainda no aparelho — que
+ele pode virar uma correção. Repetido na Home, no dia seguinte, ele vira um
+boletim sobre algo que já passou.
+
+O slot 6 da Home fica com o **coaching em uma linha**, que é o empurrão que
+olha para frente.
+
+### O que NÃO mora na Home
+
+- a lista completa de metas → `/goals` (na Home fica a de prazo mais curto);
+- a semana de missões, com cartões, XP e checklist → `/missions`;
+- a Bússola completa → a folha que abre pela linha;
+- a Party → a Visão Geral, ao lado da distribuição 50-30-20;
+- "como ganhar XP" → a vitrine de emblemas.
