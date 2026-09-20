@@ -29,9 +29,15 @@ Future<void> _pump(
 
   await tester.runAsync(() async {
     await tester.pumpWidget(arenaApp(state ?? arenaTestState(), theme: theme));
-    for (var i = 0; i < 12; i++) {
-      await tester.pump(const Duration(milliseconds: 30));
-      await Future<void>.delayed(const Duration(milliseconds: 30));
+    // `Duration.zero`: o quadro acontece SEM andar o relógio falso. É o que
+    // torna a captura determinística — quantos quadros o jogo viveu antes de
+    // a folha chegar passa a não importar, e só os quadros contados depois do
+    // carregamento é que movem a respiração dos bonecos. Com `30ms` aqui, a
+    // mesma captura saía diferente conforme a máquina decodificasse o PNG
+    // mais rápido ou mais devagar.
+    for (var i = 0; i < 20; i++) {
+      await tester.pump(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
     }
   });
 

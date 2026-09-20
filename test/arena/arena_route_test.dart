@@ -30,7 +30,16 @@ void main() {
     expect(
       "'/arena'".allMatches(home).length,
       1,
-      reason: 'a POC entra por um lugar só; duas portas é desenho, não POC',
+      reason:
+          'o endereço aparece UMA vez. A porta é montada por `_arenaEntry` e '
+          'usada duas — na AppBar do compacto e no rail do largo —, porque a '
+          'Home não tem AppBar no desktop e sem isso o macOS e a web não '
+          'teriam como chegar à Arena',
+    );
+    expect(
+      'Icons.shield_outlined'.allMatches(home).length,
+      1,
+      reason: 'um ícone, definido num lugar só',
     );
     expect(
       home,
