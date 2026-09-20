@@ -132,6 +132,13 @@ class AppChip extends StatelessWidget {
   final bool selected;
   final ValueChanged<bool>? onSelected;
   final IconData? icon;
+
+  /// O "x" que remove o chip.
+  ///
+  /// Vale nas DUAS formas. Antes ele só chegava ao `Chip` estático: um chip
+  /// selecionável com `onDeleted` compilava, parecia certo na leitura do
+  /// código, e simplesmente não desenhava o "x" — o filtro de transações
+  /// escolhe e remove, e a segunda metade não existia.
   final VoidCallback? onDeleted;
 
   @override
@@ -160,6 +167,8 @@ class AppChip extends StatelessWidget {
       label: Text(label),
       selected: selected,
       onSelected: onSelected,
+      onDeleted: onDeleted,
+      deleteIcon: const Icon(Icons.close, size: 16),
       showCheckmark: false,
     );
   }
