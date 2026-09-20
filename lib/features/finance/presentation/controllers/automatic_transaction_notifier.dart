@@ -44,8 +44,8 @@ class AutomaticTransactionNotifier
        _financeService = financeService,
        _notificationService = notificationService,
        super(AutomaticTransactionState()) {
-    loadTransactions();
-    _notificationService.startListening();
+    unawaited(loadTransactions());
+    unawaited(_notificationService.startListening());
     _listenToNotifications();
   }
 
@@ -64,7 +64,21 @@ class AutomaticTransactionNotifier
                   timestamp: DateTime.now(),
                   packageName: event.packageName,
                 )
-                .then((_) => loadTransactions());
+                .then(
+                  (_) => loadTransactions(),
+                  // O leitor de notificação é um processo fora do controle do
+                  // app; uma notificação malformada não pode derrubar o
+                  // stream e deixar a Home sem atualizar até o próximo
+                  // arranque.
+                  onError: (Object error, StackTrace stack) =>
+                      CrashReporter.recordError(
+                        error,
+                        stack,
+                        reason:
+                            'automatic_transactions: notificação não virou '
+                            'pendência',
+                      ),
+                );
           }
         });
   }
@@ -75,19 +89,42 @@ class AutomaticTransactionNotifier
     super.dispose();
   }
 
+  /// Relê as pendências. NUNCA lança.
+  ///
+  /// É chamada do construtor, do stream de notificações, do `finally` da
+  /// triagem e do retorno do formulário — nenhum desses lugares tem para onde
+  /// devolver uma exceção, e cada um deles era um erro assíncrono à espera de
+  /// acontecer. Uma releitura que falha deixa a lista ANTERIOR na tela: é
+  /// stale, mas é o último estado que o servidor confirmou, e melhor do que
+  /// esvaziar o bloco como se não houvesse pendência nenhuma.
+  ///
+  /// Não acende a tarja: ela diz "não foi possível salvar", e aqui não se
+  /// estava salvando nada. O registro vai para o relatório de erros, que é
+  /// onde uma leitura quebrada precisa aparecer.
   Future<void> loadTransactions() async {
     if (!mounted) return;
     state = state.copyWith(isLoading: true);
-    final transactions = await _service.getPendingTransactions();
 
-    // Tenta enriquecer as transações com sugestões se houver conexão
-    final enrichedTransactions = await _enrichWithSuggestions(transactions);
+    try {
+      final transactions = await _service.getPendingTransactions();
 
-    if (!mounted) return;
-    state = state.copyWith(
-      pendingTransactions: enrichedTransactions,
-      isLoading: false,
-    );
+      // Tenta enriquecer as transações com sugestões se houver conexão
+      final enrichedTransactions = await _enrichWithSuggestions(transactions);
+
+      if (!mounted) return;
+      state = state.copyWith(
+        pendingTransactions: enrichedTransactions,
+        isLoading: false,
+      );
+    } catch (error, stack) {
+      CrashReporter.recordError(
+        error,
+        stack,
+        reason: 'automatic_transactions: releitura das pendências falhou',
+      );
+      if (!mounted) return;
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<List<AutomaticTransactionModel>> _enrichWithSuggestions(
@@ -108,6 +145,10 @@ class AutomaticTransactionNotifier
   /// rotas, com o mesmo `WriteEntity` do repositório. E a lista é recarregada
   /// do servidor mesmo no erro: o item VOLTA, que é a verdade — nada mudou — e
   /// dá para tentar de novo.
+  ///
+  /// Não lança: quem chama é um callback de botão, que não tem como tratar
+  /// uma exceção. `loadTransactions` também não lança, então o `finally` é
+  /// seguro.
   Future<bool> _triage(Future<void> Function() write) async {
     try {
       await write();
