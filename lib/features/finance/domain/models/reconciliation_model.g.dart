@@ -25,7 +25,7 @@ Map<String, dynamic> _$ReconciliationTransactionToJson(
   'amount': instance.amount,
   'date': const DateTimeTwelvePmConverter().toJson(instance.date),
   'type': _$OrderTypeEnumMap[instance.type]!,
-  'category': instance.category,
+  'category': instance.category?.toJson(),
 };
 
 const _$OrderTypeEnumMap = {

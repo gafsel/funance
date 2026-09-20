@@ -217,8 +217,8 @@ return $default(_that.description,_that.amount,_that.date,_that.type,_that.categ
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _ReconciliationTransaction implements ReconciliationTransaction {
   const _ReconciliationTransaction({required this.description, required this.amount, @DateTimeTwelvePmConverter() required this.date, required this.type, this.category});
   factory _ReconciliationTransaction.fromJson(Map<String, dynamic> json) => _$ReconciliationTransactionFromJson(json);
