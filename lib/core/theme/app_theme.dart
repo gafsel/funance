@@ -24,18 +24,6 @@ abstract final class AppTheme {
 
   static ThemeData get dark => _build(Brightness.dark);
 
-  /// Apelido legado. `AppTheme.theme` continua valendo enquanto as telas
-  /// migram; é o tema claro.
-  static ThemeData get theme => light;
-
-  /// Tipografia clara sobre superfície escura.
-  ///
-  /// Sobrou do tempo em que não havia tema escuro e era preciso um truque para
-  /// escrever branco sobre o herói. Hoje o lugar certo é `Theme(data:
-  /// AppTheme.onGame(context))` — ver [onGame].
-  static TextTheme get darkTextTheme =>
-      AppTypography.textTheme(AppColors.inkInverse);
-
   /// Tema para um bloco de jogo (escuro) dentro de uma tela de papel.
   ///
   /// É o que faz "onde está escuro, você joga" funcionar sem que cada widget

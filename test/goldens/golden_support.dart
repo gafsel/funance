@@ -165,7 +165,7 @@ Widget goldenApp(Widget home, {List<Override> overrides = const []}) {
     overrides: overrides,
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.theme,
+      theme: AppTheme.light,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,

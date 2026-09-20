@@ -34,11 +34,4 @@ abstract final class AppGradients {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
-
-  // --- Apelidos legados (removidos ao fim do pacote wp/design) ---
-
-  static const RadialGradient backgroundGradient = background;
-  static const LinearGradient progressGradient = progress;
-  static const LinearGradient goldGradient = gold;
-  static const LinearGradient turquoiseBlue = game;
 }
