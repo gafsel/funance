@@ -127,7 +127,10 @@ void main() {
   /// botão não sai do lugar (é a ação que o app existe para receber, e a
   /// decisão do dono é que ele fica na barra de todas as telas principais);
   /// quem cede é a faixa, com um vão no meio.
-  for (final escala in const <double>[1, 1.3]) {
+  // 1,6 é o topo da escala de texto do sistema. N5 do QA: o rodapé mensal
+  // estourava por 0,78px ali — a listra amarela e preta atravessando a faixa
+  // por causa de menos de um pixel.
+  for (final escala in const <double>[1, 1.3, 1.6]) {
     testWidgets('M3 — o FAB não cobre nenhum slot do HUD (texto ×$escala)', (
       tester,
     ) async {

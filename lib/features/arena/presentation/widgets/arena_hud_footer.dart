@@ -429,13 +429,25 @@ class _SlotState extends State<_Slot> with TickerProviderStateMixin {
                     figuraEValor,
                     // O nome é EXCLUÍDO da semântica: ele já está no rótulo
                     // do botão, e lido duas vezes viraria "Ovo: … Ovo".
-                    ExcludeSemantics(
-                      child: Text(
-                        widget.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: AppColors.inkInverse2,
+                    //
+                    // `Flexible` + `FittedBox`: a faixa tem altura FIXA (é o
+                    // que impede a cena de reorganizar quando os números
+                    // chegam), e a 1,6 de escala de texto o nome estourava
+                    // por 0,78px — a listra amarela e preta atravessando o
+                    // rodapé por causa de menos de um pixel. Quem encolhe é o
+                    // nome: a figura é o que identifica o slot.
+                    Flexible(
+                      child: ExcludeSemantics(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            widget.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: AppColors.inkInverse2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
