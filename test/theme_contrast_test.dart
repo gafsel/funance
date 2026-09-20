@@ -192,19 +192,29 @@ void main() {
         _exige('erro sobre $nome', AppPalette.dark.dangerText, fundo);
       });
 
+      /// A pílula sobre superfície de jogo é TEXTO, e o piso dela é o de
+      /// texto. Com a tinta semântica ela dava 3,64:1 a 4,21:1 sobre
+      /// `surfaceRaised` — passava num teste que cobrava 3:1 porque o teste
+      /// estava errado sobre o que ela é.
       test('A3 — e a pílula de cada uma se lê sobre $nome', () {
-        // A superfície real de um aviso não é o papel liso: é a pílula, o
-        // próprio tom a 12% sobre o papel, que clareia o fundo.
         for (final entry in {
           'sucesso': AppPalette.dark.successText,
           'aviso': AppPalette.dark.warningText,
           'erro': AppPalette.dark.dangerText,
+          'recompensa': AppColors.gold,
+          'info': AppColors.teal,
         }.entries) {
           _exige(
-            '${entry.key} sobre a própria pílula em $nome',
-            entry.value,
+            'texto da pílula de ${entry.key} em $nome',
+            // A tinta do texto sobre jogo é branca; o tom fica no fundo.
+            AppColors.inkInverse,
             Color.alphaBlend(entry.value.withValues(alpha: 0.12), fundo),
-            piso: grafico,
+          );
+          _exige(
+            'fundo da pílula de ${entry.key} contra $nome',
+            Color.alphaBlend(entry.value.withValues(alpha: 0.28), fundo),
+            fundo,
+            piso: 1.1,
           );
         }
       });

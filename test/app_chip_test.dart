@@ -128,6 +128,81 @@ void main() {
     );
   });
 
+  /// M1 — a pílula sobre superfície de JOGO.
+  ///
+  /// A tinta semântica é feita para papel. Sobre `surfaceRaised` — a mais
+  /// clara das superfícies de jogo, e onde `AppTheme.onGame` põe o `paper2` —
+  /// ela dá 3,64:1 a 4,21:1, abaixo do piso de TEXTO. O teste antigo cobrava
+  /// 3:1 ali, como se a pílula fosse um elemento gráfico.
+  group('StatusPill sobre superfície de jogo', () {
+    for (final tone in StatusTone.values) {
+      testWidgets('M1 — o texto de ${tone.name} chega a 4,5:1', (
+        tester,
+      ) async {
+        await _pump(
+          tester,
+          StatusPill(label: 'XP', tone: tone, onGame: true),
+          theme: AppTheme.light,
+        );
+
+        final razao = AppColors.contrastRatio(
+          _tinta(tester, 'XP'),
+          _fundoDaPilula(tester, AppColors.surfaceRaised),
+        );
+
+        expect(
+          razao,
+          greaterThanOrEqualTo(4.5),
+          reason: '${tone.name}: ${razao.toStringAsFixed(2)}:1',
+        );
+      });
+    }
+
+    testWidgets('M1 — e o TOM continua no fundo, não some com a tinta', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const StatusPill(
+          label: 'Atrasado',
+          tone: StatusTone.danger,
+          onGame: true,
+        ),
+        theme: AppTheme.dark,
+      );
+
+      final decoration =
+          tester
+                  .widget<Container>(
+                    find.descendant(
+                      of: find.byType(StatusPill),
+                      matching: find.byType(Container),
+                    ),
+                  )
+                  .decoration!
+              as BoxDecoration;
+
+      expect(
+        decoration.color,
+        AppPalette.dark.dangerText.withValues(alpha: 0.12),
+        reason:
+            'clarear as três tintas até passarem sobre jogo faria o vermelho '
+            'virar pêssego e o laranja virar amarelo; o tom fica no fundo',
+      );
+      expect(_tinta(tester, 'Atrasado'), AppColors.inkInverse);
+    });
+
+    testWidgets('M1 — sobre papel nada muda', (tester) async {
+      await _pump(
+        tester,
+        const StatusPill(label: 'Atrasado', tone: StatusTone.danger),
+        theme: AppTheme.light,
+      );
+
+      expect(_tinta(tester, 'Atrasado'), AppPalette.light.dangerText);
+    });
+  });
+
   group('AppChip', () {
     /// baixo — `onDeleted` só chegava ao `Chip` estático. Um chip
     /// selecionável com `onDeleted` compilava, parecia certo na leitura do

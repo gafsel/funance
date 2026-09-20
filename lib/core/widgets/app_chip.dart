@@ -40,6 +40,7 @@ class StatusPill extends StatelessWidget {
     this.icon,
     this.dense = false,
     this.color,
+    this.onGame = false,
   });
 
   final String label;
@@ -52,6 +53,21 @@ class StatusPill extends StatelessWidget {
   /// Cor explícita, para quando o assunto da pílula é a própria cor — a de
   /// uma categoria, a de um pool. Ignora [tone].
   final Color? color;
+
+  /// A pílula está sobre uma superfície de JOGO (escura, nos dois temas).
+  ///
+  /// Ali o texto passa a ser [AppColors.inkInverse] e o tom fica só no fundo
+  /// e na borda. A tinta semântica é feita para papel: sobre `surfaceRaised`
+  /// — a mais clara das superfícies de jogo, e onde o `onGame` põe o
+  /// `paper2` — ela dá 3,64:1 a 4,21:1, abaixo do piso de TEXTO.
+  ///
+  /// A saída óbvia seria clarear as três tintas até passarem ali. Medi: para
+  /// isso o vermelho vira pêssego e o laranja vira amarelo, e os dois deixam
+  /// de se distinguir — o app perderia a diferença entre "atenção" e "erro"
+  /// para ganhar contraste num lugar. Com a tinta branca o tom continua
+  /// inteiro onde ele identifica (fundo e borda) e sai de onde ele precisava
+  /// ser legível, que é o texto: 6,4:1 a 6,6:1.
+  final bool onGame;
 
   @override
   Widget build(BuildContext context) {
@@ -83,9 +99,11 @@ class StatusPill extends StatelessWidget {
       _ => ink,
     };
 
+    final Color labelInk = onGame ? AppColors.inkInverse : ink;
+
     final style =
         (dense ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)
-            ?.copyWith(color: ink);
+            ?.copyWith(color: labelInk);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -101,7 +119,7 @@ class StatusPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: dense ? 12 : 14, color: ink),
+            Icon(icon, size: dense ? 12 : 14, color: labelInk),
             SizedBox(width: dense ? 4 : AppSpacing.xxs),
           ],
           Flexible(

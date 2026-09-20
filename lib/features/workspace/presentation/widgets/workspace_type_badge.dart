@@ -26,7 +26,12 @@ class WorkspaceTypeBadge extends StatelessWidget {
 
     return StatusPill(
       dense: true,
-      tone: onGame ? StatusTone.reward : StatusTone.info,
+      // O tom NÃO muda com a superfície. Antes o selo virava dourado sobre
+      // fundo escuro, e dourado neste app quer dizer recompensa: o tipo do
+      // cofre não é conquista nenhuma. Quem muda é a tinta do texto, que é o
+      // que precisava de contraste.
+      onGame: onGame,
+      tone: StatusTone.info,
       icon: switch (type) {
         WorkspaceType.personal => Icons.home_outlined,
         WorkspaceType.business => Icons.business_outlined,
