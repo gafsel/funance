@@ -158,6 +158,7 @@ sealed class HudViewProviders {
                   // cobrança fechada.
                   isOpenCycle: card.nextInvoice!.closingDate.isAfter(today),
                   color: card.color,
+                  installmentId: card.nextInvoice!.installmentId,
                 ),
           ];
         });

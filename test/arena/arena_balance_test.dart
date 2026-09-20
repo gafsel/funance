@@ -305,62 +305,65 @@ void main() {
     expect(lives.single.current, 0);
   });
 
-  test('só a corrente é vida; investimento, cartão e dívida ficam de fora', () async {
-    final fake = _BalanceFake(
-      [
-        _checking('c1', 'Nubank'),
-        AccountModel.investment(
-          id: 'inv',
-          name: 'Tesouro',
-          icon: 'savings',
-          color: '#2E7D32',
-          initialBalanceDate: DateTime(2026, 1, 1),
-          interestRate: 0,
+  test(
+    'só a corrente é vida; investimento, cartão e dívida ficam de fora',
+    () async {
+      final fake = _BalanceFake(
+        [
+          _checking('c1', 'Nubank'),
+          AccountModel.investment(
+            id: 'inv',
+            name: 'Tesouro',
+            icon: 'savings',
+            color: '#2E7D32',
+            initialBalanceDate: DateTime(2026, 1, 1),
+            interestRate: 0,
+          ),
+          AccountModel.creditCard(
+            id: 'card',
+            name: 'Cartão',
+            icon: 'credit_card',
+            color: '#6A1B9A',
+            initialBalanceDate: DateTime(2026, 1, 1),
+            limit: 5000,
+            dueDay: 10,
+            closingDay: 3,
+          ),
+          AccountModel.debt(
+            id: 'debt',
+            name: 'Financiamento',
+            icon: 'home',
+            color: '#B71C1C',
+            initialBalanceDate: DateTime(2026, 1, 1),
+            interestRate: 0.01,
+          ),
+        ],
+        {
+          'c1': {_saturdayBefore: 4200, '2026-09-23': 3100},
+          'inv': {_saturdayBefore: 1000, '2026-09-23': 880},
+          'card': {_saturdayBefore: -3000, '2026-09-23': -3400},
+          'debt': {_saturdayBefore: -50000, '2026-09-23': -49000},
+        },
+      );
+
+      final lives = await _lives(_container(fake));
+
+      // O investimento saiu com o HUD mensal: ele é a poção, não a vida.
+      expect(lives.map((l) => l.accountId).toList(), ['c1']);
+
+      final state = ArenaCalculator.from(
+        ArenaInputs(
+          weekId: '2026-W38',
+          today: _wednesday,
+          accounts: lives,
+          weekInstallments: const [],
+          overdueInstallments: const [],
+          members: const [],
         ),
-        AccountModel.creditCard(
-          id: 'card',
-          name: 'Cartão',
-          icon: 'credit_card',
-          color: '#6A1B9A',
-          initialBalanceDate: DateTime(2026, 1, 1),
-          limit: 5000,
-          dueDay: 10,
-          closingDay: 3,
-        ),
-        AccountModel.debt(
-          id: 'debt',
-          name: 'Financiamento',
-          icon: 'home',
-          color: '#B71C1C',
-          initialBalanceDate: DateTime(2026, 1, 1),
-          interestRate: 0.01,
-        ),
-      ],
-      {
-        'c1': {_saturdayBefore: 4200, '2026-09-23': 3100},
-        'inv': {_saturdayBefore: 1000, '2026-09-23': 880},
-        'card': {_saturdayBefore: -3000, '2026-09-23': -3400},
-        'debt': {_saturdayBefore: -50000, '2026-09-23': -49000},
-      },
-    );
+      );
 
-    final lives = await _lives(_container(fake));
-
-    // O investimento saiu com o HUD mensal: ele é a poção, não a vida.
-    expect(lives.map((l) => l.accountId).toList(), ['c1']);
-
-    final state = ArenaCalculator.from(
-      ArenaInputs(
-        weekId: '2026-W38',
-        today: _wednesday,
-        accounts: lives,
-        weekInstallments: const [],
-        overdueInstallments: const [],
-        members: const [],
-      ),
-    );
-
-    expect(state.initialBalance, 4200);
-    expect(state.currentBalance, 3100);
-  });
+      expect(state.initialBalance, 4200);
+      expect(state.currentBalance, 3100);
+    },
+  );
 }

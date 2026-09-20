@@ -70,6 +70,7 @@ class HudInvoiceReading {
     required this.dueDate,
     required this.isOpenCycle,
     this.color,
+    this.installmentId,
   });
 
   final String accountId;
@@ -82,6 +83,9 @@ class HudInvoiceReading {
   final bool isOpenCycle;
 
   final String? color;
+
+  /// `nextInvoice.installmentId` — nulo enquanto a fatura não existe de fato.
+  final String? installmentId;
 }
 
 /// O que o HUD mensal precisa ler. Nada aqui é consulta nova por capricho:
@@ -250,6 +254,7 @@ abstract final class HudCalculator {
               dueDate: reading.dueDate,
               color: reading.color,
               isOpenCycle: reading.isOpenCycle,
+              installmentId: reading.installmentId,
             ),
         ]..sort((a, b) {
           final byDue = a.dueDate.compareTo(b.dueDate);

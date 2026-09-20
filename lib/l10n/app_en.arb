@@ -1568,5 +1568,186 @@
       }
     }
   },
-  "arenaAdjustPayment": "Adjust payment"
+  "arenaAdjustPayment": "Adjust payment",
+  "hudPotionTitle": "Potion",
+  "hudVillageTitle": "Village",
+  "hudVillageTitleBusiness": "Cost centers",
+  "hudEggTitle": "Egg",
+  "hudDropTitle": "Drop",
+  "hudTierNone": "sip",
+  "hudTierSemi": "semi",
+  "hudTierRegular": "regular",
+  "hudTierSuper": "super",
+  "hudTierHyper": "hyper",
+  "hudUnknown": "—",
+  "hudNoIncome": "Expected income not calculated yet: schedule your income to see the tier.",
+  "hudRatioTimes": "{value}×",
+  "@hudRatioTimes": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "hudRatioOfIncome": "{value}× this month's expected income ({income})",
+  "@hudRatioOfIncome": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "income": {
+        "type": "String"
+      }
+    }
+  },
+  "hudIncomeSourcePlanned": "Expected income this month: {income}, from what you scheduled.",
+  "@hudIncomeSourcePlanned": {
+    "placeholders": {
+      "income": {
+        "type": "String"
+      }
+    }
+  },
+  "hudIncomeSourceAverage": "Expected income this month: {income}, from the last three months' average.",
+  "@hudIncomeSourceAverage": {
+    "placeholders": {
+      "income": {
+        "type": "String"
+      }
+    }
+  },
+  "hudSlotSemantics": "{name}: {value}. Tap for details; long press to open the screen.",
+  "@hudSlotSemantics": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "hudPotionGame": "Your investment accounts become potions, and the bigger the potion, the longer you survive away from battle. The tier climbs every half month of income saved.",
+  "hudPotionFinance": "Finance: it's your invested balance divided by this month's expected income — how many months you already have standing.",
+  "hudPotionXp": "XP: none; the potion follows from what you saved, not from a quest.",
+  "hudPotionEmpty": "No investment account with a balance. The potion is empty.",
+  "hudVillageGame": "Every budgeted category is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
+  "hudVillageFinance": "Finance: it's your per-category limit against what you actually spent this month.",
+  "hudVillageXp": "XP: +15 per villager alive at month end, up to 10 categories, plus 100 if the whole village holds.",
+  "hudVillageGameBusiness": "Every budgeted cost center is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
+  "hudVillageFinanceBusiness": "Finance: it's your per-cost-center limit against what the company actually spent this month.",
+  "hudVillageEmpty": "No category has a budget this month. Set a limit and the village is born.",
+  "hudVillageEmptyBusiness": "No cost center has a budget this month. Set a limit and the village is born.",
+  "hudVillageAliveCount": "{alive} of {planned} standing",
+  "@hudVillageAliveCount": {
+    "placeholders": {
+      "alive": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      }
+    }
+  },
+  "hudVillageSpent": "{actual} of {planned} spent",
+  "@hudVillageSpent": {
+    "placeholders": {
+      "actual": {
+        "type": "String"
+      },
+      "planned": {
+        "type": "String"
+      }
+    }
+  },
+  "hudVillageAlive": "The village holds: the total fits the plan.",
+  "hudVillageFallen": "The village fell: spending went past the plan.",
+  "hudVillageNeedsThree": "The village only counts with three villagers or more.",
+  "hudProjectedXp": "If the month closed now: +{xp} XP",
+  "@hudProjectedXp": {
+    "placeholders": {
+      "xp": {
+        "type": "int"
+      }
+    }
+  },
+  "hudVillagerHp": "{hp} of {planned}",
+  "@hudVillagerHp": {
+    "placeholders": {
+      "hp": {
+        "type": "String"
+      },
+      "planned": {
+        "type": "String"
+      }
+    }
+  },
+  "hudVillagerOver": "{amount} past the budget",
+  "@hudVillagerOver": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "hudUnprotectedTitle": "Unprotected",
+  "hudUnprotectedHint": "Spending with no budget. It loses nothing, and it earns no XP either.",
+  "hudHistoryTitle": "Closed months",
+  "hudHistoryLine": "{alive} of {planned} villagers · +{xp} XP",
+  "@hudHistoryLine": {
+    "placeholders": {
+      "alive": {
+        "type": "int"
+      },
+      "planned": {
+        "type": "int"
+      },
+      "xp": {
+        "type": "int"
+      }
+    }
+  },
+  "hudHistoryEmpty": "No month closed yet.",
+  "hudEggGame": "The bills about to come due gather into an egg, and it grows with everything you've spent but not paid. A big egg hatches on the next due date.",
+  "hudEggFinance": "Finance: it's the sum of your upcoming card bills divided by this month's expected income.",
+  "hudEggXp": "XP: none; the egg takes no XP, but card spending that wasn't planned is worth zero.",
+  "hudEggEmpty": "No upcoming bill. There is no egg at all.",
+  "hudInvoiceClosed": "Closed {closing} · due {due}",
+  "@hudInvoiceClosed": {
+    "placeholders": {
+      "closing": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "hudInvoiceOpen": "Open cycle · closes {closing} · due {due}",
+  "@hudInvoiceOpen": {
+    "placeholders": {
+      "closing": {
+        "type": "String"
+      },
+      "due": {
+        "type": "String"
+      }
+    }
+  },
+  "hudDropGame": "What you owe drips into a single drop, and it weighs more the bigger it is against what you earn. A hyper drop means two whole months of income already committed.",
+  "hudDropFinance": "Finance: it's your outstanding debt divided by this month's expected income.",
+  "hudDropXp": "XP: none directly; paying debt down earns XP through planned entries paid and through payoff goals.",
+  "hudDropEmpty": "No open debt. The drop is dry.",
+  "hudDebtInstallment": "Installment {amount} · due {date}",
+  "@hudDebtInstallment": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "hudDebtNoInstallment": "No installment scheduled in the next 60 days."
 }

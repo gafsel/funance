@@ -371,6 +371,7 @@ class HudInvoice {
     required this.dueDate,
     this.color,
     this.isOpenCycle = false,
+    this.installmentId,
   });
 
   final String accountId;
@@ -384,6 +385,10 @@ class HudInvoice {
   /// cresce. Fechado, ele é a cobrança definitiva.
   final bool isOpenCycle;
 
+  /// A parcela da fatura, quando ela já existe. É por ela que a linha abre a
+  /// tela de detalhe da fatura; sem ela, o destino é o extrato do cartão.
+  final String? installmentId;
+
   @override
   bool operator ==(Object other) =>
       other is HudInvoice &&
@@ -393,7 +398,8 @@ class HudInvoice {
       other.closingDate == closingDate &&
       other.dueDate == dueDate &&
       other.color == color &&
-      other.isOpenCycle == isOpenCycle;
+      other.isOpenCycle == isOpenCycle &&
+      other.installmentId == installmentId;
 
   @override
   int get hashCode => Object.hash(
@@ -404,6 +410,7 @@ class HudInvoice {
     dueDate,
     color,
     isOpenCycle,
+    installmentId,
   );
 }
 

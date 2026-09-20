@@ -707,9 +707,7 @@ void main() {
       // A outra metade da mesma regra. A fatura não é uma previsão do
       // usuário: é uma cobrança do cartão, e pagar menos deixa saldo devedor.
       final state = ArenaCalculator.from(
-        _inputs(
-          week: [invoicePaid(id: 'inter', amount: 12130.09, paid: 1000)],
-        ),
+        _inputs(week: [invoicePaid(id: 'inter', amount: 12130.09, paid: 1000)]),
       );
 
       expect(state.monsterMaxHp, 12130.09);

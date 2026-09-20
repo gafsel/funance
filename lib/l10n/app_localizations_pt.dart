@@ -2651,4 +2651,212 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get arenaAdjustPayment => 'Ajustar pagamento';
+
+  @override
+  String get hudPotionTitle => 'Poção';
+
+  @override
+  String get hudVillageTitle => 'Vila';
+
+  @override
+  String get hudVillageTitleBusiness => 'Centros de custo';
+
+  @override
+  String get hudEggTitle => 'Ovo';
+
+  @override
+  String get hudDropTitle => 'Gota';
+
+  @override
+  String get hudTierNone => 'gole';
+
+  @override
+  String get hudTierSemi => 'semi';
+
+  @override
+  String get hudTierRegular => 'regular';
+
+  @override
+  String get hudTierSuper => 'super';
+
+  @override
+  String get hudTierHyper => 'hiper';
+
+  @override
+  String get hudUnknown => '—';
+
+  @override
+  String get hudNoIncome =>
+      'Receita prevista ainda não calculada: agende suas receitas para ver a classe.';
+
+  @override
+  String hudRatioTimes(String value) {
+    return '$value×';
+  }
+
+  @override
+  String hudRatioOfIncome(String value, String income) {
+    return '$value× da receita prevista do mês ($income)';
+  }
+
+  @override
+  String hudIncomeSourcePlanned(String income) {
+    return 'Receita prevista do mês: $income, pelo que você agendou.';
+  }
+
+  @override
+  String hudIncomeSourceAverage(String income) {
+    return 'Receita prevista do mês: $income, pela média dos últimos três meses.';
+  }
+
+  @override
+  String hudSlotSemantics(String name, String value) {
+    return '$name: $value. Toque para o detalhe; segure para abrir a tela.';
+  }
+
+  @override
+  String get hudPotionGame =>
+      'Suas contas de investimento viram poções, e quanto maior a poção, mais tempo você aguenta fora da batalha. A classe sobe a cada meio mês de receita guardado.';
+
+  @override
+  String get hudPotionFinance =>
+      'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses você já tem de pé.';
+
+  @override
+  String get hudPotionXp =>
+      'XP: nenhum; a poção é consequência do que você guardou, não uma missão a cumprir.';
+
+  @override
+  String get hudPotionEmpty =>
+      'Nenhuma conta de investimento com saldo. A poção está vazia.';
+
+  @override
+  String get hudVillageGame =>
+      'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+
+  @override
+  String get hudVillageFinance =>
+      'Financeiro: é o seu limite por categoria, comparado com o que você realmente gastou no mês.';
+
+  @override
+  String get hudVillageXp =>
+      'XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.';
+
+  @override
+  String get hudVillageGameBusiness =>
+      'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+
+  @override
+  String get hudVillageFinanceBusiness =>
+      'Financeiro: é o seu limite por centro de custo, comparado com o que a empresa realmente gastou no mês.';
+
+  @override
+  String get hudVillageEmpty =>
+      'Nenhuma categoria com orçamento neste mês. Defina um limite e a vila nasce.';
+
+  @override
+  String get hudVillageEmptyBusiness =>
+      'Nenhum centro de custo com orçamento neste mês. Defina um limite e a vila nasce.';
+
+  @override
+  String hudVillageAliveCount(int alive, int planned) {
+    return '$alive de $planned de pé';
+  }
+
+  @override
+  String hudVillageSpent(String actual, String planned) {
+    return '$actual de $planned gastos';
+  }
+
+  @override
+  String get hudVillageAlive => 'A vila está de pé: a soma cabe no plano.';
+
+  @override
+  String get hudVillageFallen => 'A vila caiu: o gasto passou do plano.';
+
+  @override
+  String get hudVillageNeedsThree =>
+      'A vila só conta com três aldeões ou mais.';
+
+  @override
+  String hudProjectedXp(int xp) {
+    return 'Se o mês fechasse agora: +$xp XP';
+  }
+
+  @override
+  String hudVillagerHp(String hp, String planned) {
+    return '$hp de $planned';
+  }
+
+  @override
+  String hudVillagerOver(String amount) {
+    return '$amount além do orçamento';
+  }
+
+  @override
+  String get hudUnprotectedTitle => 'Sem proteção';
+
+  @override
+  String get hudUnprotectedHint =>
+      'Gasto sem orçamento. Não perde nada, e também não rende XP.';
+
+  @override
+  String get hudHistoryTitle => 'Meses fechados';
+
+  @override
+  String hudHistoryLine(int alive, int planned, int xp) {
+    return '$alive de $planned aldeões · +$xp XP';
+  }
+
+  @override
+  String get hudHistoryEmpty => 'Nenhum mês fechado ainda.';
+
+  @override
+  String get hudEggGame =>
+      'As faturas que estão para vencer se juntam num ovo, e ele cresce com o que você já gastou sem pagar. Um ovo grande choca no próximo vencimento.';
+
+  @override
+  String get hudEggFinance =>
+      'Financeiro: é a soma das próximas faturas dividida pela receita prevista do mês.';
+
+  @override
+  String get hudEggXp =>
+      'XP: nenhum; o ovo não tira XP, mas o gasto de cartão que não estava planejado vale zero.';
+
+  @override
+  String get hudEggEmpty => 'Nenhuma fatura prevista. Não há ovo nenhum.';
+
+  @override
+  String hudInvoiceClosed(String closing, String due) {
+    return 'Fechou $closing · vence $due';
+  }
+
+  @override
+  String hudInvoiceOpen(String closing, String due) {
+    return 'Ciclo aberto · fecha $closing · vence $due';
+  }
+
+  @override
+  String get hudDropGame =>
+      'O que você deve pinga numa gota, e ela pesa mais quanto maior for diante do que você ganha. Uma gota hiper significa dois meses inteiros de receita comprometidos.';
+
+  @override
+  String get hudDropFinance =>
+      'Financeiro: é o saldo devedor dividido pela receita prevista do mês.';
+
+  @override
+  String get hudDropXp =>
+      'XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado pago e pelas metas de quitação.';
+
+  @override
+  String get hudDropEmpty => 'Nenhuma dívida em aberto. A gota está seca.';
+
+  @override
+  String hudDebtInstallment(String amount, String date) {
+    return 'Parcela $amount · vence $date';
+  }
+
+  @override
+  String get hudDebtNoInstallment =>
+      'Sem parcela agendada nos próximos 60 dias.';
 }
