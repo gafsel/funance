@@ -1667,7 +1667,7 @@
   "hudVillageGame": "Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
   "hudVillageFinance": "Financeiro: é o seu limite por categoria, comparado com o que você realmente gastou no mês.",
   "hudVillageXp": "XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.",
-  "hudVillageGameBusiness": "Cada linha do plano com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
+  "hudVillageGameBusiness": "Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.",
   "hudVillageFinanceBusiness": "Financeiro: é o seu limite por centro de custo, comparado com o que a empresa realmente gastou no mês.",
   "hudVillageEmpty": "Nenhuma categoria com orçamento neste mês. Defina um limite e a vila nasce.",
   "hudVillageEmptyBusiness": "Nenhum centro de custo com orçamento neste mês. Defina um limite e a vila nasce.",

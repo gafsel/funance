@@ -1667,7 +1667,7 @@
   "hudVillageGame": "Every budgeted category is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
   "hudVillageFinance": "Finance: it's your per-category limit against what you actually spent this month.",
   "hudVillageXp": "XP: +15 per villager alive at month end, up to 10 categories, plus 100 if the whole village holds.",
-  "hudVillageGameBusiness": "Every budgeted line of your plan is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
+  "hudVillageGameBusiness": "Every budgeted cost center is a villager, and its HP is what's left of the month. Spend past the budget and the villager falls.",
   "hudVillageFinanceBusiness": "Finance: it's your per-cost-center limit against what the company actually spent this month.",
   "hudVillageEmpty": "No category has a budget this month. Set a limit and the village is born.",
   "hudVillageEmptyBusiness": "No cost center has a budget this month. Set a limit and the village is born.",

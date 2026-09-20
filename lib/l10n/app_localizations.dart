@@ -4871,7 +4871,7 @@ abstract class AppLocalizations {
   /// No description provided for @hudVillageGameBusiness.
   ///
   /// In pt, this message translates to:
-  /// **'Cada linha do plano com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.'**
+  /// **'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.'**
   String get hudVillageGameBusiness;
 
   /// No description provided for @hudVillageFinanceBusiness.

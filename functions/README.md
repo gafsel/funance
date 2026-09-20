@@ -2685,13 +2685,13 @@ não a cópia da interface.
 **Gota (dívidas)**
 
 - **pt** — *O que você deve pinga numa gota, e ela pesa mais quanto maior for
-  diante do que você ganha. Uma gota hiper significa dois meses inteiros de
-  receita comprometidos. Financeiro: é o saldo devedor dividido pela receita
+  diante do que você ganha. Uma gota de dois meses inteiros de receita é uma
+  dívida que manda no seu ano. Financeiro: é o saldo devedor dividido pela receita
   prevista do mês. XP: nenhum direto; quitar dívida rende XP pelo lançamento planejado
   pago e pelas metas de quitação.*
 - **en** — *What you owe drips into a single drop, and it weighs more the bigger
-  it is against what you earn. A hyper drop means two whole months of income
-  already committed. Finance: it's your outstanding debt divided by this month's
+  it is against what you earn. A drop worth two whole months of income is a
+  debt that runs your year. Finance: it's your outstanding debt divided by this month's
   expected income. XP: none directly; paying debt down earns XP through planned entries
   paid and through payoff goals.*
 
@@ -2717,9 +2717,20 @@ não a cópia da interface.
 
 ### Pendências conhecidas (levantadas no QA deste pacote)
 
-Nada aqui foi implementado: são quatro assimetrias reais que o QA registrou ao
-aprovar o HUD mensal, e que mexem em regra de jogo já publicada ou em
-procedimento de operação. Ficam escritas para não virarem descoberta de novo.
+Nada aqui foi implementado: são cinco pontos reais que o QA registrou ao
+aprovar o HUD mensal, e que mexem em regra de jogo já publicada, em
+procedimento de operação ou em decisão que ainda é do dono. Ficam escritas para
+não virarem descoberta de novo.
+
+**0. Os nomes de classe só na poção são decisão provisória de dev+QA, não do
+dono.** O dono nomeou as faixas (gole/semi/regular/super/hiper) falando da
+poção; para o ovo e a gota ele ainda não opinou. Na dúvida, o app mostra a
+razão CRUA nos dois ("1,1×", "0,4×") e reserva as palavras para a poção — a
+tabela "Classe (só a poção)" acima descreve o que está no ar, não o que foi
+decidido. O QA sugeriu, se o dono quiser nomes no ovo e na gota, nomes de
+TAMANHO ("um mês", "mês e meio", "dois meses") e não de qualidade, porque
+"regular" ao lado de um anel vermelho contradiz o anel. Quando o dono decidir,
+esta pendência sai e a tabela vira contrato.
 
 **1. O XP semanal de plano não tem teto por categoria.** O fechamento MENSAL
 paga no máximo 10 aldeões (150 XP) porque, sem teto, fatiar o orçamento em

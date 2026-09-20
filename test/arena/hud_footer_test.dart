@@ -222,7 +222,7 @@ void main() {
       // texto financeiro da mini explicação, que fala do plano real da
       // empresa e não do jogo.
       expect(find.textContaining('limite por centro de custo'), findsOneWidget);
-      expect(find.textContaining('Cada linha do plano'), findsOneWidget);
+      expect(find.textContaining('Cada centro de custo'), findsOneWidget);
     });
 
     testWidgets('a poção pequena não vira zero: "< 0,1×"', (tester) async {

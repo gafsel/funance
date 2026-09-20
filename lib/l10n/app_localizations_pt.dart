@@ -2789,7 +2789,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudVillageGameBusiness =>
-      'Cada linha do plano com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+      'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
 
   @override
   String get hudVillageFinanceBusiness =>

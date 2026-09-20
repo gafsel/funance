@@ -2772,7 +2772,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudVillageGameBusiness =>
-      'Every budgeted line of your plan is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
+      'Every budgeted cost center is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
 
   @override
   String get hudVillageFinanceBusiness =>
