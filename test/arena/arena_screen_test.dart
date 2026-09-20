@@ -1,212 +1,377 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:funances/features/arena/domain/models/arena_state.dart';
-import 'package:funances/features/arena/presentation/game/arena_effects.dart';
 import 'package:funances/features/arena/presentation/game/arena_game.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_heroes_sheet.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hp_bar.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
 
 import 'arena_harness.dart';
 
-/// A cena monta, os números aparecem e os três toques levam a algum lugar.
+/// A cena e o placar, montados de verdade.
 ///
-/// Um `GameWidget` que não monta falha em SILÊNCIO: o Flame engole a exceção
-/// do `onLoad` e a tela fica preta. Num POC que existe para ser sentida, tela
-/// preta é o pior defeito possível — e o mais fácil de não notar numa revisão
-/// de código.
-
-/// Monta a Arena e ESPERA a folha de sprites decodificar.
-///
-/// O `runAsync` não é firula: decodificar um PNG é trabalho real da engine, e
-/// o relógio falso do `flutter_test` nunca entrega o resultado do codec. Sem
-/// ele o `onLoad` fica pendente para sempre, a cena não monta e o teste
-/// "passa" olhando para um `GameWidget` vazio.
-Future<void> pumpArena(
-  WidgetTester tester, {
-  ArenaState? state,
-  Size size = const Size(420, 860),
-  bool reduceMotion = false,
-}) async {
-  tester.view.physicalSize = size;
-  tester.view.devicePixelRatio = 1;
-  addTearDown(tester.view.reset);
-
-  await tester.runAsync(() async {
-    await tester.pumpWidget(
-      arenaApp(state ?? arenaTestState(), reduceMotion: reduceMotion),
-    );
-    // Quadro falso + espera REAL, alternados: o quadro deixa o `GameWidget`
-    // pedir o carregamento, e a espera é o único jeito de o codec de imagem
-    // — que roda fora do relógio falso — devolver a folha.
-    // `Duration.zero`: o quadro acontece SEM andar o relógio falso. É o que
-    // torna a captura determinística — quantos quadros o jogo viveu antes de
-    // a folha chegar passa a não importar, e só os quadros contados depois do
-    // carregamento é que movem a respiração dos bonecos. Com `30ms` aqui, a
-    // mesma captura saía diferente conforme a máquina decodificasse o PNG
-    // mais rápido ou mais devagar.
-    for (var i = 0; i < 20; i++) {
-      await tester.pump(Duration.zero);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-    }
-  });
-
-  await frames(tester);
-}
-
-/// Alguns quadros, com tempo, em vez de `pumpAndSettle`.
-///
-/// Um `GameWidget` NUNCA assenta: o laço do Flame agenda um quadro atrás do
-/// outro para sempre, e `pumpAndSettle` estoura o tempo em vez de esperar a
-/// animação que interessa. Quadros contados são o que serve aqui.
-Future<void> frames(WidgetTester tester, {int count = 8}) async {
-  for (var i = 0; i < count; i++) {
-    await tester.pump(const Duration(milliseconds: 60));
-  }
-}
-
+/// O que estes testes guardam é o que uma captura NÃO prova: que as duas
+/// barras leem lados opostos, que a folha do monstro lista os pagos com a
+/// marca do golpe e os pendentes com botão, que a ordem é a do jogo, e que
+/// tocar em cada metade abre a folha certa.
 void main() {
-  testWidgets('a cena monta e o jogo carrega a folha de sprites', (
-    tester,
-  ) async {
-    await pumpArena(tester);
-
-    expect(find.byType(GameWidget<ArenaGame>), findsOneWidget);
-
-    final game = tester
-        .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
-        .game!;
-
-    expect(game.isLoaded, isTrue, reason: 'o onLoad precisa ter terminado');
-    expect(
-      game.isSceneReady,
-      isTrue,
-      reason: 'sem monstro não há cena — e o Flame não reclamaria',
-    );
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('as duas barras mostram vida do herói e do monstro', (
-    tester,
-  ) async {
-    await pumpArena(tester);
-
-    expect(find.byType(ArenaHpBar), findsNWidgets(2));
-
-    // Herói = 5.000 de caixa − 1.930 comprometido. Monstro = 1.930.
-    expect(find.textContaining('3.070'), findsOneWidget);
-    expect(find.textContaining('1.930'), findsOneWidget);
-  });
-
-  testWidgets('tocar na barra de vida abre o planejamento', (tester) async {
-    await pumpArena(tester);
-
-    await tester.tap(find.byType(ArenaHpBar).first);
-    await frames(tester);
-
-    expect(find.text('plano'), findsOneWidget);
-  });
-
-  testWidgets('tocar na barra do monstro abre a folha de parcelas', (
-    tester,
-  ) async {
-    await pumpArena(tester);
-
-    await tester.tap(find.byType(ArenaHpBar).last);
-    await frames(tester);
-
-    expect(find.byType(ArenaMonsterSheet), findsOneWidget);
-    expect(find.text('Aluguel'), findsOneWidget);
-    expect(find.text('Luz'), findsOneWidget);
-    expect(find.text('Confirmar pago'), findsNWidgets(2));
-  });
-
-  testWidgets('o monstro enfurecido carrega a cicatriz do atraso', (
-    tester,
-  ) async {
-    await pumpArena(tester, state: arenaTestState(overdueAmount: 640));
-
-    expect(find.textContaining('Enfurecido'), findsOneWidget);
-    expect(find.textContaining('640'), findsOneWidget);
-  });
-
-  testWidgets('sem parcela pendente o monstro aparece como fugido', (
-    tester,
-  ) async {
-    await pumpArena(
+  group('o placar', () {
+    testWidgets('a cena monta e o jogo carrega a folha de sprites', (
       tester,
-      state: arenaTestState(installmentsRemaining: 0, pending: const []),
-    );
+    ) async {
+      await pumpArena(tester);
 
-    expect(find.text('Fugiu ferido'), findsOneWidget);
-  });
+      expect(find.byType(GameWidget<ArenaGame>), findsOneWidget);
 
-  testWidgets('semana sem nada: estado vazio em vez de arena deserta', (
-    tester,
-  ) async {
-    await pumpArena(
+      final game = tester
+          .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
+          .game!;
+
+      expect(game.isSceneReady, isTrue, reason: 'o monstro entrou na cena');
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('são DUAS barras: heróis à esquerda, monstro à direita', (
       tester,
-      state: arenaTestState(
-        liquidBalance: 0,
-        installmentsInitial: 0,
-        installmentsRemaining: 0,
-        budgetInitial: 0,
-        budgetRemaining: 0,
-        pending: const [],
-      ),
-    );
+    ) async {
+      await pumpArena(tester);
 
-    expect(find.byType(GameWidget<ArenaGame>), findsNothing);
-    expect(find.textContaining('arena está vazia'), findsOneWidget);
+      final bars = find.byType(ArenaHpBar);
+      expect(bars, findsNWidgets(2));
+
+      final heroes = tester.getCenter(bars.first);
+      final monster = tester.getCenter(bars.last);
+
+      expect(
+        heroes.dx,
+        lessThan(monster.dx),
+        reason: 'a leitura do jogo de luta: quem é quem se lê pela posição',
+      );
+
+      // A do monstro é a espelhada — é isso que faz as duas se enfrentarem
+      // em vez de repetirem o mesmo gesto.
+      expect(tester.widget<ArenaHpBar>(bars.first).mirrored, isFalse);
+      expect(tester.widget<ArenaHpBar>(bars.last).mirrored, isTrue);
+    });
+
+    testWidgets('a barra dos heróis mostra "atual / inicial"', (tester) async {
+      await pumpArena(tester);
+
+      expect(find.textContaining('3.980'), findsWidgets);
+      expect(find.textContaining('5.200'), findsWidgets);
+    });
+
+    testWidgets('a hachura do comprometido é a vida do monstro', (
+      tester,
+    ) async {
+      await pumpArena(tester);
+
+      final heroBar = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
+      final state = arenaTestState();
+
+      expect(heroBar.committedRatio, state.committedRatio);
+      expect(state.committed, state.monsterHp);
+    });
+
+    testWidgets('o marcador central mostra o dia da semana', (tester) async {
+      await pumpArena(tester);
+
+      expect(find.byType(ArenaHud), findsOneWidget);
+      expect(find.byType(ArenaDayMarker), findsOneWidget);
+      // Quarta-feira é o quarto dia de sete.
+      expect(find.text('4/7'), findsOneWidget);
+    });
+
+    testWidgets('os nomes dos membros ficam do lado dos heróis', (
+      tester,
+    ) async {
+      await pumpArena(tester);
+
+      expect(find.text('Gabriel · Ana'), findsOneWidget);
+      expect(find.text('Aranha'), findsOneWidget);
+    });
+
+    testWidgets('receita acima do que saiu vira transbordo verde', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(initialBalance: 3000, currentBalance: 3200),
+      );
+
+      final heroBar = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
+      expect(heroBar.overflowing, isTrue);
+      expect(heroBar.ratio, 1);
+      expect(find.textContaining('acima de domingo'), findsOneWidget);
+    });
+
+    testWidgets('atraso enfurece e o selo diz quanto', (tester) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          overdueAmount: 640,
+          commitmentsInitial: 2020,
+          commitmentsRemaining: 2020,
+        ),
+      );
+
+      expect(find.textContaining('Enfurecido'), findsOneWidget);
+      expect(find.textContaining('640'), findsWidgets);
+    });
+
+    testWidgets('monstro sem vida vira "Derrotado"', (tester) async {
+      await pumpArena(tester, state: arenaTestState(commitmentsRemaining: 0));
+
+      expect(find.text('Derrotado'), findsOneWidget);
+    });
+
+    testWidgets('saldo negativo deixa os heróis exaustos', (tester) async {
+      await pumpArena(tester, state: arenaTestState(currentBalance: -120));
+
+      expect(find.text('Exausto'), findsOneWidget);
+    });
   });
 
-  testWidgets('o golpe põe um número flutuante em cima do monstro', (
-    tester,
-  ) async {
-    await pumpArena(tester);
+  group('detalhe do monstro', () {
+    testWidgets('tocar na barra do monstro abre a folha', (tester) async {
+      await pumpArena(tester);
 
-    final game = tester
-        .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
-        .game!;
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
 
-    game.playStrike(amountLabel: '−R\$ 1.200,00', striker: 'u1');
-    // O clarão e o número esperam o avanço do herói: sem avançar o relógio,
-    // o `TimerComponent` do golpe nem chegou a disparar.
-    await frames(tester, count: 6);
+      expect(find.byType(ArenaMonsterSheet), findsOneWidget);
+      expect(find.text('Compromissos da semana'), findsOneWidget);
+    });
 
-    expect(
-      game.world.children.whereType<FloatingNumber>().length,
-      1,
-      reason: 'o golpe precisa DIZER quanto tirou, não só sacudir o bicho',
-    );
+    testWidgets('lista TODOS: os pagos com a marca, os pendentes com botão', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitmentsRemaining: 180,
+          commitments: [
+            arenaTestCommitment(
+              id: 'luz',
+              description: 'Luz',
+              amount: 180,
+              dayOffset: 2,
+            ),
+            arenaTestCommitment(paid: true),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      // O pago continua na lista: sumir com ele faria a soma da folha
+      // divergir do HP inicial da barra.
+      expect(find.text('Aluguel'), findsOneWidget);
+      expect(find.text('Luz'), findsOneWidget);
+
+      // A marca do golpe: a espada desenhada.
+      expect(find.byType(SwordMark), findsOneWidget);
+
+      // Um botão, do pendente. O pago não tem o que confirmar.
+      expect(find.text('Confirmar pago'), findsOneWidget);
+
+      final pago = tester.widget<Text>(find.text('Aluguel'));
+      expect(
+        pago.style?.decoration,
+        TextDecoration.lineThrough,
+        reason: 'o texto riscado é a outra metade da marca',
+      );
+    });
+
+    testWidgets('a ordem é atrasados, hoje, resto — e os pagos no fim', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'atrasado',
+              description: 'Cartão',
+              amount: 640,
+              dayOffset: -9,
+              overdue: true,
+            ),
+            arenaTestCommitment(id: 'hoje', description: 'Aluguel'),
+            arenaTestCommitment(
+              id: 'sexta',
+              description: 'Internet',
+              amount: 99,
+              dayOffset: 2,
+            ),
+            arenaTestCommitment(
+              id: 'pago',
+              description: 'Academia',
+              amount: 120,
+              dayOffset: -1,
+              paid: true,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      double y(String label) => tester.getTopLeft(find.text(label)).dy;
+
+      expect(y('Cartão'), lessThan(y('Aluguel')));
+      expect(y('Aluguel'), lessThan(y('Internet')));
+      expect(y('Internet'), lessThan(y('Academia')));
+    });
+
+    testWidgets('"próximo golpe" mostra o que vence hoje e amanhã', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(id: 'hoje', description: 'Aluguel'),
+            arenaTestCommitment(
+              id: 'amanha',
+              description: 'Luz',
+              amount: 180,
+              dayOffset: 1,
+            ),
+            arenaTestCommitment(
+              id: 'sabado',
+              description: 'Internet',
+              amount: 99,
+              dayOffset: 3,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      expect(find.byKey(const ValueKey('arena-next-blow')), findsOneWidget);
+      expect(find.textContaining('Próximo golpe: 2'), findsOneWidget);
+    });
+
+    testWidgets('sem nada vencendo, a faixa de próximo golpe some', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          commitments: [
+            arenaTestCommitment(
+              id: 'sabado',
+              description: 'Internet',
+              amount: 99,
+              dayOffset: 3,
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      expect(find.byKey(const ValueKey('arena-next-blow')), findsNothing);
+    });
+
+    testWidgets('no cofre de empresa são "contas a pagar"', (tester) async {
+      await pumpArena(tester, isBusiness: true);
+
+      await tester.tap(find.byType(ArenaHpBar).last);
+      await arenaFrames(tester);
+
+      expect(find.text('Contas a pagar da semana'), findsOneWidget);
+      expect(find.text('Compromissos da semana'), findsNothing);
+    });
   });
 
-  testWidgets('com "reduzir movimento" o golpe informa sem animar', (
-    tester,
-  ) async {
-    await pumpArena(tester, reduceMotion: true);
+  group('detalhe dos heróis', () {
+    testWidgets('tocar na barra dos heróis abre as contas', (tester) async {
+      await pumpArena(tester);
 
-    final game = tester
-        .widget<GameWidget<ArenaGame>>(find.byType(GameWidget<ArenaGame>))
-        .game!;
+      await tester.tap(find.byType(ArenaHpBar).first);
+      await arenaFrames(tester);
 
-    expect(game.theme.reduceMotion, isTrue);
+      expect(find.byType(ArenaHeroesSheet), findsOneWidget);
+      expect(find.text('Nubank'), findsOneWidget);
+      expect(find.text('Tesouro'), findsOneWidget);
+    });
 
-    game.playStrike(amountLabel: '−R\$ 1.200,00', striker: 'u1');
-    await frames(tester, count: 4);
+    testWidgets('cada conta mostra início → atual e a diferença', (
+      tester,
+    ) async {
+      await pumpArena(tester);
 
-    // O NÚMERO continua: quem pediu menos movimento pediu menos movimento,
-    // não menos informação. O que some é a moeda voando.
-    expect(game.world.children.whereType<FloatingNumber>().length, 1);
-    expect(game.world.children.whereType<CoinBurst>(), isEmpty);
+      await tester.tap(find.byType(ArenaHpBar).first);
+      await arenaFrames(tester);
+
+      expect(find.textContaining('→'), findsNWidgets(2));
+      // Nubank caiu R$ 1.100; Tesouro caiu R$ 120.
+      expect(find.textContaining('1.100'), findsOneWidget);
+      expect(find.textContaining('120'), findsWidgets);
+    });
+
+    testWidgets('o rodapé fecha a conta: vida, comprometido e livre', (
+      tester,
+    ) async {
+      await pumpArena(tester);
+
+      await tester.tap(find.byType(ArenaHpBar).first);
+      await arenaFrames(tester);
+
+      expect(find.text('Vida'), findsOneWidget);
+      expect(find.text('Comprometido'), findsOneWidget);
+      // O "quanto sobra" do cabeçalho antigo da Jornada: 3.980 − 1.380.
+      expect(find.text('Livre'), findsOneWidget);
+      expect(find.textContaining('2.600'), findsOneWidget);
+    });
   });
 
-  testWidgets('a cena cabe numa janela larga sem estourar o layout', (
-    tester,
-  ) async {
-    await pumpArena(tester, size: const Size(1280, 800));
+  group('a cena', () {
+    testWidgets('cabe num celular de 400px sem estourar', (tester) async {
+      await pumpArena(tester, size: const Size(400, 800));
 
-    expect(tester.takeException(), isNull);
-    expect(find.byType(GameWidget<ArenaGame>), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('e num desktop de 1300px', (tester) async {
+      await pumpArena(tester, size: const Size(1300, 900));
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(ArenaHpBar), findsNWidgets(2));
+    });
+
+    testWidgets('"reduzir movimento" não quebra nada', (tester) async {
+      await pumpArena(tester, reduceMotion: true);
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(GameWidget<ArenaGame>), findsOneWidget);
+    });
+
+    testWidgets('semana vazia diz que está vazia, em vez de desenhar zeros', (
+      tester,
+    ) async {
+      await pumpArena(
+        tester,
+        state: arenaTestState(
+          initialBalance: 0,
+          currentBalance: 0,
+          commitmentsInitial: 0,
+          commitmentsRemaining: 0,
+          commitments: const [],
+          accounts: const [],
+        ),
+      );
+
+      expect(find.byType(GameWidget<ArenaGame>), findsNothing);
+      expect(find.textContaining('a arena está vazia'), findsOneWidget);
+    });
   });
 }

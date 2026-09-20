@@ -60,8 +60,6 @@ class ArenaSprites {
     MonsterSkin.demon => 110,
   });
 
-  Sprite get cocoon => byIndex(82);
-
   /// Chão da arena.
   ///
   /// Marrom escuro, e não a areia do tile 48, por um motivo de ARTE e não de

@@ -8,7 +8,10 @@ import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/unplanned_nudge_service.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -44,6 +47,32 @@ Future<UnplannedNudge?> evaluateUnplannedNudge(
     today: today,
     accountId: before.accountIdSource,
   );
+}
+
+/// O evento da Arena que este save gera — ou `null` quando ele não move a
+/// vida de ninguém.
+///
+/// Só lançamento REALIZADO conta: um agendamento não tira dinheiro do caixa
+/// hoje, ele vira compromisso (e, portanto, vida do monstro). E só criação:
+/// editar uma order antiga não é uma saída nova.
+///
+/// Fica fora da tela e público para ser testável sem widget, como
+/// [evaluateUnplannedNudge].
+ArenaPendingEvent? arenaEventFor(TransactionFormState before) {
+  if (!before.creation) return null;
+  if (before.status != InstallmentStatus.paid &&
+      before.status != InstallmentStatus.settled) {
+    return null;
+  }
+  if (before.amount <= 0) return null;
+
+  return switch (before.type) {
+    OrderType.expense => ArenaPendingEvent(damage: before.amount),
+    OrderType.income => ArenaPendingEvent(healed: before.amount),
+    // Transferência não é nem dano nem cura: o dinheiro continua no
+    // workspace, e a soma das contas líquidas não muda.
+    OrderType.transfer => null,
+  };
 }
 
 /// O caminho inteiro do "salvar": cascata → submit → snackbar → convite de
@@ -96,6 +125,14 @@ Future<void> submitTransactionForm(
   if (result == null) return;
 
   unawaited(HapticFeedback.mediumImpact());
+
+  // A Arena não está na tela — quem lança um gasto está AQUI. O evento fica
+  // guardado e vira golpe quando a cena existir de novo, na volta para a
+  // Home. Sem o adiamento, o dano tocava numa tela que ninguém estava vendo.
+  final arenaEvent = arenaEventFor(before);
+  if (arenaEvent != null) {
+    ref.read(ArenaViewProviders.pendingEvent.notifier).push(arenaEvent);
+  }
 
   // O que prometer depende de o servidor ter confirmado. As parcelas do
   // lançamento nascem de um trigger no servidor: enquanto a escrita estiver

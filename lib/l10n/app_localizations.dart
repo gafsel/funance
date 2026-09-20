@@ -4400,12 +4400,6 @@ abstract class AppLocalizations {
   /// **'Arena'**
   String get arenaTitle;
 
-  /// No description provided for @arenaWeekMonster.
-  ///
-  /// In pt, this message translates to:
-  /// **'Monstro da semana'**
-  String get arenaWeekMonster;
-
   /// No description provided for @arenaHeroLife.
   ///
   /// In pt, this message translates to:
@@ -4424,34 +4418,16 @@ abstract class AppLocalizations {
   /// **'Confirmar pago'**
   String get arenaConfirmPaid;
 
-  /// No description provided for @arenaMonsterFled.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fugiu ferido'**
-  String get arenaMonsterFled;
-
   /// No description provided for @arenaEnraged.
   ///
   /// In pt, this message translates to:
   /// **'Enfurecido: +{amount} atrasado'**
   String arenaEnraged(String amount);
 
-  /// No description provided for @arenaWeekInstallments.
-  ///
-  /// In pt, this message translates to:
-  /// **'Parcelas da semana'**
-  String get arenaWeekInstallments;
-
-  /// No description provided for @arenaNoPending.
-  ///
-  /// In pt, this message translates to:
-  /// **'Nenhuma parcela pendente nesta semana.'**
-  String get arenaNoPending;
-
   /// No description provided for @arenaEmpty.
   ///
   /// In pt, this message translates to:
-  /// **'Sem parcelas e sem planejamento nesta semana — a arena está vazia. Defina um limite por categoria e o monstro aparece.'**
+  /// **'Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.'**
   String get arenaEmpty;
 
   /// No description provided for @arenaTeamExtra.
@@ -4466,16 +4442,10 @@ abstract class AppLocalizations {
   /// **'Exausto'**
   String get arenaExhausted;
 
-  /// No description provided for @arenaInvoiceCocoon.
-  ///
-  /// In pt, this message translates to:
-  /// **'Fatura do cartão'**
-  String get arenaInvoiceCocoon;
-
   /// No description provided for @arenaHint.
   ///
   /// In pt, this message translates to:
-  /// **'Toque no monstro para confirmar um pagamento. Segure para abrir o histórico.'**
+  /// **'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.'**
   String get arenaHint;
 
   /// No description provided for @automaticTransactionSeeAllShort.
@@ -4483,6 +4453,168 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Ver todas'**
   String get automaticTransactionSeeAllShort;
+
+  /// No description provided for @arenaWeekChallenge.
+  ///
+  /// In pt, this message translates to:
+  /// **'Desafio da semana'**
+  String get arenaWeekChallenge;
+
+  /// No description provided for @arenaFree.
+  ///
+  /// In pt, this message translates to:
+  /// **'Livre'**
+  String get arenaFree;
+
+  /// No description provided for @arenaHealed.
+  ///
+  /// In pt, this message translates to:
+  /// **'Recebido na semana'**
+  String get arenaHealed;
+
+  /// No description provided for @arenaRemainingPrefix.
+  ///
+  /// In pt, this message translates to:
+  /// **'falta'**
+  String get arenaRemainingPrefix;
+
+  /// No description provided for @arenaMonsterDefeated.
+  ///
+  /// In pt, this message translates to:
+  /// **'Derrotado'**
+  String get arenaMonsterDefeated;
+
+  /// No description provided for @arenaOverheal.
+  ///
+  /// In pt, this message translates to:
+  /// **'+{amount} acima de domingo'**
+  String arenaOverheal(String amount);
+
+  /// No description provided for @arenaHeroesFallback.
+  ///
+  /// In pt, this message translates to:
+  /// **'Você'**
+  String get arenaHeroesFallback;
+
+  /// No description provided for @arenaDayOfWeek.
+  ///
+  /// In pt, this message translates to:
+  /// **'{day}/{total}'**
+  String arenaDayOfWeek(int day, int total);
+
+  /// No description provided for @arenaDaysLeft.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{Último dia da semana} other{Faltam {count} dias na semana}}'**
+  String arenaDaysLeft(int count);
+
+  /// No description provided for @arenaHeroesSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Vida dos heróis: {balance}, sendo {committed} comprometido. Toque para ver as contas.'**
+  String arenaHeroesSemantics(String balance, String committed);
+
+  /// No description provided for @arenaMonsterSemantics.
+  ///
+  /// In pt, this message translates to:
+  /// **'Monstro da semana: falta {remaining} de {total}. Toque para ver os compromissos.'**
+  String arenaMonsterSemantics(String remaining, String total);
+
+  /// No description provided for @arenaMonsterSheetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Compromissos da semana'**
+  String get arenaMonsterSheetTitle;
+
+  /// No description provided for @arenaMonsterSheetTitleBusiness.
+  ///
+  /// In pt, this message translates to:
+  /// **'Contas a pagar da semana'**
+  String get arenaMonsterSheetTitleBusiness;
+
+  /// No description provided for @arenaMonsterSheetSummary.
+  ///
+  /// In pt, this message translates to:
+  /// **'{paid} pagos de {total} — falta {remaining}'**
+  String arenaMonsterSheetSummary(String paid, String total, String remaining);
+
+  /// No description provided for @arenaNextBlow.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{Próximo golpe: 1 vence até amanhã} other{Próximo golpe: {count} vencem até amanhã}}'**
+  String arenaNextBlow(int count);
+
+  /// No description provided for @arenaNoCommitments.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhum compromisso agendado nesta semana.'**
+  String get arenaNoCommitments;
+
+  /// No description provided for @arenaPaidOn.
+  ///
+  /// In pt, this message translates to:
+  /// **'Pago · {date}'**
+  String arenaPaidOn(String date);
+
+  /// No description provided for @arenaOverdueSince.
+  ///
+  /// In pt, this message translates to:
+  /// **'{days, plural, =1{Atrasado 1 dia · {date}} other{Atrasado {days} dias · {date}}}'**
+  String arenaOverdueSince(String date, int days);
+
+  /// No description provided for @arenaHeroesSheetTitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'Suas contas nesta semana'**
+  String get arenaHeroesSheetTitle;
+
+  /// No description provided for @arenaHeroesSheetSubtitle.
+  ///
+  /// In pt, this message translates to:
+  /// **'A semana começou com {initial} em caixa.'**
+  String arenaHeroesSheetSubtitle(String initial);
+
+  /// No description provided for @arenaNoAccounts.
+  ///
+  /// In pt, this message translates to:
+  /// **'Nenhuma conta corrente ou de investimento cadastrada.'**
+  String get arenaNoAccounts;
+
+  /// No description provided for @arenaMonsterSpider.
+  ///
+  /// In pt, this message translates to:
+  /// **'Aranha'**
+  String get arenaMonsterSpider;
+
+  /// No description provided for @arenaMonsterBat.
+  ///
+  /// In pt, this message translates to:
+  /// **'Morcego'**
+  String get arenaMonsterBat;
+
+  /// No description provided for @arenaMonsterGhost.
+  ///
+  /// In pt, this message translates to:
+  /// **'Fantasma'**
+  String get arenaMonsterGhost;
+
+  /// No description provided for @arenaMonsterSlime.
+  ///
+  /// In pt, this message translates to:
+  /// **'Gosma'**
+  String get arenaMonsterSlime;
+
+  /// No description provided for @arenaMonsterDemon.
+  ///
+  /// In pt, this message translates to:
+  /// **'Demônio'**
+  String get arenaMonsterDemon;
+
+  /// No description provided for @arenaError.
+  ///
+  /// In pt, this message translates to:
+  /// **'Não foi possível montar a arena desta semana.'**
+  String get arenaError;
 }
 
 class _AppLocalizationsDelegate

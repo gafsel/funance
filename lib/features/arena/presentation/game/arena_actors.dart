@@ -79,32 +79,27 @@ abstract class _BreathingActor extends SpriteComponent {
 }
 
 /// O herói de um membro do workspace.
-class HeroActor extends _BreathingActor {
+class HeroActor extends _BreathingActor with TapCallbacks {
   HeroActor({
     required super.sprite,
     required super.position,
     required super.size,
     required super.theme,
-    required this.label,
+    required this.skin,
+    this.onTap,
   }) : super(breathPeriod: 2.6, breathDepth: 0.035, priority: 300);
 
-  final String label;
+  /// Que boneco este ator é. É a identidade dele para a sincronia de estado:
+  /// o nome mora no placar, não na cena.
+  final HeroSkin skin;
 
-  late final TextComponent _name = TextComponent(
-    text: label,
-    anchor: Anchor.bottomCenter,
-    position: Vector2(size.x / 2, -1),
-    textRenderer: TextPaint(
-      style: theme.labelStyle.copyWith(fontSize: 5, color: theme.ink2),
-    ),
-  );
-
-  HeroMood _mood = HeroMood.healthy;
+  /// Tocar no herói abre o detalhe das contas — o mesmo destino da barra.
+  final VoidCallback? onTap;
 
   @override
-  Future<void> onLoad() async {
-    add(_name);
-  }
+  void onTapDown(TapDownEvent event) => onTap?.call();
+
+  HeroMood _mood = HeroMood.healthy;
 
   set mood(HeroMood value) {
     if (_mood == value) return;
@@ -182,11 +177,9 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
     required super.size,
     required super.theme,
     this.onTap,
-    this.onLongPress,
   }) : super(breathPeriod: 1.9, breathDepth: 0.06, priority: 400);
 
   final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
 
   /// A cicatriz do atraso: "+R$ 640,00 atrasado", pendurada no bicho.
   TextComponent? _scar;
@@ -195,9 +188,6 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) => onTap?.call();
-
-  @override
-  void onLongTapDown(TapDownEvent event) => onLongPress?.call();
 
   /// Leva o golpe: tremor, clarão e — quem chama — moedas.
   void takeHit() {
@@ -218,8 +208,8 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
     );
   }
 
-  /// A fuga: o bicho encolhe e some. Não é morte — ele volta na semana que
-  /// vem, e o fechamento chama isso de "fugiu ferido".
+  /// A derrota: o bicho encolhe e some. Ele volta na semana que vem com os
+  /// compromissos dela — o que acabou foi ESTA semana.
   void flee() {
     if (_fled) return;
     _fled = true;
@@ -238,9 +228,9 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
     add(OpacityEffect.fadeOut(EffectController(duration: 0.55)));
   }
 
-  /// Desfaz a fuga — o estado voltou a ter parcela pendente (uma parcela
-  /// desfeita, um lançamento novo). Sem isto o monstro ficaria invisível para
-  /// sempre depois do primeiro fechamento da semana.
+  /// Desfaz a derrota — o estado voltou a ter compromisso pendente (uma
+  /// parcela desfeita, um lançamento novo). Sem isto o monstro ficaria
+  /// invisível para sempre depois do primeiro fechamento da semana.
   void revive() {
     if (!_fled) return;
     _fled = false;
@@ -272,40 +262,5 @@ class MonsterActor extends _BreathingActor with TapCallbacks {
       ),
     );
     add(_scar!);
-  }
-}
-
-/// O casulo do cartão: a fatura aberta, do tamanho do que ela é.
-class CocoonActor extends SpriteComponent with TapCallbacks {
-  CocoonActor({
-    required super.sprite,
-    required super.position,
-    required super.size,
-    required this.theme,
-    this.onTap,
-  }) : super(
-         anchor: Anchor.bottomCenter,
-         priority: 200,
-         paint: ArenaSprites.pixelPaint,
-       );
-
-  final ArenaTheme theme;
-  final VoidCallback? onTap;
-
-  double _clock = 0;
-
-  @override
-  void onTapDown(TapDownEvent event) => onTap?.call();
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (theme.reduceMotion) return;
-
-    // Pulsação lenta: o casulo está VIVO, e o que está dentro dele cresce
-    // sozinho até o dia do vencimento.
-    _clock += dt;
-    final pulse = 1 + math.sin(_clock * math.pi * 2 / 3.4) * 0.05;
-    scale.setValues(pulse, pulse);
   }
 }

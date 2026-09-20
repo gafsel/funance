@@ -2455,19 +2455,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get arenaTitle => 'Arena';
 
   @override
-  String get arenaWeekMonster => 'Monster of the week';
-
-  @override
-  String get arenaHeroLife => 'Health';
+  String get arenaHeroLife => 'Life';
 
   @override
   String get arenaCommitted => 'Committed';
 
   @override
-  String get arenaConfirmPaid => 'Confirm payment';
-
-  @override
-  String get arenaMonsterFled => 'Fled wounded';
+  String get arenaConfirmPaid => 'Confirm paid';
 
   @override
   String arenaEnraged(String amount) {
@@ -2475,14 +2469,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get arenaWeekInstallments => 'This week\'s bills';
-
-  @override
-  String get arenaNoPending => 'No bills left this week.';
-
-  @override
   String get arenaEmpty =>
-      'No bills and no plan this week — the arena is empty. Set a category limit and the monster shows up.';
+      'No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.';
 
   @override
   String arenaTeamExtra(int count) {
@@ -2493,12 +2481,128 @@ class AppLocalizationsEn extends AppLocalizations {
   String get arenaExhausted => 'Exhausted';
 
   @override
-  String get arenaInvoiceCocoon => 'Card statement';
-
-  @override
   String get arenaHint =>
-      'Tap the monster to confirm a payment. Hold to open the history.';
+      'Tap the monster to confirm a payment. Tap the heroes to see the accounts.';
 
   @override
   String get automaticTransactionSeeAllShort => 'See all';
+
+  @override
+  String get arenaWeekChallenge => 'This week\'s challenge';
+
+  @override
+  String get arenaFree => 'Free';
+
+  @override
+  String get arenaHealed => 'Received this week';
+
+  @override
+  String get arenaRemainingPrefix => 'left';
+
+  @override
+  String get arenaMonsterDefeated => 'Defeated';
+
+  @override
+  String arenaOverheal(String amount) {
+    return '+$amount above Sunday';
+  }
+
+  @override
+  String get arenaHeroesFallback => 'You';
+
+  @override
+  String arenaDayOfWeek(int day, int total) {
+    return '$day/$total';
+  }
+
+  @override
+  String arenaDaysLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count days left this week',
+      one: 'Last day of the week',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String arenaHeroesSemantics(String balance, String committed) {
+    return 'Heroes\' life: $balance, of which $committed is committed. Tap to see the accounts.';
+  }
+
+  @override
+  String arenaMonsterSemantics(String remaining, String total) {
+    return 'Monster of the week: $remaining left of $total. Tap to see the commitments.';
+  }
+
+  @override
+  String get arenaMonsterSheetTitle => 'This week\'s commitments';
+
+  @override
+  String get arenaMonsterSheetTitleBusiness => 'This week\'s payables';
+
+  @override
+  String arenaMonsterSheetSummary(String paid, String total, String remaining) {
+    return '$paid paid of $total — $remaining left';
+  }
+
+  @override
+  String arenaNextBlow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Next blow: $count due by tomorrow',
+      one: 'Next blow: 1 due by tomorrow',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get arenaNoCommitments => 'No commitments scheduled for this week.';
+
+  @override
+  String arenaPaidOn(String date) {
+    return 'Paid · $date';
+  }
+
+  @override
+  String arenaOverdueSince(String date, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days days overdue · $date',
+      one: '1 day overdue · $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get arenaHeroesSheetTitle => 'Your accounts this week';
+
+  @override
+  String arenaHeroesSheetSubtitle(String initial) {
+    return 'The week started with $initial in cash.';
+  }
+
+  @override
+  String get arenaNoAccounts => 'No checking or investment account registered.';
+
+  @override
+  String get arenaMonsterSpider => 'Spider';
+
+  @override
+  String get arenaMonsterBat => 'Bat';
+
+  @override
+  String get arenaMonsterGhost => 'Ghost';
+
+  @override
+  String get arenaMonsterSlime => 'Slime';
+
+  @override
+  String get arenaMonsterDemon => 'Demon';
+
+  @override
+  String get arenaError => 'We could not set up this week\'s arena.';
 }

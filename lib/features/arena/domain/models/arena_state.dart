@@ -21,7 +21,7 @@ enum HeroSkin {
       HeroSkin.knight;
 }
 
-/// Aparência do monstro da semana.
+/// Aparência — e nome — do monstro da semana.
 ///
 /// Sorteada pelo id da semana, não pelo relógio: a mesma semana mostra o
 /// mesmo bicho em todo aparelho e depois de todo recarregamento. Um
@@ -30,13 +30,13 @@ enum MonsterSkin { spider, bat, ghost, slime, demon }
 
 /// Estado de ânimo do herói. Nunca existe "morto": o herói da Arena não morre.
 enum HeroMood {
-  /// Vida acima de um terço.
+  /// Saldo acima de um terço do saldo de domingo.
   healthy,
 
-  /// Vida positiva, mas abaixo de um terço: pose machucada.
+  /// Saldo positivo, mas abaixo de um terço: pose machucada.
   hurt,
 
-  /// Vida negativa — mais comprometido do que disponível. Filtro escuro.
+  /// Saldo negativo. Filtro escuro.
   exhausted,
 }
 
@@ -51,13 +51,110 @@ sealed class ArenaHero with _$ArenaHero {
   }) = _ArenaHero;
 }
 
+/// Um compromisso agendado da semana — uma linha do monstro.
+///
+/// É a parcela do app com o que a cena precisa saber **já decidido**: se ela
+/// está paga, se está atrasada e em quantos dias ela vence. A folha do
+/// monstro lê daqui, e é daqui que sai o HP: nenhuma das duas reconta.
+@freezed
+sealed class ArenaCommitment with _$ArenaCommitment {
+  const ArenaCommitment._();
+
+  const factory ArenaCommitment({
+    required InstallmentModel installment,
+
+    /// Já quitado (`paid` ou `settled`).
+    required bool isPaid,
+
+    /// Pendente com vencimento ANTERIOR ao domingo desta semana.
+    required bool isOverdue,
+
+    /// Dias de calendário até o vencimento, a partir de hoje. Negativo =
+    /// venceu.
+    required int daysUntilDue,
+  }) = _ArenaCommitment;
+
+  /// O que este compromisso pesa. O valor pago manda quando existe — uma
+  /// conta de luz de R$ 180 quitada por R$ 183 tirou R$ 183 do caixa.
+  double get amount => installment.referenceAmount;
+
+  bool get isDueToday => !isPaid && !isOverdue && daysUntilDue == 0;
+  bool get isDueTomorrow => !isPaid && !isOverdue && daysUntilDue == 1;
+
+  /// O "próximo golpe": o que vence hoje ou amanhã. É a `DueSoonStrip` da
+  /// Home antiga, agora dentro do monstro.
+  bool get isNextBlow => isDueToday || isDueTomorrow;
+}
+
+/// Quanto a semana já andou. É o "relógio" do centro do HUD — o cronômetro
+/// que separa as duas barras.
+enum ArenaDay {
+  sunday,
+  monday,
+  tuesday,
+  wednesday,
+  thursday,
+  friday,
+  saturday;
+
+  /// 1..7 — o "3/7" que o marcador central mostra.
+  int get ordinal => index + 1;
+
+  /// Quantos dias ainda restam, contando o de hoje.
+  int get daysLeft => 7 - index;
+}
+
+/// Um saldo de conta, do domingo até agora. É a linha do detalhe dos heróis.
+@freezed
+sealed class ArenaAccountLife with _$ArenaAccountLife {
+  const ArenaAccountLife._();
+
+  const factory ArenaAccountLife({
+    required String accountId,
+    required String name,
+
+    /// Saldo no início da semana: o último documento de `balance` com data
+    /// ANTERIOR ao domingo. Conta que não existia ainda vale zero.
+    required double initial,
+
+    /// Saldo agora: o último documento de `balance`.
+    required double current,
+  }) = _ArenaAccountLife;
+
+  double get delta => current - initial;
+}
+
+/// Um evento que a cena ainda não mostrou.
+///
+/// Guardado em memória (no provider) porque o gasto acontece no formulário de
+/// lançamento, não na Home: quando o usuário volta, a cena consome isto e
+/// anima. Sem o adiamento, o dano tocava numa tela que ninguém estava vendo.
+@freezed
+sealed class ArenaPendingEvent with _$ArenaPendingEvent {
+  const factory ArenaPendingEvent({
+    /// Despesa lançada: fere os heróis, porque o saldo é o HP.
+    @Default(0) double damage,
+
+    /// Receita recebida: cura.
+    @Default(0) double healed,
+  }) = _ArenaPendingEvent;
+}
+
 /// Tudo o que a cena precisa saber, já calculado.
 ///
 /// **Só leitura.** Nenhum campo daqui nasce de uma escrita nova no Firestore:
-/// são as contas, as parcelas, o `period_summaries` da semana e os membros
-/// que o app já observa, recombinados. A única escrita que a Arena provoca é
-/// a de quitar uma parcela, e essa passa pelo caminho que já existia
+/// são as contas, os saldos por dia, as parcelas e os membros que o app já
+/// observa, recombinados. A única escrita que a Arena provoca é a de quitar
+/// um compromisso, e essa passa pelo caminho que já existia
 /// (`TransactionPaymentSheet`).
+///
+/// ## O que a Arena é — e o que ela não é
+///
+/// A Arena é o **desafio da semana**: heróis contra o monstro dos
+/// compromissos agendados. Só isso. Categorias, cartões e investimentos terão
+/// visualizações próprias; tentar caber os três aqui foi o que fez a primeira
+/// POC ter duas fontes de HP numa barra só e um casulo competindo com o
+/// monstro pela atenção.
 @freezed
 sealed class ArenaState with _$ArenaState {
   const ArenaState._();
@@ -66,38 +163,41 @@ sealed class ArenaState with _$ArenaState {
     /// `YYYY-Www` — a semana do servidor.
     required String weekId,
 
-    // ── Herói ──────────────────────────────────────────────────────────────
-    /// Dinheiro nas contas líquidas: corrente + investimento (a "poupança"
-    /// deste modelo de dados). Cartão e dívida ficam de fora — o que está no
-    /// cartão ainda não saiu, e dívida não é caixa.
-    required double liquidBalance,
+    /// Em que dia da semana estamos. O marcador central do HUD.
+    required ArenaDay day,
 
-    /// Receitas recebidas na semana. É a CURA.
+    // ── Heróis ─────────────────────────────────────────────────────────────
+    /// Caixa no DOMINGO 00:00: soma dos últimos saldos anteriores ao domingo
+    /// das contas líquidas (corrente + investimento). É o HP MÁXIMO.
+    required double initialBalance,
+
+    /// Caixa AGORA: soma dos últimos saldos das mesmas contas. É o HP ATUAL.
+    required double currentBalance,
+
+    /// As contas que compõem os dois números, para o detalhe.
+    @Default(<ArenaAccountLife>[]) List<ArenaAccountLife> accounts,
+
+    /// Receitas recebidas na semana. É a CURA — e é o que pode fazer o atual
+    /// passar do inicial.
     required double healedThisWeek,
 
-    /// Gasto fora do plano, ou acima do limite da categoria. É o DANO.
-    required double damageThisWeek,
-
     // ── Monstro ────────────────────────────────────────────────────────────
-    /// Parcelas de despesa da semana (pagas + pendentes) somadas ao atraso.
-    required double installmentsInitial,
+    /// TODOS os compromissos agendados da semana (pagos e pendentes) mais o
+    /// atraso das semanas anteriores, já ordenados para a folha.
+    @Default(<ArenaCommitment>[]) List<ArenaCommitment> commitments,
 
-    /// O que dessas parcelas ainda não foi pago.
-    required double installmentsRemaining,
+    /// Soma de tudo o que a semana tinha para pagar. HP INICIAL do monstro.
+    required double commitmentsInitial,
 
-    /// Rateio semanal dos limites planejados, como o servidor o agregou.
-    required double budgetInitial,
+    /// O que ainda falta pagar. HP ATUAL do monstro.
+    required double commitmentsRemaining,
 
-    /// Quanto do orçamento da semana ainda não foi gasto.
-    required double budgetRemaining,
-
-    /// Parcelas pendentes vencidas ANTES desta semana. Deixam o monstro
-    /// enfurecido e viram a cicatriz "+R$ X atrasado".
+    /// O que está atrasado de semanas anteriores. Enfurece e vira cicatriz.
     required double overdueAmount,
 
     required MonsterSkin monsterSkin,
 
-    // ── Elenco e cenário ───────────────────────────────────────────────────
+    // ── Elenco ─────────────────────────────────────────────────────────────
     @Default(<ArenaHero>[]) List<ArenaHero> heroes,
 
     /// Membros além dos dois que viram herói. Vira um contador na cena.
@@ -105,60 +205,79 @@ sealed class ArenaState with _$ArenaState {
 
     /// XP da semana, do `weekly_xp` do servidor. Só alimenta as moedas.
     @Default(0) double weeklyXp,
-
-    /// Fatura aberta do cartão principal — o casulo. `null` = sem cartão, ou
-    /// resumo ainda não gravado pelo servidor.
-    double? invoiceAmount,
-
-    /// Id da parcela da fatura, para o toque no casulo abrir `/invoices/{id}`.
-    String? invoiceInstallmentId,
-
-    /// As parcelas de despesa da semana ainda PENDENTES, na ordem de
-    /// vencimento. É o que a folha do monstro lista.
-    @Default(<InstallmentModel>[]) List<InstallmentModel> pendingInstallments,
   }) = _ArenaState;
 
-  /// Vida do monstro agora.
-  double get monsterHp => installmentsRemaining + budgetRemaining;
+  // ── Monstro ──────────────────────────────────────────────────────────────
+
+  /// Vida do monstro agora: o que ainda falta pagar.
+  double get monsterHp => commitmentsRemaining;
 
   /// Vida do monstro no início da semana.
-  double get monsterMaxHp => installmentsInitial + budgetInitial;
-
-  /// O que ainda está comprometido — a faixa hachurada da barra do herói.
-  ///
-  /// É o MESMO número da vida do monstro, de propósito: o que mantém o
-  /// monstro em pé é exatamente o que o herói ainda não pode gastar.
-  double get committed => monsterHp;
-
-  /// Vida do herói: caixa livre. Pode ser negativa.
-  double get heroHp => liquidBalance - committed;
-
-  /// Fração cheia da barra do herói, para desenho. 0..1.
-  double get heroHpRatio => liquidBalance <= 0
-      ? 0
-      : (heroHp / liquidBalance).clamp(0.0, 1.0).toDouble();
-
-  /// Fração comprometida (hachurada) da barra do herói. 0..1.
-  double get committedRatio => liquidBalance <= 0
-      ? (committed > 0 ? 1 : 0)
-      : (committed / liquidBalance).clamp(0.0, 1.0).toDouble();
+  double get monsterMaxHp => commitmentsInitial;
 
   double get monsterHpRatio => monsterMaxHp <= 0
       ? 0
       : (monsterHp / monsterMaxHp).clamp(0.0, 1.0).toDouble();
 
+  /// Já pago da semana. O tamanho da mordida acumulada.
+  double get paidSoFar => monsterMaxHp - monsterHp;
+
   bool get isEnraged => overdueAmount > 0;
 
-  /// O monstro foge quando as PARCELAS da semana acabaram. Orçamento não
-  /// gasto não o mantém em pé — sobra do planejado é mérito, não inimigo.
-  bool get hasFled => installmentsInitial > 0 && installmentsRemaining <= 0;
+  /// O monstro morre quando TUDO está pago. Não há mais rateio de orçamento
+  /// aqui: o que mantém o bicho em pé é compromisso, e só.
+  bool get isDefeated => commitmentsInitial > 0 && commitmentsRemaining <= 0;
+
+  List<ArenaCommitment> get pendingCommitments =>
+      commitments.where((c) => !c.isPaid).toList();
+
+  List<ArenaCommitment> get paidCommitments =>
+      commitments.where((c) => c.isPaid).toList();
+
+  /// O que vence hoje ou amanhã. Era a `DueSoonStrip` da Home.
+  List<ArenaCommitment> get nextBlow =>
+      commitments.where((c) => c.isNextBlow).toList();
+
+  // ── Heróis ───────────────────────────────────────────────────────────────
+
+  /// O que ainda está comprometido — a faixa hachurada da barra dos heróis.
+  ///
+  /// É o MESMO número da vida do monstro, de propósito: o que mantém o
+  /// monstro em pé é exatamente o que os heróis ainda não podem gastar.
+  double get committed => monsterHp;
+
+  /// O caixa realmente livre: o que tem menos o que já tem dono. Era o
+  /// "quanto sobra" do cabeçalho da Jornada.
+  double get freeBalance => currentBalance - committed;
+
+  /// Fração cheia da barra dos heróis, medida contra o saldo de DOMINGO.
+  ///
+  /// A régua é o início da semana, e não o saldo de hoje: é o que faz a barra
+  /// **encolher** quando se gasta, em vez de continuar cheia com um número
+  /// menor ao lado.
+  double get heroHpRatio => initialBalance <= 0
+      ? (currentBalance > 0 ? 1 : 0)
+      : (currentBalance / initialBalance).clamp(0.0, 1.0).toDouble();
+
+  /// Passou do saldo de domingo: entrou mais dinheiro do que saiu.
+  bool get isOverhealed => currentBalance > initialBalance;
+
+  /// Quanto passou. É o que o rótulo verde do transbordo mostra.
+  double get overheal => isOverhealed ? currentBalance - initialBalance : 0;
+
+  /// Fração comprometida (hachurada), na mesma régua da barra.
+  double get committedRatio {
+    if (initialBalance <= 0) return committed > 0 ? 1 : 0;
+    return (committed / initialBalance).clamp(0.0, 1.0).toDouble();
+  }
 
   HeroMood get heroMood {
-    if (heroHp < 0) return HeroMood.exhausted;
+    if (currentBalance < 0) return HeroMood.exhausted;
     if (heroHpRatio < 1 / 3) return HeroMood.hurt;
     return HeroMood.healthy;
   }
 
-  /// Não há nada para mostrar: sem parcelas, sem orçamento e sem caixa.
-  bool get isEmpty => monsterMaxHp <= 0 && liquidBalance <= 0;
+  /// Não há nada para mostrar: sem compromisso e sem caixa.
+  bool get isEmpty =>
+      commitmentsInitial <= 0 && currentBalance == 0 && initialBalance == 0;
 }

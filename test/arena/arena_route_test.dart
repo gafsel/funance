@@ -10,10 +10,21 @@ import 'package:funances/features/arena/presentation/screens/arena_screen.dart';
 /// auth, workspace e convites, e cada um deles puxa o Firebase). A varredura
 /// de fonte é a mesma técnica de `design_hygiene_test` e `l10n_hygiene_test`
 /// — e é o que impede a POC de existir só no código, sem porta de entrada.
+///
+/// O que MUDOU nesta etapa: a porta saiu da `AppBar` e do rail. A Arena não é
+/// mais um destino ao lado da Home — ela **é** o topo da Home, e o ícone de
+/// escudo ao lado do nível apontava para uma tela que já estava logo abaixo.
+/// A rota continua existindo, com a porta dentro do próprio bloco.
 void main() {
   final router = File('lib/core/router/app_router.dart').readAsStringSync();
   final home = File(
     'lib/features/home/presentation/screens/home_screen.dart',
+  ).readAsStringSync();
+  final journey = File(
+    'lib/features/home/presentation/widgets/journey_tab.dart',
+  ).readAsStringSync();
+  final block = File(
+    'lib/features/arena/presentation/widgets/arena_home_block.dart',
   ).readAsStringSync();
 
   test('a rota /arena está registrada no router do app', () {
@@ -26,27 +37,54 @@ void main() {
     expect(router, contains('const ArenaScreen()'));
   });
 
-  test('a Home tem UMA entrada para a Arena, e ela empilha a rota', () {
+  test('a Arena é o PRIMEIRO bloco da Home', () {
+    expect(journey, contains('ArenaHomeBlock()'));
+
+    final arena = journey.indexOf('ArenaHomeBlock()');
+    final missoes = journey.indexOf('WeeklyMissionsView(');
+    expect(arena, greaterThan(-1));
+    expect(
+      arena,
+      lessThan(missoes),
+      reason: 'a Arena abre a Home; as missões vêm depois',
+    );
+  });
+
+  test(
+    'o cabeçalho "quanto sobra" e a faixa de vencimentos saíram da Home',
+    () {
+      expect(
+        journey,
+        isNot(contains('JourneyHeader()')),
+        reason: 'o número virou a linha "livre" do detalhe das contas',
+      );
+      expect(
+        journey,
+        isNot(contains('DueSoonStrip()')),
+        reason: 'a lista virou o "próximo golpe" do detalhe do monstro',
+      );
+    },
+  );
+
+  test('a porta para a tela cheia mora no bloco, e não na AppBar', () {
     expect(
       "'/arena'".allMatches(home).length,
-      1,
+      0,
       reason:
-          'o endereço aparece UMA vez. A porta é montada por `_arenaEntry` e '
-          'usada duas — na AppBar do compacto e no rail do largo —, porque a '
-          'Home não tem AppBar no desktop e sem isso o macOS e a web não '
-          'teriam como chegar à Arena',
-    );
-    expect(
-      'Icons.shield_outlined'.allMatches(home).length,
-      1,
-      reason: 'um ícone, definido num lugar só',
+          'a AppBar e o rail não apontam mais para a Arena: ela está na tela, '
+          'logo abaixo deles',
     );
     expect(
       home,
-      contains("context.push('/arena')"),
+      isNot(contains('Icons.shield_outlined')),
+      reason: 'o ícone de escudo foi embora junto com a porta',
+    );
+    expect(
+      block,
+      contains('context.push(arenaRoutePath)'),
       reason:
-          'empilhar, e não `go`: quem entra na Arena precisa voltar para a '
-          'Home com o botão de voltar',
+          'empilhar, e não `go`: quem abre a Arena inteira precisa voltar '
+          'para a Home com o botão de voltar',
     );
   });
 

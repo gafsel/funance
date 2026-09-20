@@ -1356,20 +1356,50 @@
     }
   },
   "arenaTitle": "Arena",
-  "arenaWeekMonster": "Monster of the week",
-  "arenaHeroLife": "Health",
+  "arenaHeroLife": "Life",
   "arenaCommitted": "Committed",
-  "arenaConfirmPaid": "Confirm payment",
-  "arenaMonsterFled": "Fled wounded",
+  "arenaConfirmPaid": "Confirm paid",
   "arenaEnraged": "Enraged: +{amount} overdue",
-  "arenaWeekInstallments": "This week's bills",
-  "arenaNoPending": "No bills left this week.",
-  "arenaEmpty": "No bills and no plan this week — the arena is empty. Set a category limit and the monster shows up.",
+  "arenaEmpty": "No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.",
   "arenaTeamExtra": "+{count} on the team",
   "arenaExhausted": "Exhausted",
-  "arenaInvoiceCocoon": "Card statement",
-  "arenaHint": "Tap the monster to confirm a payment. Hold to open the history.",
+  "arenaHint": "Tap the monster to confirm a payment. Tap the heroes to see the accounts.",
+  "automaticTransactionSeeAllShort": "See all",
+  "arenaWeekChallenge": "This week's challenge",
+  "arenaFree": "Free",
+  "arenaHealed": "Received this week",
+  "arenaRemainingPrefix": "left",
+  "arenaMonsterDefeated": "Defeated",
+  "arenaOverheal": "+{amount} above Sunday",
+  "arenaHeroesFallback": "You",
+  "arenaDayOfWeek": "{day}/{total}",
+  "arenaDaysLeft": "{count, plural, =1{Last day of the week} other{{count} days left this week}}",
+  "arenaHeroesSemantics": "Heroes' life: {balance}, of which {committed} is committed. Tap to see the accounts.",
+  "arenaMonsterSemantics": "Monster of the week: {remaining} left of {total}. Tap to see the commitments.",
+  "arenaMonsterSheetTitle": "This week's commitments",
+  "arenaMonsterSheetTitleBusiness": "This week's payables",
+  "arenaMonsterSheetSummary": "{paid} paid of {total} — {remaining} left",
+  "arenaNextBlow": "{count, plural, =1{Next blow: 1 due by tomorrow} other{Next blow: {count} due by tomorrow}}",
+  "arenaNoCommitments": "No commitments scheduled for this week.",
+  "arenaPaidOn": "Paid · {date}",
+  "arenaOverdueSince": "{days, plural, =1{1 day overdue · {date}} other{{days} days overdue · {date}}}",
+  "arenaHeroesSheetTitle": "Your accounts this week",
+  "arenaHeroesSheetSubtitle": "The week started with {initial} in cash.",
+  "arenaNoAccounts": "No checking or investment account registered.",
+  "arenaMonsterSpider": "Spider",
+  "arenaMonsterBat": "Bat",
+  "arenaMonsterGhost": "Ghost",
+  "arenaMonsterSlime": "Slime",
+  "arenaMonsterDemon": "Demon",
+  "arenaError": "We could not set up this week's arena.",
   "@arenaEnraged": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaOverheal": {
     "placeholders": {
       "amount": {
         "type": "String"
@@ -1382,7 +1412,86 @@
         "type": "int"
       }
     }
+  },
+  "@arenaDayOfWeek": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaDaysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaHeroesSemantics": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "committed": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaMonsterSemantics": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaMonsterSheetSummary": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaNextBlow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaPaidOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaOverdueSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaHeroesSheetSubtitle": {
+    "placeholders": {
+      "initial": {
+        "type": "String"
+      }
+    }
   }
-,
-  "automaticTransactionSeeAllShort": "See all"
 }

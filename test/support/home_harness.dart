@@ -60,6 +60,9 @@ class _FinanceFake with _NaoUsado implements IFinanceRepository {
 
   final List<InstallmentModel> installments;
 
+  /// A consulta de verdade filtra por JANELA e por status, e a Arena faz
+  /// duas — a da semana e a do atraso. Um dublê que devolvesse a lista
+  /// inteira para as duas contaria cada parcela duas vezes no monstro.
   @override
   Stream<List<InstallmentModel>> watchInstallments(
     String workspaceId, {
@@ -70,7 +73,16 @@ class _FinanceFake with _NaoUsado implements IFinanceRepository {
     String? categoryId,
     OrderType? type,
     InstallmentStatus? status,
-  }) => Stream.value(installments);
+  }) => Stream.value(
+    installments.where((i) {
+      final reference = i.referenceDate;
+      if (startDate != null && reference.isBefore(startDate)) return false;
+      if (endDate != null && reference.isAfter(endDate)) return false;
+      if (status != null && i.status != status) return false;
+      if (type != null && i.type != type) return false;
+      return true;
+    }).toList(),
+  );
 
   @override
   Future<QueryChunk<InstallmentModel>> queryInstallments(
@@ -352,23 +364,26 @@ List<GoalModel> homeTypicalGoals() => [
   ),
 ];
 
-Widget homeApp(Widget home, {required List<Override> overrides}) =>
-    ProviderScope(
-      overrides: overrides,
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        locale: const Locale('pt'),
-        home: Scaffold(body: home),
-      ),
-    );
+Widget homeApp(
+  Widget home, {
+  required List<Override> overrides,
+  Brightness brightness = Brightness.light,
+}) => ProviderScope(
+  overrides: overrides,
+  child: MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: brightness == Brightness.dark ? AppTheme.dark : AppTheme.light,
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    supportedLocales: AppLocalizations.supportedLocales,
+    locale: const Locale('pt'),
+    home: Scaffold(body: home),
+  ),
+);
 
 /// A Home dentro de um `MaterialApp.router`, para testar NAVEGAÇÃO.
 ///

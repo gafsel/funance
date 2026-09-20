@@ -122,7 +122,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   // tipo e nível. O corpo da Jornada repetia os três num
                   // cabeçalho próprio, e o nível ainda aparecia duas vezes —
                   // uma no anel da barra, outra no selo do corpo.
-                  actions: [_arenaEntry(context), const WorkspaceLevelBadge()],
+                  actions: const [WorkspaceLevelBadge()],
                 ),
           rail: _buildNavigationRail(context, authUser),
           bottomBar: _buildBottomBar(context),
@@ -143,18 +143,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
     );
   }
-
-  /// A ÚNICA entrada da POC da Arena.
-  ///
-  /// Um método, e não o widget escrito duas vezes: a AppBar só existe no
-  /// compacto e o rail só existe no largo, então a porta precisa aparecer nos
-  /// dois — e no macOS e na web é o rail que manda. `test/arena` garante que
-  /// o endereço esteja escrito uma vez só.
-  Widget _arenaEntry(BuildContext context) => IconButton(
-    tooltip: AppLocalizations.of(context)!.arenaTitle,
-    icon: const Icon(Icons.shield_outlined, color: AppColors.inkInverse),
-    onPressed: () => context.push('/arena'),
-  );
 
   Widget _buildNavigationRail(BuildContext context, UserModel? authUser) {
     final l10n = AppLocalizations.of(context)!;
@@ -194,7 +182,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           AppSpacing.gapLg,
           const WorkspaceLevelBadge(onGame: true),
-          _arenaEntry(context),
           AppSpacing.gapMd,
         ],
       ),

@@ -36,13 +36,16 @@ const double arenaMaxWorldWidth = 280;
 /// monstro um pouco menor.
 const double arenaCompactWidth = 165;
 
-/// Altura MÍNIMA da faixa de chão, em unidades de mundo. O resto, para cima,
-/// é parede.
+/// Altura MÁXIMA da parede, em unidades de mundo. O resto, para baixo, é
+/// chão.
 ///
-/// Numa caixa alta o chão cresce junto (ver `_floorBand`): com uma faixa fixa,
-/// um celular em pé virava uma parede de tijolo de três quartos de tela com
-/// uma tirinha de areia embaixo.
-const double arenaMinFloorBand = 58;
+/// É um TETO, e não um piso do chão, e a diferença apareceu na captura: com
+/// um piso fixo de chão, a caixa larga e baixa do desktop (61 unidades de
+/// altura) gastava 58 delas em areia e deixava três unidades de tijolo — uma
+/// listra cinza no topo, que não é cenário nenhum. Com um teto de parede, as
+/// duas proporções ficam iguais: metade e metade quando a caixa é baixa,
+/// parede constante e chão crescendo quando ela é alta.
+const double arenaMaxWallBand = 38;
 
 /// O cenário: parede de tijolo em cima, chão de areia embaixo.
 ///
@@ -61,7 +64,7 @@ class _ArenaBackdrop extends Component {
 
   double _worldWidth = arenaMinWorldWidth;
   double _worldHeight = arenaPreferredHeight;
-  double _horizon = arenaPreferredHeight - arenaMinFloorBand;
+  double _horizon = arenaPreferredHeight - arenaMaxWallBand;
 
   void resize(double width, double height, double horizon) {
     _worldWidth = width;
@@ -137,17 +140,11 @@ class _ArenaBackdrop extends Component {
 /// onde e como isso aparece. A conta mora em `ArenaCalculator`, e é
 /// justamente essa separação que permite testar o número sem montar o jogo.
 class ArenaGame extends FlameGame {
-  ArenaGame({
-    required this.theme,
-    this.onMonsterTap,
-    this.onMonsterLongPress,
-    this.onCocoonTap,
-  });
+  ArenaGame({required this.theme, this.onMonsterTap, this.onHeroTap});
 
   final ArenaTheme theme;
   final VoidCallback? onMonsterTap;
-  final VoidCallback? onMonsterLongPress;
-  final VoidCallback? onCocoonTap;
+  final VoidCallback? onHeroTap;
 
   late final ArenaSprites sprites;
 
@@ -158,7 +155,6 @@ class ArenaGame extends FlameGame {
 
   final List<HeroActor> _heroes = <HeroActor>[];
   MonsterActor? _monster;
-  CocoonActor? _cocoon;
 
   /// O cenário nasce no `onLoad` (depende da folha) e o `onGameResize` pode
   /// chegar antes disso — daí o nulo.
@@ -190,16 +186,28 @@ class ArenaGame extends FlameGame {
   double get _worldHeight =>
       size.y <= 0 ? arenaPreferredHeight : size.y / _zoom;
 
-  /// Faixa de chão: cresce com a altura da caixa, nunca menor que o mínimo.
-  double get _floorBand => math.max(arenaMinFloorBand, _worldHeight * 0.46);
+  /// Onde a parede termina e o chão começa: metade da caixa, com teto.
+  double get _horizon => math.min(_worldHeight * 0.5, arenaMaxWallBand);
 
-  /// Onde a parede termina e o chão começa.
-  double get _horizon => _worldHeight - _floorBand;
+  double get _floorBand => _worldHeight - _horizon;
 
-  /// A linha do chão: onde os pés dos bonecos pousam.
-  double get _groundY => _worldHeight - _floorBand * 0.22;
+  /// A linha do chão: onde os pés dos bonecos pousam. No meio da faixa de
+  /// chão, e não no fim dela — encostados na borda de baixo, os bonecos
+  /// ficavam meio cortados pelo recorte da cena.
+  double get _groundY => _horizon + _floorBand * 0.62;
 
   bool get _isCompact => _worldWidth < arenaCompactWidth;
+
+  /// O tamanho dos bonecos sai da LARGURA DO MUNDO, e não de um número por
+  /// aparelho: num monitor o mundo tem 280 unidades de largura e um herói de
+  /// 22 virava uma formiga do outro lado da tela.
+  /// A altura entra na conta junto com a largura: numa caixa larga e baixa,
+  /// só a largura deixava os bonecos mais altos que a parede inteira.
+  double get _heroSide =>
+      clampDouble(math.min(_worldWidth * 0.16, _worldHeight * 0.46), 19, 32);
+
+  double get _monsterSide =>
+      clampDouble(math.min(_worldWidth * 0.22, _worldHeight * 0.58), 26, 42);
 
   @override
   Color backgroundColor() => AppColors.surfaceDeep;
@@ -281,7 +289,6 @@ class ArenaGame extends FlameGame {
 
     _syncHeroes(next);
     _syncMonster(next);
-    _syncCocoon(next);
     _layout();
 
     if (!animate || previous == null) return;
@@ -293,6 +300,10 @@ class ArenaGame extends FlameGame {
     }
   }
 
+  /// O nome do herói NÃO aparece mais na cena: ele subiu para o placar, ao
+  /// lado da barra, como num jogo de luta. Escrito nos dois lugares, ele
+  /// aparecia duas vezes na mesma tela e ainda roubava altura do boneco.
+  /// É por isso que a identidade de um ator aqui é a SKIN, e não o texto.
   void _syncHeroes(ArenaState next) {
     final wanted = next.heroes;
 
@@ -303,8 +314,9 @@ class ArenaGame extends FlameGame {
     for (var index = 0; index < wanted.length; index++) {
       final hero = wanted[index];
 
-      if (index < _heroes.length && _heroes[index].label == hero.name) {
+      if (index < _heroes.length && _heroes[index].skin == hero.skin) {
         _heroes[index].mood = next.heroMood;
+        _heroes[index].size = Vector2.all(_heroSide);
         continue;
       }
 
@@ -313,11 +325,12 @@ class ArenaGame extends FlameGame {
       }
 
       final actor = HeroActor(
+        skin: hero.skin,
         sprite: sprites.hero(hero.skin),
         position: Vector2.zero(),
-        size: Vector2.all(_isCompact ? 19 : 22),
+        size: Vector2.all(_heroSide),
         theme: theme,
-        label: hero.name,
+        onTap: onHeroTap,
       )..mood = next.heroMood;
 
       _heroes.insert(index, actor);
@@ -332,20 +345,20 @@ class ArenaGame extends FlameGame {
       final actor = MonsterActor(
         sprite: sprites.monster(next.monsterSkin),
         position: Vector2.zero(),
-        size: Vector2.all(_isCompact ? 26 : 30),
+        size: Vector2.all(_monsterSide),
         theme: theme,
         onTap: onMonsterTap,
-        onLongPress: onMonsterLongPress,
       );
       _monster = actor;
       world.add(actor);
     } else {
       existing.sprite = sprites.monster(next.monsterSkin);
+      existing.size = Vector2.all(_monsterSide);
     }
 
     _monster!.scarText = next.isEnraged ? _overdueLabel?.call(next) : null;
 
-    if (next.hasFled) {
+    if (next.isDefeated) {
       _monster!.flee();
     } else {
       _monster!.revive();
@@ -362,38 +375,6 @@ class ArenaGame extends FlameGame {
     final state = _state;
     if (state != null && _monster != null) {
       _monster!.scarText = state.isEnraged ? builder?.call(state) : null;
-    }
-  }
-
-  void _syncCocoon(ArenaState next) {
-    final hasInvoice = (next.invoiceAmount ?? 0) > 0;
-
-    if (!hasInvoice) {
-      _cocoon?.removeFromParent();
-      _cocoon = null;
-      return;
-    }
-
-    // O TAMANHO do casulo é a fatura, comparada com a vida cheia do monstro:
-    // um cartão que já vale mais que a semana inteira aparece maior que o
-    // bicho, e essa é exatamente a leitura que se quer provocar.
-    final reference = math.max(next.monsterMaxHp, 1.0);
-    final ratio = (next.invoiceAmount! / reference).clamp(0.6, 1.5);
-    final side = (_isCompact ? 15.0 : 17.0) * ratio;
-
-    final existing = _cocoon;
-    if (existing == null) {
-      final actor = CocoonActor(
-        sprite: sprites.cocoon,
-        position: Vector2.zero(),
-        size: Vector2.all(side),
-        theme: theme,
-        onTap: onCocoonTap,
-      );
-      _cocoon = actor;
-      world.add(actor);
-    } else {
-      existing.size = Vector2.all(side);
     }
   }
 
@@ -424,8 +405,7 @@ class ArenaGame extends FlameGame {
       );
     }
 
-    _monster?.position = Vector2(width * (_isCompact ? 0.68 : 0.70), groundY);
-    _cocoon?.position = Vector2(width * 0.88, groundY - 3);
+    _monster?.position = Vector2(width * (_isCompact ? 0.72 : 0.74), groundY);
   }
 
   // ── Eventos ──────────────────────────────────────────────────────────────
@@ -495,13 +475,19 @@ class ArenaGame extends FlameGame {
     );
   }
 
-  /// Gasto fora do plano: tremor e número vermelho.
-  void playDamage(String amountLabel) {
+  /// Saída de caixa: número vermelho sobre os heróis.
+  ///
+  /// [flinch] é falso quando a saída foi um pagamento planejado: o tremor
+  /// por cima do golpe leria como "levei um golpe ao dar um golpe". Nesse
+  /// caso só o número desce — que é exatamente o custo do golpe.
+  void playDamage(String amountLabel, {bool flinch = true}) {
     final target = _heroes.firstOrNull;
     if (target == null) return;
 
-    for (final hero in _heroes) {
-      hero.flinch();
+    if (flinch) {
+      for (final hero in _heroes) {
+        hero.flinch();
+      }
     }
 
     world.add(

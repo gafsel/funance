@@ -2473,9 +2473,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get arenaTitle => 'Arena';
 
   @override
-  String get arenaWeekMonster => 'Monstro da semana';
-
-  @override
   String get arenaHeroLife => 'Vida';
 
   @override
@@ -2485,22 +2482,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get arenaConfirmPaid => 'Confirmar pago';
 
   @override
-  String get arenaMonsterFled => 'Fugiu ferido';
-
-  @override
   String arenaEnraged(String amount) {
     return 'Enfurecido: +$amount atrasado';
   }
 
   @override
-  String get arenaWeekInstallments => 'Parcelas da semana';
-
-  @override
-  String get arenaNoPending => 'Nenhuma parcela pendente nesta semana.';
-
-  @override
   String get arenaEmpty =>
-      'Sem parcelas e sem planejamento nesta semana — a arena está vazia. Defina um limite por categoria e o monstro aparece.';
+      'Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.';
 
   @override
   String arenaTeamExtra(int count) {
@@ -2511,12 +2499,129 @@ class AppLocalizationsPt extends AppLocalizations {
   String get arenaExhausted => 'Exausto';
 
   @override
-  String get arenaInvoiceCocoon => 'Fatura do cartão';
-
-  @override
   String get arenaHint =>
-      'Toque no monstro para confirmar um pagamento. Segure para abrir o histórico.';
+      'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.';
 
   @override
   String get automaticTransactionSeeAllShort => 'Ver todas';
+
+  @override
+  String get arenaWeekChallenge => 'Desafio da semana';
+
+  @override
+  String get arenaFree => 'Livre';
+
+  @override
+  String get arenaHealed => 'Recebido na semana';
+
+  @override
+  String get arenaRemainingPrefix => 'falta';
+
+  @override
+  String get arenaMonsterDefeated => 'Derrotado';
+
+  @override
+  String arenaOverheal(String amount) {
+    return '+$amount acima de domingo';
+  }
+
+  @override
+  String get arenaHeroesFallback => 'Você';
+
+  @override
+  String arenaDayOfWeek(int day, int total) {
+    return '$day/$total';
+  }
+
+  @override
+  String arenaDaysLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltam $count dias na semana',
+      one: 'Último dia da semana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String arenaHeroesSemantics(String balance, String committed) {
+    return 'Vida dos heróis: $balance, sendo $committed comprometido. Toque para ver as contas.';
+  }
+
+  @override
+  String arenaMonsterSemantics(String remaining, String total) {
+    return 'Monstro da semana: falta $remaining de $total. Toque para ver os compromissos.';
+  }
+
+  @override
+  String get arenaMonsterSheetTitle => 'Compromissos da semana';
+
+  @override
+  String get arenaMonsterSheetTitleBusiness => 'Contas a pagar da semana';
+
+  @override
+  String arenaMonsterSheetSummary(String paid, String total, String remaining) {
+    return '$paid pagos de $total — falta $remaining';
+  }
+
+  @override
+  String arenaNextBlow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Próximo golpe: $count vencem até amanhã',
+      one: 'Próximo golpe: 1 vence até amanhã',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get arenaNoCommitments => 'Nenhum compromisso agendado nesta semana.';
+
+  @override
+  String arenaPaidOn(String date) {
+    return 'Pago · $date';
+  }
+
+  @override
+  String arenaOverdueSince(String date, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Atrasado $days dias · $date',
+      one: 'Atrasado 1 dia · $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get arenaHeroesSheetTitle => 'Suas contas nesta semana';
+
+  @override
+  String arenaHeroesSheetSubtitle(String initial) {
+    return 'A semana começou com $initial em caixa.';
+  }
+
+  @override
+  String get arenaNoAccounts =>
+      'Nenhuma conta corrente ou de investimento cadastrada.';
+
+  @override
+  String get arenaMonsterSpider => 'Aranha';
+
+  @override
+  String get arenaMonsterBat => 'Morcego';
+
+  @override
+  String get arenaMonsterGhost => 'Fantasma';
+
+  @override
+  String get arenaMonsterSlime => 'Gosma';
+
+  @override
+  String get arenaMonsterDemon => 'Demônio';
+
+  @override
+  String get arenaError => 'Não foi possível montar a arena desta semana.';
 }

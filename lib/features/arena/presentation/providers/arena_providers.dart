@@ -6,12 +6,11 @@ import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/domain/services/arena_calculator.dart';
 import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
-import 'package:funances/features/finance/domain/models/period_summary_model.dart';
 import 'package:funances/features/finance/presentation/providers/account_view_providers.dart';
 import 'package:funances/features/finance/presentation/providers/finance_domain_providers.dart';
-import 'package:funances/features/finance/presentation/providers/period_summary_providers.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
 /// Quantos dias para trás a Arena procura atraso.
@@ -21,12 +20,32 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 /// parcela esquecida ainda é uma dívida viva, e não arqueologia.
 const int arenaOverdueLookbackDays = 180;
 
-/// `YYYY-Www` → `(ano, semana)`. `null` quando o id não tem esse formato.
-({int year, int week})? parseWeekId(String weekId) {
-  final match = RegExp(r'^(\d{4})-W(\d{1,2})$').firstMatch(weekId.trim());
-  if (match == null) return null;
+/// As contas que contam como CAIXA: corrente e investimento.
+///
+/// Cartão e dívida ficam de fora — o que está no cartão ainda não saiu da
+/// conta, e dívida não é caixa.
+const List<AccountType> arenaLiquidTypes = <AccountType>[
+  AccountType.checking,
+  AccountType.investment,
+];
 
-  return (year: int.parse(match.group(1)!), week: int.parse(match.group(2)!));
+/// O evento que a cena ainda não mostrou.
+///
+/// Vive em memória e **não** é `autoDispose`: quem lança um gasto está no
+/// formulário, não na Home, e a cena só existe de novo quando o usuário
+/// volta. Um provider que morresse junto com a tela perderia exatamente o
+/// evento que ele existe para guardar.
+class ArenaPendingEventNotifier extends StateNotifier<ArenaPendingEvent?> {
+  ArenaPendingEventNotifier() : super(null);
+
+  void push(ArenaPendingEvent event) => state = event;
+
+  /// Lê e limpa: um evento anima UMA vez.
+  ArenaPendingEvent? take() {
+    final event = state;
+    state = null;
+    return event;
+  }
 }
 
 sealed class ArenaViewProviders {
@@ -48,10 +67,6 @@ sealed class ArenaViewProviders {
       });
 
   /// Parcelas cuja `referenceDate` cai na semana.
-  ///
-  /// `referenceDate` é `paidDate ?? dueDate` — uma consulta só devolve tanto
-  /// o que vence na semana quanto o que foi PAGO nela, que são as duas
-  /// metades da conta do monstro.
   static final weekInstallments =
       StreamProvider.autoDispose<List<InstallmentModel>>((ref) {
         final window = ref.watch(weekWindow);
@@ -77,93 +92,134 @@ sealed class ArenaViewProviders {
             );
       });
 
-  /// `period_summaries/{weekId}`, pelo id que o SERVIDOR diz ser o corrente.
-  static final weekSummary = StreamProvider.autoDispose<PeriodSummaryModel?>((
-    ref,
-  ) {
-    final weekId = ref.watch(JourneyViewProviders.currentWeekId);
-    final parsed =
-        parseWeekId(weekId) ??
-        (
-          year: ProductWeek.yearOf(ref.watch(todayProvider)),
-          week: ProductWeek.numberOf(ref.watch(todayProvider)),
+  /// As contas líquidas, na ordem em que o app as devolve.
+  static final liquidAccounts =
+      Provider.autoDispose<AsyncValue<List<AccountModel>>>((ref) {
+        final byType = ref.watch(AccountViewProviders.byTypeMap);
+
+        return byType.whenData(
+          (map) => [
+            for (final type in arenaLiquidTypes) ...map[type] ?? const [],
+          ],
+        );
+      });
+
+  /// Saldo de UMA conta no começo da semana e agora.
+  ///
+  /// O "começo da semana" é o último documento `accounts/{id}/balance/{dia}`
+  /// com data ANTERIOR ao domingo — por isso a consulta pede o sábado: o
+  /// repositório usa `<=`, e o domingo cru traria o saldo do próprio domingo
+  /// (já com os lançamentos do dia) como se fosse o de partida.
+  ///
+  /// Conta sem documento nenhum antes do domingo — criada durante a semana —
+  /// devolve zero, que é a verdade: ela não existia no começo da luta.
+  static final accountLife = Provider.autoDispose
+      .family<AsyncValue<ArenaAccountReading>, AccountModel>((ref, account) {
+        final window = ref.watch(weekWindow);
+        final beforeSunday = window.start.addCalendarDays(-1);
+
+        final current = ref.watch(
+          AccountViewProviders.latestBalanceById(account.id),
+        );
+        final initial = ref.watch(
+          AccountViewProviders.balanceAtDate((
+            accountId: account.id,
+            date: beforeSunday,
+          )),
         );
 
-    return ref
-        .watch(PeriodSummaryDomainProviders.service)
-        .watchWeek(parsed.year, parsed.week);
-  });
+        for (final async in [current, initial]) {
+          if (async.hasError) {
+            return AsyncValue<ArenaAccountReading>.error(
+              async.error!,
+              async.stackTrace ?? StackTrace.current,
+            );
+          }
+        }
 
-  /// Caixa: corrente + investimento.
+        final now = current.valueOrNull;
+        final then = initial.valueOrNull;
+        if (now == null || then == null) {
+          return const AsyncValue<ArenaAccountReading>.loading();
+        }
+
+        return AsyncValue<ArenaAccountReading>.data(
+          ArenaAccountReading(
+            accountId: account.id,
+            name: account.name,
+            initial: then.balance,
+            current: now.balance,
+          ),
+        );
+      });
+
+  /// As contas líquidas com os dois saldos.
   ///
-  /// Cartão e dívida ficam de fora — o que está no cartão ainda não saiu da
-  /// conta, e dívida não é caixa. Fica em `AsyncValue` porque um saldo que
-  /// ainda não chegou vale ZERO na soma, e zero aqui seria um herói sem vida
+  /// `AsyncLoading` enquanto QUALQUER conta ainda não respondeu: um saldo que
+  /// ainda não chegou vale zero na soma, e zero aqui seria um herói sem vida
   /// nenhuma piscando na tela antes do número certo.
-  static final liquidBalance = Provider.autoDispose<AsyncValue<double>>((ref) {
-    final checking = ref.watch(
-      AccountViewProviders.latestBalanceByType(AccountType.checking),
-    );
-    final investment = ref.watch(
-      AccountViewProviders.latestBalanceByType(AccountType.investment),
-    );
+  static final accountLives =
+      Provider.autoDispose<AsyncValue<List<ArenaAccountReading>>>((ref) {
+        final accounts = ref.watch(liquidAccounts);
+        if (accounts.hasError) {
+          return AsyncValue<List<ArenaAccountReading>>.error(
+            accounts.error!,
+            accounts.stackTrace ?? StackTrace.current,
+          );
+        }
 
-    for (final async in [checking, investment]) {
-      if (async.hasError) {
-        return AsyncValue<double>.error(
-          async.error!,
-          async.stackTrace ?? StackTrace.current,
-        );
-      }
-    }
+        final list = accounts.valueOrNull;
+        if (list == null) {
+          return const AsyncValue<List<ArenaAccountReading>>.loading();
+        }
 
-    final a = checking.valueOrNull;
-    final b = investment.valueOrNull;
-    if (a == null || b == null) return const AsyncValue<double>.loading();
+        final readings = <ArenaAccountReading>[];
+        for (final account in list) {
+          final life = ref.watch(accountLife(account));
+          if (life.hasError) {
+            return AsyncValue<List<ArenaAccountReading>>.error(
+              life.error!,
+              life.stackTrace ?? StackTrace.current,
+            );
+          }
+          final value = life.valueOrNull;
+          if (value == null) {
+            return const AsyncValue<List<ArenaAccountReading>>.loading();
+          }
+          readings.add(value);
+        }
 
-    return AsyncValue<double>.data(a + b);
-  });
+        return AsyncValue<List<ArenaAccountReading>>.data(readings);
+      });
 
-  /// O cartão "principal": o de maior fatura aberta.
-  ///
-  /// Não existe campo de cartão principal no modelo, e inventar um seria uma
-  /// decisão de produto disfarçada de detalhe técnico. O maior é o que o
-  /// casulo precisa mostrar de qualquer jeito.
-  static final primaryInvoice = Provider.autoDispose<NextInvoice?>((ref) {
-    final byType = ref.watch(AccountViewProviders.byTypeMap).valueOrNull;
-    final cards = byType?[AccountType.creditCard] ?? const <AccountModel>[];
+  /// O evento pendente de animação.
+  static final pendingEvent =
+      StateNotifierProvider<ArenaPendingEventNotifier, ArenaPendingEvent?>(
+        (ref) => ArenaPendingEventNotifier(),
+      );
 
-    final invoices = cards
-        .whereType<CreditCardAccount>()
-        .map((card) => card.nextInvoice)
-        .nonNulls
-        .where((invoice) => !invoice.isEmpty)
-        .toList();
-
-    if (invoices.isEmpty) return null;
-
-    invoices.sort((a, b) => b.amount.compareTo(a.amount));
-    return invoices.first;
-  });
+  /// `true` quando o cofre corrente é empresa: troca "categorias" por
+  /// "centros de custo" e "compromissos" por "contas a pagar".
+  static final isBusiness = Provider<bool>(
+    (ref) => ref.watch(
+      WorkspaceViewProviders.workspace.select(
+        (state) => state.currentWorkspace?.type == WorkspaceType.business,
+      ),
+    ),
+  );
 
   /// A cena inteira.
-  ///
-  /// `AsyncLoading` enquanto QUALQUER número que a cena mostra ainda não
-  /// chegou. Uma Arena que aparece com o monstro em zero e depois pula para
-  /// R$ 1.930 não é um carregamento — é uma mentira curta.
   static final state = Provider.autoDispose<AsyncValue<ArenaState>>((ref) {
-    final balance = ref.watch(liquidBalance);
+    final lives = ref.watch(accountLives);
     final week = ref.watch(weekInstallments);
     final overdue = ref.watch(overdueInstallments);
-    final summary = ref.watch(weekSummary);
     final members = ref.watch(WorkspaceViewProviders.members);
     final xp = ref.watch(JourneyViewProviders.weeklyXp);
 
     final failure = [
-      balance,
+      lives,
       week,
       overdue,
-      summary,
       members,
     ].where((async) => async.hasError).firstOrNull;
 
@@ -174,10 +230,10 @@ sealed class ArenaViewProviders {
       );
     }
 
-    final liquid = balance.valueOrNull;
+    final accounts = lives.valueOrNull;
     final weekData = week.valueOrNull;
     final overdueData = overdue.valueOrNull;
-    if (liquid == null || weekData == null || overdueData == null) {
+    if (accounts == null || weekData == null || overdueData == null) {
       return const AsyncValue<ArenaState>.loading();
     }
 
@@ -185,15 +241,14 @@ sealed class ArenaViewProviders {
       ArenaCalculator.from(
         ArenaInputs(
           weekId: ref.watch(JourneyViewProviders.currentWeekId),
-          liquidBalance: liquid,
+          today: ref.watch(todayProvider),
+          accounts: accounts,
           weekInstallments: weekData,
           overdueInstallments: overdueData,
-          // O resumo e o XP são do servidor e podem ainda não existir; a cena
-          // fica de pé sem eles (monstro só de parcelas, zero moeda).
-          weekSummary: summary.valueOrNull,
+          // O XP é do servidor e pode ainda não existir; a cena fica de pé
+          // sem ele (zero moeda).
           weeklyXp: xp.valueOrNull ?? 0,
           members: members.valueOrNull ?? const <UserModel>[],
-          invoice: ref.watch(primaryInvoice),
         ),
       ),
     );

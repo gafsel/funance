@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
@@ -18,7 +19,7 @@ import 'package:go_router/go_router.dart';
 /// [ArenaState] pronto. É a vantagem de a conta viver fora da tela — o teste
 /// de cena não precisa reencenar o Firestore para provar que a cena monta.
 
-final DateTime arenaTestDay = DateTime(2026, 9, 21, 10);
+final DateTime arenaTestDay = DateTime(2026, 9, 23, 10);
 
 final UserModel arenaTestUser = UserModel(
   id: 'u1',
@@ -32,58 +33,94 @@ InstallmentModel arenaTestInstallment({
   String description = 'Aluguel',
   double amount = 1200,
   int dayOffset = 0,
+  InstallmentStatus status = InstallmentStatus.pending,
+  DateTime? paidDate,
 }) => InstallmentModel(
   id: id,
   orderId: 'o-$id',
   amount: amount,
   description: description,
   dueDate: arenaTestDay.add(Duration(days: dayOffset)),
-  status: InstallmentStatus.pending,
+  paidDate: paidDate,
+  status: status,
   type: OrderType.expense,
   installmentType: InstallmentType.single,
 );
 
-/// Uma semana típica: dois heróis, caixa de R$ 5.000, duas parcelas e um
-/// orçamento de R$ 550.
+ArenaCommitment arenaTestCommitment({
+  String id = 'aluguel',
+  String description = 'Aluguel',
+  double amount = 1200,
+  int dayOffset = 0,
+  bool paid = false,
+  bool overdue = false,
+}) => ArenaCommitment(
+  installment: arenaTestInstallment(
+    id: id,
+    description: description,
+    amount: amount,
+    dayOffset: dayOffset,
+    status: paid ? InstallmentStatus.paid : InstallmentStatus.pending,
+    paidDate: paid ? arenaTestDay : null,
+  ),
+  isPaid: paid,
+  isOverdue: overdue,
+  daysUntilDue: dayOffset,
+);
+
+/// Uma semana típica: dois heróis, caixa que começou em R$ 5.200 e está em
+/// R$ 3.980, e R$ 1.380 de compromisso ainda de pé.
 ArenaState arenaTestState({
-  double liquidBalance = 5000,
-  double installmentsInitial = 1380,
-  double installmentsRemaining = 1380,
-  double budgetInitial = 550,
-  double budgetRemaining = 550,
+  double initialBalance = 5200,
+  double currentBalance = 3980,
+  double commitmentsInitial = 1380,
+  double commitmentsRemaining = 1380,
   double overdueAmount = 0,
   double healedThisWeek = 0,
-  double damageThisWeek = 0,
-  double? invoiceAmount,
   int extraMembers = 0,
-  List<InstallmentModel>? pending,
+  ArenaDay day = ArenaDay.wednesday,
+  List<ArenaCommitment>? commitments,
+  List<ArenaAccountLife>? accounts,
 }) => ArenaState(
   weekId: '2026-W38',
-  liquidBalance: liquidBalance,
+  day: day,
+  initialBalance: initialBalance,
+  currentBalance: currentBalance,
   healedThisWeek: healedThisWeek,
-  damageThisWeek: damageThisWeek,
-  installmentsInitial: installmentsInitial,
-  installmentsRemaining: installmentsRemaining,
-  budgetInitial: budgetInitial,
-  budgetRemaining: budgetRemaining,
+  commitmentsInitial: commitmentsInitial,
+  commitmentsRemaining: commitmentsRemaining,
   overdueAmount: overdueAmount,
   monsterSkin: MonsterSkin.spider,
-  invoiceAmount: invoiceAmount,
-  invoiceInstallmentId: invoiceAmount == null ? null : 'inv-1',
   extraMembers: extraMembers,
   heroes: const [
     ArenaHero(userId: 'u1', name: 'Gabriel', skin: HeroSkin.knight),
     ArenaHero(userId: 'u2', name: 'Ana', skin: HeroSkin.mage),
   ],
-  pendingInstallments:
-      pending ??
+  accounts:
+      accounts ??
+      const [
+        ArenaAccountLife(
+          accountId: 'c1',
+          name: 'Nubank',
+          initial: 4200,
+          current: 3100,
+        ),
+        ArenaAccountLife(
+          accountId: 'inv',
+          name: 'Tesouro',
+          initial: 1000,
+          current: 880,
+        ),
+      ],
+  commitments:
+      commitments ??
       [
-        arenaTestInstallment(),
-        arenaTestInstallment(
+        arenaTestCommitment(),
+        arenaTestCommitment(
           id: 'luz',
           description: 'Luz',
           amount: 180,
-          dayOffset: 3,
+          dayOffset: 2,
         ),
       ],
 );
@@ -93,11 +130,14 @@ Widget arenaApp(
   ArenaState state, {
   ThemeData? theme,
   bool reduceMotion = false,
+  bool isBusiness = false,
+  Widget? home,
 }) => ProviderScope(
   overrides: [
     ArenaViewProviders.state.overrideWith(
       (ref) => AsyncValue<ArenaState>.data(state),
     ),
+    ArenaViewProviders.isBusiness.overrideWith((ref) => isBusiness),
     AuthDomainProviders.currentUser.overrideWith((ref) => arenaTestUser),
   ],
   child: MaterialApp.router(
@@ -112,12 +152,11 @@ Widget arenaApp(
     routerConfig: GoRouter(
       initialLocation: '/arena',
       routes: [
-        GoRoute(path: '/', builder: (_, _) => const _Marker('home')),
+        GoRoute(path: '/', builder: (_, _) => home ?? const _Marker('home')),
         GoRoute(path: arenaRoutePath, builder: (_, _) => const ArenaScreen()),
-        GoRoute(path: '/planning', builder: (_, _) => const _Marker('plano')),
         GoRoute(
-          path: '/invoices/:id',
-          builder: (_, _) => const _Marker('fatura'),
+          path: '/accounts/:id/statement',
+          builder: (_, _) => const _Marker('extrato'),
         ),
       ],
     ),
@@ -140,4 +179,47 @@ class _Marker extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Scaffold(body: Center(child: Text(label)));
+}
+
+/// Monta a Arena e deixa a folha de sprites carregar.
+///
+/// O `runAsync` não é detalhe: o `decodeImageFromList` do Flame depende do
+/// relógio de verdade, e o relógio falso do `flutter_test` nunca entrega o
+/// resultado do codec. Sem ele o `onLoad` fica pendente para sempre, a cena
+/// não monta e o teste falha por um motivo que não é o dele.
+Future<void> pumpArena(
+  WidgetTester tester, {
+  ArenaState? state,
+  Size size = const Size(400, 800),
+  ThemeData? theme,
+  bool reduceMotion = false,
+  bool isBusiness = false,
+}) async {
+  tester.view.physicalSize = size;
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
+  await tester.runAsync(() async {
+    await tester.pumpWidget(
+      arenaApp(
+        state ?? arenaTestState(),
+        theme: theme,
+        reduceMotion: reduceMotion,
+        isBusiness: isBusiness,
+      ),
+    );
+
+    for (var i = 0; i < 12; i++) {
+      await tester.pump(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+  });
+
+  await arenaFrames(tester);
+}
+
+Future<void> arenaFrames(WidgetTester tester, {int count = 8}) async {
+  for (var i = 0; i < count; i++) {
+    await tester.pump(const Duration(milliseconds: 60));
+  }
 }
