@@ -46,6 +46,22 @@ abstract final class AppColors {
   /// solução que todo jogo de luta usa — o quadro claro em volta do HP.
   static const Color gameFrame = Color(0xFFB7CDD3);
 
+  /// A casca do OVO das faturas, no rodapé mensal da Arena.
+  ///
+  /// Verde ÁCIDO, e doentio de propósito. Duas razões, e nenhuma é gosto:
+  ///
+  /// 1. o ovo não pode ser o mesmo verde da poção ([success]). A poção é a
+  ///    boa notícia da faixa; um ovo da mesma família de verde a 30 px vira
+  ///    "mais uma coisa boa" antes de o usuário chegar ao número;
+  /// 2. o ovo é a única figura que precisa parecer ERRADA sozinha. Quem
+  ///    julga o TAMANHO dele é o anel (verde → vermelho, pela razão); a
+  ///    casca é sempre esta, e é ela que diz que aquilo ali vai chocar.
+  static const Color gameEggShell = Color(0xFF9BC53D);
+
+  /// As manchas da casca do ovo. Verde podre, mais escuro que a casca — elas
+  /// são sujeira na casca, não um segundo objeto.
+  static const Color gameEggSpot = Color(0xFF4C6B18);
+
   /// Texto e ícones sobre superfície de jogo.
   static const Color inkInverse = Color(0xFFF7FAFB);
 

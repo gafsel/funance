@@ -229,45 +229,156 @@ class _GlyphPainter extends CustomPainter {
     canvas.drawPath(tower, paint);
   }
 
-  /// Um ovo, e a rachadura que cresce com a razão.
+  /// O OVO das faturas: oval, verde e medonho.
+  ///
+  /// Ele nasceu com a MESMA silhueta da gota — bico em cima, barriga embaixo
+  /// — e a 30 px os dois ícones eram a mesma figura em duas cores. A gota
+  /// ficou com o bico, que é o que faz uma gota ser uma gota; o ovo virou um
+  /// oval sem ponta, mais largo embaixo, na proporção de um ovo de verdade
+  /// (0,77 de largura para 1 de altura).
+  ///
+  /// A casca é SEMPRE verde ([AppColors.gameEggShell]), qualquer que seja a
+  /// razão: quem muda de tinta com o tamanho da dívida é o ANEL em volta. Um
+  /// ovo que também mudasse de cor perderia, justo no estágio em que mais
+  /// importa, a única coisa que o identifica de relance.
+  ///
+  /// O que muda com o estágio é a CASCA, e a progressão é uma história:
+  /// liso (0), rachado (1), rachado com um olho entreaberto olhando de volta
+  /// (2). As manchas existem nos três — elas são o que faz o verde parecer
+  /// doente em vez de saudável.
   void _egg(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
 
     final shell = Path()
-      ..moveTo(w * 0.50, h * 0.10)
-      ..cubicTo(w * 0.86, h * 0.34, w * 0.92, h * 0.94, w * 0.50, h * 0.94)
-      ..cubicTo(w * 0.08, h * 0.94, w * 0.14, h * 0.34, w * 0.50, h * 0.10)
+      ..moveTo(w * 0.50, h * 0.08)
+      ..cubicTo(w * 0.72, h * 0.10, w * 0.84, h * 0.32, w * 0.84, h * 0.56)
+      ..cubicTo(w * 0.84, h * 0.82, w * 0.69, h * 0.96, w * 0.50, h * 0.96)
+      ..cubicTo(w * 0.31, h * 0.96, w * 0.16, h * 0.82, w * 0.16, h * 0.56)
+      ..cubicTo(w * 0.16, h * 0.32, w * 0.28, h * 0.10, w * 0.50, h * 0.08)
       ..close();
 
-    canvas.drawPath(shell, paint);
+    final casca = Paint()
+      ..color = AppColors.gameEggShell
+      ..style = paint.style
+      ..strokeWidth = paint.strokeWidth
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
 
-    if (stage <= 0) return;
+    canvas.drawPath(shell, casca);
 
-    // A rachadura é desenhada com a calha das barras de vida: ela precisa ler
-    // como um VAZIO na casca, e um vazio é da cor do buraco, não de uma
-    // segunda tinta.
-    final crack = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = w * (stage >= 2 ? 0.09 : 0.06)
-      ..strokeJoin = StrokeJoin.miter
-      ..color = AppColors.gameTrough;
+    // Ovo VAZIO (nenhuma fatura prevista) é só o contorno: manchas e olho
+    // dentro de um oco seriam sujeira flutuando no ar.
+    if (paint.style != PaintingStyle.fill) return;
 
-    final zigzag = Path()..moveTo(w * 0.28, h * 0.52);
-    if (stage >= 2) {
-      zigzag
-        ..lineTo(w * 0.42, h * 0.40)
-        ..lineTo(w * 0.50, h * 0.58)
-        ..lineTo(w * 0.62, h * 0.40)
-        ..lineTo(w * 0.74, h * 0.56);
-    } else {
-      zigzag
-        ..lineTo(w * 0.44, h * 0.44)
-        ..lineTo(w * 0.54, h * 0.56)
-        ..lineTo(w * 0.68, h * 0.46);
+    // Tudo o que vem daqui para baixo mora DENTRO da casca. Sem o recorte, a
+    // mancha de baixo escorre para fora da silhueta e o ovo ganha uma
+    // rebarba que, no tamanho da faixa, lê como um quinto ícone.
+    canvas.save();
+    canvas.clipPath(shell);
+
+    final mancha = Paint()
+      ..color = AppColors.gameEggSpot
+      ..isAntiAlias = true;
+
+    _blob(canvas, Offset(w * 0.34, h * 0.42), w * 0.11, h * 0.09, mancha);
+    _blob(canvas, Offset(w * 0.64, h * 0.30), w * 0.08, h * 0.06, mancha);
+    _blob(canvas, Offset(w * 0.62, h * 0.80), w * 0.09, h * 0.07, mancha);
+
+    if (stage > 0) {
+      // A rachadura é desenhada com a calha das barras de vida: ela precisa
+      // ler como um VAZIO na casca, e um vazio é da cor do buraco, não de uma
+      // segunda tinta.
+      final crack = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w * (stage >= 2 ? 0.08 : 0.06)
+        ..strokeJoin = StrokeJoin.miter
+        ..color = AppColors.gameTrough;
+
+      if (stage >= 2) {
+        canvas.drawPath(
+          Path()
+            ..moveTo(w * 0.18, h * 0.46)
+            ..lineTo(w * 0.32, h * 0.34)
+            ..lineTo(w * 0.44, h * 0.48)
+            ..lineTo(w * 0.58, h * 0.32)
+            ..lineTo(w * 0.74, h * 0.44),
+          crack,
+        );
+        canvas.drawPath(
+          Path()
+            ..moveTo(w * 0.28, h * 0.90)
+            ..lineTo(w * 0.40, h * 0.81)
+            ..lineTo(w * 0.50, h * 0.91),
+          crack,
+        );
+      } else {
+        canvas.drawPath(
+          Path()
+            ..moveTo(w * 0.28, h * 0.50)
+            ..lineTo(w * 0.42, h * 0.40)
+            ..lineTo(w * 0.52, h * 0.54)
+            ..lineTo(w * 0.68, h * 0.42),
+          crack,
+        );
+      }
     }
 
-    canvas.drawPath(zigzag, crack);
+    // O olho só no último estágio: as faturas já valem um mês inteiro de
+    // receita, e é quando o ovo deixa de ser um objeto e passa a ser alguém.
+    if (stage >= 2) _eggEye(canvas, size);
+
+    canvas.restore();
+  }
+
+  /// Um olho entreaberto: a fenda escura e, dentro dela, a pupila.
+  void _eggEye(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    final fenda = Path()
+      ..moveTo(w * 0.30, h * 0.645)
+      ..quadraticBezierTo(w * 0.50, h * 0.53, w * 0.70, h * 0.645)
+      ..quadraticBezierTo(w * 0.50, h * 0.735, w * 0.30, h * 0.645)
+      ..close();
+
+    canvas.drawPath(fenda, Paint()..color = AppColors.gameTrough);
+
+    // A pupila é vermelha, e é a única coisa vermelha do ovo: a 20 px ela é
+    // um ponto, e um ponto vermelho dentro de um verde doente é o que faz o
+    // olho ser um OLHO e não mais uma mancha.
+    canvas.drawCircle(
+      Offset(w * 0.50, h * 0.638),
+      w * 0.058,
+      Paint()..color = AppColors.danger,
+    );
+  }
+
+  /// Uma mancha irregular. Não é um círculo nem uma elipse de propósito: três
+  /// elipses na casca leem como bolinhas desenhadas, e o ovo precisa parecer
+  /// sujo, não pontilhado.
+  void _blob(Canvas canvas, Offset c, double rx, double ry, Paint paint) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - ry)
+      ..cubicTo(
+        c.dx + rx,
+        c.dy - ry * 0.7,
+        c.dx + rx * 0.85,
+        c.dy + ry * 0.75,
+        c.dx + rx * 0.1,
+        c.dy + ry,
+      )
+      ..cubicTo(
+        c.dx - rx * 0.8,
+        c.dy + ry * 1.15,
+        c.dx - rx,
+        c.dy + ry * 0.2,
+        c.dx - rx * 0.72,
+        c.dy - ry * 0.55,
+      )
+      ..close();
+
+    canvas.drawPath(path, paint);
   }
 
   /// Uma gota: bico em cima, barriga embaixo.
