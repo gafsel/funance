@@ -258,9 +258,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingWorkspaceNameLabel => 'Workspace Name';
 
   @override
-  String get onboardingGoalsTitle => 'Set your first goals';
-
-  @override
   String get onboardingGoalsButton => 'GOT IT, NEXT STEP';
 
   @override

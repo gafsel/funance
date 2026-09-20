@@ -542,12 +542,6 @@ abstract class AppLocalizations {
   /// **'Nome do Workspace'**
   String get onboardingWorkspaceNameLabel;
 
-  /// No description provided for @onboardingGoalsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Trace suas primeiras metas'**
-  String get onboardingGoalsTitle;
-
   /// No description provided for @onboardingGoalsButton.
   ///
   /// In pt, this message translates to:

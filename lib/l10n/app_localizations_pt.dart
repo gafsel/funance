@@ -260,9 +260,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get onboardingWorkspaceNameLabel => 'Nome do Workspace';
 
   @override
-  String get onboardingGoalsTitle => 'Trace suas primeiras metas';
-
-  @override
   String get onboardingGoalsButton => 'ENTENDI, PRÓXIMO PASSO';
 
   @override
