@@ -102,7 +102,10 @@ class EmptyState extends StatelessWidget {
         ),
         child: Column(
           children: [
-            Icon(icon, size: 40, color: palette.ink3),
+            // O ícone é DECORATIVO: ele ilustra o vazio que o título já diz
+            // em palavras. Sem excluí-lo, o leitor de tela anunciava o nome
+            // do glifo ("flag outlined") antes da frase que interessa.
+            ExcludeSemantics(child: Icon(icon, size: 40, color: palette.ink3)),
             AppSpacing.gapSm,
             Text(
               title,
@@ -126,7 +129,9 @@ class EmptyState extends StatelessWidget {
             mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 48, color: palette.ink3),
+              ExcludeSemantics(
+                child: Icon(icon, size: 48, color: palette.ink3),
+              ),
               AppSpacing.gapMd,
               Text(
                 title,

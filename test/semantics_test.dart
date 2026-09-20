@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/compass_strip.dart';
+import 'package:funances/core/widgets/empty_state.dart';
 import 'package:funances/core/widgets/section_header.dart';
 
 /// M6 — o que o leitor de tela encontra.
@@ -202,6 +203,57 @@ void main() {
           reason:
               'uma barra decorativa dentro de um bloco que já se descreve só '
               'acrescentaria um "62%" solto no meio da leitura',
+        );
+      });
+    });
+  });
+
+  /// baixo — o ícone do estado vazio é DECORATIVO: ele ilustra o vazio que o
+  /// título já diz em palavras. Sem excluí-lo, o leitor de tela anunciava o
+  /// nome do glifo antes da frase que interessa.
+  group('EmptyState', () {
+    testWidgets('o ícone decorativo não é anunciado', (tester) async {
+      await comLeitorDeTela(tester, () async {
+        await _pump(
+          tester,
+          const SizedBox(
+            width: 320,
+            height: 400,
+            child: EmptyState.centered(
+              icon: Icons.flag_outlined,
+              title: 'Nenhuma meta ainda',
+              message: 'Comece por uma reserva de emergência',
+            ),
+          ),
+        );
+
+        expect(find.bySemanticsLabel('Nenhuma meta ainda'), findsOneWidget);
+        expect(
+          tester
+              .getSemantics(find.byIcon(Icons.flag_outlined))
+              .label,
+          isEmpty,
+        );
+      });
+    });
+
+    testWidgets('a variante de cartão segue a mesma regra', (tester) async {
+      await comLeitorDeTela(tester, () async {
+        await _pump(
+          tester,
+          const SizedBox(
+            width: 320,
+            child: EmptyState.card(
+              icon: Icons.inbox_outlined,
+              title: 'Nada por aqui',
+              message: 'Seus lançamentos aparecem nesta lista',
+            ),
+          ),
+        );
+
+        expect(
+          tester.getSemantics(find.byIcon(Icons.inbox_outlined)).label,
+          isEmpty,
         );
       });
     });
