@@ -1,6 +1,7 @@
 import 'package:funances/core/files/picked_document.dart';
 import 'package:flutter/material.dart';
 import 'package:funances/core/platform/app_platform.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/services/user_service.dart';
 import 'package:funances/features/user/presentation/model/user_view_models.dart';
@@ -22,6 +23,8 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
 
   void updateDisplayName(String value) =>
       state = state.copyWith(displayName: value);
+
+  void updateAvatar(HeroSkin value) => state = state.copyWith(avatar: value);
 
   Future<void> pickImage(BuildContext context, ImageSource source) async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -96,6 +99,7 @@ class UserProfileNotifier extends FormNotifier<UserProfileFormState, void> {
       id: state.id,
       displayName: state.displayName,
       photoUrl: photoUrl,
+      avatar: state.avatar.name,
     );
   }
 }

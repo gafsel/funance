@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/form/responsive_form.dart';
+import 'package:funances/core/theme/app_palette.dart';
+import 'package:funances/core/theme/app_spacing.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
+import 'package:funances/features/user/presentation/widgets/avatar_picker.dart';
 import 'package:funances/features/user/presentation/controller/user_profile_notifier.dart';
 import 'package:funances/features/user/presentation/model/user_view_models.dart';
 import 'package:funances/features/user/presentation/providers/user_providers.dart';
@@ -108,6 +111,29 @@ class UserProfileScreen extends ConsumerWidget {
                       prefixIcon: const Icon(Icons.email),
                     ),
                     enabled: false,
+                  ),
+                  // O seletor ocupa a linha inteira: oito bonecos de 92 px
+                  // não cabem numa coluna de formulário no desktop.
+                  FullWidthItem(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.profileAvatarLabel,
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          l10n.profileAvatarHint,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: context.palette.ink2),
+                        ),
+                        AppSpacing.gapSm,
+                        AvatarPicker(
+                          selected: state.avatar,
+                          onSelected: notifier.updateAvatar,
+                        ),
+                      ],
+                    ),
                   ),
                 ];
               },
