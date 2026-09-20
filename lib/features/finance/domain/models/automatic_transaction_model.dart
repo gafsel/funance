@@ -18,8 +18,9 @@ sealed class AutomaticTransactionModel with _$AutomaticTransactionModel {
     String? packageName, // App que originou a notificação
     String? accountId,
     String? categoryId,
+    @JsonKey(toJson: suggestedCategoryToJson)
     CategoryModel? suggestedCategory,
-    AccountModel? suggestedAccount,
+    @JsonKey(toJson: suggestedAccountToJson) AccountModel? suggestedAccount,
     @Default(false) bool isConsolidated,
     @Default(false) bool isIgnored,
     Map<String, dynamic>? metadata,
@@ -28,3 +29,27 @@ sealed class AutomaticTransactionModel with _$AutomaticTransactionModel {
   factory AutomaticTransactionModel.fromJson(Map<String, dynamic> json) =>
       _$AutomaticTransactionModelFromJson(json);
 }
+
+/// O MAPA da categoria sugerida, e não o objeto.
+///
+/// Sem isto o `toJson` gerado devolve `instance.suggestedCategory` cru — um
+/// `CategoryModel` dentro do mapa que vai para o Firestore. O codec do
+/// `cloud_firestore` não conhece esse tipo e recusa a escrita INTEIRA com um
+/// `ArgumentError`; era por isso que "ignorar" não ignorava nada: toda
+/// pendência com sugestão falhava, e só as sem sugestão sumiam da lista.
+///
+/// `json_serializable` só chamaria `.toJson()` sozinho com `explicit_to_json`,
+/// que não está ligado no projeto — e ligá-lo mudaria a serialização de todos
+/// os modelos de uma vez. Aqui o conserto é onde o defeito está.
+Map<String, dynamic>? suggestedCategoryToJson(CategoryModel? category) =>
+    category?.toJson();
+
+/// O MAPA da conta sugerida. Mesma razão de [suggestedCategoryToJson].
+///
+/// `AccountModel` é uma união: o `toJson` do freezed já grava o `runtimeType`
+/// que o `fromJson` usa para escolher o construtor, então a forma gravada não
+/// muda. O que some é o `nextInvoice` — `includeToJson: false` na conta, por
+/// ser dado do servidor — e as sobras legadas (`initial_balance_date`,
+/// `*Cents`) que o documento tinha copiado da conta.
+Map<String, dynamic>? suggestedAccountToJson(AccountModel? account) =>
+    account?.toJson();

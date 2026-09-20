@@ -17,7 +17,7 @@ mixin _$AutomaticTransactionModel {
 
  String get id; String get description; double get amount; DateTime get date; OrderType get type; String? get originNotificationId;// Para evitar duplicidade
  String? get packageName;// App que originou a notificação
- String? get accountId; String? get categoryId; CategoryModel? get suggestedCategory; AccountModel? get suggestedAccount; bool get isConsolidated; bool get isIgnored; Map<String, dynamic>? get metadata;
+ String? get accountId; String? get categoryId;@JsonKey(toJson: suggestedCategoryToJson) CategoryModel? get suggestedCategory;@JsonKey(toJson: suggestedAccountToJson) AccountModel? get suggestedAccount; bool get isConsolidated; bool get isIgnored; Map<String, dynamic>? get metadata;
 /// Create a copy of AutomaticTransactionModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -50,7 +50,7 @@ abstract mixin class $AutomaticTransactionModelCopyWith<$Res>  {
   factory $AutomaticTransactionModelCopyWith(AutomaticTransactionModel value, $Res Function(AutomaticTransactionModel) _then) = _$AutomaticTransactionModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String description, double amount, DateTime date, OrderType type, String? originNotificationId, String? packageName, String? accountId, String? categoryId, CategoryModel? suggestedCategory, AccountModel? suggestedAccount, bool isConsolidated, bool isIgnored, Map<String, dynamic>? metadata
+ String id, String description, double amount, DateTime date, OrderType type, String? originNotificationId, String? packageName, String? accountId, String? categoryId,@JsonKey(toJson: suggestedCategoryToJson) CategoryModel? suggestedCategory,@JsonKey(toJson: suggestedAccountToJson) AccountModel? suggestedAccount, bool isConsolidated, bool isIgnored, Map<String, dynamic>? metadata
 });
 
 
@@ -189,7 +189,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String description,  double amount,  DateTime date,  OrderType type,  String? originNotificationId,  String? packageName,  String? accountId,  String? categoryId,  CategoryModel? suggestedCategory,  AccountModel? suggestedAccount,  bool isConsolidated,  bool isIgnored,  Map<String, dynamic>? metadata)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String description,  double amount,  DateTime date,  OrderType type,  String? originNotificationId,  String? packageName,  String? accountId,  String? categoryId, @JsonKey(toJson: suggestedCategoryToJson)  CategoryModel? suggestedCategory, @JsonKey(toJson: suggestedAccountToJson)  AccountModel? suggestedAccount,  bool isConsolidated,  bool isIgnored,  Map<String, dynamic>? metadata)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _AutomaticTransactionModel() when $default != null:
 return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_that.originNotificationId,_that.packageName,_that.accountId,_that.categoryId,_that.suggestedCategory,_that.suggestedAccount,_that.isConsolidated,_that.isIgnored,_that.metadata);case _:
@@ -210,7 +210,7 @@ return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String description,  double amount,  DateTime date,  OrderType type,  String? originNotificationId,  String? packageName,  String? accountId,  String? categoryId,  CategoryModel? suggestedCategory,  AccountModel? suggestedAccount,  bool isConsolidated,  bool isIgnored,  Map<String, dynamic>? metadata)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String description,  double amount,  DateTime date,  OrderType type,  String? originNotificationId,  String? packageName,  String? accountId,  String? categoryId, @JsonKey(toJson: suggestedCategoryToJson)  CategoryModel? suggestedCategory, @JsonKey(toJson: suggestedAccountToJson)  AccountModel? suggestedAccount,  bool isConsolidated,  bool isIgnored,  Map<String, dynamic>? metadata)  $default,) {final _that = this;
 switch (_that) {
 case _AutomaticTransactionModel():
 return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_that.originNotificationId,_that.packageName,_that.accountId,_that.categoryId,_that.suggestedCategory,_that.suggestedAccount,_that.isConsolidated,_that.isIgnored,_that.metadata);}
@@ -227,7 +227,7 @@ return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String description,  double amount,  DateTime date,  OrderType type,  String? originNotificationId,  String? packageName,  String? accountId,  String? categoryId,  CategoryModel? suggestedCategory,  AccountModel? suggestedAccount,  bool isConsolidated,  bool isIgnored,  Map<String, dynamic>? metadata)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String description,  double amount,  DateTime date,  OrderType type,  String? originNotificationId,  String? packageName,  String? accountId,  String? categoryId, @JsonKey(toJson: suggestedCategoryToJson)  CategoryModel? suggestedCategory, @JsonKey(toJson: suggestedAccountToJson)  AccountModel? suggestedAccount,  bool isConsolidated,  bool isIgnored,  Map<String, dynamic>? metadata)?  $default,) {final _that = this;
 switch (_that) {
 case _AutomaticTransactionModel() when $default != null:
 return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_that.originNotificationId,_that.packageName,_that.accountId,_that.categoryId,_that.suggestedCategory,_that.suggestedAccount,_that.isConsolidated,_that.isIgnored,_that.metadata);case _:
@@ -242,7 +242,7 @@ return $default(_that.id,_that.description,_that.amount,_that.date,_that.type,_t
 @JsonSerializable()
 
 class _AutomaticTransactionModel implements AutomaticTransactionModel {
-  const _AutomaticTransactionModel({required this.id, required this.description, required this.amount, required this.date, required this.type, this.originNotificationId, this.packageName, this.accountId, this.categoryId, this.suggestedCategory, this.suggestedAccount, this.isConsolidated = false, this.isIgnored = false, final  Map<String, dynamic>? metadata}): _metadata = metadata;
+  const _AutomaticTransactionModel({required this.id, required this.description, required this.amount, required this.date, required this.type, this.originNotificationId, this.packageName, this.accountId, this.categoryId, @JsonKey(toJson: suggestedCategoryToJson) this.suggestedCategory, @JsonKey(toJson: suggestedAccountToJson) this.suggestedAccount, this.isConsolidated = false, this.isIgnored = false, final  Map<String, dynamic>? metadata}): _metadata = metadata;
   factory _AutomaticTransactionModel.fromJson(Map<String, dynamic> json) => _$AutomaticTransactionModelFromJson(json);
 
 @override final  String id;
@@ -256,8 +256,8 @@ class _AutomaticTransactionModel implements AutomaticTransactionModel {
 // App que originou a notificação
 @override final  String? accountId;
 @override final  String? categoryId;
-@override final  CategoryModel? suggestedCategory;
-@override final  AccountModel? suggestedAccount;
+@override@JsonKey(toJson: suggestedCategoryToJson) final  CategoryModel? suggestedCategory;
+@override@JsonKey(toJson: suggestedAccountToJson) final  AccountModel? suggestedAccount;
 @override@JsonKey() final  bool isConsolidated;
 @override@JsonKey() final  bool isIgnored;
  final  Map<String, dynamic>? _metadata;
@@ -303,7 +303,7 @@ abstract mixin class _$AutomaticTransactionModelCopyWith<$Res> implements $Autom
   factory _$AutomaticTransactionModelCopyWith(_AutomaticTransactionModel value, $Res Function(_AutomaticTransactionModel) _then) = __$AutomaticTransactionModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String description, double amount, DateTime date, OrderType type, String? originNotificationId, String? packageName, String? accountId, String? categoryId, CategoryModel? suggestedCategory, AccountModel? suggestedAccount, bool isConsolidated, bool isIgnored, Map<String, dynamic>? metadata
+ String id, String description, double amount, DateTime date, OrderType type, String? originNotificationId, String? packageName, String? accountId, String? categoryId,@JsonKey(toJson: suggestedCategoryToJson) CategoryModel? suggestedCategory,@JsonKey(toJson: suggestedAccountToJson) AccountModel? suggestedAccount, bool isConsolidated, bool isIgnored, Map<String, dynamic>? metadata
 });
 
 
