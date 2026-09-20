@@ -493,7 +493,7 @@ return debt(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds, @JsonKey(includeToJson: false)  NextInvoice? nextInvoice)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  debt,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)?  checking,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  investment,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds, @JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson)  NextInvoice? nextInvoice)?  creditCard,TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  debt,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.bankLogo,_that.ownerIds);case InvestmentAccount() when investment != null:
@@ -517,7 +517,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds, @JsonKey(includeToJson: false)  NextInvoice? nextInvoice)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)  debt,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)  checking,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)  investment,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds, @JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson)  NextInvoice? nextInvoice)  creditCard,required TResult Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount():
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.bankLogo,_that.ownerIds);case InvestmentAccount():
@@ -537,7 +537,7 @@ return debt(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.ini
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds, @JsonKey(includeToJson: false)  NextInvoice? nextInvoice)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  debt,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  BankLogo bankLogo,  List<String> ownerIds)?  checking,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  investment,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double limit,  int dueDay,  int closingDay,  BankLogo bankLogo,  List<String> ownerIds, @JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson)  NextInvoice? nextInvoice)?  creditCard,TResult? Function( String id,  String name,  String icon,  String color,  bool isDeleted,  double initialBalance, @DateTimeTwelvePmConverter()  DateTime initialBalanceDate,  double interestRate,  BankLogo bankLogo,  List<String> ownerIds)?  debt,}) {final _that = this;
 switch (_that) {
 case CheckingAccount() when checking != null:
 return checking(_that.id,_that.name,_that.icon,_that.color,_that.isDeleted,_that.initialBalance,_that.initialBalanceDate,_that.bankLogo,_that.ownerIds);case InvestmentAccount() when investment != null:
@@ -747,7 +747,7 @@ as List<String>,
 @JsonSerializable()
 
 class CreditCardAccount extends AccountModel {
-  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, this.bankLogo = BankLogo.none, final  List<String> ownerIds = const [], @JsonKey(includeToJson: false) this.nextInvoice, final  String? $type}): _ownerIds = ownerIds,$type = $type ?? 'creditCard',super._();
+  const CreditCardAccount({required this.id, required this.name, required this.icon, required this.color, this.isDeleted = false, this.initialBalance = 0.0, @DateTimeTwelvePmConverter() required this.initialBalanceDate, required this.limit, required this.dueDay, required this.closingDay, this.bankLogo = BankLogo.none, final  List<String> ownerIds = const [], @JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson) this.nextInvoice, final  String? $type}): _ownerIds = ownerIds,$type = $type ?? 'creditCard',super._();
   factory CreditCardAccount.fromJson(Map<String, dynamic> json) => _$CreditCardAccountFromJson(json);
 
 @override final  String id;
@@ -769,7 +769,7 @@ class CreditCardAccount extends AccountModel {
 }
 
 // Somente leitura: escrito pelo servidor e negado ao cliente pelas rules.
-@JsonKey(includeToJson: false) final  NextInvoice? nextInvoice;
+@JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson) final  NextInvoice? nextInvoice;
 
 @JsonKey(name: 'runtimeType')
 final String $type;
@@ -808,7 +808,7 @@ abstract mixin class $CreditCardAccountCopyWith<$Res> implements $AccountModelCo
   factory $CreditCardAccountCopyWith(CreditCardAccount value, $Res Function(CreditCardAccount) _then) = _$CreditCardAccountCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double limit, int dueDay, int closingDay, BankLogo bankLogo, List<String> ownerIds,@JsonKey(includeToJson: false) NextInvoice? nextInvoice
+ String id, String name, String icon, String color, bool isDeleted, double initialBalance,@DateTimeTwelvePmConverter() DateTime initialBalanceDate, double limit, int dueDay, int closingDay, BankLogo bankLogo, List<String> ownerIds,@JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson) NextInvoice? nextInvoice
 });
 
 
@@ -1420,8 +1420,8 @@ return $default(_that.account,_that.orders);case _:
 }
 
 /// @nodoc
-@JsonSerializable()
 
+@JsonSerializable(explicitToJson: true)
 class _AccountDocumentAnalysisResult extends AccountDocumentAnalysisResult {
    _AccountDocumentAnalysisResult({required this.account, final  List<OrderModel> orders = const []}): _orders = orders,super._();
   factory _AccountDocumentAnalysisResult.fromJson(Map<String, dynamic> json) => _$AccountDocumentAnalysisResultFromJson(json);

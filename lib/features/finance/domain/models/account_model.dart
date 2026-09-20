@@ -172,7 +172,8 @@ sealed class AccountModel with _$AccountModel {
     @Default(BankLogo.none) BankLogo bankLogo,
     @Default([]) List<String> ownerIds,
     // Somente leitura: escrito pelo servidor e negado ao cliente pelas rules.
-    @JsonKey(includeToJson: false) NextInvoice? nextInvoice,
+    @JsonKey(includeToJson: false, fromJson: nextInvoiceFromJson)
+    NextInvoice? nextInvoice,
   }) = CreditCardAccount;
 
   const factory AccountModel.debt({
@@ -199,6 +200,34 @@ sealed class AccountModel with _$AccountModel {
       _$AccountModelFromJson(json);
 }
 
+/// O resumo da fatura, ou `null` quando ele não dá para ser lido inteiro.
+///
+/// A regra "fatura pela metade é DESCARTADA" vivia em
+/// `accountJsonFromFirestore`, na camada de dados — e por isso valia só para
+/// quem lia a coleção `accounts`. A cópia que o leitor de notificação embute
+/// em `automatic_transactions.suggestedAccount` não passa por lá: um resumo
+/// sem `dueDate` estourava no converter e derrubava a conta, a pendência e,
+/// com ela, o documento inteiro — exatamente o defeito que esta rodada veio
+/// consertar, de volta por outra porta.
+///
+/// Aqui a regra é uma só e vale para os dois caminhos. Descartar é o
+/// comportamento honesto: a tela mostra "calculando" em vez de uma fatura com
+/// borda pela metade, e a fonte da verdade (`accounts/{id}`) segue intacta.
+NextInvoice? nextInvoiceFromJson(Object? raw) {
+  if (raw is! Map) return null;
+
+  try {
+    return NextInvoice.fromJson({
+      for (final entry in raw.entries) entry.key.toString(): entry.value,
+    });
+  } catch (_) {
+    // Silencioso de propósito: não é erro do app nem do usuário, é um
+    // documento gravado por uma versão anterior do servidor. Quem precisa
+    // aparecer é a pendência, e ela aparece.
+    return null;
+  }
+}
+
 @freezed
 sealed class AccountBalanceModel with _$AccountBalanceModel {
   const AccountBalanceModel._();
@@ -222,6 +251,11 @@ sealed class AccountBalanceModel with _$AccountBalanceModel {
 @freezed
 sealed class AccountDocumentAnalysisResult
     with _$AccountDocumentAnalysisResult {
+  /// `explicitToJson`: `account` e `orders` são modelos aninhados, e sem a
+  /// anotação eles vão como OBJETO no mapa. Ver
+  /// `AutomaticTransactionModel` — é o mesmo defeito, aqui ainda adormecido
+  /// porque este resultado só chega de uma callable e nunca é gravado.
+  @JsonSerializable(explicitToJson: true)
   factory AccountDocumentAnalysisResult({
     required AccountModel account,
     @Default([]) List<OrderModel> orders,

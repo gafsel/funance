@@ -157,9 +157,7 @@ CreditCardAccount _$CreditCardAccountFromJson(
   ownerIds:
       (json['ownerIds'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
-  nextInvoice: json['nextInvoice'] == null
-      ? null
-      : NextInvoice.fromJson(json['nextInvoice'] as Map<String, dynamic>),
+  nextInvoice: nextInvoiceFromJson(json['nextInvoice']),
   $type: json['runtimeType'] as String?,
 );
 
@@ -246,4 +244,7 @@ _AccountDocumentAnalysisResult _$AccountDocumentAnalysisResultFromJson(
 
 Map<String, dynamic> _$AccountDocumentAnalysisResultToJson(
   _AccountDocumentAnalysisResult instance,
-) => <String, dynamic>{'account': instance.account, 'orders': instance.orders};
+) => <String, dynamic>{
+  'account': instance.account.toJson(),
+  'orders': instance.orders.map((e) => e.toJson()).toList(),
+};
