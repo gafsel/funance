@@ -138,10 +138,10 @@ void main() {
       // (o "gole" saiu), a faixa mostra a RAZÃO no lugar da palavra.
       expect(find.text('< 0,1×'), findsOneWidget);
 
-      // Vila: doze de dezoito aldeões de pé — cinco caíram e um
-      // ("Investimentos") está em risco, porque a meta ainda não foi
-      // aportada.
-      expect(find.text('12/18'), findsOneWidget);
+      // Vila: NOVE de dezesseis aldeões de pé, igual ao dry-run do
+      // servidor. Dezesseis e não dezoito porque as duas categorias
+      // `virtual_*` do cofre são de SISTEMA e não são aldeãs.
+      expect(find.text('9/16'), findsOneWidget);
 
       // Incubados: R$ 20.187,80 ÷ R$ 18.550,00 = 1,1×.
       expect(find.text('1,1×'), findsOneWidget);
@@ -159,7 +159,7 @@ void main() {
       // porque o
       // denominador dela é o próprio plano.
       expect(find.text('—'), findsNWidgets(3));
-      expect(find.text('12/18'), findsOneWidget);
+      expect(find.text('9/16'), findsOneWidget);
     });
 
     testWidgets('a classe sobe com o saldo guardado', (tester) async {
@@ -206,7 +206,7 @@ void main() {
       await pumpHudFooter(tester, isBusiness: true, size: const Size(900, 800));
 
       expect(
-        find.bySemanticsLabel(RegExp('^Vila: 12 de 18 aldeões vivos')),
+        find.bySemanticsLabel(RegExp('^Vila: 9 de 16 aldeões vivos')),
         findsOneWidget,
       );
       expect(find.text('Centros de custo'), findsNothing);
@@ -236,15 +236,23 @@ void main() {
       await tester.tap(find.byType(HudGlyph).first);
       await tester.pumpAndSettle();
 
-      // R$ 263,41 sobre R$ 18.550,00 — abaixo do primeiro corte não há
-      // classe, e a razão não pode negar um saldo que existe.
+      // R$ 263,41 sobre R$ 18.550,00 — a razão não pode negar um saldo que
+      // existe, e quem a carrega na folha é o CHIP: abaixo do primeiro
+      // décimo a linha "< 0,1× da receita…" era o mesmo número dito de
+      // novo, logo abaixo do chip.
+      expect(find.text('< 0,1 mês de pé'), findsOneWidget);
+      // Dentro da FOLHA: a faixa atrás dela continua mostrando "< 0,1×", e
+      // é lá que a razão vive.
       expect(
-        find.text('< 0,1× da receita prevista do mês (R\$\u{00A0}18.550,00)'),
-        findsOneWidget,
+        find.descendant(
+          of: find.byKey(const ValueKey('hud-sheet-potion')),
+          matching: find.textContaining('< 0,1×'),
+        ),
+        findsNothing,
       );
 
-      // E o chip diz a mesma razão na unidade que o dono pediu.
-      expect(find.text('< 0,1 mês de pé'), findsOneWidget);
+      // A receita continua dita por extenso, na nota logo abaixo.
+      expect(find.textContaining('R\$\u{00A0}18.550,00'), findsWidgets);
     });
   });
 
@@ -310,6 +318,14 @@ void main() {
 
       expect(find.textContaining(' · '), findsNothing);
       expect(find.text('< 0,1 mês de pé'), findsOneWidget);
+      // E a razão não se repete embaixo do chip, dentro da folha.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('hud-sheet-potion')),
+          matching: find.textContaining('< 0,1×'),
+        ),
+        findsNothing,
+      );
     });
   });
 
@@ -348,10 +364,11 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          // O cofre real de setembro: as despesas couberam, mas a meta de
-          // R\$ 200 de "Investimentos" não recebeu nada — o segundo
-          // envelope está aberto, e a vila está EM RISCO, não viva.
-          RegExp('^Vila: 12 de 18 aldeões vivos, vila em risco, falta aporte'),
+          // O cofre real: as despesas couberam (R\$ 17.334,73 de
+          // R\$ 18.170,00) e o envelope de investimento fechou com "Taxas de
+          // Juros" (R\$ 431,54 de R\$ 50,00) — vila VIVA, como no dry-run do
+          // servidor.
+          RegExp('^Vila: 9 de 16 aldeões vivos, vila viva'),
         ),
         findsOneWidget,
       );
@@ -617,19 +634,52 @@ void main() {
   });
 
   group('a folha da vila é uma grade, e não uma lista', () {
-    testWidgets('os três grupos se apresentam com a contagem', (tester) async {
-      // Tela alta de propósito: a folha rola, e os três títulos não cabem
-      // juntos em 900 px com dezoito tiles entre eles.
+    testWidgets('os grupos se apresentam com a contagem', (tester) async {
+      // Tela alta de propósito: a folha rola, e os títulos não cabem juntos
+      // em 900 px com dezesseis tiles entre eles.
       await pumpHudFooter(tester, size: const Size(400, 1600));
 
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
 
-      // Doze de dezoito de pé no cofre do dono: cinco caíram e um está em
-      // risco — "Investimentos", que tem meta de R\\$ 200 e nada aportado.
-      expect(find.text('Vivos (12)'), findsOneWidget);
-      expect(find.text('Caídos (5)'), findsOneWidget);
-      expect(find.text('Em risco (1)'), findsOneWidget);
+      // Nove de dezesseis de pé no cofre do dono, sete caídos — e NENHUM em
+      // risco: a única categoria de investimento do mês ("Taxas de Juros")
+      // já passou do alvo. Grupo vazio não desenha nem o título.
+      expect(find.text('Vivos (9)'), findsOneWidget);
+      expect(find.text('Caídos (7)'), findsOneWidget);
+      expect(find.textContaining('Em risco ('), findsNothing);
+    });
+
+    testWidgets('o nome de uma palavra só cabe numa linha no tile', (
+      tester,
+    ) async {
+      // B12: "Supermercado" não cabe em 84 px, e o Flutter só quebra DENTRO
+      // de uma palavra quando ela sozinha estoura a linha — o tile mostrava
+      // "Supermerca/do", duas metades que parecem palavras e não são. Nome
+      // de uma palavra fica em UMA linha, com reticências se precisar; o de
+      // duas ou mais pode usar duas.
+      await pumpHudFooter(tester, size: const Size(400, 1600));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      final uma = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const ValueKey('hud-villager-cat-Supermercado')),
+          matching: find.text('Supermercado'),
+        ),
+      );
+      expect(uma.maxLines, 1);
+
+      final duas = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('hud-villager-cat-Manutenção do carro'),
+          ),
+          matching: find.text('Manutenção do carro'),
+        ),
+      );
+      expect(duas.maxLines, 2);
     });
 
     testWidgets('a folha mostra os DOIS envelopes, um em cada linha', (
@@ -643,19 +693,17 @@ void main() {
       // Sem a segunda linha, o usuário lia "despesas dentro do plano" ao
       // lado de "a vila não está de pé" e concluía que o app errou a conta.
       expect(
-        find.text('Despesas: R\$\u{00A0}14.912,20 de R\$\u{00A0}22.020,00'),
+        find.text('Despesas: R\$\u{00A0}17.334,73 de R\$\u{00A0}18.170,00'),
         findsOneWidget,
       );
       expect(
-        find.text('Investimentos: R\$\u{00A0}0,00 de R\$\u{00A0}200,00'),
+        find.text('Investimentos: R\$\u{00A0}431,54 de R\$\u{00A0}50,00'),
         findsOneWidget,
       );
 
-      // E a frase de estado diz qual dos dois está aberto.
+      // Os dois fecharam: a vila está de pé.
       expect(
-        find.text(
-          'A vila está em risco: as despesas couberam, mas falta aporte.',
-        ),
+        find.text('A vila está de pé: a soma cabe no plano.'),
         findsOneWidget,
       );
     });
@@ -699,15 +747,22 @@ void main() {
     testWidgets('o aldeão de investimento enche o anel em âmbar', (
       tester,
     ) async {
-      await pumpHudFooter(tester, size: const Size(400, 1600));
+      // O cofre do dono não tem nenhum aldeão em risco neste mês — a única
+      // categoria de investimento dele ("Taxas de Juros") já passou do alvo
+      // —, então o caso vem de um plano montado aqui: meta de R$ 200 e nada
+      // aportado.
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        hud: hudTestState(categories: _planoComAporteFaltando()),
+      );
 
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
 
-      // "Investimentos": meta de R$ 200, nada aportado. O anel dele ENCHE
-      // conforme o aporte entra, em vez de esvaziar como o da despesa — um
-      // anel que esvaziasse a cada aporte diria que guardar dinheiro é
-      // perder alguma coisa.
+      // O anel ENCHE conforme o aporte entra, em vez de esvaziar como o da
+      // despesa — um anel que esvaziasse a cada aporte diria que guardar
+      // dinheiro é perder alguma coisa.
       final investimentos = tester.widget<AppRing>(
         find.descendant(
           of: find.byKey(const ValueKey('hud-villager-cat-Investimentos')),
@@ -736,7 +791,11 @@ void main() {
       tester,
     ) async {
       final handle = tester.ensureSemantics();
-      await pumpHudFooter(tester, size: const Size(400, 1600));
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        hud: hudTestState(categories: _planoComAporteFaltando()),
+      );
 
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
@@ -814,12 +873,12 @@ void main() {
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
 
-      // "Manutenção do carro": R$ 350 de orçamento contra R$ 1.462,77 —
-      // R$ 1.112,77 além do plano. Sob um anel de 44 px cabe "R$ 1,1 mil";
+      // "Manutenção do carro": R$ 350 de orçamento contra R$ 1.462,85 —
+      // R$ 1.112,85 além do plano. Sob um anel de 44 px cabe "R$ 1,1 mil";
       // quem ouve a tela recebe o número inteiro.
       expect(
         find.bySemanticsLabel(
-          RegExp('^Manutenção do carro: R.*1[.]112,77 além do orçamento'),
+          RegExp('^Manutenção do carro: R.*1[.]112,85 além do orçamento'),
         ),
         findsOneWidget,
       );
@@ -985,10 +1044,10 @@ void main() {
 
       final aneis = tester.widgetList<HudRing>(find.byType(HudRing)).toList();
 
-      // Σ realizado ÷ Σ planejado das DESPESAS = 14.912,20 / 22.020,00. Os
-      // R$ 200 de meta de "Investimentos" ficam fora: aporte não é gasto, e
+      // Σ realizado ÷ Σ planejado das DESPESAS = 17.334,73 / 18.170,00. Os
+      // R$ 50 de meta de "Taxas de Juros" ficam fora: aporte não é gasto, e
       // somá-lo faria guardar dinheiro apertar a vila.
-      expect(aneis[1].progress, closeTo(0.6772, 0.0001));
+      expect(aneis[1].progress, closeTo(0.9540, 0.0001));
     });
 
     testWidgets('o anel do ovo enche quando a razão passa de um mês', (
@@ -1002,3 +1061,34 @@ void main() {
     });
   });
 }
+
+/// Um plano com o envelope de investimento ABERTO: três despesas dentro do
+/// limite e uma meta de aporte de R$ 200 sem nenhum aporte.
+///
+/// Ele existe porque o cofre do dono não tem aldeão em risco neste mês, e o
+/// estado precisa de teste mesmo assim — fingir que o retrato real o tem foi
+/// o defeito que o QA pegou nos limites dos cartões.
+List<HudCategoryReading> _planoComAporteFaltando() => [
+  for (final nome in ['Mercado', 'Lazer', 'Saúde'])
+    HudCategoryReading(
+      categoryId: 'cat-$nome',
+      name: nome,
+      icon: 'shopping_cart',
+      color: '#FF5722',
+      isExpense: true,
+      isSystem: false,
+      planned: 1000,
+      actual: 400,
+    ),
+  const HudCategoryReading(
+    categoryId: 'cat-Investimentos',
+    name: 'Investimentos',
+    icon: 'savings',
+    color: '#4CAF50',
+    isExpense: true,
+    isSystem: false,
+    planned: 200,
+    actual: 0,
+    isInvestment: true,
+  ),
+];

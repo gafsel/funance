@@ -2461,7 +2461,7 @@ razões.
 
 | Ícone | Dados usados | Fórmula | Escala | XP envolvido |
 |---|---|---|---|---|
-| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema **e `allocation`** | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **de pé** se `realizado ≤ planejado` na despesa comum e se `realizado ≥ planejado` na de `allocation: investment`; **HP** = `planejado − realizado` (na de investimento, `realizado − planejado`) | contagem `villagersAlive`/`villagersPlanned`; vila viva se **os DOIS envelopes fecham** — `Σ realizado ≤ Σ planejado` das despesas **e** `Σ realizado ≥ Σ planejado` dos investimentos — com ≥ 3 aldeões | **+15** por aldeão de pé (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
+| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema **e `allocation`** | **aldeão** = categoria de despesa, não-sistema (**flag `isSystem` OU prefixo `virtual_` OU `initial-balance`**, a mesma peneira do backend), com `generalPlannedAmount > 0`; **de pé** se `realizado ≤ planejado` na despesa comum e se `realizado ≥ planejado` na de `allocation: investment`; **HP** = `planejado − realizado` (na de investimento, `realizado − planejado`) | contagem `villagersAlive`/`villagersPlanned`; vila viva se **os DOIS envelopes fecham** — `Σ realizado ≤ Σ planejado` das despesas **e** `Σ realizado ≥ Σ planejado` dos investimentos — com ≥ 3 aldeões | **+15** por aldeão de pé (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
 | **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` — **todas juntas**: emergência e objetivo somam | `r = saldoInvestimentoCents / expectedIncome.cents` | sem classe abaixo de 0,5× (só a razão) · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
 | **Incubados** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o monstro não recebe o nome da classe | nenhum |
 | **Veneno** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo dos incubados | nenhum |
@@ -2841,6 +2841,20 @@ olhando justamente para o que não tem.
 
 A mini explicação abre toda folha; abaixo dela vem o que compõe o número.
 
+**A peneira de categoria de SISTEMA é por id, e não só pela flag.** O
+backend decide com `isSystemCategory(id, data)` = flag `isSystem` **ou**
+prefixo `virtual_` **ou** `initial-balance`, e o app precisa da mesma regra
+porque é o backend quem paga o XP. O app olhava só a flag, e em **workspace
+legado ela não existe em documento nenhum** — ela só chega com o
+`migrate_system_categories`. No cofre do dono (33 categorias, nenhuma
+migrada) as duas categorias `virtual_*` entravam como ALDEÃS: "Empréstimo/
+Dívidas" (`virtual_debt_expense`, alvo R$ 3.800) e "Investimentos"
+(`virtual_investment_expense`, alvo R$ 200), as duas com `allocation:
+investment` e nenhum aporte. Elas matavam o envelope de investimento
+sozinhas, e o app mostrava **"9/18, vila em risco, +135 XP"** onde o servidor
+pagava **"9/16, vila viva, 235 XP"**. No app a regra vive em
+`CategoryModel.isSystemCategory`.
+
 - **Vila** — uma GRADE de aldeões, e não uma lista: cada um é um anel
   circular com o ícone e a cor da categoria no miolo, o nome e o valor
   compacto ("R$ 1,1 mil"). Três grupos com título e contagem, nesta ordem —
@@ -2915,6 +2929,19 @@ A mini explicação abre toda folha; abaixo dela vem o que compõe o número.
   cartão sem limite e o cartão furado são SINTÉTICOS e declarados como tais
   no harness. A rodada anterior dizia que "o C6 tem limite zero"; ele tem
   R$ 9.217,00, e o número veio de um harness que inventou os seis.
+
+  As CATEGORIAS do harness também são as de produção, lidas em 20/09/2026:
+  dezesseis aldeões (nove de pé, sete caídos), seis sem proteção, e o retrato
+  fecha **9/16, vila viva, +235 XP** — o mesmo que o dry-run do servidor. As
+  duas `virtual_*` e as duas linhas de sumário sem documento de categoria
+  ficam de fora, como no app.
+
+  *Divergência registrada, não corrigida:* produção publicou
+  `expectedIncome = R$ 18.000,00` em 20/09 às 12:37, e o harness segue com os
+  **R$ 18.550,00** do retrato anterior, que é o número dos textos e dos
+  goldens já aprovados. As quatro razões não mudam de dígito com a troca
+  (0,4×, 1,1×, < 0,1×), mas a frase "(R$ 18.550,00)" sim — trocar isso é
+  decisão de QA, não de implementação.
 
 ### Testes
 

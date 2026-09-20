@@ -17,7 +17,7 @@ import 'arena_harness.dart';
 /// Os números padrão são os do cofre REAL do dono em setembro de 2026
 /// (workspace 42d43a0e). Um harness com números redondos inventados esconde
 /// justamente o que este pacote precisa provar: que quatro ícones de 30 px e
-/// os rótulos deles cabem ao lado de "R$ 20.187,80" e "12/18".
+/// os rótulos deles cabem ao lado de "R$ 20.187,80" e "9/16".
 
 /// O dia em que o retrato foi tirado: 20 de setembro de 2026.
 ///
@@ -159,34 +159,46 @@ HudInvoiceReading _invoice(
   usedLimit: used,
 );
 
-/// As categorias reais de setembro: dezoito aldeões — doze de pé, cinco
-/// caídos e um EM RISCO — e cinco categorias sem proteção.
+/// As categorias reais de setembro, lidas de produção em 20/09/2026: DEZESSEIS
+/// aldeões — nove de pé e sete caídos — e seis categorias sem proteção.
 ///
-/// "Investimentos" é a de allocation `investment`, e ela funciona ao
-/// contrário: R$ 200 de meta com R$ 0 aportados é um aldeão em risco, não um
-/// aldeão folgado. Antes da regra invertida ela era o aldeão mais "vivo" da
-/// vila justamente por não ter recebido nada.
+/// **As duas `virtual_*` NÃO estão aqui, e é o ponto.** No cofre do dono elas
+/// se chamam "Empréstimo/Dívidas" (`virtual_debt_expense`, R$ 3.800 de alvo) e
+/// "Investimentos" (`virtual_investment_expense`, R$ 200) — as duas com
+/// allocation `investment` e nenhum aporte. Elas são categorias de SISTEMA: o
+/// servidor as peneira por id, e o app passou a peneirar igual. Enquanto ele
+/// olhava só a flag `isSystem` — que em workspace legado não existe em
+/// documento nenhum —, as duas entravam como aldeãs, matavam o envelope de
+/// investimento sozinhas e o app dizia "9/18, vila em risco, +135 XP" onde o
+/// servidor pagava "9/16, vila viva, 235 XP".
+///
+/// "Taxas de Juros" é a única categoria de investimento de verdade do mês:
+/// alvo de R$ 50 com R$ 431,54 realizados — de pé, e o envelope de
+/// investimento fecha com ela.
+///
+/// As duas linhas do sumário SEM documento de categoria (R$ 3.800 e R$ 2.000,
+/// de categorias apagadas) também ficam de fora, como no app: id que o app não
+/// conhece não vira aldeão.
 List<HudCategoryReading> hudTestCategories() => [
-  _category('Supermercado', 3500, 1158.20),
+  _category('Supermercado', 3500, 2597.99),
   _category('Educação', 2770, 3301.54),
   _category('Empregada', 2650, 1728.24),
-  _category('Empréstimo/Dívidas', 3800, 0),
-  _category('Cuidados pessoais', 1500, 1171.20),
-  _category('Compras', 1300, 1993.97),
+  _category('Cuidados pessoais', 1500, 1707.18),
+  _category('Compras', 1300, 2163.89),
   _category('Lazer', 1200, 801.17),
   _category('Saúde', 1000, 1160.11),
-  _category('Alimentação', 1000, 839.40),
-  _category('Gasolina', 1000, 259.54),
+  _category('Alimentação', 1000, 1065.85),
+  _category('Gasolina', 1000, 525.54),
   _category('Moradia', 500, 106.24),
   _category('Festas', 500, 0),
   _category('Pets', 400, 284.29),
-  _category('Manutenção do carro', 350, 1462.77),
-  _category('Outros', 300, 103.87),
-  _category('Transporte', 200, 113.97),
-  _category('Investimentos', 200, 0, investimento: true),
-  _category('Taxas de Juros', 50, 427.69),
-  _category('Pagamento de Empréstimo', 0, 1944.54),
-  _category('Assinaturas', 0, 495.25),
+  _category('Manutenção do carro', 350, 1462.85),
+  _category('Outros', 300, 135.87),
+  _category('Transporte', 200, 293.97),
+  _category('Taxas de Juros', 50, 431.54, investimento: true),
+  _category('Pagamento de Empréstimo', 0, 1944.54, investimento: true),
+  _category('Seguros', 0, 828.11),
+  _category('Assinaturas', 0, 665.02),
   _category('Água', 0, 437.82),
   _category('Celular', 0, 435.00),
   _category('Internet/TV', 0, 167.90),

@@ -309,7 +309,11 @@ sealed class HudViewProviders {
                       icon: s.category.icon,
                       color: s.category.color,
                       isExpense: s.category.type == CategoryType.expense,
-                      isSystem: s.category.isSystem,
+                      // A peneira do SERVIDOR, e não só a flag: em
+                      // workspace legado `isSystem` não existe em documento
+                      // nenhum, e as duas categorias `virtual_*` entravam
+                      // como aldeãs. Ver `CategoryModel.isSystemCategory`.
+                      isSystem: s.category.isSystemCategory,
                       // O ORÇAMENTO é o `generalPlannedAmount`, e só ele. O
                       // `specificPlannedAmount` são as parcelas agendadas do
                       // mês — dinheiro que já tem dono, não o limite da

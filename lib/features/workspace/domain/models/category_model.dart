@@ -103,6 +103,25 @@ sealed class CategoryModel with _$CategoryModel {
   /// servidor apareceria nos seletores do app como se fosse do usuário.
   bool get isVirtual => VirtualCategory.isVirtualId(id);
 
+  /// A categoria é do SISTEMA pela mesma regra do backend
+  /// (`isSystemCategory` em `functions/.../category.model.ts`): a flag, o
+  /// prefixo `virtual_` ou o id do saldo inicial.
+  ///
+  /// São três testes e não um porque **a flag sozinha não chega em workspace
+  /// legado**: `isSystem` só existe nos documentos que passaram pelo
+  /// `migrate_system_categories`, e no cofre do dono nenhuma das 33
+  /// categorias o tem. Confiar só nela fazia `virtual_investment_expense` e
+  /// `virtual_debt_expense` entrarem como ALDEÃS do HUD — duas categorias
+  /// que o usuário nunca criou, com allocation de investimento e alvo de
+  /// R\$ 4.000 sem aporte nenhum, derrubando sozinhas o envelope de
+  /// investimento da vila. O app dizia "9/18, vila em risco, +135 XP" onde o
+  /// servidor pagava "9/16, vila viva, 235 XP".
+  ///
+  /// A regra é do backend porque é ele quem grava e quem paga o XP; o app
+  /// que peneira diferente diverge do placar.
+  bool get isSystemCategory =>
+      isSystem || isVirtual || id == VirtualCategory.initialBalanceId;
+
   /// Categoria que o usuário pode escolher ou editar num seletor da UI.
   /// Categorias de sistema e excluídas logicamente ficam de fora.
   bool get isSelectable => !isSystem && !isDeleted;

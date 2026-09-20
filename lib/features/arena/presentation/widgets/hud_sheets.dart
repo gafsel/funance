@@ -441,7 +441,14 @@ class _PotionSheet extends StatelessWidget {
       // o vocabulário que o dono pediu para o que se guarda. Abaixo de meio
       // mês de receita não há classe nenhuma — fica só a razão, e o chip de
       // meses de pé diz o resto.
-      subtitles: potion.ratio.isUnknown
+      // A razão SAI quando ela é "< 0,1": o chip logo acima já diz
+      // "< 0,1 mês de pé", e as duas linhas empilhadas repetiam o mesmo
+      // número com duas unidades — "< 0,1 mês de pé" sobre "< 0,1× da
+      // receita prevista do mês" lê como gagueira, e a segunda não acrescenta
+      // nada que o chip e a nota de receita (logo abaixo, com o valor
+      // inteiro) já não digam. Acima do primeiro décimo as duas convivem: aí
+      // a linha carrega também a CLASSE, que o chip não diz.
+      subtitles: potion.ratio.isUnknown || _razaoMinuscula(potion.ratio, locale)
           ? const []
           : [
               [
@@ -477,6 +484,13 @@ class _PotionSheet extends StatelessWidget {
     );
   }
 }
+
+/// A razão é pequena demais para ter dois dígitos: ela sai como "< 0,1".
+///
+/// Quem decide é o mesmo texto que vai para a tela, e não um limiar escrito
+/// à mão — duas regras para o mesmo corte divergem.
+bool _razaoMinuscula(HudRatio ratio, String locale) =>
+    hudRatioValue(ratio, locale)?.startsWith('<') ?? false;
 
 // ── Vila ────────────────────────────────────────────────────────────────────
 
