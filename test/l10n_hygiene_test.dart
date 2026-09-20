@@ -106,27 +106,20 @@ void main() {
     }
   });
 
-  test('"Party" é o grupo de categorias; "Equipe" são os membros', () {
-    // Decisão de produto: o vocabulário de jogo fica com as categorias.
-    for (final key in [
-      'partyTitle',
-      'partyHpLabel',
-      'partyStatusHealthy',
-      'partyEmptyTitle',
-      'partyEmptyMessage',
-      'partyErrorMessage',
-    ]) {
-      expect(
-        pt[key]!.toLowerCase(),
-        contains('party'),
-        reason: '$key deveria falar em party',
-      );
-      expect(
-        pt[key]!.toLowerCase(),
-        isNot(contains('equipe')),
-        reason: '$key mistura o vocabulário dos membros',
-      );
-    }
+  test('"Party" saiu do ARB junto com o bloco', () {
+    // Decisão 9 do dono: *"na aba de visão geral, pode retirar a
+    // visualização de Party — essa visão não faz mais sentido com a nova
+    // visão de jogo"*. O bloco saiu da Visão Geral, e com ele as chaves que
+    // só ele usava.
+    //
+    // O que este teste guarda não é a ausência em si — disso já cuida a
+    // varredura de órfãs acima —, é a DIREÇÃO: o vocabulário de party era
+    // uma decisão de produto ("party é o grupo de categorias, equipe são os
+    // membros"), e uma chave nova com esse nome significa que o bloco
+    // voltou por uma porta lateral, sem a decisão ter sido revista.
+    final voltaram = pt.keys.where((k) => k.startsWith('party')).toList();
+
+    expect(voltaram, isEmpty, reason: 'a Party voltou: ${voltaram.join(', ')}');
 
     // E os membros do workspace continuam sendo a equipe.
     expect(pt['workspaceSettingsTeamSection'], 'Equipe');

@@ -2942,36 +2942,6 @@ abstract class AppLocalizations {
   /// **'Retornar para Pendente'**
   String get returnToPending;
 
-  /// No description provided for @partyHpLabel.
-  ///
-  /// In pt, this message translates to:
-  /// **'Saúde da Party'**
-  String get partyHpLabel;
-
-  /// No description provided for @partyStatusHealthy.
-  ///
-  /// In pt, this message translates to:
-  /// **'Party em segurança'**
-  String get partyStatusHealthy;
-
-  /// No description provided for @partyStatusStrained.
-  ///
-  /// In pt, this message translates to:
-  /// **'Party em perigo'**
-  String get partyStatusStrained;
-
-  /// No description provided for @partyStatusDefeated.
-  ///
-  /// In pt, this message translates to:
-  /// **'Party derrotada'**
-  String get partyStatusDefeated;
-
-  /// No description provided for @partyTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sua Party'**
-  String get partyTitle;
-
   /// No description provided for @planned.
   ///
   /// In pt, this message translates to:
@@ -2983,12 +2953,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Realizado'**
   String get actual;
-
-  /// No description provided for @excess.
-  ///
-  /// In pt, this message translates to:
-  /// **'Excesso'**
-  String get excess;
 
   /// No description provided for @registerInvoicePayment.
   ///
@@ -3133,30 +3097,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Lançamentos'**
   String get transactions;
-
-  /// No description provided for @challengeStatusStable.
-  ///
-  /// In pt, this message translates to:
-  /// **'Estável'**
-  String get challengeStatusStable;
-
-  /// No description provided for @challengeStatusWarning.
-  ///
-  /// In pt, this message translates to:
-  /// **'Alerta'**
-  String get challengeStatusWarning;
-
-  /// No description provided for @challengeStatusCritical.
-  ///
-  /// In pt, this message translates to:
-  /// **'Crítico'**
-  String get challengeStatusCritical;
-
-  /// No description provided for @rest.
-  ///
-  /// In pt, this message translates to:
-  /// **'Restante'**
-  String get rest;
 
   /// No description provided for @category.
   ///
@@ -3541,30 +3481,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Estourou {amount}'**
   String goalOverLimit(String amount);
-
-  /// No description provided for @partyEmptyTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Sua party ainda não tem desafios'**
-  String get partyEmptyTitle;
-
-  /// No description provided for @partyEmptyMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.'**
-  String get partyEmptyMessage;
-
-  /// No description provided for @partyEmptyButton.
-  ///
-  /// In pt, this message translates to:
-  /// **'Criar primeiro limite'**
-  String get partyEmptyButton;
-
-  /// No description provided for @partyErrorMessage.
-  ///
-  /// In pt, this message translates to:
-  /// **'Não foi possível carregar o status da party.'**
-  String get partyErrorMessage;
 
   /// No description provided for @badgeCatalogUnavailableTitle.
   ///

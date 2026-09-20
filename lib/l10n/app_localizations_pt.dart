@@ -1586,28 +1586,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get returnToPending => 'Retornar para Pendente';
 
   @override
-  String get partyHpLabel => 'Saúde da Party';
-
-  @override
-  String get partyStatusHealthy => 'Party em segurança';
-
-  @override
-  String get partyStatusStrained => 'Party em perigo';
-
-  @override
-  String get partyStatusDefeated => 'Party derrotada';
-
-  @override
-  String get partyTitle => 'Sua Party';
-
-  @override
   String get planned => 'Planejado';
 
   @override
   String get actual => 'Realizado';
-
-  @override
-  String get excess => 'Excesso';
 
   @override
   String get registerInvoicePayment => 'Registrar Pagamento de Fatura';
@@ -1683,18 +1665,6 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get transactions => 'Lançamentos';
-
-  @override
-  String get challengeStatusStable => 'Estável';
-
-  @override
-  String get challengeStatusWarning => 'Alerta';
-
-  @override
-  String get challengeStatusCritical => 'Crítico';
-
-  @override
-  String get rest => 'Restante';
 
   @override
   String get category => 'Categoria';
@@ -1935,20 +1905,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String goalOverLimit(String amount) {
     return 'Estourou $amount';
   }
-
-  @override
-  String get partyEmptyTitle => 'Sua party ainda não tem desafios';
-
-  @override
-  String get partyEmptyMessage =>
-      'Cada limite de gastos por categoria vira um desafio da party. Crie o primeiro e acompanhe aqui.';
-
-  @override
-  String get partyEmptyButton => 'Criar primeiro limite';
-
-  @override
-  String get partyErrorMessage =>
-      'Não foi possível carregar o status da party.';
 
   @override
   String get badgeCatalogUnavailableTitle => 'Catálogo indisponível';
