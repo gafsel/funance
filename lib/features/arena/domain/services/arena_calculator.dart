@@ -119,24 +119,65 @@ abstract final class ArenaCalculator {
   /// - **despesa cuja conta de saída é líquida** (corrente ou investimento):
   ///   o boleto, a conta de luz, o débito automático — "Segurança C6";
   /// - **transferência de conta líquida para CARTÃO ou DÍVIDA**: é assim que
-  ///   o app registra o pagamento da fatura e a parcela do empréstimo, e são
-  ///   os dois maiores golpes da semana real (R$ 8.300 e R$ 3.811).
+  ///   o app registra o pagamento da fatura e a parcela do empréstimo;
+  /// - **compromisso de dívida SEM conta de saída** — ver abaixo.
   ///
   /// Ficam de fora as compras feitas NO cartão (conta de saída `creditCard`):
   /// elas não tiram nada do caixa hoje e chegam depois, somadas, como a
   /// fatura. Elas pertencem ao "ovo" do HUD mensal.
+  ///
+  /// ## A fatura em aberto não tem conta de saída
+  ///
+  /// Esta é a parte que a rodada 2 errou, e o erro era estrutural: o servidor
+  /// cria a order da fatura com `accounts: {cartão: "credit"}` e mais nada
+  /// (`finance.repository.impl.ts`). A conta que vai PAGAR só entra no
+  /// documento na hora da quitação — até lá ela não foi escolhida.
+  ///
+  /// Com `if (source == null) return false`, o maior compromisso da semana do
+  /// dono — R$ 8.300,55 de fatura, vencida e em atraso — ficava fora do
+  /// monstro, e a barra mostrava um terço da dívida real.
+  ///
+  /// A leitura certa é pelo DESTINO: um lançamento pendente cujo lado de
+  /// crédito é um cartão ou uma dívida **vai** sair do caixa; só ainda não se
+  /// sabe de qual conta. Origem "a definir" não é motivo para o compromisso
+  /// não existir. Quando ela é paga, `accountIdSource` passa a ser a conta
+  /// pagadora e o caminho normal assume — o número é o mesmo pelos dois
+  /// lados, e é isso que faz a barra não pular na quitação.
+  ///
+  /// Hoje só a fatura nasce assim; a regra é escrita pela FORMA (sem origem,
+  /// destino de dívida) e não por `isInvoice`, porque o dia em que o servidor
+  /// criar a parcela de um empréstimo do mesmo jeito, ela já estará certa.
   static bool _leavesCash(InstallmentModel i, Map<String, AccountType> types) {
+    // Receita cura; ela nunca é monstro.
+    if (i.type == OrderType.income) return false;
+
     final source = i.accountIdSource;
-    if (source == null) return false;
+
+    if (source == null) {
+      // Sem conta de saída: só entra se o DESTINO for dívida. Um lançamento
+      // órfão de verdade (sem conta nenhuma) cai fora aqui, porque
+      // `_creditSide` devolve null e `_isDebtLike(null)` é falso.
+      return _isDebtLike(types[_creditSide(i)]);
+    }
+
     if (!_isLiquid(types[source])) return false;
 
     return switch (i.type) {
       OrderType.expense => true,
-      OrderType.transfer => _isDebtLike(types[i.accountIdTarget]),
-      // Receita cura; ela nunca é monstro.
+      OrderType.transfer => _isDebtLike(types[_creditSide(i)]),
       OrderType.income => false,
     };
   }
+
+  /// A conta do lado CREDIT — o destino do dinheiro.
+  ///
+  /// Não usa `accountIdTarget` porque aquele getter só responde para
+  /// `OrderType.transfer`, e o que interessa aqui é a forma do documento, não
+  /// o tipo declarado nele.
+  static String? _creditSide(InstallmentModel i) => i.accounts.entries
+      .where((entry) => entry.value == AccountImpact.credit)
+      .map((entry) => entry.key)
+      .firstOrNull;
 
   /// O destino de uma transferência que conta como pagamento de dívida.
   static bool _isDebtLike(AccountType? type) =>

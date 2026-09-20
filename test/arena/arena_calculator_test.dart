@@ -119,6 +119,28 @@ InstallmentModel _transfer({
   accounts: {from: AccountImpact.debt, to: AccountImpact.credit},
 );
 
+/// Uma fatura EM ABERTO, do jeito que o servidor a grava.
+///
+/// `accounts` só com o lado de crédito do cartão: a conta que vai pagar não
+/// foi escolhida ainda, e por isso `accountIdSource` é nulo.
+InstallmentModel _pendingInvoice({
+  required String id,
+  required double amount,
+  int dayOffset = 0,
+  String card = 'cartao',
+}) => InstallmentModel(
+  id: id,
+  orderId: 'order-$id',
+  amount: amount,
+  description: 'Fatura',
+  dueDate: _sunday.add(Duration(days: dayOffset)),
+  status: InstallmentStatus.pending,
+  type: OrderType.transfer,
+  installmentType: InstallmentType.single,
+  isInvoice: true,
+  accounts: {card: AccountImpact.credit},
+);
+
 ArenaAccountReading _account(
   String id, {
   String? name,
@@ -283,24 +305,21 @@ void main() {
   });
 
   group('o que SAI DO CAIXA — o retrato real do cofre', () {
-    /// A semana que o QA leu no aparelho do dono, com as contas de verdade.
+    /// A semana do cofre do dono, com as contas de verdade.
     ///
-    /// Quatro compras no cartão, a fatura, a parcela do empréstimo e um
-    /// débito automático. Na rodada 1 as sete linhas entravam no monstro e a
-    /// barra dizia um número que o caixa não ia pagar; aqui só as três que
+    /// Quatro compras no cartão, a fatura ABERTA, a parcela do empréstimo e
+    /// um débito automático. Na rodada 1 as sete linhas entravam no monstro e
+    /// a barra dizia um número que o caixa não ia pagar; aqui só as três que
     /// tiram dinheiro da conta entram.
+    ///
+    /// A fatura é escrita como o SERVIDOR a escreve: `accounts` só com o lado
+    /// de crédito do cartão. Ver `_pendingInvoice`.
     List<InstallmentModel> retratoReal() => [
       _expenseFrom('cartao', id: 'mercado', amount: 412.90, dayOffset: 1),
       _expenseFrom('cartao', id: 'farmacia', amount: 87.40, dayOffset: 2),
       _expenseFrom('cartao', id: 'aplicativo', amount: 39.90, dayOffset: 3),
       _expenseFrom('cartao', id: 'restaurante', amount: 156.00, dayOffset: 3),
-      _transfer(
-        id: 'fatura',
-        from: 'corrente',
-        to: 'cartao',
-        amount: 8300,
-        dayOffset: 4,
-      ),
+      _pendingInvoice(id: 'fatura', amount: 8300, dayOffset: 4),
       _transfer(
         id: 'emprestimo',
         from: 'corrente',
@@ -341,6 +360,101 @@ void main() {
       );
     });
 
+    test('a fatura ABERTA entra, mesmo sem conta de saída', () {
+      // O defeito da rodada 2, e ele era estrutural: o servidor cria a order
+      // da fatura com `accounts: {cartão: "credit"}` e nada mais. A conta que
+      // vai pagar só entra na quitação.
+      //
+      // Com a leitura antiga ("sem conta de saída, não é compromisso"), o
+      // MAIOR compromisso da semana ficava fora e a barra mostrava um terço
+      // da dívida real.
+      final fatura = _pendingInvoice(id: 'fatura', amount: 8300.55);
+
+      expect(fatura.accountIdSource, isNull, reason: 'é a forma real');
+      expect(fatura.accounts, {'cartao': AccountImpact.credit});
+
+      final state = ArenaCalculator.from(_inputs(week: [fatura]));
+
+      expect(state.monsterMaxHp, 8300.55);
+      expect(state.monsterHp, 8300.55);
+    });
+
+    test('a fatura PAGA vale o mesmo, agora pela conta que a pagou', () {
+      // Na quitação o documento ganha o lado debt com a conta pagadora. Os
+      // dois caminhos têm de dar o mesmo número — senão a barra pularia no
+      // instante do pagamento.
+      final paga = _transfer(
+        id: 'fatura',
+        from: 'corrente',
+        to: 'cartao',
+        amount: 8300.55,
+        status: InstallmentStatus.paid,
+      );
+
+      final state = ArenaCalculator.from(_inputs(week: [paga]));
+
+      expect(state.monsterMaxHp, 8300.55);
+      expect(state.monsterHp, 0);
+    });
+
+    test('a fatura atrasada enfurece o monstro', () {
+      // A fatura do dono venceu antes do domingo e continua pendente.
+      final state = ArenaCalculator.from(
+        _inputs(
+          overdue: [
+            _pendingInvoice(id: 'fatura', amount: 8300.55, dayOffset: -3),
+          ],
+          week: [_expense(id: 'c6', amount: 10, dayOffset: 4)],
+        ),
+      );
+
+      expect(state.overdueAmount, 8300.55);
+      expect(state.isEnraged, isTrue);
+      expect(state.monsterMaxHp, 8310.55);
+    });
+
+    test('compromisso pendente de DÍVIDA sem origem também entra', () {
+      // Hoje só a fatura nasce sem conta de saída. A regra é escrita pela
+      // FORMA — sem origem, destino de dívida — e não por `isInvoice`, para o
+      // dia em que o servidor criar a parcela de um empréstimo do mesmo
+      // jeito.
+      final semOrigem = InstallmentModel(
+        id: 'parcela-emprestimo',
+        orderId: 'order-parcela',
+        amount: 3811.78,
+        description: 'Parcela do empréstimo',
+        dueDate: _sunday.add(const Duration(days: 4)),
+        status: InstallmentStatus.pending,
+        type: OrderType.transfer,
+        installmentType: InstallmentType.single,
+        accounts: const {'emprestimo': AccountImpact.credit},
+      );
+
+      expect(
+        ArenaCalculator.from(_inputs(week: [semOrigem])).monsterMaxHp,
+        3811.78,
+      );
+    });
+
+    test('sem origem E sem destino de dívida continua fora', () {
+      // A abertura para a fatura não pode virar uma porta para qualquer
+      // documento malformado: um lançamento com o lado de crédito numa conta
+      // CORRENTE é uma receita disfarçada, não um compromisso.
+      final estranho = InstallmentModel(
+        id: 'estranho',
+        orderId: 'order-estranho',
+        amount: 500,
+        description: 'estranho',
+        dueDate: _sunday,
+        status: InstallmentStatus.pending,
+        type: OrderType.transfer,
+        installmentType: InstallmentType.single,
+        accounts: const {'corrente': AccountImpact.credit},
+      );
+
+      expect(ArenaCalculator.from(_inputs(week: [estranho])).monsterMaxHp, 0);
+    });
+
     test('pagar a fatura custa vida: o golpe tira dos DOIS', () {
       // É a propriedade que a rodada 1 perdeu. Com compra de cartão no
       // monstro, quitar uma delas derrubava a barra do bicho sem mexer no
@@ -358,6 +472,8 @@ void main() {
           week: [
             for (final i in retratoReal())
               if (i.id == 'fatura')
+                // Quitada: o documento ganha o lado debt com a conta que
+                // pagou.
                 _transfer(
                   id: 'fatura',
                   from: 'corrente',
