@@ -374,6 +374,10 @@ Widget homeApp(
   required List<Override> overrides,
   Brightness brightness = Brightness.light,
   bool reduceMotion = false,
+
+  /// O que vai na AppBar. Sem ele não há AppBar nenhuma, que é como as
+  /// capturas da cena sempre montaram.
+  Widget? topo,
 }) => ProviderScope(
   overrides: overrides,
   child: MaterialApp(
@@ -394,7 +398,10 @@ Widget homeApp(
     ],
     supportedLocales: AppLocalizations.supportedLocales,
     locale: const Locale('pt'),
-    home: Scaffold(body: home),
+    home: Scaffold(
+      appBar: topo == null ? null : AppBar(title: topo),
+      body: home,
+    ),
   ),
 );
 

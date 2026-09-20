@@ -48,25 +48,26 @@ class WorkspaceSelector extends ConsumerWidget {
             ),
           ),
           // O tipo do cofre decide missão, badge, coaching e vocabulário, e
-          // aparecia só como a diferença entre dois pictogramas de 20px. O
-          // selo diz a palavra — e é aqui, ao lado do nome, que ele mora: o
-          // corpo da Home tinha uma segunda cópia do mesmo cabeçalho.
-          // O selo também CEDE em fonte grande. O nome do cofre já cedia
-          // (`Flexible` + reticências), e o selo não: a 1,6 de escala de
-          // texto o título da AppBar estourava por 0,78px, com a listra
-          // amarela e preta atravessando o topo da tela por causa de menos de
-          // um pixel. Encolher a palavra é melhor que cortá-la, porque é a
-          // palavra que diz se o cofre é pessoal ou empresa.
+          // aparecia só como a diferença entre dois pictogramas de 20px. Ele
+          // continua aqui, ao lado do nome — mas só como FIGURA.
+          //
+          // O dono: *"o título do workspace no app bar ficou pressionado por
+          // causa do tipo do workspace… o nome do workspace é mais importante
+          // que o tipo pro usuário"*. A palavra "Pessoal" custava uns
+          // setenta pixels de uma barra de 360, e ela responde a uma pergunta
+          // que se faz uma vez; o nome é o que se lê toda vez. A palavra não
+          // some: ela é o tooltip e o rótulo de leitor de tela do selo, e
+          // continua escrita por extenso no menu de troca de cofre.
+          //
+          // Sem palavra, o selo também não precisa mais ceder em fonte
+          // grande: era o `FittedBox` que impedia a listra amarela e preta a
+          // 1,6 de escala de texto, e agora o que está ali tem um tamanho só.
           if (currentWorkspace != null) ...[
             AppSpacing.gapXs,
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: WorkspaceTypeBadge(
-                  type: currentWorkspace.type,
-                  onGame: isNavigationRail,
-                ),
-              ),
+            WorkspaceTypeBadge(
+              type: currentWorkspace.type,
+              onGame: isNavigationRail,
+              iconOnly: true,
             ),
           ],
           Icon(Icons.arrow_drop_down, color: color),

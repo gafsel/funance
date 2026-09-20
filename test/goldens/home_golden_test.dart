@@ -4,6 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
+import 'package:funances/features/home/presentation/widgets/home/workspace_selector.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
+import 'package:funances/features/workspace/presentation/providers.dart';
 
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
@@ -12,6 +16,7 @@ import 'package:funances/features/home/domain/models/financial_health_model.dart
 import '../arena/arena_harness.dart';
 import '../arena/hud_harness.dart';
 import '../support/home_harness.dart';
+import '../support/journey_fakes.dart';
 import 'golden_support.dart';
 
 /// A Home, que agora É a Arena — celular e desktop.
@@ -308,6 +313,54 @@ void main() {
     await expectLater(
       find.byType(ArenaTab),
       matchesGoldenFile('images/home_arena_morte_ao_vivo.png'),
+    );
+  });
+
+  /// O TOPO da Home: o seletor de cofre na AppBar.
+  ///
+  /// Faltava captura do cabeçalho, e é onde mora a correção que o dono
+  /// pediu: *"o título do workspace no app bar ficou pressionado por causa
+  /// do tipo do workspace"*. A 360 px, com um nome de cofre longo, o PNG
+  /// mostra quem ficou com o espaço — o nome inteiro, e o tipo como figura.
+  testWidgets('golden — home_topo', (tester) async {
+    await loadAppFonts();
+
+    tester.view.physicalSize = const Size(360, 120);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final cofre = WorkspaceModel(
+      id: 'w1',
+      // Um nome LONGO de propósito: com a palavra "Pessoal" dividindo a
+      // linha, é ele que aparecia cortado.
+      name: 'Casa da Praia do Norte',
+      type: WorkspaceType.personal,
+      createdAt: DateTime(2026, 1, 1),
+    );
+
+    await tester.pumpWidget(
+      homeApp(
+        const SizedBox.shrink(),
+        overrides: [
+          ...homeOverrides(),
+          WorkspaceViewProviders.workspace.overrideWith(
+            (ref) => TestWorkspaceNotifier(
+              WorkspaceState(
+                currentWorkspace: cofre,
+                availableWorkspaces: [cofre],
+                initialLoadDone: true,
+              ),
+            ),
+          ),
+        ],
+        topo: const WorkspaceSelector(isNavigationRail: false),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byType(AppBar),
+      matchesGoldenFile('images/home_topo.png'),
     );
   });
 

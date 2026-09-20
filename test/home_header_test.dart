@@ -79,6 +79,50 @@ void main() {
       );
       expect(find.text('Empresa'), findsOneWidget);
     });
+
+    testWidgets('só de figura, a palavra sai da tela e fica na semântica', (
+      tester,
+    ) async {
+      // O dono: "o nome do workspace é mais importante que o tipo pro
+      // usuário". Na AppBar o selo perde a palavra — mas quem usa leitor de
+      // tela não pode perder junto.
+      await _pump(
+        tester,
+        const WorkspaceTypeBadge(
+          type: WorkspaceType.business,
+          iconOnly: true,
+        ),
+      );
+
+      expect(find.text('Empresa'), findsNothing);
+      expect(find.byType(Text), findsNothing);
+      expect(find.bySemanticsLabel('Empresa'), findsOneWidget);
+      expect(find.byIcon(Icons.business_outlined), findsOneWidget);
+    });
+
+    testWidgets('sem a palavra, ele devolve mais de setenta pixels', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        const Column(
+          children: [
+            WorkspaceTypeBadge(type: WorkspaceType.personal),
+            WorkspaceTypeBadge(type: WorkspaceType.personal, iconOnly: true),
+          ],
+        ),
+      );
+
+      final larguras = tester
+          .widgetList<WorkspaceTypeBadge>(find.byType(WorkspaceTypeBadge))
+          .map((selo) => tester.getSize(find.byWidget(selo)).width)
+          .toList();
+
+      // A diferença entre os dois é exatamente o que a AppBar ganhou para o
+      // NOME do cofre, que é o pedido do dono.
+      expect(larguras.first - larguras.last, greaterThan(50));
+      expect(larguras.last, lessThan(32));
+    });
   });
 
   group('CompassStrip', () {

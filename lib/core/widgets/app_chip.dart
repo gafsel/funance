@@ -41,7 +41,11 @@ class StatusPill extends StatelessWidget {
     this.dense = false,
     this.color,
     this.onGame = false,
-  });
+    this.iconOnly = false,
+  }) : assert(
+         !iconOnly || icon != null,
+         'uma pílula só de ícone precisa do ícone',
+       );
 
   final String label;
   final StatusTone tone;
@@ -68,6 +72,15 @@ class StatusPill extends StatelessWidget {
   /// inteiro onde ele identifica (fundo e borda) e sai de onde ele precisava
   /// ser legível, que é o texto: 6,4:1 a 6,6:1.
   final bool onGame;
+
+  /// Só o ÍCONE, sem a palavra.
+  ///
+  /// O [label] continua obrigatório e não some: ele vira o tooltip e o rótulo
+  /// de leitor de tela. Uma pílula muda quando o espaço ao lado é de outra
+  /// coisa mais importante — foi o caso do tipo do cofre na AppBar, que
+  /// espremia o NOME do cofre para dizer "Pessoal" — e o que não pode
+  /// acontecer é a informação sumir junto com o texto.
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -105,16 +118,32 @@ class StatusPill extends StatelessWidget {
         (dense ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)
             ?.copyWith(color: labelInk);
 
+    final decoration = BoxDecoration(
+      color: fill.withValues(alpha: 0.12),
+      borderRadius: AppRadius.brPill,
+      border: Border.all(color: fill.withValues(alpha: 0.28)),
+    );
+
+    if (iconOnly) {
+      return Tooltip(
+        message: label,
+        child: Semantics(
+          label: label,
+          child: Container(
+            padding: EdgeInsets.all(dense ? 4 : AppSpacing.xxs),
+            decoration: decoration,
+            child: Icon(icon, size: dense ? 14 : 16, color: labelInk),
+          ),
+        ),
+      );
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: dense ? AppSpacing.xs : AppSpacing.sm,
         vertical: dense ? 2 : AppSpacing.xxs,
       ),
-      decoration: BoxDecoration(
-        color: fill.withValues(alpha: 0.12),
-        borderRadius: AppRadius.brPill,
-        border: Border.all(color: fill.withValues(alpha: 0.28)),
-      ),
+      decoration: decoration,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
