@@ -46,8 +46,35 @@ sealed class CategoryModel with _$CategoryModel {
     @Default(false) bool isDeleted,
   }) = _CategoryModel;
 
+  /// Leitura TOLERANTE dos quatro campos de texto.
+  ///
+  /// O gerado faz `json['name'] as String`, e um `null` ali estoura com
+  /// "type 'Null' is not a subtype of type 'String'". Não é hipótese: a
+  /// categoria vem EMBUTIDA no documento de `automatic_transactions`, escrita
+  /// pelo leitor de notificação, e ela chega sem `name` — às vezes sem `id` —
+  /// quando a notificação do banco não dava para classificar. O resultado era
+  /// `AutomaticTransactionRepositoryImpl.getPendingTransactions` derrubando a
+  /// lista INTEIRA de pendências por causa de um documento: quem tinha uma
+  /// notificação malformada ficava sem conseguir consolidar nenhuma.
+  ///
+  /// O default é string vazia e não um texto inventado, porque a camada de
+  /// dados não escolhe palavra: `displayName` já troca vazio por "Sem
+  /// categoria" no idioma de quem lê, `asIcon()` cai em `Icons.category` e
+  /// `asColor()` tem `orElse`. [toJson] não muda — o app continua gravando
+  /// exatamente o que tem.
   factory CategoryModel.fromJson(Map<String, dynamic> json) =>
-      _$CategoryModelFromJson(json);
+      _$CategoryModelFromJson(_withTextDefaults(json));
+
+  static Map<String, dynamic> _withTextDefaults(Map<String, dynamic> json) {
+    const textFields = ['id', 'name', 'icon', 'color'];
+
+    // Só copia o mapa se houver algo a consertar: o caminho normal é o de
+    // todo lançamento da lista e não deve pagar uma alocação por categoria.
+    final broken = textFields.where((f) => json[f] is! String);
+    if (broken.isEmpty) return json;
+
+    return {...json, for (final field in broken) field: ''};
+  }
 
   /// Categoria SINTÉTICA do agrupamento "Outros": não existe no Firestore, é
   /// montada pela apresentação quando a lista passa de dez linhas. O nome sai
