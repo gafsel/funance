@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_spacing.dart';
+import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
@@ -14,12 +15,30 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 /// vez mesmo só podendo ler uma: sem ela, trocar de aba é a única forma de
 /// saber se a outra estourou.
 class AllocationTabLabel extends ConsumerWidget {
-  const AllocationTabLabel({super.key, required this.allocation});
+  const AllocationTabLabel({
+    super.key,
+    required this.allocation,
+    this.onGame = false,
+  });
 
   final CategoryAllocation allocation;
 
+  /// A aba está aberta e, portanto, pintada com a superfície de jogo.
+  ///
+  /// Quem desenha o rótulo não tem como descobrir isso sozinho — o `Tab` não
+  /// recebe o estado de seleção —, e sem saber ele lia a paleta clara sobre
+  /// um fundo escuro. Ver `_AllocationTabBar`.
+  final bool onGame;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (onGame) {
+      return Theme(
+        data: AppTheme.onGame(context),
+        child: AllocationTabLabel(allocation: allocation),
+      );
+    }
+
     final l10n = context.l10n;
     final palette = context.palette;
     final progress = ref.watch(
