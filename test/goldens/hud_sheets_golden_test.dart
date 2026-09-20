@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/theme/app_colors.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
@@ -44,7 +45,53 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
+/// A FAIXA inteira, nos dois tamanhos.
+///
+/// Ela faltava, e é onde mora metade das decisões deste pacote: as quatro
+/// silhuetas a 30 px (o ovo e a gota nasceram sendo a MESMA figura em duas
+/// cores), a casca verde do ovo contra o anel vermelho, e — do tablet para
+/// cima — o NOME sob cada figura.
+///
+/// A captura é do tamanho exato da faixa: o golden é do rodapé, e não de uma
+/// tela com um rodapé no pé dela.
 void main() {
+  for (final tema in Brightness.values) {
+    final sufixo = tema == Brightness.dark ? '_escuro' : '';
+
+    testWidgets('golden — hud_faixa$sufixo', (tester) async {
+      await loadAppFonts();
+
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 56),
+        background: AppColors.surfaceDeep,
+        theme: tema == Brightness.dark ? AppTheme.dark : AppTheme.light,
+      );
+
+      await expectLater(
+        find.byKey(const ValueKey('arena-footer-slot')),
+        matchesGoldenFile('images/hud_faixa$sufixo.png'),
+      );
+    });
+
+    testWidgets('golden — hud_faixa_desktop$sufixo', (tester) async {
+      await loadAppFonts();
+
+      await pumpHudFooter(
+        tester,
+        size: const Size(1000, 64),
+        compact: false,
+        background: AppColors.surfaceDeep,
+        theme: tema == Brightness.dark ? AppTheme.dark : AppTheme.light,
+      );
+
+      await expectLater(
+        find.byKey(const ValueKey('arena-footer-slot')),
+        matchesGoldenFile('images/hud_faixa_desktop$sufixo.png'),
+      );
+    });
+  }
+
   final folhas = <({String nome, int indice, String chave})>[
     (nome: 'hud_pocao', indice: 0, chave: 'hud-sheet-potion'),
     (nome: 'hud_vila', indice: 1, chave: 'hud-sheet-village'),
