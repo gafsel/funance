@@ -17,10 +17,7 @@ class HistoryPeriodSummary extends ConsumerWidget {
     final totals = notifier.totals;
 
     return Container(
-      margin: const EdgeInsets.only(
-        top: AppSpacing.lg,
-        bottom: AppSpacing.md,
-      ),
+      margin: const EdgeInsets.only(top: AppSpacing.lg, bottom: AppSpacing.md),
       padding: AppSpacing.allMd,
       decoration: BoxDecoration(
         color: Theme.of(

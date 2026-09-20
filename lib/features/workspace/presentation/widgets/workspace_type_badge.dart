@@ -13,7 +13,11 @@ import 'package:funances/features/workspace/domain/models/workspace_model.dart';
 ///
 /// É discreto de propósito: muda os textos, não a identidade.
 class WorkspaceTypeBadge extends StatelessWidget {
-  const WorkspaceTypeBadge({super.key, required this.type, this.onGame = false});
+  const WorkspaceTypeBadge({
+    super.key,
+    required this.type,
+    this.onGame = false,
+  });
 
   final WorkspaceType type;
 

@@ -11,7 +11,10 @@ extension CoachingFirestoreX on DocumentSnapshot {
 }
 
 class CoachingMapper {
-  static Map<String, dynamic> fromMap(Map<dynamic, dynamic> data, {String? id}) {
+  static Map<String, dynamic> fromMap(
+    Map<dynamic, dynamic> data, {
+    String? id,
+  }) {
     final map = Map<String, dynamic>.from(data);
 
     if (id != null) {
@@ -23,7 +26,9 @@ class CoachingMapper {
     }
 
     if (map['slides'] != null && map['slides'] is List) {
-      map['slides'] = (map['slides'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      map['slides'] = (map['slides'] as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
     }
 
     return map;

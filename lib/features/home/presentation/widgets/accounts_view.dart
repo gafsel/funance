@@ -223,11 +223,7 @@ class AccountsView extends ConsumerWidget {
               }
             },
             contentPadding: AppSpacing.hMd,
-            leading: AccountLogo(
-              account: account,
-              size: 32,
-              showMembers: true,
-            ),
+            leading: AccountLogo(account: account, size: 32, showMembers: true),
             title: Text(
               account.displayName(l10n),
               style: theme.textTheme.bodySmall,
@@ -305,11 +301,7 @@ class AccountsView extends ConsumerWidget {
             }
           },
           contentPadding: AppSpacing.hMd,
-          leading: AccountLogo(
-            account: account,
-            size: 32,
-            showMembers: true,
-          ),
+          leading: AccountLogo(account: account, size: 32, showMembers: true),
           title: Text(
             account.displayName(context.l10n),
             style: theme.textTheme.bodySmall,

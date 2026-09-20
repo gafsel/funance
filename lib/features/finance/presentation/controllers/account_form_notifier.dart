@@ -1,4 +1,3 @@
-
 import 'package:funances/core/analytics/analytics_service.dart';
 import 'package:funances/core/files/picked_document.dart';
 import 'package:funances/core/firestore/offline_write.dart';

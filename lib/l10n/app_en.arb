@@ -924,29 +924,6 @@
   "journeyMissionOrganization": "Organization",
   "journeyMissionOther": "Mission",
   "journeyChecklistTitle": "This week's checklist",
-  "journeyAvailableTitle": "Available until the end of the month",
-  "journeyAvailableSpent": "{actual} spent of {planned} planned",
-  "@journeyAvailableSpent": {
-    "placeholders": {
-      "actual": {
-        "type": "String"
-      },
-      "planned": {
-        "type": "String"
-      }
-    }
-  },
-  "journeyAvailablePending": "Still to pay: {pending}",
-  "@journeyAvailablePending": {
-    "placeholders": {
-      "pending": {
-        "type": "String"
-      }
-    }
-  },
-  "journeyAvailableNoIncome": "Without an income expectation we cannot tell what is left.",
-  "journeyAvailableNoIncomeAction": "Set your income expectation",
-  "journeyAvailableError": "We could not work out what is available right now.",
   "compassTitle": "Freedom Compass",
   "compassScoreOf": "{score} of 100 • {tier}",
   "@compassScoreOf": {
@@ -1234,25 +1211,8 @@
       }
     }
   },
-  "dueSoonTitle": "Due today and tomorrow",
   "dueSoonToday": "Today",
   "dueSoonTomorrow": "Tomorrow",
-  "dueSoonInvoiceClosing": "{card} statement closes",
-  "dueSoonSemantics": "{count, plural, =1{1 item due today or tomorrow} other{{count} items due today or tomorrow}}",
-  "@dueSoonInvoiceClosing": {
-    "placeholders": {
-      "card": {
-        "type": "String"
-      }
-    }
-  },
-  "@dueSoonSemantics": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "journeySeeAllGoals": "See all {count} goals",
   "@journeySeeAllGoals": {
     "placeholders": {
@@ -1355,5 +1315,258 @@
       }
     }
   },
-  "automaticTransactionSeeAllShort": "See all"
+  "arenaTitle": "Arena",
+  "arenaHeroLife": "Life",
+  "arenaCommitted": "Committed",
+  "arenaConfirmPaid": "Confirm paid",
+  "arenaEnraged": "+{amount} overdue",
+  "arenaEmpty": "No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.",
+  "arenaTeamExtra": "+{count} on the team",
+  "arenaExhausted": "Exhausted",
+  "arenaHint": "Tap the monster to confirm a payment. Tap the heroes to see the accounts.",
+  "automaticTransactionSeeAllShort": "See all",
+  "arenaWeekChallenge": "This week's challenge",
+  "arenaFree": "Free",
+  "arenaHealed": "Received this week",
+  "arenaRemainingPrefix": "left",
+  "arenaMonsterDefeated": "Defeated",
+  "arenaOverheal": "+{amount} above Sunday",
+  "arenaHeroesFallback": "You",
+  "arenaDayOfWeek": "{day}/{total}",
+  "arenaDaysLeft": "{count, plural, =1{Last day of the week} other{{count} days left this week}}",
+  "arenaHeroesSemantics": "Heroes' life: {balance}, of which {committed} is committed. Tap to see the accounts.",
+  "arenaMonsterSemantics": "Monster of the week: {remaining} left of {total}. Tap to see the commitments.",
+  "arenaMonsterSheetTitle": "This week's commitments",
+  "arenaMonsterSheetTitleBusiness": "This week's payables",
+  "arenaMonsterSheetSummary": "{paid} paid of {total} — {remaining} left",
+  "arenaNextBlow": "{count, plural, =1{Next blow: 1 due by tomorrow} other{Next blow: {count} due by tomorrow}}",
+  "arenaNoCommitments": "No commitments scheduled for this week.",
+  "arenaPaidOn": "Paid · {date}",
+  "arenaOverdueSince": "{days, plural, =1{1 day overdue · {date}} other{{days} days overdue · {date}}}",
+  "arenaHeroesSheetTitle": "Your accounts this week",
+  "arenaHeroesSheetSubtitle": "The week started with {initial} in cash.",
+  "arenaNoAccounts": "No checking or investment account registered.",
+  "arenaMonsterSpider": "Spider",
+  "arenaMonsterBat": "Bat",
+  "arenaMonsterGhost": "Ghost",
+  "arenaMonsterSlime": "Slime",
+  "arenaMonsterDemon": "Demon",
+  "arenaError": "We could not set up this week's arena.",
+  "@arenaEnraged": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaOverheal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaTeamExtra": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaDayOfWeek": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaDaysLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaHeroesSemantics": {
+    "placeholders": {
+      "balance": {
+        "type": "String"
+      },
+      "committed": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaMonsterSemantics": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaMonsterSheetSummary": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaNextBlow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaPaidOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "@arenaOverdueSince": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@arenaHeroesSheetSubtitle": {
+    "placeholders": {
+      "initial": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaScheduledOn": "Scheduled · {date}",
+  "@arenaScheduledOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaSceneSemantics": "This week's fight: the heroes against {monster}, still at {remaining} of life.",
+  "@arenaSceneSemantics": {
+    "placeholders": {
+      "monster": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaDefeatedBanner": "Monster defeated — {amount} paid this week",
+  "@arenaDefeatedBanner": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaClosingWon": "Last week: monster defeated",
+  "arenaClosingLost": "Last week: the monster escaped with {amount}",
+  "@arenaClosingLost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaClosingScore": "{paid} of {total} commitments paid · cash on Saturday: {balance}",
+  "@arenaClosingScore": {
+    "placeholders": {
+      "paid": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaPartiallyPaid": "{paid} of {total} — {remaining} left",
+  "@arenaPartiallyPaid": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaOverpaid": "+{amount} above plan",
+  "@arenaOverpaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfall": "{amount} short",
+  "@arenaShortfall": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfallLabel": "Short in cash",
+  "arenaShortfallCause": "Cash does not cover this week's commitments. The largest is {name}, {amount}.",
+  "@arenaShortfallCause": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfallCauseOverdue": "{days, plural, =1{Cash does not cover this week's commitments. The largest is {name}, {amount}, 1 day overdue.} other{Cash does not cover this week's commitments. The largest is {name}, {amount}, {days} days overdue.}}",
+  "@arenaShortfallCauseOverdue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "arenaResidue": "{amount} residue",
+  "@arenaResidue": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaAdjustPayment": "Adjust payment"
 }

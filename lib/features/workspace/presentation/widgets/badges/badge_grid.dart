@@ -47,8 +47,7 @@ class BadgeGrid extends StatelessWidget {
           final unlockDateStr = unlockedBadges[badge.id];
           final isUnlocked = unlockDateStr != null;
 
-          void openDetail() =>
-              showBadgeDetail(context, badge, unlockDateStr);
+          void openDetail() => showBadgeDetail(context, badge, unlockDateStr);
 
           return isAdvanced
               ? _AdvancedBadgeCard(

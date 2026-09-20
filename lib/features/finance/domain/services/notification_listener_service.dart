@@ -19,10 +19,12 @@ class NotificationListenerService implements INotificationListenerService {
   final AutomaticTransactionService service;
 
   // Stream para comunicar eventos do isolate de background para o isolate principal
-  static final StreamController<NotificationEvent> _notificationStreamController = 
+  static final StreamController<NotificationEvent>
+  _notificationStreamController =
       StreamController<NotificationEvent>.broadcast();
 
-  static Stream<NotificationEvent> get notificationStream => _notificationStreamController.stream;
+  static Stream<NotificationEvent> get notificationStream =>
+      _notificationStreamController.stream;
 
   @pragma('vm:entry-point')
   NotificationListenerService({required this.service});
@@ -88,9 +90,9 @@ class NotificationListenerService implements INotificationListenerService {
       'Notificação recebida em background',
       name: 'notifications',
     );
-    
+
     // Filtra notificações de sistema irrelevantes antes de enviar para o stream
-    if (event.packageName == 'com.android.systemui' || 
+    if (event.packageName == 'com.android.systemui' ||
         event.packageName == 'android' ||
         (event.title == null && event.text == null)) {
       return;
@@ -115,8 +117,14 @@ class NotificationListenerService implements INotificationListenerService {
 
     // Lógica de Parsing simples (Simulada)
     // Exemplo: "Pagamento de R$ 50,00 realizado em Starbucks"
-    final transaction = _parseNotification(notificationId, title, body, timestamp, packageName);
-    
+    final transaction = _parseNotification(
+      notificationId,
+      title,
+      body,
+      timestamp,
+      packageName,
+    );
+
     if (transaction != null) {
       await service.saveTransaction(transaction);
     }
@@ -132,14 +140,21 @@ class NotificationListenerService implements INotificationListenerService {
     // Regex simples para capturar valores em R$
     final regExp = RegExp(r'R\$\s?((\d+\.)*\d+,\d{2})');
     final match = regExp.firstMatch(body);
-    
+
     if (match != null) {
-      final amountStr = match.group(1)?.replaceAll('.', '').replaceAll(',', '.') ?? "0.0";
+      final amountStr =
+          match.group(1)?.replaceAll('.', '').replaceAll(',', '.') ?? "0.0";
       final amount = double.tryParse(amountStr) ?? 0.0;
-      
+
       // Identifica o tipo baseado em palavras chave
       OrderType type = OrderType.expense;
-      final incomeKeywords = ['recebido', 'recebeu', 'transferência recebida', 'pix recebido', 'depósito'];
+      final incomeKeywords = [
+        'recebido',
+        'recebeu',
+        'transferência recebida',
+        'pix recebido',
+        'depósito',
+      ];
       final bodyLower = body.toLowerCase();
       if (incomeKeywords.any((keyword) => bodyLower.contains(keyword))) {
         type = OrderType.income;
@@ -155,7 +170,7 @@ class NotificationListenerService implements INotificationListenerService {
         packageName: packageName,
       );
     }
-    
+
     return null;
   }
 }

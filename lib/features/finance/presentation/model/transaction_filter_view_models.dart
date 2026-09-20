@@ -21,8 +21,11 @@ sealed class TransactionFilterState with _$TransactionFilterState {
     DateTime? endDate,
   }) = _TransactionFilterState;
 
-  factory TransactionFilterState.fromQuery(TransactionQuery query,
-      {CategoryModel? category, AccountModel? account}) {
+  factory TransactionFilterState.fromQuery(
+    TransactionQuery query, {
+    CategoryModel? category,
+    AccountModel? account,
+  }) {
     return TransactionFilterState(
       accountId: query.accountId,
       description: query.description,

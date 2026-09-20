@@ -2037,31 +2037,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get journeyChecklistTitle => 'Checklist da semana';
 
   @override
-  String get journeyAvailableTitle => 'Disponível até o fim do mês';
-
-  @override
-  String journeyAvailableSpent(String actual, String planned) {
-    return 'Realizado $actual de $planned previstos';
-  }
-
-  @override
-  String journeyAvailablePending(String pending) {
-    return 'Ainda por pagar: $pending';
-  }
-
-  @override
-  String get journeyAvailableNoIncome =>
-      'Sem expectativa de receita não dá para dizer quanto sobra.';
-
-  @override
-  String get journeyAvailableNoIncomeAction =>
-      'Defina sua expectativa de receita';
-
-  @override
-  String get journeyAvailableError =>
-      'Não consegui calcular o disponível agora.';
-
-  @override
   String get compassTitle => 'Bússola da Liberdade';
 
   @override
@@ -2409,29 +2384,10 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
-  String get dueSoonTitle => 'Vence hoje e amanhã';
-
-  @override
   String get dueSoonToday => 'Hoje';
 
   @override
   String get dueSoonTomorrow => 'Amanhã';
-
-  @override
-  String dueSoonInvoiceClosing(String card) {
-    return 'Fatura de $card fecha';
-  }
-
-  @override
-  String dueSoonSemantics(int count) {
-    String _temp0 = intl.Intl.pluralLogic(
-      count,
-      locale: localeName,
-      other: '$count compromissos vencendo hoje ou amanhã',
-      one: '1 compromisso vencendo hoje ou amanhã',
-    );
-    return '$_temp0';
-  }
 
   @override
   String journeySeeAllGoals(int count) {
@@ -2470,5 +2426,230 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String get arenaTitle => 'Arena';
+
+  @override
+  String get arenaHeroLife => 'Vida';
+
+  @override
+  String get arenaCommitted => 'Comprometido';
+
+  @override
+  String get arenaConfirmPaid => 'Confirmar pago';
+
+  @override
+  String arenaEnraged(String amount) {
+    return '+$amount atrasado';
+  }
+
+  @override
+  String get arenaEmpty =>
+      'Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.';
+
+  @override
+  String arenaTeamExtra(int count) {
+    return '+$count na equipe';
+  }
+
+  @override
+  String get arenaExhausted => 'Exausto';
+
+  @override
+  String get arenaHint =>
+      'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.';
+
+  @override
   String get automaticTransactionSeeAllShort => 'Ver todas';
+
+  @override
+  String get arenaWeekChallenge => 'Desafio da semana';
+
+  @override
+  String get arenaFree => 'Livre';
+
+  @override
+  String get arenaHealed => 'Recebido na semana';
+
+  @override
+  String get arenaRemainingPrefix => 'falta';
+
+  @override
+  String get arenaMonsterDefeated => 'Derrotado';
+
+  @override
+  String arenaOverheal(String amount) {
+    return '+$amount acima de domingo';
+  }
+
+  @override
+  String get arenaHeroesFallback => 'Você';
+
+  @override
+  String arenaDayOfWeek(int day, int total) {
+    return '$day/$total';
+  }
+
+  @override
+  String arenaDaysLeft(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Faltam $count dias na semana',
+      one: 'Último dia da semana',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String arenaHeroesSemantics(String balance, String committed) {
+    return 'Vida dos heróis: $balance, sendo $committed comprometido. Toque para ver as contas.';
+  }
+
+  @override
+  String arenaMonsterSemantics(String remaining, String total) {
+    return 'Monstro da semana: falta $remaining de $total. Toque para ver os compromissos.';
+  }
+
+  @override
+  String get arenaMonsterSheetTitle => 'Compromissos da semana';
+
+  @override
+  String get arenaMonsterSheetTitleBusiness => 'Contas a pagar da semana';
+
+  @override
+  String arenaMonsterSheetSummary(String paid, String total, String remaining) {
+    return '$paid pagos de $total — falta $remaining';
+  }
+
+  @override
+  String arenaNextBlow(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Próximo golpe: $count vencem até amanhã',
+      one: 'Próximo golpe: 1 vence até amanhã',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get arenaNoCommitments => 'Nenhum compromisso agendado nesta semana.';
+
+  @override
+  String arenaPaidOn(String date) {
+    return 'Pago · $date';
+  }
+
+  @override
+  String arenaOverdueSince(String date, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'Atrasado $days dias · $date',
+      one: 'Atrasado 1 dia · $date',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get arenaHeroesSheetTitle => 'Suas contas nesta semana';
+
+  @override
+  String arenaHeroesSheetSubtitle(String initial) {
+    return 'A semana começou com $initial em caixa.';
+  }
+
+  @override
+  String get arenaNoAccounts =>
+      'Nenhuma conta corrente ou de investimento cadastrada.';
+
+  @override
+  String get arenaMonsterSpider => 'Aranha';
+
+  @override
+  String get arenaMonsterBat => 'Morcego';
+
+  @override
+  String get arenaMonsterGhost => 'Fantasma';
+
+  @override
+  String get arenaMonsterSlime => 'Gosma';
+
+  @override
+  String get arenaMonsterDemon => 'Demônio';
+
+  @override
+  String get arenaError => 'Não foi possível montar a arena desta semana.';
+
+  @override
+  String arenaScheduledOn(String date) {
+    return 'Agendado · $date';
+  }
+
+  @override
+  String arenaSceneSemantics(String monster, String remaining) {
+    return 'A luta da semana: os heróis contra $monster, que ainda tem $remaining de vida.';
+  }
+
+  @override
+  String arenaDefeatedBanner(String amount) {
+    return 'Monstro derrotado — $amount pagos nesta semana';
+  }
+
+  @override
+  String get arenaClosingWon => 'Semana passada: monstro derrotado';
+
+  @override
+  String arenaClosingLost(String amount) {
+    return 'Semana passada: o monstro escapou com $amount';
+  }
+
+  @override
+  String arenaClosingScore(int paid, int total, String balance) {
+    return '$paid de $total compromissos pagos · caixa no sábado: $balance';
+  }
+
+  @override
+  String arenaPartiallyPaid(String paid, String total, String remaining) {
+    return '$paid de $total — falta $remaining';
+  }
+
+  @override
+  String arenaOverpaid(String amount) {
+    return '+$amount acima do previsto';
+  }
+
+  @override
+  String arenaShortfall(String amount) {
+    return '−$amount em caixa';
+  }
+
+  @override
+  String get arenaShortfallLabel => 'Falta em caixa';
+
+  @override
+  String arenaShortfallCause(String name, String amount) {
+    return 'O caixa não cobre os compromissos da semana. O maior é $name, $amount.';
+  }
+
+  @override
+  String arenaShortfallCauseOverdue(String name, String amount, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other:
+          'O caixa não cobre os compromissos da semana. O maior é $name, $amount, vencido há $days dias.',
+      one:
+          'O caixa não cobre os compromissos da semana. O maior é $name, $amount, vencido há 1 dia.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String arenaResidue(String amount) {
+    return '$amount de resíduo';
+  }
+
+  @override
+  String get arenaAdjustPayment => 'Ajustar pagamento';
 }

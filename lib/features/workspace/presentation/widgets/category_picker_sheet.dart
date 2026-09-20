@@ -76,20 +76,20 @@ class CategoryPickerSheet extends ConsumerWidget {
     }
 
     final categories = categoriesAsync.when(
-          data: (data) => data
-              .where(
-                (c) =>
-                    (categoryType == null || c.type == categoryType) &&
-                    (!c.isVirtual || !excludeVirtual) &&
-                    // Excluídas logicamente nunca são selecionáveis; as de
-                    // sistema só aparecem onde a lista serve a relatório.
-                    !c.isDeleted &&
-                    (!c.isSystem || !excludeSystem),
-              )
-              .toList(),
-          error: (error, stack) => <CategoryModel>[],
-          loading: () => <CategoryModel>[],
-        );
+      data: (data) => data
+          .where(
+            (c) =>
+                (categoryType == null || c.type == categoryType) &&
+                (!c.isVirtual || !excludeVirtual) &&
+                // Excluídas logicamente nunca são selecionáveis; as de
+                // sistema só aparecem onde a lista serve a relatório.
+                !c.isDeleted &&
+                (!c.isSystem || !excludeSystem),
+          )
+          .toList(),
+      error: (error, stack) => <CategoryModel>[],
+      loading: () => <CategoryModel>[],
+    );
 
     return SafeArea(
       child: Column(
@@ -106,10 +106,10 @@ class CategoryPickerSheet extends ConsumerWidget {
             child: ListView.builder(
               shrinkWrap: true,
               padding: EdgeInsets.only(
-                bottom:
-                    MediaQuery.of(context).padding.bottom + AppSpacing.md,
+                bottom: MediaQuery.of(context).padding.bottom + AppSpacing.md,
               ),
-              itemCount: categories.length +
+              itemCount:
+                  categories.length +
                   (showAddOption ? 2 : 0) +
                   (showClearOption ? 2 : 0),
               itemBuilder: (context, index) {
@@ -117,8 +117,9 @@ class CategoryPickerSheet extends ConsumerWidget {
                   final CategoryModel category = categories[index];
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor:
-                          category.color.asColor().withValues(alpha: 0.2),
+                      backgroundColor: category.color.asColor().withValues(
+                        alpha: 0.2,
+                      ),
                       child: Icon(
                         category.icon.asIcon(),
                         color: category.color.asColor(),
@@ -143,9 +144,8 @@ class CategoryPickerSheet extends ConsumerWidget {
                       onTap: () {
                         showDialog(
                           context: context,
-                          builder: (context) => CategoryFormScreen(
-                            initialType: categoryType,
-                          ),
+                          builder: (context) =>
+                              CategoryFormScreen(initialType: categoryType),
                         );
                       },
                     );

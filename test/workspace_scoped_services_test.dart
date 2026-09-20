@@ -95,6 +95,12 @@ WorkspaceState _stateFor(String id, {required int xp, int level = 1}) {
 }
 
 void main() {
+  // `AccountDomainProviders.service` observa o `todayProvider` desde que o
+  // "saldo atual" virou "o último saldo até hoje": o teto de data precisa
+  // acompanhar a virada da meia-noite, e o notifier da data escuta o ciclo de
+  // vida do app pelo `WidgetsBinding`.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   late _TestWorkspaceNotifier notifier;
   late ProviderContainer container;
 

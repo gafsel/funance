@@ -92,8 +92,7 @@ class WorkspaceMembersScreen extends ConsumerWidget {
             isOwner: member.id == notifier.ownerId,
             isCurrentUser: member.id == notifier.currentUserId,
             // Remover é do dono, e ninguém remove a si mesmo.
-            canRemove:
-                notifier.isOwner && member.id != notifier.currentUserId,
+            canRemove: notifier.isOwner && member.id != notifier.currentUserId,
             isBusy: state.busyMemberId == member.id,
             onRemove: () => _confirmRemove(context, notifier, member),
           ),
@@ -255,9 +254,9 @@ class _ErrorRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.lg,
-          ),
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.lg,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

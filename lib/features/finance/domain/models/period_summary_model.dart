@@ -49,11 +49,10 @@ sealed class PeriodSummaryModel with _$PeriodSummaryModel {
 
   @JsonKey(includeToJson: true)
   String get id => map(
-        year: (data) => "${data.year}",
-        month: (data) => "${data.year}-${data.month.toString().padLeft(2, "0")}",
-        week: (data) =>
-            "${data.year}-W${data.week.toString().padLeft(2, "0")}",
-      );
+    year: (data) => "${data.year}",
+    month: (data) => "${data.year}-${data.month.toString().padLeft(2, "0")}",
+    week: (data) => "${data.year}-W${data.week.toString().padLeft(2, "0")}",
+  );
 
   factory PeriodSummaryModel.fromJson(Map<String, dynamic> json) =>
       _$PeriodSummaryModelFromJson(json);

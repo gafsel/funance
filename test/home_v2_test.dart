@@ -5,12 +5,10 @@ import 'package:funances/features/finance/presentation/widgets/automatic_transac
 import 'package:funances/features/goal/presentation/widgets/goals_section.dart';
 import 'package:funances/features/home/presentation/widgets/coaching_insight_card.dart';
 import 'package:funances/features/home/presentation/widgets/compass/compass_strip_view.dart';
-import 'package:funances/features/home/presentation/widgets/home/due_soon_strip.dart';
-import 'package:funances/features/home/presentation/widgets/journey_header.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_home_block.dart';
 import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
-import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/home/presentation/widgets/weekly_missions_view.dart';
 
 import 'support/home_harness.dart';
@@ -51,19 +49,20 @@ void main() {
 
       // Na ordem em que devem aparecer, de cima para baixo.
       const esperada = <Type>[
-        // 2 — quanto sobra no mês (o 1 é o toast, que vem por cima)
-        JourneyHeader,
-        // 3 — o que vence hoje e amanhã
-        DueSoonStrip,
-        // 4 — as pendências que expiram
+        // 2 — o desafio da semana: a Arena tomou o lugar do cabeçalho
+        // "quanto sobra" E da faixa de vencimentos. O número virou a linha
+        // "livre" do detalhe das contas; a lista virou o "próximo golpe" do
+        // detalhe do monstro.
+        ArenaHomeBlock,
+        // 3 — as pendências que expiram
         AutomaticTransactionConsolidationWidget,
-        // 5 — as missões da semana
+        // 4 — as missões da semana
         WeeklyMissionsView,
-        // 6 — o empurrão, em uma linha
+        // 5 — o empurrão, em uma linha
         CoachingInsightCard,
-        // 7 — a linha da Bússola
+        // 6 — a linha da Bússola
         CompassStripView,
-        // 8 — uma meta em destaque
+        // 7 — uma meta em destaque
         GoalsSection,
       ];
 
@@ -87,13 +86,14 @@ void main() {
       }
     });
 
-    testWidgets('"quanto sobra" é o primeiro bloco da tela', (tester) async {
+    testWidgets('o desafio da semana é o primeiro bloco da tela', (
+      tester,
+    ) async {
       await pumpHome(tester, const JourneyTab(), overrides: homeOverrides());
 
-      final topo = _topo(tester, JourneyHeader);
+      final topo = _topo(tester, ArenaHomeBlock);
 
       for (final outro in const [
-        DueSoonStrip,
         WeeklyMissionsView,
         CoachingInsightCard,
         CompassStripView,
@@ -103,8 +103,8 @@ void main() {
           topo,
           lessThan(_topo(tester, outro)),
           reason:
-              'a Home abria pelo cabeçalho do cofre, que não muda de um dia '
-              'para o outro',
+              'a Home abre pela luta da semana: é o único bloco que muda '
+              'quando o usuário faz alguma coisa',
         );
       }
     });
@@ -122,6 +122,24 @@ void main() {
             'corpo repetia os três e o nível ainda vinha em dois desenhos '
             'diferentes',
       );
+    });
+
+    testWidgets('a Arena abre a Home no lugar dos dois blocos aposentados', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(
+          installments: [homeInstallment(dueDate: homeToday)],
+        ),
+      );
+
+      // `JourneyHeader` e `DueSoonStrip` não existem mais no código — a
+      // ausência deles é garantida pelo compilador, que é uma rede melhor
+      // que um `findsNothing`. O que este teste guarda é o que ficou no
+      // lugar: um bloco que responde às duas perguntas ao mesmo tempo.
+      expect(find.byType(ArenaHomeBlock), findsOneWidget);
     });
 
     testWidgets('D2 — a Party foi para a Visão Geral', (tester) async {
@@ -309,79 +327,6 @@ void main() {
             'quando não havia análise, porque o convite tem título, parágrafo '
             'e botão',
       );
-    });
-  });
-
-  group('DueSoonStrip', () {
-    testWidgets('D3 — soma o que vence hoje e amanhã', (tester) async {
-      await pumpHome(
-        tester,
-        const DueSoonStrip(initiallyExpanded: true),
-        overrides: homeOverrides(
-          installments: [
-            homeInstallment(
-              id: 'a',
-              description: 'Aluguel',
-              amount: 1800,
-              dueDate: homeToday,
-            ),
-            homeInstallment(
-              id: 'b',
-              description: 'Luz',
-              amount: 210,
-              dueDate: homeToday.add(const Duration(days: 1)),
-            ),
-            // Fora da janela: não entra nem na soma nem na lista.
-            homeInstallment(
-              id: 'c',
-              description: 'Internet',
-              amount: 99,
-              dueDate: homeToday.add(const Duration(days: 5)),
-            ),
-          ],
-        ),
-      );
-
-      expect(find.text('Vence hoje e amanhã'), findsOneWidget);
-      expect(find.text('Aluguel'), findsOneWidget);
-      expect(find.text('Luz'), findsOneWidget);
-      expect(find.text('Internet'), findsNothing);
-      expect(find.text('Hoje'), findsOneWidget);
-      expect(find.text('Amanhã'), findsOneWidget);
-    });
-
-    testWidgets('sem nada vencendo, a linha SOME', (tester) async {
-      await pumpHome(
-        tester,
-        const DueSoonStrip(),
-        overrides: homeOverrides(
-          installments: [
-            homeInstallment(dueDate: homeToday.add(const Duration(days: 9))),
-          ],
-        ),
-      );
-
-      expect(
-        find.text('Vence hoje e amanhã'),
-        findsNothing,
-        reason:
-            'um bloco que diz "nada vence" todo dia gasta a única coisa que a '
-            'Home não tem sobrando, que é altura',
-      );
-    });
-
-    testWidgets('parcela JÁ PAGA não vira compromisso', (tester) async {
-      await pumpHome(
-        tester,
-        const DueSoonStrip(),
-        overrides: homeOverrides(
-          installments: [
-            homeInstallment(dueDate: homeToday, status: InstallmentStatus.paid),
-          ],
-        ),
-      );
-
-      expect(find.text('Vence hoje e amanhã'), findsNothing);
     });
   });
 }

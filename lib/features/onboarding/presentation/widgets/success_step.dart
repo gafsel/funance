@@ -215,9 +215,7 @@ class _SuccessStepState extends ConsumerState<SuccessStep> {
         AppSpacing.gapXl,
         Text(
           title,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            color: AppColors.gold,
-          ),
+          style: theme.textTheme.headlineSmall?.copyWith(color: AppColors.gold),
           textAlign: TextAlign.center,
         ),
         AppSpacing.gapMd,

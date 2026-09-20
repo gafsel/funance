@@ -6,9 +6,6 @@ extension OrderFirestoreX on DocumentSnapshot {
     final data = this.data() as Map<String, dynamic>?;
     if (data == null) throw Exception('Order data is null');
 
-    return OrderModel.fromJson({
-      ...data,
-      'id': id,
-    });
+    return OrderModel.fromJson({...data, 'id': id});
   }
 }

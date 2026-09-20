@@ -17,23 +17,34 @@ class Planning503020Service {
     required this.periodSummaryService,
   });
 
-  Stream<({List<CategoryPlanning503020Item> items, double totalIncomes, double totalActualIncomes})> watchPlanningItems(DateTime date) {
+  Stream<
+    ({
+      List<CategoryPlanning503020Item> items,
+      double totalIncomes,
+      double totalActualIncomes,
+    })
+  >
+  watchPlanningItems(DateTime date) {
     final currentMonth = date.monthKey;
 
-    return periodSummaryService.watchMonth(date.year, date.month).asyncMap((summary) async {
+    return periodSummaryService.watchMonth(date.year, date.month).asyncMap((
+      summary,
+    ) async {
       final categories = await categoryService.getCategories().first;
       // As pools do 50-30-20 são editáveis: só entram categorias que o
       // usuário pode de fato planejar.
       final expenseCategories = categories
           .where((c) => c.type == CategoryType.expense && c.isSelectable)
           .toList();
-      
+
       final plannings = await planningService.plannings(month: currentMonth);
 
       final items = expenseCategories.map((category) {
-        final planning = plannings.where((p) => p.category.id == category.id).firstOrNull;
+        final planning = plannings
+            .where((p) => p.category.id == category.id)
+            .firstOrNull;
         final summaryCategory = summary?.categories[category.id];
-        
+
         return CategoryPlanning503020Item(
           category: category,
           generalAmount: planning?.amount ?? 0.0,
@@ -46,7 +57,7 @@ class Planning503020Service {
       final incomes = categories.where(
         (c) => c.type == CategoryType.income && c.isSelectable,
       );
-      
+
       // A renda é o denominador de todas as fatias do 50-30-20: um centavo de
       // resto aqui vira meio ponto percentual na tela.
       final totalIncomes = Money.sumOf(

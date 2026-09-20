@@ -6,7 +6,8 @@ import 'package:funances/features/finance/presentation/model/finance_view_models
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/services/category_service.dart';
 
-class CategoryPlanningNotifier extends FormNotifier<CategoryPlanningState, void> {
+class CategoryPlanningNotifier
+    extends FormNotifier<CategoryPlanningState, void> {
   final CategoryPlanningService planningService;
   final CategoryService categoryService;
   final CategoryType type;

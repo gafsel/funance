@@ -45,9 +45,14 @@ class BadgeShapePainter extends CustomPainter {
     canvas.save();
     canvas.translate(0, tier == BadgeTier.advanced ? 4.0 : 2.5);
     final shadowPaint = Paint()
-      ..color = AppBadgePalette.shadow.withValues(alpha: isUnlocked ? 0.35 : 0.25)
+      ..color = AppBadgePalette.shadow.withValues(
+        alpha: isUnlocked ? 0.35 : 0.25,
+      )
       ..style = PaintingStyle.fill
-      ..maskFilter = MaskFilter.blur(BlurStyle.normal, tier == BadgeTier.advanced ? 6 : 4);
+      ..maskFilter = MaskFilter.blur(
+        BlurStyle.normal,
+        tier == BadgeTier.advanced ? 6 : 4,
+      );
     canvas.drawPath(shadowPath, shadowPaint);
     canvas.restore();
 
@@ -101,7 +106,9 @@ class BadgeShapePainter extends CustomPainter {
       paint.shader = activeGradient.createShader(Rect.fromLTWH(0, 0, w, h));
     } else {
       // Locked: Grayscale version of the shape gradient
-      paint.shader = makeGrayscale(activeGradient).createShader(Rect.fromLTWH(0, 0, w, h));
+      paint.shader = makeGrayscale(
+        activeGradient,
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
     }
 
     canvas.drawPath(path, paint);
@@ -186,10 +193,14 @@ class BadgeShapePainter extends CustomPainter {
     }
 
     if (isUnlocked) {
-      borderPaint.shader = activeBorderGradient.createShader(Rect.fromLTWH(0, 0, w, h));
+      borderPaint.shader = activeBorderGradient.createShader(
+        Rect.fromLTWH(0, 0, w, h),
+      );
     } else {
       // Grayscale border
-      borderPaint.shader = makeGrayscale(activeBorderGradient).createShader(Rect.fromLTWH(0, 0, w, h));
+      borderPaint.shader = makeGrayscale(
+        activeBorderGradient,
+      ).createShader(Rect.fromLTWH(0, 0, w, h));
     }
     canvas.drawPath(path, borderPaint);
 

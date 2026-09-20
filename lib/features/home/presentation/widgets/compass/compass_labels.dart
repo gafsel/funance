@@ -18,15 +18,13 @@ String compassComponentLabel(AppLocalizations l10n, FreedomComponent c) =>
       FreedomComponent.alivio => l10n.compassAlivio,
     };
 
-String compassComponentDescription(
-  AppLocalizations l10n,
-  FreedomComponent c,
-) => switch (c) {
-  FreedomComponent.folego => l10n.compassFolegoDesc,
-  FreedomComponent.poupanca => l10n.compassPoupancaDesc,
-  FreedomComponent.disciplina => l10n.compassDisciplinaDesc,
-  FreedomComponent.alivio => l10n.compassAlivioDesc,
-};
+String compassComponentDescription(AppLocalizations l10n, FreedomComponent c) =>
+    switch (c) {
+      FreedomComponent.folego => l10n.compassFolegoDesc,
+      FreedomComponent.poupanca => l10n.compassPoupancaDesc,
+      FreedomComponent.disciplina => l10n.compassDisciplinaDesc,
+      FreedomComponent.alivio => l10n.compassAlivioDesc,
+    };
 
 String compassTierLabel(AppLocalizations l10n, FreedomTier tier) =>
     switch (tier) {

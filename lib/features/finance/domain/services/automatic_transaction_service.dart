@@ -22,7 +22,10 @@ class AutomaticTransactionService {
     return repository.updateTransaction(workspaceId, transaction);
   }
 
-  Future<void> moveTransaction(String toWorkspaceId, AutomaticTransactionModel transaction) async {
+  Future<void> moveTransaction(
+    String toWorkspaceId,
+    AutomaticTransactionModel transaction,
+  ) async {
     return repository.moveTransaction(workspaceId, toWorkspaceId, transaction);
   }
 

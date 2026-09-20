@@ -11,9 +11,13 @@ extension GoalFirestoreX on DocumentSnapshot {
       ...data,
       'id': id,
       if (data['startDate'] is Timestamp)
-        'startDate': (data['startDate'] as Timestamp).toDate().toIso8601String(),
+        'startDate': (data['startDate'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
       if (data['start_date'] is Timestamp)
-        'startDate': (data['start_date'] as Timestamp).toDate().toIso8601String(),
+        'startDate': (data['start_date'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
       if (data['deadline'] is Timestamp)
         'deadline': (data['deadline'] as Timestamp).toDate().toIso8601String(),
       // Desfecho escrito pelo servidor (ver functions/README.md, "Contrato:

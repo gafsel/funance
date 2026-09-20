@@ -265,10 +265,7 @@ class ReconciliationService {
     // Os ids dos lançamentos a criar saem de UMA passada sobre a lista
     // inteira, antes do laço: o número de ocorrência de uma linha depende das
     // outras linhas iguais a ela no mesmo extrato.
-    final orderIds = ReconciliationIds.orderIdsFor(
-      selectedAccount.id,
-      matches,
-    );
+    final orderIds = ReconciliationIds.orderIdsFor(selectedAccount.id, matches);
 
     for (final (index, match) in matches.indexed) {
       // Tratar remoção de itens órfãos descartados/ignorados

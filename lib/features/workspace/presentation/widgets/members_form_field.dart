@@ -74,11 +74,8 @@ class MembersFormField extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, _) => ErrorView.forError(
-        context,
-        err,
-        onRetry: () => Retry.members(ref),
-      ),
+      error: (err, _) =>
+          ErrorView.forError(context, err, onRetry: () => Retry.members(ref)),
     );
   }
 }

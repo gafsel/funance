@@ -8,6 +8,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/platform/app_platform.dart';
 import 'package:funances/features/finance/data/repositories/account_repository_impl.dart';
 import 'package:funances/features/finance/data/repositories/automatic_transaction_repository_impl.dart';
@@ -109,13 +110,25 @@ class AccountDomainProviders {
     return AccountRepositoryImpl();
   });
 
-  static final service = Provider<AccountService>(
-    (ref) => AccountService(
+  static final service = Provider<AccountService>((ref) {
+    // A VIRADA DO DIA reconstrói o serviço. "Saldo atual" é o último saldo
+    // ATÉ HOJE (ver `AccountService.getLatestAccountBalance`), e o teto de
+    // data entra na consulta no momento em que ela é montada: um app aberto
+    // desde ontem — o celular que passa a noite na mesa de cabeceira —
+    // continuaria respondendo com o teto de ontem, e o lançamento de hoje não
+    // apareceria no saldo até alguém fechar e reabrir.
+    //
+    // `todayProvider` já existe e já vira à meia-noite; observá-lo é o que
+    // custa uma linha e resolve.
+    ref.watch(todayProvider);
+
+    return AccountService(
       workspaceId: ref.watch(WorkspaceViewProviders.currentWorkspaceId) ?? "",
       repository: ref.read(repository),
       workspaceRepository: ref.read(WorkspaceDomainProviders.repository),
-    ),
-  );
+      now: ref.watch(clockProvider),
+    );
+  });
 }
 
 class FinanceDomainProviders {

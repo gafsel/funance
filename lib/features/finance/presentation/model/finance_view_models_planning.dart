@@ -101,4 +101,3 @@ sealed class Planning503020Distribution with _$Planning503020Distribution {
     @Default(0.0) double totalActualIncome,
   }) = _Planning503020Distribution;
 }
-

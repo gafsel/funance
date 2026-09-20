@@ -106,7 +106,6 @@ class CompassHistory extends ConsumerWidget {
       ],
     );
   }
-
 }
 
 /// Um extremo do histórico: o mês em cima, pequeno e apagado; o score embaixo,

@@ -103,197 +103,198 @@ class MissionService {
       List<InstallmentModel>,
       List<CategoryModel>,
       MissionModel
-    >(weeklySummariesStream, overdueStream, currentWeekInstallmentsStream, categories, (
-      weeklySummaries,
-      overdueInsts,
-      weekInsts,
+    >(
+      weeklySummariesStream,
+      overdueStream,
+      currentWeekInstallmentsStream,
       categories,
-    ) {
-      // Processar Plannings
-      final planningMissions = <PlanningMission>[];
+      (weeklySummaries, overdueInsts, weekInsts, categories) {
+        // Processar Plannings
+        final planningMissions = <PlanningMission>[];
 
-      for (final MapEntry<String, PeriodSummaryCategoryModel> entry
-          in weeklySummaries?.categories.entries ?? []) {
-        final summary = entry.value;
+        for (final MapEntry<String, PeriodSummaryCategoryModel> entry
+            in weeklySummaries?.categories.entries ?? []) {
+          final summary = entry.value;
 
-        if (summary.generalPlannedAmount <= 0) continue;
+          if (summary.generalPlannedAmount <= 0) continue;
 
-        final progress = summary.actualAmount / summary.generalPlannedAmount;
+          final progress = summary.actualAmount / summary.generalPlannedAmount;
 
-        bool isAdherent = true;
+          bool isAdherent = true;
 
-        final category = categories
-            .where((cat) => cat.id == entry.key)
-            .firstOrNull;
+          final category = categories
+              .where((cat) => cat.id == entry.key)
+              .firstOrNull;
 
-        if (category != null) {
-          isAdherent = isAdherentTo(
-            type: category.type,
-            actualAmount: summary.actualAmount,
-            plannedAmount: summary.generalPlannedAmount,
-          );
+          if (category != null) {
+            isAdherent = isAdherentTo(
+              type: category.type,
+              actualAmount: summary.actualAmount,
+              plannedAmount: summary.generalPlannedAmount,
+            );
 
-          // Lógica de HP e Status do Desafio
-          double hp = 1.0;
-          ChallengeStatus status = ChallengeStatus.stable;
+            // Lógica de HP e Status do Desafio
+            double hp = 1.0;
+            ChallengeStatus status = ChallengeStatus.stable;
 
-          if (category.type == CategoryType.expense) {
-            hp = 1.0 - (progress > 1 ? 1 : progress);
+            if (category.type == CategoryType.expense) {
+              hp = 1.0 - (progress > 1 ? 1 : progress);
 
-            // Proporção da semana decorrida (0.0 a 1.0)
-            final dayOfWeek = now.weekday % 7; // 0 (Dom) a 6 (Sab)
-            // Se hoje é domingo (início da semana), consideramos um pequeno progresso para evitar divisão por zero ou alertas imediatos
-            final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
+              // Proporção da semana decorrida (0.0 a 1.0)
+              final dayOfWeek = now.weekday % 7; // 0 (Dom) a 6 (Sab)
+              // Se hoje é domingo (início da semana), consideramos um pequeno progresso para evitar divisão por zero ou alertas imediatos
+              final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
 
-            if (progress > 1.0) {
-              status = ChallengeStatus.critical;
-              hp = 0.0;
-            } else if (progress > weekElapsedRatio + 0.1) {
-              // Gastou significativamente mais do que o proporcional ao tempo da semana
-              status = ChallengeStatus.warning;
-            } else {
-              status = ChallengeStatus.stable;
+              if (progress > 1.0) {
+                status = ChallengeStatus.critical;
+                hp = 0.0;
+              } else if (progress > weekElapsedRatio + 0.1) {
+                // Gastou significativamente mais do que o proporcional ao tempo da semana
+                status = ChallengeStatus.warning;
+              } else {
+                status = ChallengeStatus.stable;
+              }
+            } else if (category.type == CategoryType.income) {
+              // Para receitas, HP é o progresso em direção à meta
+              hp = progress > 1 ? 1 : progress;
+
+              final dayOfWeek = now.weekday % 7;
+              final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
+
+              if (progress >= 1.0) {
+                status = ChallengeStatus.stable;
+              } else if (progress < weekElapsedRatio - 0.2) {
+                // Receita está muito abaixo do esperado para o ponto da semana
+                status = ChallengeStatus.warning;
+              } else {
+                status = ChallengeStatus.stable;
+              }
             }
-          } else if (category.type == CategoryType.income) {
-            // Para receitas, HP é o progresso em direção à meta
-            hp = progress > 1 ? 1 : progress;
+
+            planningMissions.add(
+              PlanningMission(
+                category: category,
+                summary: summary,
+                weeklyPlannedAmount: summary.generalPlannedAmount,
+                weeklyActualAmount: summary.actualAmount,
+                progress: progress,
+                isAdherent: isAdherent,
+                hp: hp,
+                status: status,
+              ),
+            );
+          }
+        }
+        planningMissions.sort(
+          (a, b) => a.category.name.compareTo(b.category.name),
+        );
+
+        // Processar Overdue
+        final overdueMissions = overdueInsts
+            .where(
+              (inst) =>
+                  inst.status != InstallmentStatus.removed && inst.amount > 0,
+            )
+            .map((inst) => InstallmentMission(installment: inst))
+            .toList();
+        overdueMissions.sort(
+          (a, b) =>
+              a.installment.description.compareTo(b.installment.description),
+        );
+
+        // Processar Week Installments
+        final pendingMissions = <InstallmentMission>[];
+        final completedMissions = <InstallmentMission>[];
+
+        for (final inst in weekInsts) {
+          if (inst.status == InstallmentStatus.removed || inst.amount <= 0) {
+            continue;
+          }
+          final isCompleted =
+              inst.status == InstallmentStatus.settled ||
+              inst.status == InstallmentStatus.paid;
+          final mission = InstallmentMission(
+            installment: inst,
+            isAdherent: isCompleted,
+          );
+          if (isCompleted) {
+            completedMissions.add(mission);
+          } else {
+            pendingMissions.add(mission);
+          }
+        }
+        pendingMissions.sort(
+          (a, b) =>
+              a.installment.description.compareTo(b.installment.description),
+        );
+        completedMissions.sort(
+          (a, b) =>
+              a.installment.description.compareTo(b.installment.description),
+        );
+
+        // Calcular Status da Party
+        double partyHp = 1.0;
+        PartyStatus partyStatus = PartyStatus.healthy;
+        double totalPlanned = 0;
+        double totalActual = 0;
+
+        if (planningMissions.isNotEmpty) {
+          // Novo cálculo: Baseado no total de despesas da semana
+          final expenseMissions = planningMissions
+              .where((m) => m.category.type == CategoryType.expense)
+              .toList();
+
+          if (expenseMissions.isNotEmpty) {
+            totalPlanned = Money.sumOf(
+              expenseMissions,
+              (m) => m.weeklyPlannedAmount,
+            ).toDouble();
+            totalActual = Money.sumOf(
+              expenseMissions,
+              (m) => m.weeklyActualAmount,
+            ).toDouble();
+
+            final totalProgress = totalPlanned > 0
+                ? totalActual / totalPlanned
+                : 0.0;
+            partyHp = 1.0 - (totalProgress > 1 ? 1 : totalProgress);
 
             final dayOfWeek = now.weekday % 7;
             final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
 
-            if (progress >= 1.0) {
-              status = ChallengeStatus.stable;
-            } else if (progress < weekElapsedRatio - 0.2) {
-              // Receita está muito abaixo do esperado para o ponto da semana
-              status = ChallengeStatus.warning;
+            if (totalProgress > 1.0) {
+              partyStatus = PartyStatus.defeated;
+              partyHp = 0.0;
+            } else if (totalProgress > weekElapsedRatio + 0.1) {
+              partyStatus = PartyStatus.strained;
             } else {
-              status = ChallengeStatus.stable;
+              partyStatus = PartyStatus.healthy;
+            }
+
+            // Mas se qualquer categoria individual estiver crítica (HP 0), a party já fica pelo menos strained
+            final hasCritical = planningMissions.any(
+              (m) => m.status == ChallengeStatus.critical,
+            );
+            if (hasCritical && partyStatus == PartyStatus.healthy) {
+              partyStatus = PartyStatus.strained;
             }
           }
-
-          planningMissions.add(
-            PlanningMission(
-              category: category,
-              summary: summary,
-              weeklyPlannedAmount: summary.generalPlannedAmount,
-              weeklyActualAmount: summary.actualAmount,
-              progress: progress,
-              isAdherent: isAdherent,
-              hp: hp,
-              status: status,
-            ),
-          );
         }
-      }
-      planningMissions.sort(
-        (a, b) => a.category.name.compareTo(b.category.name),
-      );
 
-      // Processar Overdue
-      final overdueMissions = overdueInsts
-          .where(
-            (inst) =>
-                inst.status != InstallmentStatus.removed && inst.amount > 0,
-          )
-          .map((inst) => InstallmentMission(installment: inst))
-          .toList();
-      overdueMissions.sort(
-        (a, b) =>
-            a.installment.description.compareTo(b.installment.description),
-      );
-
-      // Processar Week Installments
-      final pendingMissions = <InstallmentMission>[];
-      final completedMissions = <InstallmentMission>[];
-
-      for (final inst in weekInsts) {
-        if (inst.status == InstallmentStatus.removed || inst.amount <= 0) {
-          continue;
-        }
-        final isCompleted =
-            inst.status == InstallmentStatus.settled ||
-            inst.status == InstallmentStatus.paid;
-        final mission = InstallmentMission(
-          installment: inst,
-          isAdherent: isCompleted,
+        return MissionModel(
+          pendingInstallments: pendingMissions,
+          completedInstallments: completedMissions,
+          overdueInstallments: overdueMissions,
+          planningMissions: planningMissions,
+          startDate: startOfWeek,
+          endDate: endOfWeek,
+          partyHp: partyHp,
+          partyStatus: partyStatus,
+          totalPlannedAmount: totalPlanned,
+          totalActualAmount: totalActual,
         );
-        if (isCompleted) {
-          completedMissions.add(mission);
-        } else {
-          pendingMissions.add(mission);
-        }
-      }
-      pendingMissions.sort(
-        (a, b) =>
-            a.installment.description.compareTo(b.installment.description),
-      );
-      completedMissions.sort(
-        (a, b) =>
-            a.installment.description.compareTo(b.installment.description),
-      );
-
-      // Calcular Status da Party
-      double partyHp = 1.0;
-      PartyStatus partyStatus = PartyStatus.healthy;
-      double totalPlanned = 0;
-      double totalActual = 0;
-
-      if (planningMissions.isNotEmpty) {
-        // Novo cálculo: Baseado no total de despesas da semana
-        final expenseMissions = planningMissions
-            .where((m) => m.category.type == CategoryType.expense)
-            .toList();
-
-        if (expenseMissions.isNotEmpty) {
-          totalPlanned = Money.sumOf(
-            expenseMissions,
-            (m) => m.weeklyPlannedAmount,
-          ).toDouble();
-          totalActual = Money.sumOf(
-            expenseMissions,
-            (m) => m.weeklyActualAmount,
-          ).toDouble();
-
-          final totalProgress = totalPlanned > 0
-              ? totalActual / totalPlanned
-              : 0.0;
-          partyHp = 1.0 - (totalProgress > 1 ? 1 : totalProgress);
-
-          final dayOfWeek = now.weekday % 7;
-          final weekElapsedRatio = (dayOfWeek + 1) / 7.0;
-
-          if (totalProgress > 1.0) {
-            partyStatus = PartyStatus.defeated;
-            partyHp = 0.0;
-          } else if (totalProgress > weekElapsedRatio + 0.1) {
-            partyStatus = PartyStatus.strained;
-          } else {
-            partyStatus = PartyStatus.healthy;
-          }
-
-          // Mas se qualquer categoria individual estiver crítica (HP 0), a party já fica pelo menos strained
-          final hasCritical = planningMissions.any(
-            (m) => m.status == ChallengeStatus.critical,
-          );
-          if (hasCritical && partyStatus == PartyStatus.healthy) {
-            partyStatus = PartyStatus.strained;
-          }
-        }
-      }
-
-      return MissionModel(
-        pendingInstallments: pendingMissions,
-        completedInstallments: completedMissions,
-        overdueInstallments: overdueMissions,
-        planningMissions: planningMissions,
-        startDate: startOfWeek,
-        endDate: endOfWeek,
-        partyHp: partyHp,
-        partyStatus: partyStatus,
-        totalPlannedAmount: totalPlanned,
-        totalActualAmount: totalActual,
-      );
-    });
+      },
+    );
   }
 
   Future<MissionModel> getFullMissionModel() async {

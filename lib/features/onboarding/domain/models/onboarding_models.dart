@@ -12,5 +12,6 @@ sealed class PlanningSuggestions with _$PlanningSuggestions {
     @Default([]) List<GoalModel> goals,
   }) = _PlanningSuggestions;
 
-  factory PlanningSuggestions.fromJson(Map<String, dynamic> json) => _$PlanningSuggestionsFromJson(json);
+  factory PlanningSuggestions.fromJson(Map<String, dynamic> json) =>
+      _$PlanningSuggestionsFromJson(json);
 }

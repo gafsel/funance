@@ -8,7 +8,6 @@ import 'package:funances/features/goal/data/models/goal_mapper.dart';
 import '../../domain/models/goal_model.dart';
 import '../../domain/repositories/goal_repository.dart';
 
-
 /// Monta o que o cliente pode gravar numa meta.
 ///
 /// Dois campos NÃO passam por aqui, e não é convenção: as rules os negam.
@@ -20,7 +19,10 @@ import '../../domain/repositories/goal_repository.dart';
 /// `update()` só toca o que recebe e reenviar o número que a tela leu ao abrir
 /// faria uma simples troca de nome apagar o progresso do dia.
 @visibleForTesting
-Map<String, dynamic> buildGoalWriteData(GoalModel goal, {required bool creation}) {
+Map<String, dynamic> buildGoalWriteData(
+  GoalModel goal, {
+  required bool creation,
+}) {
   final data = goal.toJson();
   data.remove('id');
   data.removeWhere(

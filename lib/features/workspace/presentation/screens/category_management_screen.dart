@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -144,12 +143,11 @@ class _CategoryList extends ConsumerWidget {
         // A gestão só lista o que o usuário pode manter: categorias de
         // sistema e excluídas logicamente ficam fora.
         final categories =
-            [...rawCategories]
-                .where((c) => c.type == type && c.isSelectable)
-                .toList()
-              ..sort(
-                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-              );
+            [
+              ...rawCategories,
+            ].where((c) => c.type == type && c.isSelectable).toList()..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+            );
 
         return categories.isEmpty
             ? EmptyState.message(l10n.categoryManagementEmpty)
@@ -177,22 +175,24 @@ class _CategoryList extends ConsumerWidget {
                     ),
                     title: Text(category.displayName(context.l10n)),
                     subtitle: Text(category.type.name.toUpperCase()),
-                    trailing: isManaged ? null : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          onPressed: () => onUpdate(category),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            color: AppColors.danger,
+                    trailing: isManaged
+                        ? null
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined),
+                                onPressed: () => onUpdate(category),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: AppColors.danger,
+                                ),
+                                onPressed: () => onDelete(category),
+                              ),
+                            ],
                           ),
-                          onPressed: () => onDelete(category),
-                        ),
-                      ],
-                    ),
                   );
                 },
               );

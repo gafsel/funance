@@ -90,8 +90,10 @@ class LevelHeaderCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('$xpInLevel / $xpForNextLevel XP',
-                style: theme.textTheme.titleMedium),
+            Text(
+              '$xpInLevel / $xpForNextLevel XP',
+              style: theme.textTheme.titleMedium,
+            ),
             Text(
               l10n.totalXpLabel(xp.toString()),
               style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink2),
@@ -108,10 +110,7 @@ class LevelHeaderCard extends StatelessWidget {
           AppSpacing.gapMd,
           Row(
             children: [
-              const Icon(
-                Icons.local_fire_department,
-                color: AppColors.warning,
-              ),
+              const Icon(Icons.local_fire_department, color: AppColors.warning),
               AppSpacing.gapXs,
               Text(
                 weeklyStreaks == 1

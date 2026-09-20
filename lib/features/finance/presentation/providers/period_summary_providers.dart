@@ -69,7 +69,8 @@ class PeriodSummaryViewProviders {
           );
         }
 
-        final List<CategoryModel> categories = categoriesAsync.valueOrNull ?? [];
+        final List<CategoryModel> categories =
+            categoriesAsync.valueOrNull ?? [];
 
         final (year, month) = DateTimeExtension.parseMonthKey(monthKey);
 

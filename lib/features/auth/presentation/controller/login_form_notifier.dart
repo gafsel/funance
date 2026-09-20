@@ -10,7 +10,8 @@ class LoginFormNotifier extends FormNotifier<LoginFormState, UserModel> {
 
   void updateEmail(String value) => state = state.copyWith(email: value);
   void updatePassword(String value) => state = state.copyWith(password: value);
-  void updateDisplayName(String value) => state = state.copyWith(displayName: value);
+  void updateDisplayName(String value) =>
+      state = state.copyWith(displayName: value);
   void toggleSignUp() => state = state.copyWith(isSignUp: !state.isSignUp);
 
   @override

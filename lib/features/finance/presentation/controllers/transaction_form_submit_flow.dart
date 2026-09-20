@@ -8,7 +8,11 @@ import 'package:funances/core/form/loading_button.dart';
 import 'package:funances/core/form/manual_form.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/utils/build_context_extension.dart';
+import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
+import 'package:funances/features/finance/domain/models/account_model.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
+import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/domain/services/unplanned_nudge_service.dart';
 import 'package:funances/features/finance/presentation/controllers/transaction_form_notifier.dart';
 import 'package:funances/features/finance/presentation/model/finance_view_models.dart';
@@ -44,6 +48,72 @@ Future<UnplannedNudge?> evaluateUnplannedNudge(
     today: today,
     accountId: before.accountIdSource,
   );
+}
+
+/// O evento da Arena que este save gera — ou `null` quando ele não move a
+/// vida de ninguém.
+///
+/// Três filtros, cada um com um erro atrás:
+///
+/// 1. só lançamento **REALIZADO**: um agendamento não tira dinheiro do caixa
+///    hoje, ele vira compromisso (e, portanto, vida do monstro);
+/// 2. só **criação**: editar uma order antiga não é uma saída nova;
+/// 3. só saída de conta **LÍQUIDA**. Uma compra no cartão não move o caixa, e
+///    a barra dos heróis É o caixa: animar dano ali faria o número descer e a
+///    barra não andar, que é a pior combinação possível. Ela chega depois,
+///    somada, como a fatura.
+///
+/// O valor é o da **parcela**, não o da compra. O formulário guarda o total
+/// quando `amountType` é `total`, e um sofá de R$ 3.600 em 12× tirou R$ 300
+/// do caixa neste mês — anunciar R$ 3.600 de dano seria um número que a barra
+/// nunca vai andar.
+///
+/// Fica fora da tela e público para ser testável sem widget, como
+/// [evaluateUnplannedNudge].
+ArenaPendingEvent? arenaEventFor(
+  TransactionFormState before,
+  AccountType? sourceType,
+) {
+  if (!before.creation) return null;
+  if (before.status != InstallmentStatus.paid &&
+      before.status != InstallmentStatus.settled) {
+    return null;
+  }
+  if (sourceType != AccountType.checking &&
+      sourceType != AccountType.investment) {
+    return null;
+  }
+
+  final amount = arenaInstallmentAmount(before);
+  if (amount <= 0) return null;
+
+  return switch (before.type) {
+    OrderType.expense => ArenaPendingEvent(damage: amount),
+    OrderType.income => ArenaPendingEvent(healed: amount),
+    // Transferência não é nem dano nem cura AQUI: quando ela paga uma fatura
+    // ou uma parcela de empréstimo, ela já é compromisso — e o golpe é da
+    // folha do monstro, não deste caminho.
+    OrderType.transfer => null,
+  };
+}
+
+/// O valor de UMA parcela, a partir do que o formulário guarda.
+///
+/// `amount` é o total quando `amountType` é `total`; dividir é o que
+/// transforma "comprei um sofá de R$ 3.600" no golpe de R$ 300 que o mês
+/// realmente leva.
+@visibleForTesting
+double arenaInstallmentAmount(TransactionFormState before) {
+  final count = before.installmentCount;
+
+  if (before.installmentType == InstallmentType.installment &&
+      before.amountType == TransactionAmountType.total &&
+      count != null &&
+      count > 0) {
+    return before.amount / count;
+  }
+
+  return before.amount;
 }
 
 /// O caminho inteiro do "salvar": cascata → submit → snackbar → convite de
@@ -96,6 +166,19 @@ Future<void> submitTransactionForm(
   if (result == null) return;
 
   unawaited(HapticFeedback.mediumImpact());
+
+  // A Arena não está na tela — quem lança um gasto está AQUI. O evento fica
+  // guardado e vira golpe quando a cena existir de novo, na volta para a
+  // Home. Sem o adiamento, o dano tocava numa tela que ninguém estava vendo.
+  final arenaEvent = arenaEventFor(
+    before,
+    ref
+        .read(ArenaViewProviders.accountTypes)
+        .valueOrNull?[before.accountIdSource],
+  );
+  if (arenaEvent != null) {
+    ref.read(ArenaViewProviders.pendingEvent.notifier).push(arenaEvent);
+  }
 
   // O que prometer depende de o servidor ter confirmado. As parcelas do
   // lançamento nascem de um trigger no servidor: enquanto a escrita estiver

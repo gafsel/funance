@@ -53,20 +53,18 @@ class JourneyRepositoryImpl implements IJourneyRepository {
       return Stream.value(null);
     }
 
-    return _workspaceDoc(workspaceId)
-        .collection('weekly_xp')
-        .doc(weekId)
-        .snapshots()
-        .map((doc) {
-          final data = doc.data();
-          if (!doc.exists || data == null) return null;
+    return _workspaceDoc(
+      workspaceId,
+    ).collection('weekly_xp').doc(weekId).snapshots().map((doc) {
+      final data = doc.data();
+      if (!doc.exists || data == null) return null;
 
-          // `xp` é o nome que `FinanceService.updateWeeklyTotalXp` grava;
-          // `totalXp` é o do contrato do produto. Um `as num` direto no campo
-          // ausente derrubava a Jornada inteira.
-          final raw = data['xp'] ?? data['totalXp'];
-          return raw is num ? raw.toDouble() : null;
-        });
+      // `xp` é o nome que `FinanceService.updateWeeklyTotalXp` grava;
+      // `totalXp` é o do contrato do produto. Um `as num` direto no campo
+      // ausente derrubava a Jornada inteira.
+      final raw = data['xp'] ?? data['totalXp'];
+      return raw is num ? raw.toDouble() : null;
+    });
   }
 
   @override

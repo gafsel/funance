@@ -24,7 +24,10 @@ class CoachingRepositoryImpl implements ICoachingRepository {
   }
 
   @override
-  Future<CoachingModel?> getInsight(String workspaceId, String insightId) async {
+  Future<CoachingModel?> getInsight(
+    String workspaceId,
+    String insightId,
+  ) async {
     final doc = await _getInsightsCollection(workspaceId).doc(insightId).get();
     return doc.exists ? doc.toCoachingModel() : null;
   }
@@ -45,10 +48,9 @@ class CoachingRepositoryImpl implements ICoachingRepository {
 
   @override
   Future<List<CoachingModel>> getInsightsHistory(String workspaceId) async {
-    final snapshot = await _getInsightsCollection(workspaceId)
-        .orderBy('date', descending: true)
-        .limit(30)
-        .get();
+    final snapshot = await _getInsightsCollection(
+      workspaceId,
+    ).orderBy('date', descending: true).limit(30).get();
     return snapshot.docs.map((doc) => doc.toCoachingModel()).toList();
   }
 }

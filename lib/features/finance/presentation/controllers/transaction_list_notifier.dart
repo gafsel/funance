@@ -26,21 +26,21 @@ class TransactionListNotifier
                endDate: HistoryPeriodType.month.getRange().$2,
              ),
          executor: (query, {chunkRef}) async {
-          return await financeiroService.queryInstallments(
-            limit: 10,
-            accountId: query.accountId,
-            startDate: query.startDate,
-            endDate: query.endDate,
-            categoryId: query.categoryId,
-            type: query.type,
-            description: query.description,
-            minAmount: query.minAmount,
-            maxAmount: query.maxAmount,
-            status: query.status,
-            chunkRef: chunkRef,
-          );
-        },
-      ) {
+           return await financeiroService.queryInstallments(
+             limit: 10,
+             accountId: query.accountId,
+             startDate: query.startDate,
+             endDate: query.endDate,
+             categoryId: query.categoryId,
+             type: query.type,
+             description: query.description,
+             minAmount: query.minAmount,
+             maxAmount: query.maxAmount,
+             status: query.status,
+             chunkRef: chunkRef,
+           );
+         },
+       ) {
     load();
   }
 

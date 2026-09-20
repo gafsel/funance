@@ -6,11 +6,7 @@ import 'package:funances/core/utils/date_time_converter.dart';
 part 'invite_model.freezed.dart';
 part 'invite_model.g.dart';
 
-enum InviteStatus {
-  pending,
-  accepted,
-  declined,
-}
+enum InviteStatus { pending, accepted, declined }
 
 @freezed
 sealed class InviteModel with _$InviteModel {
@@ -27,7 +23,8 @@ sealed class InviteModel with _$InviteModel {
     @DateTimeTwelvePmConverter() required DateTime createdAt,
   }) = _InviteModel;
 
-  factory InviteModel.fromJson(Map<String, dynamic> json) => _$InviteModelFromJson(json);
+  factory InviteModel.fromJson(Map<String, dynamic> json) =>
+      _$InviteModelFromJson(json);
 
   factory InviteModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>?;
@@ -37,7 +34,12 @@ sealed class InviteModel with _$InviteModel {
       'status': 'pending',
       ...data,
       'id': doc.id,
-      'createdAt': (data['createdAt'] as Timestamp?)?.toDate().toLocal().toIso8601String() ?? DateTime.now().toIso8601String(),
+      'createdAt':
+          (data['createdAt'] as Timestamp?)
+              ?.toDate()
+              .toLocal()
+              .toIso8601String() ??
+          DateTime.now().toIso8601String(),
     });
   }
 }

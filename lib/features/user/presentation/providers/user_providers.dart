@@ -17,8 +17,12 @@ sealed class UserDomainProviders {
 }
 
 sealed class UserViewProviders {
-  static final profileForm = StateNotifierProvider.autoDispose<UserProfileNotifier, UserProfileFormState>((ref) {
-    final userService = ref.watch(UserDomainProviders.service);
-    return UserProfileNotifier(userService: userService);
-  });
+  static final profileForm =
+      StateNotifierProvider.autoDispose<
+        UserProfileNotifier,
+        UserProfileFormState
+      >((ref) {
+        final userService = ref.watch(UserDomainProviders.service);
+        return UserProfileNotifier(userService: userService);
+      });
 }

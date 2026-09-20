@@ -6,7 +6,6 @@ import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/models/virtual_category.dart';
 import 'package:uuid/uuid.dart';
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Modelos de apresentação de finanças.
 //

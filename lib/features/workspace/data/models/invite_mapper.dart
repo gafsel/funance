@@ -11,7 +11,9 @@ extension InviteFirestoreX on DocumentSnapshot {
       ...data,
       'id': id,
       if (data['createdAt'] is Timestamp)
-        'createdAt': (data['createdAt'] as Timestamp).toDate().toIso8601String(),
+        'createdAt': (data['createdAt'] as Timestamp)
+            .toDate()
+            .toIso8601String(),
       // Se workspace for um DocumentReference ou Map, precisaremos tratar
       // Mas assumindo que WorkspaceModel.fromJson cuida se for um map
     });
