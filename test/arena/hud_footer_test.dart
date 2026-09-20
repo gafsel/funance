@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:funances/core/observability/crash_reporter.dart';
 import 'package:funances/core/theme/app_colors.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/theme/app_theme.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
@@ -133,11 +134,14 @@ void main() {
     testWidgets('o retrato real do cofre do dono', (tester) async {
       await pumpHudFooter(tester);
 
-      // Poção: R$ 263,41 de R$ 18.550,00 — 1,4% de um mês, classe nenhuma.
-      expect(find.text('gole'), findsOneWidget);
+      // Poção: R$ 263,41 de R$ 18.550,00 — 1,4% de um mês. Sem classe
+      // (o "gole" saiu), a faixa mostra a RAZÃO no lugar da palavra.
+      expect(find.text('< 0,1×'), findsOneWidget);
 
-      // Vila: treze de dezoito aldeões de pé.
-      expect(find.text('13/18'), findsOneWidget);
+      // Vila: doze de dezoito aldeões de pé — cinco caíram e um
+      // ("Investimentos") está em risco, porque a meta ainda não foi
+      // aportada.
+      expect(find.text('12/18'), findsOneWidget);
 
       // Incubados: R$ 20.187,80 ÷ R$ 18.550,00 = 1,1×.
       expect(find.text('1,1×'), findsOneWidget);
@@ -155,8 +159,7 @@ void main() {
       // porque o
       // denominador dela é o próprio plano.
       expect(find.text('—'), findsNWidgets(3));
-      expect(find.text('13/18'), findsOneWidget);
-      expect(find.text('gole'), findsNothing);
+      expect(find.text('12/18'), findsOneWidget);
     });
 
     testWidgets('a classe sobe com o saldo guardado', (tester) async {
@@ -191,8 +194,8 @@ void main() {
       // A vila sem aldeão nenhum é um traço; as razões zeradas são "0,0×",
       // que aqui é verdade — há denominador, e o numerador é zero mesmo.
       expect(find.text('—'), findsOneWidget);
-      expect(find.text('0,0×'), findsNWidgets(2));
-      expect(find.text('gole'), findsOneWidget);
+      // São TRÊS: a poção sem classe mostra a razão como as outras duas.
+      expect(find.text('0,0×'), findsNWidgets(3));
     });
 
     testWidgets('no modo empresa a vila CONTINUA sendo a Vila', (tester) async {
@@ -203,7 +206,7 @@ void main() {
       await pumpHudFooter(tester, isBusiness: true, size: const Size(900, 800));
 
       expect(
-        find.bySemanticsLabel(RegExp('^Vila: 13 de 18 aldeões vivos')),
+        find.bySemanticsLabel(RegExp('^Vila: 12 de 18 aldeões vivos')),
         findsOneWidget,
       );
       expect(find.text('Centros de custo'), findsNothing);
@@ -233,14 +236,15 @@ void main() {
       await tester.tap(find.byType(HudGlyph).first);
       await tester.pumpAndSettle();
 
-      // R$ 263,41 sobre R$ 18.550,00 — a folha diz a classe E a razão, e a
-      // razão não pode negar um saldo que existe.
+      // R$ 263,41 sobre R$ 18.550,00 — abaixo do primeiro corte não há
+      // classe, e a razão não pode negar um saldo que existe.
       expect(
-        find.text(
-          'gole · < 0,1× da receita prevista do mês (R\$\u{00A0}18.550,00)',
-        ),
+        find.text('< 0,1× da receita prevista do mês (R\$\u{00A0}18.550,00)'),
         findsOneWidget,
       );
+
+      // E o chip diz a mesma razão na unidade que o dono pediu.
+      expect(find.text('< 0,1 mês de pé'), findsOneWidget);
     });
   });
 
@@ -253,8 +257,8 @@ void main() {
       await tester.tap(find.byType(HudGlyph).at(2));
       await tester.pumpAndSettle();
 
-      // Sem o "gole · " na frente: chamar de gole R$ 20.187,80 em faturas
-      // era elogiar o usuário pelo tamanho da dívida.
+      // Sem classe nenhuma na frente: dar nome de classe a R$ 20.187,80 em
+      // faturas era elogiar o usuário pelo tamanho da dívida.
       expect(
         find.text('1,1× da receita prevista do mês (R\$\u{00A0}18.550,00)'),
         findsOneWidget,
@@ -276,12 +280,36 @@ void main() {
     testWidgets('a folha da poção mantém a classe, porque ela é dela', (
       tester,
     ) async {
+      // Meio mês de receita guardado: R$ 9.275,00 de R$ 18.550,00.
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        hud: hudTestState(
+          investments: const [
+            HudBalanceReading(accountId: 'inv', name: 'Tesouro', balance: 9275),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byType(HudGlyph).first);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('semi · '), findsOneWidget);
+      expect(find.text('0,5 mês de pé'), findsOneWidget);
+    });
+
+    testWidgets('abaixo de meio mês não há classe nenhuma na folha', (
+      tester,
+    ) async {
+      // O "gole" saiu a pedido do dono: uma palavra de classe sobre
+      // R$ 263,41 é um diploma para quem ainda não guardou nada.
       await pumpHudFooter(tester, size: const Size(400, 900));
 
       await tester.tap(find.byType(HudGlyph).first);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('gole · '), findsOneWidget);
+      expect(find.textContaining(' · '), findsNothing);
+      expect(find.text('< 0,1 mês de pé'), findsOneWidget);
     });
   });
 
@@ -302,7 +330,7 @@ void main() {
           .map((t) => t.data)
           .toList();
 
-      expect(linhas.first, 'Cartão Nubank');
+      expect(linhas.first, 'Cartão Nubank VgIy');
     });
   });
 
@@ -313,12 +341,14 @@ void main() {
       // Sem isto, quem usa leitor de tela recebia o número e perdia o
       // veredito — que é justamente o que a faixa entrega sem texto.
       expect(
-        find.bySemanticsLabel(RegExp('^Poção: R\\\$\u{00A0}263,41, gole[.]')),
+        find.bySemanticsLabel(
+          RegExp('^Poção: R\\\$\u{00A0}263,41, < 0,1 mês de pé[.]'),
+        ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          RegExp('^Vila: 13 de 18 aldeões vivos, vila viva'),
+          RegExp('^Vila: 12 de 18 aldeões vivos, vila viva'),
         ),
         findsOneWidget,
       );
@@ -481,12 +511,11 @@ void main() {
       expect(find.byKey(const ValueKey('hud-limit-nubank2')), findsOneWidget);
       expect(find.byKey(const ValueKey('hud-limit-itau')), findsOneWidget);
 
-      // Nubank vencida: R$ 8.300,55 de R$ 15.000 = 55%.
-      expect(find.text('55% do limite usado'), findsOneWidget);
-      // Itaú: R$ 2.843,07 de R$ 3.000 = 95%. É o cartão prestes a estourar,
-      // e é exatamente o que a progressão existe para mostrar antes da
-      // próxima compra.
-      expect(find.text('95% do limite usado'), findsOneWidget);
+      // Os limites e os saldos são os REAIS de 20/09/2026.
+      // Itaú: R$ 3.114,33 de R$ 8.000 = 39%.
+      expect(find.text('39% do limite usado'), findsOneWidget);
+      // Nubank VgIy: R$ 4.854,39 de R$ 21.000 = 23%.
+      expect(find.text('23% do limite usado'), findsOneWidget);
     });
 
     testWidgets('cartão sem limite cadastrado diz isso, e não 0%', (
@@ -495,21 +524,32 @@ void main() {
       // O defeito que esta asserção impede: `limit` nasce ZERO quando o
       // usuário não o preenche, e uma barra sobre zero desenha 0% — "seu
       // cartão está inteiro livre" — justamente onde o app não sabe de nada.
-      await pumpHudFooter(tester, size: const Size(400, 900));
+      //
+      // O cartão é SINTÉTICO e declarado como tal: nenhum dos seis cartões
+      // reais do dono está sem limite, e fingir que o C6 estava foi como
+      // este número inventado chegou ao README.
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        hud: hudTestState(invoices: [hudInvoiceSemLimite()]),
+      );
 
       await tester.tap(find.byType(HudGlyph).at(2));
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const ValueKey('hud-limit-unknown-c6')),
+        find.byKey(const ValueKey('hud-limit-unknown-sintetico-sem-limite')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('hud-limit-c6')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('hud-limit-sintetico-sem-limite')),
+        findsNothing,
+      );
       expect(find.text('0% do limite usado'), findsNothing);
       expect(find.text('Limite não informado neste cartão.'), findsOneWidget);
     });
 
-    testWidgets('o usado e o livre saem do mesmo saldo da Visão Geral', (
+    testWidgets('o que falta para o teto sai do mesmo saldo da Visão Geral', (
       tester,
     ) async {
       await pumpHudFooter(tester, size: const Size(400, 900));
@@ -517,23 +557,139 @@ void main() {
       await tester.tap(find.byType(HudGlyph).at(2));
       await tester.pumpAndSettle();
 
-      // Itaú: R$ 2.843,07 usados de R$ 3.000 deixam R$ 156,93. O "livre" é
-      // conta do app e não campo do banco — se ele sair errado, o usuário
-      // decide uma compra por um número inventado.
-      expect(find.textContaining('156,93 livres'), findsOneWidget);
+      // Itaú: R$ 3.114,33 usados de R$ 8.000 deixam R$ 4.885,67. A conta é
+      // do app e não campo do banco — se ela sair errada, o usuário decide
+      // uma compra por um número inventado.
+      expect(find.textContaining('4.885,67 até o limite'), findsOneWidget);
+    });
+
+    testWidgets('cartão estourado diz o tamanho do furo, e não "100%"', (
+      tester,
+    ) async {
+      // O par "100% · R$ 0,00 até o limite" está aritmeticamente certo e
+      // mente por omissão: quem furou o teto não está "no talo", está
+      // devendo mais do que o banco autorizou — e só o tamanho do furo se
+      // pode agir.
+      await pumpHudFooter(
+        tester,
+        size: const Size(400, 900),
+        hud: hudTestState(invoices: [hudInvoiceEstourado()]),
+      );
+
+      await tester.tap(find.byType(HudGlyph).at(2));
+      await tester.pumpAndSettle();
+
+      // R$ 9.812,00 de R$ 9.000 = 109%, e R$ 812,00 acima do teto.
+      expect(find.text('109% do limite usado'), findsOneWidget);
+      expect(find.textContaining('812,00 acima do limite'), findsOneWidget);
+      expect(find.textContaining('até o limite'), findsNothing);
+
+      // A barra prende em 100% — um retângulo não cresce além do trilho — e
+      // vira tinta de perigo.
+      final barra = tester.widget<AppProgressBar>(
+        find.descendant(
+          of: find.byKey(const ValueKey('hud-limit-sintetico-estourado')),
+          matching: find.byType(AppProgressBar),
+        ),
+      );
+      expect(barra.value, 1.0);
+      expect(barra.color, AppColors.danger);
+    });
+
+    testWidgets('a semântica da barra diz de QUAL cartão ela é', (
+      tester,
+    ) async {
+      // São seis barras seguidas na mesma folha: sem o nome, quem ouve a
+      // tela recebia seis vezes "Limite do cartão" com seis porcentagens.
+      final handle = tester.ensureSemantics();
+      await pumpHudFooter(tester, size: const Size(400, 900));
+
+      await tester.tap(find.byType(HudGlyph).at(2));
+      await tester.pumpAndSettle();
+
+      expect(find.bySemanticsLabel('Limite do Cartão Itaú'), findsOneWidget);
+
+      handle.dispose();
     });
   });
 
   group('a folha da vila é uma grade, e não uma lista', () {
-    testWidgets('os dois grupos se apresentam com a contagem', (tester) async {
-      await pumpHudFooter(tester, size: const Size(400, 900));
+    testWidgets('os três grupos se apresentam com a contagem', (tester) async {
+      // Tela alta de propósito: a folha rola, e os três títulos não cabem
+      // juntos em 900 px com dezoito tiles entre eles.
+      await pumpHudFooter(tester, size: const Size(400, 1600));
 
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
 
-      // Treze de dezoito de pé no cofre do dono: cinco caíram.
-      expect(find.text('Vivos (13)'), findsOneWidget);
+      // Doze de dezoito de pé no cofre do dono: cinco caíram e um está em
+      // risco — "Investimentos", que tem meta de R\\$ 200 e nada aportado.
+      expect(find.text('Vivos (12)'), findsOneWidget);
       expect(find.text('Caídos (5)'), findsOneWidget);
+      expect(find.text('Em risco (1)'), findsOneWidget);
+    });
+
+    testWidgets('o aldeão de investimento enche o anel em âmbar', (
+      tester,
+    ) async {
+      await pumpHudFooter(tester, size: const Size(400, 1600));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      // "Investimentos": meta de R$ 200, nada aportado. O anel dele ENCHE
+      // conforme o aporte entra, em vez de esvaziar como o da despesa — um
+      // anel que esvaziasse a cada aporte diria que guardar dinheiro é
+      // perder alguma coisa.
+      final investimentos = tester.widget<AppRing>(
+        find.descendant(
+          of: find.byKey(const ValueKey('hud-villager-cat-Investimentos')),
+          matching: find.byType(AppRing),
+        ),
+      );
+
+      expect(investimentos.value, 0);
+      expect(investimentos.color, AppColors.warning);
+
+      // E ele está no grupo dos EM RISCO, não no dos caídos: o mês não
+      // acabou, e ainda dá tempo de aportar.
+      final emRisco = find.byKey(const ValueKey('hud-village-at-risk'));
+      expect(
+        find.descendant(
+          of: emRisco,
+          matching: find.byKey(
+            const ValueKey('hud-villager-cat-Investimentos'),
+          ),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('a semântica do aldeão em risco diz o que falta aportar', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpHudFooter(tester, size: const Size(400, 1600));
+
+      await tester.tap(find.byType(HudGlyph).at(1));
+      await tester.pumpAndSettle();
+
+      // Quem não vê o anel âmbar precisa ouvir a regra invertida, e ela só
+      // existe se o rótulo disser a META e o que falta para ela.
+      expect(
+        find.bySemanticsLabel(
+          // Sem âncora no começo: o grupo de UM tile só funde o título
+          // dele com o do aldeão num nó só ("Em risco (1)\nInvestimentos:
+          // …"), e é assim que o leitor de tela vai ler mesmo.
+          RegExp(
+            'Investimentos: .+ de .+ investidos — faltam .+ '
+            'para o aldeão ficar de pé',
+          ),
+        ),
+        findsOneWidget,
+      );
+
+      handle.dispose();
     });
 
     testWidgets('o aldeão caído tem o anel CHEIO de vermelho', (tester) async {
@@ -559,7 +715,7 @@ void main() {
     });
 
     testWidgets('os vivos vêm por proximidade da morte', (tester) async {
-      await pumpHudFooter(tester, size: const Size(400, 900));
+      await pumpHudFooter(tester, size: const Size(400, 1600));
 
       await tester.tap(find.byType(HudGlyph).at(1));
       await tester.pumpAndSettle();
@@ -762,8 +918,10 @@ void main() {
 
       final aneis = tester.widgetList<HudRing>(find.byType(HudRing)).toList();
 
-      // Σ realizado ÷ Σ planejado = 14.912,20 / 22.220,00.
-      expect(aneis[1].progress, closeTo(0.6711, 0.0001));
+      // Σ realizado ÷ Σ planejado das DESPESAS = 14.912,20 / 22.020,00. Os
+      // R$ 200 de meta de "Investimentos" ficam fora: aporte não é gasto, e
+      // somá-lo faria guardar dinheiro apertar a vila.
+      expect(aneis[1].progress, closeTo(0.6772, 0.0001));
     });
 
     testWidgets('o anel do ovo enche quando a razão passa de um mês', (

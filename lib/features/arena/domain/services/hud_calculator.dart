@@ -18,6 +18,7 @@ class HudCategoryReading {
     required this.isSystem,
     required this.planned,
     required this.actual,
+    this.isInvestment = false,
   });
 
   final String categoryId;
@@ -35,6 +36,13 @@ class HudCategoryReading {
   final double planned;
 
   final double actual;
+
+  /// A categoria tem `allocation == investment`.
+  ///
+  /// É o que inverte a leitura do aldeão: ali o `planned` é META e não teto.
+  /// Vem de `categories.allocation`, o mesmo campo que o 50/30/20 já usa —
+  /// não há campo novo, nem consulta nova.
+  final bool isInvestment;
 }
 
 /// Um saldo de conta já lido com o teto de HOJE.
@@ -145,8 +153,8 @@ class HudInputs {
 /// 1. **poção** = saldo das contas de investimento ÷ receita prevista;
 /// 2. **vila** = Σ realizado ÷ Σ planejado das categorias de despesa com
 ///    orçamento — e o HP de cada aldeão é `orçamento − realizado`;
-/// 3. **ovo** = Σ das próximas faturas ÷ receita prevista;
-/// 4. **gota** = saldo devedor ÷ receita prevista.
+/// 3. **incubados** = Σ das próximas faturas ÷ receita prevista;
+/// 4. **veneno** = saldo devedor ÷ receita prevista.
 ///
 /// O denominador das três razões é UM só, e ele vem do servidor. Quando ele
 /// não existe, [HudRatio.tier] é nulo e a tela mostra o estado neutro: o app
@@ -225,6 +233,7 @@ abstract final class HudCalculator {
             color: c.color,
             planned: planned,
             actual: actual,
+            isInvestment: c.isInvestment,
           ),
         );
         continue;
@@ -256,14 +265,23 @@ abstract final class HudCalculator {
     // Folga em reais não é risco; a fração é.
     //
     // Então: os MORTOS primeiro, do mais fundo no vermelho (é o estrago que
-    // o usuário precisa ver), e depois os vivos por FRAÇÃO de HP crescente —
-    // quem está mais perto de morrer logo abaixo dos que já morreram.
+    // o usuário precisa ver); depois os EM RISCO — investimento abaixo da
+    // meta, que ainda dá tempo de salvar —, do mais longe da meta para o
+    // mais perto; e por último os de pé, por FRAÇÃO crescente: quem está
+    // mais perto de cair logo abaixo dos que já caíram.
     villagers.sort((a, b) {
-      if (a.isAlive != b.isAlive) return a.isAlive ? 1 : -1;
+      final byState = a.state.index.compareTo(b.state.index);
+      if (byState != 0) return -byState;
 
-      final by = a.isAlive
-          ? a.hpRatio.compareTo(b.hpRatio)
-          : a.hp.cents.compareTo(b.hp.cents);
+      final by = switch (a.state) {
+        // O caído: quem está mais fundo no vermelho primeiro.
+        HudVillagerState.fallen => a.hp.cents.compareTo(b.hp.cents),
+        // O em risco: quem tem MAIS a aportar primeiro — é o que corre mais
+        // perigo de não fechar o mês.
+        HudVillagerState.atRisk => b.missing.cents.compareTo(a.missing.cents),
+        // O de pé: quem tem menos folga proporcional primeiro.
+        HudVillagerState.standing => a.hpRatio.compareTo(b.hpRatio),
+      };
 
       return by != 0 ? by : a.name.compareTo(b.name);
     });
@@ -283,7 +301,7 @@ abstract final class HudCalculator {
     );
   }
 
-  // ── Ovo: cartões ──────────────────────────────────────────────────────
+  // ── Incubados: cartões ────────────────────────────────────────────────
 
   static HudEgg _egg(HudInputs inputs, Money? income) {
     final invoices =
@@ -328,7 +346,7 @@ abstract final class HudCalculator {
     );
   }
 
-  // ── Gota: dívidas ─────────────────────────────────────────────────────
+  // ── Veneno: dívidas ───────────────────────────────────────────────────
 
   static HudDrop _drop(HudInputs inputs, Money? income) {
     final debts = <HudDebt>[];

@@ -24,7 +24,7 @@ import 'package:funances/features/finance/presentation/providers/period_summary_
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 
-/// Até quantos dias à frente a gota procura a PRÓXIMA parcela de uma dívida.
+/// Até quantos dias à frente o veneno procura a PRÓXIMA parcela da dívida.
 ///
 /// Sessenta dias cobre a parcela deste mês e a do mês que vem, que é o que a
 /// linha precisa dizer ("próximo vencimento"). Sem janela, a consulta traria
@@ -135,7 +135,8 @@ sealed class HudViewProviders {
   /// As faturas por vir, lidas de `accounts.nextInvoice`.
   ///
   /// Cartão cujo servidor ainda não gravou o resumo fica de fora: ele é
-  /// "ainda não sei", e somar zero por ele encolheria o ovo com uma certeza
+  /// "ainda não sei", e somar zero por ele encolheria os incubados com uma
+  /// certeza
   /// que não existe.
   ///
   /// O SALDO de cada cartão entra junto, e não é consulta nova: é o mesmo
@@ -163,7 +164,7 @@ sealed class HudViewProviders {
           if (card is! CreditCardAccount || card.nextInvoice == null) continue;
 
           // O saldo só é pedido para cartão que TEM fatura publicada: os
-          // outros já estavam fora da soma do ovo, e ler o saldo deles seria
+          // outros já estavam fora da soma dos incubados, e ler o saldo seria
           // segurar a faixa inteira por um dado que ninguém vai mostrar.
           final balance = ref.watch(
             AccountViewProviders.latestBalanceById(card.id),
@@ -316,6 +317,12 @@ sealed class HudViewProviders {
                       // produção, fez uma missão de margem concluir de graça.
                       planned: s.generalPlannedAmount,
                       actual: s.actualAmount,
+                      // A allocation que o 50/30/20 já usa. É ela que
+                      // inverte a leitura do aldeão: em categoria de
+                      // investimento o planejado é META, e não teto.
+                      isInvestment:
+                          s.category.allocation ==
+                          CategoryAllocation.investment,
                     ),
               ],
             );

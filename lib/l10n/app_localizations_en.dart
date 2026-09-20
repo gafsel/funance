@@ -2651,9 +2651,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudDropTitle => 'Poison';
 
   @override
-  String get hudTierNone => 'sip';
-
-  @override
   String get hudTierSemi => 'semi';
 
   @override
@@ -2747,15 +2744,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudPotionGame =>
-      'The potion is what you invested: capital that works for you and yields with no effort of yours.';
+      'The potion is everything you invested, together: capital that works for you and yields with no effort of yours. From half a month of income stored on it earns a class — semi, regular, super and hyper — one more for every extra half month.';
 
   @override
   String get hudPotionFinance =>
-      'Finance: it\'s your invested balance divided by this month\'s expected income. You can drink it in an emergency or for a goal — a trip, a purchase — without touching day-to-day money.';
+      'Finance: it\'s your invested balance divided by this month\'s expected income — how many months of bills it already covers. Emergency money and goal money add up together: one is for what you did not see coming, the other for what you already planned (a trip, a purchase), and both do the same job — keeping the day-to-day bills untouched.';
 
   @override
   String get hudPotionXp =>
-      'XP: none; the potion follows from what you saved. When the income it generates pays your expenses, the battle is over: that is financial independence.';
+      'XP: none; the potion follows from what you saved — and it only really grows once the poison is gone, because debt interest runs faster than any yield. When the income it generates pays your expenses, the battle is over: that is financial independence.';
+
+  @override
+  String hudPotionMonths(int count, String months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$months months standing',
+      one: '$months month standing',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get hudPotionEmpty =>
@@ -2763,7 +2771,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudVillageGame =>
-      'Every budgeted category is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
+      'Every budgeted category is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls. An INVESTMENT category works the other way around: there the villager only stands if you invest what you planned, and stays at risk while anything is missing.';
 
   @override
   String get hudVillageFinance =>
@@ -2771,11 +2779,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hudVillageXp =>
-      'XP: +15 per villager alive at month end, up to 10 categories, plus 100 if the whole village holds.';
+      'XP: +15 per villager standing at month end, up to 10 categories, plus 100 if the whole village holds. An investment villager counts as standing once its goal is met.';
 
   @override
   String get hudVillageGameBusiness =>
-      'Every budgeted cost center is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls.';
+      'Every budgeted cost center is a villager, and its HP is what\'s left of the month. Spend past the budget and the villager falls. An INVESTMENT cost center works the other way around: there the villager only stands if the company invests what it planned, and stays at risk while anything is missing.';
 
   @override
   String get hudVillageFinanceBusiness =>
@@ -2813,6 +2821,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String hudProjectedXp(int xp) {
     return 'If the month closed now: +$xp XP';
+  }
+
+  @override
+  String hudVillagerGoal(String actual, String planned) {
+    return '$actual of $planned invested';
+  }
+
+  @override
+  String hudVillagerMissing(String actual, String planned, String missing) {
+    return '$actual of $planned invested — $missing short of standing up';
+  }
+
+  @override
+  String hudVillageAtRiskGroup(int count) {
+    return 'At risk ($count)';
   }
 
   @override
@@ -2877,7 +2900,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hudEggEmpty => 'No upcoming bill. There is no monster incubating.';
 
   @override
-  String get hudCardLimitLabel => 'Card limit';
+  String hudCardLimitLabel(String name) {
+    return '$name limit';
+  }
 
   @override
   String hudCardLimitUsage(int percent) {
@@ -2886,7 +2911,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String hudCardLimitFree(String amount) {
-    return '$amount free';
+    return '$amount until the limit';
+  }
+
+  @override
+  String hudCardLimitOver(String amount) {
+    return '$amount over the limit';
   }
 
   @override

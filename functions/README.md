@@ -2461,8 +2461,8 @@ razões.
 
 | Ícone | Dados usados | Fórmula | Escala | XP envolvido |
 |---|---|---|---|---|
-| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` com ≥ 3 aldeões | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
-| **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | gole · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
+| **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema **e `allocation`** | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **de pé** se `realizado ≤ planejado` na despesa comum e se `realizado ≥ planejado` na de `allocation: investment`; **HP** = `planejado − realizado` (na de investimento, `realizado − planejado`) | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` **das despesas** (o aporte fica fora da soma) com ≥ 3 aldeões | **+15** por aldeão de pé (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
+| **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` — **todas juntas**: emergência e objetivo somam | `r = saldoInvestimentoCents / expectedIncome.cents` | sem classe abaixo de 0,5× (só a razão) · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
 | **Incubados** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o monstro não recebe o nome da classe | nenhum |
 | **Veneno** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo dos incubados | nenhum |
 
@@ -2475,17 +2475,26 @@ falando do que se GUARDA, e é lá que os nomes ficam:
 
 | Classe (só a poção) | Faixa da razão |
 |---|---|
-| gole | `r < 0,5` |
+| *(nenhuma — só a razão)* | `r < 0,5` |
 | semi | `0,5 ≤ r < 1` |
 | regular | `1 ≤ r < 1,5` |
 | super | `1,5 ≤ r < 2` |
 | hiper | `r ≥ 2` |
 
+**Abaixo de meio mês não há classe nenhuma**, e isso é decisão do dono
+(2026-09-20): *"gole pode tirar... mantem só o nível da poção associado com a
+razão em relação à receita mensal"*. Uma palavra de classe sobre R$ 263,41 é
+um diploma para quem ainda não guardou nada. No lugar dela a faixa mostra a
+RAZÃO — "< 0,1×", o mesmo número que os incubados e o veneno já mostram — e a
+folha traz um chip com a razão dita em meses: **"< 0,1 mês de pé"**, "1,5
+meses de pé". (O dono também sugeriu uma badge com essa relação de meses; ela
+NÃO foi feita neste pacote e não está publicada em `config/badges`.)
+
 Os **incubados** e o **veneno** mostram a razão crua — "1,1× da receita prevista do mês
 (R$ 18.550,00)" — e o julgamento deles sai da COR do anel e da mini explicação.
 A rodada anterior os nomeava com as mesmas palavras, e o resultado era a folha
-dos incubados abrindo com "gole" sobre R$ 20.187,80 de faturas: um vocabulário de
-poção elogiando o tamanho de uma dívida. Os cortes continuam existindo para os
+dos incubados abrindo com uma classe de poção sobre R$ 20.187,80 de faturas:
+um vocabulário do que se guarda elogiando o tamanho de uma dívida. Os cortes continuam existindo para os
 três (são eles que decidem a casca do monstro e a tinta do anel); o que não se
 repete é o NOME.
 
@@ -2585,6 +2594,26 @@ não uma falha por um centavo (mesma regra do XP semanal). A aritmética é em
 CENTAVOS INTEIROS: doze categorias de R$ 0,10 fecham em `1.2000000000000002`
 com `double`, e a vila morreria por ruído de representação.
 
+> **A categoria de INVESTIMENTO funciona ao contrário — e o servidor ainda
+> não sabe disso.** Decisão do dono em 2026-09-20: *"as categorias que
+> estiverem como investimento funcionam ao contrário... se não cumprirem o
+> limite é que ficam em risco de morrer"*. O contrato passa a ser:
+>
+> - categoria de despesa comum: **de pé se `realizado ≤ planejado`**;
+> - categoria de `allocation: investment`: **de pé se `realizado ≥
+>   planejado`**, e **em risco** (não caída) enquanto faltar, porque o mês
+>   ainda corre;
+> - a soma que decide a VILA é só a das despesas — somar o aporte faria
+>   guardar dinheiro derrubar a vila.
+>
+> O **app já aplica** a regra nova (`HudVillager.state`, a partir de
+> `categories.allocation`). O **`evaluateMonthlyVillagersXp` ainda não**: ele
+> continua pagando pela regra antiga, e por isso um mês em que o usuário
+> aportou a meta paga menos XP do que o HUD projetou. O alinhamento do
+> servidor é um pacote de backend separado, e ele precisa ler `allocation`
+> no join de `categories` que o fechamento já faz. Enquanto isso não sai, a
+> divergência é do XP, não do que o usuário vê.
+
 **Duas idempotências, e as duas são necessárias:**
 
 - `_idempotency` por `${workspaceId}_${monthKey}` + ação `monthlyVillagersXp`,
@@ -2673,30 +2702,64 @@ A metáfora é lúdica; o destino que ela aponta, não.
 **Aldeões (categorias)**
 
 - **pt** — *Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra
-  do mês. Gastou além do orçamento, o aldeão cai. Financeiro: é o seu limite por
+  do mês. Gastou além do orçamento, o aldeão cai. Categoria de INVESTIMENTO
+  funciona ao contrário: ali o aldeão só fica de pé se você investir o que
+  planejou, e fica em risco enquanto faltar. Financeiro: é o seu limite por
   categoria, comparado com o que você realmente gastou no mês. XP: +15 por
-  aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira
-  aguentar.*
+  aldeão de pé no fim do mês, até 10 categorias, e +100 se a vila inteira
+  aguentar. O aldeão de investimento conta como de pé quando a meta foi
+  cumprida.*
 - **en** — *Every budgeted category is a villager, and its HP is what's left of
-  the month. Spend past the budget and the villager falls. Finance: it's your
-  per-category limit against what you actually spent this month. XP: +15 per
-  villager alive at month end, up to 10 categories, plus 100 if the whole
-  village holds.*
+  the month. Spend past the budget and the villager falls. An INVESTMENT
+  category works the other way around: there the villager only stands if you
+  invest what you planned, and stays at risk while anything is missing.
+  Finance: it's your per-category limit against what you actually spent this
+  month. XP: +15 per villager standing at month end, up to 10 categories, plus
+  100 if the whole village holds. An investment villager counts as standing
+  once its goal is met.*
+
+(As duas variantes de empresa — `hudVillageGameBusiness` e
+`hudVillageFinanceBusiness` — trazem a mesma regra invertida trocando
+"categoria" por "centro de custo".)
 
 **Poções (investimentos)**
 
-- **pt** — *A poção é o que você investiu: capital que trabalha por você e
-  rende sem esforço seu. Financeiro: é o saldo investido dividido pela receita
-  prevista do mês. Dá para beber numa emergência ou num objetivo — viagem,
-  compra — sem tocar no dinheiro do dia a dia. XP: nenhum; a poção é
-  consequência do que você guardou. Quando a renda que ela gera paga suas
-  despesas, a batalha acabou: isso é independência financeira.*
-- **en** — *The potion is what you invested: capital that works for you and
-  yields with no effort of yours. Finance: it's your invested balance divided
-  by this month's expected income. You can drink it in an emergency or for a
-  goal — a trip, a purchase — without touching day-to-day money. XP: none; the
-  potion follows from what you saved. When the income it generates pays your
-  expenses, the battle is over: that is financial independence.*
+A poção **soma tudo** — emergência e objetivo juntos —, e a explicação é que
+descreve os dois usos. É o que o dono respondeu quando perguntado se a folha
+deveria separá-los: *"os dois cumprem o mesmo objetivo: garantir que as contas
+do dia-a-dia não sejam afetadas"*; a diferença entre eles é só se o gasto era
+previsto ou não. Dois níveis de poção continuam fora (ver pendências).
+
+- **pt** — *A poção é tudo o que você investiu, junto: capital que trabalha
+  por você e rende sem esforço seu. De meio mês de receita guardado em diante
+  ela ganha classe — semi, regular, super e hiper —, uma a cada meio mês a
+  mais. Financeiro: é o saldo investido dividido pela receita prevista do mês
+  — quantos meses de contas ele já cobre. Reserva de emergência e dinheiro de
+  objetivo somam juntos: um é para o que você não previu, o outro para o que
+  você já planejou (uma viagem, uma compra), e os dois servem à mesma coisa —
+  as contas do dia a dia não serem afetadas. XP: nenhum; a poção é
+  consequência do que você guardou — e ela só cresce de verdade depois que o
+  veneno some, porque juro de dívida corre mais rápido que rendimento. Quando
+  a renda que ela gera paga suas despesas, a batalha acabou: isso é
+  independência financeira.*
+- **en** — *The potion is everything you invested, together: capital that
+  works for you and yields with no effort of yours. From half a month of
+  income stored on it earns a class — semi, regular, super and hyper — one
+  more for every extra half month. Finance: it's your invested balance divided
+  by this month's expected income — how many months of bills it already
+  covers. Emergency money and goal money add up together: one is for what you
+  did not see coming, the other for what you already planned (a trip, a
+  purchase), and both do the same job — keeping the day-to-day bills
+  untouched. XP: none; the potion follows from what you saved — and it only
+  really grows once the poison is gone, because debt interest runs faster than
+  any yield. When the income it generates pays your expenses, the battle is
+  over: that is financial independence.*
+
+**A ordem é dívida ANTES de investir, e ela está escrita na linha de XP.** Sem
+isso as duas frases se contradiziam na mesma tela: a do veneno mandava
+neutralizar primeiro, e a da poção convidava a guardar já. Juro de dívida é
+maior que rendimento de aplicação na quase totalidade dos casos brasileiros;
+quem investe com dívida cara em aberto está financiando a própria perda.
 
 **Incubados (cartões)**
 
@@ -2729,44 +2792,99 @@ A metáfora é lúdica; o destino que ela aponta, não.
   through planned entries paid and through payoff goals. Neutralizing the
   poison is the first step to financial independence.*
 
+**As quatro frases de VAZIO** (o que cada folha diz quando não há linha
+nenhuma) também são fonte daqui, e estavam faltando:
+
+| Chave | pt | en |
+|---|---|---|
+| `hudPotionEmpty` | *Nenhuma conta de investimento com saldo. A poção está vazia, e sem ela todo mês recomeça do zero.* | *No investment account with a balance. The potion is empty, and without it every month starts from zero.* |
+| `hudVillageEmpty` | *Nenhuma categoria com orçamento neste mês. Defina um limite e a vila nasce.* | *No category has a budget this month. Set a limit and the village is born.* |
+| `hudEggEmpty` | *Nenhuma fatura prevista. Não há monstro nenhum incubado.* | *No upcoming bill. There is no monster incubating.* |
+| `hudDropEmpty` | *Nenhuma dívida em aberto. O veneno está neutralizado, e o que você ganha é seu.* | *No open debt. The poison is neutralized, and what you earn is yours.* |
+
+(`hudVillageEmptyBusiness` troca "categoria" por "centro de custo".) Elas
+dizem o que FALTA e por que isso importa, em vez de "nenhum item": um vazio
+que só informa a ausência desperdiça a única tela em que o usuário está
+olhando justamente para o que não tem.
+
 ### O que cada folha mostra além da explicação
 
 A mini explicação abre toda folha; abaixo dela vem o que compõe o número.
 
 - **Vila** — uma GRADE de aldeões, e não uma lista: cada um é um anel
-  circular (HP restante ÷ orçamento) com o ícone e a cor da categoria no
-  miolo, o nome e o valor compacto ("R$ 1,1 mil"). Dois grupos com título e
-  contagem — **"Caídos (5)"** e **"Vivos (13)"** —, e as categorias com gasto
-  e SEM orçamento continuam à parte, em "Sem proteção", porque elas não são
-  aldeãs e não perdem nada.
+  circular com o ícone e a cor da categoria no miolo, o nome e o valor
+  compacto ("R$ 1,1 mil"). Três grupos com título e contagem, nesta ordem —
+  **"Caídos (5)"**, **"Em risco (1)"** e **"Vivos (12)"** —, e as categorias
+  com gasto e SEM orçamento continuam à parte, em "Sem proteção", porque elas
+  não são aldeãs e não perdem nada.
+
+  Os **caídos vêm primeiro**, que é o que o dono pediu ("separe o grupo dos
+  mortos do grupo dos vivos") e também a ordem da Party, a visão que ele
+  mandou imitar. *Desvio de vocabulário, registrado:* o dono disse **mortos**
+  e a interface diz **"Caídos"** — é a palavra que combina com "o aldeão cai"
+  da mini explicação, e a única do par que serve para uma despesa que
+  estourou sem que nada tenha morrido.
+
+  **"Em risco" é o terceiro estado, e ele nasceu com a categoria de
+  investimento**: o aldeão que ainda não aportou a meta não está morto — o mês
+  não acabou. Ele é um GRUPO e não uma marca dentro dos vivos porque os
+  títulos carregam contagem: "Vivos (13)" com um âmbar no meio diria treze de
+  pé onde há doze e um devendo.
 
   A ordem dentro de cada grupo: os caídos do estouro mais fundo para o mais
-  raso, os vivos por FRAÇÃO de HP crescente — quem está mais perto de cair
-  aparece antes. Folga em reais não é risco.
-
-  Os **caídos vêm primeiro**, embora o dono tenha citado os títulos na ordem
-  inversa: com treze vivos, quatro tiles por linha empurram os caídos para
-  baixo da dobra de um celular de 400 px, e é o caído que o usuário precisa
-  ver para fazer alguma coisa. É também a ordem da Party — a visão que ele
-  pediu para imitar — e a da lista que esta grade substituiu.
+  raso; os em risco do que tem MAIS a aportar para o que tem menos; os de pé
+  por FRAÇÃO crescente — quem está mais perto de cair aparece antes. Folga em
+  reais não é risco.
 
   O anel é o [`AppRing`] de `lib/core/widgets/app_ring.dart`, genérico e
   compartilhado. O aldeão caído fica com o anel CHEIO em vermelho, e não
-  vazio: vazio ele lia como um aldeão que ainda não tinha carregado.
+  vazio: vazio ele lia como um aldeão que ainda não tinha carregado. O em
+  risco é âmbar e ENCHE conforme o aporte entra (um anel que esvaziasse a cada
+  aporte diria que guardar dinheiro é perder alguma coisa), e a calha dele é
+  âmbar a 35% — com a calha padrão, um aldeão com zero aportado ficava quase
+  branco e caía no mesmo defeito do caído vazio.
+
+  O tile tem **84 px** de largura, e não 76: quatro por linha num celular de
+  400 px depois da margem da folha (4 x 84 + 3 x 4 = 348 dentro de 368), que é
+  onde "Supermercado" cabe inteiro. Nome de UMA palavra ocupa uma linha só,
+  com reticências no fim se não couber; nome de duas ou mais pode usar duas.
+  O Flutter só quebra DENTRO de uma palavra quando ela sozinha estoura a
+  linha, e era assim que o tile mostrava "Supermerca/do" — duas metades que
+  parecem palavras e não são.
 
 - **Incubados** — uma linha por cartão (valor, ciclo e vencimento, e a marca
   de vencida em tinta de perigo) e, sob cada uma, a **progressão de uso do
   limite**: a mesma barra da Visão Geral (`AppProgressBar` fina, na cor da
-  conta), a porcentagem por extenso e o par "usados · livres". O uso é
-  `−saldo ÷ accounts.limit`, exatamente a conta que a Visão Geral faz — o
-  dado é `latestBalanceById`, que a faixa já lia para a poção e o veneno, e
-  não uma consulta nova.
+  conta), a porcentagem por extenso e, à direita, o que falta para o teto. O
+  uso é `−saldo ÷ accounts.limit`, exatamente a conta que a Visão Geral faz —
+  o dado é `latestBalanceById`, que a faixa já lia para a poção e o veneno, e
+  não uma consulta nova. A semântica da barra leva o NOME do cartão ("Limite
+  do Cartão Itaú, 39%"): são seis barras seguidas, e sem o nome quem ouve a
+  tela recebia seis porcentagens sem dono.
+
+  **"R$ 4.885,67 até o limite", e não "livres".** O limite do cartão não é
+  dinheiro do usuário — é o quanto o banco ainda deixa ele dever —, e
+  "livres" soava como permissão de gastar justamente embaixo da frase que diz
+  que todo gasto no cartão engorda um monstro.
+
+  **Cartão ESTOURADO diz o tamanho do furo.** "100% · R$ 0,00 até o limite"
+  está aritmeticamente certo e mente por omissão: quem furou o teto não está
+  "no talo", está devendo mais do que o banco autorizou. O cartão estourado
+  mostra a porcentagem REAL ("109% do limite usado"), a barra cheia em tinta
+  de perigo e **"R$ 812,00 acima do limite"** no lugar da folga.
 
   **Cartão sem limite cadastrado não ganha barra.** `accounts.limit` nasce
   zero quando o usuário não o preenche, e uma barra sobre zero desenharia 0%
   — "o cartão está inteiro livre" — justo onde o app não sabe de nada. No
   lugar dela vai a frase "limite não informado neste cartão". É a mesma
   regra do denominador das três razões: ausência não é zero.
+
+  *Os limites do harness são os REAIS do cofre do dono em 20/09/2026* —
+  Samsclub 7.300, Nubank G98Y 10.350, Inter 17.900, Itaú 8.000, C6 9.217,
+  Nubank VgIy 21.000 —, e **nenhum dos seis está sem limite ou estourado**. O
+  cartão sem limite e o cartão furado são SINTÉTICOS e declarados como tais
+  no harness. A rodada anterior dizia que "o C6 tem limite zero"; ele tem
+  R$ 9.217,00, e o número veio de um harness que inventou os seis.
 
 ### Testes
 
@@ -2790,22 +2908,28 @@ A mini explicação abre toda folha; abaixo dela vem o que compõe o número.
 
 ### Pendências conhecidas (levantadas no QA deste pacote)
 
-Nada aqui foi implementado: são cinco pontos reais que o QA registrou ao
-aprovar o HUD mensal, e que mexem em regra de jogo já publicada, em
-procedimento de operação ou em decisão que ainda é do dono. Ficam escritas para
-não virarem descoberta de novo.
+Nada aqui foi implementado: são pontos reais que o QA registrou ao aprovar o
+HUD mensal, e que mexem em regra de jogo já publicada, em procedimento de
+operação ou em decisão que ainda é do dono. Ficam escritas para não virarem
+descoberta de novo.
 
-**0. Os nomes de classe só na poção são decisão provisória de dev+QA, não do
-dono.** O dono nomeou as faixas (gole/semi/regular/super/hiper) falando da
-poção; para os incubados e o veneno ele ainda não opinou. (Em 2026-09-20 ele
-nomeou os ÍCONES — "Veneno", "Incubados", "Poção" —, e isso já está no ar; o
-que continua sem decisão são as palavras da ESCALA nos dois ícones de dívida.) Na dúvida, o app mostra a
-razão CRUA nos dois ("1,1×", "0,4×") e reserva as palavras para a poção — a
-tabela "Classe (só a poção)" acima descreve o que está no ar, não o que foi
-decidido. O QA sugeriu, se o dono quiser nomes nos dois, nomes de
-TAMANHO ("um mês", "mês e meio", "dois meses") e não de qualidade, porque
-"regular" ao lado de um anel vermelho contradiz o anel. Quando o dono decidir,
-esta pendência sai e a tabela vira contrato.
+**6. O `evaluateMonthlyVillagersXp` precisa da regra invertida do aldeão de
+investimento.** O app já a aplica; o servidor ainda paga pela regra antiga.
+Ver o aviso em "Os aldeões: o XP mensal" — é pacote de backend separado.
+
+**7. Perguntas ainda abertas ao dono, levantadas neste pacote e NÃO
+decididas:** dois níveis de poção (emergência e objetivo separados na mesma
+folha — hoje ela soma tudo, por decisão dele), nomes de classe por tamanho em
+vez de qualidade, e a badge de "meses de pé" que ele sugeriu de passagem.
+
+**0. ~~Os nomes de classe só na poção~~ — FECHADA em 2026-09-20.** O dono
+confirmou que as palavras de classe são só da poção e mandou tirar a primeira
+delas: *"gole pode tirar... mantem só o nível da poção associado com a razão
+em relação à receita mensal (e pode ter uma badge com essa relação de meses de
+pé)"*. A tabela "Classe (só a poção)" acima virou contrato: quatro classes a
+partir de 0,5×, nada abaixo disso, e razão crua nos dois ícones de dívida. O
+que ficou em aberto é a **badge** de meses de pé, que o dono sugeriu de
+passagem e não foi feita — ela não existe em `config/badges` nem no app.
 
 **1. O XP semanal de plano não tem teto por categoria.** O fechamento MENSAL
 paga no máximo 10 aldeões (150 XP) porque, sem teto, fatiar o orçamento em

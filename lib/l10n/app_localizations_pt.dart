@@ -2668,9 +2668,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get hudDropTitle => 'Veneno';
 
   @override
-  String get hudTierNone => 'gole';
-
-  @override
   String get hudTierSemi => 'semi';
 
   @override
@@ -2764,15 +2761,26 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudPotionGame =>
-      'A poção é o que você investiu: capital que trabalha por você e rende sem esforço seu.';
+      'A poção é tudo o que você investiu, junto: capital que trabalha por você e rende sem esforço seu. De meio mês de receita guardado em diante ela ganha classe — semi, regular, super e hiper —, uma a cada meio mês a mais.';
 
   @override
   String get hudPotionFinance =>
-      'Financeiro: é o saldo investido dividido pela receita prevista do mês. Dá para beber numa emergência ou num objetivo — viagem, compra — sem tocar no dinheiro do dia a dia.';
+      'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses de contas ele já cobre. Reserva de emergência e dinheiro de objetivo somam juntos: um é para o que você não previu, o outro para o que você já planejou (uma viagem, uma compra), e os dois servem à mesma coisa — as contas do dia a dia não serem afetadas.';
 
   @override
   String get hudPotionXp =>
-      'XP: nenhum; a poção é consequência do que você guardou. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.';
+      'XP: nenhum; a poção é consequência do que você guardou — e ela só cresce de verdade depois que o veneno some, porque juro de dívida corre mais rápido que rendimento. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.';
+
+  @override
+  String hudPotionMonths(int count, String months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$months meses de pé',
+      one: '$months mês de pé',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get hudPotionEmpty =>
@@ -2780,7 +2788,7 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudVillageGame =>
-      'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+      'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Categoria de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se você investir o que planejou, e fica em risco enquanto faltar.';
 
   @override
   String get hudVillageFinance =>
@@ -2788,11 +2796,11 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get hudVillageXp =>
-      'XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.';
+      'XP: +15 por aldeão de pé no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar. O aldeão de investimento conta como de pé quando a meta foi cumprida.';
 
   @override
   String get hudVillageGameBusiness =>
-      'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.';
+      'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Centro de custo de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se a empresa investir o que planejou, e fica em risco enquanto faltar.';
 
   @override
   String get hudVillageFinanceBusiness =>
@@ -2829,6 +2837,21 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String hudProjectedXp(int xp) {
     return 'Se o mês fechasse agora: +$xp XP';
+  }
+
+  @override
+  String hudVillagerGoal(String actual, String planned) {
+    return '$actual de $planned investidos';
+  }
+
+  @override
+  String hudVillagerMissing(String actual, String planned, String missing) {
+    return '$actual de $planned investidos — faltam $missing para o aldeão ficar de pé';
+  }
+
+  @override
+  String hudVillageAtRiskGroup(int count) {
+    return 'Em risco ($count)';
   }
 
   @override
@@ -2894,7 +2917,9 @@ class AppLocalizationsPt extends AppLocalizations {
       'Nenhuma fatura prevista. Não há monstro nenhum incubado.';
 
   @override
-  String get hudCardLimitLabel => 'Limite do cartão';
+  String hudCardLimitLabel(String name) {
+    return 'Limite do $name';
+  }
 
   @override
   String hudCardLimitUsage(int percent) {
@@ -2903,7 +2928,12 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String hudCardLimitFree(String amount) {
-    return '$amount livres';
+    return '$amount até o limite';
+  }
+
+  @override
+  String hudCardLimitOver(String amount) {
+    return '$amount acima do limite';
   }
 
   @override

@@ -4676,12 +4676,6 @@ abstract class AppLocalizations {
   /// **'Veneno'**
   String get hudDropTitle;
 
-  /// No description provided for @hudTierNone.
-  ///
-  /// In pt, this message translates to:
-  /// **'gole'**
-  String get hudTierNone;
-
   /// No description provided for @hudTierSemi.
   ///
   /// In pt, this message translates to:
@@ -4835,20 +4829,26 @@ abstract class AppLocalizations {
   /// No description provided for @hudPotionGame.
   ///
   /// In pt, this message translates to:
-  /// **'A poção é o que você investiu: capital que trabalha por você e rende sem esforço seu.'**
+  /// **'A poção é tudo o que você investiu, junto: capital que trabalha por você e rende sem esforço seu. De meio mês de receita guardado em diante ela ganha classe — semi, regular, super e hiper —, uma a cada meio mês a mais.'**
   String get hudPotionGame;
 
   /// No description provided for @hudPotionFinance.
   ///
   /// In pt, this message translates to:
-  /// **'Financeiro: é o saldo investido dividido pela receita prevista do mês. Dá para beber numa emergência ou num objetivo — viagem, compra — sem tocar no dinheiro do dia a dia.'**
+  /// **'Financeiro: é o saldo investido dividido pela receita prevista do mês — quantos meses de contas ele já cobre. Reserva de emergência e dinheiro de objetivo somam juntos: um é para o que você não previu, o outro para o que você já planejou (uma viagem, uma compra), e os dois servem à mesma coisa — as contas do dia a dia não serem afetadas.'**
   String get hudPotionFinance;
 
   /// No description provided for @hudPotionXp.
   ///
   /// In pt, this message translates to:
-  /// **'XP: nenhum; a poção é consequência do que você guardou. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.'**
+  /// **'XP: nenhum; a poção é consequência do que você guardou — e ela só cresce de verdade depois que o veneno some, porque juro de dívida corre mais rápido que rendimento. Quando a renda que ela gera paga suas despesas, a batalha acabou: isso é independência financeira.'**
   String get hudPotionXp;
+
+  /// No description provided for @hudPotionMonths.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count, plural, =1{{months} mês de pé} other{{months} meses de pé}}'**
+  String hudPotionMonths(int count, String months);
 
   /// No description provided for @hudPotionEmpty.
   ///
@@ -4859,7 +4859,7 @@ abstract class AppLocalizations {
   /// No description provided for @hudVillageGame.
   ///
   /// In pt, this message translates to:
-  /// **'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.'**
+  /// **'Cada categoria com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Categoria de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se você investir o que planejou, e fica em risco enquanto faltar.'**
   String get hudVillageGame;
 
   /// No description provided for @hudVillageFinance.
@@ -4871,13 +4871,13 @@ abstract class AppLocalizations {
   /// No description provided for @hudVillageXp.
   ///
   /// In pt, this message translates to:
-  /// **'XP: +15 por aldeão vivo no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar.'**
+  /// **'XP: +15 por aldeão de pé no fim do mês, até 10 categorias, e +100 se a vila inteira aguentar. O aldeão de investimento conta como de pé quando a meta foi cumprida.'**
   String get hudVillageXp;
 
   /// No description provided for @hudVillageGameBusiness.
   ///
   /// In pt, this message translates to:
-  /// **'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai.'**
+  /// **'Cada centro de custo com orçamento é um aldeão, e o HP dele é o que sobra do mês. Gastou além do orçamento, o aldeão cai. Centro de custo de INVESTIMENTO funciona ao contrário: ali o aldeão só fica de pé se a empresa investir o que planejou, e fica em risco enquanto faltar.'**
   String get hudVillageGameBusiness;
 
   /// No description provided for @hudVillageFinanceBusiness.
@@ -4933,6 +4933,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Se o mês fechasse agora: +{xp} XP'**
   String hudProjectedXp(int xp);
+
+  /// No description provided for @hudVillagerGoal.
+  ///
+  /// In pt, this message translates to:
+  /// **'{actual} de {planned} investidos'**
+  String hudVillagerGoal(String actual, String planned);
+
+  /// No description provided for @hudVillagerMissing.
+  ///
+  /// In pt, this message translates to:
+  /// **'{actual} de {planned} investidos — faltam {missing} para o aldeão ficar de pé'**
+  String hudVillagerMissing(String actual, String planned, String missing);
+
+  /// No description provided for @hudVillageAtRiskGroup.
+  ///
+  /// In pt, this message translates to:
+  /// **'Em risco ({count})'**
+  String hudVillageAtRiskGroup(int count);
 
   /// No description provided for @hudVillagerHp.
   ///
@@ -5027,8 +5045,8 @@ abstract class AppLocalizations {
   /// No description provided for @hudCardLimitLabel.
   ///
   /// In pt, this message translates to:
-  /// **'Limite do cartão'**
-  String get hudCardLimitLabel;
+  /// **'Limite do {name}'**
+  String hudCardLimitLabel(String name);
 
   /// No description provided for @hudCardLimitUsage.
   ///
@@ -5039,8 +5057,14 @@ abstract class AppLocalizations {
   /// No description provided for @hudCardLimitFree.
   ///
   /// In pt, this message translates to:
-  /// **'{amount} livres'**
+  /// **'{amount} até o limite'**
   String hudCardLimitFree(String amount);
+
+  /// No description provided for @hudCardLimitOver.
+  ///
+  /// In pt, this message translates to:
+  /// **'{amount} acima do limite'**
+  String hudCardLimitOver(String amount);
 
   /// No description provided for @hudCardLimitUnknown.
   ///

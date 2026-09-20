@@ -5,7 +5,8 @@ import 'package:funances/core/money/money.dart';
 ///
 /// A ordem não é alfabética nem arbitrária: começa no que você GUARDOU
 /// (poção), passa pelo que você PLANEJOU (vila) e termina no que você DEVE
-/// (ovo e gota). É a mesma ordem da conversa que um extrato provoca.
+/// (incubados e veneno). É a mesma ordem da conversa que um extrato
+/// provoca.
 enum HudSlot { potion, village, egg, drop }
 
 /// De onde saiu a receita prevista do mês.
@@ -52,13 +53,18 @@ class ExpectedIncome {
 
 /// A classe de TAMANHO de uma razão. A mesma escala nos três ícones.
 ///
-/// Ela mede tamanho, não virtude: uma poção hiper é ótima, um ovo hiper é
-/// assustador e uma gota hiper é grave. Quem carrega o julgamento é a mini
-/// explicação de cada folha, nunca o nome da classe.
+/// Ela mede tamanho, não virtude: uma poção hiper é ótima, um monstro hiper
+/// é assustador e um veneno hiper é grave. Quem carrega o julgamento é a
+/// mini explicação de cada folha, nunca o nome da classe.
 ///
 /// `superTier` se chama assim porque `super` é palavra reservada em Dart. O
 /// nome que o usuário lê sai do l10n.
-enum HudTier { none, semi, regular, superTier, hyper }
+///
+/// **Não existe classe abaixo de meio mês de receita.** Havia — chamava-se
+/// "gole" —, e o dono a tirou: uma palavra de classe sobre R\$ 263,41 é um
+/// diploma para quem ainda não guardou nada. Abaixo do primeiro corte a
+/// poção mostra só a razão, que é um fato e não um título.
+enum HudTier { semi, regular, superTier, hyper }
 
 /// Uma razão `valor ÷ receita prevista`, com a classe já decidida.
 ///
@@ -102,6 +108,11 @@ class HudRatio {
   }
 
   /// A classe, decidida em CENTAVOS INTEIROS.
+  ///
+  /// `null` tem DOIS significados, e [isUnknown] separa os dois: sem
+  /// denominador não há classe a calcular; com denominador e abaixo de meio
+  /// mês de receita não há classe a dar. Quem mostra escolhe o que fazer em
+  /// cada caso — o traço no primeiro, a razão crua no segundo.
   HudTier? get tier {
     if (isUnknown) return null;
 
@@ -109,7 +120,7 @@ class HudRatio {
     if (isAtLeast(3, 2)) return HudTier.superTier;
     if (isAtLeast(1, 1)) return HudTier.regular;
     if (isAtLeast(1, 2)) return HudTier.semi;
-    return HudTier.none;
+    return null;
   }
 
   /// O preenchimento do anel, de 0 a 1. Razão acima de 1 enche o anel — o
@@ -190,7 +201,32 @@ class HudPotion {
   int get hashCode => Object.hash(Object.hashAll(accounts), ratio);
 }
 
+/// Em que pé está um aldeão HOJE.
+///
+/// Três estados e não dois, e o terceiro nasceu com a categoria de
+/// investimento: um aldeão que ainda não bateu a meta não está morto — o mês
+/// não acabou e ele tem até o dia 30 para aportar o que falta. Chamá-lo de
+/// caído antes disso seria o jogo dando por perdido o que ainda dá para
+/// ganhar, que é o contrário do que ele existe para fazer.
+enum HudVillagerState {
+  /// De pé: a despesa coube no orçamento, ou o investimento bateu a meta.
+  standing,
+
+  /// Em risco: investimento abaixo da meta, com o mês ainda correndo.
+  atRisk,
+
+  /// Caído: a despesa passou do orçamento.
+  fallen,
+}
+
 /// Um ALDEÃO: uma categoria de despesa com orçamento no mês.
+///
+/// **A categoria de INVESTIMENTO funciona ao contrário**, e é decisão do dono
+/// (2026-09-20): "as categorias que estiverem como investimento funcionam ao
+/// contrário... se não cumprirem o limite é que ficam em risco de morrer".
+/// Numa despesa o orçamento é um TETO e gastar menos é bom; num investimento
+/// ele é uma META e aportar menos é a falha. O mesmo número, duas leituras
+/// opostas — e é a `allocation` da categoria que diz qual delas vale.
 @immutable
 class HudVillager {
   const HudVillager({
@@ -200,6 +236,7 @@ class HudVillager {
     required this.color,
     required this.planned,
     required this.actual,
+    this.isInvestment = false,
   });
 
   final String categoryId;
@@ -207,22 +244,70 @@ class HudVillager {
   final String icon;
   final String color;
 
-  /// O orçamento do mês (`generalPlannedAmount`).
+  /// O orçamento do mês (`generalPlannedAmount`). TETO na despesa, META no
+  /// investimento.
   final Money planned;
 
-  /// O que já foi gasto.
+  /// O que já foi gasto — ou aportado.
   final Money actual;
 
+  /// A categoria é de allocation `investment`.
+  final bool isInvestment;
+
   /// O HP: o que sobra do orçamento. Negativo quando estourou.
-  Money get hp => planned - actual;
+  ///
+  /// No investimento é o que FALTA para a meta, com o mesmo sinal: negativo
+  /// enquanto falta, positivo quando passou. Um aldeão de investimento com
+  /// HP positivo já está de pé.
+  Money get hp => isInvestment ? actual - planned : planned - actual;
 
+  /// Quanto ainda falta aportar. `Money.zero` quando a meta já foi batida ou
+  /// quando o aldeão não é de investimento.
+  Money get missing {
+    if (!isInvestment) return Money.zero;
+    final falta = planned.cents - actual.cents;
+    return Money.fromCents(falta > 0 ? falta : 0);
+  }
+
+  /// Em que pé ele está hoje.
+  ///
   /// Dentro do limite é `<=`, não `<`: gastar exatamente o planejado é o
-  /// alvo, não uma falha por um centavo.
-  bool get isAlive => actual <= planned;
+  /// alvo, não uma falha por um centavo. Na meta é `>=`, pela mesma razão.
+  HudVillagerState get state {
+    if (isInvestment) {
+      return actual >= planned
+          ? HudVillagerState.standing
+          : HudVillagerState.atRisk;
+    }
 
-  /// Quanto da barra ainda está cheia, de 0 a 1.
+    return actual <= planned
+        ? HudVillagerState.standing
+        : HudVillagerState.fallen;
+  }
+
+  /// Ele conta como de pé para o XP de hoje.
+  bool get isAlive => state == HudVillagerState.standing;
+
+  /// Ele está em risco: investimento abaixo da meta.
+  bool get isAtRisk => state == HudVillagerState.atRisk;
+
+  /// Ele caiu: despesa acima do orçamento.
+  bool get isFallen => state == HudVillagerState.fallen;
+
+  /// Quanto do anel está cheio, de 0 a 1.
+  ///
+  /// As duas leituras enchem o anel na direção do que é BOM: a despesa
+  /// esvazia conforme se gasta (é o HP que resta), e o investimento enche
+  /// conforme se aporta (é o caminho até a meta). Um anel de investimento
+  /// que esvaziasse a cada aporte diria ao usuário que ele está perdendo
+  /// alguma coisa ao guardar dinheiro.
   double get hpRatio {
     if (planned.cents <= 0) return 0;
+
+    if (isInvestment) {
+      return (actual.cents / planned.cents).clamp(0.0, 1.0);
+    }
+
     return (hp.cents / planned.cents).clamp(0.0, 1.0);
   }
 
@@ -234,11 +319,12 @@ class HudVillager {
       other.icon == icon &&
       other.color == color &&
       other.planned == planned &&
-      other.actual == actual;
+      other.actual == actual &&
+      other.isInvestment == isInvestment;
 
   @override
   int get hashCode =>
-      Object.hash(categoryId, name, icon, color, planned, actual);
+      Object.hash(categoryId, name, icon, color, planned, actual, isInvestment);
 }
 
 /// O retrato de um mês fechado (`workspaces/{w}/monthly_reports/{YYYY-MM}`).
@@ -318,29 +404,54 @@ class HudVillage {
   /// Os meses já fechados, do mais recente para o mais antigo.
   final List<HudMonthlyReport> history;
 
+  /// Σ planejado de TODOS os aldeões — despesa e investimento.
   Money get plannedTotal => Money.sum(villagers.map((v) => v.planned));
 
+  /// Σ realizado de todos.
   Money get actualTotal => Money.sum(villagers.map((v) => v.actual));
 
   int get aliveCount => villagers.where((v) => v.isAlive).length;
+
+  /// Os que ainda podem virar: investimento abaixo da meta, mês correndo.
+  int get atRiskCount => villagers.where((v) => v.isAtRisk).length;
+
+  /// Os que já caíram — e só despesa cai antes do fim do mês.
+  int get fallenCount => villagers.where((v) => v.isFallen).length;
 
   int get plannedCount => villagers.length;
 
   /// A vila está de pé: a soma do realizado cabe na soma do planejado, com
   /// pelo menos [hudVillageMinimum] aldeões.
+  ///
+  /// A soma é a das DESPESAS, e os aldeões de investimento ficam de fora
+  /// dela: somar um aporte ao gasto faria guardar dinheiro derrubar a vila,
+  /// que é exatamente o contrário do que o jogo premia. Eles contam um a um,
+  /// pelo próprio estado, no [aliveCount].
   bool get isAlive =>
-      villagers.length >= hudVillageMinimum && actualTotal <= plannedTotal;
+      villagers.length >= hudVillageMinimum &&
+      expenseActualTotal <= expensePlannedTotal;
 
-  /// O anel: Σ realizado ÷ Σ planejado, de 0 a 1.
+  /// Σ planejado só das DESPESAS.
+  Money get expensePlannedTotal =>
+      Money.sum(villagers.where((v) => !v.isInvestment).map((v) => v.planned));
+
+  /// Σ realizado só das DESPESAS.
+  Money get expenseActualTotal =>
+      Money.sum(villagers.where((v) => !v.isInvestment).map((v) => v.actual));
+
+  /// O anel: Σ realizado ÷ Σ planejado das despesas, de 0 a 1.
   double get ring {
-    if (plannedTotal.cents <= 0) return 0;
-    return (actualTotal.cents / plannedTotal.cents).clamp(0.0, 1.0);
+    if (expensePlannedTotal.cents <= 0) return 0;
+    return (expenseActualTotal.cents / expensePlannedTotal.cents).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   /// O mesmo quociente SEM teto — é ele que diz que a vila estourou.
   double? get progress {
-    if (plannedTotal.cents <= 0) return null;
-    return actualTotal.cents / plannedTotal.cents;
+    if (expensePlannedTotal.cents <= 0) return null;
+    return expenseActualTotal.cents / expensePlannedTotal.cents;
   }
 
   bool get isEmpty => villagers.isEmpty;
@@ -417,7 +528,9 @@ class HudInvoice {
     return (usado / total.cents).clamp(0.0, 1.0);
   }
 
-  /// O que ainda dá para gastar. `null` sem limite informado.
+  /// O que ainda falta para bater no teto. `null` sem limite informado, e
+  /// zero no cartão que já estourou — quem estourou tem [overLimit], não
+  /// folga.
   Money? get availableLimit {
     final total = limit;
     if (total == null || total.cents <= 0) return null;
@@ -426,9 +539,38 @@ class HudInvoice {
     return Money.fromCents(livre < 0 ? 0 : livre);
   }
 
+  /// Quanto o cartão passou do limite. `null` quando não passou (ou quando
+  /// não há limite informado).
+  ///
+  /// Ele existe porque o par "100% · R\$ 0,00" MENTE por omissão: os dois
+  /// números estão certos e juntos dizem "o cartão está no talo", quando o
+  /// que aconteceu foi pior — a conta furou o teto e o banco vai cobrar por
+  /// isso. O tamanho do furo é a única coisa que o usuário pode agir.
+  Money? get overLimit {
+    final total = limit;
+    if (total == null || total.cents <= 0) return null;
+
+    final excedente = (used.cents < 0 ? 0 : used.cents) - total.cents;
+    return excedente > 0 ? Money.fromCents(excedente) : null;
+  }
+
+  /// A porcentagem do limite já usada, SEM teto: 109 é 109.
+  ///
+  /// A barra prende em 100% porque um retângulo não cresce além do trilho;
+  /// o número, não. Arredondar 109% para 100% no texto seria devolver a
+  /// mentira pela outra porta.
+  int? get limitPercent {
+    final total = limit;
+    if (total == null || total.cents <= 0) return null;
+
+    final usado = used.cents < 0 ? 0 : used.cents;
+    return (usado * 100 / total.cents).round();
+  }
+
   /// Há quantos dias a fatura VENCEU. Zero enquanto ela não venceu.
   ///
-  /// Ela continua entrando na soma do ovo — o contrato é `Σ nextInvoice`, e
+  /// Ela continua entrando na soma dos incubados — o contrato é
+  /// `Σ nextInvoice`, e
   /// uma fatura vencida e não paga é a mais devida de todas. O que faltava
   /// era a MARCA: a do Nubank, vencida em 17/09, aparecia na folha com a
   /// mesma tinta discreta de uma que vence daqui a três semanas.
@@ -475,7 +617,7 @@ class HudInvoice {
   );
 }
 
-/// O OVO: as faturas dos próximos vencimentos.
+/// Os INCUBADOS: as faturas dos próximos vencimentos.
 @immutable
 class HudEgg {
   const HudEgg({required this.invoices, required this.ratio});
@@ -489,10 +631,10 @@ class HudEgg {
 
   /// Três estágios de casca: liso, rachado e prestes a eclodir.
   ///
-  /// Sem denominador o ovo não tem estágio nenhum — ele fica no primeiro, que
+  /// Sem denominador não há estágio nenhum — a casca fica no primeiro, que
   /// é o neutro.
   ///
-  /// Os cortes são em CENTAVOS INTEIROS, como as classes: um ovo de meio mês
+  /// Os cortes são em CENTAVOS INTEIROS, como as classes: meio mês
   /// exato de receita rachava ou não conforme o erro de representação do
   /// `double` daquela divisão, e "a casca mudou porque o número tem dízima"
   /// não é uma regra que alguém possa explicar.
@@ -502,7 +644,7 @@ class HudEgg {
     return 0;
   }
 
-  /// O ovo treme quando a razão se aproxima de um mês inteiro de receita:
+  /// A casca treme quando a razão se aproxima de um mês inteiro de receita:
   /// quatro quintos dela.
   bool get isTrembling => ratio.isAtLeast(4, 5);
 
@@ -571,7 +713,7 @@ class HudDrop {
 
   Money get total => ratio.amount;
 
-  /// A gota só pisca quando há dívida. Sem dívida ela fica parada e opaca —
+  /// O veneno só pisca quando há dívida. Sem dívida ele fica parado e opaco —
   /// piscar num cofre sem dívida seria alarme sem incêndio.
   bool get isBlinking => total.isPositive;
 

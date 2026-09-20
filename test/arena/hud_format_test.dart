@@ -65,7 +65,7 @@ void main() {
   group('os cortes, em centavos inteiros', () {
     test('meio mês exato JÁ é semi — a faixa é fechada à esquerda', () {
       expect(_razao(927500, 1855000).tier, HudTier.semi);
-      expect(_razao(927499, 1855000).tier, HudTier.none);
+      expect(_razao(927499, 1855000).tier, isNull);
     });
 
     test('a casca do ovo muda nos mesmos cortes, e sem passar por double', () {

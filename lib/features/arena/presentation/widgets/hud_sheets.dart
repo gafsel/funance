@@ -8,6 +8,7 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/core/utils/color_extension.dart';
 import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
+import 'package:funances/core/widgets/app_chip.dart';
 import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/core/widgets/app_ring.dart';
 import 'package:funances/core/widgets/money_text.dart';
@@ -75,6 +76,7 @@ class _HudSheet extends StatelessWidget {
     required this.explanation,
     required this.children,
     this.subtitle,
+    this.chip,
     this.stage = 0,
     this.progress = 0,
   });
@@ -86,6 +88,12 @@ class _HudSheet extends StatelessWidget {
   final Widget headline;
 
   final String? subtitle;
+
+  /// A pílula logo abaixo do número grande. Hoje só a poção tem uma: os
+  /// "meses de pé". Fica fora do [subtitle] porque não é uma frase — é um
+  /// número com unidade, e ele se lê de relance.
+  final String? chip;
+
   final Color color;
   final int stage;
   final double progress;
@@ -142,6 +150,19 @@ class _HudSheet extends StatelessWidget {
                 ),
               ],
             ),
+            if (chip != null) ...[
+              AppSpacing.gapXs,
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: StatusPill(
+                  key: const ValueKey('hud-potion-months'),
+                  label: chip!,
+                  tone: StatusTone.info,
+                  icon: Icons.hourglass_bottom_outlined,
+                  dense: true,
+                ),
+              ),
+            ],
             if (subtitle != null) ...[
               AppSpacing.gapXxs,
               Text(
@@ -412,12 +433,21 @@ class _PotionSheet extends StatelessWidget {
       color: potion.isFilled ? AppColors.success : context.palette.ink3,
       progress: potion.ratio.fill,
       headline: Text(potion.total.format(locale: locale)),
-      // A poção é a ÚNICA que mostra a classe: "gole/semi/regular/super/hiper"
-      // foi o vocabulário que o dono pediu para o que se guarda.
+      // A poção é a ÚNICA que mostra a classe: "semi/regular/super/hiper" foi
+      // o vocabulário que o dono pediu para o que se guarda. Abaixo de meio
+      // mês de receita não há classe nenhuma — fica só a razão, e o chip de
+      // meses de pé diz o resto.
       subtitle: potion.ratio.isUnknown
           ? null
-          : '${hudTierLabel(l10n, potion.ratio)} · '
-                '${hudRatioOfIncome(l10n, potion.ratio, locale)}',
+          : [
+              hudTierLabel(l10n, potion.ratio),
+              hudRatioOfIncome(l10n, potion.ratio, locale),
+            ].nonNulls.join(' · '),
+      // O chip de MESES DE PÉ, logo abaixo do valor: a razão dita na unidade
+      // que o dono quis ver no lugar da palavra que saiu — "quantos meses eu
+      // aguento". É a mesma conta do anel; o que muda é que "1,5 meses de
+      // pé" se entende sem saber o que um "×" significa.
+      chip: hudPotionMonths(l10n, potion.ratio, locale),
       explanation: [
         l10n.hudPotionGame,
         l10n.hudPotionFinance,
@@ -472,8 +502,11 @@ class _VillageSheet extends StatelessWidget {
       subtitle: village.isEmpty
           ? null
           : l10n.hudVillageSpent(
-              village.actualTotal.format(locale: locale),
-              village.plannedTotal.format(locale: locale),
+              // "gastos" é sobre DESPESA: um aporte de investimento não é
+              // gasto, e somá-lo aqui faria a linha acusar de gastador
+              // justamente quem guardou.
+              village.expenseActualTotal.format(locale: locale),
+              village.expensePlannedTotal.format(locale: locale),
             ),
       explanation: [
         isBusiness ? l10n.hudVillageGameBusiness : l10n.hudVillageGame,
@@ -510,19 +543,28 @@ class _VillageSheet extends StatelessWidget {
           // de relance — e os dois grupos a dizem sem contar nada.
           _VillagerGroup(
             key: const ValueKey('hud-village-fallen'),
-            title: l10n.hudVillageFallenGroup(
-              village.plannedCount - village.aliveCount,
-            ),
+            title: l10n.hudVillageFallenGroup(village.fallenCount),
             // Os CAÍDOS primeiro, do estouro mais fundo para o mais raso.
+            // É o que o dono pediu — "separe o grupo dos mortos do grupo dos
+            // vivos" —, e é também a ordem da Party (crítico, atenção,
+            // estável), que foi a visão que ele mandou imitar. Com treze
+            // vivos, quatro tiles por linha empurrariam os caídos para baixo
+            // da dobra de um celular de 400 px, e é o caído que o usuário
+            // precisa ver para fazer alguma coisa a respeito.
+            villagers: village.villagers.where((v) => v.isFallen),
+          ),
+          _VillagerGroup(
+            key: const ValueKey('hud-village-at-risk'),
+            title: l10n.hudVillageAtRiskGroup(village.atRiskCount),
+            // EM RISCO é o terceiro estado, e ele nasceu com a categoria de
+            // investimento: o aldeão que ainda não aportou a meta não está
+            // morto — o mês não acabou. Fica entre os dois grupos porque é
+            // exatamente aí que ele está: pior que de pé, e ainda salvável.
             //
-            // O dono citou os dois títulos na ordem "Vivos" e "Caídos", e a
-            // grade os inverte por uma razão de tela: com treze vivos, dois
-            // grupos de quatro por linha põem os caídos abaixo da dobra de
-            // um celular de 400 px — e é o caído que o usuário precisa ver
-            // para fazer alguma coisa a respeito. É também a ordem da Party,
-            // que foi a visão que ele pediu para imitar (crítico, atenção,
-            // estável), e a da lista que esta grade substituiu.
-            villagers: village.villagers.where((v) => !v.isAlive),
+            // Ele é um GRUPO, e não uma marca dentro dos vivos, porque os
+            // títulos carregam contagem: "Vivos (13)" com um âmbar no meio
+            // diria treze de pé onde há doze e um devendo.
+            villagers: village.villagers.where((v) => v.isAtRisk),
           ),
           _VillagerGroup(
             key: const ValueKey('hud-village-alive'),
@@ -621,11 +663,18 @@ class _Villager extends StatelessWidget {
 
   /// A largura de um aldeão na grade.
   ///
-  /// Setenta e seis pixels dão cinco por linha num celular de 400 px (quatro
-  /// com a margem da folha) e não quebram o nome de "Cuidados pessoais" em
-  /// mais de duas linhas. Abaixo disso o nome vira reticências em quase toda
-  /// categoria, e um aldeão sem nome é um ponto colorido.
-  static const double largura = 76;
+  /// Oitenta e quatro pixels dão quatro por linha num celular de 400 px
+  /// depois da margem da folha (4 x 84 + 3 x 4 = 348 dentro de 368), e é a
+  /// largura em que "Supermercado" — a categoria de nome mais longo numa
+  /// palavra só do cofre real — cabe inteira numa linha. Abaixo disso o nome
+  /// vira reticências em quase toda categoria, e um aldeão sem nome é um
+  /// ponto colorido.
+  static const double largura = 84;
+
+  /// Quantas linhas o nome pode ocupar: duas quando ele tem espaço para
+  /// quebrar, uma quando é palavra única. Ver o comentário no [Text].
+  static int _linhasDoNome(String nome) =>
+      nome.trim().contains(RegExp(r'\s')) ? 2 : 1;
 
   @override
   Widget build(BuildContext context) {
@@ -635,13 +684,49 @@ class _Villager extends StatelessWidget {
     final locale = context.locale;
 
     final color = villager.color.asColor(orElse: palette.ink3);
-    final alive = villager.isAlive;
-    final estado = alive
-        ? l10n.hudVillagerHp(
-            villager.hp.format(locale: locale),
-            villager.planned.format(locale: locale),
-          )
-        : l10n.hudVillagerOver((-villager.hp).format(locale: locale));
+
+    // A tinta do ANEL diz o estado, e são três: verde de pé, âmbar em risco
+    // (investimento abaixo da meta, mês correndo) e vermelho caído. O âmbar
+    // é o mesmo do "perto do limite" do resto do app — é a cor de "ainda dá
+    // tempo", e é isso que um aldeão de investimento em risco é.
+    final anel = switch (villager.state) {
+      HudVillagerState.standing => AppColors.success,
+      HudVillagerState.atRisk => AppColors.warning,
+      HudVillagerState.fallen => AppColors.danger,
+    };
+
+    // O que o leitor de tela ouve. O aldeão de investimento diz a META e o
+    // que falta para ela: "R$ 150,00 de R$ 200,00 investidos — faltam
+    // R$ 50,00 para o aldeão ficar de pé". Sem isso ele ouviria um número
+    // solto e a regra invertida ficaria invisível justamente para quem não
+    // vê a cor do anel.
+    final estado = switch (villager.state) {
+      HudVillagerState.atRisk => l10n.hudVillagerMissing(
+        villager.actual.format(locale: locale),
+        villager.planned.format(locale: locale),
+        villager.missing.format(locale: locale),
+      ),
+      HudVillagerState.standing when villager.isInvestment =>
+        l10n.hudVillagerGoal(
+          villager.actual.format(locale: locale),
+          villager.planned.format(locale: locale),
+        ),
+      HudVillagerState.standing => l10n.hudVillagerHp(
+        villager.hp.format(locale: locale),
+        villager.planned.format(locale: locale),
+      ),
+      HudVillagerState.fallen => l10n.hudVillagerOver(
+        (-villager.hp).format(locale: locale),
+      ),
+    };
+
+    // O número do tile: o que falta aportar, no aldeão em risco; o que sobra
+    // do orçamento, na despesa de pé; o tamanho do estouro, no caído.
+    final (Money valor, Color tinta) = switch (villager.state) {
+      HudVillagerState.atRisk => (villager.missing, palette.warningText),
+      HudVillagerState.fallen => (-villager.hp, palette.dangerText),
+      HudVillagerState.standing => (villager.hp, palette.successText),
+    };
 
     return Semantics(
       button: true,
@@ -659,8 +744,19 @@ class _Villager extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 AppRing.icon(
-                  value: alive ? villager.hpRatio : 1,
-                  color: alive ? AppColors.success : AppColors.danger,
+                  // O caído fica CHEIO de vermelho; os outros dois mostram a
+                  // fração — que na despesa é o HP que resta e no
+                  // investimento é o caminho já andado até a meta.
+                  value: villager.isFallen ? 1 : villager.hpRatio,
+                  color: anel,
+                  // A CALHA do aldeão em risco é âmbar forte, e não a tinta
+                  // a 20% de todo mundo: o aldeão que ainda não aportou nada
+                  // tem arco de tamanho zero, e com a calha padrão o anel
+                  // dele ficava quase branco — lia como um tile que ainda
+                  // não carregou, que é o mesmo defeito do caído vazio.
+                  trackColor: villager.isAtRisk
+                      ? AppColors.warning.withValues(alpha: 0.35)
+                      : null,
                   icon: villager.icon.asIcon(),
                   iconColor: color,
                   size: 44,
@@ -670,13 +766,23 @@ class _Villager extends StatelessWidget {
                   villager.name,
                   style: theme.textTheme.labelSmall,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  // Nome de UMA palavra fica em uma linha; o de duas ou mais
+                  // pode usar duas.
+                  //
+                  // O defeito que isso corrige: "Supermercado" não cabe em
+                  // 84 px, e o Flutter só quebra DENTRO de uma palavra
+                  // quando ela sozinha estoura a linha — o tile mostrava
+                  // "Supermerca/do", que parecem duas palavras e nenhuma
+                  // delas é uma. Com uma linha só, o corte vira reticências
+                  // no fim ("Supermercad…"), que o olho lê como palavra
+                  // cortada e não como palavra errada.
+                  maxLines: _linhasDoNome(villager.name),
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  hudCompactMoney(alive ? villager.hp : -villager.hp, locale),
+                  hudCompactMoney(valor, locale),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: alive ? palette.successText : palette.dangerText,
+                    color: tinta,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -796,7 +902,7 @@ class _EggSheet extends StatelessWidget {
               color: invoice.color,
               icon: 'credit_card',
               // A vencida diz que venceu, e diz em tinta de perigo. Ela
-              // CONTINUA na soma do ovo (o contrato é Σ nextInvoice, e uma
+              // CONTINUA na soma dos incubados (o contrato é Σ nextInvoice, e uma
               // fatura vencida é a mais devida de todas); o que faltava era
               // a linha não se parecer com a de quem vence daqui a um mês.
               support: invoice.isOverdue
@@ -843,6 +949,12 @@ class _EggSheet extends StatelessWidget {
 /// porcentagem e a barra já dizem duas vezes: os dois pares não cabiam em
 /// 400 px e o segundo saía cortado no meio.
 ///
+/// Cartão ESTOURADO não diz "100% · R$ 0,00 até o limite". Os dois números
+/// estariam certos e a soma deles seria uma mentira: "está no talo" e
+/// "furou o teto em R$ 812,00" são dois fatos diferentes, e só o segundo se
+/// pode resolver. Ele diz a porcentagem REAL (109%), pinta a barra cheia em
+/// tinta de perigo e troca a folga pelo tamanho do furo.
+///
 /// Cartão sem limite cadastrado não ganha barra nenhuma, e essa é a decisão
 /// que importa: uma barra a 0% diria "o cartão está inteiro livre" onde o
 /// app não sabe de nada. A frase honesta cabe no mesmo lugar.
@@ -860,8 +972,10 @@ class _CardLimit extends StatelessWidget {
 
     final usage = invoice.limitUsage;
     final available = invoice.availableLimit;
+    final over = invoice.overLimit;
+    final percent = invoice.limitPercent;
 
-    if (usage == null || available == null) {
+    if (usage == null || available == null || percent == null) {
       return Padding(
         padding: const EdgeInsets.only(left: 36),
         child: Text(
@@ -872,7 +986,12 @@ class _CardLimit extends StatelessWidget {
       );
     }
 
-    final color = invoice.color?.asColor(orElse: palette.ink3) ?? palette.ink3;
+    // A tinta do cartão enquanto ele está dentro do limite; a de PERIGO
+    // quando ele passou. A cor da conta é identidade — serve para dizer qual
+    // barra é de qual cartão —, e identidade não pode ganhar de um aviso.
+    final color = over != null
+        ? AppColors.danger
+        : invoice.color?.asColor(orElse: palette.ink3) ?? palette.ink3;
 
     return Padding(
       // Alinhado com o NOME do cartão, e não com o ícone: a barra fala
@@ -887,16 +1006,23 @@ class _CardLimit extends StatelessWidget {
             value: usage,
             size: AppProgressSize.thin,
             color: color,
-            semanticLabel: l10n.hudCardLimitLabel,
+            // O NOME do cartão na semântica, e não só "Limite do cartão":
+            // são seis barras seguidas na mesma folha, e quem ouve a tela
+            // recebia seis vezes o mesmo rótulo com seis porcentagens
+            // diferentes, sem saber de qual conta era cada uma.
+            semanticLabel: l10n.hudCardLimitLabel(invoice.name),
           ),
           AppSpacing.gapXxs,
           Row(
             children: [
               Expanded(
                 child: Text(
-                  l10n.hudCardLimitUsage((usage * 100).round()),
+                  // A porcentagem REAL, sem o teto da barra: um cartão a
+                  // 109% não é um cartão a 100%.
+                  l10n.hudCardLimitUsage(percent),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: palette.ink2,
+                    color: over != null ? palette.dangerText : palette.ink2,
+                    fontWeight: over != null ? FontWeight.w600 : null,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -905,14 +1031,23 @@ class _CardLimit extends StatelessWidget {
               AppSpacing.gapXs,
               Flexible(
                 child: Text(
-                  // O que sobra, e não o que já foi: o "usado" já está dito
-                  // duas vezes — pela barra e pela porcentagem —, e o par
-                  // completo não cabia em 400 px sem cortar o número ao meio
-                  // ("R$ 6…"), que mente mais do que não mostrar. O livre é
-                  // o número que decide a próxima compra.
-                  l10n.hudCardLimitFree(available.format(locale: locale)),
+                  // O que FALTA para o teto, e não o que já foi: o "usado"
+                  // já está dito duas vezes — pela barra e pela porcentagem
+                  // —, e o par completo não cabia em 400 px sem cortar o
+                  // número ao meio ("R$ 6…"), que mente mais do que não
+                  // mostrar.
+                  //
+                  // "até o limite", e não "livres": o limite não é dinheiro
+                  // do usuário, é o quanto o banco ainda deixa ele dever.
+                  // "R$ 6.156,93 livres" soava como permissão de gastar
+                  // justamente embaixo da frase que diz que todo gasto no
+                  // cartão engorda um monstro.
+                  over != null
+                      ? l10n.hudCardLimitOver(over.format(locale: locale))
+                      : l10n.hudCardLimitFree(available.format(locale: locale)),
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: palette.ink3,
+                    color: over != null ? palette.dangerText : palette.ink3,
+                    fontWeight: over != null ? FontWeight.w600 : null,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
