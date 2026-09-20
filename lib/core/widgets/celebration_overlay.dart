@@ -66,18 +66,25 @@ class _CelebrationOverlayState extends State<CelebrationOverlay> {
   /// A camada inteira era montada por `toasts.isNotEmpty`, então dispensar o
   /// último toast — tocando nele, que é o que se faz quando a conquista leva
   /// a algum lugar — arrancava o `ConfettiWidget` da árvore no meio do voo.
-  /// O confete sumia no ar, e sumia justamente para quem interagiu com a
-  /// conquista.
   bool _confettiVisible = false;
 
-  /// Depois que a emissão para, as partículas que já saíram ainda estão
-  /// caindo. Esta é a folga para elas terminarem.
+  /// Uma coisa por vez: primeiro o fim da EMISSÃO, depois a folga para as
+  /// partículas que já saíram terminarem de cair.
   Timer? _tail;
 
   @override
   void initState() {
     super.initState();
     widget.confetti?.addListener(_onConfetti);
+    // O estado é SEMEADO do controller, não assumido como parado.
+    //
+    // Na ordem de produção o `play()` acontece ANTES deste widget existir:
+    // quem toca o confete é o mesmo `_emit` que enfileira a conquista, e é a
+    // fila que faz o host montar a camada. Na primeira conquista da sessão o
+    // overlay nascia com `_confettiVisible = false` e nunca mais recebia um
+    // `notifyListeners` — o confete da PRIMEIRA celebração, que é a que mais
+    // importa, não desenhava nunca.
+    _syncFrom(widget.confetti);
   }
 
   @override
@@ -86,6 +93,7 @@ class _CelebrationOverlayState extends State<CelebrationOverlay> {
     if (oldWidget.confetti != widget.confetti) {
       oldWidget.confetti?.removeListener(_onConfetti);
       widget.confetti?.addListener(_onConfetti);
+      _syncFrom(widget.confetti);
     }
   }
 
@@ -96,16 +104,44 @@ class _CelebrationOverlayState extends State<CelebrationOverlay> {
     super.dispose();
   }
 
-  void _onConfetti() {
-    final playing = widget.confetti?.state == ConfettiControllerState.playing;
+  void _syncFrom(ConfettiController? controller) {
+    if (controller?.state != ConfettiControllerState.playing) return;
+    _confettiVisible = true;
+    _armStop(controller!);
+  }
 
-    if (playing) {
-      _tail?.cancel();
+  void _onConfetti() {
+    final controller = widget.confetti;
+    if (controller == null) return;
+
+    if (controller.state == ConfettiControllerState.playing) {
+      _armStop(controller);
       if (!_confettiVisible) setState(() => _confettiVisible = true);
       return;
     }
 
     if (!_confettiVisible) return;
+    _scheduleHide();
+  }
+
+  /// Marca o fim da emissão.
+  ///
+  /// `ConfettiController.play()` liga o estado e NÃO o desliga sozinho —
+  /// quem parava era ninguém. Sem isto a camada ficava montada para sempre,
+  /// com o `ConfettiWidget` e o ticker dele vivos pelo resto da sessão: além
+  /// do custo, qualquer `pumpAndSettle` num teste que passasse por uma
+  /// conquista nunca assentava.
+  void _armStop(ConfettiController controller) {
+    _tail?.cancel();
+    _tail = Timer(controller.duration, () {
+      if (!mounted) return;
+      // `stop()` notifica, e é o `_onConfetti` acima que agenda o sumiço.
+      controller.stop();
+    });
+  }
+
+  /// A folga para as partículas que já saíram terminarem de cair.
+  void _scheduleHide() {
     _tail?.cancel();
     _tail = Timer(AppDurations.celebrate, () {
       if (mounted) setState(() => _confettiVisible = false);

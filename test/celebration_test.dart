@@ -673,6 +673,64 @@ void main() {
       expect(find.text('Conquista desbloqueada'), findsNothing);
     });
 
+    /// REGRESSÃO — na ordem de PRODUÇÃO o `play()` acontece antes de a
+    /// camada existir: quem toca o confete é o mesmo `_emit` que enfileira a
+    /// conquista, e é a fila que faz o host montar o overlay. O overlay
+    /// nascia com o confete "parado" e nunca mais recebia um
+    /// `notifyListeners` — o confete da PRIMEIRA conquista da sessão, que é
+    /// a que mais importa, não desenhava nunca.
+    ///
+    /// Este teste monta o host sem conquista nenhuma e dispara a primeira,
+    /// que é a única ordem em que o defeito aparece.
+    testWidgets('REGRESSÃO — o confete da PRIMEIRA conquista desenha', (
+      tester,
+    ) async {
+      final container = build();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(_Harness(container: container));
+      await tester.pump();
+      expect(find.byType(ConfettiWidget), findsNothing);
+
+      // Subir de nível é conquista de peso: toca o confete.
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(level: 2, xp: 500),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.byType(ConfettiWidget),
+        findsOneWidget,
+        reason: 'o overlay montou DEPOIS do play() e não leu o estado dele',
+      );
+    });
+
+    testWidgets('REGRESSÃO — e a camada sai sozinha quando a festa acaba', (
+      tester,
+    ) async {
+      final container = build();
+      addTearDown(container.dispose);
+
+      await tester.pumpWidget(_Harness(container: container));
+      await tester.pump();
+
+      notifier.state = WorkspaceState(
+        currentWorkspace: _workspace(level: 2, xp: 500),
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(ConfettiWidget), findsOneWidget);
+
+      // Ninguém chamava `stop()`: a camada e o ticker do confete ficavam
+      // vivos pelo resto da sessão, e um `pumpAndSettle` nunca assentava.
+      container.read(CelebrationProviders.queue.notifier).dismissAll();
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConfettiWidget), findsNothing);
+      expect(find.byType(RewardToast), findsNothing);
+    });
+
     /// M2 — o `workspaceId` some por instantes sempre que o stream do
     /// workspace reconecta: voltar do background, recuperar a rede, trocar de
     /// conta no Firestore. O esquecimento era disparado nesse null e DE NOVO
