@@ -16,6 +16,7 @@ import {
     XpOnceGroup,
     readWorkspaceStreaks,
 } from "../../domain/repositories/gamification.repository";
+import { MissionCapacity } from "../../domain/models/mission_catalog";
 import { CategoryPlanningModel, toPeriodSummaryDocument } from "../../../finance/domain/models/finance.models";
 import { calculateLevel } from "../../domain/services/gamification.service";
 import { CategoryModel, isSystemCategory } from "../../../workspace/domain/models/category.model";
@@ -153,6 +154,57 @@ export class GamificationRepositoryImpl implements IGamificationRepository {
             .limit(1)
             .get();
         return snapshot.size >= 1;
+    }
+
+    async hasPaidInstallmentSince(workspaceId: string, since: Date): Promise<boolean> {
+        // MESMA consulta do coaching proativo
+        // (`FinanceRepositoryImpl.hasPaidInstallmentSince`): só a faixa de
+        // `paidDate`, sem filtro de status, e `limit(1)`. Uma parcela pendente
+        // tem `paidDate: null`, e null fica fora de uma faixa de Timestamp —
+        // a consulta não precisa do `status in [...]`, que exigiria índice
+        // composto para devolver a MESMA resposta.
+        const snapshot = await admin.firestore()
+            .collection(`workspaces/${workspaceId}/installments`)
+            .where("paidDate", ">=", admin.firestore.Timestamp.fromDate(since))
+            .limit(1)
+            .get();
+        return !snapshot.empty;
+    }
+
+    async getMissionCapacity(
+        workspaceId: string,
+        automaticTransactionsSince: string
+    ): Promise<MissionCapacity> {
+        const db = admin.firestore();
+
+        // Três consultas com `limit(1)`: a pergunta é sempre "existe ao menos
+        // um?". Contar custaria uma leitura por documento para responder algo
+        // que a peneira nem usa.
+        const [cards, reconciliations, automatics] = await Promise.all([
+            db.collection(`workspaces/${workspaceId}/accounts`)
+                .where("runtimeType", "==", "creditCard")
+                .where("isDeleted", "==", false)
+                .limit(1)
+                .get(),
+            db.collection(`workspaces/${workspaceId}/reconciliations`)
+                .where("status", "==", "completed")
+                .limit(1)
+                .get(),
+            // `date` é string de relógio local (ver a interface do
+            // repositório): faixa + `orderBy` no MESMO campo, resolvido pelo
+            // índice de campo único que já existe.
+            db.collection(`workspaces/${workspaceId}/automatic_transactions`)
+                .where("date", ">=", automaticTransactionsSince)
+                .orderBy("date")
+                .limit(1)
+                .get(),
+        ]);
+
+        return {
+            hasCreditCardAccount: !cards.empty,
+            hasReconciledStatementEver: !reconciliations.empty,
+            hasRecentAutomaticTransaction: !automatics.empty,
+        };
     }
 
     async getCategoryPlannings(workspaceId: string): Promise<CategoryPlanningModel[]> {

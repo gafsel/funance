@@ -26,6 +26,8 @@ import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
+import 'package:funances/features/workspace/domain/models/workspace_model.dart';
+import 'package:funances/features/workspace/presentation/model/workspace_view_model.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -270,6 +272,20 @@ CoachingModel homeTypicalInsight() => CoachingModel(
   type: CoachingType.warning,
 );
 
+/// Duas metas em andamento, para o atalho "Ver as N metas".
+List<GoalModel> homeTwoGoals() => [
+  ...homeTypicalGoals(),
+  GoalModel.saveMoney(
+    id: 'g2',
+    name: 'Trocar de carro',
+    targetAmount: 60000,
+    currentAmount: 8000,
+    deadline: DateTime.now().add(const Duration(days: 900)),
+    accountId: 'acc-1',
+    startDate: DateTime(2026, 1, 1),
+  ),
+];
+
 /// Um mês típico: renda prevista, despesas planejadas e o que já saiu. É o
 /// que faz o cabeçalho "quanto sobra" mostrar o NÚMERO em vez do convite para
 /// cadastrar renda — e é o estado em que a Home passa a maior parte da vida.
@@ -405,6 +421,7 @@ List<Override> homeOverrides({
   List<GoalModel> goals = const [],
   List<CategoryModel> categories = const [],
   List<AutomaticTransactionModel> pendingAutomatic = const [],
+  bool outroCofre = false,
   PeriodSummaryModel? summary,
   CoachingModel? lastInsight,
   List<Override> extra = const [],
@@ -412,7 +429,25 @@ List<Override> homeOverrides({
   clockProvider.overrideWithValue(() => homeToday),
   WorkspaceViewProviders.currentWorkspaceId.overrideWithValue('ws-home'),
   WorkspaceViewProviders.workspace.overrideWith(
-    (ref) => TestWorkspaceNotifier(workspaceStateFor()),
+    (ref) => TestWorkspaceNotifier(
+      outroCofre
+          // Mover uma pendência só existe com um segundo cofre; sem ele a
+          // ação não desenha e um teste dela passaria por vacuidade.
+          ? WorkspaceState(
+              currentWorkspace: workspaceStateFor().currentWorkspace,
+              availableWorkspaces: [
+                workspaceStateFor().currentWorkspace!,
+                WorkspaceModel(
+                  id: 'w2',
+                  name: 'Empresa',
+                  type: WorkspaceType.business,
+                  createdAt: DateTime(2026, 1, 1),
+                ),
+              ],
+              initialLoadDone: true,
+            )
+          : workspaceStateFor(),
+    ),
   ),
   WorkspaceDomainProviders.repository.overrideWithValue(
     FakeWorkspaceRepository(),

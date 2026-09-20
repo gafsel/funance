@@ -248,7 +248,11 @@ void main() {
       expect(find.text('Ver as 35 pendências'), findsOneWidget);
     });
 
-    testWidgets('A1 — com poucas, não oferece uma tela cheia de nada', (
+    /// Este teste prendia o comportamento ERRADO: com poucas pendências não
+    /// havia botão nenhum, e como a linha compacta da Home só oferece
+    /// "consolidar", ignorar e mover para outro cofre sumiam do app inteiro
+    /// justamente no estado normal — ter poucas pendências.
+    testWidgets('A1 — com duas, a porta para a tela cheia existe', (
       tester,
     ) async {
       await pumpHome(
@@ -260,7 +264,34 @@ void main() {
       );
 
       expect(find.textContaining('COMPRA CARTAO'), findsNWidgets(2));
-      expect(find.textContaining('Ver as'), findsNothing);
+      expect(
+        find.text('Ver todas'),
+        findsOneWidget,
+        reason:
+            'com tudo à mostra o botão não promete um número que a pessoa já '
+            'vê; ele promete o que a Home não tem, que são as outras ações',
+      );
+    });
+
+    testWidgets('A1 — e o cabeçalho também é porta, com uma só', (
+      tester,
+    ) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(
+          pendingAutomatic: homeTypicalPending(count: 1),
+        ),
+      );
+
+      expect(
+        find.ancestor(
+          of: find.text('Lançamentos Identificados'),
+          matching: find.byType(InkWell),
+        ),
+        findsWidgets,
+        reason: 'o cabeçalho de um bloco resumido é a porta da tela completa',
+      );
     });
 
     testWidgets('D2 — o coaching ocupa UMA linha, não um cartão', (

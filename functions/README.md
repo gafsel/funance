@@ -65,6 +65,7 @@ apenas reage ao que o cliente gravou.
 | `categories/{c}.isSystem` — booleano, **ausente == false** | servidor | app (deve filtrar) | F1.12 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `categories/{c}.isDeleted` — booleano, **ausente == false** | app e servidor | ambos | F1.7 | [Categorias de sistema](#categorias-de-sistema-issystem) |
 | `config/badges` — `{version, badges[], levelThresholds[], xpSources[]}`, com **`audience`** em cada badge e cada `xpSource` | servidor | app (qualquer autenticado) | wp/gamification-2; `xpSources` em F2.3; `audience` em wp/missions-by-type | [Catálogo de badges](#catálogo-de-badges-configbadges) |
+| `workspaces/{w}/reconciliations/{id}` — `{id, status, confirmedMatchesCount, totalTransactionsProcessed, createdTransactionsCount, createdAt}`; para a gamificação vale **só o create** | app | servidor | wp/reconciliation-created | [O que a idempotência por `eventId` NÃO cobre](#o-que-a-idempotência-por-eventid-não-cobre) |
 | `workspaces/{w}/automatic_transactions/{id}` — `date` é **string** de relógio local (`YYYY-MM-DDTHH:mm:ss.SSS`), nunca `Timestamp` | app | servidor | wp/missions-by-type (as rules passaram a exigir o tipo) | [Missões por tipo de workspace](#missões-semanais-por-tipo-de-workspace) |
 | `workspaces/{w}/quotas/{YYYY-MM-DD}` — um campo por função + `createdAt`/`expiresAt` | servidor (rules negam a escrita ao cliente) | app — o membro **lê** para exibir o consumo | F5.1 | [Quotas de IA](#quotas-de-ia) |
 | `workspaces/{w}/ai_cache/{fn}_{sha256}` — `{functionName, payload, createdAt, expiresAt}` | servidor | ninguém (rules negam) | F5.6 | [Cache de IA](#cache-de-ia-por-hash-da-entrada-ai_cache) |
@@ -72,6 +73,16 @@ apenas reage ao que o cliente gravou.
 | `workspaces/{w}/financial_coaching/{id}` — `{message, summary, type, slides[], date, generatedBy}` | servidor | app | F1.11 (tipada no backend) | [`actionPath` dos slides](#actionpath-dos-slides-de-coaching) |
 | `workspaces/{w}/planning_analysis/{YYYY-MM}` — `{month, summary, groups[], categories[], insights[], projectedIncome, incomeSource, generatedBy, createdAt}` | servidor | app | F1.11 (tipada no backend) | — |
 | **Todos os `*Cents`** — `orders.amountCents`, `installments.{amount,paidAmount,referenceAmount}Cents`, `accounts.{initialBalance,limit}Cents`, `accounts.nextInvoice.amountCents`, `goals.{targetAmount,currentAmount}Cents`, `category_planning.{amount,appliedAmount}Cents`, `balance.{delta,balance}Cents`, `period_summaries.categories.{id}.{generalPlannedAmount,specificPlannedAmount,actualAmount}Cents` | servidor (rules negam ao cliente) | ninguém **ainda** — o app passa a ler na etapa C | F1.10 | [Dinheiro em centavos](#dinheiro-em-centavos-f110) |
+
+> **Quando `weekly_missions` da semana corrente EXISTE.** As missões da semana
+> existem **a partir de domingo 00:05 (Brasília) para workspaces ATIVOS** — o
+> cron semanal fecha a semana anterior e, em seguida, cria as três da nova.
+> **Workspace dormente** (nenhuma parcela paga nos últimos 30 dias) **recebe as
+> suas no primeiro evento** da semana, pelo caminho preguiçoso de sempre. Entre
+> a virada (domingo 00:00) e o cron, e em qualquer workspace dormente antes do
+> primeiro evento, a consulta devolve vazio: **o app deve mostrar o bloco de
+> missões vazio** (ou o seu estado de "ainda não há missões"), não um erro nem
+> um esqueleto infinito.
 
 ### O que o app precisa acompanhar
 
@@ -1038,6 +1049,49 @@ Um marcador `running` parado há mais de 10 minutos é considerado abandonado
 `expiresAt` = criação + **30 dias**, recolhido pela política de TTL descrita
 acima (a política de `_idempotency` ainda **não foi ativada** — o comando
 `gcloud` está na seção anterior).
+
+### O que a idempotência por `eventId` NÃO cobre
+
+Ela protege contra a **reentrega do mesmo evento**. Não protege contra um
+**evento novo sobre o mesmo fato** — e a diferença deixou de ser teórica quando
+o app passou a usar ids determinísticos.
+
+**Conciliação: a gamificação é create-only.** O app deriva o id de
+`reconciliations/{id}` da linha do extrato, para ser idempotente do lado do
+cliente. Reconfirmar o MESMO extrato passa então a SOBRESCREVER o mesmo
+documento, e `onReconciliationWritten` — um `onDocumentWritten` — dispara de
+novo, com um `event.id` **novo**. O marcador `_idempotency` do primeiro evento
+não casa com o segundo, então a segunda passagem roda inteira.
+
+Hoje nenhum efeito dela é aditivo, e vale registrar por quê, porque é isso que
+o pacote transformou em garantia:
+
+| Consumidor | Por que não somava duas vezes |
+|---|---|
+| `checkReconciliationBadges`, `checkSimpleReconciliationBadges` | tudo passa por `unlockBadge`, que concede badge e XP na MESMA transação e devolve `false` se o badge já estava lá |
+| missão `reconciled_statement_items` | o progresso é **recalculado** a partir do evento (`progress = totalTransactionsProcessed`), nunca incrementado; e `completeMissionAndAwardXp` é transacional e só paga uma vez |
+| missão `reconciled_statements` | conta DOCUMENTOS de `reconciliations` na semana — e uma sobrescrita não cria documento nenhum |
+
+Essa segurança era **incidental**: vinha de como cada consumidor foi escrito, e
+não de uma decisão sobre este evento. O primeiro efeito aditivo que alguém
+acrescentasse ali vazaria em silêncio. O handler agora sai cedo quando
+`before` existe, e a garantia passa a ser estrutural.
+
+> **O gatilho continua sendo `onDocumentWritten`, e não virou
+> `onDocumentCreated`.** Com `onDocumentCreated` a função nem seria invocada na
+> sobrescrita — mais barato — mas o "reconfirmei e não somou" do usuário não
+> deixaria rastro nenhum para o suporte seguir. Aqui a sobrescrita sai em
+> poucas linhas com um log que diz por quê. Conciliar é uma ação MANUAL: o
+> volume não justifica trocar observabilidade por uma invocação.
+
+> ⚠️ **Consequência aceita: reconciliar mais linhas do MESMO extrato não conta.**
+> Se o usuário concilia 3 itens, volta ao mesmo extrato e casa mais 9, a segunda
+> gravação é uma sobrescrita — o badge de 10 itens (`cash_detective`) não é
+> concedido e o progresso da missão fica nos 3 primeiros. É o preço de o efeito
+> ser inequivocamente uma vez só. Se isso incomodar na prática, o caminho não é
+> reabrir o `update`: é o app passar a gravar um documento NOVO por sessão de
+> conciliação (id derivado do extrato **+ da sessão**), e aí cada sessão conta
+> uma vez, que é o que o contrato já sabe medir.
 
 ## Categorias de sistema (`isSystem`)
 
@@ -2384,6 +2438,62 @@ porque nada no caminho sabia o que era estar dentro dele.
 
 O objetivo passou a ser **dado**.
 
+### Quando as missões da semana existem
+
+| Momento (America/Sao_Paulo) | O que acontece |
+|---|---|
+| domingo 00:00 | vira a semana do produto (`week.utils.ts`); `weekly_missions` da semana nova ainda **não existe** |
+| domingo 00:05 | `weeklyGamificationCron`: **fecha** a semana anterior (passada final das missões em aberto, streak, XP do plano, badges) e **abre** a nova, criando as três missões de cada workspace ATIVO |
+| domingo 00:10 | `syncWorkspaceCurrentWeek` reafirma `currentWeekId`/`currentWeekStart` |
+| primeiro evento da semana | fallback: num workspace DORMENTE, `updateWeeklyMissionsProgress` → `generateWeeklyMissions` cria as três ali |
+
+**Ativo** é o mesmo sinal do coaching proativo — alguma parcela **paga** nos
+últimos `ACTIVE_WORKSPACE_WINDOW_DAYS` = **30 dias** —, com a janela contada a
+partir do **domingo que inicia a semana**, não do instante do disparo, para o
+resultado não depender do minuto em que o cron rodou. A janela é mais larga que
+os 14 dias do coaching porque aqui o passo é semanal, não diário: quem lançou
+algo no último mês volta. Gerar para a base inteira criaria três documentos por
+semana em cada workspace abandonado.
+
+**O cron não chama a IA** (`aiGarnish: false`). O texto sai do catálogo
+determinístico — que é exatamente o que a IA teria de referenciar para passar
+na validação (ver [O que a IA ainda faz](#o-que-a-ia-ainda-faz)). Consequência
+a conhecer: **o workspace ativo passa a receber o nome do catálogo**, e não o
+temperado pelo Gemini, porque quando o primeiro evento chega as missões já
+existem. Reaplicar o tempero depois é possível (só quando o nome ainda for o do
+catálogo, pela validação existente) e ficou de fora deste pacote.
+
+**Custo por workspace, por semana** — leituras, não escritas:
+
+| Caso | Leituras |
+|---|---|
+| já tem as missões (reexecução do cron, ou geração preguiçosa que chegou antes) | **1** (a missão de consistência) |
+| dormente | **2** (missão + atividade) |
+| ativo, `personal` | **4** (missão, atividade, workspace, planejamentos) |
+| ativo, `business` | **8** (as quatro + o sumário da semana + as três consultas `limit(1)` da peneira de CAPACIDADE) |
+
+A leitura de METAS saiu do caminho do cron: ela só alimentava o prompt do
+Gemini. As escritas são três `create` por workspace gerado — e `create` não
+sobrescreve missão existente.
+
+As três leituras de capacidade (cartão, conciliação, lançamento automático)
+entraram com a peneira de CAPACIDADE e só acontecem em workspace `business` —
+ver [Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio). São `limit(1)`
+e correm em paralelo com o sumário; o workspace pessoal continua em 4 leituras.
+Uma falha em qualquer das duas metades do contexto degrada **só aquela
+metade**: zerar as duas por causa de uma faria o gerador e o script de retag
+divergirem na primeira falha transitória.
+
+**Idempotência em duas camadas**: a checagem de existência (que é também o
+caminho de 1 leitura de uma reexecução) e a MESMA chave da geração preguiçosa
+(`${workspaceId}_${weekId}` + `generateWeeklyMissions`), de modo que cron e
+evento nunca gerem a mesma semana duas vezes.
+
+> **Efeito colateral de propósito.** Um workspace ativo que passa a semana
+> inteira sem nenhum evento agora **tem** as três missões, nenhuma concluída, e
+> a streak zera por isso — em vez de zerar por `count === 0`, sem nada na tela
+> que explicasse o zero.
+
 ### O catálogo
 
 `features/goal/domain/models/mission_catalog.ts` guarda, por audiência e por
@@ -2403,6 +2513,7 @@ placeholders (`{category}`, `{target}`), `target`, `rewardXp`, `progressRule`,
 | business | organization | `business_organization_reconcile_statements` | conciliar N extratos das contas da empresa | `reconciled_statements` | 1 | 200 | `/reconciliation` |
 | business | organization | `business_organization_categorize_auto` | categorizar ou descartar N lançamentos automáticos | `categorized_auto_transactions` | 3 | 200 | `/workspace/categories` |
 | business | organization | `business_organization_invoice_on_time` | pagar a fatura corporativa até o vencimento | `invoice_paid_on_time` | 1 | 200 | `/workspace/accounts` |
+| business | organization | `business_organization_categorize_week` | categorizar N% dos lançamentos pagos da semana | `categorized_week_installments` | 100 | 200 | `/workspace/categories` |
 
 **Pessoal mantém os três objetivos que já existiam** — são os que estão em
 produção e os que o jogo já sabe medir. O que mudou neles foi o TEXTO: os
@@ -2425,13 +2536,43 @@ produz uma missão que o avaliador **não tem como medir**: 0% por sete dias,
 semana perfeita impossível e streak zerada, sem que o usuário tenha feito nada
 de errado.
 
-Por isso o template pode declarar `isEligible(context)`, e o contexto são os
-totais PLANEJADOS da semana, lidos uma vez na geração:
+Por isso o template pode declarar `isEligible(context)`. O contexto tem **duas
+metades**, e elas respondem perguntas diferentes:
 
-| Template | Elegível quando |
-|---|---|
-| `business_consistency_income_forecast` | `plannedIncomeCents > 0` |
-| `business_discipline_margin` | `plannedIncomeCents > 0` **e** `plannedExpenseCents > 0` |
+- os totais **PLANEJADOS** da semana (`period_summaries/{weekId}`) dizem se a
+  missão tem como ser **medida nesta semana**;
+- a **CAPACIDADE** (`MissionCapacity`) diz se ela tem como ser **cumprida,
+  alguma vez** — são fatos estáveis do workspace, não da janela.
+
+**Tabela de elegibilidade, por template:**
+
+| Template | Tipo | Elegível quando | Peneira |
+|---|---|---|---|
+| `personal_consistency_plan_limits` | consistency | sempre | — |
+| `personal_discipline_top_category` | discipline | sempre | — |
+| `personal_organization_reconcile_items` | organization | sempre | — (ver nota abaixo) |
+| `business_consistency_cost_centers` | consistency | sempre | — |
+| `business_consistency_income_forecast` | consistency | `plannedIncomeCents > 0` | plano |
+| `business_discipline_top_cost_center` | discipline | sempre | — |
+| `business_discipline_margin` | discipline | `plannedIncomeCents > 0` **e** `plannedExpenseCents > 0` | plano |
+| `business_organization_reconcile_statements` | organization | `hasReconciledStatementEver` | capacidade |
+| `business_organization_categorize_auto` | organization | `hasRecentAutomaticTransaction` | capacidade |
+| `business_organization_invoice_on_time` | organization | `hasCreditCardAccount` | capacidade |
+| `business_organization_categorize_week` | organization | **sempre** | — (é a garantia) |
+
+As três capacidades são **booleanos**, e não contagens, porque toda pergunta é
+"existe ao menos um?" — as consultas usam `limit(1)`:
+
+| Campo | Pergunta | Consulta |
+|---|---|---|
+| `hasCreditCardAccount` | tem cartão de crédito? | `accounts` com `runtimeType == creditCard` e `isDeleted == false` |
+| `hasReconciledStatementEver` | já conciliou **alguma vez**? | `reconciliations` com `status == completed` |
+| `hasRecentAutomaticTransaction` | recebe notificação? | `automatic_transactions` com `date >=` (domingo da semana − `CAPACITY_WINDOW_DAYS` = 30 dias) |
+
+A janela dos lançamentos automáticos é ancorada no **domingo que inicia a
+semana sorteada**, não no instante da geração: o sorteio tem de ser
+reproduzível fora do gatilho — é o que permite ao `retag_weekly_missions`
+chegar ao mesmo template dias depois.
 
 A peneira roda **antes** do hash: numa semana sem receita prevista, a
 consistência da empresa cai sempre em "planejar centros de custo", que é o que
@@ -2456,25 +2597,58 @@ O contexto só é lido em workspace `business` — num pessoal nenhum template t
 > que roda os dois caminhos de código sobre os mesmos dados, nos quatro
 > contextos, numa semana em que a peneira de fato troca o template.
 
-**`isEligible` NÃO cobre as missões de `organization`** — é uma lacuna
-consciente, não um esquecimento. As três corporativas de organização
-(conciliar extrato, triar lançamentos automáticos, pagar a fatura no prazo) são
-**prospectivas**: elas pedem algo que o usuário ainda vai fazer durante a
-semana. Uma peneira pelo que já aconteceu NAQUELA JANELA as tornaria
-permanentemente inelegíveis, porque no instante da geração a semana está vazia
-por definição — seria trocar "missão difícil de medir" por "missão que nunca é
-sorteada".
+#### A peneira de organização: um RISCO, não um defeito observado
 
-A peneira correta para elas é de **capacidade**, não de janela: só ofereça
-"pagar a fatura" a quem tem cartão, "conciliar extrato" a quem tem conta, e
-"triar lançamentos automáticos" a quem usa a captura por notificação. São fatos
-ESTÁVEIS do workspace, e por isso convergem entre gerador e retag. O que
-impediu de implementar agora foi o critério de custo: são três leituras que o
-gerador **ainda não faz** (contagem de contas, contas de cartão, e um
-`limit(1)` em `automatic_transactions`), enquanto a peneira de receita/margem
-reaproveita o sumário que ele já lê. Fica como pacote próprio, com o efeito
-conhecido: hoje uma empresa sem cartão de crédito recebe "fechar a fatura
-corporativa no prazo" a cada três semanas, e não tem como cumpri-la.
+As três missões corporativas de organização são **prospectivas**: pedem algo
+que o usuário ainda vai fazer durante a semana. Peneirá-las pelo que já
+aconteceu NAQUELA JANELA as tornaria permanentemente inelegíveis (no instante
+da geração a semana está vazia por definição) — por isso a peneira delas é de
+**capacidade**, não de janela.
+
+O risco que ela fecha: um workspace **sem cartão de crédito** podia sortear
+"fechar a fatura corporativa no prazo", um **sem nenhum extrato conciliado**
+podia sortear "conciliar um extrato", e um **sem captura por notificação**
+podia sortear "triar lançamentos automáticos". Não seriam missões difíceis —
+seriam missões que **nenhuma ação dentro do app conseguiria concluir**, e que
+ainda impedem a semana perfeita e zeram a streak de quem não fez nada de
+errado. Como o sorteio é por hash da semana, é questão de tempo até cair numa
+delas.
+
+> **O caso `a70134c1` foi FALSO ALARME, e vale registrar por quê.** A suspeita
+> que originou este pacote era que aquele workspace tivesse recebido
+> `business_organization_invoice_on_time` em 2026-W38 sem ter cartão. Ele
+> **tem**: um `creditCard` ("Cartão Inter", criado em 2026-06-03, com
+> `nextInvoice` vencendo em 2026-10-20), além de 2 conciliações e 3 lançamentos
+> automáticos recentes — capacidade cheia nas três perguntas. A checagem que
+> levantou o alarme leu `type` em vez de `runtimeType`, que é o discriminador
+> da union de contas (ver `getCreditCardAccountIds`). A missão daquela semana
+> era legítima, e o dry-run do retag em produção confirmou: **`reparadas=0` nos
+> cinco workspaces**. A peneira continua valendo — ela fecha o risco antes de
+> ele aparecer —, mas nenhum workspace de produção precisou de reparo em W38.
+
+**A garantia: `business_organization_categorize_week`.** Uma empresa pode não
+ter nenhuma das três capacidades, e aí a peneira derrubaria os três candidatos
+— com o atalho "se ninguém for elegível, sorteia entre TODOS", o sorteio
+devolveria justamente a missão impossível que acabou de descartar. Por isso o
+catálogo ganhou uma quarta missão de organização **sem `isEligible`**:
+categorizar os lançamentos pagos da semana. Ela existe em qualquer workspace
+que movimente dinheiro, é medida com as parcelas que a avaliação já sabe ler
+(no máximo **uma** consulta a mais — ver `categorized_week_installments` nas
+regras de progresso) e é o mesmo hábito que o `fix_empty_category` existe para
+reparar.
+
+O teste de matriz cobre as **oito** combinações de capacidade × 53 semanas e
+exige uma invariante só: *o template devolvido passa na própria peneira* — o
+atalho do `all` nunca é alcançado na organização de empresa.
+
+**Por que `personal_organization_reconcile_items` NÃO é peneirado.** A
+organização pessoal tem **um único** candidato. Peneirar uma lista de um
+elemento não muda nada: sem ninguém elegível, o sorteio volta a correr sobre
+todos e devolve o mesmo template. Uma peneira ali custaria leitura e não
+mudaria o resultado — e é por isso que o gerador **não lê capacidade nenhuma**
+em workspace pessoal. O dia em que a organização pessoal ganhar um segundo
+template, a peneira passa a valer a pena; até lá, seria uma linha de tabela
+mentindo sobre o que acontece.
 
 > **Uma empresa pode não fechar a semana perfeita numa semana sem receita
 > prevista.** A missão de receita some do sorteio (bom), mas a de margem
@@ -2578,6 +2752,29 @@ TRANSAÇÃO (a fatura paga).
 | `invoice_paid_on_time` | faturas pagas até o DIA do vencimento | parcelas pagas com `isInvoice` | transação, fechamento |
 | `weekly_margin_above_plan` | margem realizada ≥ margem planejada | `period_summaries/{YYYY-Www}` | transação, fechamento |
 | `income_received_vs_planned` | % da receita **prevista** que entrou | `period_summaries/{YYYY-Www}` (`specificPlannedAmount`) | transação, fechamento |
+| `categorized_week_installments` | % das parcelas PAGAS da semana que têm categoria de verdade | parcelas pagas na semana (a leitura que a avaliação já faz) | transação, fechamento |
+
+`categorized_week_installments` é a missão de organização que **sempre dá para
+cumprir** (ver [Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio)).
+
+**O que ela custa depende da DISCIPLINA da mesma semana.** A leitura de
+parcelas pagas é memoizada por avaliação, então:
+
+| Disciplina sorteada | Semanas do ano | Custo da organização |
+|---|---|---|
+| `days_within_category_limit` | 27 de 53 | **zero** — a leitura já foi feita |
+| `weekly_margin_above_plan` (lê o sumário) | 26 de 53 | **uma** consulta de parcelas |
+
+Nunca mais de uma, e é a mesma consulta que a avaliação já sabe fazer: nenhuma
+fonte de dados nova entrou no caminho de avaliação. Duas outras decisões dela:
+
+- **transferência fica fora do denominador.** Transferência — e fatura, que é
+  gravada como transferência — não carrega categoria **por desenho** (ver
+  `isCategoryRefBroken` em "Categoria sem id"). Contá-la deixaria os 100%
+  inalcançáveis para quem move dinheiro entre as próprias contas;
+- **semana sem nenhuma parcela a categorizar devolve `null`**, não 100%. Não há
+  o que medir, e escrever um 100% que ninguém conquistou pagaria XP por uma
+  semana parada. A missão fica pendente e a semana fecha sem ela.
 
 #### Os dois "planejados" do sumário não são a mesma coisa
 
@@ -2774,11 +2971,62 @@ de ser obedecido, sem depender de outro print do dono.
 | `syncNextInvoices`                  | `45 3 * * *` (diário)     | `America/Sao_Paulo` |
 | `generateCategoryPlanningSummaries` | `0 0 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `syncWorkspaceCurrentWeek`          | `10 0 * * 0` (domingo)    | `America/Sao_Paulo` |
-| `weeklyGamificationCron`            | `0 3 * * 1` (segunda)     | `America/Sao_Paulo` |
+| `weeklyGamificationCron`            | `5 0 * * 0` (domingo, 00:05) | `America/Sao_Paulo` |
 | `monthlyGamificationCron`           | `0 3 1 * *` (dia 1)       | `America/Sao_Paulo` |
 | `publishBadgeCatalog`               | `0 4 * * *` (diário)      | `America/Sao_Paulo` |
 | `refreshFinancialHealth`            | `*/15 * * * *` (15 min)   | `America/Sao_Paulo` |
 | `closeFinancialHealthMonth`         | `30 4 1 * *` (dia 1)      | `America/Sao_Paulo` |
+| `closeExpiredGoals`                 | `15 3 * * *` (diário)     | `America/Sao_Paulo` |
+| `generateWeeklyCoaching`            | `0 6 * * 1` (segunda)     | `America/Sao_Paulo` |
+
+Cada agendamento acima é uma leitura do calendário do PRODUTO (semana que
+começa no domingo, mês no fuso de Brasília), não uma preferência de horário:
+
+| Cron | Por que esse dia/hora |
+|---|---|
+| `weeklyGamificationCron` | domingo 00:05 — **a virada da semana**: fecha a anterior e abre a nova (ver abaixo) |
+| `syncWorkspaceCurrentWeek` | domingo 00:10 — logo depois da virada; fora dele o marcador é reafirmado sob demanda por `ensureCurrentWeek` |
+| `monthlyGamificationCron` | dia 1, 03:00 — avalia o mês ANTERIOR (`getMonthRangeInTz(now, -1)`), completo à meia-noite do dia 1 |
+| `closeFinancialHealthMonth` | dia 1, 04:30 — fecha o mês anterior (`shiftMonthKey(toMonthKey(now), -1)`), depois dos crons que fecham as outras coleções |
+| `generateCategoryPlanningSummaries` | dia 1, 00:00 — aplica o mês que COMEÇA (`toMonthKey(now)`/`planningHorizon(now)`); rodar depois atrasaria o planejado do mês corrente |
+| `closeExpiredGoals` | diário, 03:15 — vencimento de meta é por DIA; compara o prazo com `now` |
+| `syncNextInvoices` | diário, 03:45 — ciclo de fatura é por DIA, depois da geração de parcelas (03:30) |
+| `generateWeeklyCoaching` | segunda, 06:00 — **horário de entrega**, não de cálculo: a janela sai de `getWeekRefBefore(now, n)` e fecha a mesma semana em qualquer dia da semana corrente |
+
+O coaching é o único cujo dia é uma escolha de produto: "o insight da semana
+chega na segunda de manhã". Mudá-lo para domingo é decisão do dono, não
+correção — a semana analisada seria a mesma.
+
+### O cron semanal roda na VIRADA da semana (domingo 00:05)
+
+A semana do produto começa no **domingo 00:00** (F1.9), e o cron semanal ficou
+para trás em `"0 3 * * 1"` — segunda, 03:00. O fechamento em si nunca esteve
+errado (a janela é `startOfWeekInTz(now) - 7 dias`, que dá a mesma semana em
+qualquer dia da semana corrente), mas a semana nova passava **27 horas** sem
+que nada do lado semanal tivesse rodado: o usuário que abria o app no domingo
+ainda via a streak e o XP da semana anterior em aberto.
+
+O agendamento saiu para a constante exportada
+`WEEKLY_GAMIFICATION_CRON_SCHEDULE`, e `src/test/cron_schedule.test.ts`
+**deriva** a expressão do dia de início da semana (`week.utils.ts`): mudar a
+definição de semana sem mexer no cron — ou o contrário — quebra o teste.
+
+Cinco minutos de folga (`WEEKLY_CRON_MINUTES_AFTER_WEEK_START`) porque as
+regras de margem e de receita recebida leem `period_summaries`, escrito por
+gatilho: uma transação feita nos últimos segundos do sábado precisa de algum
+tempo para virar sumário. Não é uma garantia — é a mesma aposta que o cron das
+03:00 fazia com folga maior. Se aparecer semana fechada com sumário atrasado,
+o número a aumentar é esse.
+
+Ordem no domingo de madrugada: `weeklyGamificationCron` (00:05) roda **antes**
+de `syncWorkspaceCurrentWeek` (00:10). Não há dependência entre os dois — o
+cron semanal calcula a semana de `now` e não lê `workspaces.currentWeekId`.
+
+O cron tem **duas metades**: fecha a semana anterior e **abre a nova**, criando
+as missões dos workspaces ativos (`ensureWeeklyMissionsForActiveWorkspace`,
+sem chamada de IA). O dormente continua recebendo as suas no primeiro evento.
+Critério de atividade, custo de leitura e idempotência estão em
+[Quando as missões da semana existem](#quando-as-missões-da-semana-existem).
 
 `generateRecurringInstallments` rodava a cada 4 horas — 6 varreduras por dia de
 uma tarefa cuja unidade de avanço é o **mês** (a order recorrente só ganha
@@ -2878,7 +3126,7 @@ Independente do bloco acima, e muito menor. Três passos, nesta ordem:
 1. índices     firebase deploy --only firestore:indexes
                ⏳ ESPERAR o índice de `reconciliations` (status, createdAt) ficar READY
 2. functions   firebase deploy --only functions
-3. retag       node lib/scripts/retag_weekly_missions.js   (dry-run → --apply)
+3. retag       node lib/scripts/retag_weekly_missions.js --all-workspaces   (dry-run → --apply)
                ⏳ na MESMA semana do deploy — ver o script
 ```
 
@@ -3297,6 +3545,37 @@ vendo "Reduzir gastos com alimentação" até o domingo seguinte ao deploy.
 | **concluída** (qualquer tipo de workspace) | só CARIMBA: `templateKey`, `workspaceType`, `actionPath`, `nameKey`, `params`. `name`, `target`, `progress`, `status`, `rewardXp` e `completedAt` ficam intocados |
 | **aberta**, workspace `business` | SUBSTITUÍDA pelo template corporativo da semana: nome, alvo, XP, rota e chaves do catálogo, `progress` de volta a 0 |
 | **aberta**, workspace `personal` | só CARIMBA. O objetivo já era o certo |
+| **aberta e JÁ carimbada**, com template hoje INELEGÍVEL, `progress == 0` | REPARADA: trocada pelo template elegível da semana |
+| **aberta e JÁ carimbada**, com template hoje INELEGÍVEL, `progress > 0` | MANTIDA, e listada no resumo como `mantidas_com_progresso` |
+
+#### O reparo da missão impossível
+
+É o que conserta, no que já está gravado, uma semana em que o sorteio tenha entregue missão inelegível (em 2026-W38 o dry-run deu `reparadas=0` nos cinco workspaces: não havia o que consertar). O servidor novo não sorteia
+mais `business_organization_invoice_on_time` para um workspace sem cartão (ver
+[Elegibilidade](#elegibilidade-a-peneira-antes-do-sorteio)), mas a missão
+gravada continuaria na tela, incumprível, até a virada da semana.
+
+O script lê a MESMA capacidade que o servidor (três consultas `limit(1)`:
+cartão, conciliação, lançamento automático) e, para cada missão **aberta e já
+carimbada** cujo `templateKey` tem `isEligible` que hoje REPROVA aquele
+workspace, troca o documento inteiro pelo template elegível da semana.
+
+**Só com `progress == 0`.** Progresso é trabalho do usuário: trocar a missão
+por baixo dele apagaria o que ele fez, e um número que anda para trás na tela é
+pior que uma missão difícil. Com progresso, a missão fica — e o resumo diz
+quais foram, para a decisão ser de quem opera, não do script.
+
+O reparo **não toca em missão concluída** (ela é troféu, e o XP já entrou) nem
+em missão cujo template não tem peneira. Com `--week=<YYYY-Www>`, o mês do
+planejamento e a janela de capacidade são os **daquela semana**, não os de
+hoje: rodar na terça seguinte tem de reproduzir o sorteio de domingo.
+
+```bash
+# Exemplo: uma semana e um workspace só (simule antes; em 2026-W38 foi no-op):
+GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b \
+    --week=2026-W38 --workspace=a70134c1... --apply
+```
 
 **A missão concluída NÃO é estornada.** O XP dela já entrou no workspace, já
 subiu nível e já pode ter desbloqueado badge; desfazer isso exigiria reverter
@@ -3315,15 +3594,19 @@ o que deve medir; trocar a frase só produziria churn na tela de quem não tem
 problema nenhum.
 
 É IDEMPOTENTE (pula quem já tem `templateKey`, a não ser com `--force`),
-DRY-RUN por padrão e paginado por cursor.
+DRY-RUN por padrão e paginado por cursor. O **alcance é explícito**: sem
+`--workspace=<id>` nem `--all-workspaces` o script aborta, e um argumento
+desconhecido (um `--worskpace=` com erro de digitação, por exemplo) também —
+num script que escreve, uma flag engolida calada faz o operador achar que
+limitou o alcance quando não limitou.
 
 ```bash
 cd functions
 npm run build
 
-# 1) Simulação (padrão — não escreve nada)
+# 1) Simulação da base inteira (padrão — não escreve nada)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
-  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --all-workspaces
 
 # 2) Um workspace só, para conferir o efeito
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
@@ -3331,7 +3614,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
 
 # 3) Base inteira (somente após revisar o dry-run)
 GOOGLE_APPLICATION_CREDENTIALS=/caminho/service-account.json \
-  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --apply
+  node lib/scripts/retag_weekly_missions.js --project=funance-cef1b --all-workspaces --apply
 ```
 
 Flags: `--apply`, `--project=<id>`, `--workspace=<id>`, `--week=<YYYY-Www>`,

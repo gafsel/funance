@@ -75,6 +75,15 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
 
     final dense = maxItems != null;
 
+    // A porta para a tela cheia existe sempre que houver pendência, e não só
+    // quando alguma ficou escondida. Com três ou menos não havia botão
+    // NENHUM — e como a linha compacta da Home só oferece "consolidar",
+    // ignorar e mover para outro cofre sumiam do app inteiro justamente no
+    // estado normal, que é ter poucas pendências.
+    final abreTelaCheia = dense && all.isNotEmpty;
+
+    void abrir() => context.push('/automatic-transactions');
+
     return Card(
       // Na Home a margem do cartão soma com o respiro que a coluna já dá, e
       // 32px de espaço duplicado num bloco com teto de altura é caro.
@@ -82,41 +91,47 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: dense ? AppSpacing.allSm : AppSpacing.allMd,
-            child: Row(
-              children: [
-                Icon(Icons.auto_awesome, color: palette.tealText),
-                const SizedBox(width: AppSpacing.xs),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.automaticTransactionTitle,
-                        style: theme.textTheme.titleMedium,
-                      ),
-                      // O subtítulo explica o que o bloco É. Na Home, onde
-                      // ele reaparece todo dia, isso é uma linha gasta com
-                      // algo que já se sabe.
-                      if (!dense)
+          _MaybeDoor(
+            onTap: abreTelaCheia ? abrir : null,
+            label: l10n.automaticTransactionTitle,
+            child: Padding(
+              padding: dense ? AppSpacing.allSm : AppSpacing.allMd,
+              child: Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: palette.tealText),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          l10n.automaticTransactionSubtitle,
-                          style: theme.textTheme.bodySmall,
+                          l10n.automaticTransactionTitle,
+                          style: theme.textTheme.titleMedium,
                         ),
-                    ],
+                        // O subtítulo explica o que o bloco É. Na Home, onde
+                        // ele reaparece todo dia, isso é uma linha gasta com
+                        // algo que já se sabe.
+                        if (!dense)
+                          Text(
+                            l10n.automaticTransactionSubtitle,
+                            style: theme.textTheme.bodySmall,
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                // Botão de desenvolvimento: simular uma notificação de banco
-                // não é coisa que um usuário faça, e num card de dinheiro ele
-                // era um convite a criar lançamento falso. Fica só em debug.
-                if (kDebugMode)
-                  IconButton(
-                    icon: const Icon(Icons.bug_report, size: 16),
-                    onPressed: () => notifier.simulateNotification(),
-                    tooltip: l10n.automaticTransactionSimulate,
-                  ),
-              ],
+                  // Botão de desenvolvimento: simular uma notificação de banco
+                  // não é coisa que um usuário faça, e num card de dinheiro ele
+                  // era um convite a criar lançamento falso. Fica só em debug.
+                  if (kDebugMode)
+                    IconButton(
+                      icon: const Icon(Icons.bug_report, size: 16),
+                      onPressed: () => notifier.simulateNotification(),
+                      tooltip: l10n.automaticTransactionSimulate,
+                    ),
+                  if (abreTelaCheia)
+                    Icon(Icons.chevron_right, size: 20, color: palette.ink2),
+                ],
+              ),
             ),
           ),
           const Divider(height: 1),
@@ -138,19 +153,22 @@ class AutomaticTransactionConsolidationWidget extends ConsumerWidget {
               );
             },
           ),
-          if (hidden > 0) ...[
+          if (abreTelaCheia) ...[
             const Divider(height: 1),
             Align(
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                 child: TextButton.icon(
-                  onPressed: () => context.push('/automatic-transactions'),
+                  onPressed: abrir,
                   icon: const Icon(Icons.inbox_outlined, size: 18),
+                  // Com tudo à mostra o botão não promete um número que a
+                  // pessoa já está vendo; ele promete o que a Home não tem,
+                  // que são as outras ações.
                   label: Text(
-                    l10n.automaticTransactionSeeAll(
-                      state.pendingTransactions.length,
-                    ),
+                    hidden > 0
+                        ? l10n.automaticTransactionSeeAll(all.length)
+                        : l10n.automaticTransactionSeeAllShort,
                   ),
                 ),
               ),
@@ -385,7 +403,6 @@ class _TransactionItem extends ConsumerWidget {
             ),
           AppSpacing.gapSm,
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               if (otherWorkspaces.isNotEmpty)
                 PopupMenuButton<String>(
@@ -397,21 +414,29 @@ class _TransactionItem extends ConsumerWidget {
                         (w) => PopupMenuItem(value: w.id, child: Text(w.name)),
                       )
                       .toList(),
-                )
-              else
-                const SizedBox.shrink(),
-              Row(
-                children: [
-                  TextButton(
-                    onPressed: onIgnore,
-                    child: Text(l10n.automaticTransactionIgnore),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  ElevatedButton(
-                    onPressed: onConsolidate,
-                    child: Text(l10n.automaticTransactionConsolidate),
-                  ),
-                ],
+                ),
+              // `Wrap` dentro de um `Expanded`, e não um `Row` solto: as três
+              // ações somam mais que a largura de um celular estreito — com o
+              // botão de mover à esquerda e dois botões à direita, a linha
+              // estourava em 30px a 420px de tela. `spaceBetween` num `Row`
+              // não resolve isso: ele distribui o que sobra, e aqui não
+              // sobrava nada.
+              Expanded(
+                child: Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xxs,
+                  children: [
+                    TextButton(
+                      onPressed: onIgnore,
+                      child: Text(l10n.automaticTransactionIgnore),
+                    ),
+                    ElevatedButton(
+                      onPressed: onConsolidate,
+                      child: Text(l10n.automaticTransactionConsolidate),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -480,6 +505,37 @@ class _TransactionItem extends ConsumerWidget {
             visualDensity: VisualDensity.compact,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Envolve o cabeçalho num toque, quando há para onde ir.
+///
+/// O mesmo padrão do `MissionSummary`: o cabeçalho de um bloco resumido é a
+/// porta da tela completa. Sem [onTap] ele é só o cabeçalho, que é o caso da
+/// própria tela cheia.
+class _MaybeDoor extends StatelessWidget {
+  const _MaybeDoor({
+    required this.child,
+    required this.label,
+    required this.onTap,
+  });
+
+  final Widget child;
+  final String label;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (onTap == null) return child;
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(onTap: onTap, child: child),
       ),
     );
   }

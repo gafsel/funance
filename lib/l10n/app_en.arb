@@ -74,7 +74,6 @@
   "onboardingWorkspaceNamePersonalHint": "Ex: My Finances, Silva Family...",
   "onboardingWorkspaceNameBusinessHint": "Ex: My Company, Freelance...",
   "onboardingWorkspaceNameLabel": "Workspace Name",
-  "onboardingGoalsTitle": "Set your first goals",
   "onboardingGoalsButton": "GOT IT, NEXT STEP",
   "onboardingMembersTitle": "Invite members",
   "onboardingMembersDesc": "You can share your workspace with partners or family members to manage finances together.",
@@ -1180,6 +1179,14 @@
       }
     }
   },
+  "missionBusinessOrganizationCategorizeWeek": "Categorise {target}% of the entries paid this week.",
+  "@missionBusinessOrganizationCategorizeWeek": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "missionBusinessOrganizationInvoiceOnTime": "Close {target} corporate card invoice by paying before the due date.",
   "@missionBusinessOrganizationInvoiceOnTime": {
     "placeholders": {
@@ -1376,4 +1383,6 @@
       }
     }
   }
+,
+  "automaticTransactionSeeAllShort": "See all"
 }

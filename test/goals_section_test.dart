@@ -285,9 +285,10 @@ void main() {
     );
   });
 
-  /// A2 — a tela e a seção usavam `onboardingGoalsTitle`, que é a FRASE de
-  /// convite do onboarding: "Trace suas primeiras metas" como título de uma
-  /// tela de quem já tem quatro. Título é substantivo.
+  /// A2 — a tela e a seção usavam a FRASE de convite do onboarding, "Trace
+  /// suas primeiras metas", como título de uma tela de quem já tem quatro.
+  /// Título é substantivo. A chave antiga foi removida: ela não tinha outro
+  /// chamador, e o onboarding tem a própria.
   test('A2 — o título de metas é a palavra, não o convite', () {
     expect(l10n.goalsTitle, 'Metas');
     expect(l10n.goalsTitle, isNot(contains('primeiras')));
@@ -298,6 +299,6 @@ void main() {
     await tester.pump();
 
     expect(find.text('Metas'), findsOneWidget);
-    expect(find.text(l10n.onboardingGoalsTitle), findsNothing);
+    expect(find.textContaining('primeiras'), findsNothing);
   });
 }

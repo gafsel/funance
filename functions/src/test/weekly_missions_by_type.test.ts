@@ -32,6 +32,12 @@ interface FakeRepoOptions {
     weeklySummary?: any[];
     reconciledStatements?: number;
     automaticTransactions?: any[];
+    /** A peneira de CAPACIDADE (default: tudo presente). */
+    capacity?: {
+        hasCreditCardAccount: boolean;
+        hasReconciledStatementEver: boolean;
+        hasRecentAutomaticTransaction: boolean;
+    };
     /** Missões pré-existentes, por tipo. */
     missions?: Record<string, any>;
 }
@@ -80,6 +86,13 @@ function buildRepository(options: FakeRepoOptions = {}) {
         awardXpOnce: jest.fn(),
         getCompletedReconciliationsInPeriod: jest.fn().mockResolvedValue(options.reconciledStatements ?? 0),
         getAutomaticTransactions: jest.fn().mockResolvedValue(options.automaticTransactions ?? []),
+        // Capacidade CHEIA por padrão: estes testes medem o catálogo e o
+        // avanço, não a peneira (que tem os seus, em mission_catalog.test.ts).
+        getMissionCapacity: jest.fn().mockResolvedValue(options.capacity ?? {
+            hasCreditCardAccount: true,
+            hasReconciledStatementEver: true,
+            hasRecentAutomaticTransaction: true,
+        }),
     };
 
     return { repository, created, updates, completions, missions };
@@ -367,6 +380,142 @@ describe("progresso — regras corporativas", () => {
         expect(updates).toEqual([
             { type: "organization", data: { progress: 2, status: "pending" } },
         ]);
+    });
+
+    describe("categorized_week_installments — a missão que SEMPRE dá para cumprir", () => {
+        function organizationWeekMissions(paidInstallments: any[]) {
+            return buildRepository({
+                workspaceType: "business",
+                paidInstallments,
+                missions: {
+                    consistency: { status: "completed" },
+                    discipline: { status: "completed" },
+                    organization: existingMission("business_organization_categorize_week", { target: 100 }),
+                },
+            });
+        }
+
+        it("mede o PERCENTUAL das parcelas pagas da semana que têm categoria", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository, updates } = organizationWeekMissions([
+                { status: "paid", type: "expense", category: { id: "c1", name: "Custos" } },
+                { status: "paid", type: "expense", category: { id: "c2", name: "Serviços" } },
+                // Sem categoria utilizável — o defeito que o fix_empty_category repara.
+                { status: "paid", type: "expense", category: { id: "", name: "Mercado" } },
+                { status: "paid", type: "income", category: null },
+            ]);
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            // 2 de 4 = 50%.
+            expect(updates).toEqual([
+                { type: "organization", data: { progress: 50, status: "pending" } },
+            ]);
+        });
+
+        it("TRANSFERÊNCIA fica fora da conta: ela não tem categoria por desenho", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository, completions } = organizationWeekMissions([
+                { status: "paid", type: "expense", category: { id: "c1", name: "Custos" } },
+                // Transferência e fatura (que é transferência): sem categoria,
+                // e contá-las deixaria os 100% inalcançáveis.
+                { status: "paid", type: "transfer", category: null },
+                { status: "paid", type: "transfer", isInvoice: true, category: null },
+                // Removida também não conta.
+                { status: "removed", type: "expense", category: null },
+            ]);
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            expect(completions).toEqual([
+                { type: "organization", progress: 100, rewardXp: 200 },
+            ]);
+        });
+
+        it("semana SEM parcela a categorizar não move nem conclui a missão", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository, updates, completions } = organizationWeekMissions([
+                { status: "paid", type: "transfer", category: null },
+            ]);
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            // Nada a medir: o progresso gravado fica como está, em vez de um
+            // 100% que ninguém conquistou.
+            expect(updates).toEqual([]);
+            expect(completions).toEqual([]);
+        });
+
+        /**
+         * O CUSTO da regra depende da DISCIPLINA sorteada para a mesma semana,
+         * porque `readPaidInstallments` é memoizado por AVALIAÇÃO:
+         *
+         *  - `days_within_category_limit` já lê as parcelas → custo zero;
+         *  - `weekly_margin_above_plan` lê o sumário → custo de uma consulta.
+         *
+         * Os dois casos abaixo provam as duas situações. Em nenhuma delas
+         * entra fonte de dados NOVA no caminho de avaliação.
+         */
+        function repositoryWith(disciplineTemplateKey: string) {
+            return buildRepository({
+                workspaceType: "business",
+                plannings: [{
+                    amount: 700,
+                    startMonth: "2026-08",
+                    category: { id: "custos", name: "Custos", type: "expense" },
+                }],
+                paidInstallments: [
+                    { status: "paid", type: "expense", category: { id: "c1", name: "Custos" } },
+                ],
+                weeklySummary: [],
+                missions: {
+                    consistency: { status: "completed" },
+                    discipline: existingMission(disciplineTemplateKey),
+                    organization: existingMission("business_organization_categorize_week", { target: 100 }),
+                },
+            });
+        }
+
+        it("com a disciplina que JÁ lê as parcelas, não custa leitura nenhuma", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository } = repositoryWith("business_discipline_top_cost_center");
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            // UMA consulta de parcelas para as DUAS missões (memoizada).
+            expect(repository.getPaidInstallmentsInPeriod).toHaveBeenCalledTimes(1);
+        });
+
+        it("com a disciplina de MARGEM, custa UMA consulta de parcelas — e só", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository } = repositoryWith("business_discipline_margin");
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            // A margem lê o sumário; as parcelas são a consulta que a
+            // organização acrescenta. Uma, nunca duas.
+            expect(repository.getWeeklySummaryRows).toHaveBeenCalledTimes(1);
+            expect(repository.getPaidInstallmentsInPeriod).toHaveBeenCalledTimes(1);
+        });
+
+        it("não acrescenta fonte de dados nova ao caminho de avaliação", async () => {
+            jest.useFakeTimers({ now: SATURDAY });
+            const { repository } = organizationWeekMissions([
+                { status: "paid", type: "expense", category: { id: "c1", name: "Custos" } },
+            ]);
+            const service = new GamificationService(repository as any);
+
+            await service.updateWeeklyMissionsProgress("w1", "transaction", {});
+
+            expect(repository.getPaidInstallmentsInPeriod).toHaveBeenCalledTimes(1);
+            expect(repository.getAutomaticTransactions).not.toHaveBeenCalled();
+            expect(repository.getCompletedReconciliationsInPeriod).not.toHaveBeenCalled();
+        });
     });
 
     it("invoice_paid_on_time compara o DIA do pagamento com o do vencimento", async () => {

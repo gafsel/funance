@@ -525,6 +525,48 @@ void main() {
       );
     });
 
+    test('uma segunda sessão que casa as linhas antes ignoradas gera resumo NOVO',
+        () {
+      // O servidor só gamifica o CREATE do resumo. Se a segunda sessão caísse
+      // no mesmo id, casar mais linhas depois deixaria de contar.
+      final a = _linha(descricao: 'A', valor: 10, dia: 3);
+      final b = _linha(descricao: 'B', valor: 20, dia: 11);
+
+      final sessao1 = ReconciliationIds.summaryIdFor('acc-1', [
+        ReconciliationMatch(
+          documentTransaction: a,
+          status: ReconciliationMatchStatus.matched,
+        ),
+        ReconciliationMatch(
+          documentTransaction: b,
+          status: ReconciliationMatchStatus.ignored,
+        ),
+      ]);
+      final sessao2 = ReconciliationIds.summaryIdFor('acc-1', [
+        ReconciliationMatch(
+          documentTransaction: a,
+          status: ReconciliationMatchStatus.ignored,
+        ),
+        ReconciliationMatch(
+          documentTransaction: b,
+          status: ReconciliationMatchStatus.matched,
+        ),
+      ]);
+      final sessao1DeNovo = ReconciliationIds.summaryIdFor('acc-1', [
+        ReconciliationMatch(
+          documentTransaction: a,
+          status: ReconciliationMatchStatus.matched,
+        ),
+        ReconciliationMatch(
+          documentTransaction: b,
+          status: ReconciliationMatchStatus.ignored,
+        ),
+      ]);
+
+      expect(sessao1, isNot(sessao2));
+      expect(sessao1, sessao1DeNovo);
+    });
+
     test('a mesma linha em CONTAS diferentes são lançamentos diferentes', () {
       final linha = _linha(descricao: 'PADARIA', valor: 48.9, dia: 5);
 

@@ -16,11 +16,17 @@ Map<String, String> _messages(String path) {
   };
 }
 
-/// Todo o código do app, menos o que o `gen-l10n` gera (que cita TODAS as
-/// chaves e por isso não serve de evidência de uso).
+/// O código do APP, menos o que o `gen-l10n` gera (que cita TODAS as chaves
+/// e por isso não serve de evidência de uso).
+///
+/// `test/` ficou de fora: um teste que afirma que uma chave NÃO aparece mais
+/// na tela cita o nome dela, e isso bastava para a varredura dar a chave por
+/// usada. Foi assim que `onboardingGoalsTitle` sobreviveu à própria
+/// aposentadoria — o único lugar que ainda a mencionava era a asserção que
+/// provava que ninguém a usa.
 List<File> _sourceFiles() {
   final files = <File>[];
-  for (final root in ['lib', 'test']) {
+  for (final root in ['lib']) {
     for (final entity in Directory(root).listSync(recursive: true)) {
       if (entity is! File) continue;
       if (!entity.path.endsWith('.dart')) continue;

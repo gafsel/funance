@@ -81,7 +81,6 @@
   "onboardingWorkspaceNamePersonalHint": "Ex: Minhas Finanças, Família Silva...",
   "onboardingWorkspaceNameBusinessHint": "Ex: Minha Empresa, Freelance...",
   "onboardingWorkspaceNameLabel": "Nome do Workspace",
-  "onboardingGoalsTitle": "Trace suas primeiras metas",
   "onboardingGoalsButton": "ENTENDI, PRÓXIMO PASSO",
   "onboardingMembersTitle": "Convide membros",
   "onboardingMembersDesc": "Você pode compartilhar seu workspace com sócios ou familiares para gerirem as finanças juntos.",
@@ -1187,6 +1186,14 @@
       }
     }
   },
+  "missionBusinessOrganizationCategorizeWeek": "Categorizar {target}% dos lançamentos pagos na semana.",
+  "@missionBusinessOrganizationCategorizeWeek": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
   "missionBusinessOrganizationInvoiceOnTime": "Fechar {target} fatura do cartão corporativo pagando até o vencimento.",
   "@missionBusinessOrganizationInvoiceOnTime": {
     "placeholders": {
@@ -1376,4 +1383,6 @@
       }
     }
   }
+,
+  "automaticTransactionSeeAllShort": "Ver todas"
 }

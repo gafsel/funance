@@ -33,6 +33,9 @@ const mockRepository = {
     getCompletedMissionsCount: jest.fn(),
     getCreditCardAccountIds: jest.fn(),
     hasPendingInstallmentsForAccounts: jest.fn(),
+    hasPaidInstallmentSince: jest.fn(),
+    getWeeklySummaryRows: jest.fn(),
+    getMissionCapacity: jest.fn(),
 };
 
 describe("Gamification Level Formula", () => {
@@ -475,6 +478,253 @@ describe("Weekly cron — evaluates the PREVIOUS full week", () => {
         await service.evaluateWeeklyMissionsCron("w1");
 
         expect(spy).toHaveBeenCalledWith("w1", 3, 1);
+    });
+});
+
+/**
+ * O cron semanal passou de segunda 03:00 para DOMINGO 00:05 (cinco minutos
+ * depois da virada da semana do produto). A janela que ele fecha não pode
+ * mudar com isso: ela sai de `startOfWeekInTz(now) - 7 dias`, e os dois
+ * instantes caem na MESMA semana corrente.
+ */
+describe("Weekly cron — domingo 00:05 fecha a mesma semana que a antiga segunda 03:00", () => {
+    let service: GamificationService;
+
+    /** Domingo 13/09/2026, 00:05 em São Paulo — o horário atual do cron. */
+    const SUNDAY_CRON = new Date("2026-09-13T03:05:00.000Z");
+    /** Segunda 14/09/2026, 03:00 em São Paulo — o horário antigo. */
+    const OLD_MONDAY_CRON = new Date("2026-09-14T06:00:00.000Z");
+    /** A semana fechada nos dois casos: domingo 06/09 a sábado 12/09. */
+    const CLOSED_WEEK = "2026-W36";
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        mockRepository.getWeeklyMissionsByWeek.mockResolvedValue([
+            { status: "completed" },
+            { status: "completed" },
+            { status: "completed" },
+        ]);
+        mockRepository.getWorkspaceById.mockResolvedValue({ streaks: { missions: 1 }, members: [] });
+        mockRepository.getCompletedMissionsCount.mockResolvedValue(3);
+        mockRepository.unlockBadge.mockResolvedValue(true);
+    });
+
+    it.each([
+        ["domingo 00:05", SUNDAY_CRON],
+        ["segunda 03:00 (horário antigo)", OLD_MONDAY_CRON],
+    ])("%s avalia a semana %s", async (_label, now) => {
+        await service.evaluateWeeklyMissionsCron("w1", now as Date);
+
+        expect(mockRepository.getWeeklyMissionsByWeek).toHaveBeenCalledWith("w1", CLOSED_WEEK);
+        // A semana CORRENTE (2026-W37) não é tocada: avaliá-la recém-iniciada
+        // e vazia zeraria a streak de quem não fez nada de errado.
+        expect(mockRepository.getWeeklyMissionsByWeek).not.toHaveBeenCalledWith("w1", "2026-W37");
+        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 2 });
+    });
+
+    it("cinco minutos depois da virada, a semana fechada já terminou por inteiro", async () => {
+        // A missão em aberto força a passada FINAL (`weekly_close`), que é a
+        // que lê as parcelas pagas da semana: a janela tem de ser a semana
+        // toda, domingo 00:00 a sábado 23:59:59.999 — nada do dia corrente.
+        mockRepository.getWeeklyMissionsByWeek.mockResolvedValue([
+            { type: "discipline", status: "pending", target: 5, templateKey: "personal_discipline_top_category" },
+        ]);
+        mockRepository.getCategoryPlannings.mockResolvedValue([
+            {
+                amount: 700,
+                startMonth: "2026-09",
+                category: { id: "mercado", name: "Mercado", type: "expense" },
+            },
+        ]);
+        mockRepository.getPaidInstallmentsInPeriod.mockResolvedValue([]);
+
+        await service.evaluateWeeklyMissionsCron("w1", SUNDAY_CRON);
+
+        const [, start, end] = mockRepository.getPaidInstallmentsInPeriod.mock.calls[0];
+        expect(getWeekId(start)).toBe(CLOSED_WEEK);
+        expect(start.getTime()).toBe(startOfWeekInTz(start).getTime());
+        expect(end.getTime()).toBe(endOfWeekFromStart(start).getTime());
+        // O fim da semana fechada é ANTERIOR ao disparo do cron.
+        expect(end.getTime()).toBeLessThan(SUNDAY_CRON.getTime());
+        // E o mês do planejamento é o do DOMINGO que iniciou a semana fechada.
+        expect(getMonthKeyInTz(start)).toBe("2026-09");
+    });
+});
+
+/**
+ * As missões da semana NOVA passaram a nascer na virada (domingo 00:05) para
+ * quem está ativo. Antes disso o único caminho era a geração preguiçosa, no
+ * primeiro evento da semana: quem abria o app no domingo de manhã via o bloco
+ * de missões vazio.
+ */
+describe("Weekly cron — abre a semana nova para workspaces ATIVOS", () => {
+    let service: GamificationService;
+
+    /** Domingo 13/09/2026, 00:05 em São Paulo. A semana que começa é a W37. */
+    const SUNDAY_CRON = new Date("2026-09-13T03:05:00.000Z");
+    const NEW_WEEK = "2026-W37";
+
+    beforeEach(() => {
+        jest.clearAllMocks();
+        service = new GamificationService(mockRepository as any);
+        mockRepository.getWeeklyMission.mockResolvedValue(null);
+        mockRepository.hasPaidInstallmentSince.mockResolvedValue(true);
+        mockRepository.getWorkspaceById.mockResolvedValue({ type: "personal" });
+        mockRepository.getCategoryPlannings.mockResolvedValue([]);
+        mockRepository.createWeeklyMission.mockResolvedValue(undefined);
+    });
+
+    it("cria as três missões da semana que começa, pelo catálogo", async () => {
+        const result = await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        expect(result).toBe("generated");
+        expect(mockRepository.createWeeklyMission).toHaveBeenCalledTimes(3);
+
+        const types = mockRepository.createWeeklyMission.mock.calls.map((call: any[]) => call[2]).sort();
+        expect(types).toEqual(["consistency", "discipline", "organization"]);
+        // Todas na semana NOVA, e nenhuma na que o mesmo cron acabou de fechar.
+        for (const call of mockRepository.createWeeklyMission.mock.calls) {
+            expect(call[1]).toBe(NEW_WEEK);
+            expect(call[3].weekId).toBe(NEW_WEEK);
+            expect(call[3].status).toBe("pending");
+            expect(call[3].progress).toBe(0);
+            // Nome do catálogo: o cron não tempera texto com IA.
+            expect(call[3].templateKey).toBeTruthy();
+            expect(call[3].name).toBeTruthy();
+        }
+    });
+
+    it("pula o workspace DORMENTE — e a atividade é medida a partir do domingo", async () => {
+        mockRepository.hasPaidInstallmentSince.mockResolvedValue(false);
+
+        const result = await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        expect(result).toBe("dormant");
+        expect(mockRepository.createWeeklyMission).not.toHaveBeenCalled();
+
+        // A janela sai do domingo que inicia a semana, não do instante do
+        // disparo: 30 dias antes de 13/09/2026 00:00 (SP) é 14/08/2026 00:00.
+        const [, since] = mockRepository.hasPaidInstallmentSince.mock.calls[0];
+        expect(since.toISOString()).toBe("2026-08-14T03:00:00.000Z");
+    });
+
+    it("não recria quando as missões da semana já existem", async () => {
+        mockRepository.getWeeklyMission.mockResolvedValue({ type: "consistency", status: "pending" });
+
+        const result = await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        expect(result).toBe("exists");
+        expect(mockRepository.createWeeklyMission).not.toHaveBeenCalled();
+        // Uma leitura só: nem a atividade é consultada.
+        expect(mockRepository.hasPaidInstallmentSince).not.toHaveBeenCalled();
+    });
+
+    it("não gera duas vezes: a chave de idempotência é a da geração preguiçosa", async () => {
+        const runIdempotency = jest.fn(async (_key: string, _action: string, fn: () => Promise<void>) => {
+            await fn();
+        });
+        const withIdempotency = new GamificationService(
+            mockRepository as any,
+            undefined,
+            { runIdempotency } as any
+        );
+
+        await withIdempotency.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        expect(runIdempotency).toHaveBeenCalledWith(
+            `w1_${NEW_WEEK}`,
+            "generateWeeklyMissions",
+            expect.any(Function)
+        );
+    });
+
+    it("o custo por workspace cabe no orçamento de leituras", async () => {
+        await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        // Ativo (audiência pessoal): missão existente, atividade, workspace,
+        // planejamentos. As metas só alimentam o prompt — sem tempero de IA,
+        // essa leitura não acontece.
+        const reads = mockRepository.getWeeklyMission.mock.calls.length +
+            mockRepository.hasPaidInstallmentSince.mock.calls.length +
+            mockRepository.getWorkspaceById.mock.calls.length +
+            mockRepository.getCategoryPlannings.mock.calls.length;
+        expect(reads).toBe(4);
+        expect(mockRepository.getGoals).not.toHaveBeenCalled();
+        expect(mockRepository.getWeeklySummaryRows).not.toHaveBeenCalled();
+    });
+
+    it("a empresa lê também o contexto do sorteio: 8 leituras", async () => {
+        mockRepository.getWorkspaceById.mockResolvedValue({ type: "business" });
+        mockRepository.getWeeklySummaryRows.mockResolvedValue([]);
+        mockRepository.getMissionCapacity.mockResolvedValue({
+            hasCreditCardAccount: false,
+            hasReconciledStatementEver: false,
+            hasRecentAutomaticTransaction: false,
+        });
+
+        await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        // `getMissionCapacity` é UMA chamada de repositório e TRÊS consultas
+        // `limit(1)` (cartão, conciliação, lançamento automático) — o que se
+        // paga é leitura, não método.
+        const CAPACITY_QUERIES = 3;
+        const reads = mockRepository.getWeeklyMission.mock.calls.length +
+            mockRepository.hasPaidInstallmentSince.mock.calls.length +
+            mockRepository.getWorkspaceById.mock.calls.length +
+            mockRepository.getCategoryPlannings.mock.calls.length +
+            mockRepository.getWeeklySummaryRows.mock.calls.length +
+            mockRepository.getMissionCapacity.mock.calls.length * CAPACITY_QUERIES;
+        expect(reads).toBe(8);
+        expect(mockRepository.getGoals).not.toHaveBeenCalled();
+    });
+
+    it("a janela da capacidade é ancorada no DOMINGO da semana sorteada", async () => {
+        mockRepository.getWorkspaceById.mockResolvedValue({ type: "business" });
+        mockRepository.getWeeklySummaryRows.mockResolvedValue([]);
+        mockRepository.getMissionCapacity.mockResolvedValue({
+            hasCreditCardAccount: false,
+            hasReconciledStatementEver: false,
+            hasRecentAutomaticTransaction: false,
+        });
+
+        await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        // Relógio LOCAL (o formato de `automatic_transactions.date`), 30 dias
+        // antes do domingo 13/09/2026 00:00 em São Paulo. Ancorar em `now`
+        // faria o retag reproduzir outro sorteio dias depois.
+        const [, since] = mockRepository.getMissionCapacity.mock.calls[0];
+        expect(since).toBe("2026-08-14T00:00:00.000");
+    });
+
+    it("o workspace PESSOAL não paga leitura de capacidade nenhuma", async () => {
+        await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        expect(mockRepository.getMissionCapacity).not.toHaveBeenCalled();
+        expect(mockRepository.getWeeklySummaryRows).not.toHaveBeenCalled();
+    });
+
+    it("semana sem NENHUM evento fecha com missão em aberto e zera a streak", async () => {
+        // Este é o efeito colateral de abrir a semana na virada: antes, o
+        // workspace parado não tinha missão nenhuma e a streak zerava por
+        // `count === 0`. Agora ele TEM as três, nenhuma concluída, e a streak
+        // zera pelo motivo legítimo — o que o app consegue explicar.
+        mockRepository.getWeeklyMissionsByWeek.mockResolvedValue([
+            { type: "consistency", status: "pending", progress: 0, target: 3, templateKey: "personal_consistency_plan_limits" },
+            { type: "discipline", status: "pending", progress: 0, target: 5, templateKey: "personal_discipline_top_category" },
+            { type: "organization", status: "pending", progress: 0, target: 5, templateKey: "personal_organization_reconcile_items" },
+        ]);
+        mockRepository.getWorkspaceById.mockResolvedValue({ streaks: { missions: 4 }, members: [] });
+        mockRepository.getCategoryPlannings.mockResolvedValue([]);
+        mockRepository.getPaidInstallmentsInPeriod.mockResolvedValue([]);
+        mockRepository.getCompletedMissionsCount.mockResolvedValue(0);
+        mockRepository.unlockBadge.mockResolvedValue(true);
+
+        await service.evaluateWeeklyMissionsCron("w1", SUNDAY_CRON);
+
+        expect(mockRepository.updateWorkspaceStreaks).toHaveBeenCalledWith("w1", { missions: 0 });
+        // Nenhuma foi concluída na passada final.
+        expect(mockRepository.completeMissionAndAwardXp).not.toHaveBeenCalled();
     });
 });
 

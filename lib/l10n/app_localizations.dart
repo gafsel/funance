@@ -542,12 +542,6 @@ abstract class AppLocalizations {
   /// **'Nome do Workspace'**
   String get onboardingWorkspaceNameLabel;
 
-  /// No description provided for @onboardingGoalsTitle.
-  ///
-  /// In pt, this message translates to:
-  /// **'Trace suas primeiras metas'**
-  String get onboardingGoalsTitle;
-
   /// No description provided for @onboardingGoalsButton.
   ///
   /// In pt, this message translates to:
@@ -4220,6 +4214,12 @@ abstract class AppLocalizations {
   /// **'Categorizar ou descartar {target} lançamentos automáticos antes do fechamento.'**
   String missionBusinessOrganizationCategorizeAuto(String target);
 
+  /// No description provided for @missionBusinessOrganizationCategorizeWeek.
+  ///
+  /// In pt, this message translates to:
+  /// **'Categorizar {target}% dos lançamentos pagos na semana.'**
+  String missionBusinessOrganizationCategorizeWeek(String target);
+
   /// No description provided for @missionBusinessOrganizationInvoiceOnTime.
   ///
   /// In pt, this message translates to:
@@ -4477,6 +4477,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Toque no monstro para confirmar um pagamento. Segure para abrir o histórico.'**
   String get arenaHint;
+
+  /// No description provided for @automaticTransactionSeeAllShort.
+  ///
+  /// In pt, this message translates to:
+  /// **'Ver todas'**
+  String get automaticTransactionSeeAllShort;
 }
 
 class _AppLocalizationsDelegate

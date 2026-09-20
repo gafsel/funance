@@ -258,9 +258,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingWorkspaceNameLabel => 'Workspace Name';
 
   @override
-  String get onboardingGoalsTitle => 'Set your first goals';
-
-  @override
   String get onboardingGoalsButton => 'GOT IT, NEXT STEP';
 
   @override
@@ -2333,6 +2330,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String missionBusinessOrganizationCategorizeWeek(String target) {
+    return 'Categorise $target% of the entries paid this week.';
+  }
+
+  @override
   String missionBusinessOrganizationInvoiceOnTime(String target) {
     return 'Close $target corporate card invoice by paying before the due date.';
   }
@@ -2496,4 +2498,7 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get arenaHint =>
       'Tap the monster to confirm a payment. Hold to open the history.';
+
+  @override
+  String get automaticTransactionSeeAllShort => 'See all';
 }
