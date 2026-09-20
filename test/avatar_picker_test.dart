@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:funances/core/theme/app_palette.dart';
 import 'package:funances/core/theme/app_theme.dart';
+import 'package:funances/core/widgets/error_view.dart';
 import 'package:funances/features/arena/domain/models/arena_state.dart';
+import 'package:funances/features/arena/presentation/game/arena_sprites.dart';
+import 'package:funances/features/arena/presentation/providers/arena_sprites_provider.dart';
 import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/user/domain/repositories/user_repository.dart';
 import 'package:funances/features/user/domain/services/user_service.dart';
@@ -24,8 +30,9 @@ import 'package:funances/l10n/app_localizations.dart';
 /// `Future` nunca completa e a grade apareceria sem boneco nenhum.
 Future<List<HeroSkin>> _pump(
   WidgetTester tester, {
-  HeroSkin selected = HeroSkin.knight,
+  HeroSkin? selected = HeroSkin.knight,
   Size size = const Size(400, 900),
+  List<Override> overrides = const [],
 }) async {
   final escolhas = <HeroSkin>[];
 
@@ -36,6 +43,7 @@ Future<List<HeroSkin>> _pump(
   await tester.runAsync(() async {
     await tester.pumpWidget(
       ProviderScope(
+        overrides: overrides,
         child: MaterialApp(
           theme: AppTheme.light,
           localizationsDelegates: const [
@@ -171,6 +179,101 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('sem escolha, nenhum tile fica marcado', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pump(tester, selected: null);
+
+      for (final skin in HeroSkin.values) {
+        expect(
+          tester.getSemantics(find.byKey(ValueKey('avatar_${skin.name}'))),
+          isSemantics(isSelected: false),
+          reason: '${skin.name} não deveria estar marcado',
+        );
+      }
+
+      handle.dispose();
+    });
+
+    testWidgets('o leitor de tela consegue ATIVAR um tile', (tester) async {
+      final handle = tester.ensureSemantics();
+      final escolhas = await _pump(tester);
+
+      // Sem a ação, o nó anunciava "botão, Mago" e não tinha o que acionar:
+      // a grade existia para o leitor de tela e era inescolhível por ele.
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Mago')),
+        isSemantics(hasTapAction: true),
+      );
+
+      // E a ação ACONTECE: o teste aciona o nó pela semântica, que é
+      // exatamente o caminho do leitor de tela — não um toque na tela.
+      tester.semantics.performAction(
+        find.semantics.byLabel('Mago'),
+        SemanticsAction.tap,
+      );
+      await tester.pump();
+
+      expect(escolhas, [HeroSkin.mage]);
+      handle.dispose();
+    });
+
+    testWidgets('a folha que não abriu vira erro com "tentar de novo"', (
+      tester,
+    ) async {
+      var tentativas = 0;
+
+      await _pump(
+        tester,
+        overrides: [
+          arenaSpritesProvider.overrideWith((ref) {
+            tentativas++;
+            return Future<ArenaSprites>.error(
+              Exception('folha indisponível'),
+              StackTrace.current,
+            );
+          }),
+        ],
+      );
+
+      // Erro NÃO é carregando: sem este ramo ficavam oito quadros escuros e
+      // vazios na tela para sempre, sem dizer o que houve.
+      expect(find.byType(ErrorView), findsOneWidget);
+      expect(find.byKey(const ValueKey('avatar_knight')), findsNothing);
+
+      expect(tentativas, 1);
+      await tester.tap(find.byType(OutlinedButton));
+      await tester.pump();
+
+      expect(tentativas, 2, reason: 'o botão recarrega a folha de verdade');
+    });
+
+    testWidgets('o foco do teclado desenha um realce na frente do cartão', (
+      tester,
+    ) async {
+      await _pump(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+
+      // O ouro do ESCOLHIDO não serve de realce de foco: ele já significa
+      // outra coisa e some contra o próprio anel de seleção. O realce é a
+      // tinta principal do tema, que é o maior contraste que o design system
+      // tem contra o fundo da tela.
+      final molduras = tester
+          .widgetList<Container>(find.byType(Container))
+          .map((c) => c.decoration)
+          .whereType<BoxDecoration>()
+          .where(
+            (d) => d.border is Border && (d.border! as Border).top.width == 2,
+          )
+          .toList();
+
+      expect(
+        molduras.map((d) => (d.border! as Border).top.color),
+        contains(AppPalette.light.ink),
+      );
+    });
+
     testWidgets('cabe em 400 px sem estourar a largura', (tester) async {
       await _pump(tester, size: const Size(400, 900));
 
@@ -197,6 +300,80 @@ void main() {
   });
 
   group('a edição de perfil', () {
+    test('um avatar fora do catálogo não marca nada, e avisa', () {
+      final users = _FakeUserRepository();
+      final notifier = UserProfileNotifier(userService: UserService(users));
+
+      notifier.load(
+        UserModel(
+          id: 'u1',
+          email: 'a@b.c',
+          avatar: 'necromante',
+          createdAt: DateTime(2026),
+        ),
+      );
+
+      // Marcar o cavaleiro aqui seria afirmar uma escolha que não existe —
+      // e a Arena, para o mesmo documento, desenha o boneco da ordem de
+      // entrada. As duas telas agora contam a mesma história.
+      expect(notifier.state.avatar, isNull);
+      expect(notifier.state.avatarUnknown, isTrue);
+    });
+
+    test('salvar SÓ o nome não grava avatar nenhum', () async {
+      final users = _FakeUserRepository();
+      final notifier = UserProfileNotifier(userService: UserService(users));
+
+      notifier.load(
+        UserModel(id: 'u1', email: 'a@b.c', createdAt: DateTime(2026)),
+      );
+      notifier.updateDisplayName('Gabriel');
+      await notifier.submit();
+
+      // É a AUSÊNCIA do campo que mantém o cavaleiro e o mago da ordem de
+      // entrada: gravar `knight` numa edição de nome derrubaria o mago da
+      // parceira para fazer dela um segundo cavaleiro.
+      expect(users.escritas.single.$2.containsKey('avatar'), isFalse);
+      expect(users.escritas.single.$2['displayName'], 'Gabriel');
+    });
+
+    test('quem já tinha avatar o mantém ao editar só o nome', () async {
+      final users = _FakeUserRepository();
+      final notifier = UserProfileNotifier(userService: UserService(users));
+
+      notifier.load(
+        UserModel(
+          id: 'u1',
+          email: 'a@b.c',
+          avatar: 'healer',
+          createdAt: DateTime(2026),
+        ),
+      );
+      notifier.updateDisplayName('Gabriel');
+      await notifier.submit();
+
+      expect(users.escritas.single.$2['avatar'], 'healer');
+    });
+
+    test('o usuário entra no estado INICIAL, sem um quadro de atraso', () {
+      final users = _FakeUserRepository();
+      final notifier = UserProfileNotifier(
+        userService: UserService(users),
+        user: UserModel(
+          id: 'u1',
+          email: 'a@b.c',
+          displayName: 'Gabriel',
+          avatar: 'monk',
+          createdAt: DateTime(2026),
+        ),
+      );
+
+      // Sem `load()` nenhum: é o que a tela desenha no PRIMEIRO quadro.
+      expect(notifier.state.id, 'u1');
+      expect(notifier.state.displayName, 'Gabriel');
+      expect(notifier.state.avatar, HeroSkin.monk);
+    });
+
     test('abre com o avatar que está gravado', () {
       final users = _FakeUserRepository();
       final notifier = UserProfileNotifier(userService: UserService(users));
@@ -214,7 +391,7 @@ void main() {
       expect(notifier.state.avatar, HeroSkin.monk);
     });
 
-    test('quem nunca escolheu abre no cavaleiro, e não em branco', () {
+    test('quem nunca escolheu abre sem marca e sem aviso', () {
       final users = _FakeUserRepository();
       final notifier = UserProfileNotifier(userService: UserService(users));
 
@@ -222,7 +399,8 @@ void main() {
         UserModel(id: 'u1', email: 'a@b.c', createdAt: DateTime(2026)),
       );
 
-      expect(notifier.state.avatar, HeroSkin.knight);
+      expect(notifier.state.avatar, isNull);
+      expect(notifier.state.avatarUnknown, isFalse);
     });
 
     test('salvar o perfil grava o avatar junto com o nome', () async {

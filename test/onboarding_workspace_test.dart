@@ -181,10 +181,10 @@ void main() {
     expect(workspaces.atualizados.every((w) => w.id == id), isTrue);
   });
 
-  test('o avatar pré-selecionado é o cavaleiro para quem nunca escolheu', () {
+  test('quem nunca escolheu entra no passo sem nenhum herói marcado', () {
     final (:notifier, :workspaces, :users) = _montar();
 
-    expect(notifier.state.avatar, HeroSkin.knight);
+    expect(notifier.state.avatar, isNull);
   });
 
   test('quem já tem avatar reabre o onboarding com ele marcado', () {
@@ -216,7 +216,7 @@ void main() {
     expect(users.escritas.single.$2, {'avatar': 'ranger'});
   });
 
-  test('quem pula o seletor sai com o padrão gravado', () async {
+  test('quem pula o seletor não gera escrita nenhuma', () async {
     final (:notifier, :workspaces, :users) = _montar();
 
     notifier.setWorkspaceType(WorkspaceType.personal);
@@ -224,6 +224,11 @@ void main() {
     notifier.setWorkspaceName('Casa');
     await notifier.nextStep();
 
-    expect(users.escritas.single.$2, {'avatar': 'knight'});
+    // A AUSÊNCIA do campo é o que mantém o cavaleiro e o mago da ordem de
+    // entrada. Gravar `knight` para todo mundo que pulou fazia o segundo
+    // membro do cofre nascer como um cavaleiro repetido.
+    expect(users.escritas, isEmpty);
+    // E o cofre foi criado do mesmo jeito: o passo continua opcional.
+    expect(workspaces.criados, hasLength(1));
   });
 }

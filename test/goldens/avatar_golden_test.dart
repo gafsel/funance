@@ -23,6 +23,11 @@ import 'golden_support.dart';
 /// em todos os testes e vira um borrão) e o ANEL de escolhido, que é a única
 /// diferença visual entre "este é o meu herói" e "este é mais um boneco".
 ///
+/// A pré-visualização entra nos dois: ela é a resposta à pergunta que o
+/// usuário está de fato fazendo ("como eu vou ficar lá?"), e o único jeito de
+/// conferir que o boneco na cena é o mesmo da grade — mesmo painter, mesma
+/// folha, tamanho de cena — é olhando os dois lado a lado num PNG.
+///
 /// O terceiro PNG é a consequência: a mesma Arena de sempre com os avatares
 /// ESCOLHIDOS no lugar dos da ordem de entrada, e com o distintivo do segundo
 /// membro que repetiu o boneco do primeiro. É o único lugar onde se vê que o
@@ -42,7 +47,7 @@ Future<void> _pumpSeletor(
   WidgetTester tester, {
   required Brightness brightness,
 }) async {
-  await setGoldenSurface(tester, const Size(400, 420));
+  await setGoldenSurface(tester, const Size(400, 620));
 
   await tester.runAsync(() async {
     await tester.pumpWidget(
@@ -52,7 +57,7 @@ Future<void> _pumpSeletor(
             padding: AppSpacing.allMd,
             child: Align(
               alignment: Alignment.topLeft,
-              child: AvatarPicker(
+              child: AvatarField(
                 selected: HeroSkin.ranger,
                 onSelected: (_) {},
               ),
@@ -74,7 +79,7 @@ void main() {
     await _pumpSeletor(tester, brightness: Brightness.light);
 
     await expectLater(
-      find.byType(AvatarPicker),
+      find.byType(AvatarField),
       matchesGoldenFile('images/avatar_seletor.png'),
     );
   });
@@ -83,7 +88,7 @@ void main() {
     await _pumpSeletor(tester, brightness: Brightness.dark);
 
     await expectLater(
-      find.byType(AvatarPicker),
+      find.byType(AvatarField),
       matchesGoldenFile('images/avatar_seletor_escuro.png'),
     );
   });
