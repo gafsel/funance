@@ -35,6 +35,7 @@ const mockRepository = {
     hasPendingInstallmentsForAccounts: jest.fn(),
     hasPaidInstallmentSince: jest.fn(),
     getWeeklySummaryRows: jest.fn(),
+    getMissionCapacity: jest.fn(),
 };
 
 describe("Gamification Level Formula", () => {
@@ -653,19 +654,54 @@ describe("Weekly cron — abre a semana nova para workspaces ATIVOS", () => {
         expect(mockRepository.getWeeklySummaryRows).not.toHaveBeenCalled();
     });
 
-    it("a empresa lê também o sumário da semana (a peneira de elegibilidade), e para em 5", async () => {
+    it("a empresa lê também o contexto do sorteio: 8 leituras", async () => {
         mockRepository.getWorkspaceById.mockResolvedValue({ type: "business" });
         mockRepository.getWeeklySummaryRows.mockResolvedValue([]);
+        mockRepository.getMissionCapacity.mockResolvedValue({
+            hasCreditCardAccount: false,
+            hasReconciledStatementEver: false,
+            hasRecentAutomaticTransaction: false,
+        });
 
         await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
 
+        // `getMissionCapacity` é UMA chamada de repositório e TRÊS consultas
+        // `limit(1)` (cartão, conciliação, lançamento automático) — o que se
+        // paga é leitura, não método.
+        const CAPACITY_QUERIES = 3;
         const reads = mockRepository.getWeeklyMission.mock.calls.length +
             mockRepository.hasPaidInstallmentSince.mock.calls.length +
             mockRepository.getWorkspaceById.mock.calls.length +
             mockRepository.getCategoryPlannings.mock.calls.length +
-            mockRepository.getWeeklySummaryRows.mock.calls.length;
-        expect(reads).toBe(5);
+            mockRepository.getWeeklySummaryRows.mock.calls.length +
+            mockRepository.getMissionCapacity.mock.calls.length * CAPACITY_QUERIES;
+        expect(reads).toBe(8);
         expect(mockRepository.getGoals).not.toHaveBeenCalled();
+    });
+
+    it("a janela da capacidade é ancorada no DOMINGO da semana sorteada", async () => {
+        mockRepository.getWorkspaceById.mockResolvedValue({ type: "business" });
+        mockRepository.getWeeklySummaryRows.mockResolvedValue([]);
+        mockRepository.getMissionCapacity.mockResolvedValue({
+            hasCreditCardAccount: false,
+            hasReconciledStatementEver: false,
+            hasRecentAutomaticTransaction: false,
+        });
+
+        await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        // Relógio LOCAL (o formato de `automatic_transactions.date`), 30 dias
+        // antes do domingo 13/09/2026 00:00 em São Paulo. Ancorar em `now`
+        // faria o retag reproduzir outro sorteio dias depois.
+        const [, since] = mockRepository.getMissionCapacity.mock.calls[0];
+        expect(since).toBe("2026-08-14T00:00:00.000");
+    });
+
+    it("o workspace PESSOAL não paga leitura de capacidade nenhuma", async () => {
+        await service.ensureWeeklyMissionsForActiveWorkspace("w1", SUNDAY_CRON);
+
+        expect(mockRepository.getMissionCapacity).not.toHaveBeenCalled();
+        expect(mockRepository.getWeeklySummaryRows).not.toHaveBeenCalled();
     });
 
     it("semana sem NENHUM evento fecha com missão em aberto e zera a streak", async () => {

@@ -11,7 +11,10 @@ import {
     MISSION_PROGRESS_RULES,
     WEEKLY_MISSION_TYPES,
     WORKSPACE_AUDIENCES,
+    MissionCapacity,
+    NO_MISSION_CAPACITY,
     buildMissionName,
+    buildMissionSelectionContext,
     findMissionTemplate,
     hashString,
     missionTemplatesFor,
@@ -21,6 +24,22 @@ import {
 } from "../features/goal/domain/models/mission_catalog";
 import { ALLOWED_ACTION_PATHS } from "../features/coaching/domain/models/coaching_action_path.model";
 import { appliesToAudience } from "../features/goal/domain/models/audience.model";
+
+/** Todas as capacidades presentes: é o contexto em que TUDO é elegível. */
+const FULL_CAPACITY: MissionCapacity = {
+    hasCreditCardAccount: true,
+    hasReconciledStatementEver: true,
+    hasRecentAutomaticTransaction: true,
+};
+
+/** Contexto completo a partir dos planejados (capacidade total por padrão). */
+function context(
+    plannedIncomeCents: number,
+    plannedExpenseCents: number,
+    capacity: MissionCapacity = FULL_CAPACITY
+) {
+    return buildMissionSelectionContext({ plannedIncomeCents, plannedExpenseCents }, capacity);
+}
 
 describe("catálogo de missões — integridade", () => {
     it("cobre os três tipos de missão nas duas audiências", () => {
@@ -127,14 +146,14 @@ describe("seleção determinística por semana", () => {
     it("varia entre as semanas do ano onde existe mais de um candidato", () => {
         // Contexto com os dois lados do plano: é o que deixa TODOS os
         // candidatos elegíveis, que é o que este teste mede.
-        const context = { plannedIncomeCents: 1_000_000, plannedExpenseCents: 500_000 };
+        const full = context(1_000_000, 500_000);
         for (const type of WEEKLY_MISSION_TYPES) {
             const candidates = missionTemplatesFor("business", type);
             if (candidates.length < 2) continue;
             const chosen = new Set<string>();
             for (let week = 1; week <= 53; week++) {
                 const weekId = `2026-W${String(week).padStart(2, "0")}`;
-                chosen.add(selectMissionTemplate("business", type, weekId, context)!.key);
+                chosen.add(selectMissionTemplate("business", type, weekId, full)!.key);
             }
             // Não exigimos distribuição perfeita — exigimos que o hash de fato
             // alcance todos os candidatos ao longo de um ano. Um hash que
@@ -150,8 +169,8 @@ describe("seleção determinística por semana", () => {
 });
 
 describe("elegibilidade por contexto", () => {
-    const comPlanoCompleto = { plannedIncomeCents: 1_585_000, plannedExpenseCents: 455_350 };
-    const soDespesa = { plannedIncomeCents: 0, plannedExpenseCents: 455_350 };
+    const comPlanoCompleto = context(1_585_000, 455_350);
+    const soDespesa = context(0, 455_350);
 
     it("a missão de receita não é sorteada numa semana sem receita prevista", () => {
         // Sem a peneira, metade das semanas caía numa missão que o avaliador
@@ -194,6 +213,115 @@ describe("elegibilidade por contexto", () => {
             for (const type of WEEKLY_MISSION_TYPES) {
                 expect(selectMissionTemplate(audience, type, "2026-W38", EMPTY_MISSION_CONTEXT)).not.toBeNull();
             }
+        }
+    });
+});
+
+/**
+ * PENEIRA DE CAPACIDADE — o defeito de 2026-W38.
+ *
+ * O workspace de empresa a70134c1 tem ZERO contas de cartão de crédito e
+ * recebeu `business_organization_invoice_on_time`: uma missão que nenhuma ação
+ * dentro do app conseguiria concluir, e que ainda impede a semana perfeita e
+ * zera a streak. Os totais planejados diziam se a missão tinha como ser
+ * MEDIDA; faltava dizer se ela tinha como ser CUMPRIDA.
+ */
+describe("elegibilidade por CAPACIDADE (organização da empresa)", () => {
+    const TODAS_AS_SEMANAS = Array.from(
+        { length: 53 },
+        (_, i) => `2026-W${String(i + 1).padStart(2, "0")}`
+    );
+
+    /** O sorteio de organização ao longo de um ano inteiro, numa capacidade. */
+    function organizationOverAYear(capacity: MissionCapacity): Set<string> {
+        const chosen = new Set<string>();
+        for (const weekId of TODAS_AS_SEMANAS) {
+            chosen.add(selectMissionTemplate("business", "organization", weekId, context(1_585_000, 455_350, capacity))!.key);
+        }
+        return chosen;
+    }
+
+    it("SEM CARTÃO, a missão da fatura nunca é sorteada — em nenhuma semana do ano", () => {
+        const semCartao = { ...FULL_CAPACITY, hasCreditCardAccount: false };
+        expect(organizationOverAYear(semCartao)).not.toContain("business_organization_invoice_on_time");
+    });
+
+    it("sem nunca ter conciliado, a missão de conciliar extratos não é sorteada", () => {
+        const semConciliacao = { ...FULL_CAPACITY, hasReconciledStatementEver: false };
+        expect(organizationOverAYear(semConciliacao)).not.toContain("business_organization_reconcile_statements");
+    });
+
+    it("sem lançamento automático recente, a missão de triagem não é sorteada", () => {
+        const semAutomaticos = { ...FULL_CAPACITY, hasRecentAutomaticTransaction: false };
+        expect(organizationOverAYear(semAutomaticos)).not.toContain("business_organization_categorize_auto");
+    });
+
+    it("MATRIZ: em toda combinação de capacidade, o sorteado é possível", () => {
+        // 2^3 combinações × 53 semanas. A invariante é uma só e vale para
+        // todas: o template devolvido passa na própria peneira — nunca se cai
+        // no atalho "se ninguém for elegível, sorteia entre todos".
+        for (let mask = 0; mask < 8; mask++) {
+            const capacity: MissionCapacity = {
+                hasCreditCardAccount: (mask & 1) !== 0,
+                hasReconciledStatementEver: (mask & 2) !== 0,
+                hasRecentAutomaticTransaction: (mask & 4) !== 0,
+            };
+            for (const weekId of TODAS_AS_SEMANAS) {
+                const ctx = context(1_585_000, 455_350, capacity);
+                const chosen = selectMissionTemplate("business", "organization", weekId, ctx)!;
+                expect(chosen.isEligible ? chosen.isEligible(ctx) : true).toBe(true);
+            }
+        }
+    });
+
+    it("SEM NENHUMA capacidade sobra a missão que sempre dá para cumprir", () => {
+        const chosen = organizationOverAYear(NO_MISSION_CAPACITY);
+        expect([...chosen]).toEqual(["business_organization_categorize_week"]);
+    });
+
+    it("o hash alcança TODOS os elegíveis, e só eles", () => {
+        // Capacidade cheia: os quatro candidatos aparecem ao longo do ano.
+        expect(organizationOverAYear(FULL_CAPACITY).size).toBe(
+            missionTemplatesFor("business", "organization").length
+        );
+
+        // Só cartão: exatamente dois candidatos — a fatura e a sempre
+        // possível —, e o hash alcança os dois.
+        const soCartao = { ...NO_MISSION_CAPACITY, hasCreditCardAccount: true };
+        expect([...organizationOverAYear(soCartao)].sort()).toEqual([
+            "business_organization_categorize_week",
+            "business_organization_invoice_on_time",
+        ]);
+    });
+
+    it("a missão sempre possível não tem peneira — é ela que sustenta a invariante", () => {
+        const sempre = findMissionTemplate("business_organization_categorize_week")!;
+        expect(sempre.isEligible).toBeUndefined();
+        expect(sempre.progressRule).toBe("categorized_week_installments");
+    });
+
+    it("a capacidade NÃO interfere nos outros dois tipos de missão", () => {
+        // Consistência e disciplina dependem do PLANO, não do que o workspace
+        // tem: trocar a capacidade não pode mexer no que elas sorteiam.
+        for (const weekId of TODAS_AS_SEMANAS) {
+            for (const type of ["consistency", "discipline"] as const) {
+                const comTudo = selectMissionTemplate("business", type, weekId, context(1_585_000, 455_350, FULL_CAPACITY))!;
+                const semNada = selectMissionTemplate("business", type, weekId, context(1_585_000, 455_350, NO_MISSION_CAPACITY))!;
+                expect(semNada.key).toBe(comTudo.key);
+            }
+        }
+    });
+
+    it("a organização PESSOAL não é peneirada por capacidade — e por quê", () => {
+        // Só existe UM template de organização pessoal. Peneirar uma lista de
+        // um elemento não muda o resultado: sem ninguém elegível, o sorteio
+        // volta a correr sobre todos e devolve o mesmo template. Uma peneira
+        // aqui custaria leitura e não mudaria nada — por isso o gerador nem
+        // lê a capacidade em workspace pessoal.
+        expect(missionTemplatesFor("personal", "organization")).toHaveLength(1);
+        for (const weekId of TODAS_AS_SEMANAS) {
+            expect(selectMissionTemplate("personal", "organization", weekId, EMPTY_MISSION_CONTEXT)!.key)
+                .toBe("personal_organization_reconcile_items");
         }
     });
 });

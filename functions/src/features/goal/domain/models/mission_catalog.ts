@@ -58,6 +58,12 @@ export const MISSION_PROGRESS_RULES = [
     "weekly_margin_above_plan",
     /** Percentual da receita PLANEJADA da semana que de fato entrou. */
     "income_received_vs_planned",
+    /**
+     * Percentual das parcelas PAGAS da semana que têm categoria de verdade.
+     * Transferências (e faturas, que são transferências) ficam fora da conta:
+     * elas não carregam categoria por desenho — ver `isCategoryRefBroken`.
+     */
+    "categorized_week_installments",
 ] as const;
 
 export type MissionProgressRule = typeof MISSION_PROGRESS_RULES[number];
@@ -74,24 +80,83 @@ export interface MissionParams {
 }
 
 /**
+ * O que o workspace TEM — a peneira de CAPACIDADE.
+ *
+ * Os totais planejados dizem se a missão tem como ser MEDIDA naquela semana;
+ * estes três dizem se ela tem como ser CUMPRIDA, alguma vez. São coisas
+ * diferentes, e faltava a segunda: em 2026-W38 um workspace de empresa com
+ * ZERO cartões de crédito recebeu "fechar a fatura do cartão corporativo
+ * pagando até o vencimento". Não é uma missão difícil — é uma missão que
+ * nenhuma ação dentro do app conseguiria concluir, e que ainda impede a
+ * semana perfeita e zera a streak de quem não fez nada de errado.
+ *
+ * São BOOLEANOS, e não contagens, porque toda pergunta aqui é "existe ao
+ * menos um?": as consultas correspondentes usam `limit(1)` e devolver um
+ * número seria gravar uma contagem que ninguém mediu.
+ */
+export interface MissionCapacity {
+    /** Ao menos uma conta de cartão de crédito ativa. */
+    hasCreditCardAccount: boolean;
+    /** Ao menos um extrato conciliado ALGUMA VEZ (não só nesta semana). */
+    hasReconciledStatementEver: boolean;
+    /** Ao menos um lançamento automático nos últimos 30 dias. */
+    hasRecentAutomaticTransaction: boolean;
+}
+
+/** Nenhuma capacidade conhecida — o que vale quando ninguém informa uma. */
+export const NO_MISSION_CAPACITY: MissionCapacity = {
+    hasCreditCardAccount: false,
+    hasReconciledStatementEver: false,
+    hasRecentAutomaticTransaction: false,
+};
+
+/**
  * O que o sorteio da semana sabe sobre o workspace.
  *
- * São os totais PLANEJADOS da semana, em centavos, lidos do
- * `period_summaries/{YYYY-Www}` no momento da geração. Só isso: o contexto
- * existe para peneirar templates impossíveis, não para escolher missão por
- * heurística — a escolha continua sendo o hash, que é o que a torna
- * reproduzível fora do gatilho (o script de retag chega ao mesmo template).
+ * Duas metades:
+ *
+ *  - os totais PLANEJADOS da semana, em centavos, lidos do
+ *    `period_summaries/{YYYY-Www}` no momento da geração — o que dá para
+ *    MEDIR nesta semana;
+ *  - a CAPACIDADE (`MissionCapacity`) — o que dá para CUMPRIR, nunca.
+ *
+ * Só isso: o contexto existe para peneirar templates impossíveis, não para
+ * escolher missão por heurística — a escolha continua sendo o hash, que é o
+ * que a torna reproduzível fora do gatilho (o script de retag chega ao mesmo
+ * template).
  */
-export interface MissionSelectionContext {
+export interface MissionSelectionContext extends MissionCapacity {
     plannedIncomeCents: number;
     plannedExpenseCents: number;
 }
 
-/** Contexto vazio: nada planejado. É o que vale quando ninguém informa um. */
+/** Contexto vazio: nada planejado, nenhuma capacidade. */
 export const EMPTY_MISSION_CONTEXT: MissionSelectionContext = {
     plannedIncomeCents: 0,
     plannedExpenseCents: 0,
+    ...NO_MISSION_CAPACITY,
 };
+
+/**
+ * Junta as duas metades num contexto.
+ *
+ * Existe para que quem lê o sumário (`sumWeeklyTotals`, que devolve também os
+ * REALIZADOS) e quem lê a capacidade não precisem conhecer a forma exata do
+ * contexto — e para que um campo novo de peneira quebre a COMPILAÇÃO dos dois
+ * chamadores em vez de sumir calado com um `false` implícito.
+ */
+export function buildMissionSelectionContext(
+    totals: { plannedIncomeCents: number; plannedExpenseCents: number },
+    capacity: MissionCapacity
+): MissionSelectionContext {
+    return {
+        plannedIncomeCents: totals.plannedIncomeCents,
+        plannedExpenseCents: totals.plannedExpenseCents,
+        hasCreditCardAccount: capacity.hasCreditCardAccount,
+        hasReconciledStatementEver: capacity.hasReconciledStatementEver,
+        hasRecentAutomaticTransaction: capacity.hasRecentAutomaticTransaction,
+    };
+}
 
 export interface MissionTemplate {
     /**
@@ -393,6 +458,11 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         actionPath: "/reconciliation",
         params: ["target"],
         aiRequiredTermsPt: ["concilia", "extrato"],
+        // Conciliar exige extrato, e extrato exige o hábito (ou ao menos a
+        // conta configurada para isso). Quem nunca conciliou nada não tem
+        // como começar E terminar dentro da semana — a peneira olha se o
+        // workspace já conciliou ALGUMA VEZ, não nesta semana.
+        isEligible: (context) => context.hasReconciledStatementEver,
     },
     {
         key: "business_organization_categorize_auto",
@@ -412,6 +482,9 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         actionPath: "/workspace/categories",
         params: ["target"],
         aiRequiredTermsPt: ["automatic"],
+        // Lançamento automático chega por notificação: quem não tem a captura
+        // ligada (ou não recebeu nada no último mês) não tem o que triar.
+        isEligible: (context) => context.hasRecentAutomaticTransaction,
     },
     {
         key: "business_organization_invoice_on_time",
@@ -428,6 +501,40 @@ export const MISSION_CATALOG: MissionTemplate[] = [
         actionPath: "/workspace/accounts",
         params: ["target"],
         aiRequiredTermsPt: ["fatura", "vencimento"],
+        // O DEFEITO DE 2026-W38: sem conta de cartão de crédito não existe
+        // fatura corporativa para fechar, e a missão era incumprível.
+        isEligible: (context) => context.hasCreditCardAccount,
+    },
+    {
+        // A missão de organização que SEMPRE dá para cumprir.
+        //
+        // As outras três de empresa dependem de o workspace ter cartão, ter o
+        // hábito de conciliar ou receber lançamento automático. Uma empresa
+        // que não tem nenhuma das três ficaria sem missão de organização —
+        // e, sem este template, a peneira cairia no `all` (o sorteio entre
+        // TODOS os candidatos) e devolveria justamente a missão impossível
+        // que ela acabou de descartar.
+        //
+        // Categorizar o que foi pago na semana é o trabalho de organização
+        // que existe em QUALQUER workspace que movimente dinheiro, é medido
+        // com as parcelas que a avaliação já lê (zero leitura nova) e é o
+        // mesmo hábito que o `fix_empty_category` existe para reparar.
+        key: "business_organization_categorize_week",
+        audience: "business",
+        type: "organization",
+        nameKey: "missionBusinessOrganizationCategorizeWeek",
+        name: {
+            pt: "Categorizar {target}% dos lançamentos pagos na semana.",
+            en: "Categorise {target}% of the entries paid this week.",
+        },
+        target: 100,
+        rewardXp: 200,
+        progressRule: "categorized_week_installments",
+        actionPath: "/workspace/categories",
+        params: ["target"],
+        aiRequiredTermsPt: ["categoriz", "lancamento"],
+        // Sem `isEligible`: é ela que garante que a organização da empresa
+        // nunca fique sem candidato possível.
     },
 ];
 

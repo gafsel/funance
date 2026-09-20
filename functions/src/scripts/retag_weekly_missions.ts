@@ -23,6 +23,20 @@
  *   workspace
  *   `personal` → só CARIMBA. O objetivo já era o certo; reescrever o texto
  *                só produziria churn na tela de quem não tem problema nenhum.
+ *   JÁ CARIMBADA,
+ *   ABERTA, com
+ *   template hoje
+ *   INELEGÍVEL  → REPARADA: trocada pelo template elegível da semana, mas
+ *                **só com `progress == 0`**. Com progresso, a missão é
+ *                MANTIDA e aparece no resumo como `mantidas_com_progresso` —
+ *                progresso é trabalho do usuário, e um número que anda para
+ *                trás é pior que uma missão difícil.
+ *
+ * O reparo é o que conserta o defeito de 2026-W38: um workspace de empresa
+ * com ZERO contas de cartão recebeu `business_organization_invoice_on_time`,
+ * incumprível. O servidor novo já não a sorteia (a peneira de CAPACIDADE
+ * passou a olhar cartão, hábito de conciliação e lançamento automático), mas a
+ * missão gravada continuaria na tela até a virada da semana.
  *
  * **Por que a missão concluída NÃO é estornada.** O XP dela já entrou no
  * workspace, já subiu nível e já pode ter desbloqueado badge. Estornar
@@ -62,28 +76,37 @@
  *   --apply              executa as escritas (sem ela, dry-run)
  *   --project=<id>       projectId do Firebase (default: GOOGLE_CLOUD_PROJECT)
  *   --workspace=<id>     limita a migração a um único workspace
- *   --week=<YYYY-Www>    semana a tratar (default: a semana corrente)
+ *   --week=<YYYY-Www>    semana a tratar (default: a semana corrente). O mês
+ *                        do planejamento e a janela de capacidade são os DESSA
+ *                        semana, não os de hoje.
  *   --page-size=<n>      workspaces lidos por página (default 200)
  *   --force              recarimba missões que já têm `templateKey`
  */
 
 import * as admin from "firebase-admin";
 import { BatchOperation, commitInChunks } from "../core/utils/batch.utils";
-import { getWeekId, startOfWeekInTz } from "../core/utils/week.utils";
-import { getMonthKeyInTz } from "../core/utils/timezone.utils";
+import { getWeekId, startOfWeekInTz, weekStartFromRef } from "../core/utils/week.utils";
+import { addCalendarDays, getMonthKeyInTz } from "../core/utils/timezone.utils";
 import { resolveAudience } from "../features/goal/domain/models/audience.model";
 import {
-    EMPTY_MISSION_CONTEXT,
+    MissionCapacity,
     MissionParams,
     MissionSelectionContext,
     MissionTemplate,
+    NO_MISSION_CAPACITY,
     WEEKLY_MISSION_TYPES,
     WeeklyMissionType,
     buildMissionName,
+    buildMissionSelectionContext,
+    findMissionTemplate,
     missionTemplatesFor,
     selectMissionTemplate,
 } from "../features/goal/domain/models/mission_catalog";
-import { sumWeeklyTotals } from "../features/goal/domain/services/gamification.service";
+import {
+    CAPACITY_WINDOW_DAYS,
+    localWallClockIso,
+    sumWeeklyTotals,
+} from "../features/goal/domain/services/gamification.service";
 import { WeeklySummaryRow } from "../features/goal/domain/repositories/gamification.repository";
 import { CategoryModel, isSystemCategory } from "../features/workspace/domain/models/category.model";
 import { CategoryPlanningModel, toPeriodSummaryDocument } from "../features/finance/domain/models/finance.models";
@@ -111,10 +134,66 @@ export interface RetagSummary {
     skippedAlreadyTagged: number;
     /** Missões cujo `type` não está no catálogo. */
     skippedUnknownType: number;
+    /** Missões abertas cujo template virou INELEGÍVEL e foram trocadas. */
+    repaired: number;
+    /** Missões inelegíveis MANTIDAS porque já tinham progresso. */
+    keptWithProgress: number;
     failed: number;
 }
 
 const DEFAULT_PAGE_SIZE = 200;
+
+/** Domingo 00:00 (fuso do produto) de um id `YYYY-Www`, ou `null` se malformado. */
+export function weekStartFromWeekId(weekId: string): Date | null {
+    const match = /^(\d{4})-W(\d{1,2})$/.exec(weekId);
+    if (!match) return null;
+    return weekStartFromRef({ year: Number(match[1]), week: Number(match[2]) });
+}
+
+/**
+ * A CAPACIDADE do workspace, pelas MESMAS três perguntas do servidor
+ * (`GamificationRepositoryImpl.getMissionCapacity`), com `limit(1)` cada.
+ *
+ * O script não usa o repositório: ele recebe uma instância de Firestore e
+ * navega por referências, para poder rodar contra qualquer projeto sem montar
+ * o container inteiro. O contrato que os dois compartilham é o do CONTEXTO —
+ * `buildMissionSelectionContext` —, e é ele que garante que um campo novo de
+ * peneira quebre a compilação dos dois lados.
+ */
+async function readCapacity(
+    workspaceRef: admin.firestore.DocumentReference,
+    automaticTransactionsSince: string
+): Promise<MissionCapacity> {
+    try {
+        const [cards, reconciliations, automatics] = await Promise.all([
+            workspaceRef.collection("accounts")
+                .where("runtimeType", "==", "creditCard")
+                .where("isDeleted", "==", false)
+                .limit(1)
+                .get(),
+            workspaceRef.collection("reconciliations")
+                .where("status", "==", "completed")
+                .limit(1)
+                .get(),
+            workspaceRef.collection("automatic_transactions")
+                .where("date", ">=", automaticTransactionsSince)
+                .orderBy("date")
+                .limit(1)
+                .get(),
+        ]);
+        return {
+            hasCreditCardAccount: !cards.empty,
+            hasReconciledStatementEver: !reconciliations.empty,
+            hasRecentAutomaticTransaction: !automatics.empty,
+        };
+    }
+    catch (error) {
+        // Sem capacidade conhecida o sorteio cai na missão que sempre dá para
+        // cumprir — o lado seguro de errar.
+        console.warn(`[retag_weekly_missions] ${workspaceRef.id}: falha ao ler a capacidade — ${error}`);
+        return NO_MISSION_CAPACITY;
+    }
+}
 
 /** O template PESSOAL daquele tipo — o objetivo que a missão antiga teve. */
 function legacyTemplate(type: WeeklyMissionType): MissionTemplate | null {
@@ -171,14 +250,21 @@ export async function retagWeeklyMissions(
         replaced: 0,
         skippedAlreadyTagged: 0,
         skippedUnknownType: 0,
+        repaired: 0,
+        keptWithProgress: 0,
         failed: 0,
     };
 
     const pageSize = Math.max(1, options.pageSize ?? DEFAULT_PAGE_SIZE);
     const now = options.now ?? new Date();
-    const startOfWeek = startOfWeekInTz(now);
-    const weekId = options.weekId ?? getWeekId(startOfWeek);
+    const weekId = options.weekId ?? getWeekId(startOfWeekInTz(now));
+    // O domingo da semana TRATADA, não o de hoje: com `--week=2026-W38` rodado
+    // numa segunda-feira de outubro, o mês do planejamento e a janela de
+    // capacidade têm de ser os daquela semana, senão o script reproduz um
+    // sorteio diferente do que o servidor fez.
+    const startOfWeek = weekStartFromWeekId(weekId) ?? startOfWeekInTz(now);
     const monthKey = getMonthKeyInTz(startOfWeek);
+    const capacitySince = localWallClockIso(addCalendarDays(startOfWeek, -CAPACITY_WINDOW_DAYS));
 
     log(`[retag_weekly_missions] ${options.dryRun ? "DRY-RUN" : "APPLY"} — semana ${weekId}.`);
 
@@ -231,12 +317,21 @@ export async function retagWeeklyMissions(
                 const resolveSelectionContext = async (): Promise<MissionSelectionContext> => {
                     if (selectionContext !== undefined) return selectionContext;
 
+                    // A CAPACIDADE é lida sempre — inclusive quando não há
+                    // sumário da semana. Ela não depende do que foi planejado,
+                    // e é justamente ela que diz se a missão da fatura tinha
+                    // como ser cumprida (o defeito de 2026-W38).
+                    const capacity = await readCapacity(workspaceDoc.ref, capacitySince);
+
                     const summaryDoc = await workspaceDoc.ref
                         .collection("period_summaries")
                         .doc(weekId)
                         .get();
                     if (!summaryDoc.exists) {
-                        selectionContext = EMPTY_MISSION_CONTEXT;
+                        selectionContext = buildMissionSelectionContext(
+                            { plannedIncomeCents: 0, plannedExpenseCents: 0 },
+                            capacity
+                        );
                         return selectionContext;
                     }
 
@@ -270,7 +365,7 @@ export async function retagWeeklyMissions(
                         });
                     }
 
-                    selectionContext = sumWeeklyTotals(rows);
+                    selectionContext = buildMissionSelectionContext(sumWeeklyTotals(rows), capacity);
                     return selectionContext;
                 };
 
@@ -298,11 +393,6 @@ export async function retagWeeklyMissions(
                     summary.scanned++;
                     const data = missionDoc.data() ?? {};
 
-                    if (typeof data.templateKey === "string" && data.templateKey.length > 0 && !options.force) {
-                        summary.skippedAlreadyTagged++;
-                        continue;
-                    }
-
                     const type = WEEKLY_MISSION_TYPES.find((t) => t === data.type);
                     if (!type) {
                         summary.skippedUnknownType++;
@@ -311,13 +401,71 @@ export async function retagWeeklyMissions(
                     }
 
                     const isOpen = data.status !== "completed";
-                    const replace = isOpen && audience === "business";
+                    const alreadyTagged = typeof data.templateKey === "string" && data.templateKey.length > 0;
+
+                    // REPARO DE MISSÃO IMPOSSÍVEL.
+                    //
+                    // A missão já carimbada normalmente é pulada — o carimbo é
+                    // o trabalho deste script. Uma exceção: a missão ABERTA
+                    // cujo template deixou de ser ELEGÍVEL para este
+                    // workspace. Foi o que aconteceu em 2026-W38, quando
+                    // `business_organization_invoice_on_time` foi sorteada
+                    // para um workspace sem nenhuma conta de cartão: o
+                    // servidor novo já não a sortearia, mas a missão gravada
+                    // continua na tela, incumprível, até a virada.
+                    //
+                    // Só com `progress == 0`. Progresso é trabalho do usuário:
+                    // trocar a missão por baixo dele apagaria o que ele fez,
+                    // e um número que anda para trás é pior que uma missão
+                    // difícil. Com progresso, a missão FICA — e o relatório
+                    // diz quais foram.
+                    let repair = false;
+                    if (alreadyTagged && !options.force) {
+                        const recorded = findMissionTemplate(data.templateKey);
+                        if (!isOpen || !recorded?.isEligible) {
+                            summary.skippedAlreadyTagged++;
+                            continue;
+                        }
+                        if (recorded.isEligible(await resolveSelectionContext())) {
+                            summary.skippedAlreadyTagged++;
+                            continue;
+                        }
+                        const progress = typeof data.progress === "number" ? data.progress : 0;
+                        if (progress > 0) {
+                            summary.keptWithProgress++;
+                            log(
+                                `[retag_weekly_missions] ${workspaceId}/${missionDoc.id}: ${recorded.key} é ` +
+                                `INELEGÍVEL neste workspace, mas tem progresso ${progress} — MANTIDA.`
+                            );
+                            continue;
+                        }
+                        repair = true;
+                    }
+
+                    // `--force` mantém o comportamento antigo: a missão aberta
+                    // de empresa é resorteada mesmo já carimbada.
+                    const replace = repair ||
+                        (isOpen && audience === "business" && (!alreadyTagged || options.force === true));
 
                     const template = replace
-                        ? selectMissionTemplate("business", type, weekId, await resolveSelectionContext())
+                        ? selectMissionTemplate(audience, type, weekId, await resolveSelectionContext())
                         : legacyTemplate(type);
                     if (!template) {
                         summary.skippedUnknownType++;
+                        continue;
+                    }
+
+                    // O sorteio entre os elegíveis devolveu a MESMA missão
+                    // impossível: só acontece se o catálogo perder a opção
+                    // sempre possível daquele tipo (a peneira, sem ninguém de
+                    // pé, volta a correr sobre todos). Trocar por ela mesma
+                    // zeraria o documento à toa.
+                    if (repair && template.key === data.templateKey) {
+                        summary.skippedAlreadyTagged++;
+                        log(
+                            `[retag_weekly_missions] ${workspaceId}/${missionDoc.id}: ${template.key} ` +
+                            "continua sendo o único candidato — nada a trocar."
+                        );
                         continue;
                     }
 
@@ -344,14 +492,15 @@ export async function retagWeeklyMissions(
                         ? buildReplacementPatch(template, params)
                         : buildTagPatch(template, params);
 
-                    if (replace) summary.replaced++;
+                    if (repair) summary.repaired++;
+                    else if (replace) summary.replaced++;
                     else summary.tagged++;
 
                     if (options.dryRun) {
-                        log(
-                            `[retag_weekly_missions] ${workspaceId}/${missionDoc.id}: ` +
-                            `${replace ? "SUBSTITUIRIA" : "CARIMBARIA"} com ${template.key} (dry-run).`
-                        );
+                        const action = repair
+                            ? `REPARARIA (${data.templateKey} é inelegível) com`
+                            : replace ? "SUBSTITUIRIA com" : "CARIMBARIA com";
+                        log(`[retag_weekly_missions] ${workspaceId}/${missionDoc.id}: ${action} ${template.key} (dry-run).`);
                         continue;
                     }
 
@@ -375,7 +524,8 @@ export async function retagWeeklyMissions(
     log(
         "[retag_weekly_missions] Resumo: " +
         `workspaces=${summary.workspaces}, missões=${summary.scanned}, carimbadas=${summary.tagged}, ` +
-        `substituídas=${summary.replaced}, já_carimbadas=${summary.skippedAlreadyTagged}, ` +
+        `substituídas=${summary.replaced}, reparadas=${summary.repaired}, ` +
+        `mantidas_com_progresso=${summary.keptWithProgress}, já_carimbadas=${summary.skippedAlreadyTagged}, ` +
         `tipo_desconhecido=${summary.skippedUnknownType}, falhas=${summary.failed}.`
     );
     return summary;
