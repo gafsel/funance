@@ -4423,6 +4423,12 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Metas'**
   String get goalsTitle;
+
+  /// Contador compacto de progresso de missão, para uma linha.
+  ///
+  /// In pt, this message translates to:
+  /// **'{progress}/{target}'**
+  String missionProgressShort(String progress, String target);
 }
 
 class _AppLocalizationsDelegate

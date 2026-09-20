@@ -7,6 +7,7 @@ import 'package:funances/features/home/presentation/widgets/coaching_insight_car
 import 'package:funances/features/home/presentation/widgets/compass/compass_strip_view.dart';
 import 'package:funances/features/home/presentation/widgets/home/due_soon_strip.dart';
 import 'package:funances/features/home/presentation/widgets/journey_header.dart';
+import 'package:funances/core/widgets/app_progress_bar.dart';
 import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/team_status_view.dart';
 import 'package:funances/features/finance/domain/models/installment_model.dart';
@@ -175,6 +176,44 @@ void main() {
       // A missão em foco é a primeira AINDA ABERTA com destino — não a
       // primeira da lista, que está cumprida.
       expect(find.text('Abrir o 50-30-20'), findsOneWidget);
+    });
+
+    /// M4 — a linha mostrava a barra e não o número. Numa missão de 8
+    /// lançamentos cada passo movia 6 pixels: o progresso existia e não era
+    /// legível, e "quanto falta" — metade do que uma missão comunica —
+    /// ficava só na tela de detalhe.
+    testWidgets('M4 — cada linha diz o progresso em número', (tester) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(missions: homeTypicalMissions()),
+      );
+
+      expect(find.text('5/5'), findsOneWidget);
+      expect(find.text('3/5'), findsOneWidget);
+      expect(find.text('1/8'), findsOneWidget);
+    });
+
+    testWidgets('M4 — e a barra tem largura para mover', (tester) async {
+      await pumpHome(
+        tester,
+        const JourneyTab(),
+        overrides: homeOverrides(missions: homeTypicalMissions()),
+      );
+
+      final barras = find.descendant(
+        of: find.byType(MissionSummary),
+        matching: find.byType(AppProgressBar),
+      );
+
+      expect(barras, findsNWidgets(3));
+      for (final barra in barras.evaluate()) {
+        expect(
+          tester.getSize(find.byWidget(barra.widget)).width,
+          greaterThanOrEqualTo(64),
+          reason: 'com 48px, um passo de 1 em 8 move seis pixels',
+        );
+      }
     });
 
     testWidgets('D2 — o cabeçalho conta quantas foram e abre a semana', (

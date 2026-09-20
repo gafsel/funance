@@ -123,6 +123,15 @@ class MissionSummary extends ConsumerWidget {
 class _MissionLine extends StatelessWidget {
   const _MissionLine({required this.mission, required this.l10n});
 
+  /// Largura mínima da barra de uma linha.
+  ///
+  /// A barra tinha 48px e a linha não dizia o número. Numa missão de 8
+  /// lançamentos, cada passo move a barra 6 pixels: o progresso existia e não
+  /// era legível, e "quanto falta" — metade do que uma missão comunica —
+  /// ficava só na tela de detalhe. Com 64px o passo mínimo é 8px, e o
+  /// contador ao lado responde exato o que a barra só aproxima.
+  static const double barWidth = 64;
+
   final WeeklyMissionModel mission;
   final AppLocalizations l10n;
 
@@ -176,11 +185,21 @@ class _MissionLine extends StatelessWidget {
             if (mission.target > 0) ...[
               const SizedBox(width: AppSpacing.xs),
               SizedBox(
-                width: 48,
+                width: _MissionLine.barWidth,
                 child: AppProgressBar(
                   value: mission.completion,
                   size: AppProgressSize.thin,
                   color: completed ? palette.rewardText : null,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xxs),
+              Text(
+                l10n.missionProgressShort(
+                  '${mission.displayProgress}',
+                  '${mission.target}',
+                ),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: palette.ink2,
                 ),
               ),
             ],

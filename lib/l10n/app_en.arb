@@ -1300,5 +1300,17 @@
       }
     }
   },
-  "goalsTitle": "Goals"
+  "goalsTitle": "Goals",
+  "missionProgressShort": "{progress}/{target}",
+  "@missionProgressShort": {
+    "description": "Contador compacto de progresso de missão, para uma linha.",
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  }
 }

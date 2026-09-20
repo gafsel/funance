@@ -2482,4 +2482,9 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get goalsTitle => 'Metas';
+
+  @override
+  String missionProgressShort(String progress, String target) {
+    return '$progress/$target';
+  }
 }
