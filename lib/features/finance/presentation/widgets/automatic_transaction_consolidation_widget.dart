@@ -15,6 +15,7 @@ import 'package:funances/features/finance/domain/models/installment_model.dart';
 import 'package:funances/features/finance/domain/models/order_model.dart';
 import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/workspace/presentation/providers.dart';
+import 'package:funances/core/presentation/display_names.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -299,15 +300,22 @@ class _TransactionItem extends ConsumerWidget {
               child: Wrap(
                 spacing: AppSpacing.xs,
                 children: [
+                  // `displayName`, e não `.name` cru. A categoria vem
+                  // EMBUTIDA no documento do leitor de notificação e chega
+                  // sem nome quando ele não classificou — desde que o parse
+                  // passou a tolerar isso, `.name` é string vazia e a pílula
+                  // aparecia com um ícone e nenhuma palavra. `displayName`
+                  // troca vazio por "Sem categoria" no idioma de quem lê, que
+                  // é exatamente o caso que ele existe para cobrir.
                   if (transaction.suggestedCategory != null)
                     StatusPill(
-                      label: transaction.suggestedCategory!.name,
+                      label: transaction.suggestedCategory!.displayName(l10n),
                       icon: Icons.category,
                       dense: true,
                     ),
                   if (transaction.suggestedAccount != null)
                     StatusPill(
-                      label: transaction.suggestedAccount!.name,
+                      label: transaction.suggestedAccount!.displayName(l10n),
                       icon: Icons.account_balance_wallet,
                       dense: true,
                     ),

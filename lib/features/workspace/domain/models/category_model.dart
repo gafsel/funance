@@ -50,13 +50,17 @@ sealed class CategoryModel with _$CategoryModel {
   /// Leitura TOLERANTE dos quatro campos de texto.
   ///
   /// O gerado faz `json['name'] as String`, e um `null` ali estoura com
-  /// "type 'Null' is not a subtype of type 'String'". Não é hipótese: a
-  /// categoria vem EMBUTIDA no documento de `automatic_transactions`, escrita
-  /// pelo leitor de notificação, e ela chega sem `name` — às vezes sem `id` —
-  /// quando a notificação do banco não dava para classificar. O resultado era
-  /// `AutomaticTransactionRepositoryImpl.getPendingTransactions` derrubando a
-  /// lista INTEIRA de pendências por causa de um documento: quem tinha uma
-  /// notificação malformada ficava sem conseguir consolidar nenhuma.
+  /// "type 'Null' is not a subtype of type 'String'".
+  ///
+  /// Os dois produtores conhecidos escrevem a categoria inteira ou não
+  /// escrevem nada: o leitor de notificação OMITE `suggestedCategory` quando
+  /// não classifica, e a sugestão da IA sempre vem com `name`, `icon` e
+  /// `color`. A tolerância aqui não descreve nenhum dos dois — ela existe
+  /// porque a categoria vem EMBUTIDA num documento que o app não escreve, e
+  /// uma forma que ninguém promete é exatamente a que não tem quem a corrija.
+  /// A defesa de verdade é a fronteira da leitura
+  /// (`parsePendingTransactions`), que pula o documento inteiro; esta aqui
+  /// salva o caso em que só o texto falta e o resto do documento serve.
   ///
   /// O default é string vazia e não um texto inventado, porque a camada de
   /// dados não escolhe palavra: `displayName` já troca vazio por "Sem

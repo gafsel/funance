@@ -3,22 +3,23 @@ import 'package:funances/features/finance/data/models/automatic_transaction_mapp
 import 'package:funances/features/finance/domain/models/automatic_transaction_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 
-/// Bug pré-existente — uma notificação malformada derrubava TODAS as
-/// pendências.
+/// Bug pré-existente — uma pendência malformada derrubava TODAS as outras.
 ///
-/// A categoria vem embutida no documento de `automatic_transactions`, escrita
-/// pelo leitor de notificação, e chega sem `name` — às vezes sem `id` — quando
-/// a notificação do banco não deu para classificar. O `fromJson` gerado faz
-/// `json['name'] as String` e estoura com "type 'Null' is not a subtype of
-/// type 'String'". Como
-/// `AutomaticTransactionRepositoryImpl.getPendingTransactions` mapeia a
-/// coleção inteira de uma vez, UM documento assim apagava a lista toda: quem
-/// tinha uma notificação malformada não conseguia consolidar nenhuma.
+/// `AutomaticTransactionRepositoryImpl.getPendingTransactions` mapeava a
+/// coleção inteira de uma vez, então UM documento ilegível apagava a lista
+/// toda: quem tinha uma notificação malformada não conseguia consolidar
+/// nenhuma.
 ///
-/// O JSON abaixo é o do documento real, com a categoria pela metade.
+/// Os dois produtores REAIS do documento estão abaixo. O leitor de
+/// notificação OMITE a categoria quando não classifica; a sugestão da IA vem
+/// sempre completa, com `name`, `icon` e `color`. A categoria pela metade não
+/// é nenhum dos dois — e é justamente por isso que ela derruba: uma forma que
+/// ninguém promete é a que não tem quem a corrija. Este arquivo prende os
+/// dois caminhos honestos e o terceiro, o que não deveria existir.
 
-Map<String, dynamic> _pendenteComCategoriaIncompleta() => {
-  'id': 'auto-8f2c',
+/// O documento do LEITOR DE NOTIFICAÇÃO: sem categoria nenhuma.
+Map<String, dynamic> _pendenteDoLeitor() => {
+  'id': 'auto-1c40',
   'description': 'COMPRA CARTAO 4412',
   'amount': 89.9,
   'date': '2026-03-15T12:00:00.000Z',
@@ -27,8 +28,33 @@ Map<String, dynamic> _pendenteComCategoriaIncompleta() => {
   'packageName': 'com.nubank.app',
   'isConsolidated': false,
   'isIgnored': false,
+};
+
+/// O documento com SUGESTÃO DA IA: categoria completa.
+Map<String, dynamic> _pendenteDaIa() => {
+  'id': 'auto-8f2c',
+  'description': 'MERCADO CENTRAL',
+  'amount': 132.4,
+  'date': '2026-03-15T12:00:00.000Z',
+  'type': 'expense',
+  'originNotificationId': 'n-772',
+  'packageName': 'com.nubank.app',
+  'isConsolidated': false,
+  'isIgnored': false,
   'suggestedCategory': {
-    // Sem `name` e sem `id`: é assim que o leitor grava quando não classifica.
+    'id': 'mercado',
+    'name': 'Mercado',
+    'icon': 'shopping_cart',
+    'color': '#2E7D32',
+    'type': 'expense',
+  },
+};
+
+/// A forma que NENHUM dos dois produtores promete: categoria pela metade.
+Map<String, dynamic> _pendenteComCategoriaIncompleta() => {
+  ..._pendenteDaIa(),
+  'id': 'auto-8f2c',
+  'suggestedCategory': {
     'icon': 'shopping_cart',
     'color': '#FF5722',
     'type': 'expense',
@@ -54,17 +80,32 @@ Map<String, dynamic> _pendenteComContaQuebrada() => {
   },
 };
 
-Map<String, dynamic> _pendenteIntegro() => {
-  'id': 'auto-ok',
-  'description': 'MERCADO CENTRAL',
-  'amount': 132.4,
-  'date': '2026-03-15T12:00:00.000Z',
-  'type': 'expense',
-  'isConsolidated': false,
-  'isIgnored': false,
-};
+Map<String, dynamic> _pendenteIntegro() =>
+    {..._pendenteDoLeitor(), 'id': 'auto-ok'};
 
 void main() {
+  group('os documentos REAIS', () {
+    test('o do leitor não traz categoria nenhuma, e isso é normal', () {
+      final transacao = AutomaticTransactionModel.fromJson(
+        _pendenteDoLeitor(),
+      );
+
+      expect(transacao.suggestedCategory, isNull);
+      expect(transacao.description, 'COMPRA CARTAO 4412');
+    });
+
+    test('o da IA traz a categoria inteira', () {
+      final categoria = AutomaticTransactionModel.fromJson(
+        _pendenteDaIa(),
+      ).suggestedCategory!;
+
+      expect(categoria.id, 'mercado');
+      expect(categoria.name, 'Mercado');
+      expect(categoria.icon, 'shopping_cart');
+      expect(categoria.color, '#2E7D32');
+    });
+  });
+
   group('CategoryModel.fromJson tolerante', () {
     test('categoria sem name e sem id não derruba o parse', () {
       final transacao = AutomaticTransactionModel.fromJson(
@@ -72,7 +113,7 @@ void main() {
       );
 
       expect(transacao.id, 'auto-8f2c');
-      expect(transacao.amount, 89.9);
+      expect(transacao.amount, 132.4);
 
       final categoria = transacao.suggestedCategory!;
       expect(categoria.id, '');
