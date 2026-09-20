@@ -138,9 +138,14 @@ ProviderContainer _container(_BalanceFake fake) {
 }
 
 /// Espera o provider sair de `loading`.
-Future<List<ArenaAccountReading>> _lives(ProviderContainer container) async {
-  // A semana corrente do relógio falso: domingo 20/09/2026.
-  final args = (weekStart: DateTime(2026, 9, 20), running: true);
+Future<List<ArenaAccountReading>> _lives(ProviderContainer container) =>
+    _livesFor(container, DateTime(2026, 9, 20));
+
+Future<List<ArenaAccountReading>> _livesFor(
+  ProviderContainer container,
+  DateTime weekStart,
+) async {
+  final args = (weekStart: weekStart, running: true);
 
   final sub = container.listen(
     ArenaViewProviders.accountLives(args),
@@ -216,6 +221,47 @@ void main() {
           'sem filtro é o que devolvia o futuro',
     );
     expect(fake.asked, contains('2026-09-23'));
+  });
+
+  test('a virada do dia reabre a consulta com o teto novo', () async {
+    // O celular que passa a noite na mesa de cabeceira. Com o teto de data
+    // preso no momento em que a consulta foi montada, o app acordava
+    // respondendo com o saldo de ONTEM, e o lançamento de hoje não aparecia
+    // até alguém fechar e reabrir.
+    var agora = DateTime(2026, 9, 23, 22);
+
+    final fake = _BalanceFake(
+      [_checking('c1', 'Nubank')],
+      {
+        'c1': {_saturdayBefore: 5200, '2026-09-23': 3980, '2026-09-24': 3100},
+      },
+    );
+
+    final container = ProviderContainer(
+      overrides: [
+        clockProvider.overrideWithValue(() => agora),
+        WorkspaceViewProviders.currentWorkspaceId.overrideWithValue('ws-1'),
+        AccountDomainProviders.repository.overrideWithValue(fake),
+        WorkspaceDomainProviders.repository.overrideWithValue(
+          FakeWorkspaceRepository(),
+        ),
+      ],
+    );
+
+    expect((await _lives(container)).single.current, 3980);
+
+    // Meia-noite: o `todayProvider` vira, e quem o observa é refeito.
+    agora = DateTime(2026, 9, 24, 0, 1);
+    container.read(todayProvider.notifier).refresh();
+
+    final depois = await _livesFor(container, DateTime(2026, 9, 20));
+    expect(
+      depois.single.current,
+      3100,
+      reason: 'o teto de data acompanhou a virada',
+    );
+
+    container.dispose();
   });
 
   test('sem documento no sábado, vale o último ANTES dele', () async {

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:funances/core/time/clock.dart';
 import 'package:funances/core/time/product_week.dart';
+import 'package:funances/core/utils/date_extension.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Qual foi a última semana cujo fechamento o usuário já viu.
@@ -69,11 +70,15 @@ sealed class ArenaWeekClosingProviders {
       );
 
   /// O id da semana que acabou de fechar.
+  ///
+  /// `addCalendarDays(-1)` e não `subtract(Duration(days: 1))`: no domingo em
+  /// que o horário de verão entra, o dia tem 23 horas, e vinte e quatro horas
+  /// antes da meia-noite de domingo ainda é domingo. O id sairia o da semana
+  /// que está começando, e o placar mostraria a luta que ainda não aconteceu
+  /// — exatamente no dia em que ele aparece.
   static final lastWeekId = Provider.autoDispose<String>((ref) {
     return ProductWeek.idOf(
-      ProductWeek.startOf(
-        ref.watch(todayProvider),
-      ).subtract(const Duration(days: 1)),
+      ProductWeek.startOf(ref.watch(todayProvider)).addCalendarDays(-1),
     );
   });
 
