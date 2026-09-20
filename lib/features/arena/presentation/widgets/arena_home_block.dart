@@ -9,6 +9,7 @@ import 'package:funances/core/utils/num_extensions.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/screens/arena_screen.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_view.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_week_closing_banner.dart';
 import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
@@ -153,6 +154,10 @@ class ArenaHomeBlock extends ConsumerWidget {
                   ],
                 ),
               ),
+              // O placar da semana que fechou, quando há um e ele ainda não
+              // foi visto. Ele mora ACIMA da cena: é notícia, e notícia vem
+              // antes do estado.
+              const ArenaWeekClosingBanner(),
               ArenaView(sceneHeight: sceneHeight, compact: compact),
             ],
           ),

@@ -1480,5 +1480,28 @@
         "type": "String"
       }
     }
+  },
+  "arenaClosingWon": "Semana passada: monstro derrotado",
+  "arenaClosingLost": "Semana passada: o monstro escapou com {amount}",
+  "@arenaClosingLost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaClosingScore": "{paid} de {total} compromissos pagos · caixa no sábado: {balance}",
+  "@arenaClosingScore": {
+    "placeholders": {
+      "paid": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
   }
 }

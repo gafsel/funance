@@ -4579,6 +4579,24 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'Monstro derrotado — {amount} pagos nesta semana'**
   String arenaDefeatedBanner(String amount);
+
+  /// No description provided for @arenaClosingWon.
+  ///
+  /// In pt, this message translates to:
+  /// **'Semana passada: monstro derrotado'**
+  String get arenaClosingWon;
+
+  /// No description provided for @arenaClosingLost.
+  ///
+  /// In pt, this message translates to:
+  /// **'Semana passada: o monstro escapou com {amount}'**
+  String arenaClosingLost(String amount);
+
+  /// No description provided for @arenaClosingScore.
+  ///
+  /// In pt, this message translates to:
+  /// **'{paid} de {total} compromissos pagos · caixa no sábado: {balance}'**
+  String arenaClosingScore(int paid, int total, String balance);
 }
 
 class _AppLocalizationsDelegate

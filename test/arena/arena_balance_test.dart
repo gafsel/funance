@@ -139,15 +139,20 @@ ProviderContainer _container(_BalanceFake fake) {
 
 /// Espera o provider sair de `loading`.
 Future<List<ArenaAccountReading>> _lives(ProviderContainer container) async {
+  // A semana corrente do relógio falso: domingo 20/09/2026.
+  final args = (weekStart: DateTime(2026, 9, 20), running: true);
+
   final sub = container.listen(
-    ArenaViewProviders.accountLives,
+    ArenaViewProviders.accountLives(args),
     (_, _) {},
     fireImmediately: true,
   );
   addTearDown(sub.close);
 
   for (var i = 0; i < 30; i++) {
-    final value = container.read(ArenaViewProviders.accountLives).valueOrNull;
+    final value = container
+        .read(ArenaViewProviders.accountLives(args))
+        .valueOrNull;
     if (value != null) return value;
     await Future<void>.delayed(Duration.zero);
   }

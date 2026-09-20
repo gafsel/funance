@@ -66,6 +66,21 @@ sealed class ArenaViewProviders {
         return (start: start, end: end);
       });
 
+  /// A janela da semana PASSADA. O fechamento lê daqui.
+  static final lastWeekWindow =
+      Provider.autoDispose<({DateTime start, DateTime end})>((ref) {
+        final start = ProductWeek.startOf(
+          ref.watch(todayProvider),
+        ).addCalendarDays(-7);
+
+        return (
+          start: start,
+          end: start
+              .addCalendarDays(6)
+              .add(const Duration(hours: 23, minutes: 59, seconds: 59)),
+        );
+      });
+
   /// Parcelas cuja `referenceDate` cai na semana.
   static final weekInstallments =
       StreamProvider.autoDispose<List<InstallmentModel>>((ref) {
@@ -120,6 +135,31 @@ sealed class ArenaViewProviders {
         );
       });
 
+  /// Parcelas da semana PASSADA, e o atraso que ela herdou.
+  static final lastWeekInstallments =
+      StreamProvider.autoDispose<List<InstallmentModel>>((ref) {
+        final window = ref.watch(lastWeekWindow);
+
+        return ref
+            .watch(FinanceDomainProviders.service)
+            .watchInstallments(startDate: window.start, endDate: window.end);
+      });
+
+  static final lastWeekOverdue =
+      StreamProvider.autoDispose<List<InstallmentModel>>((ref) {
+        final window = ref.watch(lastWeekWindow);
+
+        return ref
+            .watch(FinanceDomainProviders.service)
+            .watchInstallments(
+              startDate: window.start.addCalendarDays(
+                -arenaOverdueLookbackDays,
+              ),
+              endDate: window.start.add(const Duration(seconds: -1)),
+              status: InstallmentStatus.pending,
+            );
+      });
+
   /// Saldo de UMA conta no começo da semana e agora.
   ///
   /// O "começo da semana" é o último documento `accounts/{id}/balance/{dia}`
@@ -130,13 +170,24 @@ sealed class ArenaViewProviders {
   /// Conta sem documento nenhum antes do domingo — criada durante a semana —
   /// devolve zero, que é a verdade: ela não existia no começo da luta.
   static final accountLife = Provider.autoDispose
-      .family<AsyncValue<ArenaAccountReading>, AccountModel>((ref, account) {
-        final window = ref.watch(weekWindow);
-        final beforeSunday = window.start.addCalendarDays(-1);
+      .family<
+        AsyncValue<ArenaAccountReading>,
+        ({AccountModel account, DateTime weekStart, bool running})
+      >((ref, args) {
+        final account = args.account;
+        final beforeSunday = args.weekStart.addCalendarDays(-1);
 
-        final current = ref.watch(
-          AccountViewProviders.latestBalanceById(account.id),
-        );
+        // Semana corrente: o saldo de AGORA. Semana fechada: o saldo do
+        // sábado dela — perguntar "o último" traria o de hoje, e o placar da
+        // semana passada mostraria a vida de uma luta que não é a dele.
+        final current = args.running
+            ? ref.watch(AccountViewProviders.latestBalanceById(account.id))
+            : ref.watch(
+                AccountViewProviders.balanceAtDate((
+                  accountId: account.id,
+                  date: args.weekStart.addCalendarDays(6),
+                )),
+              );
         final initial = ref.watch(
           AccountViewProviders.balanceAtDate((
             accountId: account.id,
@@ -174,8 +225,11 @@ sealed class ArenaViewProviders {
   /// `AsyncLoading` enquanto QUALQUER conta ainda não respondeu: um saldo que
   /// ainda não chegou vale zero na soma, e zero aqui seria um herói sem vida
   /// nenhuma piscando na tela antes do número certo.
-  static final accountLives =
-      Provider.autoDispose<AsyncValue<List<ArenaAccountReading>>>((ref) {
+  static final accountLives = Provider.autoDispose
+      .family<
+        AsyncValue<List<ArenaAccountReading>>,
+        ({DateTime weekStart, bool running})
+      >((ref, args) {
         final accounts = ref.watch(liquidAccounts);
         if (accounts.hasError) {
           return AsyncValue<List<ArenaAccountReading>>.error(
@@ -191,7 +245,13 @@ sealed class ArenaViewProviders {
 
         final readings = <ArenaAccountReading>[];
         for (final account in list) {
-          final life = ref.watch(accountLife(account));
+          final life = ref.watch(
+            accountLife((
+              account: account,
+              weekStart: args.weekStart,
+              running: args.running,
+            )),
+          );
           if (life.hasError) {
             return AsyncValue<List<ArenaAccountReading>>.error(
               life.error!,
@@ -214,6 +274,66 @@ sealed class ArenaViewProviders {
         (ref) => ArenaPendingEventNotifier(),
       );
 
+  /// A semana PASSADA, calculada pela mesma calculadora.
+  ///
+  /// O "hoje" que ela recebe é o SÁBADO daquela semana: é o que faz o atraso,
+  /// o "vence hoje" e o marcador de dia falarem da luta que fechou, e não
+  /// desta.
+  static final lastWeekState = Provider.autoDispose<AsyncValue<ArenaState>>((
+    ref,
+  ) {
+    final window = ref.watch(lastWeekWindow);
+    final lives = ref.watch(
+      accountLives((weekStart: window.start, running: false)),
+    );
+    final week = ref.watch(lastWeekInstallments);
+    final overdue = ref.watch(lastWeekOverdue);
+    final types = ref.watch(accountTypes);
+    final members = ref.watch(WorkspaceViewProviders.members);
+
+    final failure = [
+      lives,
+      week,
+      overdue,
+      types,
+      members,
+    ].where((async) => async.hasError).firstOrNull;
+
+    if (failure != null) {
+      return AsyncValue<ArenaState>.error(
+        failure.error!,
+        failure.stackTrace ?? StackTrace.current,
+      );
+    }
+
+    final accounts = lives.valueOrNull;
+    final weekData = week.valueOrNull;
+    final overdueData = overdue.valueOrNull;
+    final typeData = types.valueOrNull;
+    if (accounts == null ||
+        weekData == null ||
+        overdueData == null ||
+        typeData == null) {
+      return const AsyncValue<ArenaState>.loading();
+    }
+
+    final saturday = window.start.addCalendarDays(6);
+
+    return AsyncValue<ArenaState>.data(
+      ArenaCalculator.from(
+        ArenaInputs(
+          weekId: ProductWeek.idOf(window.start),
+          today: saturday,
+          accounts: accounts,
+          weekInstallments: weekData,
+          overdueInstallments: overdueData,
+          accountTypes: typeData,
+          members: members.valueOrNull ?? const <UserModel>[],
+        ),
+      ),
+    );
+  });
+
   /// `true` quando o cofre corrente é empresa: troca "categorias" por
   /// "centros de custo" e "compromissos" por "contas a pagar".
   static final isBusiness = Provider<bool>(
@@ -226,7 +346,9 @@ sealed class ArenaViewProviders {
 
   /// A cena inteira.
   static final state = Provider.autoDispose<AsyncValue<ArenaState>>((ref) {
-    final lives = ref.watch(accountLives);
+    final lives = ref.watch(
+      accountLives((weekStart: ref.watch(weekWindow).start, running: true)),
+    );
     final week = ref.watch(weekInstallments);
     final overdue = ref.watch(overdueInstallments);
     final types = ref.watch(accountTypes);

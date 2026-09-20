@@ -1480,5 +1480,28 @@
         "type": "String"
       }
     }
+  },
+  "arenaClosingWon": "Last week: monster defeated",
+  "arenaClosingLost": "Last week: the monster escaped with {amount}",
+  "@arenaClosingLost": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaClosingScore": "{paid} of {total} commitments paid · cash on Saturday: {balance}",
+  "@arenaClosingScore": {
+    "placeholders": {
+      "paid": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "balance": {
+        "type": "String"
+      }
+    }
   }
 }

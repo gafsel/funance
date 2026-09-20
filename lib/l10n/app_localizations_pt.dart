@@ -2595,4 +2595,17 @@ class AppLocalizationsPt extends AppLocalizations {
   String arenaDefeatedBanner(String amount) {
     return 'Monstro derrotado — $amount pagos nesta semana';
   }
+
+  @override
+  String get arenaClosingWon => 'Semana passada: monstro derrotado';
+
+  @override
+  String arenaClosingLost(String amount) {
+    return 'Semana passada: o monstro escapou com $amount';
+  }
+
+  @override
+  String arenaClosingScore(int paid, int total, String balance) {
+    return '$paid de $total compromissos pagos · caixa no sábado: $balance';
+  }
 }
