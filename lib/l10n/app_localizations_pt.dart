@@ -707,9 +707,6 @@ class AppLocalizationsPt extends AppLocalizations {
   String get declineButton => 'Recusar';
 
   @override
-  String get homeJourneyTab => 'A Jornada';
-
-  @override
   String get homeOverviewTab => 'Visão Geral';
 
   @override
@@ -2374,6 +2371,11 @@ class AppLocalizationsPt extends AppLocalizations {
   }
 
   @override
+  String automaticTransactionPendingCount(int count) {
+    return '$count pendentes';
+  }
+
+  @override
   String get goalsTitle => 'Metas';
 
   @override
@@ -2411,14 +2413,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get arenaExhausted => 'Exausto';
 
   @override
-  String get arenaHint =>
-      'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.';
-
-  @override
   String get automaticTransactionSeeAllShort => 'Ver todas';
-
-  @override
-  String get arenaWeekChallenge => 'Desafio da semana';
 
   @override
   String get arenaFree => 'Livre';
@@ -2544,11 +2539,6 @@ class AppLocalizationsPt extends AppLocalizations {
   @override
   String arenaSceneSemantics(String monster, String remaining) {
     return 'A luta da semana: os heróis contra $monster, que ainda tem $remaining de vida.';
-  }
-
-  @override
-  String arenaDefeatedBanner(String amount) {
-    return 'Monstro derrotado — $amount pagos nesta semana';
   }
 
   @override

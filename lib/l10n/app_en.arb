@@ -275,7 +275,6 @@
   },
   "acceptButton": "Accept",
   "declineButton": "Decline",
-  "homeJourneyTab": "The Journey",
   "homeOverviewTab": "Overview",
   "homeHistoryTab": "Statement",
   "homeAccountsAndCards": "Balances & Invoices",
@@ -1240,6 +1239,15 @@
       }
     }
   },
+  "automaticTransactionPendingCount": "{count} pending",
+  "@automaticTransactionPendingCount": {
+    "description": "Quantas pendências de leitura de notificação esperam triagem. Vai no leitor de tela dos ícones que mostram só o número.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "goalsTitle": "Goals",
   "missionProgressShort": "{progress}/{target}",
   "@missionProgressShort": {
@@ -1309,9 +1317,7 @@
   "arenaEmpty": "No commitments and no balance this week — the arena is empty. Schedule a bill and the monster shows up.",
   "arenaTeamExtra": "+{count} on the team",
   "arenaExhausted": "Exhausted",
-  "arenaHint": "Tap the monster to confirm a payment. Tap the heroes to see the accounts.",
   "automaticTransactionSeeAllShort": "See all",
-  "arenaWeekChallenge": "This week's challenge",
   "arenaFree": "Free",
   "arenaHealed": "Received this week",
   "arenaRemainingPrefix": "left",
@@ -1455,14 +1461,6 @@
         "type": "String"
       },
       "remaining": {
-        "type": "String"
-      }
-    }
-  },
-  "arenaDefeatedBanner": "Monster defeated — {amount} paid this week",
-  "@arenaDefeatedBanner": {
-    "placeholders": {
-      "amount": {
         "type": "String"
       }
     }

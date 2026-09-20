@@ -13,6 +13,8 @@ import 'package:funances/features/arena/presentation/widgets/arena_heroes_sheet.
 import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_hud.dart';
 import 'package:funances/features/arena/presentation/widgets/arena_monster_sheet.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_scene_icons.dart';
+import 'package:funances/features/arena/presentation/widgets/arena_week_closing_banner.dart';
 import 'package:funances/features/auth/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
@@ -24,29 +26,43 @@ import 'package:funances/l10n/app_localizations.dart';
 /// e com os quatro ícones desenhados — ver [ArenaHudFooter].
 double arenaFooterSlotHeight({required bool compact}) => compact ? 56 : 64;
 
-/// Largura máxima da CENA, em pixels lógicos.
+/// O endereço da Arena.
+///
+/// A rota continua existindo — links antigos, notificações e o que já foi
+/// compartilhado apontam para ela —, mas ela não abre mais uma tela própria:
+/// desde a decisão 1 do dono ("a primeira aba deve ser só a arena"), a Arena
+/// **é** a Home, e `/arena` redireciona para `/`. Ver `app_router.dart`.
+const String arenaRoutePath = '/arena';
+
+/// Largura máxima da Arena inteira, em pixels lógicos.
 ///
 /// Num monitor a cena esticava de borda a borda e os atores iam parar em
 /// pontas opostas de uma faixa de mil e duzentos pixels: deixava de ser uma
-/// luta e virava um friso. O placar continua ocupando a largura inteira — ele
-/// é leitura, e leitura larga é boa —, mas o combate fica no meio.
+/// luta e virava um friso.
+///
+/// O limite passou a valer para o PLACAR também, e não só para a cena. Ele
+/// era largo de propósito enquanto a Arena era um bloco no topo de uma Home
+/// com outros blocos abaixo — leitura larga é boa. Agora a Arena ocupa a tela
+/// inteira: com o placar de borda a borda num monitor, a vida dos heróis e a
+/// do monstro ficam a mil pixels uma da outra e param de se enfrentar, que é
+/// a única coisa que aquele desenho existe para fazer.
 const double arenaMaxSceneWidth = 720;
 
-/// A Arena montada: placar em cima, cena embaixo.
+/// A Arena montada: placar em cima, cena no meio, HUD mensal no pé.
 ///
-/// Existe como widget, e não só como tela, porque ela é usada nos dois
-/// lugares: o bloco no topo da Home e a rota `/arena` em tela cheia. As duas
-/// mostram a MESMA coisa — a única diferença é quanta altura a cena recebe.
+/// Ela **é a primeira aba** — decisão 1 do dono: "ao invés de um container
+/// expansível, a aba inteira será a arena, eliminando a necessidade de
+/// expandir". Não há mais cartão, título "Desafio da semana" nem botão de
+/// abrir em tela cheia: a cena toma a altura que sobra entre o placar e o
+/// rodapé, e o que antes eram blocos abaixo dela virou a coluna de ícones da
+/// lateral (ver [ArenaSceneIcons]).
 ///
 /// O que mora aqui é a ponte entre o Riverpod e o Flame, e as duas
 /// interações: tocar nos heróis (folha das contas) e tocar no monstro (folha
 /// dos compromissos). A conta está em `ArenaCalculator`; a arte, no
 /// `ArenaGame`.
 class ArenaView extends ConsumerStatefulWidget {
-  const ArenaView({super.key, required this.sceneHeight, this.compact = false});
-
-  /// Altura da cena. `null` = ocupa o que sobrar (a rota em tela cheia).
-  final double? sceneHeight;
+  const ArenaView({super.key, this.compact = false});
 
   /// Celular: tipografia e marcador menores.
   final bool compact;
@@ -124,7 +140,13 @@ class _ArenaViewState extends ConsumerState<ArenaView>
 
   ArenaState? get _state => ref.read(ArenaViewProviders.state).valueOrNull;
 
-  String _money(double value) => value.asCurrency(locale: context.locale);
+  /// O dinheiro que a CENA mostra — compacto, por decisão do dono (item 13).
+  ///
+  /// Os números flutuantes sobem por cima dos bonecos em unidades de mundo: um
+  /// "−R$ 12.122,33" atravessa a arena inteira e cobre o monstro que ele
+  /// acabou de golpear. "−R$ 12,1k" cabe sobre a cabeça dele.
+  String _money(double value) =>
+      value.asCompactCurrency(locale: context.locale);
 
   Future<void> _openMonsterSheet() async {
     final state = _state;
@@ -260,10 +282,7 @@ class _ArenaViewState extends ConsumerState<ArenaView>
     });
 
     return async.when(
-      loading: () => SizedBox(
-        height: widget.sceneHeight ?? 160,
-        child: const Center(child: CircularProgressIndicator()),
-      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => _ArenaMessage(message: context.l10n.arenaError),
       data: (state) {
         if (state.isEmpty) {
@@ -279,12 +298,15 @@ class _ArenaViewState extends ConsumerState<ArenaView>
         // cada build não custa nada.
         game.applyState(state, animate: false);
         game.overdueLabel = (value) =>
-            '+${value.overdueAmount.asCurrency(locale: context.locale)}';
+            '+${value.overdueAmount.asCompactCurrency(locale: context.locale)}';
 
         // A cena inteira é UM alvo para o leitor de tela: sem isto, o
         // `GameWidget` é um retângulo mudo, e quem navega por semântica não
         // tem como saber que existe uma luta ali — nem como abrir as duas
         // folhas, que só tinham porta pelas barras.
+        //
+        // O `ClipRect` não é enfeite: o `GameWidget` não recorta sozinho, e a
+        // última fileira de tiles do chão passa da borda.
         final scene = Semantics(
           container: true,
           label: context.l10n.arenaSceneSemantics(
@@ -294,18 +316,28 @@ class _ArenaViewState extends ConsumerState<ArenaView>
           child: ClipRect(child: GameWidget(game: game)),
         );
 
-        // O `GameWidget` não recorta sozinho, e a última fileira de tiles do
-        // chão passa da borda: sem o `ClipRect` o cenário vazava por cima do
-        // que estivesse embaixo.
-        final boxed = Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: arenaMaxSceneWidth),
-            child: scene,
-          ),
+        // Os ícones de jogo ficam POR CIMA da cena, e não numa coluna ao lado
+        // dela: a cena é a tela inteira agora, e roubar 44px de largura dela
+        // encolheria o mundo do Flame — os bonecos já estão presos entre 130
+        // e 280 unidades de largura de mundo. Sobrepostos, eles custam zero
+        // à luta e ficam sobre o canto do chão, que é sempre vazio.
+        final sceneAndIcons = Stack(
+          children: [
+            Positioned.fill(child: scene),
+            // No ALTO da lateral, e não no meio dela: centrados, os quatro
+            // ícones caíam exatamente na linha do chão, e o de baixo ficava
+            // por cima do mago. Em cima eles pegam a parede e a faixa de
+            // areia vazia acima dos bonecos, que é o pedaço da cena onde
+            // nunca acontece nada.
+            Positioned(
+              left: 0,
+              top: AppSpacing.xs,
+              child: ArenaSceneIcons(compact: widget.compact),
+            ),
+          ],
         );
 
         return Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -322,10 +354,12 @@ class _ArenaViewState extends ConsumerState<ArenaView>
                 onTapMonster: _openMonsterSheet,
               ),
             ),
-            if (widget.sceneHeight == null)
-              Expanded(child: boxed)
-            else
-              SizedBox(height: widget.sceneHeight, child: boxed),
+            // O placar da semana que fechou, quando há um e ele ainda não foi
+            // visto. Ele mora ENTRE o placar e a cena: é notícia, e notícia
+            // vem antes do estado — mas depois das duas barras, que são o que
+            // a tela existe para mostrar.
+            const ArenaWeekClosingBanner(),
+            Expanded(child: sceneAndIcons),
             // A faixa do HUD mensal. O filete em cima dela é o que separa
             // "espaço reservado" de "cena cortada": sem a linha, a tarja
             // escura no pé parecia a cena terminando no meio.

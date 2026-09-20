@@ -701,9 +701,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get declineButton => 'Decline';
 
   @override
-  String get homeJourneyTab => 'The Journey';
-
-  @override
   String get homeOverviewTab => 'Overview';
 
   @override
@@ -2358,6 +2355,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String automaticTransactionPendingCount(int count) {
+    return '$count pending';
+  }
+
+  @override
   String get goalsTitle => 'Goals';
 
   @override
@@ -2395,14 +2397,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get arenaExhausted => 'Exhausted';
 
   @override
-  String get arenaHint =>
-      'Tap the monster to confirm a payment. Tap the heroes to see the accounts.';
-
-  @override
   String get automaticTransactionSeeAllShort => 'See all';
-
-  @override
-  String get arenaWeekChallenge => 'This week\'s challenge';
 
   @override
   String get arenaFree => 'Free';
@@ -2528,11 +2523,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String arenaSceneSemantics(String monster, String remaining) {
     return 'This week\'s fight: the heroes against $monster, still at $remaining of life.';
-  }
-
-  @override
-  String arenaDefeatedBanner(String amount) {
-    return 'Monster defeated — $amount paid this week';
   }
 
   @override

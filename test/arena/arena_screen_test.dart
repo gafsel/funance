@@ -57,11 +57,21 @@ void main() {
       expect(tester.widget<ArenaHpBar>(bars.last).mirrored, isTrue);
     });
 
-    testWidgets('a barra dos heróis mostra "atual / inicial"', (tester) async {
+    testWidgets('a barra dos heróis mostra "atual / inicial", compacto', (
+      tester,
+    ) async {
       await pumpArena(tester);
 
-      expect(find.textContaining('3.980'), findsWidgets);
-      expect(find.textContaining('5.200'), findsWidgets);
+      // Decisão 13 do dono: no placar o dinheiro é referência lúdica, não
+      // extrato. R\$ 3.980,00 vira "R\$ 4k" e R\$ 5.200,00 vira "R\$ 5,2k";
+      // os centavos exatos estão na folha das contas, a um toque daqui.
+      expect(find.textContaining('4k'), findsWidgets);
+      expect(find.textContaining('5,2k'), findsWidgets);
+      expect(
+        find.textContaining('3.980'),
+        findsNothing,
+        reason: 'o número de extrato saiu da barra',
+      );
     });
 
     testWidgets('a hachura do comprometido é a vida do monstro', (
@@ -184,8 +194,10 @@ void main() {
 
       // Sem o "R\$" na busca: o formatador usa espaço não separável entre o
       // símbolo e o número, e um teste que casa com o espaço comum falha por
-      // um caractere invisível.
-      expect(find.textContaining('9.007,31'), findsWidgets);
+      // um caractere invisível. O selo também é compacto (decisão 13): a
+      // 400px "Falta R\$ 9.007,31 em caixa" saía cortado, e um selo cortado
+      // não informa nada.
+      expect(find.textContaining('9k'), findsWidgets);
       expect(find.textContaining('em caixa'), findsOneWidget);
 
       final barra = tester.widget<ArenaHpBar>(find.byType(ArenaHpBar).first);
@@ -686,18 +698,6 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.byType(ArenaHpBar), findsNWidgets(2));
-    });
-
-    testWidgets('o botão do bloco abre a Arena em tela cheia', (tester) async {
-      // A porta para `/arena` mora no bloco da Home. Aqui ela é TOCADA: uma
-      // varredura de texto diria "o endereço aparece no arquivo", que é
-      // outra coisa.
-      await pumpArenaHome(tester);
-
-      await tester.tap(find.byKey(const ValueKey('arena-open-full')));
-      await arenaFrames(tester, count: 20);
-
-      expect(find.text('arena em tela cheia'), findsOneWidget);
     });
 
     testWidgets('a cena tem semântica: a luta não é um retângulo mudo', (

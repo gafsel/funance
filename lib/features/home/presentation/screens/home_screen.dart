@@ -12,8 +12,8 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:go_router/go_router.dart';
 import 'package:funances/features/finance/presentation/widgets/launch_fab.dart';
 import 'package:funances/features/home/presentation/provider.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 import 'package:funances/features/home/presentation/widgets/history_tab.dart';
-import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
 import 'package:funances/features/home/presentation/widgets/overview_tab.dart';
 import 'package:funances/features/user/presentation/widgets/user_avatar.dart';
 import 'package:funances/features/workspace/presentation/screens/workspace_settings_screen.dart';
@@ -100,6 +100,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // borda a borda.
         return AppScaffold(
           constrained: false,
+          // A primeira aba é a cena do jogo e ela NÃO rola: o rodapé mensal
+          // é a última linha dela, e com o corpo estendido por baixo da barra
+          // inferior os quatro ícones do rodapé ficavam escondidos atrás
+          // dela. As outras abas rolam e já reservavam
+          // `AppSpacing.bottomBarSafeArea` no fim — para elas isto só troca
+          // um respiro por outro.
+          extendBody: false,
           appBar: isLargeScreen
               ? null
               : AppBar(
@@ -133,7 +140,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 ? const NeverScrollableScrollPhysics()
                 : null,
             children: const [
-              JourneyTab(),
+              ArenaTab(),
               OverviewTab(),
               HistoryTab(),
               WorkspaceSettingsScreen(),
@@ -218,8 +225,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       },
       destinations: [
         NavigationRailDestination(
-          icon: const Icon(Icons.rocket_launch_outlined),
-          label: Text(l10n.homeJourneyTab),
+          icon: const Icon(Icons.shield_outlined),
+          label: Text(l10n.arenaTitle),
         ),
         NavigationRailDestination(
           icon: const Icon(Icons.bar_chart_outlined),
@@ -248,9 +255,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             HomeBottomBarItem(
-              icon: Icons.rocket_launch_outlined,
-              selectedIcon: Icons.rocket_launch,
-              label: l10n.homeJourneyTab,
+              icon: Icons.shield_outlined,
+              selectedIcon: Icons.shield,
+              label: l10n.arenaTitle,
               isSelected: _tabController.index == 0,
               onTap: () => _tabController.animateTo(0),
             ),

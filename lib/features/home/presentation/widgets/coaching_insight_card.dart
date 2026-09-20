@@ -320,6 +320,25 @@ class CoachingInsightCard extends ConsumerWidget {
     }
   }
 
+  /// Abrir o coach: a última análise, quando ela ainda vale, ou uma nova.
+  ///
+  /// A regra estava escrita dentro da linha compacta da Home. Ela saiu de lá
+  /// quando o ícone do coach apareceu na cena da Arena: duas portas para o
+  /// coach com duas cópias da mesma decisão ("análise velha é análise que
+  /// não serve") divergiriam na primeira vez que alguém mexesse numa delas.
+  static Future<void> openCoach(
+    BuildContext context,
+    WidgetRef ref,
+    CoachingModel? insight,
+  ) {
+    if (insight != null && !insight.isDeprecated) {
+      _logCoachingOpened(ref);
+      return context.push('/coaching?id=${insight.id}');
+    }
+
+    return generateAndOpen(context, ref);
+  }
+
   /// Dispara o evento de funil sem bloquear a navegação nem deixar uma falha
   /// de analytics impedir o usuário de abrir o coaching.
   static void _logCoachingOpened(WidgetRef ref) {
@@ -350,14 +369,7 @@ class _CoachingLine extends ConsumerWidget {
         type: MaterialType.transparency,
         child: InkWell(
           borderRadius: AppRadius.brMd,
-          onTap: () {
-            if (fresh) {
-              CoachingInsightCard._logCoachingOpened(ref);
-              context.push('/coaching?id=${insight!.id}');
-            } else {
-              CoachingInsightCard.generateAndOpen(context, ref);
-            }
-          },
+          onTap: () => CoachingInsightCard.openCoach(context, ref, insight),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: AppRadius.brMd,

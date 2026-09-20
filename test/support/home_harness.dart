@@ -22,8 +22,10 @@ import 'package:funances/features/finance/presentation/providers.dart';
 import 'package:funances/features/goal/domain/models/goal_model.dart';
 import 'package:funances/features/goal/domain/repositories/goal_repository.dart';
 import 'package:funances/features/goal/presentation/provider.dart';
+import 'package:funances/features/home/domain/models/financial_health_model.dart';
 import 'package:funances/features/home/domain/models/weekly_mission_model.dart';
 import 'package:funances/features/home/presentation/provider.dart';
+import 'package:funances/features/user/domain/models/user_model.dart';
 import 'package:funances/features/workspace/domain/models/category_model.dart';
 import 'package:funances/features/workspace/domain/repositories/category_repository.dart';
 import 'package:funances/features/workspace/domain/models/workspace_model.dart';
@@ -32,9 +34,10 @@ import 'package:funances/features/workspace/presentation/providers.dart';
 import 'package:funances/l10n/app_localizations.dart';
 
 import 'package:funances/features/finance/presentation/screens/automatic_transactions_screen.dart';
+import 'package:funances/features/finance/presentation/widgets/launch_fab.dart';
 import 'package:funances/features/goal/presentation/screen/goals_screen.dart';
 import 'package:funances/features/home/presentation/screens/missions_screen.dart';
-import 'package:funances/features/home/presentation/widgets/journey_tab.dart';
+import 'package:funances/features/home/presentation/widgets/arena_tab.dart';
 import 'package:go_router/go_router.dart';
 
 import 'journey_fakes.dart';
@@ -417,9 +420,21 @@ GoRouter homeRouter({String initialLocation = '/'}) => GoRouter(
   routes: [
     GoRoute(
       path: '/',
-      builder: (_, _) => const Scaffold(body: Text('a raiz do app')),
+      // Com o botão de lançar, que é onde moram duas das portas que a Home
+      // perdeu quando a primeira aba virou a cena do jogo: os lançamentos
+      // identificados (decisão 8) e as metas.
+      builder: (_, _) => const Scaffold(
+        body: Text('a raiz do app'),
+        floatingActionButton: LaunchFab(),
+      ),
     ),
-    GoRoute(path: '/jornada', builder: (_, _) => const JourneyTab()),
+    // Dentro de um `Scaffold`, como no app: a primeira aba vive no
+    // `TabBarView` do `AppScaffold` da Home, e o placar da Arena usa `InkWell`
+    // — que precisa de um `Material` acima.
+    GoRoute(
+      path: '/jornada',
+      builder: (_, _) => const Scaffold(body: ArenaTab()),
+    ),
     GoRoute(path: '/missions', builder: (_, _) => const MissionsScreen()),
     GoRoute(path: '/goals', builder: (_, _) => const GoalsScreen()),
     GoRoute(
@@ -439,6 +454,14 @@ List<Override> homeOverrides({
   bool outroCofre = false,
   PeriodSummaryModel? summary,
   CoachingModel? lastInsight,
+
+  /// O índice da Bússola. A cena da Arena mostra a pontuação no badge do
+  /// ícone, e sem índice publicado o ícone fica apagado — dois estados que
+  /// precisam ser montáveis.
+  FinancialHealth? health,
+
+  /// Quem está logado. A Arena usa para saber QUEM deu o golpe.
+  UserModel? currentUser,
   List<Override> extra = const [],
 }) => [
   clockProvider.overrideWithValue(() => homeToday),
@@ -467,9 +490,9 @@ List<Override> homeOverrides({
   WorkspaceDomainProviders.repository.overrideWithValue(
     FakeWorkspaceRepository(),
   ),
-  AuthDomainProviders.currentUser.overrideWithValue(null),
+  AuthDomainProviders.currentUser.overrideWithValue(currentUser),
   JourneyDomainProviders.repository.overrideWithValue(
-    FakeJourneyRepository(missions: missions),
+    FakeJourneyRepository(missions: missions, health: health),
   ),
   FinanceDomainProviders.repository.overrideWithValue(
     _FinanceFake(installments),

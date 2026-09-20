@@ -294,7 +294,6 @@
   },
   "acceptButton": "Aceitar",
   "declineButton": "Recusar",
-  "homeJourneyTab": "A Jornada",
   "homeOverviewTab": "Visão Geral",
   "homeHistoryTab": "Extrato",
   "homeAccountsAndCards": "Saldos e Faturas",
@@ -1247,6 +1246,15 @@
       }
     }
   },
+  "automaticTransactionPendingCount": "{count} pendentes",
+  "@automaticTransactionPendingCount": {
+    "description": "Quantas pendências de leitura de notificação esperam triagem. Vai no leitor de tela dos ícones que mostram só o número.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "goalsTitle": "Metas",
   "missionProgressShort": "{progress}/{target}",
   "@missionProgressShort": {
@@ -1309,9 +1317,7 @@
   "arenaEmpty": "Sem compromissos e sem saldo nesta semana — a arena está vazia. Agende uma conta a pagar e o monstro aparece.",
   "arenaTeamExtra": "+{count} na equipe",
   "arenaExhausted": "Exausto",
-  "arenaHint": "Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.",
   "automaticTransactionSeeAllShort": "Ver todas",
-  "arenaWeekChallenge": "Desafio da semana",
   "arenaFree": "Livre",
   "arenaHealed": "Recebido na semana",
   "arenaRemainingPrefix": "falta",
@@ -1455,14 +1461,6 @@
         "type": "String"
       },
       "remaining": {
-        "type": "String"
-      }
-    }
-  },
-  "arenaDefeatedBanner": "Monstro derrotado — {amount} pagos nesta semana",
-  "@arenaDefeatedBanner": {
-    "placeholders": {
-      "amount": {
         "type": "String"
       }
     }

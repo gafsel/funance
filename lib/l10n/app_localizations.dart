@@ -1340,12 +1340,6 @@ abstract class AppLocalizations {
   /// **'Recusar'**
   String get declineButton;
 
-  /// No description provided for @homeJourneyTab.
-  ///
-  /// In pt, this message translates to:
-  /// **'A Jornada'**
-  String get homeJourneyTab;
-
   /// No description provided for @homeOverviewTab.
   ///
   /// In pt, this message translates to:
@@ -4244,6 +4238,12 @@ abstract class AppLocalizations {
   /// **'Ver as {count} pendências'**
   String automaticTransactionSeeAll(int count);
 
+  /// Quantas pendências de leitura de notificação esperam triagem. Vai no leitor de tela dos ícones que mostram só o número.
+  ///
+  /// In pt, this message translates to:
+  /// **'{count} pendentes'**
+  String automaticTransactionPendingCount(int count);
+
   /// No description provided for @goalsTitle.
   ///
   /// In pt, this message translates to:
@@ -4304,23 +4304,11 @@ abstract class AppLocalizations {
   /// **'Exausto'**
   String get arenaExhausted;
 
-  /// No description provided for @arenaHint.
-  ///
-  /// In pt, this message translates to:
-  /// **'Toque no monstro para confirmar um pagamento. Toque nos heróis para ver as contas.'**
-  String get arenaHint;
-
   /// No description provided for @automaticTransactionSeeAllShort.
   ///
   /// In pt, this message translates to:
   /// **'Ver todas'**
   String get automaticTransactionSeeAllShort;
-
-  /// No description provided for @arenaWeekChallenge.
-  ///
-  /// In pt, this message translates to:
-  /// **'Desafio da semana'**
-  String get arenaWeekChallenge;
 
   /// No description provided for @arenaFree.
   ///
@@ -4489,12 +4477,6 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'A luta da semana: os heróis contra {monster}, que ainda tem {remaining} de vida.'**
   String arenaSceneSemantics(String monster, String remaining);
-
-  /// No description provided for @arenaDefeatedBanner.
-  ///
-  /// In pt, this message translates to:
-  /// **'Monstro derrotado — {amount} pagos nesta semana'**
-  String arenaDefeatedBanner(String amount);
 
   /// No description provided for @arenaClosingWon.
   ///

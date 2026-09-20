@@ -149,7 +149,7 @@ class ArenaHud extends StatelessWidget {
     if (state.isPressed) {
       return StatusPill(
         label: l10n.arenaShortfall(
-          state.shortfall.asCurrency(locale: context.locale),
+          state.shortfall.asCompactCurrency(locale: context.locale),
         ),
         tone: StatusTone.danger,
         dense: true,
@@ -160,7 +160,7 @@ class ArenaHud extends StatelessWidget {
     if (state.isOverhealed) {
       return StatusPill(
         label: l10n.arenaOverheal(
-          state.overheal.asCurrency(locale: context.locale),
+          state.overheal.asCompactCurrency(locale: context.locale),
         ),
         tone: StatusTone.ok,
         dense: true,
@@ -199,7 +199,7 @@ class ArenaHud extends StatelessWidget {
       // perigo do selo; o que o texto tem de carregar é o número.
       return StatusPill(
         label: l10n.arenaEnraged(
-          state.overdueAmount.asCurrency(locale: context.locale),
+          state.overdueAmount.asCompactCurrency(locale: context.locale),
         ),
         tone: StatusTone.danger,
         dense: true,
@@ -270,11 +270,16 @@ class _Side extends StatelessWidget {
   }
 }
 
-/// "R$ 3.980 / R$ 5.200" — o saldo de agora sobre o de domingo.
+/// "R$ 4k / R$ 5,2k" — o saldo de agora sobre o de domingo.
 ///
 /// Os dois números juntos, e não só o de agora, porque é a RAZÃO entre eles
 /// que a barra desenha: sem o segundo, uma barra pela metade não diz se a
 /// semana começou com cinco mil ou com quinhentos.
+///
+/// **Compacto**, e não os centavos exatos: decisão do dono (item 13). O
+/// placar é referência lúdica, e a 400px ele divide a largura com o outro
+/// lado e com o marcador de dia. Quem quer `R$ 3.980,17` toca na barra — a
+/// folha das contas continua exata.
 class _HeroValue extends StatelessWidget {
   const _HeroValue({required this.state, required this.compact});
 
@@ -301,8 +306,10 @@ class _HeroValue extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          AnimatedDouble.currency(
-            state.currentBalance,
+          AnimatedDouble(
+            value: state.currentBalance,
+            formatter: (context, value) =>
+                value.asCompactCurrency(locale: context.locale),
             duration: AppDurations.respectingMotion(
               context,
               AppDurations.celebrate,
@@ -311,7 +318,7 @@ class _HeroValue extends StatelessWidget {
             style: style,
           ),
           Text(
-            ' / ${state.initialBalance.asCurrency(locale: context.locale)}',
+            ' / ${state.initialBalance.asCompactCurrency(locale: context.locale)}',
             style: theme.textTheme.labelSmall?.copyWith(
               color: palette.onGame2,
               fontFeatures: const [FontFeature.tabularFigures()],
@@ -323,7 +330,10 @@ class _HeroValue extends StatelessWidget {
   }
 }
 
-/// "falta R$ 1.380" — o que ainda mantém o bicho em pé.
+/// "falta R$ 1,4k" — o que ainda mantém o bicho em pé.
+///
+/// Compacto pela mesma razão do outro lado; a folha dos compromissos, que
+/// lista parcela por parcela, continua com o valor exato de cada uma.
 class _MonsterValue extends StatelessWidget {
   const _MonsterValue({required this.state, required this.compact});
 
@@ -353,8 +363,10 @@ class _MonsterValue extends StatelessWidget {
             '${l10n.arenaRemainingPrefix} ',
             style: theme.textTheme.labelSmall?.copyWith(color: palette.onGame2),
           ),
-          AnimatedDouble.currency(
-            state.monsterHp,
+          AnimatedDouble(
+            value: state.monsterHp,
+            formatter: (context, value) =>
+                value.asCompactCurrency(locale: context.locale),
             duration: AppDurations.respectingMotion(
               context,
               AppDurations.celebrate,
