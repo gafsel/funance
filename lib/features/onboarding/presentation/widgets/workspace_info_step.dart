@@ -63,28 +63,12 @@ class WorkspaceInfoStep extends ConsumerWidget {
                     onChanged: (value) => notifier.setWorkspaceName(value),
                   ),
                   AppSpacing.gapXl,
-                  Text(
-                    l10n.profileAvatarLabel,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  AppSpacing.gapXxs,
-                  Text(
-                    l10n.profileAvatarHint,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: context.palette.ink2,
-                    ),
-                  ),
-                  AppSpacing.gapSm,
-                  // Alinhado à ESQUERDA porque a coluna é `stretch`: sem isto
-                  // o `Wrap` recebe largura infinita de restrição cruzada e
-                  // centraliza os tiles de um jeito que muda com o número de
-                  // bonecos por linha.
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: AvatarPicker(
-                      selected: avatar,
-                      onSelected: notifier.setAvatar,
-                    ),
+                  // O MESMO bloco da edição de perfil, com a grade e a
+                  // pré-visualização na cena: quem escolheu aqui tem de
+                  // reconhecer a tela quando voltar para trocar.
+                  AvatarField(
+                    selected: avatar,
+                    onSelected: notifier.setAvatar,
                   ),
                 ],
               ),

@@ -42,7 +42,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   }) : super(
          OnboardingState(
            workspace: WorkspaceModel.empty(),
-           avatar: HeroSkin.fromName(onboardingService.user.avatar),
+           avatar: HeroSkin.tryFromName(onboardingService.user.avatar),
          ),
        );
 
@@ -65,7 +65,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       workspace: WorkspaceModel.empty(),
       // O avatar NÃO é do workspace: quem cria o segundo cofre continua sendo
       // o mesmo herói do primeiro.
-      avatar: HeroSkin.fromName(onboardingService.user.avatar),
+      avatar: HeroSkin.tryFromName(onboardingService.user.avatar),
     );
   }
 
@@ -151,20 +151,27 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   void setAvatar(HeroSkin avatar) => state = state.copyWith(avatar: avatar);
 
-  /// Grava o avatar escolhido em `users/{uid}`.
+  /// Grava o avatar escolhido em `users/{uid}` — **se houve escolha**.
   ///
   /// Roda ao SAIR do passo do perfil, junto com a criação do workspace, e
   /// não a cada toque na grade: o usuário experimenta os oito bonecos antes
   /// de decidir, e cada experimentação seria uma escrita no Firestore.
   ///
+  /// Quem passou direto não gera escrita nenhuma. A ausência do campo é uma
+  /// informação — "este aqui não escolheu" —, e escrever `knight` no lugar
+  /// dela apagaria justamente o que faz o segundo membro do cofre nascer
+  /// mago em vez de um cavaleiro repetido.
+  ///
   /// Uma falha aqui não derruba o onboarding. O avatar é enfeite; perder o
-  /// cofre inteiro porque o boneco não salvou seria a troca errada — e a
-  /// Arena tem um padrão para quem não escolheu nada.
+  /// cofre inteiro porque o boneco não salvou seria a troca errada.
   Future<void> _saveAvatar() async {
+    final escolhido = state.avatar;
+    if (escolhido == null) return;
+
     try {
       await userService.updateAvatar(
         id: onboardingService.user.id,
-        avatar: state.avatar.name,
+        avatar: escolhido.name,
       );
     } catch (_) {}
   }

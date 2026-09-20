@@ -25,11 +25,14 @@ sealed class OnboardingState with _$OnboardingState {
     /// num documento que não existe.
     @Default(false) bool workspaceCreated,
 
-    /// O herói que o usuário escolheu para si na Arena.
+    /// O herói que o usuário escolheu para si na Arena — **nulo até ele
+    /// tocar na grade**.
     ///
-    /// Nasce PRÉ-SELECIONADO (o cavaleiro, ou o que ele já tinha escolhido
-    /// antes) porque o onboarding não pode ganhar mais um passo obrigatório:
-    /// quem passar direto sai com um boneco, e não com um lugar vazio.
-    @Default(HeroSkin.knight) HeroSkin avatar,
+    /// O passo continua opcional: quem passa direto não é barrado por nada.
+    /// O que mudou é o que acontece nesse caso — NADA vai para
+    /// `users/{uid}`. É a ausência do campo que mantém o cavaleiro e o mago
+    /// da ordem de entrada; gravar `knight` para todo mundo que pulou fazia
+    /// o segundo membro de um cofre virar um cavaleiro repetido.
+    HeroSkin? avatar,
   }) = _OnboardingState;
 }
