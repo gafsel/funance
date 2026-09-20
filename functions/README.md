@@ -3599,17 +3599,37 @@ XP que ninguém ainda paga.
 
 ### Rollout de wp/villagers-investment (o aldeão de investimento, ao contrário)
 
-Menor que o anterior, e sem passo de dados. Dois passos, nesta ordem — e um
+Menor que o anterior, e sem passo de dados. Três passos, nesta ordem — e um
 NÃO-passo que é o mais importante deles:
 
 ```
+0. DONO        decidir a allocation de "Taxas de Juros" e "Pagamento de Empréstimo"
+               ⏳ ANTES de 01/10 03:00 (o fechamento de setembro)   — BLOQUEIA
 1. functions   firebase deploy --only functions
 2. catálogo    node lib/scripts/publish_badge_catalog.js                          (dry-run → real)
 
 NÃO RODAR      node lib/scripts/recompute_monthly_villagers.js --month=2026-08 --apply
 ```
 
-**1. As functions, sozinhas.** Nenhuma rule muda (o retrato continua com os
+**0. A decisão do dono, e ela BLOQUEIA o resto.** No cofre do dono duas
+categorias estão com `allocation: "investment"` sem serem aporte — são o CUSTO
+da dívida:
+
+| Categoria | Id | Alvo (setembro) | Realizado (setembro) | Com a regra nova |
+|---|---|---|---|---|
+| Taxas de Juros | `arh7nmyIn4Ky23cynfUY` | R$ 50,00 | R$ 431,54 | **VIVO** por ter pago 8× mais juros |
+| Pagamento de Empréstimo | `ILKgy3wOU23CGsntIrkg` | — (sem orçamento no mês) | — | não é aldeão hoje, mas será no mês em que ganhar orçamento |
+
+Pagar MAIS juros do que o planejado passaria a manter o aldeão vivo, e pagar
+menos passaria a matá-lo — o jogo premiando exatamente o que ele existe para
+combater. O prazo é **01/10 às 03:00**, quando o `monthlyGamificationCron`
+fecha setembro: **reclassificar para `essential` já corrige o fechamento**,
+sem nenhum passo de dados, porque o retrato resolve a `allocation` lendo a
+categoria ATUAL e não uma cópia congelada no sumário. Depois do fechamento o
+conserto exige reprocessar o mês, com o mesmo problema de XP descrito no
+NÃO-passo abaixo.
+
+**1. As functions.** Nenhuma rule muda (o retrato continua com os
 mesmos seis campos e continua negado à escrita do cliente), nenhum índice muda
 e nenhum campo novo é publicado. O que muda é a REGRA que o
 `monthlyGamificationCron` aplica no dia 1 — quer dizer, o primeiro efeito
@@ -3659,25 +3679,26 @@ acompanhado de uma decisão sobre o XP: ou se aceita o retrato de 150 XP sem a
 concessão, ou se apaga o marcador do mês para que a diferença seja paga — e
 apagar marcador durável é justamente o que ele existe para impedir.
 
-**Ainda é decisão do dono (e não entrou neste pacote):** no cofre do dono,
-`allocation: "investment"` está em **"Taxas de Juros"** e **"Pagamento de
-Empréstimo"**, que não são aporte — são o custo da dívida. Com a regra
-invertida, pagar MAIS juros do que o planejado passa a manter o aldeão vivo, e
-pagar menos passa a matá-lo. O servidor não tem como distinguir "guardar" de
-"pagar juros" dentro de uma mesma `allocation`; quem decide é quem classifica a
-categoria. As duas saídas são do dono: reclassificar essas categorias (o app já
-edita a `allocation`) ou criar uma quarta classe para o custo de dívida. Fica
-escrito para não virar descoberta de novo.
-
-**Também é decisão do dono: o XP SEMANAL não foi invertido.**
-`evaluateWeeklyPlanXp` (+20 por categoria dentro do limite) continua lendo
-`actualAmount <= generalPlannedAmount` para TODA categoria de despesa com
+**Pendência registrada: o XP SEMANAL não foi invertido, e não dá para invertê-lo
+sozinho.** `evaluateWeeklyPlanXp` (+20 por categoria dentro do limite) continua
+lendo `actualAmount <= generalPlannedAmount` para TODA categoria de despesa com
 orçamento, investimento incluído. A partir deste pacote as duas regras
-discordam sobre a mesma categoria: na semana, o aporte que não saiu ainda
-rende +20 por "estar dentro do limite"; no mês, ele derruba o aldeão. É a
-terceira divergência da mesma lista (ver as pendências 2 e 3 do HUD mensal), e
-inverter o semanal muda quem ganha XP numa barra que já está publicada — não
-entra de carona aqui.
+discordam sobre a mesma categoria: na semana, o aporte que ainda não saiu rende
++20 por "estar dentro do limite"; no mês, ele derruba o aldeão.
+
+Inverter o semanal não é trocar o sinal da comparação. O limite semanal é o
+mensal RATEADO (`amount / dias * 7`), e um alvo de aporte rateado por semana
+**pune o aporte mensal único**: quem investe R$ 800 de uma vez no dia 28 passa
+três semanas "abaixo do alvo" e perde +20 em cada uma, embora vá fechar o mês
+acertando. Um aporte não se distribui como um gasto de supermercado se
+distribui. As saídas conhecidas — não pagar XP semanal para investimento,
+acumular o alvo desde o início do mês, ou só avaliar o aporte no fechamento —
+são todas decisão do dono, e a escolha depende da **quarta `allocation`
+(`debt`, o custo de dívida)** que ele está avaliando por causa do passo 0: com
+`debt` separada, "investimento" volta a significar só aporte e a regra semanal
+tem um alvo a discutir. Resolver as duas juntas, num pacote próprio; isto aqui
+não entra de carona, porque mexe em XP de uma barra já publicada (ver também
+as pendências 1, 2 e 3 do HUD mensal).
 
 ### Rollout de wp/missions-by-type (missões por tipo de workspace)
 

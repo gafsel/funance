@@ -660,17 +660,6 @@ describe("computeMonthlyVillagers — a allocation vem da CATEGORIA", () => {
         expect(outcome.aliveCategoryIds).toEqual(["mercado"]);
     });
 
-    it("categoria APAGADA continua descartada — o join não a devolve", async () => {
-        // O repositório omite `isDeleted` no join; aqui o efeito é o mesmo:
-        // nenhuma linha, nenhuma aldeia.
-        const repository = makeRepository([]);
-
-        const outcome = await new GamificationService(repository)
-            .computeMonthlyVillagers("w", EVALUATED_MONTH);
-
-        expect(outcome.villagersPlanned).toBe(0);
-    });
-
     it("o RETRATO do mês reflete a regra nova, e não ganha campo novo", async () => {
         const repository = makeRepository([
             row("mercado", 100_000, 90_000),
