@@ -10,7 +10,7 @@ import 'package:funances/core/utils/date_extension.dart';
 import 'package:funances/core/utils/icons_extension.dart';
 import 'package:funances/core/widgets/money_text.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
-import 'package:funances/features/arena/presentation/widgets/arena_hud_footer.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:go_router/go_router.dart';
 
@@ -385,10 +385,12 @@ class _PotionSheet extends StatelessWidget {
       color: potion.isFilled ? AppColors.success : context.palette.ink3,
       progress: potion.ratio.fill,
       headline: Text(potion.total.format(locale: locale)),
+      // A poção é a ÚNICA que mostra a classe: "gole/semi/regular/super/hiper"
+      // foi o vocabulário que o dono pediu para o que se guarda.
       subtitle: potion.ratio.isUnknown
           ? null
           : '${hudTierLabel(l10n, potion.ratio)} · '
-                '${l10n.hudRatioOfIncome(_ratioText(potion.ratio, locale), hud.income!.amount.format(locale: locale))}',
+                '${hudRatioOfIncome(l10n, potion.ratio, locale)}',
       explanation: [
         l10n.hudPotionGame,
         l10n.hudPotionFinance,
@@ -428,14 +430,7 @@ class _VillageSheet extends StatelessWidget {
     final palette = context.palette;
     final village = hud.village;
 
-    final progress = village.progress ?? 0;
-    final color = village.isEmpty
-        ? palette.ink3
-        : progress > 1
-        ? AppColors.danger
-        : progress >= 0.9
-        ? AppColors.warning
-        : AppColors.success;
+    final color = village.isEmpty ? palette.ink3 : hudVillageColor(village);
 
     return _HudSheet(
       slot: HudSlot.village,
@@ -654,14 +649,9 @@ class _EggSheet extends StatelessWidget {
     final palette = context.palette;
     final egg = hud.egg;
 
-    final value = egg.ratio.value;
-    final color = value == null
+    final color = egg.ratio.isUnknown
         ? palette.ink3
-        : value >= 1
-        ? AppColors.danger
-        : value >= 0.5
-        ? AppColors.warning
-        : AppColors.success;
+        : hudEggRingColor(egg);
 
     return _HudSheet(
       slot: HudSlot.egg,
@@ -670,10 +660,10 @@ class _EggSheet extends StatelessWidget {
       stage: egg.stage,
       progress: egg.ratio.fill,
       headline: Text(egg.total.format(locale: locale)),
-      subtitle: egg.ratio.isUnknown
-          ? null
-          : '${hudTierLabel(l10n, egg.ratio)} · '
-                '${l10n.hudRatioOfIncome(_ratioText(egg.ratio, locale), hud.income!.amount.format(locale: locale))}',
+      // Sem classe: o ovo mostra a razão, e quem diz se ela é boa ou ruim é a
+      // cor do anel e a mini explicação. "Gole" num ovo de R$ 20.187,80 em
+      // faturas elogiava o usuário pelo tamanho da dívida.
+      subtitle: hudRatioOfIncome(l10n, egg.ratio, locale),
       explanation: [l10n.hudEggGame, l10n.hudEggFinance, l10n.hudEggXp],
       children: [
         _IncomeNote(hud: hud),
@@ -726,10 +716,9 @@ class _DropSheet extends StatelessWidget {
       color: drop.isBlinking ? AppColors.violet : context.palette.ink3,
       progress: drop.ratio.fill,
       headline: Text(drop.total.format(locale: locale)),
-      subtitle: drop.ratio.isUnknown
-          ? null
-          : '${hudTierLabel(l10n, drop.ratio)} · '
-                '${l10n.hudRatioOfIncome(_ratioText(drop.ratio, locale), hud.income!.amount.format(locale: locale))}',
+      // Sem classe, pela mesma razão do ovo: o que se DEVE não se mede na
+      // escala do que se guarda.
+      subtitle: hudRatioOfIncome(l10n, drop.ratio, locale),
       explanation: [l10n.hudDropGame, l10n.hudDropFinance, l10n.hudDropXp],
       children: [
         _IncomeNote(hud: hud),
@@ -755,10 +744,4 @@ class _DropSheet extends StatelessWidget {
       ],
     );
   }
-}
-
-/// A razão com uma casa decimal, no separador do idioma.
-String _ratioText(HudRatio ratio, String locale) {
-  final text = (ratio.value ?? 0).toStringAsFixed(1);
-  return locale.startsWith('en') ? text : text.replaceAll('.', ',');
 }

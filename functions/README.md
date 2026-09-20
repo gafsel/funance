@@ -2462,30 +2462,32 @@ razões.
 | Ícone | Dados usados | Fórmula | Escala | XP envolvido |
 |---|---|---|---|---|
 | **Aldeões** (categorias) | `period_summaries/{YYYY-MM}.categories.{id}` (`generalPlannedAmountCents`, `actualAmountCents`) + `categories` para tipo/sistema | **aldeão** = categoria de despesa, não-sistema, com `generalPlannedAmount > 0`; **HP** = `planejado − realizado`; **vivo** se `realizado ≤ planejado` | contagem `villagersAlive`/`villagersPlanned`; vila viva se `Σ realizado ≤ Σ planejado` com ≥ 3 aldeões | **+15** por aldeão vivo (teto 10 = **150**) e **+100** pela vila, no fechamento do mês |
-| **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
-| **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
-| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | 0,5× semi · 1× regular · 1,5× super · 2× hiper | nenhum |
+| **Poções** (investimentos) | saldo das contas `investment` (`accounts/{a}/balance` mais recente) ÷ `workspaces.expectedIncome.cents` | `r = saldoInvestimentoCents / expectedIncome.cents` | gole · 0,5× semi · 1× regular · 1,5× super · 2× hiper — as palavras da classe são **só daqui** | nenhum |
+| **Ovo** (cartões) | `accounts/{a}.nextInvoice.amountCents` das contas `creditCard` ÷ `workspaces.expectedIncome.cents` | `r = Σ nextInvoice.amountCents / expectedIncome.cents` | a razão CRUA ("1,1×"); os cortes 0,5× e 1× mudam a casca e a tinta do anel, mas o ovo não recebe o nome da classe | nenhum |
+| **Gota** (dívidas) | saldo devedor das contas `debt` (`accounts/{a}/balance` mais recente, em módulo) ÷ `workspaces.expectedIncome.cents` — o dono chamou este denominador de "renda mensal", e é o MESMO `expectedIncome` dos outros dois | `r = saldoDevedorCents / expectedIncome.cents` | a razão CRUA ("0,4×"); sem nome de classe, pelo mesmo motivo do ovo | nenhum |
 
 **A escala é UMA só, e mede TAMANHO — não mede virtude.** Os quatro cortes
-(0,5/1/1,5/2) valem igual nos três ícones de razão, e o nome da classe diz o
-tamanho do objeto, não se ele é bom: uma poção hiper é ótima, um ovo hiper é
-assustador e uma gota hiper é grave. Quem carrega o julgamento é a mini
-explicação, não o nome da classe.
+(0,5/1/1,5/2) valem igual nos três ícones de razão: eles medem "quantos meses
+de receita isto vale", e nada mais.
 
-| Classe | Faixa da razão |
+**As PALAVRAS da escala, porém, são só da poção.** O dono nomeou as faixas
+falando do que se GUARDA, e é lá que os nomes ficam:
+
+| Classe (só a poção) | Faixa da razão |
 |---|---|
-| nenhuma | `r < 0,5` |
+| gole | `r < 0,5` |
 | semi | `0,5 ≤ r < 1` |
 | regular | `1 ≤ r < 1,5` |
 | super | `1,5 ≤ r < 2` |
 | hiper | `r ≥ 2` |
 
-> **Pendência consciente.** O dono definiu os quatro cortes falando da POÇÃO. A
-> leitura adotada aqui — a mesma escala e os mesmos nomes nos três ícones,
-> porque os três medem "quantos meses de receita isto vale" — é uma decisão de
-> apresentação que ainda passa pelo crivo dele. O que o servidor publica não
-> muda com a resposta: ele entrega o denominador, e quem nomeia as faixas é o
-> app.
+O **ovo** e a **gota** mostram a razão crua — "1,1× da receita prevista do mês
+(R$ 18.550,00)" — e o julgamento deles sai da COR do anel e da mini explicação.
+A rodada anterior os nomeava com as mesmas palavras, e o resultado era a folha
+do ovo abrindo com "gole" sobre R$ 20.187,80 de faturas: um vocabulário de
+poção elogiando o tamanho de uma dívida. Os cortes continuam existindo para os
+três (são eles que decidem a casca do ovo e a tinta do anel); o que não se
+repete é o NOME.
 
 **Denominador desconhecido não é denominador zero.** Quando o servidor não
 tem como saber a receita — nem planejado, nem histórico —, ele **não publica o

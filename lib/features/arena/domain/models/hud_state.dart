@@ -86,22 +86,30 @@ class HudRatio {
     return numerator / income!.cents;
   }
 
-  /// A classe, decidida em CENTAVOS INTEIROS.
+  /// A razão chegou a [numerator]/[denominator] da receita?
   ///
-  /// A comparação não passa por `double`: `0,5 × 1.855.000` é exato em `int`
-  /// e aproximado em ponto flutuante, e uma poção exatamente no corte tem de
-  /// cair do lado de cima — as faixas são fechadas à esquerda (`>=`).
+  /// A comparação não passa por `double`: `0,5 × 1.855.000` é exato em `int` e
+  /// aproximado em ponto flutuante, e um valor exatamente no corte tem de cair
+  /// do lado de cima — as faixas são fechadas à esquerda (`>=`).
+  ///
+  /// Sem denominador a resposta é `false`: "ainda não sei" não chega a corte
+  /// nenhum.
+  bool isAtLeast(int numerator, int denominator) {
+    if (isUnknown) return false;
+
+    final n = amount.cents < 0 ? 0 : amount.cents;
+    return n * denominator >= income!.cents * numerator;
+  }
+
+  /// A classe, decidida em CENTAVOS INTEIROS.
   HudTier? get tier {
     if (isUnknown) return null;
 
-    final n = amount.cents < 0 ? 0 : amount.cents;
-    final d = income!.cents;
-
-    if (n * 2 < d) return HudTier.none;
-    if (n < d) return HudTier.semi;
-    if (n * 2 < d * 3) return HudTier.regular;
-    if (n < d * 2) return HudTier.superTier;
-    return HudTier.hyper;
+    if (isAtLeast(2, 1)) return HudTier.hyper;
+    if (isAtLeast(3, 2)) return HudTier.superTier;
+    if (isAtLeast(1, 1)) return HudTier.regular;
+    if (isAtLeast(1, 2)) return HudTier.semi;
+    return HudTier.none;
   }
 
   /// O preenchimento do anel, de 0 a 1. Razão acima de 1 enche o anel — o
@@ -430,16 +438,20 @@ class HudEgg {
   ///
   /// Sem denominador o ovo não tem estágio nenhum — ele fica no primeiro, que
   /// é o neutro.
+  ///
+  /// Os cortes são em CENTAVOS INTEIROS, como as classes: um ovo de meio mês
+  /// exato de receita rachava ou não conforme o erro de representação do
+  /// `double` daquela divisão, e "a casca mudou porque o número tem dízima"
+  /// não é uma regra que alguém possa explicar.
   int get stage {
-    final v = ratio.value;
-    if (v == null) return 0;
-    if (v >= 1) return 2;
-    if (v >= 0.5) return 1;
+    if (ratio.isAtLeast(1, 1)) return 2;
+    if (ratio.isAtLeast(1, 2)) return 1;
     return 0;
   }
 
-  /// O ovo treme quando a razão se aproxima de um mês inteiro de receita.
-  bool get isTrembling => (ratio.value ?? 0) >= 0.8;
+  /// O ovo treme quando a razão se aproxima de um mês inteiro de receita:
+  /// quatro quintos dela.
+  bool get isTrembling => ratio.isAtLeast(4, 5);
 
   bool get isEmpty => invoices.isEmpty;
 

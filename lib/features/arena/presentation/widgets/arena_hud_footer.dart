@@ -8,9 +8,9 @@ import 'package:funances/core/utils/build_context_extension.dart';
 import 'package:funances/features/arena/domain/models/hud_state.dart';
 import 'package:funances/features/arena/presentation/providers/arena_providers.dart';
 import 'package:funances/features/arena/presentation/providers/hud_providers.dart';
+import 'package:funances/features/arena/presentation/widgets/hud_format.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_glyph.dart';
 import 'package:funances/features/arena/presentation/widgets/hud_sheets.dart';
-import 'package:funances/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 
 /// A faixa MENSAL no pé da Arena: quatro ícones e nada mais.
@@ -103,7 +103,7 @@ class _Slots extends StatelessWidget {
             value: hud.village.isEmpty
                 ? l10n.hudUnknown
                 : '${hud.village.aliveCount}/${hud.village.plannedCount}',
-            color: _villageColor(hud.village),
+            color: hudVillageColor(hud.village),
             filled: !hud.village.isEmpty,
             progress: hud.village.ring,
             compact: compact,
@@ -117,7 +117,7 @@ class _Slots extends StatelessWidget {
             slot: HudSlot.egg,
             name: l10n.hudEggTitle,
             value: hudRatioLabel(l10n, hud.egg.ratio, locale),
-            color: _eggColor(hud.egg),
+            color: hudEggRingColor(hud.egg),
             filled: !hud.egg.isEmpty,
             progress: hud.egg.ratio.fill,
             stage: hud.egg.stage,
@@ -146,60 +146,6 @@ class _Slots extends StatelessWidget {
       ],
     );
   }
-}
-
-/// A tinta do anel da vila: verde enquanto cabe, laranja perto do limite,
-/// vermelho quando estourou.
-///
-/// A vila é o único dos quatro em que o anel JULGA, e ela pode: o limite é o
-/// que o próprio usuário escreveu. Nos outros três o anel só mede tamanho.
-Color _villageColor(HudVillage village) {
-  if (village.isEmpty) return AppColors.inkInverse2;
-
-  final progress = village.progress ?? 0;
-  if (progress > 1) return AppColors.danger;
-  if (progress >= 0.9) return AppColors.warning;
-  return AppColors.success;
-}
-
-/// A tinta do ovo: do verde ao vermelho conforme a razão se aproxima de um
-/// mês inteiro de receita.
-Color _eggColor(HudEgg egg) {
-  final value = egg.ratio.value;
-  if (value == null) return AppColors.inkInverse2;
-  if (value >= 1) return AppColors.danger;
-  if (value >= 0.5) return AppColors.warning;
-  return AppColors.success;
-}
-
-/// A classe, por extenso. Sem denominador, um traço — e nunca "gole", que
-/// seria um veredito sobre um número que não existe.
-String hudTierLabel(AppLocalizations l10n, HudRatio ratio) {
-  return switch (ratio.tier) {
-    null => l10n.hudUnknown,
-    HudTier.none => l10n.hudTierNone,
-    HudTier.semi => l10n.hudTierSemi,
-    HudTier.regular => l10n.hudTierRegular,
-    HudTier.superTier => l10n.hudTierSuper,
-    HudTier.hyper => l10n.hudTierHyper,
-  };
-}
-
-/// A razão com UMA casa decimal — "1,1×".
-///
-/// Uma casa e não duas: o rodapé responde "isto é grande?", e a segunda casa
-/// decimal não muda a resposta. Os centavos exatos estão na folha.
-///
-/// Sem denominador, um traço: "0,0×" seria um número, e número é afirmação.
-String hudRatioLabel(AppLocalizations l10n, HudRatio ratio, String locale) {
-  final value = ratio.value;
-  if (value == null) return l10n.hudUnknown;
-
-  final text = value.toStringAsFixed(1);
-
-  return l10n.hudRatioTimes(
-    locale.startsWith('en') ? text : text.replaceAll('.', ','),
-  );
 }
 
 /// Um ícone da faixa: anel, figura e o número curto ao lado.
