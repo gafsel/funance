@@ -1503,5 +1503,61 @@
         "type": "String"
       }
     }
+  },
+  "arenaPartiallyPaid": "{paid} of {total} — {remaining} left",
+  "@arenaPartiallyPaid": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaOverpaid": "+{amount} above plan",
+  "@arenaOverpaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfall": "{amount} short",
+  "@arenaShortfall": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfallLabel": "Short in cash",
+  "arenaShortfallCause": "Cash does not cover this week's commitments. The largest is {name}, {amount}.",
+  "@arenaShortfallCause": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfallCauseOverdue": "{days, plural, =1{Cash does not cover this week's commitments. The largest is {name}, {amount}, 1 day overdue.} other{Cash does not cover this week's commitments. The largest is {name}, {amount}, {days} days overdue.}}",
+  "@arenaShortfallCauseOverdue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
   }
 }

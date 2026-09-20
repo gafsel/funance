@@ -130,7 +130,9 @@ class _NextBlow extends StatelessWidget {
     final palette = context.palette;
     final l10n = context.l10n;
 
-    final total = items.fold<double>(0, (sum, item) => sum + item.amount);
+    // O que ainda FALTA das linhas que vencem agora: uma fatura já paga pela
+    // metade cobra só o resto.
+    final total = items.fold<double>(0, (sum, item) => sum + item.remaining);
 
     return Container(
       key: const ValueKey('arena-next-blow'),
@@ -205,8 +207,13 @@ class _CommitmentRow extends StatelessWidget {
             // juiz) diz outra coisa.
             //
             // O golpe AGENDADO leva relógio: ele está marcado, não dado.
+            // O PARCIAL leva meia espada: houve golpe, e o bicho continua de
+            // pé — a espada inteira ali seria a mesma mentira que a barra
+            // contava antes.
             child: struck
                 ? SwordMark(color: palette.ink3, size: 16)
+                : commitment.isPartial
+                ? SwordMark(color: palette.warningText, size: 16, half: true)
                 : Icon(
                     scheduled
                         ? Icons.schedule
@@ -244,6 +251,30 @@ class _CommitmentRow extends StatelessWidget {
                         : palette.ink2,
                   ),
                 ),
+                // O que já foi pago, quando não foi tudo. Sem esta linha, a
+                // fatura de R$ 12.130,09 com R$ 1.000 pagos parecia intocada.
+                if (commitment.isPartial)
+                  Text(
+                    l10n.arenaPartiallyPaid(
+                      commitment.struck.asCurrency(locale: context.locale),
+                      commitment.planned.asCurrency(locale: context.locale),
+                      commitment.remaining.asCurrency(locale: context.locale),
+                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: palette.warningText,
+                    ),
+                  ),
+                // Pagou a mais: o excedente não derruba o monstro além do que
+                // ele tinha, mas some da tela seria pior.
+                if (commitment.overpaid > 0)
+                  Text(
+                    l10n.arenaOverpaid(
+                      commitment.overpaid.asCurrency(locale: context.locale),
+                    ),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: palette.successText,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -252,9 +283,14 @@ class _CommitmentRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               MoneyText(
-                commitment.amount,
+                commitment.planned,
                 style: theme.textTheme.titleSmall?.copyWith(color: ink),
               ),
+              // O botão é para o que está PENDENTE. Uma linha com pagamento
+              // parcial já tem status `paid` na base, e o caminho de quitação
+              // do app é para quitar pendente: reabri-lo ali seria inventar
+              // um fluxo que esta POC não verificou. O resto se resolve pela
+              // edição do lançamento, e a folha garante a leitura certa.
               if (!commitment.isPaid)
                 TextButton(
                   onPressed: () async {
@@ -354,21 +390,34 @@ class _SlashPainter extends CustomPainter {
 ///
 /// Doze linhas de `Canvas` em vez de um asset: ela aparece num tamanho só,
 /// numa tela só, e um PNG a mais no pacote custaria mais do que isto.
+///
+/// [half] desenha a lâmina pela metade — o golpe PARCIAL. Uma fatura de
+/// R$ 12.130,09 paga em R$ 1.000 levou golpe, mas não caiu; a espada inteira
+/// ali contaria a mesma mentira que a barra contava antes desta rodada.
 class SwordMark extends StatelessWidget {
-  const SwordMark({super.key, required this.color, this.size = 16});
+  const SwordMark({
+    super.key,
+    required this.color,
+    this.size = 16,
+    this.half = false,
+  });
 
   final Color color;
   final double size;
+  final bool half;
 
   @override
-  Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(size), painter: _SwordPainter(color));
+  Widget build(BuildContext context) => CustomPaint(
+    size: Size.square(size),
+    painter: _SwordPainter(color, half: half),
+  );
 }
 
 class _SwordPainter extends CustomPainter {
-  const _SwordPainter(this.color);
+  const _SwordPainter(this.color, {required this.half});
 
   final Color color;
+  final bool half;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -378,10 +427,11 @@ class _SwordPainter extends CustomPainter {
       ..strokeWidth = s * 0.14
       ..strokeCap = StrokeCap.round;
 
-    // Lâmina: do canto de baixo à esquerda para o de cima à direita.
+    // Lâmina: do canto de baixo à esquerda para o de cima à direita. Na meia
+    // espada ela para no meio do caminho.
     canvas.drawLine(
       Offset(s * 0.22, s * 0.80),
-      Offset(s * 0.86, s * 0.16),
+      half ? Offset(s * 0.54, s * 0.48) : Offset(s * 0.86, s * 0.16),
       paint,
     );
     // Guarda: perpendicular, perto do punho.
@@ -399,5 +449,6 @@ class _SwordPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SwordPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(_SwordPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.half != half;
 }

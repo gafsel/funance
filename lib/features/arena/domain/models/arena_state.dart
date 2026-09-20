@@ -36,6 +36,15 @@ enum HeroMood {
   /// Saldo positivo, mas abaixo de um terço: pose machucada.
   hurt,
 
+  /// **Pressionado**: o comprometido passou do caixa.
+  ///
+  /// A barra pode estar CHEIA e a situação ser a pior da semana — foi
+  /// exatamente o que o retrato real mostrou: R$ 3.115,02 em caixa contra
+  /// R$ 12.122,33 de compromisso, no domingo, com a barra intacta. Sem um
+  /// estado próprio, a cena dizia "tudo bem" com um rombo de nove mil reais
+  /// na frente.
+  pressed,
+
   /// Saldo negativo. Filtro escuro.
   exhausted,
 }
@@ -78,34 +87,69 @@ sealed class ArenaCommitment with _$ArenaCommitment {
     required int daysUntilDue,
   }) = _ArenaCommitment;
 
-  /// O que este compromisso pesa.
+  /// O PLANO: quanto este compromisso pesava quando a semana começou.
   ///
-  /// `referenceAmount` (`paidAmount ?? amount`) e não `amount`: na quitação o
-  /// app zera o `amount` e move o valor para o `paidAmount`, então uma linha
-  /// paga somada por `amount` valeria ZERO — a barra do monstro encolheria
-  /// pelo total e a folha mostraria zeros. É o mesmo campo que a consulta da
-  /// semana usa para decidir se a parcela é desta semana (`referenceDate`),
-  /// e por isso as duas leituras não podem divergir.
-  double get amount => installment.referenceAmount;
+  /// É o `amount` quando ele sobrevive, e o `referenceAmount` quando não.
+  /// Os dois casos existem e são diferentes:
+  ///
+  /// - numa **parcela comum**, a quitação ZERA o `amount` e move o valor para
+  ///   o `paidAmount`. Somar por `amount` daria zero e a barra encolheria
+  ///   pelo total; por isso o `referenceAmount` (`paidAmount ?? amount`)
+  ///   entra como saída;
+  /// - numa **fatura**, o `amount` SOBREVIVE à quitação — ele é o que o
+  ///   cartão cobrou. Uma fatura de R$ 12.130,09 paga em R$ 1.000 continua
+  ///   com os dois campos, e `referenceAmount` devolveria R$ 1.000: o monstro
+  ///   perderia R$ 11.130 de vida e comemoraria uma vitória que não houve.
+  ///
+  /// O plano é sempre o maior dos dois mundos — o que se propôs a pagar.
+  double get planned =>
+      installment.amount > 0 ? installment.amount : installment.referenceAmount;
 
-  /// O golpe já caiu: pago, e a data do pagamento já chegou.
+  /// O que de fato saiu do caixa por este compromisso, HOJE.
   ///
-  /// É o que desconta do HP do monstro. Um pagamento marcado para sexta não
+  /// Preso ao [planned]: pagar a mais não tira do monstro mais do que ele
+  /// tinha. O excedente vira [overpaid] e aparece na linha, não na barra.
+  double get struck {
+    if (isScheduledStrike) return 0;
+
+    final paid = installment.paidAmount ?? (isPaid ? planned : 0);
+    return paid > planned ? planned : paid;
+  }
+
+  /// O que ainda falta deste compromisso.
+  double get remaining {
+    final left = planned - struck;
+    return left < 0 ? 0 : left;
+  }
+
+  /// Quanto passou do previsto. Aparece na linha como "+R$ x acima".
+  double get overpaid {
+    final paid = installment.paidAmount ?? 0;
+    final over = paid - planned;
+    return over > 0 ? over : 0;
+  }
+
+  /// Houve pagamento, mas ele não cobriu o compromisso inteiro.
+  bool get isPartial => struck > 0 && remaining > 0;
+
+  /// O golpe caiu POR INTEIRO: nada mais falta deste compromisso.
+  ///
+  /// É o que conta como linha resolvida. Um pagamento marcado para sexta não
   /// desconta hoje — senão o monstro nasceria abatido no domingo, com a
   /// semana inteira de débitos automáticos já descontada antes de qualquer um
   /// deles sair da conta.
-  bool get isStruck => isPaid && !isScheduledStrike;
+  bool get isStruck => !isScheduledStrike && remaining <= 0 && planned > 0;
 
   /// Pendente e já vencida DENTRO desta semana. Não enfurece o monstro (isso
   /// é privilégio do atraso de semanas anteriores), mas sobe para o topo da
   /// folha com o mesmo destaque: é o que já devia ter sido resolvido.
-  bool get isLate => !isPaid && !isOverdue && daysUntilDue < 0;
+  bool get isLate => !isStruck && !isOverdue && daysUntilDue < 0;
 
   /// Atrasado de qualquer origem — de semanas passadas ou desta.
   bool get isBehind => isOverdue || isLate;
 
-  bool get isDueToday => !isPaid && !isBehind && daysUntilDue == 0;
-  bool get isDueTomorrow => !isPaid && !isBehind && daysUntilDue == 1;
+  bool get isDueToday => !isStruck && !isBehind && daysUntilDue == 0;
+  bool get isDueTomorrow => !isStruck && !isBehind && daysUntilDue == 1;
 
   /// O "próximo golpe": o que vence hoje ou amanhã. É a `DueSoonStrip` da
   /// Home antiga, agora dentro do monstro.
@@ -255,10 +299,18 @@ sealed class ArenaState with _$ArenaState {
   bool get isDefeated => commitmentsInitial > 0 && commitmentsRemaining <= 0;
 
   List<ArenaCommitment> get pendingCommitments =>
-      commitments.where((c) => !c.isPaid).toList();
+      commitments.where((c) => !c.isStruck).toList();
 
   List<ArenaCommitment> get paidCommitments =>
-      commitments.where((c) => c.isPaid).toList();
+      commitments.where((c) => c.isStruck).toList();
+
+  /// O compromisso pendente que mais pesa. É a CAUSA que o rombo explica.
+  ArenaCommitment? get largestPending {
+    final pendentes = pendingCommitments;
+    if (pendentes.isEmpty) return null;
+
+    return pendentes.reduce((a, b) => b.remaining > a.remaining ? b : a);
+  }
 
   /// Golpes marcados para um dia que ainda não chegou.
   List<ArenaCommitment> get scheduledStrikes =>
@@ -267,6 +319,11 @@ sealed class ArenaState with _$ArenaState {
   /// Quantos compromissos já foram resolvidos, de quantos. É o placar da
   /// semana — e o que o fechamento mostra na virada.
   int get struckCount => commitments.where((c) => c.isStruck).length;
+
+  /// Compromissos com pagamento parcial: já levaram golpe, mas continuam de
+  /// pé.
+  List<ArenaCommitment> get partialCommitments =>
+      commitments.where((c) => c.isPartial).toList();
 
   int get commitmentsCount => commitments.length;
 
@@ -307,8 +364,20 @@ sealed class ArenaState with _$ArenaState {
     return (committed / initialBalance).clamp(0.0, 1.0).toDouble();
   }
 
+  /// O caixa não cobre o que a semana já deve.
+  bool get isPressed => committed > currentBalance;
+
+  /// Quanto falta em caixa para cobrir os compromissos. Zero quando cobre.
+  double get shortfall {
+    final falta = committed - currentBalance;
+    return falta > 0 ? falta : 0;
+  }
+
   HeroMood get heroMood {
     if (currentBalance < 0) return HeroMood.exhausted;
+    // O rombo vem ANTES do "machucado": ter pouco do que se tinha é ruim;
+    // dever mais do que se tem é outra categoria de problema.
+    if (isPressed) return HeroMood.pressed;
     if (heroHpRatio < 1 / 3) return HeroMood.hurt;
     return HeroMood.healthy;
   }

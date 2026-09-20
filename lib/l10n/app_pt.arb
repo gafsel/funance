@@ -1503,5 +1503,61 @@
         "type": "String"
       }
     }
+  },
+  "arenaPartiallyPaid": "{paid} de {total} — falta {remaining}",
+  "@arenaPartiallyPaid": {
+    "placeholders": {
+      "paid": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaOverpaid": "+{amount} acima do previsto",
+  "@arenaOverpaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfall": "Falta {amount} em caixa",
+  "@arenaShortfall": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfallLabel": "Falta em caixa",
+  "arenaShortfallCause": "O caixa não cobre os compromissos da semana. O maior é {name}, {amount}.",
+  "@arenaShortfallCause": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "arenaShortfallCauseOverdue": "{days, plural, =1{O caixa não cobre os compromissos da semana. O maior é {name}, {amount}, vencido há 1 dia.} other{O caixa não cobre os compromissos da semana. O maior é {name}, {amount}, vencido há {days} dias.}}",
+  "@arenaShortfallCauseOverdue": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
   }
 }

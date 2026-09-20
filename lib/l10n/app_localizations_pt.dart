@@ -2608,4 +2608,40 @@ class AppLocalizationsPt extends AppLocalizations {
   String arenaClosingScore(int paid, int total, String balance) {
     return '$paid de $total compromissos pagos · caixa no sábado: $balance';
   }
+
+  @override
+  String arenaPartiallyPaid(String paid, String total, String remaining) {
+    return '$paid de $total — falta $remaining';
+  }
+
+  @override
+  String arenaOverpaid(String amount) {
+    return '+$amount acima do previsto';
+  }
+
+  @override
+  String arenaShortfall(String amount) {
+    return 'Falta $amount em caixa';
+  }
+
+  @override
+  String get arenaShortfallLabel => 'Falta em caixa';
+
+  @override
+  String arenaShortfallCause(String name, String amount) {
+    return 'O caixa não cobre os compromissos da semana. O maior é $name, $amount.';
+  }
+
+  @override
+  String arenaShortfallCauseOverdue(String name, String amount, int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other:
+          'O caixa não cobre os compromissos da semana. O maior é $name, $amount, vencido há $days dias.',
+      one:
+          'O caixa não cobre os compromissos da semana. O maior é $name, $amount, vencido há 1 dia.',
+    );
+    return '$_temp0';
+  }
 }

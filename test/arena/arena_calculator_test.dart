@@ -228,7 +228,11 @@ void main() {
       expect(state.paidSoFar, 1200);
     });
 
-    test('o valor PAGO manda quando difere do previsto', () {
+    test('pagar a mais não ENGORDA o monstro', () {
+      // O inicial é o PLANO — o que a semana se propôs a pagar. Uma conta de
+      // R\$ 180 quitada por R\$ 183,45 não fazia a semana dever R\$ 183,45: o
+      // que ela devia continua sendo R\$ 180, e os R\$ 3,45 a mais são um
+      // detalhe da linha.
       final state = ArenaCalculator.from(
         _inputs(
           week: [
@@ -243,9 +247,10 @@ void main() {
         ),
       );
 
-      expect(state.monsterMaxHp, 183.45);
+      expect(state.monsterMaxHp, 180);
       expect(state.monsterHp, 0);
       expect(state.isDefeated, isTrue);
+      expect(state.commitments.single.overpaid, closeTo(3.45, 0.001));
     });
 
     test('receita não alimenta o monstro', () {
@@ -515,6 +520,243 @@ void main() {
       );
 
       expect(ArenaCalculator.from(_inputs(week: [semConta])).monsterMaxHp, 0);
+    });
+  });
+
+  group('quitação PARCIAL', () {
+    /// Uma fatura com pagamento parcial, do jeito que a base a guarda.
+    ///
+    /// Numa fatura o `amount` SOBREVIVE à quitação — ele é o que o cartão
+    /// cobrou. É a diferença que fazia `referenceAmount` (`paidAmount ??
+    /// amount`) mentir: ele devolvia o valor PAGO como se fosse o plano.
+    InstallmentModel invoicePaid({
+      required String id,
+      required double amount,
+      required double paid,
+      int dayOffset = 0,
+    }) => InstallmentModel(
+      id: id,
+      orderId: 'order-$id',
+      amount: amount,
+      paidAmount: paid,
+      paidDate: _sunday.add(Duration(days: dayOffset)),
+      description: 'Fatura $id',
+      dueDate: _sunday.add(Duration(days: dayOffset)),
+      status: InstallmentStatus.paid,
+      type: OrderType.transfer,
+      installmentType: InstallmentType.single,
+      isInvoice: true,
+      accounts: const {
+        'corrente': AccountImpact.debt,
+        'cartao': AccountImpact.credit,
+      },
+    );
+
+    test('a fatura paga pela metade NÃO derruba o monstro', () {
+      // O caso que reprovou a rodada 3: Cartão Inter, R\$ 12.130,09 cobrados,
+      // R\$ 1.000 pagos. Com `referenceAmount`, o inicial virava R\$ 1.000, o
+      // monstro perdia onze mil de vida e COMEMORAVA.
+      final state = ArenaCalculator.from(
+        _inputs(week: [invoicePaid(id: 'inter', amount: 12130.09, paid: 1000)]),
+      );
+
+      expect(state.monsterMaxHp, 12130.09);
+      expect(state.monsterHp, 11130.09);
+      expect(state.isDefeated, isFalse, reason: 'ninguém venceu nada aqui');
+
+      final linha = state.commitments.single;
+      expect(linha.planned, 12130.09);
+      expect(linha.struck, 1000);
+      expect(linha.remaining, 11130.09);
+      expect(linha.isPartial, isTrue);
+      expect(linha.isStruck, isFalse);
+    });
+
+    test('os cinco pagamentos parciais da base, um a um', () {
+      const casos = <({double cobrado, double pago, double falta})>[
+        (cobrado: 12130.09, pago: 1000, falta: 11130.09),
+        (cobrado: 7208.17, pago: 3710, falta: 3498.17),
+        (cobrado: 8075.61, pago: 7521.50, falta: 554.11),
+        // Pagou a MAIS: o monstro cai até o zero e não além.
+        (cobrado: 286.21, pago: 296.61, falta: 0),
+        (cobrado: 4687.77, pago: 4687.82, falta: 0),
+      ];
+
+      for (final caso in casos) {
+        final state = ArenaCalculator.from(
+          _inputs(
+            week: [invoicePaid(id: 'f', amount: caso.cobrado, paid: caso.pago)],
+          ),
+        );
+
+        expect(
+          state.monsterMaxHp,
+          caso.cobrado,
+          reason: 'o inicial é o PLANO, não o que foi pago',
+        );
+        expect(state.monsterHp, caso.falta, reason: '${caso.cobrado}');
+      }
+    });
+
+    test('pagar a mais não derruba além do compromisso', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            invoicePaid(id: 'f1', amount: 286.21, paid: 296.61),
+            _expense(id: 'luz', amount: 180, dayOffset: 2),
+          ],
+        ),
+      );
+
+      // Os R\$ 10,40 a mais NÃO abatem a conta de luz.
+      expect(state.monsterMaxHp, 466.21);
+      expect(state.monsterHp, 180);
+
+      final fatura = state.commitments.firstWhere(
+        (c) => c.installment.id == 'f1',
+      );
+      expect(fatura.overpaid, closeTo(10.40, 0.001));
+      expect(fatura.isStruck, isTrue);
+      expect(fatura.isPartial, isFalse);
+    });
+
+    test('parcela COMUM quitada continua valendo o que foi pago', () {
+      // Aqui o app zera o `amount` e move o valor para o `paidAmount`. Sem o
+      // `referenceAmount` como saída, o plano viraria zero e a linha sumiria
+      // da barra.
+      final quitada = InstallmentModel(
+        id: 'luz',
+        orderId: 'order-luz',
+        amount: 0,
+        paidAmount: 183.45,
+        paidDate: _sunday.add(const Duration(days: 1)),
+        description: 'Luz',
+        dueDate: _sunday.add(const Duration(days: 1)),
+        status: InstallmentStatus.paid,
+        type: OrderType.expense,
+        installmentType: InstallmentType.single,
+        accounts: const {'corrente': AccountImpact.debt},
+      );
+
+      final state = ArenaCalculator.from(_inputs(week: [quitada]));
+
+      expect(state.monsterMaxHp, 183.45);
+      expect(state.monsterHp, 0);
+      expect(state.isDefeated, isTrue);
+      expect(state.commitments.single.isStruck, isTrue);
+    });
+
+    test('a vitória exige remaining ZERO, e não "tem pagamento"', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          week: [
+            invoicePaid(id: 'inter', amount: 12130.09, paid: 1000),
+            _expense(
+              id: 'luz',
+              amount: 180,
+              status: InstallmentStatus.paid,
+              paidDate: _sunday,
+            ),
+          ],
+        ),
+      );
+
+      expect(state.struckCount, 1, reason: 'só a luz caiu');
+      expect(state.partialCommitments.single.installment.id, 'inter');
+      expect(state.isDefeated, isFalse);
+    });
+
+    test('o atraso conta pelo que ainda FALTA', () {
+      // Uma fatura vencida com pagamento parcial deve o resto, não o total.
+      final state = ArenaCalculator.from(
+        _inputs(
+          overdue: [
+            InstallmentModel(
+              id: 'fatura',
+              orderId: 'order-fatura',
+              amount: 8075.61,
+              paidAmount: 7521.50,
+              paidDate: _sunday.add(const Duration(days: -1)),
+              description: 'Fatura',
+              dueDate: _sunday.add(const Duration(days: -4)),
+              status: InstallmentStatus.pending,
+              type: OrderType.transfer,
+              installmentType: InstallmentType.single,
+              isInvoice: true,
+              accounts: const {'cartao': AccountImpact.credit},
+            ),
+          ],
+        ),
+      );
+
+      expect(state.overdueAmount, closeTo(554.11, 0.001));
+      expect(state.isEnraged, isTrue);
+    });
+  });
+
+  group('o rombo: comprometido acima do caixa', () {
+    test('o retrato real do domingo: barra cheia e semana perdida', () {
+      // R\$ 3.115,02 em caixa contra R\$ 12.122,33 de compromisso. A barra
+      // está CHEIA — é domingo, nada saiu ainda — e sem um estado próprio a
+      // cena diria "tudo bem".
+      final state = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('corrente', initial: 3115.02, current: 3115.02)],
+          week: [_expense(id: 'emprestimo', amount: 3811.78, dayOffset: 2)],
+          overdue: [
+            _pendingInvoice(id: 'fatura', amount: 8300.55, dayOffset: -3),
+            _expense(id: 'c6', amount: 10, dayOffset: -4),
+          ],
+        ),
+      );
+
+      expect(state.currentBalance, 3115.02);
+      expect(state.monsterHp, 12122.33);
+      expect(state.heroHpRatio, 1, reason: 'a barra está cheia');
+      expect(state.isPressed, isTrue);
+      expect(state.heroMood, HeroMood.pressed);
+      expect(state.shortfall, closeTo(9007.31, 0.001));
+      expect(state.freeBalance, closeTo(-9007.31, 0.001));
+    });
+
+    test('caixa que cobre não é rombo', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('c', initial: 5000, current: 5000)],
+          week: [_expense(id: 'aluguel', amount: 1200, dayOffset: 2)],
+        ),
+      );
+
+      expect(state.isPressed, isFalse);
+      expect(state.shortfall, 0);
+      expect(state.heroMood, HeroMood.healthy);
+    });
+
+    test('saldo negativo é exausto, e exausto ganha do pressionado', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('c', initial: 500, current: -120)],
+          week: [_expense(id: 'aluguel', amount: 1200, dayOffset: 2)],
+        ),
+      );
+
+      expect(state.isPressed, isTrue);
+      expect(state.heroMood, HeroMood.exhausted);
+    });
+
+    test('o maior pendente é a causa do rombo', () {
+      final state = ArenaCalculator.from(
+        _inputs(
+          accounts: [_account('c', initial: 100, current: 100)],
+          week: [_expense(id: 'emprestimo', amount: 3811.78, dayOffset: 2)],
+          overdue: [
+            _pendingInvoice(id: 'fatura', amount: 8300.55, dayOffset: -3),
+          ],
+        ),
+      );
+
+      expect(state.largestPending?.installment.id, 'fatura');
+      expect(state.largestPending?.remaining, 8300.55);
     });
   });
 

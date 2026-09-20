@@ -60,22 +60,40 @@ ArenaCommitment arenaTestCommitment({
   bool paid = false,
   bool overdue = false,
   bool scheduled = false,
+
+  /// Quitação PARCIAL: o quanto foi pago de um compromisso que continua de
+  /// pé. É a forma da fatura — o `amount` sobrevive à quitação.
+  double? partial,
 }) => ArenaCommitment(
-  installment: arenaTestInstallment(
-    id: id,
-    description: description,
-    amount: amount,
-    dayOffset: dayOffset,
-    status: paid || scheduled
-        ? InstallmentStatus.paid
-        : InstallmentStatus.pending,
-    paidDate: scheduled
-        ? arenaTestDay.add(const Duration(days: 2))
-        : paid
-        ? arenaTestDay
-        : null,
-  ),
-  isPaid: paid || scheduled,
+  installment: partial != null
+      ? InstallmentModel(
+          id: id,
+          orderId: 'o-$id',
+          amount: amount,
+          paidAmount: partial,
+          paidDate: arenaTestDay,
+          description: description,
+          dueDate: arenaTestDay.add(Duration(days: dayOffset)),
+          status: InstallmentStatus.paid,
+          type: OrderType.transfer,
+          installmentType: InstallmentType.single,
+          isInvoice: true,
+        )
+      : arenaTestInstallment(
+          id: id,
+          description: description,
+          amount: amount,
+          dayOffset: dayOffset,
+          status: paid || scheduled
+              ? InstallmentStatus.paid
+              : InstallmentStatus.pending,
+          paidDate: scheduled
+              ? arenaTestDay.add(const Duration(days: 2))
+              : paid
+              ? arenaTestDay
+              : null,
+        ),
+  isPaid: partial != null || paid || scheduled,
   isOverdue: overdue,
   isScheduledStrike: scheduled,
   daysUntilDue: dayOffset,
@@ -110,8 +128,16 @@ ArenaState arenaTestState({
         ),
       ];
 
-  double soma(bool Function(ArenaCommitment) onde) =>
-      lista.where(onde).fold<double>(0, (total, c) => total + c.amount);
+  // A MESMA aritmética da calculadora: o inicial é o plano de cada linha, o
+  // que falta é a soma dos restos. Escrever outra conta aqui seria montar
+  // estados que o app não produz — e foi assim que um golden fotografou um
+  // cabeçalho que não batia com a lista embaixo dele.
+  double soma(
+    double Function(ArenaCommitment) campo, [
+    bool Function(ArenaCommitment)? onde,
+  ]) => lista
+      .where(onde ?? (_) => true)
+      .fold<double>(0, (total, c) => total + campo(c));
 
   return ArenaState(
     weekId: '2026-W38',
@@ -120,9 +146,9 @@ ArenaState arenaTestState({
     currentBalance: currentBalance,
     healedThisWeek: healedThisWeek,
     commitments: lista,
-    commitmentsInitial: soma((_) => true),
-    commitmentsRemaining: soma((c) => !c.isStruck),
-    overdueAmount: soma((c) => c.isOverdue),
+    commitmentsInitial: soma((c) => c.planned),
+    commitmentsRemaining: soma((c) => c.remaining),
+    overdueAmount: soma((c) => c.remaining, (c) => c.isOverdue),
     monsterSkin: lista.any((c) => c.isOverdue)
         ? MonsterSkin.demon
         : MonsterSkin.spider,

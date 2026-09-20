@@ -4597,6 +4597,42 @@ abstract class AppLocalizations {
   /// In pt, this message translates to:
   /// **'{paid} de {total} compromissos pagos · caixa no sábado: {balance}'**
   String arenaClosingScore(int paid, int total, String balance);
+
+  /// No description provided for @arenaPartiallyPaid.
+  ///
+  /// In pt, this message translates to:
+  /// **'{paid} de {total} — falta {remaining}'**
+  String arenaPartiallyPaid(String paid, String total, String remaining);
+
+  /// No description provided for @arenaOverpaid.
+  ///
+  /// In pt, this message translates to:
+  /// **'+{amount} acima do previsto'**
+  String arenaOverpaid(String amount);
+
+  /// No description provided for @arenaShortfall.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falta {amount} em caixa'**
+  String arenaShortfall(String amount);
+
+  /// No description provided for @arenaShortfallLabel.
+  ///
+  /// In pt, this message translates to:
+  /// **'Falta em caixa'**
+  String get arenaShortfallLabel;
+
+  /// No description provided for @arenaShortfallCause.
+  ///
+  /// In pt, this message translates to:
+  /// **'O caixa não cobre os compromissos da semana. O maior é {name}, {amount}.'**
+  String arenaShortfallCause(String name, String amount);
+
+  /// No description provided for @arenaShortfallCauseOverdue.
+  ///
+  /// In pt, this message translates to:
+  /// **'{days, plural, =1{O caixa não cobre os compromissos da semana. O maior é {name}, {amount}, vencido há 1 dia.} other{O caixa não cobre os compromissos da semana. O maior é {name}, {amount}, vencido há {days} dias.}}'**
+  String arenaShortfallCauseOverdue(String name, String amount, int days);
 }
 
 class _AppLocalizationsDelegate

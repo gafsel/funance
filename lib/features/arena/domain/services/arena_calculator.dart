@@ -257,25 +257,31 @@ abstract final class ArenaCalculator {
         ),
     ]..sort(_commitmentOrder);
 
-    final overdue = Money.sumOf(overdueRaw, (i) => i.referenceAmount);
+    // O atraso conta pelo que AINDA falta: uma fatura vencida com pagamento
+    // parcial deve o resto, não o total.
+    final overdue = Money.sumOf(
+      commitments.where((c) => c.isOverdue),
+      (c) => c.remaining,
+    );
 
     // HP inicial: tudo o que a semana tem para tirar do caixa, mais o que
     // ficou de trás. O que já foi pago continua contando no INICIAL — é dano
     // já causado, e tirá-lo do total faria a barra encolher por baixo em vez
     // de esvaziar.
     //
-    // O que DESCONTA é `isStruck`, e não `isPaid`: um débito automático
-    // marcado para sexta é golpe agendado, e descontá-lo hoje faria o monstro
-    // nascer abatido no domingo com a semana inteira já cobrada.
+    // A soma é LINHA A LINHA, e cada linha sabe distinguir o PLANO do que foi
+    // GOLPEADO (`ArenaCommitment.planned` e `.struck`). Antes era um só campo
+    // (`referenceAmount`) dos dois lados, e uma quitação PARCIAL mentia: a
+    // fatura do Cartão Inter, R$ 12.130,09 com R$ 1.000 pagos, entrava no
+    // inicial pelos R$ 1.000 — o monstro perdia onze mil de vida e comemorava
+    // uma vitória que não houve.
     //
-    // A subtração não precisa de piso: os dois lados somam o MESMO campo
-    // (`referenceAmount`) sobre um subconjunto da mesma lista, então o
-    // descontado nunca passa do inicial.
-    final commitmentsInitial = Money.sumOf(commitments, (c) => c.amount);
-    final struck = Money.sumOf(
-      commitments.where((c) => c.isStruck),
-      (c) => c.amount,
-    );
+    // A subtração não precisa de piso: `struck` já é preso ao `planned` da
+    // própria linha, então o descontado nunca passa do inicial. Pagar a mais
+    // não derruba nada além do compromisso — o excedente vira `overpaid` e
+    // aparece na folha, não na barra.
+    final commitmentsInitial = Money.sumOf(commitments, (c) => c.planned);
+    final struck = Money.sumOf(commitments, (c) => c.struck);
     final commitmentsRemaining = commitmentsInitial - struck;
 
     // ── Heróis ─────────────────────────────────────────────────────────────
